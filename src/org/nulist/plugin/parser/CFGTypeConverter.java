@@ -12,6 +12,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.*;
 
@@ -165,7 +166,8 @@ public class CFGTypeConverter {
                 }
 
                 CCompositeType cCompositeType = new CCompositeType(isConst, false,
-                        CComplexType.ComplexTypeKind.UNION, members, typeName, typeString);
+                        CComplexType.ComplexTypeKind.UNION,
+                        members, typeName, typeString);
                 CElaboratedType cElaboratedType= new CElaboratedType(isConst, false,
                         CComplexType.ComplexTypeKind.UNION,
                         typeName, typeString,cCompositeType);
@@ -173,6 +175,20 @@ public class CFGTypeConverter {
                 return cElaboratedType;
             }else if(type.is_a(ast_class.getUC_VECTOR_TYPE())){//C++ only
                 System.out.println();
+            }else if(type.is_a(ast_class.getUC_ROUTINE_TYPE())){//
+                //CFunctionTypeWithNames
+
+                CType returnType = getCType(type.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast());
+                List<CParameterDeclaration> paramList = new ArrayList<>();
+                if(type.has_field(ast_ordinal.getUC_PARAM_TYPES())){
+                    ast param_types = type.get(ast_ordinal.getUC_PARAM_TYPES()).as_ast();
+                    for(int i=0;i<param_types.children().size();i++){
+                        ast param = param_types.children().get(0).as_ast();
+                        CType paramType = getCType(param.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                        CParameterDeclaration paramDeclaration = new CParameterDeclaration()
+                    }
+                }
+                CFunctionTypeWithNames cFunctionTypeWithNames= new CFunctionTypeWithNames(returnType, paramList, true);
             }else
                 throw new RuntimeException("Unsupported type "+ type.toString());
 

@@ -106,6 +106,59 @@ public class CPAMain {
   static final int ERROR_EXIT_CODE = 1;
   public static String systemPath = "";
 
+  public static void executionTesting(String[] args, String cpacheckerPath, String programPath, project target){
+    systemPath = cpacheckerPath;
+    Locale.setDefault(Locale.US);
+
+    // initialize various components
+    Configuration cpaConfig = null;
+    LoggingOptions logOptions;
+    String outputDirectory = null;
+    Set<SpecificationProperty> properties = null;
+    try {
+      try {
+        Config p = createConfiguration(args);
+        cpaConfig = p.configuration;
+        outputDirectory = p.outputPath;
+        properties = p.properties;
+      } catch (InvalidCmdlineArgumentException e) {
+        throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
+      } catch (IOException e) {
+        throw Output.fatalError("Could not read config file %s", e.getMessage());
+      }
+
+      logOptions = new LoggingOptions(cpaConfig);
+
+    } catch (InvalidConfigurationException e) {
+      throw Output.fatalError("Invalid configuration: %s", e.getMessage());
+    }
+    final LogManager logManager = BasicLogManager.create(logOptions);
+    cpaConfig.enableLogging(logManager);
+    GlobalInfo.getInstance().storeLogManager(logManager);
+
+
+    // create everything
+    final ShutdownManager shutdownManager = ShutdownManager.create();
+    final ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
+    CFGParser cfgParser = new CFGParser(logManager, MachineModel.LINUX64);
+    try {
+      ParseResult result = cfgParser.parseProject(target);
+      //FunctionEntryNode main = result.getFunctions().get("main");
+      //CFACreator cfaCreator = new CFACreator(cpaConfig, logManager, shutdownNotifier);
+      //cfaCreator.createCFA(result,main);
+    }catch (result r){
+      r.printStackTrace();
+    }catch (Exception e){
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * @Description The actual main function.
+   * load configurations, convert CFGs to CFAs, generate CFA, and model checking
+   * @Param [args, cpacheckerPath, programPath, target]
+   * @return void
+   **/
   public static void executeParser(String[] args, String cpacheckerPath, String programPath, project target){
     systemPath = cpacheckerPath;
     Locale.setDefault(Locale.US);

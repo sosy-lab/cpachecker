@@ -32,7 +32,8 @@ public class CSurfPlugin {
         try{
             System.out.println("==================CSURF_PLUGIN_BEGIN==================");
             project proj = project.current();
-            CPAMain.executeParser(arguments, cpacheckPath, programPath, proj);
+            CPAMain.executionTesting(arguments, cpacheckPath, programPath, proj);
+            //CPAMain.executeParser(arguments, cpacheckPath, programPath, proj);
 
             System.out.println("==================CSURF_PLUGIN_END==================");
         }catch(result r){

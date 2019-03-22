@@ -96,9 +96,6 @@ public class CFABuilder {
         // Iterate over all procedures in the compilation unit
         // procedure = function
 
-        /* create global variable declaration*/
-        if(cu.is_user())
-            declareGlobalVariables(cu);
         //expressionHandler.setGlobalVariableDeclarations(globalVariableDeclarations);
 
         for (compunit_procedure_iterator proc_it = cu.procedures();
@@ -124,6 +121,10 @@ public class CFABuilder {
                     systemFunctions.put(funcName, en);
             }
         }
+
+        /* create global variable declaration*/
+        if(cu.is_user())
+            declareGlobalVariables(cu);
 
         parsedFiles.add(Paths.get(pFileName));
     }
@@ -206,6 +207,17 @@ public class CFABuilder {
                     normalizedName = expressionHandler.getSimpleFileName(pFileName)+"__static__"+normalizedName;
                     storageClass = CStorageClass.AUTO;
                 }
+
+                if(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast().is_a(ast_class.getUC_ROUTINE_TYPE())){
+                    System.out.println();
+                }
+                ast type = un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
+                if(isPointerType(type)){
+                    ast pointedTo = type.get(ast_ordinal.getBASE_POINTED_TO()).as_ast();
+                    if(pointedTo.is_a(ast_class.getUC_ROUTINE_TYPE()))
+                        System.out.println();
+                }
+
 
                 CType varType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
                 CInitializer initializer = null;
