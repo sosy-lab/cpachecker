@@ -125,4 +125,29 @@ class TypedValueManager {
         bfmgr.ifThenElse(pBooleanFormula, pThen.getType(), pElse.getType()),
         bfmgr.ifThenElse(pBooleanFormula, pThen.getValue(), pElse.getValue()));
   }
+
+  BooleanFormula isNullValue(final TypedValue pValue) {
+    final BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    final IntegerFormula type = pValue.getType();
+    if (Lists.newArrayList(
+            typeTags.BOOLEAN,
+            typeTags.NUMBER,
+            typeTags.STRING,
+            typeTags.UNDEFINED,
+            typeTags.FUNCTION)
+        .contains(type)) {
+      return bfmgr.makeFalse();
+    } else if (type.equals(typeTags.OBJECT)) {
+      return fmgr.makeEqual(getNullValue().getValue(), pValue.getValue());
+    }
+    final IntegerFormula variable = (IntegerFormula) pValue.getValue();
+    return bfmgr.and(
+        fmgr.makeEqual(type, typeTags.OBJECT),
+        fmgr.makeEqual(getNullValue().getValue(), typedVarValues.objectValue(variable)));
+  }
+
+  BooleanFormula isNotNullValue(final TypedValue pValue) {
+    final BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    return bfmgr.not(isNullValue(pValue));
+  }
 }
