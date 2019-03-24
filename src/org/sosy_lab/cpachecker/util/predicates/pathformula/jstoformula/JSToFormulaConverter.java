@@ -412,7 +412,9 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
       final BooleanFormula returnValueIsObject =
           bfmgr.or(
               fmgr.makeEqual(returnValue.getType(), typeTags.FUNCTION),
-              fmgr.makeEqual(returnValue.getType(), typeTags.OBJECT));
+              bfmgr.and(
+                  fmgr.makeEqual(returnValue.getType(), typeTags.OBJECT),
+                  tvmgr.isNotNullValue(returnValue)));
       assert lhs instanceof JSIdExpression;
       final JSSimpleDeclaration lhsDeclaration = ((JSIdExpression) lhs).getDeclaration();
       assert lhsDeclaration != null;
