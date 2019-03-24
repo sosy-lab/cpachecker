@@ -440,10 +440,10 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
     final EdgeManagerContext calledFunctionCtx = pCallerCtx.copy(calledFunctionName);
     final Optional<JSIdExpression> functionObject = functionCallExpression.getFunctionObject();
     final IntegerFormula callerScopeVariable = pCallerCtx.scopeMgr.getCurrentScope();
-    final IntegerFormula currentScopeVariable = calledFunctionCtx.scopeMgr.createCurrentScope();
+    final IntegerFormula calledScopeVariable = calledFunctionCtx.scopeMgr.createCurrentScope();
     result.add(
         fmgr.makeEqual(
-            currentScopeVariable,
+            calledScopeVariable,
             fmgr.makeNumber(
                 SCOPE_TYPE, gctx.functionScopeManager.createScope(calledFunctionName))));
     // TODO refactor extract scopeStack management as method
@@ -467,8 +467,8 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
     }
     result.add(
         fmgr.makeEqual(
-            calledFunctionCtx.scopeMgr.scopeStack(currentScopeVariable),
-            afmgr.store(ss, ifmgr.makeNumber(nestingLevel + 1), currentScopeVariable)));
+            calledFunctionCtx.scopeMgr.scopeStack(calledScopeVariable),
+            afmgr.store(ss, ifmgr.makeNumber(nestingLevel + 1), calledScopeVariable)));
 
     // TODO manage global object (no variables are assigned to this dummy)
     final JSIdExpression globalObjectId =
