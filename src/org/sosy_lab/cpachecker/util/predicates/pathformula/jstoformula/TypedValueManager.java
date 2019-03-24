@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import com.google.common.collect.Lists;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -35,14 +36,17 @@ class TypedValueManager {
   private final TypeTags typeTags;
   private final TypedValue undefinedValue;
   private final TypedValue nullValue;
+  private final TypedVariableValues typedVarValues;
 
   TypedValueManager(
       final FormulaManagerView pFmgr,
       final TypeTags pTypeTags,
-      final IntegerFormula pNullValueObjectId) {
+      final IntegerFormula pNullValueObjectId,
+      final TypedVariableValues pTypedVarValues) {
     fmgr = pFmgr;
     typeTags = pTypeTags;
     nullValue = new TypedValue(typeTags.OBJECT, pNullValueObjectId);
+    typedVarValues = pTypedVarValues;
     // The value of undefined is always the same.
     // It does not matter as which value it is represented.
     // Thus, the same value as the type tag can be used.

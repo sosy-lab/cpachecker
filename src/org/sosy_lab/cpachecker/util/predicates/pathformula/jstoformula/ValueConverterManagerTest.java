@@ -83,9 +83,9 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
     initCPAcheckerSolver();
     final ObjectIdFormulaManager objIdMgr = new ObjectIdFormulaManager(mgrv);
     typeTags = new TypeTags(imgrv);
-    tvmgr = new TypedValueManager(mgrv, typeTags, objIdMgr.getNullObjectId());
     strMgr = new StringFormulaManager(mgrv, 20);
     typedVarValues = new TypedVariableValues(mgrv.getFunctionFormulaManager());
+    tvmgr = new TypedValueManager(mgrv, typeTags, objIdMgr.getNullObjectId(), typedVarValues);
     final JSNumberFormulaManager numMgr =
         new JSNumberFormulaManager(true, bmgr, mgrv.getFloatingPointFormulaManager());
     valConvMgr = new ValueConverterManager(typedVarValues, typeTags, tvmgr, strMgr, mgrv, numMgr);

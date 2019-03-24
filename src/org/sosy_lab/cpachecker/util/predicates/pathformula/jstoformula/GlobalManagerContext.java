@@ -89,7 +89,7 @@ class GlobalManagerContext {
     typedVarValues = new TypedVariableValues(ffmgr);
     typeTags = new TypeTags(fmgr.getIntegerFormulaManager());
     objIdMgr = new ObjectIdFormulaManager(fmgr);
-    tvmgr = new TypedValueManager(pFmgr, typeTags, objIdMgr.getNullObjectId());
+    tvmgr = new TypedValueManager(pFmgr, typeTags, objIdMgr.getNullObjectId(), typedVarValues);
     functionDeclarationIds = new Ids<>();
     functionScopeManager = new FunctionScopeManager();
     strMgr = new StringFormulaManager(pFmgr, pJSOptions.maxFieldNameCount);
