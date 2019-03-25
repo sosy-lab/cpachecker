@@ -63,7 +63,24 @@ public class CFGParser implements Parser{
             // only focus on user-defined c files
             input_file.add(Paths.get(cu.normalized_name()));
             cfaBuilder.basicBuild(cu);
+
+//            if(cu.name().contains("RRC_Rel14") ||
+//                    cu.name().contains("S1AP_R14") ||
+//                    cu.name().contains("X2AP_R14") ||
+//                    cu.name().contains("openair2/RRC") ||
+//                    cu.name().contains("openair2/NAS") ||
+//                    cu.name().contains("openair2/COMMON") ||
+//                    cu.name().contains("openair3/S1AP") ||
+//                    cu.name().contains("openair3/NAS") ||
+//                    cu.name().contains("openair3/COMMON") ||
+//                    cu.name().contains("openair3/UTILS"))
+//            {
+//                System.out.println(cu.name());
+//                input_file.add(Paths.get(cu.normalized_name()));
+//                cfaBuilder.basicBuild(cu);
+//            }
         }
+        System.out.println("Fisrt Traverse complete!");
 
         //the second traverse for building intra and inter CFA
         for(project_compunits_iterator cu_it = project.compunits();

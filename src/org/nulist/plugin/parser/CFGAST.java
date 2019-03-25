@@ -88,9 +88,9 @@ public class CFGAST {
 
     public static boolean isStructType(ast type){
         try {
-            return type.is_a(ast_class.getNC_STRUCT()) || type.is_a(ast_class.getUC_STRUCT()) ||
-                    type.get(ast_ordinal.getBASE_TYPE()).as_ast().is_a(ast_class.getUC_STRUCT());
+            return type.is_a(ast_class.getNC_STRUCT()) || type.is_a(ast_class.getUC_STRUCT());
         }catch (result r){
+
             return false;
         }
 

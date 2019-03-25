@@ -241,7 +241,8 @@ public class CFGFunctionBuilder  {
                 else if(s.get_kind().equals(symbol_kind.getRETURN()))
                     declSet.add(node);
                 else if(s.is_global()||s.is_file_static()){//extern variable with no initialization is not built in cfabuilder
-                    checkOrInsertNewGlobalVarDeclarations(s,null, getLocation(node));
+                    CType type = typeConverter.getCType(symbolAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                    checkOrInsertNewGlobalVarDeclarations(s, type, null, getLocation(node));
                 }
             }
         }
@@ -265,10 +266,10 @@ public class CFGFunctionBuilder  {
     }
 
 
-    public void checkOrInsertNewGlobalVarDeclarations(symbol varSymbol, CInitializer initializer, FileLocation fileLocation) throws result{
+    public void checkOrInsertNewGlobalVarDeclarations(symbol varSymbol, CType type, CInitializer initializer, FileLocation fileLocation) throws result{
         String varName = expressionHandler.getNormalizedVariableName(varSymbol, fileName);
         if(!expressionHandler.globalDeclarations.containsKey(varName.hashCode())){
-            expressionHandler.generateVariableDeclaration(varSymbol,initializer, fileLocation);
+            expressionHandler.generateVariableDeclaration(varSymbol, type, true, initializer, fileLocation);
         }
     }
 
@@ -293,8 +294,9 @@ public class CFGFunctionBuilder  {
             //locStack.push(prevNode);
         }else {
             for(point del:declSet){
-                symbol variable = del.declared_symbol();//normalized ast
 
+                symbol variable = del.declared_symbol();//normalized ast
+                CType type = typeConverter.getCType(variable.get_ast().get(ast_ordinal.getBASE_TYPE()).as_ast());
                 if(isFirstNode){
                     isFirstNode = false;
                     final CFANode nextNode = newCFANode();
@@ -319,7 +321,7 @@ public class CFGFunctionBuilder  {
                     fileLocation = getLocation((int)function.entry_point().file_line().get_second()+1, fileName);
                 else
                     fileLocation = getLocation((int)del.file_line().get_second(),fileName);
-                preVar = expressionHandler.generateVariableDeclaration(variable, null, fileLocation);
+                preVar = expressionHandler.generateVariableDeclaration(variable, type, false,null, fileLocation);
             }
             prevNode = locStack.peek();
             CDeclarationEdge edge = new CDeclarationEdge(getRawSignature(lastDecSymbol.primary_declaration()),

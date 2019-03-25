@@ -105,6 +105,7 @@ public class CFABuilder {
             if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())||
                     proc.get_kind().equals(procedure_kind.getLIBRARY())){
                 String funcName = proc.name();
+                System.out.println(funcName);
                 CFGFunctionBuilder cfgFunctionBuilder =
                         new CFGFunctionBuilder(logger, typeConverter,  proc,funcName, pFileName, this);
                 // add function declaration
@@ -181,6 +182,7 @@ public class CFABuilder {
     private void visitGlobalItem(procedure global_initialization) throws result {
 
         point_set pointSet = global_initialization.points();
+        List<String> variableList = new ArrayList<>();
         for(point_set_iterator point_it = pointSet.cbegin();
             !point_it.at_end(); point_it.advance()){
             //point p = point_it.current();
@@ -198,19 +200,24 @@ public class CFABuilder {
                 //global variable is initialized static
                 ast init = un_ast.get(ast_ordinal.getUC_STATIC_INIT()).as_ast();
 
-
                 symbol variableSym = un_ast.get(ast_ordinal.getUC_ABS_LOC()).as_symbol();
 
                 String variableName =variableSym.name();
-                String normalizedName = variableName;
+                if(variableList.contains(variableName) && node.get_ast(ast_family.getC_NORMALIZED()).is_a(ast_class.getNC_BLOCKASSIGN())){
+                    continue;
+                }
 
+                CType varType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                variableList.add(variableName);
+
+                String normalizedName = variableName;
 
                 if (storageClass == CStorageClass.STATIC) {
                     //file static
                     normalizedName = expressionHandler.getSimpleFileName(pFileName)+"__static__"+normalizedName;
                     storageClass = CStorageClass.AUTO;
                 }
-                CType varType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+
 
                 // void (*funA)(int)=&myFun;
                 if(typeConverter.isFunctionPointerType(varType)){
