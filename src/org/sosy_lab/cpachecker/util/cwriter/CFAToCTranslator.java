@@ -266,7 +266,7 @@ public class CFAToCTranslator {
 
     List<NodeAndBlock> nextNodes;
     if (outgoingEdges.size() >= 2) {
-      nextNodes = handleBranching(outgoingEdges, currentBlock);
+      nextNodes = handleBranching(outgoingEdges, currentBlock, pEdgesToHandle);
     } else if (outgoingEdges.size() == 1) {
       assert !(Iterables.getOnlyElement(outgoingEdges) instanceof CAssumeEdge)
           : "The worst case happened: A single assume edge!";
@@ -298,7 +298,7 @@ public class CFAToCTranslator {
   }
 
   private List<NodeAndBlock> handleBranching(
-      Collection<CFAEdge> branchingEdges, CompoundStatement currentBlock) {
+      Collection<CFAEdge> branchingEdges, CompoundStatement currentBlock, @Nullable Collection<CFAEdge> pRelevantEdges) {
 
     assert branchingEdges.size() == 2
         : "branches with more than two options not supported yet (was the program prepocessed with CIL?)"; // TODO: why not btw?
@@ -346,6 +346,8 @@ public class CFAToCTranslator {
         addStatement(currentBlock, createSimpleStatement(edgeToChild.getPredecessor(), elseCond));
         addStatement(currentBlock, result.get(0).getCurrentBlock());
       }
+
+      addStopIfNotRelevant(edgeToChild, newBlock, pRelevantEdges);
 
       NodeAndBlock newNode = new NodeAndBlock(edgeToChild.getSuccessor(), newBlock);
       if (truthAssumption) {
@@ -525,16 +527,21 @@ public class CFAToCTranslator {
     }
   }
 
+  private void addStopIfNotRelevant(CFAEdge pEdge, CompoundStatement pCurrentBlock, Collection<CFAEdge> pEdgesToHandle) {
+    final CFANode node = pEdge.getPredecessor();
+    if (pEdgesToHandle != null && !pEdgesToHandle.contains(pEdge)) {
+      if (CFAUtils.enteringEdges(pEdge.getPredecessor()).anyMatch(pEdgesToHandle::contains)) {
+        addStop(node, pCurrentBlock);
+      }
+    }
+  }
+
   private void processEdge(
       CFAEdge edge, CompoundStatement currentBlock, @Nullable Collection<CFAEdge> pEdgesToHandle)
       throws CPAException {
 
     final CFANode node = edge.getPredecessor();
-    if (pEdgesToHandle != null && !pEdgesToHandle.contains(edge)) {
-      if (CFAUtils.enteringEdges(edge.getPredecessor()).anyMatch(pEdgesToHandle::contains)) {
-        addStop(node, currentBlock);
-      }
-    }
+    addStopIfNotRelevant(edge, currentBlock, pEdgesToHandle);
 
     final String statement = processSimpleEdge(edge);
     final Statement s;
