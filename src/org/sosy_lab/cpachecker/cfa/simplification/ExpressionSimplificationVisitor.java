@@ -253,7 +253,16 @@ public class ExpressionSimplificationVisitor
         case BOOL: // negation of zero is zero, other values should be irrelevant
         case CHAR:
         case INT:
-          return new CIntegerLiteralExpression(loc, exprType, BigInteger.valueOf(negatedValue.longValue()));
+            // better do not convert to long, but directly use the computed value,
+            // i.e. "-1ULL" would be converted to long -1, which is valid,
+            // but does not match its CType bounds.
+            BigInteger number;
+            if (negatedValue.getNumber() instanceof BigInteger) {
+              number = (BigInteger) negatedValue.getNumber();
+            } else {
+              number = BigInteger.valueOf(negatedValue.longValue());
+            }
+            return new CIntegerLiteralExpression(loc, exprType, number);
         case FLOAT:
         case DOUBLE:
           double v = negatedValue.doubleValue();
