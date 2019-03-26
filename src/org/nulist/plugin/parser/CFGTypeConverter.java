@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 import static org.nulist.plugin.parser.CFGAST.*;
 
@@ -31,17 +33,34 @@ public class CFGTypeConverter {
     private final String ENUM_PREF = "__ENUM__";
     private static final CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
     private final Map<Integer, CType> typeCache = new HashMap<>();
+    private Map<String, CType> typeMap = new HashMap<>();
 
     public CFGTypeConverter(final LogManager pLogger) {
         logger = pLogger;
         basicTypeInitialization();
     }
 
-
     //
     //since codesurfer normalizes bool into unsigned char, which may confuse model checking
     // we need to input unnormalized type
     public CType getCType(ast type){
+        typeMap = new HashMap<>();
+        try {
+            String typeString = handleUnnamedType(type);
+            CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
+            if(cType!=null)
+                return cType;
+            else{
+                CType result = getCType(type, false);
+                typeMap = new HashMap<>();
+                return result;
+            }
+        }catch (result r){
+            return null;
+        }
+    }
+
+    private CType getSubType(ast type){
         try {
             String typeString = handleUnnamedType(type);
             CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
@@ -57,15 +76,21 @@ public class CFGTypeConverter {
     private CType getCType(ast type, boolean isConst){
         try {
             String typeString = type.pretty_print();
+            if(typeString.endsWith("<UNNAMED>") || typeString.endsWith("<unnamed>")){
+                typeString = handleUnnamedType(type);
+            }
 
             CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
             //if(isConst && !typeString.startsWith("const "))
             //    cType = typeCache.getOrDefault(("const "+typeString).hashCode(),null);
             if(cType!=null)
                 return cType;
-            else if(isTypeRef(type)){
+            else if(!typeMap.isEmpty() && typeMap.containsKey(typeString)){
+                return typeMap.get(typeString);
+            } else if(isTypeRef(type)){
                 ast originTypeAST = type.get(ast_ordinal.getBASE_TYPE()).as_ast();
-                CType cTypedefType;
+                CType cTypedefType = null;
+
                 if(typeString.startsWith("const ")){
                     cTypedefType = getCType(originTypeAST, true);
                 }else {
@@ -81,14 +106,14 @@ public class CFGTypeConverter {
                 return createStructType(type, isConst);
             }else if(isPointerType(type)){
                 ast pointedTo = type.get(ast_ordinal.getBASE_POINTED_TO()).as_ast();
-                cType = getCType(pointedTo);
+                cType = getSubType(pointedTo);
                 CPointerType cPointerType = new CPointerType(isConst, false, cType);
                 //typeCache.put(typeString.hashCode(),cPointerType);
                 return cPointerType;
             }else if(isArrayType(type)){
                 long length = type.get(ast_ordinal.getBASE_NUM_ELEMENTS()).as_uint32();
                 ast elementType = type.get(ast_ordinal.getBASE_ELEMENT_TYPE()).as_ast();
-                cType = getCType(elementType);
+                cType = getSubType(elementType);
                 CIntegerLiteralExpression arrayLength =
                         new CIntegerLiteralExpression(
                                 FileLocation.DUMMY,
@@ -127,25 +152,28 @@ public class CFGTypeConverter {
                 return cElaboratedType;
             }else if(isUnionType(type)){
 
-                ast_field_vector children ;
-                if(type.is_a(ast_class.getUC_UNION()))
+                ast_field_vector children =null;
+                if(type.is_a(ast_class.getUC_UNION()) && type.has_field(ast_ordinal.getUC_FIELDS()))
                     children = type.get(ast_ordinal.getUC_FIELDS()).as_ast().children();
                 else
                     children = type.children();
 
-                List<CCompositeType.CCompositeTypeMemberDeclaration> members = new ArrayList<>();
-                for(int i=0;i<children.size();i++){
-                    ast memberAST = children.get(i).as_ast();
-                    CType memeberType = getCType(memberAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
-                    String memberName = memberAST.pretty_print();//memberAST.get(ast_ordinal.getBASE_NAME()).as_str();
-                    CCompositeType.CCompositeTypeMemberDeclaration memberDeclaration =
-                            new CCompositeType.CCompositeTypeMemberDeclaration(memeberType, memberName);
-                    members.add(memberDeclaration);
-                }
                 String typeName = typeString;
                 if(typeString.endsWith("<UNNAMED>") || typeString.endsWith("<unnamed>") ){
                     typeName =handleUnnamedType(type);
                     typeString = "";
+                }
+
+                List<CCompositeType.CCompositeTypeMemberDeclaration> members = new ArrayList<>();
+
+                if(children!=null && !children.isEmpty())
+                for(int i=0;i<children.size();i++){
+                    ast memberAST = children.get(i).as_ast();
+                    CType memeberType = getSubType(memberAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                    String memberName = memberAST.pretty_print();//memberAST.get(ast_ordinal.getBASE_NAME()).as_str();
+                    CCompositeType.CCompositeTypeMemberDeclaration memberDeclaration =
+                            new CCompositeType.CCompositeTypeMemberDeclaration(memeberType, memberName);
+                    members.add(memberDeclaration);
                 }
 
                 CCompositeType cCompositeType = new CCompositeType(isConst, false,
@@ -161,17 +189,18 @@ public class CFGTypeConverter {
                 System.out.println();
             }else if(type.is_a(ast_class.getUC_ROUTINE_TYPE())){//
                 //output function type, then in expression, we convert to CFunctionTypeWithNames in demand
-                CType returnType = getCType(type.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast());
+                CType returnType = getSubType(type.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast());
                 List<CType> paramTypesList = new ArrayList<>();
+
                 if(type.has_field(ast_ordinal.getUC_PARAM_TYPES())){
                     ast param_types = type.get(ast_ordinal.getUC_PARAM_TYPES()).as_ast();
                     for(int i=0;i<param_types.children().size();i++){
                         ast param = param_types.children().get(i).as_ast();
-                        CType paramType = getCType(param.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                        CType paramType = getSubType(param.get(ast_ordinal.getBASE_TYPE()).as_ast());
                         paramTypesList.add(paramType);
                     }
                 }
-                //function(int a, ...), ... means has_ellipsis is true, pTakesVarArgs is true
+                //function(int a, ...), ... means has_ellipsis is true ==> pTakesVarArgs is true
                 return new CFunctionType(returnType, paramTypesList, type.get(ast_ordinal.getUC_HAS_ELLIPSIS()).as_boolean());
             }else if(type.is_a(ast_class.getNC_ROUTINE_TYPE())){
 
@@ -180,7 +209,7 @@ public class CFGTypeConverter {
 
             return null;
         }catch (result r){
-            return null;
+            throw new RuntimeException("Issue in handle type "+ type.toString());
         }
     }
 
@@ -191,18 +220,22 @@ public class CFGTypeConverter {
             if(isStructType(type)){
                 typeName=STRUCT_PREF;
                 if(type.is_a(ast_class.getUC_STRUCT()))
-                    typeName += type.get(ast_ordinal.getUC_UID()).as_uint32();
+                    typeName += type.get(ast_ordinal.getUC_POSITION()).as_uint64();
                 else {
-                    typeName += type.get(ast_ordinal.getNC_UNNORMALIZED()).get(ast_ordinal.getUC_UID()).as_uint32();
+                    typeName += type.get(ast_ordinal.getNC_UNNORMALIZED()).get(ast_ordinal.getUC_POSITION()).as_uint64();
                 }
                 return typeName;
             } else if(isUnionType(type)){
                 typeName=UNION_PREF;
                 if(type.is_a(ast_class.getUC_UNION()))
-                    typeName += type.get(ast_ordinal.getUC_UID()).as_uint32();
+                    typeName += type.get(ast_ordinal.getUC_POSITION()).as_uint64();
                 else {
-                    typeName += type.get(ast_ordinal.getNC_UNNORMALIZED()).get(ast_ordinal.getUC_UID()).as_uint32();
+                    typeName += type.get(ast_ordinal.getNC_UNNORMALIZED()).get(ast_ordinal.getUC_POSITION()).as_uint64();
                 }
+                return typeName;
+            }else if(isEnumType(type)){
+                typeName = ENUM_PREF;
+                typeName += type.get(ast_ordinal.getUC_POSITION()).as_uint64();
                 return typeName;
             }
             return typeString;
@@ -275,7 +308,6 @@ public class CFGTypeConverter {
             structName = "";
         }
 
-
         ast struct_type = getStructType(type);
 
         if(typeCache.containsKey(typeName.hashCode())){
@@ -291,45 +323,43 @@ public class CFGTypeConverter {
 
         CCompositeType cStructType =
                 new CCompositeType(isConst, isVolatile, CComplexType.ComplexTypeKind.STRUCT, typeName, structName);
-
+        CElaboratedType cEStructType = new CElaboratedType(isConst,
+                isVolatile,
+                CComplexType.ComplexTypeKind.STRUCT,
+                typeName,
+                structName,
+                cStructType);
         //normalized type
-        ast_field_vector items;
-        if(struct_type.is_a(ast_class.getUC_STRUCT()))
-            items = struct_type.get(ast_ordinal.getUC_FIELDS()).as_ast().children();
+        ast_field_vector items = null;
+        if(struct_type.is_a(ast_class.getUC_STRUCT())){
+            if(struct_type.has_field(ast_ordinal.getUC_FIELDS()))
+                items = struct_type.get(ast_ordinal.getUC_FIELDS()).as_ast().children();
+        }
         else
             items =struct_type.children(); //
 
+        if(items==null || items.isEmpty()){
+            typeCache.put(typeName.hashCode(), cEStructType);
+            return cEStructType;
+        }
+
         List<CCompositeType.CCompositeTypeMemberDeclaration> members =
                 new ArrayList<>((int)items.size());
-
+        typeMap.put(typeName, cEStructType);
         for (int i = 0; i < items.size(); i++) {
             ast member = items.get(i).as_ast();
             String memberName = member.pretty_print();
             String memberTypeName = member.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print();
-            if(memberTypeName.equals(type.pretty_print())){//
-                CElaboratedType cType = new CElaboratedType(isConst,
-                        isVolatile,
-                        CComplexType.ComplexTypeKind.STRUCT,
-                        typeName,
-                        structName,
-                        cStructType);
+            if(memberTypeName.endsWith("<UNNAMED>") || memberTypeName.endsWith("<unnamed>") ){
+                memberTypeName = handleUnnamedType(type);
+            }
 
+            if(typeMap.containsKey(memberTypeName)){
                 CCompositeType.CCompositeTypeMemberDeclaration memDecl =
-                        new CCompositeType.CCompositeTypeMemberDeclaration(cType, memberName);
+                        new CCompositeType.CCompositeTypeMemberDeclaration(typeMap.get(memberTypeName), memberName);
                 members.add(memDecl);
-            }else if(memberTypeName.contains(type.pretty_print()) && isPointerType(member.get(ast_ordinal.getBASE_TYPE()).as_ast())) {
-                CElaboratedType cType = new CElaboratedType(isConst,
-                        isVolatile,
-                        CComplexType.ComplexTypeKind.STRUCT,
-                        typeName,
-                        structName,
-                        cStructType);
-                CPointerType pointerType = new CPointerType(false,false, cType);
-                CCompositeType.CCompositeTypeMemberDeclaration memDecl =
-                        new CCompositeType.CCompositeTypeMemberDeclaration(pointerType, memberName);
-                members.add(memDecl);
-            }else{
-                CType cMemType = getCType(member.get(ast_ordinal.getBASE_TYPE()).as_ast());
+            }else {
+                CType cMemType = getSubType(member.get(ast_ordinal.getBASE_TYPE()).as_ast());
                 CCompositeType.CCompositeTypeMemberDeclaration memDecl =
                         new CCompositeType.CCompositeTypeMemberDeclaration(cMemType, memberName);
                 members.add(memDecl);
@@ -338,15 +368,8 @@ public class CFGTypeConverter {
 
         cStructType.setMembers(members);
 
-        CElaboratedType cType = new CElaboratedType(isConst,
-                                                    isVolatile,
-                                                    CComplexType.ComplexTypeKind.STRUCT,
-                                                    typeName,
-                                                    structName,
-                                                    cStructType);
-
-        typeCache.put(typeName.hashCode(), cType);
-        return cType;
+        typeCache.put(typeName.hashCode(), cEStructType);
+        return cEStructType;
     }
 
     public CFunctionTypeWithNames convertCFuntionType(CFunctionType cFunctionType, String name, FileLocation fileLocation){

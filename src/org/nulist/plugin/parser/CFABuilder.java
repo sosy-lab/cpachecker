@@ -97,7 +97,7 @@ public class CFABuilder {
         // procedure = function
 
         //expressionHandler.setGlobalVariableDeclarations(globalVariableDeclarations);
-
+        /* create global variable and function declaration*/
         for (compunit_procedure_iterator proc_it = cu.procedures();
              !proc_it.at_end(); proc_it.advance()) {
             procedure proc = proc_it.current();
@@ -105,7 +105,9 @@ public class CFABuilder {
             if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())||
                     proc.get_kind().equals(procedure_kind.getLIBRARY())){
                 String funcName = proc.name();
-                System.out.println(funcName);
+                if(funcName.equals("cmpint")|| funcName.equals("ASN__STACK_OVERFLOW_CHECK"))
+                    continue;
+                //System.out.println(funcName);
                 CFGFunctionBuilder cfgFunctionBuilder =
                         new CFGFunctionBuilder(logger, typeConverter,  proc,funcName, pFileName, this);
                 // add function declaration
@@ -120,12 +122,11 @@ public class CFABuilder {
                     cfgFunctionBuilderMap.put(funcName,cfgFunctionBuilder);
                 }else
                     systemFunctions.put(funcName, en);
+            }else if(cu.is_user() && proc.get_kind().equals(procedure_kind.getFILE_INITIALIZATION())
+                    && proc.name().contains("Global_Initialization")){
+                visitGlobalItem(proc);
             }
         }
-
-        /* create global variable declaration*/
-        if(cu.is_user())
-            declareGlobalVariables(cu);
 
         parsedFiles.add(Paths.get(pFileName));
     }
@@ -141,6 +142,9 @@ public class CFABuilder {
             procedure proc = proc_it.current();
             if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
                 String funcName = proc.name();
+                if(funcName.equals("cmpint")|| funcName.equals("ASN__STACK_OVERFLOW_CHECK"))
+                    continue;
+                System.out.println(funcName);
                 CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
                 cfgFunctionBuilder.visitFunction();
             }
@@ -190,26 +194,16 @@ public class CFABuilder {
 
             //f
             if(isVariable_Initialization(node)|| isExpression(node)){
-
-                String pFileName = node.file_line().get_first().name();
-                FileLocation fileLocation = getLocation(node, pFileName);
                 ast un_ast = node.get_ast(ast_family.getC_UNNORMALIZED());
-                // Support static and other storage classes
-                CStorageClass storageClass= getStorageClass(un_ast);
-
-                //global variable is initialized static
-                ast init = un_ast.get(ast_ordinal.getUC_STATIC_INIT()).as_ast();
-
                 symbol variableSym = un_ast.get(ast_ordinal.getUC_ABS_LOC()).as_symbol();
 
                 String variableName =variableSym.name();
-                if(variableList.contains(variableName) && node.get_ast(ast_family.getC_NORMALIZED()).is_a(ast_class.getNC_BLOCKASSIGN())){
-                    continue;
-                }
 
-                CType varType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
-                variableList.add(variableName);
+                String pFileName = node.file_line().get_first().name();
+                FileLocation fileLocation = getLocation(node, pFileName);
 
+                // Support static and other storage classes
+                CStorageClass storageClass= getStorageClass(un_ast);
                 String normalizedName = variableName;
 
                 if (storageClass == CStorageClass.STATIC) {
@@ -217,7 +211,18 @@ public class CFABuilder {
                     normalizedName = expressionHandler.getSimpleFileName(pFileName)+"__static__"+normalizedName;
                     storageClass = CStorageClass.AUTO;
                 }
+                if(variableList.contains(normalizedName) && node.get_ast(ast_family.getC_NORMALIZED()).is_a(ast_class.getNC_BLOCKASSIGN())){
+                    continue;
+                }
 
+                if(expressionHandler.globalDeclarations.containsKey(normalizedName.hashCode()))
+                    continue;
+
+                //global variable is initialized static
+                ast init = un_ast.get(ast_ordinal.getUC_STATIC_INIT()).as_ast();
+
+                CType varType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                variableList.add(normalizedName);
 
                 // void (*funA)(int)=&myFun;
                 if(typeConverter.isFunctionPointerType(varType)){

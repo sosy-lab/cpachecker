@@ -266,7 +266,9 @@ public class CFGFunctionBuilder  {
     }
 
 
-    public void checkOrInsertNewGlobalVarDeclarations(symbol varSymbol, CType type, CInitializer initializer, FileLocation fileLocation) throws result{
+    public void checkOrInsertNewGlobalVarDeclarations(symbol varSymbol, CType type,
+                                                      CInitializer initializer,
+                                                      FileLocation fileLocation) throws result{
         String varName = expressionHandler.getNormalizedVariableName(varSymbol, fileName);
         if(!expressionHandler.globalDeclarations.containsKey(varName.hashCode())){
             expressionHandler.generateVariableDeclaration(varSymbol, type, true, initializer, fileLocation);
@@ -321,7 +323,9 @@ public class CFGFunctionBuilder  {
                     fileLocation = getLocation((int)function.entry_point().file_line().get_second()+1, fileName);
                 else
                     fileLocation = getLocation((int)del.file_line().get_second(),fileName);
-                preVar = expressionHandler.generateVariableDeclaration(variable, type, false,null, fileLocation);
+                preVar = (CVariableDeclaration) expressionHandler
+                        .generateVariableDeclaration(variable, type, false,
+                                null, fileLocation);
             }
             prevNode = locStack.peek();
             CDeclarationEdge edge = new CDeclarationEdge(getRawSignature(lastDecSymbol.primary_declaration()),
@@ -416,7 +420,8 @@ public class CFGFunctionBuilder  {
         ast un_ast = exprNode.get_ast(ast_family.getC_UNNORMALIZED());
 
         if(un_ast.is_a(ast_class.getUC_INIT())){
-            CVariableDeclaration variableDeclaration = expressionHandler.generateInitVarDeclFromUC(un_ast,fileLocation);
+            CVariableDeclaration variableDeclaration = (CVariableDeclaration)
+                    expressionHandler.generateInitVarDeclFromUC(un_ast,fileLocation);
             CDeclarationEdge edge = new CDeclarationEdge(getRawSignature(exprNode),
                     fileLocation,
                     prevNode,

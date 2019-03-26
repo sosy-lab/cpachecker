@@ -376,8 +376,10 @@ public class CFGAST {
             return CBinaryExpression.BinaryOperator.LESS_THAN;
         else if(un_ast.is_a(ast_class.getUC_ABSTRACT_LE()))
             return CBinaryExpression.BinaryOperator.LESS_EQUAL;//<=
-        else
+        else{
+            dumpAST(un_ast,0,un_ast.toString());
             throw new UnsupportedOperationException("Unsupported predicate "+ un_ast.toString());
+        }
     }
 
     //Normalized
@@ -498,6 +500,36 @@ public class CFGAST {
                 return normalizingVariableName(variable_ast);
         }
         return null;
+    }
+
+    public static void dumpAST(ast target, int mode, String tag){
+        try {
+            ast_field_vector afv = null;
+            switch (mode){
+                case 0:
+                    afv = target.fields();
+                    for(int i=0;i<afv.size();i++)
+                        System.out.println(tag+" fields: "+afv.get(i).toString());
+                    break;
+                case 1:
+                    afv = target.children();
+                    for(int i=0;i<afv.size();i++)
+                        System.out.println(tag+" children: "+afv.get(i).toString());
+                    break;
+                case 2:
+                    afv = target.attributes();
+                    for(int i=0;i<afv.size();i++)
+                        System.out.println(tag+" attributes: "+afv.get(i).toString());
+                    break;
+                default:
+                    afv = target.fields();
+                    for(int i=0;i<afv.size();i++)
+                        System.out.println(tag+" fields: "+afv.get(i).toString());
+                    break;
+            }
+        }catch (result r){
+
+        }
     }
 
 

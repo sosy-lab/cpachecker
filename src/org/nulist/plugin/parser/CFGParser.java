@@ -61,24 +61,14 @@ public class CFGParser implements Parser{
         {
             compunit cu = cu_it.current();
             // only focus on user-defined c files
-            input_file.add(Paths.get(cu.normalized_name()));
-            cfaBuilder.basicBuild(cu);
+//            input_file.add(Paths.get(cu.normalized_name()));
+//            cfaBuilder.basicBuild(cu);
 
-//            if(cu.name().contains("RRC_Rel14") ||
-//                    cu.name().contains("S1AP_R14") ||
-//                    cu.name().contains("X2AP_R14") ||
-//                    cu.name().contains("openair2/RRC") ||
-//                    cu.name().contains("openair2/NAS") ||
-//                    cu.name().contains("openair2/COMMON") ||
-//                    cu.name().contains("openair3/S1AP") ||
-//                    cu.name().contains("openair3/NAS") ||
-//                    cu.name().contains("openair3/COMMON") ||
-//                    cu.name().contains("openair3/UTILS"))
-//            {
-//                System.out.println(cu.name());
-//                input_file.add(Paths.get(cu.normalized_name()));
-//                cfaBuilder.basicBuild(cu);
-//            }
+            if(fileFilter(cu.name()))
+            {
+                input_file.add(Paths.get(cu.normalized_name()));
+                cfaBuilder.basicBuild(cu);
+            }
         }
         System.out.println("Fisrt Traverse complete!");
 
@@ -88,10 +78,12 @@ public class CFGParser implements Parser{
         {
             compunit cu = cu_it.current();
             // only focus on user-defined c files
-            if(!cu.is_user())
-                continue;
+            if(fileFilter(cu.name()))
+            {
             //input_file.add(Paths.get(cu.normalized_name()));
-            cfaBuilder.build(cu);
+                System.out.println(cu.name());
+                cfaBuilder.build(cu);
+            }
         }
 
 
@@ -103,6 +95,19 @@ public class CFGParser implements Parser{
     }
 
 
+
+    private boolean fileFilter(String name){
+        return name.contains("RRC_Rel14") ||
+                name.contains("S1AP_R14") ||
+                name.contains("X2AP_R14") ||
+                name.contains("openair2/RRC") ||
+                name.contains("openair2/NAS") ||
+                name.contains("openair2/COMMON") ||
+                name.contains("openair3/S1AP") ||
+                name.contains("openair3/NAS") ||
+                name.contains("openair3/COMMON") ||
+                name.contains("openair3/UTILS");
+    }
 
     @Override
     public Timer getCFAConstructionTime() {
