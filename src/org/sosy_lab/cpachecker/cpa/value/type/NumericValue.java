@@ -101,6 +101,9 @@ public class NumericValue implements Value, Serializable {
 
   /** Returns a {@link BigInteger} value representing the stored number. */
   public BigInteger bigInteger() {
+    if (number instanceof BigInteger) {
+      return (BigInteger) number;
+    }
     return new BigInteger(number.toString());
   }
 

@@ -256,13 +256,7 @@ public class ExpressionSimplificationVisitor
             // better do not convert to long, but directly use the computed value,
             // i.e. "-1ULL" would be converted to long -1, which is valid,
             // but does not match its CType bounds.
-            BigInteger number;
-            if (negatedValue.getNumber() instanceof BigInteger) {
-              number = (BigInteger) negatedValue.getNumber();
-            } else {
-              number = BigInteger.valueOf(negatedValue.longValue());
-            }
-            return new CIntegerLiteralExpression(loc, exprType, number);
+            return new CIntegerLiteralExpression(loc, exprType, negatedValue.bigInteger());
         case FLOAT:
         case DOUBLE:
           double v = negatedValue.doubleValue();
