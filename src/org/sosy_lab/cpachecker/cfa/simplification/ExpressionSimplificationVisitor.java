@@ -280,7 +280,7 @@ public class ExpressionSimplificationVisitor
         // cast the value, because the evaluation of "~" is done for long and maybe the target-type is integer.
         final NumericValue complementValue = (NumericValue) AbstractExpressionValueVisitor.castCValue(
             new NumericValue(~value.longValue()), exprType, machineModel, logger, loc);
-        return new CIntegerLiteralExpression(loc, exprType, BigInteger.valueOf(complementValue.longValue()));
+        return new CIntegerLiteralExpression(loc, exprType, complementValue.bigInteger());
       }
     }
 
