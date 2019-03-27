@@ -56,7 +56,7 @@ public class CFGTypeConverter {
                 return result;
             }
         }catch (result r){
-            return null;
+            throw new RuntimeException(r);
         }
     }
 
@@ -69,7 +69,7 @@ public class CFGTypeConverter {
             else
                 return getCType(type, false);
         }catch (result r){
-            return null;
+            throw new RuntimeException(r);
         }
     }
 
@@ -360,6 +360,8 @@ public class CFGTypeConverter {
                 members.add(memDecl);
             }else {
                 CType cMemType = getSubType(member.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                if(isFunctionPointerType(cMemType))
+                    cMemType = convertCFuntionType(cMemType,memberName, FileLocation.DUMMY);
                 CCompositeType.CCompositeTypeMemberDeclaration memDecl =
                         new CCompositeType.CCompositeTypeMemberDeclaration(cMemType, memberName);
                 members.add(memDecl);
@@ -383,11 +385,39 @@ public class CFGTypeConverter {
         return typeWithNames;
     }
 
+    public CType convertCFuntionType(CType cType, String name, FileLocation fileLocation){
+        if(cType instanceof CFunctionType)
+            return convertCFuntionType(cType,name, fileLocation);
+        else if(cType instanceof CPointerType){
+            CFunctionType functionType = (CFunctionType) ((CPointerType) cType).getType();
+            CFunctionTypeWithNames cFunctionTypeWithNames = convertCFuntionType(functionType,name,fileLocation);
+            return new CPointerType(cType.isConst(),cType.isVolatile(), cFunctionTypeWithNames);
+        }else if(cType instanceof CTypedefType){
+            CPointerType cPointerType =(CPointerType) ((CTypedefType) cType).getRealType();
+            cPointerType = (CPointerType) convertCFuntionType(cPointerType, name, fileLocation);
+            return new CTypedefType(cType.isConst(), cType.isVolatile(), ((CTypedefType) cType).getName(), cPointerType);
+        }else {
+            throw new RuntimeException("This is not a function pointer type");
+        }
+    }
+
+
+    public CType getFuntionTypeFromFunctionPointer(CType cType){
+        if(cType instanceof CPointerType){
+            return ((CPointerType)cType).getType();
+        }else if(cType instanceof CTypedefType){
+            return getFuntionTypeFromFunctionPointer(((CTypedefType) cType).getRealType());
+        }else
+            throw new RuntimeException("Not a function pointer type: "+ cType.toString());
+    }
+
     public boolean isFunctionPointerType(CType type){
         if(type instanceof CPointerType){
             CType basicType = ((CPointerType)type).getType();
             if(basicType instanceof CFunctionType || basicType instanceof CFunctionTypeWithNames)
                 return true;
+        }else if(type instanceof CTypedefType){
+            return isFunctionPointerType(((CTypedefType) type).getRealType());
         }
         return false;
     }

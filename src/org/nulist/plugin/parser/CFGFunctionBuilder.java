@@ -205,6 +205,8 @@ public class CFGFunctionBuilder  {
     public void visitFunction() throws result {
         assert function!=null && function.get_kind().equals(procedure_kind.getUSER_DEFINED());
 
+        if(functionName.equals("nas_proc_deactivate_pdn") || functionName.equals("nas_proc_get_pdn_status"))
+            System.out.println();
         //expressionHandler.setVariableDeclarations(variableDeclarations);
         //first visit: build nodes before traversing CFGs
         List<point> declSet = new ArrayList<>();
@@ -449,15 +451,77 @@ public class CFGFunctionBuilder  {
                                             returnStatement, fileLocation,
                                             prevNode, cfa.getExitNode());
             addToCFA(edge);
+        }else if(isTempVariableAssignment(exprNode)){
+            ast no_ast = exprNode.get_ast(ast_family.getC_NORMALIZED());
+            //use temp variable as the function input
+            String rawString;
+            ast tempVar;
+            CType type;
+            if(no_ast.children().get(0).as_ast().is_a(ast_class.getNC_POINTEREXPR())){
+                tempVar = no_ast.children().get(0).as_ast().children().get(0).as_ast();
+                type =  typeConverter.getCType(tempVar.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                rawString = type.toString()+" "+no_ast.pretty_print();
+                type = new CPointerType(false, false, type);
+            }else if(no_ast.children().get(0).as_ast().is_a(ast_class.getNC_VARIABLE())){
+                tempVar = no_ast.children().get(0).as_ast();
+                type =  typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                rawString = type.toString()+" "+no_ast.pretty_print();
+            }else{
+                dumpAST(no_ast,0, no_ast.get_class().name());
+                throw new RuntimeException("Not a pointer expr "+ exprNode.toString());
+            }
+
+            CExpression expression = expressionHandler.getExpressionFromUC(un_ast, type, fileLocation);
+            CInitializer cInitializer = new CInitializerExpression(fileLocation, expression);
+            String varName = tempVar.get(ast_ordinal.getNC_NAME()).as_str();
+            CVariableDeclaration newVarDecl =
+                    new CVariableDeclaration(
+                            fileLocation,
+                            false,
+                            CStorageClass.AUTO,
+                            type,
+                            varName,
+                            varName,
+                            varName,
+                            cInitializer);
+            expressionHandler.variableDeclarations.put(varName.hashCode(),newVarDecl);
+
+            CDeclarationEdge declarationEdge = new CDeclarationEdge(rawString,fileLocation,prevNode,nextNode,newVarDecl);
+            addToCFA(declarationEdge);
+            traverseCFGNode(nextCFGNode);
         }else if(un_ast.is_a(ast_class.getUC_ABSTRACT_OPERATION())){
             CStatement statement = expressionHandler.getAssignStatementFromUC(un_ast, fileLocation);
             CStatementEdge edge = new CStatementEdge(getRawSignature(exprNode), statement,
                     fileLocation, prevNode, nextNode);
             addToCFA(edge);
             traverseCFGNode(nextCFGNode);
+        }else {
+            throw new RuntimeException("Not support expression: "+ exprNode.toString()+ " "+ un_ast.get_class().name());
         }
     }
 
+    private boolean isTempVariableAssignment(point exprNode)throws result{
+        try {
+            ast no_ast = exprNode.get_ast(ast_family.getC_NORMALIZED());
+            return no_ast.pretty_print().startsWith("$temp") || no_ast.pretty_print().startsWith("*$temp");
+//            if(no_ast.is_a(ast_class.getNC_ABSTRACT_STATEMENT()) &&
+//                    no_ast.children().get(0).as_ast().is_a(ast_class.getNC_VARIABLE()) &&
+//                    no_ast.children().get(0).as_ast().get(ast_ordinal.getBASE_ABS_LOC())
+//                            .as_symbol().get_kind().equals(symbol_kind.getINTERMEDIATE())){
+//                dumpAST(no_ast.children().get(0).as_ast(),0, no_ast.children().get(0).as_ast().get(ast_ordinal.getBASE_ABS_LOC())
+//                        .as_symbol().get_kind().name());
+//                return true;
+//            }
+//            return false;
+//            return no_ast.is_a(ast_class.getNC_ABSTRACT_STATEMENT()) &&
+//                    no_ast.children().get(0).as_ast().is_a(ast_class.getNC_VARIABLE()) &&
+//                    no_ast.children().get(0).as_ast().get(ast_ordinal.getBASE_ABS_LOC())
+//                            .as_symbol().get_kind().equals(symbol_kind.getINTERMEDIATE());
+        }catch (result r){
+            return false;
+        }
+
+    }
     /**
      *@Description TODO need to add inter-edge of function call
      *@Param [cfgNode, prevNode, fileLocation]
@@ -696,7 +760,7 @@ public class CFGFunctionBuilder  {
         CExpression funcNameExpr = expressionHandler
                 .getExpressionFromUC(operands.children().get(0).as_ast(),type,fileLocation);
         String rawCharacters="";
-        point actualoutCFGNode = null, nextCFGNode;
+        point actualoutCFGNode = null, nextCFGNode = null;
         point_set actuals_in = cfgNode.actuals_in();
         point_set actuals_out = cfgNode.actuals_out();
 
@@ -712,9 +776,18 @@ public class CFGFunctionBuilder  {
                 params.add(param);
             }
             rawCharacters=sb.toString().replace(", ",")");
-            if(actuals_out.empty())
-                nextCFGNode = actuals_in.to_vector().get((int)actuals_in.size()-1)
-                        .cfg_targets().cbegin().current().get_first();
+            if(actuals_out.empty()){
+                for(int i=0;i<actuals_in.to_vector().size();i++){
+                    String param = actuals_in.to_vector().get(i).get_ast(ast_family.getC_NORMALIZED())
+                            .children().get(0).as_ast().pretty_print();
+                    if(param.equals("$param_1")){
+                        nextCFGNode = actuals_in.to_vector().get(i).cfg_targets()
+                                .cbegin().current().get_first();
+                        break;
+                    }
+                }
+                assert nextCFGNode!=null;
+            }
             else {
                 actualoutCFGNode = actuals_out.cbegin().current();
                 nextCFGNode = actualoutCFGNode.cfg_targets().cbegin().current().get_first();
@@ -735,12 +808,24 @@ public class CFGFunctionBuilder  {
             functionCallExpression = new CFunctionCallExpression(fileLocation,
                     type, funcNameExpr, params, null);
         }else if(typeConverter.isFunctionPointerType(funcNameExpr.getExpressionType())){
-            CType funcType  = ((CPointerType)funcNameExpr.getExpressionType()).getType();
+            CType funcType  = typeConverter.getFuntionTypeFromFunctionPointer(funcNameExpr.getExpressionType());
             CPointerExpression pointerExpression = new CPointerExpression(fileLocation, funcType, funcNameExpr);
             functionCallExpression = new CFunctionCallExpression(fileLocation,
                     type, pointerExpression, params, null);
-        }
-        else
+        } else if(funcNameExpr instanceof CFieldReference){
+            CFieldReference fieldReference = (CFieldReference)funcNameExpr;
+            CType refType = fieldReference.getExpressionType();
+
+            if(refType instanceof CTypedefType){
+                refType = ((CTypedefType) refType).getRealType();
+            }
+            CFunctionType functionType = (CFunctionType) ((CPointerType)refType).getType();
+
+            CPointerExpression pointerExpression = new CPointerExpression(fileLocation,
+                    functionType, funcNameExpr);
+            functionCallExpression = new CFunctionCallExpression(fileLocation,
+                    type, pointerExpression, params, null);
+        }else
             functionCallExpression = new CFunctionCallExpression(fileLocation,
                     type, funcNameExpr, params,
                     (CFunctionDeclaration) ((CIdExpression)funcNameExpr).getDeclaration());
@@ -754,6 +839,8 @@ public class CFGFunctionBuilder  {
         CStatementEdge statementEdge;
 
         if(actualoutCFGNode==null){
+            if(nextNode==null)
+                System.out.println(nextCFGNode.get_kind().name());
             functionCallStatement = new CFunctionCallStatement(fileLocation,functionCallExpression);
             statementEdge= new CStatementEdge(rawCharacters,functionCallStatement,
                     fileLocation, prevNode, nextNode);
@@ -1077,21 +1164,12 @@ public class CFGFunctionBuilder  {
         //case node: no normalized ast
         ast condition = caseNode.get_ast(ast_family.getC_UNNORMALIZED());
         ast valueAST = condition.get(ast_ordinal.getBASE_VALUE()).as_ast()
-                    .get(ast_ordinal.getUC_CONSTANT()).as_ast()
-                    .get(ast_ordinal.getBASE_VALUE()).as_ast();
+                    .get(ast_ordinal.getUC_CONSTANT()).as_ast();
 
         //in c, the case type can only be Integer or Char
         CType valueType = typeConverter.getCType(valueAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
 
-        CExpression caseExpr = null;
-        if(valueAST.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print().equals("int") && !hasRadixField(valueAST)){
-                char value = valueAST.get(ast_ordinal.getUC_TEXT()).as_str().charAt(1);
-                valueType = CNumericTypes.CHAR;
-                caseExpr = new CCharLiteralExpression(fileLocation,valueType,value);
-        }else {
-            BigInteger value = BigInteger.valueOf(valueAST.get(ast_ordinal.getBASE_VALUE()).as_int32());
-            caseExpr = new CIntegerLiteralExpression(fileLocation,valueType, value);
-        }
+        CExpression caseExpr = expressionHandler.getExpressionFromUC(valueAST, valueType, fileLocation);
 
         CBinaryExpression conditionExpr = expressionHandler.buildBinaryExpression(
                 switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS);

@@ -63,8 +63,7 @@ public class CFGParser implements Parser{
             // only focus on user-defined c files
 //            input_file.add(Paths.get(cu.normalized_name()));
 //            cfaBuilder.basicBuild(cu);
-
-            if(fileFilter(cu.name()))
+            if(fileFilter(cu.name()) ||cu.is_library_model())
             {
                 input_file.add(Paths.get(cu.normalized_name()));
                 cfaBuilder.basicBuild(cu);

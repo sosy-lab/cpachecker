@@ -122,6 +122,9 @@ public class CFABuilder {
                     cfgFunctionBuilderMap.put(funcName,cfgFunctionBuilder);
                 }else
                     systemFunctions.put(funcName, en);
+
+                if(funcName.equals("parser_print_usage"))
+                    System.out.println(functionDeclaration.toASTString());
             }else if(cu.is_user() && proc.get_kind().equals(procedure_kind.getFILE_INITIALIZATION())
                     && proc.name().contains("Global_Initialization")){
                 visitGlobalItem(proc);
@@ -226,12 +229,7 @@ public class CFABuilder {
 
                 // void (*funA)(int)=&myFun;
                 if(typeConverter.isFunctionPointerType(varType)){
-                    CPointerType pointerType = (CPointerType)varType;
-                    CFunctionTypeWithNames cFunctionTypeWithNames =
-                            typeConverter.convertCFuntionType((CFunctionType)pointerType.getType(), variableName, fileLocation);
-                    varType = new CPointerType(pointerType.isConst(),
-                                        pointerType.isVolatile(),
-                                        cFunctionTypeWithNames);
+                    varType = typeConverter.convertCFuntionType(varType, variableName, fileLocation);
                 }
 
                 CInitializer initializer = null;
