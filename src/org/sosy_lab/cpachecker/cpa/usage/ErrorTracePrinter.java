@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Writer;
@@ -124,6 +125,9 @@ public abstract class ErrorTracePrinter {
 
   @Option(description = "print unsafes with empty lock states", secure = true)
   private boolean printEmptyLockStates = true;
+
+  @Option(description = "a list of functions, which do not produce notes", secure = true)
+  private Set<String> disableNotesFor = ImmutableSet.of();
 
   // private final BAMTransferRelation transfer;
   protected final LockTransferRelation lockTransfer;
@@ -284,7 +288,14 @@ public abstract class ErrorTracePrinter {
   }
 
   protected String getNoteFor(CFAEdge pEdge) {
-    return lockTransfer == null || pEdge == null ? "" : lockTransfer.doesChangeTheState(pEdge);
+    if (pEdge == null || lockTransfer == null) {
+      return "";
+    }
+    String function = pEdge.getPredecessor().getFunctionName();
+    if (disableNotesFor.contains(function)) {
+      return "";
+    }
+    return lockTransfer.doesChangeTheState(pEdge);
   }
 
   protected List<CFAEdge> getPath(UsageInfo usage) {
