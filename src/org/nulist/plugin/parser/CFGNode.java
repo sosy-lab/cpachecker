@@ -8,6 +8,8 @@
 package org.nulist.plugin.parser;
 
 import com.grammatech.cs.*;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -224,6 +226,26 @@ public class CFGNode {
         }
     }
 
+    public static boolean isContinueNode(point node){
+        try {
+            if(isJump(node) && node.get_syntax_kind().equals(point_syntax_kind.getCONTINUE()))
+                return true;
+            return false;
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public static boolean isNodeNode(point node){
+        try {
+            if(node.get_syntax_kind().equals(point_syntax_kind.getNONE()))
+                return true;
+            return false;
+        }catch (result r){
+            return false;
+        }
+    }
+
     public static boolean isIfControlPointNode(point node){
         try {
             if(isControl_Point(node) && node.get_syntax_kind().equals(point_syntax_kind.getIF()))
@@ -343,6 +365,23 @@ public class CFGNode {
         return edgeVector;
     }
 
+    public static point_vector sortActualInVectorByID(point_vector actualins)throws result {
+        point_vector pointVector = new point_vector();
+        Map<Integer, Integer> lineMap = new HashMap<>();
+
+
+        for(int i=0;i<actualins.size();i++){
+            int id = Integer.valueOf(actualins.get(i).get_ast(ast_family.getC_NORMALIZED())
+                    .children().get(0).as_ast().pretty_print().replace("$param_",""));
+            lineMap.put(id,i);
+        }
+        TreeSet<Integer> treeSet = new TreeSet<>(lineMap.keySet());
+        treeSet.comparator();
+        for(Integer i:treeSet)
+            pointVector.add(actualins.get(lineMap.get(i)));
+        return pointVector;
+    }
+
     /**
      *@Description Check if an IF node has an else node
      *@Param []
@@ -363,4 +402,73 @@ public class CFGNode {
         return normalizingVariableName(variable_ast);
     }
 
+
+    public static boolean isTempVariableAssignment(point exprNode)throws result{
+        try {
+            ast no_ast = exprNode.get_ast(ast_family.getC_NORMALIZED());
+            return no_ast.pretty_print().startsWith("$temp") || no_ast.pretty_print().startsWith("*$temp");
+//            if(no_ast.is_a(ast_class.getNC_ABSTRACT_STATEMENT()) &&
+//                    no_ast.children().get(0).as_ast().is_a(ast_class.getNC_VARIABLE()) &&
+//                    no_ast.children().get(0).as_ast().get(ast_ordinal.getBASE_ABS_LOC())
+//                            .as_symbol().get_kind().equals(symbol_kind.getINTERMEDIATE())){
+//                dumpAST(no_ast.children().get(0).as_ast(),0, no_ast.children().get(0).as_ast().get(ast_ordinal.getBASE_ABS_LOC())
+//                        .as_symbol().get_kind().name());
+//                return true;
+//            }
+//            return false;
+//            return no_ast.is_a(ast_class.getNC_ABSTRACT_STATEMENT()) &&
+//                    no_ast.children().get(0).as_ast().is_a(ast_class.getNC_VARIABLE()) &&
+//                    no_ast.children().get(0).as_ast().get(ast_ordinal.getBASE_ABS_LOC())
+//                            .as_symbol().get_kind().equals(symbol_kind.getINTERMEDIATE());
+        }catch (result r){
+            return false;
+        }
+
+    }
+
+    public static boolean useTempVariable(point exprNode)throws result{
+        try {
+            ast no_ast = exprNode.get_ast(ast_family.getC_NORMALIZED());
+            return !isTempVariableAssignment(exprNode) && no_ast.pretty_print().contains("$temp");
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public static int getMemberSize(CType cType){
+        if(cType instanceof CTypedefType)
+            return getMemberSize(((CTypedefType) cType).getRealType());
+
+        else if(cType instanceof CPointerType)
+            return getMemberSize(((CPointerType) cType).getType());
+
+        else if(cType instanceof CElaboratedType)
+            return getMemberSize(((CElaboratedType) cType).getRealType());
+
+        else if(cType instanceof CCompositeType){
+            int size =0;
+            for(CCompositeType.CCompositeTypeMemberDeclaration typeMemberDeclaration:((CCompositeType) cType).getMembers()){
+                size += getMemberSize(typeMemberDeclaration.getType());
+            }
+            return size;
+        }else
+            return 1;
+    }
+
+    public static point pointNextToBlockAssignmentExpr(point baExpression, CType cType)throws result{
+        //should be a struct type == CCompositeType
+        point nextNode;
+
+        int memberNum = getMemberSize(cType);
+
+        nextNode = baExpression.cfg_targets().cbegin().current().get_first();
+        if(memberNum==1)
+                return nextNode;
+        for(int i=1;i<memberNum;i++){
+                if(!nextNode.get_ast(ast_family.getC_NORMALIZED()).is_a(ast_class.getNC_BLOCKASSIGN()))
+                    throw new RuntimeException("This is not a block assignment expression:"+ nextNode.toString());
+                nextNode = nextNode.cfg_targets().cbegin().current().get_first();
+        }
+        return nextNode;
+    }
 }

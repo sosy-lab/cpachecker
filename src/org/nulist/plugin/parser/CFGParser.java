@@ -93,6 +93,9 @@ public class CFGParser implements Parser{
 
     }
 
+    public static boolean targetFile(String path){
+        return path.endsWith("/openair3/NAS/UE/nas_proc.c");
+    }
 
 
     private boolean fileFilter(String name){

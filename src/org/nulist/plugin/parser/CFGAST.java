@@ -54,6 +54,13 @@ public class CFGAST {
         }
     }
 
+    public static boolean isVLAType(ast type){
+        try {
+            return type.is_a(ast_class.getUC_VLA());
+        }catch (result r){
+            return false;
+        }
+    }
 
     public static boolean isTypeRef(ast type){
         try {
@@ -530,6 +537,20 @@ public class CFGAST {
         }catch (result r){
 
         }
+    }
+
+    public static int tempvarusedLocation(ast no_ast)throws result{
+        int i=0;
+        if(no_ast.children().get(0).as_ast().pretty_print().contains("$temp") &&
+                no_ast.children().get(1).as_ast().pretty_print().contains("$temp")){
+            i=2;
+        }else if(no_ast.children().get(1).as_ast().pretty_print().contains("$temp")){
+            i=1;
+        }else if(no_ast.children().get(0).as_ast().pretty_print().contains("$temp")){
+            i=0;
+        }else
+            i=-1;
+        return i;
     }
 
 

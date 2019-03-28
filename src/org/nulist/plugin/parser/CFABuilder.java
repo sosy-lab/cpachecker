@@ -123,8 +123,6 @@ public class CFABuilder {
                 }else
                     systemFunctions.put(funcName, en);
 
-                if(funcName.equals("parser_print_usage"))
-                    System.out.println(functionDeclaration.toASTString());
             }else if(cu.is_user() && proc.get_kind().equals(procedure_kind.getFILE_INITIALIZATION())
                     && proc.name().contains("Global_Initialization")){
                 visitGlobalItem(proc);
@@ -224,7 +222,7 @@ public class CFABuilder {
                 //global variable is initialized static
                 ast init = un_ast.get(ast_ordinal.getUC_STATIC_INIT()).as_ast();
 
-                CType varType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                CType varType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
                 variableList.add(normalizedName);
 
                 // void (*funA)(int)=&myFun;

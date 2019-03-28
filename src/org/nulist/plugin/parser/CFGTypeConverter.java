@@ -43,7 +43,7 @@ public class CFGTypeConverter {
     //
     //since codesurfer normalizes bool into unsigned char, which may confuse model checking
     // we need to input unnormalized type
-    public CType getCType(ast type){
+    public CType getCType(ast type, CFGHandleExpression expressionhandler){
         typeMap = new HashMap<>();
         try {
             String typeString = handleUnnamedType(type);
@@ -51,7 +51,7 @@ public class CFGTypeConverter {
             if(cType!=null)
                 return cType;
             else{
-                CType result = getCType(type, false);
+                CType result = getCType(type, false, expressionhandler);
                 typeMap = new HashMap<>();
                 return result;
             }
@@ -60,20 +60,20 @@ public class CFGTypeConverter {
         }
     }
 
-    private CType getSubType(ast type){
+    private CType getSubType(ast type, CFGHandleExpression expressionhandler){
         try {
             String typeString = handleUnnamedType(type);
             CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
             if(cType!=null)
                 return cType;
             else
-                return getCType(type, false);
+                return getCType(type, false, expressionhandler);
         }catch (result r){
             throw new RuntimeException(r);
         }
     }
 
-    private CType getCType(ast type, boolean isConst){
+    private CType getCType(ast type, boolean isConst, CFGHandleExpression expressionhandler){
         try {
             String typeString = type.pretty_print();
             if(typeString.endsWith("<UNNAMED>") || typeString.endsWith("<unnamed>")){
@@ -92,9 +92,9 @@ public class CFGTypeConverter {
                 CType cTypedefType = null;
 
                 if(typeString.startsWith("const ")){
-                    cTypedefType = getCType(originTypeAST, true);
+                    cTypedefType = getCType(originTypeAST, true, expressionhandler);
                 }else {
-                    CType originType = getCType(originTypeAST, isConst);
+                    CType originType = getCType(originTypeAST, isConst, expressionhandler);
                     cTypedefType = new CTypedefType(originType.isConst(),
                                                                 originType.isVolatile(),
                                                                 typeString,
@@ -103,26 +103,30 @@ public class CFGTypeConverter {
                 typeCache.put(typeString.hashCode(), cTypedefType);
                 return cTypedefType;
             }else if(isStructType(type)){//struct
-                return createStructType(type, isConst);
+                return createStructType(type, isConst,expressionhandler);
             }else if(isPointerType(type)){
                 ast pointedTo = type.get(ast_ordinal.getBASE_POINTED_TO()).as_ast();
-                cType = getSubType(pointedTo);
+                cType = getSubType(pointedTo, expressionhandler);
                 CPointerType cPointerType = new CPointerType(isConst, false, cType);
                 //typeCache.put(typeString.hashCode(),cPointerType);
                 return cPointerType;
             }else if(isArrayType(type)){
                 long length = type.get(ast_ordinal.getBASE_NUM_ELEMENTS()).as_uint32();
                 ast elementType = type.get(ast_ordinal.getBASE_ELEMENT_TYPE()).as_ast();
-                cType = getSubType(elementType);
+                cType = getSubType(elementType, expressionhandler);
                 CIntegerLiteralExpression arrayLength =
                         new CIntegerLiteralExpression(
                                 FileLocation.DUMMY,
                                 ARRAY_LENGTH_TYPE,
                                 BigInteger.valueOf(length));
-                CArrayType cArrayType =  new CArrayType(
-                        isConst, false, cType, arrayLength);
-                //typeCache.put(typeString.hashCode(),cArrayType);
-                return cArrayType;
+                return   new CArrayType(isConst, false, cType, arrayLength);
+
+            }else if(isVLAType(type)){
+                CType elementType = getSubType(type.get(ast_ordinal.getUC_ELEMENT_TYPE()).as_ast(), expressionhandler);
+                ast element = type.get(ast_ordinal.getUC_NUM_ELEMENTS()).as_ast();
+                CExpression length = expressionhandler.getExpressionFromUC(element, ARRAY_LENGTH_TYPE, FileLocation.DUMMY);
+                return new CArrayType(
+                        isConst, false, elementType, length);
             }else if(isEnumType(type)){
                 ast constantList = type.get(ast_ordinal.getUC_CONSTANT_LIST()).as_ast();
                 List<CEnumType.CEnumerator> enumerators = new ArrayList<>();
@@ -169,7 +173,7 @@ public class CFGTypeConverter {
                 if(children!=null && !children.isEmpty())
                 for(int i=0;i<children.size();i++){
                     ast memberAST = children.get(i).as_ast();
-                    CType memeberType = getSubType(memberAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                    CType memeberType = getSubType(memberAST.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionhandler);
                     String memberName = memberAST.pretty_print();//memberAST.get(ast_ordinal.getBASE_NAME()).as_str();
                     CCompositeType.CCompositeTypeMemberDeclaration memberDeclaration =
                             new CCompositeType.CCompositeTypeMemberDeclaration(memeberType, memberName);
@@ -189,21 +193,21 @@ public class CFGTypeConverter {
                 System.out.println();
             }else if(type.is_a(ast_class.getUC_ROUTINE_TYPE())){//
                 //output function type, then in expression, we convert to CFunctionTypeWithNames in demand
-                CType returnType = getSubType(type.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast());
+                CType returnType = getSubType(type.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast(), expressionhandler);
                 List<CType> paramTypesList = new ArrayList<>();
 
                 if(type.has_field(ast_ordinal.getUC_PARAM_TYPES())){
                     ast param_types = type.get(ast_ordinal.getUC_PARAM_TYPES()).as_ast();
                     for(int i=0;i<param_types.children().size();i++){
                         ast param = param_types.children().get(i).as_ast();
-                        CType paramType = getSubType(param.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                        CType paramType = getSubType(param.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionhandler);
                         paramTypesList.add(paramType);
                     }
                 }
                 //function(int a, ...), ... means has_ellipsis is true ==> pTakesVarArgs is true
                 return new CFunctionType(returnType, paramTypesList, type.get(ast_ordinal.getUC_HAS_ELLIPSIS()).as_boolean());
             }else if(type.is_a(ast_class.getNC_ROUTINE_TYPE())){
-
+                throw new RuntimeException("No precessing code for type "+ type.toString());
             }else
                 throw new RuntimeException("Unsupported type "+ type.toString());
 
@@ -295,7 +299,7 @@ public class CFGTypeConverter {
      *@return org.sosy_lab.cpachecker.cfa.types.c.CType
      **/
     //struct type
-    private CType createStructType(ast type, boolean isConst) throws result{
+    private CType createStructType(ast type, boolean isConst, CFGHandleExpression expressionhandler) throws result{
 
         final boolean isVolatile = false;
 
@@ -359,7 +363,7 @@ public class CFGTypeConverter {
                         new CCompositeType.CCompositeTypeMemberDeclaration(typeMap.get(memberTypeName), memberName);
                 members.add(memDecl);
             }else {
-                CType cMemType = getSubType(member.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                CType cMemType = getSubType(member.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionhandler);
                 if(isFunctionPointerType(cMemType))
                     cMemType = convertCFuntionType(cMemType,memberName, FileLocation.DUMMY);
                 CCompositeType.CCompositeTypeMemberDeclaration memDecl =
