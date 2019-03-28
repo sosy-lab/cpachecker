@@ -158,7 +158,12 @@ public class DeadLockState extends AbstractLockState {
 
     @Override
     public void removeLocksExcept(Set<LockIdentifier> usedLocks) {
-
+      int num = getAggressiveTailNum(mutableLockList, usedLocks);
+      if (num < mutableLockList.size() - 1) {
+        for (int i = mutableLockList.size() - 1; i > num; i--) {
+          mutableLockList.remove(i);
+        }
+      }
     }
 
     @Override
@@ -171,10 +176,21 @@ public class DeadLockState extends AbstractLockState {
       }
     }
 
-    private int getTailNum(List<LockIdentifier> lockList, Set<LockIdentifier> exceptLocks) {
-      for (int i = lockList.size() - 1; i >= 0; i--) {
-        LockIdentifier id = lockList.get(i);
-        if (lockList.indexOf(id) == i || exceptLocks.contains(id)) {
+    private int getTailNum(List<LockIdentifier> pLockList, Set<LockIdentifier> exceptLocks) {
+      for (int i = pLockList.size() - 1; i >= 0; i--) {
+        LockIdentifier id = pLockList.get(i);
+        if (pLockList.indexOf(id) == i || exceptLocks.contains(id)) {
+          return i;
+        }
+      }
+      return 0;
+    }
+
+    private int
+        getAggressiveTailNum(List<LockIdentifier> pLockList, Set<LockIdentifier> exceptLocks) {
+      for (int i = pLockList.size() - 1; i >= 0; i--) {
+        LockIdentifier id = pLockList.get(i);
+        if (exceptLocks.contains(id)) {
           return i;
         }
       }
@@ -186,9 +202,14 @@ public class DeadLockState extends AbstractLockState {
     }
 
     @Override
-    public void returnLocksExcept(LockState pRootState, Set<LockIdentifier> usedLocks) {
-      throw new UnsupportedOperationException(
-          "Valueable reduce/expand operations are not supported for dead lock analysis");
+    public void returnLocksExcept(AbstractLockState pRootState, Set<LockIdentifier> usedLocks) {
+      List<LockIdentifier> rootList = ((DeadLockState) pRootState).lockList;
+      int num = getAggressiveTailNum(rootList, usedLocks);
+      if (num < rootList.size() - 1) {
+        for (int i = num + 1; i < rootList.size(); i++) {
+          mutableLockList.add(rootList.get(i));
+        }
+      }
     }
 
     @Override

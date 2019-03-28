@@ -70,7 +70,8 @@ public abstract class AbstractLockStateBuilder {
     mutableToRestore = rootState.getRestoredState();
   }
 
-  public abstract void returnLocksExcept(LockState pRootState, Set<LockIdentifier> usedLocks);
+  public abstract void
+      returnLocksExcept(AbstractLockState pRootState, Set<LockIdentifier> usedLocks);
 
   public abstract void expandLockCounters(
       AbstractLockState pRootState,

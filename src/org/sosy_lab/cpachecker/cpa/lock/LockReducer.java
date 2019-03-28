@@ -171,7 +171,7 @@ public class LockReducer implements Reducer, StatisticsProvider {
       Set<LockIdentifier> notReduce =
           new HashSet<>(notReducedLocks.get(pReducedContext.getCallNode()));
       builder.returnLocksExcept(
-          (LockState) pRootElement,
+          (AbstractLockState) pRootElement,
           Sets.union(pReducedContext.getCapturedLocks(), notReduce));
       locksToProcess = Sets.intersection(locksToProcess, pReducedContext.getCapturedLocks());
     }

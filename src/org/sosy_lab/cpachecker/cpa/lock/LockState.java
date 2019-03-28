@@ -232,9 +232,9 @@ public class LockState extends AbstractLockState {
     }
 
     @Override
-    public void returnLocksExcept(LockState pRootState, Set<LockIdentifier> usedLocks) {
+    public void returnLocksExcept(AbstractLockState pRootState, Set<LockIdentifier> usedLocks) {
       cloneIfNecessary();
-      for (Entry<LockIdentifier, Integer> entry : pRootState.locks.entrySet()) {
+      for (Entry<LockIdentifier, Integer> entry : ((LockState) pRootState).locks.entrySet()) {
         LockIdentifier lockId = entry.getKey();
         if (!usedLocks.contains(lockId)) {
           mutableLocks.put(lockId, entry.getValue());
