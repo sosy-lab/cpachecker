@@ -27,7 +27,6 @@ import com.google.common.collect.Lists;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,6 +49,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.BOMParser;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -99,7 +99,8 @@ public class CParserWithLocationMapper implements CParser {
 
   private String tokenizeSourcefile(String pFilename,
       CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException {
-    String code = MoreFiles.asCharSource(Paths.get(pFilename), Charset.defaultCharset()).read();
+    byte[] source = MoreFiles.asByteSource(Paths.get(pFilename)).read();
+    String code = BOMParser.filterAndDecode(source);
     return processCode(pFilename, code, sourceOriginMapping);
   }
 
