@@ -39,6 +39,8 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -83,6 +85,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
+@Options(prefix = "cpa.lock")
 public class LockTransferRelation extends SingleEdgeTransferRelation {
 
   public static class LockStatistics implements Statistics {
@@ -129,10 +132,17 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   private final LogManager logger;
   private final LockStatistics stats;
 
+  @Option(
+    name = "stopAfterLockLimit",
+    description = "stop path exploration if a lock limit is reached",
+    secure = true)
+  private boolean stopAfterLockLimit = false;
+
   public LockTransferRelation(Configuration config, LogManager logger)
       throws InvalidConfigurationException {
     this.logger = logger;
 
+    config.inject(this);
     ConfigurationParser parser = new ConfigurationParser(config);
 
     lockDescription = parser.parseLockInfo();
@@ -307,7 +317,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
           for (LockIdentifier targetId : currentAnnotation.getCaptureLocks()) {
             result.add(
                 AcquireLockEffect.createEffectForId(
-                    targetId, lockDescription.getMaxLevel(targetId.getName())));
+                    targetId, lockDescription.getMaxLevel(targetId.getName()), stopAfterLockLimit));
           }
         }
         return result;
@@ -346,7 +356,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
 
     LockIdentifier id = uId.apply(function.getParameterExpressions());
     if (effect == AcquireLockEffect.getInstance()) {
-      effect = AcquireLockEffect.createEffectForId(id, lockDescription.getMaxLevel(uId.getName()));
+      effect = AcquireLockEffect.createEffectForId(id, lockDescription.getMaxLevel(uId.getName()), stopAfterLockLimit);
     } else {
       effect = effect.cloneWithTarget(id);
     }
