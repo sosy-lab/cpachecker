@@ -221,7 +221,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
             usageExpandingTimer.start();
             for (UsageInfo uinfo : usages) {
-              UsageInfo expandedUsage;
+              UsageInfo expandedUsage = null;
               if (currentEffects.isEmpty()) {
                 expandedUsage = uinfo;
               } else {
@@ -234,9 +234,14 @@ public class UsageReachedSet extends PartitionedReachedSet {
                   expandedLocks = builder.build();
                   reduceToExpand.put(locks, expandedLocks);
                 }
-                expandedUsage = uinfo.expand(expandedLocks);
+                if (expandedLocks == null) {
+                  // means we have impossible state, do not add the usage.
+                  expandedUsage = uinfo.expand(expandedLocks);
+                }
               }
-              expandedUsages.add(expandedUsage);
+              if (expandedUsage != null) {
+                expandedUsages.add(expandedUsage);
+              }
             }
             usageExpandingTimer.stop();
           }
