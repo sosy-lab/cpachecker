@@ -234,7 +234,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
                   expandedLocks = builder.build();
                   reduceToExpand.put(locks, expandedLocks);
                 }
-                if (expandedLocks == null) {
+                if (expandedLocks != null) {
                   // means we have impossible state, do not add the usage.
                   expandedUsage = uinfo.expand(expandedLocks);
                 }
