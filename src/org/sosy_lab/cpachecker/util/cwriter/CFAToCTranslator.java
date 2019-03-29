@@ -228,6 +228,13 @@ public class CFAToCTranslator {
     CFANode node = pNode.getCfaNode();
     CompoundStatement currentBlock = pNode.getCurrentBlock();
 
+    if (createdStatements.containsKey(node)) {
+      String label = getLabel(node, Collections.emptySet());
+      String gotoStatement = "goto " + label + ";";
+      addStatement(currentBlock, createSimpleStatement(node, gotoStatement));
+      return;
+    }
+
     if (!areAllEnteringEdgesHandled(node) || isGotoAndLabelNotHandledYet(node)) {
       if (noProgressSince == null) {
         noProgressSince = node;
@@ -281,14 +288,7 @@ public class CFAToCTranslator {
 
     for (NodeAndBlock next : nextNodes) {
       CFANode nextNode = next.getCfaNode();
-      if (!discoveredElements.contains(nextNode)) {
-        pushToWaitlist(pWaitlist, nextNode, next.getCurrentBlock());
-      } else if (createdStatements.containsKey(nextNode)) {
-        String label = getLabel(nextNode, Collections.emptySet());
-        String gotoStatement = "goto " + label + ";";
-        addStatement(currentBlock, createSimpleStatement(node, gotoStatement));
-      }
-
+      pushToWaitlist(pWaitlist, nextNode, next.getCurrentBlock());
     }
   }
 
