@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -46,17 +45,16 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
@@ -76,13 +74,13 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       BAMCPA bamCpa,
       ShutdownNotifier pShutdownNotifier,
       AlgorithmFactory pFactory,
-      BAMPCCManager pBamPccManager)
-      throws InvalidConfigurationException {
+      BAMPCCManager pBamPccManager) {
     super(bamCpa, pShutdownNotifier);
     algorithmFactory = pFactory;
     callstackTransfer =
-        CPAs.retrieveCPAOrFail(bamCpa, CallstackCPA.class, BAMTransferRelation.class)
-            .getTransferRelation();
+        Preconditions.checkNotNull(
+            ((WrapperTransferRelation) transferRelation)
+                .retrieveWrappedTransferRelation(CallstackTransferRelation.class));
     bamPccManager = pBamPccManager;
     stats = bamCpa.getStatistics();
   }
@@ -111,7 +109,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     if (foundRecursion) {
       callstackTransfer.enableRecursiveContext();
     }
-    final Collection<? extends AbstractState> result = wrappedTransfer.getAbstractSuccessors(pState, pPrecision);
+    final Collection<? extends AbstractState> result =
+        transferRelation.getAbstractSuccessors(pState, pPrecision);
     if (foundRecursion) {
       callstackTransfer.disableRecursiveContext();
     }
