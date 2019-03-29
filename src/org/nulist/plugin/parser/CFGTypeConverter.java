@@ -207,7 +207,17 @@ public class CFGTypeConverter {
                 //function(int a, ...), ... means has_ellipsis is true ==> pTakesVarArgs is true
                 return new CFunctionType(returnType, paramTypesList, type.get(ast_ordinal.getUC_HAS_ELLIPSIS()).as_boolean());
             }else if(type.is_a(ast_class.getNC_ROUTINE_TYPE())){
-                throw new RuntimeException("No precessing code for type "+ type.toString());
+                CType returnType = getSubType(type.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast(), expressionhandler);
+                List<CType> paramTypesList = new ArrayList<>();
+
+                if(type.children().size()>1){
+                    for(int i=1;i<type.children().size();i++){
+                        ast param = type.children().get(i).as_ast();
+                        CType paramType = getSubType(param, expressionhandler);
+                        paramTypesList.add(paramType);
+                    }
+                }
+                return new CFunctionType(returnType, paramTypesList, type.get(ast_ordinal.getNC_HAS_ELLIPSIS()).as_boolean());
             }else
                 throw new RuntimeException("Unsupported type "+ type.toString());
 

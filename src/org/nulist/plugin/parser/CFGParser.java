@@ -77,7 +77,7 @@ public class CFGParser implements Parser{
         {
             compunit cu = cu_it.current();
             // only focus on user-defined c files
-            if(fileFilter(cu.name()))
+            if(targetFile(cu.name()))
             {
             //input_file.add(Paths.get(cu.normalized_name()));
                 System.out.println(cu.name());
@@ -94,7 +94,7 @@ public class CFGParser implements Parser{
     }
 
     public static boolean targetFile(String path){
-        return path.endsWith("/openair3/NAS/UE/nas_proc.c");
+        return path.endsWith("/openair3/NAS/UE/API/USER/at_command.c");
     }
 
 

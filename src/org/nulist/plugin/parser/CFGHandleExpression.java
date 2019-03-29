@@ -598,7 +598,7 @@ public class CFGHandleExpression {
     // $temp1 = a++, structvar[$temp1].memb1 = structvarb.memb1, structvar[$temp1].memb2 = structvarb.memb2....
     //output: structvar[$temp1] = structvarb
     public CExpression getExpressionWithTempVar(ast no_expr, ast un_expr, FileLocation fileLocation) throws  result{
-        CType type = typeConverter.getCType(no_expr.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
+        CType type = typeConverter.getCType(un_expr.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
         if(no_expr.is_a(ast_class.getNC_VARIABLE())){
             CVariableDeclaration variableDeclaration = (CVariableDeclaration)
                     variableDeclarations.get(no_expr.pretty_print().hashCode());
@@ -609,10 +609,10 @@ public class CFGHandleExpression {
                         getExpressionWithTempVar(no_expr.children().get(0).as_ast(), null, fileLocation);
                 return new CPointerExpression(fileLocation, type, expression);
             }else {
-                return getExpression(no_expr, type, fileLocation);
+                return getExpression(no_expr, type, fileLocation);//TODO
             }
         }else {
-            return getExpression(no_expr, type, fileLocation);
+            return getExpression(no_expr, type, fileLocation);//TODO
         }
         //throw new RuntimeException("Not support "+ no_expr.get_class().name()+" in "+ no_expr.toString());
     }
@@ -852,7 +852,7 @@ public class CFGHandleExpression {
             ast operands = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
             ast oper1 = operands.children().get(0).as_ast();
             return getExpressionFromUC(oper1,valueType,fileLoc);
-        } else if(value_ast.is_a(ast_class.getUC_ABSTRACT_OPERATION())){//
+        }else if(value_ast.is_a(ast_class.getUC_ABSTRACT_OPERATION())){//
 
             CBinaryExpression.BinaryOperator operator = getBinaryOperatorFromUC(value_ast);
             ast operands = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
@@ -926,10 +926,25 @@ public class CFGHandleExpression {
      * @return java.lang.String
      **/
     public String getFunctionCallResultName(ast function)throws result{
-        symbol result = function.get(ast_ordinal.getUC_OPERANDS()).as_ast()//operands
-                .children().get(0).get(ast_ordinal.getUC_ROUTINE())//routine
-                .get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
-        return result.name()+"$result__"+ function.get(ast_ordinal.getUC_UID()).as_uint32();
+        ast routine = function.get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(0).as_ast();
+        if(routine.is_a(ast_class.getUC_EXPR_ROUTINE())){
+            symbol result = routine.get(ast_ordinal.getUC_ROUTINE())//routine
+                    .get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
+            return result.name()+"$result__"+ function.get(ast_ordinal.getUC_UID()).as_uint32();
+        }else if(routine.is_a(ast_class.getUC_INDIRECT()) || routine.is_a(ast_class.getUC_DOT_FIELD())){
+            ast variable = routine.get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(0).as_ast();
+            if(!variable.is_a(ast_class.getUC_EXPR_VARIABLE()))
+                throw new RuntimeException("Not a variable for point function: "+function.pretty_print());
+
+            symbol variableSymbol = variable.get(ast_ordinal.getUC_VARIABLE())
+                    .get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
+
+            String normalizedVarName = getNormalizedVariableName(variableSymbol, functionName);
+            return normalizedVarName+"$result__"+ function.get(ast_ordinal.getUC_UID()).as_uint32();
+        }else{
+            dumpAST(function,0,function.get_class().name());
+            throw new RuntimeException("Other function call : "+routine.get_class().name()+" "+function.pretty_print());
+        }
     }
 
     //value_ast.get_class()==[c:addr]
