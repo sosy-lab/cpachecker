@@ -126,6 +126,11 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       @SuppressWarnings("unchecked")
       T2 result = (T2)pNumber;
       return result;
+    } else if (type.isIntegerType() && pTargetType.isRationalType()) {
+      // integers can directly be used as rationals
+      @SuppressWarnings("unchecked")
+      T2 result = (T2) pNumber;
+      return result;
     } else {
       FunctionDeclaration<T2> castFunction = functionManager.declareUF(
           "__cast_" + type + "_to_" + pTargetType + "__",
