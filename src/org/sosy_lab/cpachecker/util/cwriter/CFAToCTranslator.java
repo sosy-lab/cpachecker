@@ -228,7 +228,7 @@ public class CFAToCTranslator {
     CFANode node = pNode.getCfaNode();
     CompoundStatement currentBlock = pNode.getCurrentBlock();
 
-    if (!areAllEnteringEdgesHandled(node)) {
+    if (!areAllEnteringEdgesHandled(node) || isGotoAndLabelNotHandledYet(node)) {
       if (noProgressSince == null) {
         noProgressSince = node;
       } else if (noProgressSince.equals(node)) {
@@ -267,6 +267,7 @@ public class CFAToCTranslator {
     List<NodeAndBlock> nextNodes;
     if (outgoingEdges.size() >= 2) {
       nextNodes = handleBranching(outgoingEdges, currentBlock, pEdgesToHandle);
+
     } else if (outgoingEdges.size() == 1) {
       assert !(Iterables.getOnlyElement(outgoingEdges) instanceof CAssumeEdge)
           : "The worst case happened: A single assume edge!";
@@ -289,6 +290,18 @@ public class CFAToCTranslator {
       }
 
     }
+  }
+
+  private boolean isGotoAndLabelNotHandledYet(CFANode pNode) {
+    if (pNode.getNumLeavingEdges() == 1) {
+      CFAEdge leavingEdge = pNode.getLeavingEdge(0);
+      if (leavingEdge.getEdgeType().equals(CFAEdgeType.BlankEdge)
+          && leavingEdge.getDescription().startsWith("Goto:")
+          && leavingEdge.getSuccessor() instanceof CLabelNode) {
+        return !createdStatements.containsKey(leavingEdge.getSuccessor());
+      }
+    }
+    return false;
   }
 
   private FunctionBody startFunction(CFunctionEntryNode pFunctionStartNode) {
@@ -485,6 +498,19 @@ public class CFAToCTranslator {
         || pNode.isLoopStart()
         || getRelevant(CFAUtils.allEnteringEdges(pNode))
             .allMatch(e -> createdStatements.containsKey(e.getPredecessor()));
+  }
+
+  private boolean isLabelHandledIfExists(CFANode pNode) {
+    if (pNode instanceof CLabelNode) {
+      for (CFAEdge e : CFAUtils.enteringEdges(pNode)) {
+        if (e.getEdgeType() == CFAEdgeType.BlankEdge
+            && e.getDescription().startsWith("Label:")
+            && !createdStatements.containsKey(e.getPredecessor())) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   private NodeAndBlock handleEdge(
