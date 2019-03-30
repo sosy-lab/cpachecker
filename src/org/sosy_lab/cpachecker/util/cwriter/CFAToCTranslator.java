@@ -40,6 +40,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -273,13 +274,6 @@ public class CFAToCTranslator {
 
     assert !createdStatements.containsKey(node) : "Node was already handled";
 
-    if (getRelevant(CFAUtils.allEnteringEdges(node)).size() > 1) {
-      CompoundStatement joinBlock = getJoinBlock(node);
-      if (joinBlock != null) {
-        currentBlock = joinBlock;
-      }
-    }
-
     if (node instanceof CLabelNode) {
       String labelStmt = getLabelCode(getLabel(node, Collections.emptySet()));
       currentBlock.addStatement(createSimpleStatement(node, labelStmt));
@@ -293,6 +287,17 @@ public class CFAToCTranslator {
 
     assert !(node instanceof CFATerminationNode) || outgoingEdges.isEmpty()
         : "Termination node has outgoing edges: " + outgoingEdges;
+
+    if (outgoingEdges.size() > 0 && getRelevant(CFAUtils.allEnteringEdges(node)).size() > 1) {
+      CompoundStatement joinBlock = getJoinBlock(node);
+      if (joinBlock != null) {
+        if (!joinBlock.equals(currentBlock)
+            && !joinBlock.equals(currentBlock.getSurroundingBlock())) {
+          offerWaitlist(pWaitlist, node, currentBlock);
+        }
+        currentBlock = joinBlock;
+      }
+    }
 
     List<NodeAndBlock> nextNodes;
     if (outgoingEdges.size() >= 2) {
@@ -310,10 +315,17 @@ public class CFAToCTranslator {
     }
 
     for (NodeAndBlock next : nextNodes) {
-      if (!discoveredElements.contains(next)) {
-        discoveredElements.add(next);
-        offerWaitlist(pWaitlist, next.getCfaNode(), next.getCurrentBlock());
-      }
+      offerWaitlistIfNew(pWaitlist, next.getCfaNode(), next.getCurrentBlock());
+    }
+  }
+
+  private void offerWaitlistIfNew(
+      Deque<NodeAndBlock> pWaitlist, CFANode pCfaNode, CompoundStatement pCurrentBlock) {
+
+    NodeAndBlock next = new NodeAndBlock(pCfaNode, pCurrentBlock);
+    if (!discoveredElements.contains(next)) {
+      discoveredElements.add(next);
+      offerWaitlist(pWaitlist, pCfaNode, pCurrentBlock);
     }
   }
 
@@ -332,7 +344,7 @@ public class CFAToCTranslator {
   private FunctionBody startFunction(CFunctionEntryNode pFunctionStartNode) {
     String lFunctionHeader =
         pFunctionStartNode.getFunctionDefinition().toASTString(NAMES_QUALIFIED).replace(";", "");
-    return new FunctionBody(lFunctionHeader, createCompoundStatement(null));
+    return new FunctionBody(lFunctionHeader, createCompoundStatement(pFunctionStartNode, null));
   }
 
   private List<NodeAndBlock> handleBranching(
@@ -374,7 +386,7 @@ public class CFAToCTranslator {
       // create a new block starting with this condition
       CompoundStatement newBlock;
       if (ind == 1 && !truthAssumption) {
-        newBlock = createCompoundStatement(currentBlock);
+        newBlock = createCompoundStatement(edgeToChild.getPredecessor(), currentBlock);
         elseCond = cond;
       } else {
         newBlock = addIfStatement(assumeEdge, currentBlock, cond);
@@ -415,12 +427,13 @@ public class CFAToCTranslator {
     return st;
   }
 
-  private CompoundStatement createCompoundStatement(@Nullable CompoundStatement pOuterBlock) {
+  private CompoundStatement createCompoundStatement(
+      CFANode pStart, @Nullable CompoundStatement pOuterBlock) {
     CompoundStatement st;
     if (pOuterBlock != null) {
-      st = new CompoundStatement(pOuterBlock);
+      st = new CompoundStatement(pStart, pOuterBlock);
     } else {
-      st = new CompoundStatement();
+      st = new CompoundStatement(pStart);
     }
     //createdStatements.put(pNode, st);
     return st;
@@ -438,7 +451,7 @@ public class CFAToCTranslator {
   private CompoundStatement addIfStatement(
       CFAEdge pConditionEdge, CompoundStatement block, String conditionCode) {
     addStatement(block, createSimpleStatement(pConditionEdge.getPredecessor(), conditionCode));
-    CompoundStatement newBlock = createCompoundStatement(block);
+    CompoundStatement newBlock = createCompoundStatement(pConditionEdge.getPredecessor(), block);
     addStatement(block, newBlock);
     return newBlock;
   }
@@ -463,43 +476,28 @@ public class CFAToCTranslator {
             .transform(n -> createdStatements.get(n).get(0).getSurroundingBlock())
             .toSet();
 
-    boolean haveAllBlocksSameSurroundingBlock = true;
-    CompoundStatement someBlockBeforePredecessor =
-        Iterables.getFirst(blocksBeforePredecessor, null);
-    for (CompoundStatement s : blocksBeforePredecessor) {
-      CompoundStatement surroundingBlock = s.getSurroundingBlock();
-      haveAllBlocksSameSurroundingBlock &=
-          surroundingBlock == someBlockBeforePredecessor
-              || (surroundingBlock != null
-                  && surroundingBlock.equals(someBlockBeforePredecessor.getSurroundingBlock()));
-    }
-
-    if (haveAllBlocksSameSurroundingBlock) {
-      return someBlockBeforePredecessor.getSurroundingBlock();
-    } else {
-      return null;
-    }
-
-    /*
     boolean madeProgress;
     do {
       madeProgress = false;
       Set<CompoundStatement> newBlocksBeforePredecessor = new HashSet<>();
       for (CompoundStatement s : blocksBeforePredecessor) {
-        CompoundStatement surroundingBlock = s.getSurroundingBlock();
+        CFANode blockStart = s.getBlockStart();
         boolean foundMatch = false;
-        while (surroundingBlock != null) {
-          for (CompoundStatement o : blocksBeforePredecessor) {
-            if (o.equals(s)) {
-              continue;
-            }
-            if (surroundingBlock.equals(o) || surroundingBlock.equals(o.getSurroundingBlock())) {
-              foundMatch = true;
-              newBlocksBeforePredecessor.add(surroundingBlock);
-              break;
-            }
+        assert blockStart != null;
+        for (CompoundStatement o : blocksBeforePredecessor) {
+          if (o.equals(s)) {
+            continue;
           }
-          surroundingBlock = surroundingBlock.getSurroundingBlock();
+          if (blockStart.equals(o.getBlockStart())) {
+            foundMatch = true;
+            newBlocksBeforePredecessor.add(s.getSurroundingBlock());
+            assert createdStatements
+                .get(blockStart)
+                .get(0)
+                .getSurroundingBlock()
+                .equals(s.getSurroundingBlock());
+            break;
+          }
         }
         if (foundMatch) {
           madeProgress = true;
@@ -509,12 +507,15 @@ public class CFAToCTranslator {
       }
       blocksBeforePredecessor = newBlocksBeforePredecessor;
     } while (madeProgress);
-    if (blocksBeforePredecessor.size() == 1) {
-      return Iterables.getOnlyElement(blocksBeforePredecessor);
-    } else {
-      return null;
-    }
-    */
+    return blocksBeforePredecessor.stream()
+        .min(Comparator.comparingInt(this::getNumberOfOuterBlocks))
+        .orElse(null);
+  }
+
+  private int getNumberOfOuterBlocks(CompoundStatement pStatement) {
+    return pStatement.getSurroundingBlock() == null
+        ? 0
+        : 1 + getNumberOfOuterBlocks(pStatement.getSurroundingBlock());
   }
 
   private boolean areAllEnteringEdgesHandled(CFANode pNode) {

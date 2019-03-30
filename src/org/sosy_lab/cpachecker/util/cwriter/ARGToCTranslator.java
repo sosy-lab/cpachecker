@@ -40,6 +40,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.logging.Level;
@@ -140,31 +141,55 @@ public class ARGToCTranslator {
         return "";
       }
     }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+      Statement statement = (Statement) pO;
+      return isGotoTarget == statement.isGotoTarget
+          && Objects.equals(gotoLabel, statement.gotoLabel);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(isGotoTarget, gotoLabel);
+    }
   }
 
   private static class InlinedFunction extends CompoundStatement {
 
-    public InlinedFunction(CompoundStatement pOuterBlock) {
-      super(pOuterBlock);
+    public InlinedFunction(CFANode start, CompoundStatement pOuterBlock) {
+      super(start, pOuterBlock);
     }
 
   }
 
   static class CompoundStatement extends Statement {
     private final List<Statement> statements;
+    private final @Nullable CFANode start;
 
-    public CompoundStatement() {
-      this(null);
+    public CompoundStatement(@Nullable CFANode pStart) {
+      this(pStart, null);
     }
 
-    public CompoundStatement(CompoundStatement pOuterBlock) {
+    public CompoundStatement(@Nullable CFANode pStart, CompoundStatement pOuterBlock) {
       statements = new ArrayList<>();
       setSurroundingBlock(pOuterBlock);
+      start = pStart;
     }
 
     public void addStatement(Statement statement) {
       statements.add(statement);
       statement.setSurroundingBlock(this);
+    }
+
+    public CFANode getBlockStart() {
+      return start;
     }
 
     @Override
@@ -189,6 +214,26 @@ public class ARGToCTranslator {
       sb.append("}");
       return sb.toString();
     }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+      if (!super.equals(pO)) {
+        return false;
+      }
+      CompoundStatement that = (CompoundStatement) pO;
+      return statements.equals(that.statements) && Objects.equals(start, that.start);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(super.hashCode(), statements, start);
+    }
   }
 
   static class SimpleStatement extends Statement {
@@ -208,6 +253,26 @@ public class ARGToCTranslator {
     @Override
     public String toString() {
       return super.toString() + code;
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+      if (!super.equals(pO)) {
+        return false;
+      }
+      SimpleStatement that = (SimpleStatement) pO;
+      return code.equals(that.code);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(super.hashCode(), code);
     }
   }
 
@@ -231,6 +296,26 @@ public class ARGToCTranslator {
       buffer.append("\n");
 
       functionBody.translateToCode(buffer, indent);
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+      if (!super.equals(pO)) {
+        return false;
+      }
+      FunctionBody that = (FunctionBody) pO;
+      return functionHeader.equals(that.functionHeader) && functionBody.equals(that.functionBody);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(super.hashCode(), functionHeader, functionBody);
     }
   }
 
@@ -384,7 +469,7 @@ public class ARGToCTranslator {
     CFunctionEntryNode functionStartNode = (CFunctionEntryNode) AbstractStates.extractStateByType(firstFunctionElement, LocationState.class).getLocationNode();
     String lFunctionHeader =
         functionStartNode.getFunctionDefinition().toQualifiedASTString().replace(";", "");
-    mainFunctionBody = new FunctionBody(lFunctionHeader, new CompoundStatement());
+    mainFunctionBody = new FunctionBody(lFunctionHeader, new CompoundStatement(null));
     CType returnType = functionStartNode.getFunctionDefinition().getType().getReturnType();
     isVoidMain = returnType instanceof CVoidType;
     if (!isVoidMain) {
@@ -536,7 +621,7 @@ public class ARGToCTranslator {
         // create a new block starting with this condition
         CompoundStatement newBlock;
         if (ind == 1 && !truthAssumption) {
-          newBlock = new CompoundStatement(currentBlock);
+          newBlock = new CompoundStatement(edgeToChild.getPredecessor(), currentBlock);
           elseCond = cond;
         } else {
           newBlock = addIfStatement(currentBlock, cond);
@@ -631,7 +716,7 @@ public class ARGToCTranslator {
 
   private CompoundStatement addIfStatement(CompoundStatement block, String conditionCode) {
     block.addStatement(new SimpleStatement(conditionCode));
-    CompoundStatement newBlock = new CompoundStatement(block);
+    CompoundStatement newBlock = new CompoundStatement(null, block);
     block.addStatement(newBlock);
     return newBlock;
   }
@@ -969,7 +1054,7 @@ public class ARGToCTranslator {
   }
 
   private CompoundStatement processFunctionCall(CFAEdge pCFAEdge, CompoundStatement currentBlock) {
-    CompoundStatement newBlock = new InlinedFunction(currentBlock);
+    CompoundStatement newBlock = new InlinedFunction(pCFAEdge.getPredecessor(), currentBlock);
     currentBlock.addStatement(newBlock);
 
     CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge)pCFAEdge;
@@ -1042,7 +1127,7 @@ public class ARGToCTranslator {
         }
         return currentBlock.getSurroundingBlock();
       case ADDNEWBLOCK:
-        currentBlock = new CompoundStatement(currentBlock);
+        currentBlock = new CompoundStatement(null, currentBlock);
         currentBlock.getSurroundingBlock().addStatement(currentBlock);
         return currentBlock;
       default: // KEEPBLOCK
