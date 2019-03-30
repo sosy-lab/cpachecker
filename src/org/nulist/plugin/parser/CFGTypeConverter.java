@@ -60,6 +60,7 @@ public class CFGTypeConverter {
         }
     }
 
+
     private CType getSubType(ast type, CFGHandleExpression expressionhandler){
         try {
             String typeString = handleUnnamedType(type);
@@ -403,9 +404,23 @@ public class CFGTypeConverter {
         if(cType instanceof CFunctionType)
             return convertCFuntionType(cType,name, fileLocation);
         else if(cType instanceof CPointerType){
-            CFunctionType functionType = (CFunctionType) ((CPointerType) cType).getType();
-            CFunctionTypeWithNames cFunctionTypeWithNames = convertCFuntionType(functionType,name,fileLocation);
-            return new CPointerType(cType.isConst(),cType.isVolatile(), cFunctionTypeWithNames);
+            CType basicType = ((CPointerType) cType).getType();
+            CFunctionType functionType;
+            if(basicType instanceof CTypedefType){
+                functionType = (CFunctionType) ((CTypedefType) basicType).getRealType();
+                CFunctionTypeWithNames cFunctionTypeWithNames = convertCFuntionType(functionType,name,fileLocation);
+                CTypedefType cTypedefType = new CTypedefType(
+                        basicType.isConst(),
+                        basicType.isVolatile(),
+                        ((CTypedefType) basicType).getName(),
+                        cFunctionTypeWithNames);
+                return new CPointerType(cType.isConst(),cType.isVolatile(), cTypedefType);
+            }
+            else{
+                functionType = (CFunctionType) basicType;
+                CFunctionTypeWithNames cFunctionTypeWithNames = convertCFuntionType(functionType,name,fileLocation);
+                return new CPointerType(cType.isConst(),cType.isVolatile(), cFunctionTypeWithNames);
+            }
         }else if(cType instanceof CTypedefType){
             CPointerType cPointerType =(CPointerType) ((CTypedefType) cType).getRealType();
             cPointerType = (CPointerType) convertCFuntionType(cPointerType, name, fileLocation);
@@ -428,7 +443,9 @@ public class CFGTypeConverter {
     public boolean isFunctionPointerType(CType type){
         if(type instanceof CPointerType){
             CType basicType = ((CPointerType)type).getType();
-            if(basicType instanceof CFunctionType || basicType instanceof CFunctionTypeWithNames)
+            if(basicType instanceof CFunctionType)
+                return true;
+            else if(basicType instanceof CTypedefType && ((CTypedefType) basicType).getRealType() instanceof CFunctionType)
                 return true;
         }else if(type instanceof CTypedefType){
             return isFunctionPointerType(((CTypedefType) type).getRealType());

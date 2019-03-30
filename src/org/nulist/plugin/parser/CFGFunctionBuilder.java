@@ -909,10 +909,13 @@ public class CFGFunctionBuilder  {
 
                 param = expressionHandler.getExpression(oper, paramType, actual_in.children().get(1).as_ast(), fileLocation);
 
-                sb.append(param.toASTString()).append(", ");
+                if(i==operands.children().size()-1)
+                sb.append(param.toString()).append(")");
+                else
+                    sb.append(param.toString()).append(", ");
                 params.add(param);
             }
-            rawCharacters=sb.toString().replace(", ",")");
+            rawCharacters=sb.toString();
             if(actuals_out.empty()){
                 for(int i=0;i<actuals_in.to_vector().size();i++){
                     String param = actuals_in.to_vector().get(i).get_ast(ast_family.getC_NORMALIZED())
@@ -946,11 +949,12 @@ public class CFGFunctionBuilder  {
             functionCallExpression = new CFunctionCallExpression(fileLocation,
                     type, funcNameExpr, params, null);
         }else if(typeConverter.isFunctionPointerType(funcNameExpr.getExpressionType())){
+            //TODO it may be incorrect
             CType funcType  = typeConverter.getFuntionTypeFromFunctionPointer(funcNameExpr.getExpressionType());
             CPointerExpression pointerExpression = new CPointerExpression(fileLocation, funcType, funcNameExpr);
             functionCallExpression = new CFunctionCallExpression(fileLocation,
                     type, pointerExpression, params, null);
-        } else if(funcNameExpr instanceof CFieldReference){
+        }else if(funcNameExpr instanceof CFieldReference){
             CFieldReference fieldReference = (CFieldReference)funcNameExpr;
             CType refType = fieldReference.getExpressionType();
 

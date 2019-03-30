@@ -77,7 +77,7 @@ public class CFGParser implements Parser{
         {
             compunit cu = cu_it.current();
             // only focus on user-defined c files
-            if(fileFilter(cu.name()))
+            if(targetFile(cu.name()))
             {
             //input_file.add(Paths.get(cu.normalized_name()));
                 System.out.println(cu.name());
@@ -94,7 +94,7 @@ public class CFGParser implements Parser{
     }
 
     public static boolean targetFile(String path){
-        return path.endsWith("openair3/S1AP/s1ap_eNB_decoder.c");
+        return path.endsWith("cmake_targets/lte_build_oai/build/CMakeFiles/X2AP_R14/ber_tlv_length.c");
     }
 
 
