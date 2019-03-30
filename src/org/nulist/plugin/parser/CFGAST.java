@@ -424,7 +424,7 @@ public class CFGAST {
         else if(oper.is_a(ast_class.getNC_LESSEQUALEXPR()))
             return CBinaryExpression.BinaryOperator.LESS_EQUAL;
         else
-            throw new UnsupportedOperationException("Unsupported predicate");
+            throw new UnsupportedOperationException("Unsupported predicate: "+oper.get_class().name());
     }
 
     public static boolean hasRadixField(ast type){

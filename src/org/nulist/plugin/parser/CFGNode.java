@@ -403,9 +403,8 @@ public class CFGNode {
     }
 
 
-    public static boolean isTempVariableAssignment(point exprNode)throws result{
+    public static boolean isTempVariableAssignment(ast no_ast)throws result{
         try {
-            ast no_ast = exprNode.get_ast(ast_family.getC_NORMALIZED());
             return no_ast.pretty_print().startsWith("$temp") || no_ast.pretty_print().startsWith("*$temp");
 //            if(no_ast.is_a(ast_class.getNC_ABSTRACT_STATEMENT()) &&
 //                    no_ast.children().get(0).as_ast().is_a(ast_class.getNC_VARIABLE()) &&
@@ -426,10 +425,9 @@ public class CFGNode {
 
     }
 
-    public static boolean useTempVariable(point exprNode)throws result{
+    public static boolean useTempVariable(ast no_ast)throws result{
         try {
-            ast no_ast = exprNode.get_ast(ast_family.getC_NORMALIZED());
-            return !isTempVariableAssignment(exprNode) && no_ast.pretty_print().contains("$temp");
+            return !isTempVariableAssignment(no_ast) && no_ast.pretty_print().contains("$temp");
         }catch (result r){
             return false;
         }
