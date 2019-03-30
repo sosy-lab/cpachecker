@@ -91,13 +91,9 @@ public class CFAToCTranslator {
     }
   }
 
-  private static int newIterationNumber = 0;
-
   private static class NodeAndBlock {
     private final CFANode cfaNode;
     private final CompoundStatement currentBlock;
-
-    int iterationNumber = newIterationNumber;
 
     public NodeAndBlock(CFANode pCfaNode, CompoundStatement pCurrentBlock) {
       cfaNode = pCfaNode;
