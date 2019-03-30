@@ -332,13 +332,18 @@ public class CFAToCTranslator {
   private boolean isGotoAndLabelNotHandledYet(CFANode pNode) {
     if (pNode.getNumLeavingEdges() == 1) {
       CFAEdge leavingEdge = pNode.getLeavingEdge(0);
-      if (leavingEdge.getEdgeType().equals(CFAEdgeType.BlankEdge)
-          && leavingEdge.getDescription().startsWith("Goto:")
-          && leavingEdge.getSuccessor() instanceof CLabelNode) {
+      if (isGotoEdge(leavingEdge)
+          && !(CFAUtils.enteringEdges(leavingEdge.getSuccessor()).allMatch(n -> isGotoEdge(n)))) {
         return !createdStatements.containsKey(leavingEdge.getSuccessor());
       }
     }
     return false;
+  }
+
+  private boolean isGotoEdge(CFAEdge pEdge) {
+    return pEdge.getEdgeType().equals(CFAEdgeType.BlankEdge)
+        && pEdge.getDescription().startsWith("Goto:")
+        && pEdge.getSuccessor() instanceof CLabelNode;
   }
 
   private FunctionBody startFunction(CFunctionEntryNode pFunctionStartNode) {
