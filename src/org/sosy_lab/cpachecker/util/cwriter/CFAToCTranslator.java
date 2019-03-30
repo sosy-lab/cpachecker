@@ -43,6 +43,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -89,9 +90,13 @@ public class CFAToCTranslator {
     }
   }
 
+  private static int newIterationNumber = 0;
+
   private static class NodeAndBlock {
     private final CFANode cfaNode;
     private final CompoundStatement currentBlock;
+
+    int iterationNumber = newIterationNumber;
 
     public NodeAndBlock(CFANode pCfaNode, CompoundStatement pCurrentBlock) {
       cfaNode = pCfaNode;
@@ -105,6 +110,24 @@ public class CFAToCTranslator {
     public CompoundStatement getCurrentBlock() {
       return currentBlock;
     }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+      NodeAndBlock that = (NodeAndBlock) pO;
+      return Objects.equals(cfaNode, that.cfaNode) &&
+          Objects.equals(currentBlock, that.currentBlock);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(cfaNode, currentBlock);
+    }
   }
 
   @Option(
@@ -117,11 +140,11 @@ public class CFAToCTranslator {
   private Path whitelistLabelFile = null;
 
   private final List<String> globalDefinitionsList = new ArrayList<>();
-  private final Set<CFANode> discoveredElements = new HashSet<>();
+  private final Set<NodeAndBlock> discoveredElements = new HashSet<>();
   private final ListMultimap<CFANode, Statement> createdStatements = ArrayListMultimap.create();
   private Collection<FunctionBody> functions;
 
-  private CFANode noProgressSince = null;
+  private NodeAndBlock noProgressSince = null;
 
   public CFAToCTranslator(final Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -237,8 +260,8 @@ public class CFAToCTranslator {
 
     if (!areAllEnteringEdgesHandled(node) || isGotoAndLabelNotHandledYet(node)) {
       if (noProgressSince == null) {
-        noProgressSince = node;
-      } else if (noProgressSince.equals(node)) {
+        noProgressSince = pNode;
+      } else if (noProgressSince.equals(pNode)) {
         throw new CPAException("No progress in C translation at node " + node);
       }
       offerWaitlist(pWaitlist, node, currentBlock);
@@ -287,8 +310,10 @@ public class CFAToCTranslator {
     }
 
     for (NodeAndBlock next : nextNodes) {
-      CFANode nextNode = next.getCfaNode();
-      offerWaitlist(pWaitlist, nextNode, next.getCurrentBlock());
+      if (!discoveredElements.contains(next)) {
+        discoveredElements.add(next);
+        offerWaitlist(pWaitlist, next.getCfaNode(), next.getCurrentBlock());
+      }
     }
   }
 
@@ -407,10 +432,7 @@ public class CFAToCTranslator {
 
   private void offerWaitlist(
       Deque<NodeAndBlock> pWaitlist, CFANode pNode, CompoundStatement pCurrentBlock) {
-    if (!discoveredElements.contains(pNode)) {
-      discoveredElements.add(pNode);
-      pWaitlist.offer(new NodeAndBlock(pNode, pCurrentBlock));
-    }
+    pWaitlist.add(new NodeAndBlock(pNode, pCurrentBlock));
   }
 
   private CompoundStatement addIfStatement(
