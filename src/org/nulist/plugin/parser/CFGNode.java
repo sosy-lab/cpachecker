@@ -453,11 +453,38 @@ public class CFGNode {
             return 1;
     }
 
+    public static int getInitMemberSize(CType cType, int deep){
+
+        if(cType instanceof CTypedefType)
+            return getInitMemberSize(((CTypedefType) cType).getRealType(),deep);
+
+        else if(cType instanceof CPointerType)
+            return getInitMemberSize(((CPointerType) cType).getType(),deep);
+
+        else if(cType instanceof CElaboratedType)
+            return getInitMemberSize(((CElaboratedType) cType).getRealType(),deep);
+
+        else if(cType instanceof CCompositeType){
+            int size =0;
+            for(CCompositeType.CCompositeTypeMemberDeclaration typeMemberDeclaration:((CCompositeType) cType).getMembers()){
+                if(deep>0)
+                    size += getInitMemberSize(typeMemberDeclaration.getType(), --deep);
+                else
+                    size ++;
+            }
+            return size;
+        }else
+            return 1;
+    }
+
     public static point pointNextToBlockAssignmentExpr(point baExpression, CType cType)throws result{
         //should be a struct type == CCompositeType
         point nextNode;
-
-        int memberNum = getMemberSize(cType);
+        int memberNum;
+        if(baExpression.get_ast(ast_family.getC_UNNORMALIZED()).is_a(ast_class.getUC_INIT()))
+            memberNum = getInitMemberSize(cType,1);
+         else
+             memberNum = getMemberSize(cType);
 
         nextNode = baExpression.cfg_targets().cbegin().current().get_first();
         if(memberNum==1)

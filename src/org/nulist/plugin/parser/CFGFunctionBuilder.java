@@ -442,8 +442,18 @@ public class CFGFunctionBuilder  {
         // assign a struct variable to another struct variable
         // for struct each member, CFG will have a block assign expr, but actually we only need one express
         // or a struct variable initialization
+
         if(no_ast.is_a(ast_class.getNC_BLOCKASSIGN())){
-            CType varType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
+            CType varType;
+            if(un_ast.is_a(ast_class.getUC_INIT())){
+                ast init = un_ast.get(ast_ordinal.getUC_DYNAMIC_INIT()).as_ast();
+                ast variable = init.get(ast_ordinal.getUC_VARIABLE()).as_ast();
+                varType = typeConverter.getCType(
+                        variable.get(ast_ordinal.getBASE_TYPE()).as_ast(),
+                        expressionHandler);
+            }
+            else
+                varType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
             nextCFGNode = pointNextToBlockAssignmentExpr(exprNode, varType);
         }
 
@@ -953,7 +963,7 @@ public class CFGFunctionBuilder  {
                     functionType, funcNameExpr);
             functionCallExpression = new CFunctionCallExpression(fileLocation,
                     type, pointerExpression, params, null);
-        }else if(funcNameExpr instanceof CIdExpression){
+        }else if(((CIdExpression)funcNameExpr).getDeclaration() instanceof CParameterDeclaration){
             functionCallExpression = new CFunctionCallExpression(fileLocation,
                     type, funcNameExpr, params, null);
         }else {
@@ -990,12 +1000,13 @@ public class CFGFunctionBuilder  {
 
 
             ast un_ast = actualoutCFGNode.get_ast(ast_family.getC_UNNORMALIZED());
+            CType actualOutType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(),expressionHandler);
 
-            CType returnType;
-            if(cfgNode.get_kind().equals(point_kind.getINDIRECT_CALL()))
-                returnType = type;
-            else
-                returnType = functionCallExpression.getDeclaration().getType().getReturnType();
+//            CType returnType;
+//            if(cfgNode.get_kind().equals(point_kind.getINDIRECT_CALL()))
+//                returnType = type;
+//            else
+//                returnType = functionCallExpression.getDeclaration().getType().getReturnType();
             String name = expressionHandler.getFunctionCallResultName(un_ast);
 
             CVariableDeclaration declaration =
@@ -1003,7 +1014,7 @@ public class CFGFunctionBuilder  {
                             fileLocation,
                             false,
                             CStorageClass.AUTO,
-                            returnType,
+                            actualOutType,
                             name,
                             name,
                             name,

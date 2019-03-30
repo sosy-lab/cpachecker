@@ -94,7 +94,7 @@ public class CFGParser implements Parser{
     }
 
     public static boolean targetFile(String path){
-        return path.endsWith("cmake_targets/lte_build_oai/build/CMakeFiles/X2AP_R14/X2AP_CRNTI.c");
+        return path.endsWith("openair3/S1AP/s1ap_eNB_decoder.c");
     }
 
 
