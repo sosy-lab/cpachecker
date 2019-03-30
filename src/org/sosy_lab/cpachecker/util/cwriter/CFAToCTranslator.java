@@ -294,6 +294,10 @@ public class CFAToCTranslator {
         if (!joinBlock.equals(currentBlock)
             && !joinBlock.equals(currentBlock.getSurroundingBlock())) {
           offerWaitlist(pWaitlist, node, currentBlock);
+          NodeAndBlock join = new NodeAndBlock(node, joinBlock);
+          if (discoveredElements.contains(join)) {
+            pWaitlist.remove(join);
+          }
         }
         currentBlock = joinBlock;
       }
