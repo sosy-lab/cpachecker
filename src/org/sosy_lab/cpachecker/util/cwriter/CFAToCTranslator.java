@@ -496,6 +496,7 @@ public class CFAToCTranslator {
   private boolean areAllEnteringEdgesHandled(CFANode pNode) {
     return pNode instanceof CFunctionEntryNode
         || pNode.isLoopStart()
+        || (pNode instanceof CLabelNode && isLabelHandledIfExists(pNode))
         || getRelevant(CFAUtils.allEnteringEdges(pNode))
             .allMatch(e -> createdStatements.containsKey(e.getPredecessor()));
   }
