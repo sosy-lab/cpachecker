@@ -212,7 +212,7 @@ public class CFAToCTranslator {
     FunctionBody f = startFunction(pEntry);
     functions.add(f);
 
-    pushToWaitlist(waitlist, pEntry, f.getFunctionBody());
+    offerWaitlist(waitlist, pEntry, f.getFunctionBody());
 
     while (!waitlist.isEmpty()) {
       NodeAndBlock nextNode = waitlist.poll();
@@ -241,7 +241,7 @@ public class CFAToCTranslator {
       } else if (noProgressSince.equals(node)) {
         throw new CPAException("No progress in C translation at node " + node);
       }
-      pushToWaitlist(pWaitlist, node, currentBlock);
+      offerWaitlist(pWaitlist, node, currentBlock);
       return;
 
     } else {
@@ -288,7 +288,7 @@ public class CFAToCTranslator {
 
     for (NodeAndBlock next : nextNodes) {
       CFANode nextNode = next.getCfaNode();
-      pushToWaitlist(pWaitlist, nextNode, next.getCurrentBlock());
+      offerWaitlist(pWaitlist, nextNode, next.getCurrentBlock());
     }
   }
 
@@ -405,10 +405,12 @@ public class CFAToCTranslator {
     return assumption.isSwapped() != assumption.getTruthAssumption();
   }
 
-  private void pushToWaitlist(
+  private void offerWaitlist(
       Deque<NodeAndBlock> pWaitlist, CFANode pNode, CompoundStatement pCurrentBlock) {
-    discoveredElements.add(pNode);
-    pWaitlist.offer(new NodeAndBlock(pNode, pCurrentBlock));
+    if (!discoveredElements.contains(pNode)) {
+      discoveredElements.add(pNode);
+      pWaitlist.offer(new NodeAndBlock(pNode, pCurrentBlock));
+    }
   }
 
   private CompoundStatement addIfStatement(
