@@ -401,15 +401,15 @@ public class CFGAST {
             return CBinaryExpression.BinaryOperator.DIVIDE;
         else if(oper.is_a(ast_class.getNC_MODEXPR()))
             return CBinaryExpression.BinaryOperator.MODULO;
-        else if(oper.is_a(ast_class.getNC_RIGHTASSIGN()))
+        else if(oper.is_a(ast_class.getNC_RIGHTASSIGN()) || oper.is_a(ast_class.getNC_RIGHTSHIFTEXPR()))
             return CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
-        else if(oper.is_a(ast_class.getNC_LEFTASSIGN()))
+        else if(oper.is_a(ast_class.getNC_LEFTASSIGN()) || oper.is_a(ast_class.getNC_LEFTSHIFTEXPR()))
             return CBinaryExpression.BinaryOperator.SHIFT_LEFT;
-        else if(oper.is_a(ast_class.getNC_ANDASSIGN()))
+        else if(oper.is_a(ast_class.getNC_ANDASSIGN()) || oper.is_a(ast_class.getNC_BITANDEXPR()))
             return CBinaryExpression.BinaryOperator.BINARY_AND;
-        else if(oper.is_a(ast_class.getNC_ORASSIGN()))
+        else if(oper.is_a(ast_class.getNC_ORASSIGN()) || oper.is_a(ast_class.getNC_INCLUSIVEOR()) || oper.is_a(ast_class.getNC_OREXPR()))
             return CBinaryExpression.BinaryOperator.BINARY_OR;
-        else if(oper.is_a(ast_class.getNC_XORASSIGN()))
+        else if(oper.is_a(ast_class.getNC_XORASSIGN()) || oper.is_a(ast_class.getNC_EXCLUSIVEOR()))
             return CBinaryExpression.BinaryOperator.BINARY_XOR;
         else if(oper.is_a(ast_class.getNC_EQUALEXPR()))
             return CBinaryExpression.BinaryOperator.EQUALS;

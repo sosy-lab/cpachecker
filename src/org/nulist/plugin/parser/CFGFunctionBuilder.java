@@ -382,8 +382,8 @@ public class CFGFunctionBuilder  {
                     handleForPoint(cfgNode,fileLocation);
                 else if(isSwitchControlPointNode(cfgNode))
                     handleSwitchPoint(cfgNode,fileLocation);
-                else if(isNodeNode(cfgNode)){//ternary operation
-                    handleIFPoint(cfgNode, fileLocation);
+                else if(isNodeNode(cfgNode)){
+                    handleIFPoint(cfgNode, fileLocation);//ternary operation or if node in Macro
                 }else
                     throw new RuntimeException("other control point");
                 break;
@@ -402,15 +402,17 @@ public class CFGFunctionBuilder  {
                 break;
             case LABEL:
                 if(isGoToLabel(cfgNode))
-//                        handleNormalPoint(cfgNode, fileLocation,
-//                                "Label: "+getLabelName(cfgNode));
                     handleLabelPoint(cfgNode, fileLocation);
                 else if(isElseLabel(cfgNode)){
                     handleNormalPoint(cfgNode, fileLocation, "else");
                 }else if(isDoLabel(cfgNode))
                     handleDoLabelPoint(cfgNode, fileLocation);
-                else if(isNodeNode(cfgNode)){//
-
+                else if(isNodeNode(cfgNode)){//macro
+                    if(cfgNode.get_ast(ast_family.getC_UNNORMALIZED()).is_a(ast_class.getUC_END_TEST_WHILE())){//do label in do while of macro
+                        handleDoLabelPoint(cfgNode, fileLocation);
+                    }else {
+                        System.out.println("None label node but not an end-test-while node: "+cfgNode.toString()+" "+cfgNode.file_line().get_second());
+                    }
                 }else
                     throw new RuntimeException("other label node "+ cfaNode.toString());
                 break;
@@ -1011,7 +1013,7 @@ public class CFGFunctionBuilder  {
 //                returnType = type;
 //            else
 //                returnType = functionCallExpression.getDeclaration().getType().getReturnType();
-            String name = expressionHandler.getFunctionCallResultName(un_ast);
+            String name = funcNameExpr.toString()+"$result__"+ un_ast.get(ast_ordinal.getUC_UID()).as_uint32();
 
             CVariableDeclaration declaration =
                     new CVariableDeclaration(
@@ -1124,6 +1126,12 @@ public class CFGFunctionBuilder  {
         //if there is the return variable, it should be processed in its processor
         //However, sometime, there is no return semantic, e.g., int a(){};
         if(cfa.getReturnVariable().isPresent() && !isExpression(returnNode.cfg_sources().cbegin().current().get_first())){
+
+            if(isNormal_Return(returnNode)){
+                BlankEdge edge = new BlankEdge("",fileloc, prevNode, cfa.getExitNode(), "normal return");
+                addToCFA(edge);
+                return;
+            }
 
             ast un_ast = returnNode.get_ast(ast_family.getC_UNNORMALIZED());
 
@@ -1263,13 +1271,14 @@ public class CFGFunctionBuilder  {
         String rawSignature = "switch (" + getRawSignature(switchNode) + ")";
         String description = "switch (" + getRawSignature(switchNode) + ")";
 
+        cfgEdgeVector = moveSwitchDefault2Last(cfgEdgeVector);
         // firstSwitchNode is first Node of switch-Statement.
         point firstSwitchCFGNode = cfgEdgeVector.get(0).get_first();
         point defaultCFGNode = cfgEdgeVector.get((int)(cfgEdgeVector.size()-1)).get_first();
         CFANode firstSwitchNode = cfaNodeMap.get(firstSwitchCFGNode.id());
         addToCFA(new BlankEdge(rawSignature, fileLocation, prevNode, firstSwitchNode, description));
 
-
+        //TODO: there is a bug that the default case is not in the end of cfaedges
         if(cfgEdgeVector.size()>1){
             for(int i=0;i<cfgEdgeVector.size()-1;i++){
                 CExpression conditionExpr = handleSwitchCase(cfgEdgeVector.get(i).get_first(), switchExpr);
@@ -1413,7 +1422,7 @@ public class CFGFunctionBuilder  {
     }
 
     private void handleDoLabelPoint(point doWhileNode, FileLocation fileLocation)throws result{
-        assert isDoControlPointNode(doWhileNode);
+        //assert isDoControlPointNode(doWhileNode);
         CFANode prevNode = cfaNodeMap.get(doWhileNode.id());
 
         point nextCFGNode = doWhileNode.cfg_targets().cbegin().current().get_first();

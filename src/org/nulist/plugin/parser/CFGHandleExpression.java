@@ -521,6 +521,15 @@ public class CFGHandleExpression {
 
     }
 
+    public boolean isUnaryOperation(ast operator)throws result{
+        if(operator.is_a(ast_class.getUC_ABSTRACT_POST_DECR())||
+                operator.is_a(ast_class.getUC_ABSTRACT_PRE_DECR())||
+                operator.is_a(ast_class.getUC_ABSTRACT_POST_INCR())||
+                operator.is_a(ast_class.getUC_ABSTRACT_PRE_INCR()))
+            return true;
+        return false;
+    }
+
     public CStatement getAssignStatement(point expr, FileLocation fileLocation)throws result{
         ast un_ast = expr.get_ast(ast_family.getC_UNNORMALIZED());
         ast no_ast = expr.get_ast(ast_family.getC_NORMALIZED());
@@ -563,8 +572,7 @@ public class CFGHandleExpression {
 
                 CType leftType = typeConverter.getCType(oper1.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
                 leftHandSide = (CLeftHandSide) getExpressionFromUC(oper1, leftType, fileLocation);
-                rightHandSide = getExpressionWithTempVar(no_oper2,
-                        oper2, fileLocation);
+                rightHandSide = getExpressionWithTempVar(no_oper2, oper2, fileLocation);
                 break;
             case 0://left side use temp var
                 leftHandSide = (CLeftHandSide) getExpressionWithTempVar(no_oper1, oper1, fileLocation);
@@ -670,7 +678,7 @@ public class CFGHandleExpression {
             CExpression leftExpession, rightExpression;
             ast operands = un_expr.get(ast_ordinal.getUC_OPERANDS()).as_ast();
             ast leftOper = operands.children().get(0).as_ast();
-            ast rightOper = operands.children().get(1).as_ast();
+            CBinaryExpression.BinaryOperator operator = getBinaryOperator(no_expr);
             if(left.pretty_print().contains("$temp")){
                 leftExpession = getExpressionWithTempVar(left, leftOper,fileLocation);
             }else {
@@ -678,13 +686,16 @@ public class CFGHandleExpression {
                 leftExpession = getExpressionFromUC(leftOper, typeLeft, fileLocation);
             }
 
+            if(operands.children().size()==1){
+                return buildBinaryExpression(leftExpession,CIntegerLiteralExpression.ONE, operator);
+            }
+            ast rightOper = operands.children().get(1).as_ast();
             if(right.pretty_print().contains("$temp")){
                 rightExpression = getExpressionWithTempVar(right, rightOper,fileLocation);
             }else {
-                CType typeRight = typeConverter.getCType(leftOper.get(ast_ordinal.getBASE_TYPE()).as_ast(),this);
+                CType typeRight = typeConverter.getCType(rightOper.get(ast_ordinal.getBASE_TYPE()).as_ast(),this);
                 rightExpression = getExpressionFromUC(rightOper, typeRight, fileLocation);
             }
-            CBinaryExpression.BinaryOperator operator = getBinaryOperator(no_expr);
 
             return buildBinaryExpression(leftExpession,rightExpression, operator);
         }else if(no_expr.is_a(ast_class.getNC_STRUCTORUNIONREF())){
@@ -963,7 +974,10 @@ public class CFGHandleExpression {
             ast operands = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
             ast oper1 = operands.children().get(0).as_ast();
             return getExpressionFromUC(oper1,valueType,fileLoc);
-        }else if(value_ast.is_a(ast_class.getUC_ABSTRACT_OPERATION())){//
+        }else if(isUnaryOperation(value_ast)){
+            ast variable = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(0).as_ast();
+            return getExpressionFromUC(variable, valueType, fileLoc);
+        }if(value_ast.is_a(ast_class.getUC_ABSTRACT_OPERATION())){//
 
             CBinaryExpression.BinaryOperator operator = getBinaryOperatorFromUC(value_ast);
             ast operands = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
@@ -977,6 +991,7 @@ public class CFGHandleExpression {
             CExpression right = getExpressionFromUC(oper1,operType1,fileLoc);
             ast oper2 = operands.children().get(1).as_ast();
             CType operType2 = typeConverter.getCType(oper2.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
+
             CExpression left = getExpressionFromUC(oper2,operType2,fileLoc);
 
             return buildBinaryExpression(right,left,operator);
@@ -1042,28 +1057,41 @@ public class CFGHandleExpression {
             symbol result = routine.get(ast_ordinal.getUC_ROUTINE())//routine
                     .get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
             return result.name()+"$result__"+ function.get(ast_ordinal.getUC_UID()).as_uint32();
-        }else if(routine.is_a(ast_class.getUC_INDIRECT()) || routine.is_a(ast_class.getUC_ABSTRACT_DOT_EXPR())){
-            ast variable = routine.get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(0).as_ast();
-            if(variable.is_a(ast_class.getUC_SUBSCRIPT())){
-                CType type = typeConverter.getCType(variable.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
-                CExpression expression = getExpressionFromUC(variable,type, FileLocation.DUMMY);
-                return expression.toString()+"$result__"+ function.get(ast_ordinal.getUC_UID()).as_uint32();
-            }else if(variable.is_a(ast_class.getUC_EXPR_VARIABLE())){
-                symbol variableSymbol = variable.get(ast_ordinal.getUC_VARIABLE())
-                        .get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
-
-                String normalizedVarName = getNormalizedVariableName(variableSymbol, functionName);
-                return normalizedVarName+"$result__"+ function.get(ast_ordinal.getUC_UID()).as_uint32();
-            }else {
-                dumpAST(variable,0,variable.get_class().name());
-                throw new RuntimeException("Not a variable for point function: "+function.toString()+" "+variable.toString());
-            }
-
-
-        }else{
-            dumpAST(function,0,function.get_class().name());
-            throw new RuntimeException("Other function call : "+routine.get_class().name()+" "+function.pretty_print());
+        }else {
+            CType type = typeConverter.getCType(routine.get(ast_ordinal.getBASE_TYPE()).as_ast(),this);
+            CExpression expression = getExpressionFromUC(routine,type, FileLocation.DUMMY);
+            return expression.toString()+"$result__"+ function.get(ast_ordinal.getUC_UID()).as_uint32();
         }
+
+
+//        else if(routine.is_a(ast_class.getUC_INDIRECT())){
+//            CType type = typeConverter.getCType(routine.get(ast_ordinal.getBASE_TYPE()).as_ast(),this);
+//            CExpression expression = getExpressionFromUC(routine,type, FileLocation.DUMMY);
+//            return expression.toString()+"$result__"+ function.get(ast_ordinal.getUC_UID()).as_uint32();
+//
+//            ast variable = routine.get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(0).as_ast();
+//            if(variable.is_a(ast_class.getUC_SUBSCRIPT())){
+//                CType type = typeConverter.getCType(variable.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
+//                CExpression expression = getExpressionFromUC(variable,type, FileLocation.DUMMY);
+//                return expression.toString()+"$result__"+ function.get(ast_ordinal.getUC_UID()).as_uint32();
+//            }else if(variable.is_a(ast_class.getUC_EXPR_VARIABLE())){
+//                symbol variableSymbol = variable.get(ast_ordinal.getUC_VARIABLE())
+//                        .get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
+//
+//                String normalizedVarName = getNormalizedVariableName(variableSymbol, functionName);
+//                return normalizedVarName+"$result__"+ function.get(ast_ordinal.getUC_UID()).as_uint32();
+//            }else {
+//                dumpAST(variable,0,variable.get_class().name());
+//                throw new RuntimeException("Not a variable for point function: "+function.toString()+" "+variable.toString());
+//            }
+//        }else if(routine.is_a(ast_class.getUC_ABSTRACT_DOT_EXPR())){
+//            CType type = typeConverter.getCType(routine.get(ast_ordinal.getBASE_TYPE()).as_ast(),this);
+//            CExpression expression = getExpressionFromUC(routine,type, FileLocation.DUMMY);
+//            return expression.toString()+"$result__"+ function.get(ast_ordinal.getUC_UID()).as_uint32();
+//        }else {
+//            dumpAST(function,0,function.get_class().name());
+//            throw new RuntimeException("Other function call : "+routine.get_class().name()+" "+function.pretty_print());
+//        }
     }
 
     //value_ast.get_class()==[c:addr]

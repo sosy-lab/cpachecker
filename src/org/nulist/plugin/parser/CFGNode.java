@@ -8,6 +8,7 @@
 package org.nulist.plugin.parser;
 
 import com.grammatech.cs.*;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.*;
 
@@ -365,6 +366,27 @@ public class CFGNode {
         return edgeVector;
     }
 
+    public static cfg_edge_vector moveSwitchDefault2Last(cfg_edge_vector switchCaseEdgeVector) throws result{
+        if(switchCaseEdgeVector.get((int)switchCaseEdgeVector.size()-1).get_second().name().contains("default"))
+            return switchCaseEdgeVector;
+        else {
+            cfg_edge_vector edgeVector = new cfg_edge_vector();
+            int indexDefault=-1;
+            for(int i=0;i<switchCaseEdgeVector.size();i++){
+                if(switchCaseEdgeVector.get(i).get_second().name().contains("default")){
+                    indexDefault = i;
+                }else
+                    edgeVector.add(switchCaseEdgeVector.get(i));
+            }
+            if(indexDefault==-1)
+                return switchCaseEdgeVector;
+            else{
+                edgeVector.add(switchCaseEdgeVector.get(indexDefault));
+                return edgeVector;
+            }
+        }
+    }
+
     public static point_vector sortActualInVectorByID(point_vector actualins)throws result {
         point_vector pointVector = new point_vector();
         Map<Integer, Integer> lineMap = new HashMap<>();
@@ -477,23 +499,52 @@ public class CFGNode {
             return 1;
     }
 
-    public static point pointNextToBlockAssignmentExpr(point baExpression, CType cType)throws result{
-        //should be a struct type == CCompositeType
-        point nextNode;
-        int memberNum;
-        if(baExpression.get_ast(ast_family.getC_UNNORMALIZED()).is_a(ast_class.getUC_INIT()))
-            memberNum = getInitMemberSize(cType,1);
-         else
-             memberNum = getMemberSize(cType);
+//    public static point pointNextToBlockAssignmentExpr(point baExpression, CType cType)throws result{
+//        //should be a struct type == CCompositeType
+//        point nextNode;
+//        int memberNum;
+//        if(baExpression.get_ast(ast_family.getC_UNNORMALIZED()).is_a(ast_class.getUC_INIT()))
+//            memberNum = getInitMemberSize(cType,1);
+//         else
+//             memberNum = getMemberSize(cType);
+//
+//        nextNode = baExpression.cfg_targets().cbegin().current().get_first();
+//        if(memberNum==1)
+//                return nextNode;
+//        for(int i=1;i<memberNum;i++){
+//                if(!nextNode.get_ast(ast_family.getC_NORMALIZED()).is_a(ast_class.getNC_BLOCKASSIGN()))
+//                    throw new RuntimeException("This is not a block assignment expression:"+ nextNode.toString());
+//                nextNode = nextNode.cfg_targets().cbegin().current().get_first();
+//        }
+//        return nextNode;
+//    }
 
-        nextNode = baExpression.cfg_targets().cbegin().current().get_first();
-        if(memberNum==1)
-                return nextNode;
-        for(int i=1;i<memberNum;i++){
-                if(!nextNode.get_ast(ast_family.getC_NORMALIZED()).is_a(ast_class.getNC_BLOCKASSIGN()))
-                    throw new RuntimeException("This is not a block assignment expression:"+ nextNode.toString());
-                nextNode = nextNode.cfg_targets().cbegin().current().get_first();
+    public static point pointNextToBlockAssignmentExpr(point baExpression, CType cType)throws result{
+        ast no_ast= baExpression.get_ast(ast_family.getC_NORMALIZED());
+        int memberNum = getInitMemberSize(cType,0);
+        point nextNode = baExpression.cfg_targets().cbegin().current().get_first();
+
+        ast original = no_ast.get(ast_ordinal.getNC_ORIGINAL()).as_ast();
+        String originalStr = original.pretty_print();
+        while (memberNum>1){
+            nextNode = nextNode.cfg_targets().cbegin().current().get_first();
+            memberNum--;
         }
+        boolean getNextPoint = false;
+        while (!getNextPoint){
+            if(isExpression(nextNode)){
+                ast no_ast1 = nextNode.get_ast(ast_family.getC_NORMALIZED());
+                if(no_ast1.is_a(ast_class.getNC_BLOCKASSIGN())){
+                    ast original1 = no_ast1.get(ast_ordinal.getNC_ORIGINAL()).as_ast();
+                    if(original1.pretty_print().equals(originalStr)){
+                        nextNode = nextNode.cfg_targets().cbegin().current().get_first();
+                    }
+                }else
+                    getNextPoint = true;
+            }else
+                getNextPoint = true;
+        }
+
         return nextNode;
     }
 }
