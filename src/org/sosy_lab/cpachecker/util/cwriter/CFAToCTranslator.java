@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionCallEdge;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -46,6 +45,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -183,18 +183,21 @@ public class CFAToCTranslator {
         .forEach(n -> labelNodes.put(((CLabelNode) n).getLabel(), n));
 
     final Set<CFAEdge> reachableNodes = new HashSet<>();
-    for (String l : labels) {
-      Collection<CFANode> nodesWithLabel =
-          checkNotNull(labelNodes.get(l), "No label node for label %s", l);
-      for (CFANode labelNode : nodesWithLabel) {
-        // a backwards traversal through the CFA, starting at the node of interest,
-        // will give us all edges that can reach the node of interest.
-        reachableNodes.addAll(
-            CFATraversal.dfs()
-                .backwards()
-                .ignoreEdges(reachableNodes)
-                .collectEdgesReachableFrom(labelNode));
+    for (CFAEdge edgeToLabel :
+        labels.stream()
+            .flatMap(l -> labelNodes.get(l).stream())
+            .flatMap(l -> CFAUtils.enteringEdges(l).stream())
+            .collect(Collectors.toSet())) {
+
+      if (reachableNodes.contains(edgeToLabel)) {
+        continue;
       }
+
+      reachableNodes.addAll(
+          CFATraversal.dfs()
+              .backwards()
+              .ignoreEdges(reachableNodes)
+              .collectEdgesReachableFrom(edgeToLabel.getPredecessor()));
     }
 
     getAllSummaryEdges(pCfa).forEach(reachableNodes::add);
