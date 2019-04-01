@@ -509,6 +509,9 @@ public class CFGAST {
         return null;
     }
 
+    public static void dumpASTWITHClass(ast target)throws result{
+        dumpAST(target,0,target.get_class().name());
+    }
     public static void dumpAST(ast target, int mode, String tag){
         try {
             ast_field_vector afv = null;

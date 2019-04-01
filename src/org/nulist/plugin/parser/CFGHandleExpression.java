@@ -544,7 +544,8 @@ public class CFGHandleExpression {
         ast oper2 = operands.children().get(1).as_ast();
         ast no_oper1 = no_ast.children().get(0).as_ast();
         ast no_oper2 = no_ast.children().get(1).as_ast();
-        if(no_ast.is_a(ast_class.getNC_BLOCKASSIGN())){//
+
+        if(no_ast.is_a(ast_class.getNC_BLOCKASSIGN())){//un_ast.is_a(ast_class.getUC_BASSIGN())
             CStatement statement = getAssignStatementFromUC(un_ast,fileLocation);
             CExpression tempLeft = ((CExpressionAssignmentStatement)statement).getLeftHandSide();
             CExpression indexExpr = getTempVarIDExpression(no_oper1, fileLocation);
@@ -560,28 +561,45 @@ public class CFGHandleExpression {
             }
             return new CExpressionAssignmentStatement(fileLocation, leftHandSide,
                     ((CExpressionAssignmentStatement) statement).getRightHandSide());
+        }else if(!un_ast.is_a(ast_class.getUC_GENERIC_ASSIGN())){
+            //ast no_oper21 = no_oper2.children().get(0).as_ast();
+            //ast no_oper22 = no_oper2.children().get(1).as_ast();
+            switch (location){
+                case 2://two sides use temp vars
+                    leftHandSide = (CLeftHandSide) getExpressionWithTempVar(no_oper1, oper1, fileLocation);
+                    rightHandSide = getExpressionWithTempVar(no_oper2, un_ast, fileLocation);
+                    break;
+                case 1://right side use temp var
+
+                    CType leftType = typeConverter.getCType(oper1.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
+                    leftHandSide = (CLeftHandSide) getExpressionFromUC(oper1, leftType, fileLocation);
+                    rightHandSide = getExpressionWithTempVar(no_oper2, un_ast, fileLocation);
+                    break;
+                case 0://left side use temp var
+                    leftHandSide = (CLeftHandSide) getExpressionWithTempVar(no_oper1, oper1, fileLocation);
+                    CType rightType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
+                    rightHandSide = getExpressionFromUC(un_ast,rightType,fileLocation);
+                    break;
+            }
+        }else {
+            switch (location){
+                case 2://two sides use temp vars
+                    leftHandSide = (CLeftHandSide) getExpressionWithTempVar(no_oper1, oper1, fileLocation);
+                    rightHandSide = getExpressionWithTempVar(no_oper2, oper2, fileLocation);
+                    break;
+                case 1://right side use temp var
+
+                    CType leftType = typeConverter.getCType(oper1.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
+                    leftHandSide = (CLeftHandSide) getExpressionFromUC(oper1, leftType, fileLocation);
+                    rightHandSide = getExpressionWithTempVar(no_oper2, oper2, fileLocation);
+                    break;
+                case 0://left side use temp var
+                    leftHandSide = (CLeftHandSide) getExpressionWithTempVar(no_oper1, oper1, fileLocation);
+                    CType rightType = typeConverter.getCType(oper2.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
+                    rightHandSide = getExpressionFromUC(oper2,rightType,fileLocation);
+                    break;
+            }
         }
-
-        //TODO
-        switch (location){
-            case 2://two sides use temp vars
-                leftHandSide = (CLeftHandSide) getExpressionWithTempVar(no_oper1, oper1, fileLocation);
-                rightHandSide = getExpressionWithTempVar(no_oper2, oper2, fileLocation);
-                break;
-            case 1://right side use temp var
-
-                CType leftType = typeConverter.getCType(oper1.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
-                leftHandSide = (CLeftHandSide) getExpressionFromUC(oper1, leftType, fileLocation);
-                rightHandSide = getExpressionWithTempVar(no_oper2, oper2, fileLocation);
-                break;
-            case 0://left side use temp var
-                leftHandSide = (CLeftHandSide) getExpressionWithTempVar(no_oper1, oper1, fileLocation);
-                CType rightType = typeConverter.getCType(oper2.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
-                rightHandSide = getExpressionFromUC(oper2,rightType,fileLocation);
-                break;
-        }
-
-
         return new CExpressionAssignmentStatement(fileLocation, leftHandSide, rightHandSide);
     }
 
@@ -641,6 +659,46 @@ public class CFGHandleExpression {
                 }else {//may have some problem
                     throw new RuntimeException("Block assign with temp:"+ arraySubscript.getClass());
                 }
+            }else if(no_expr.children().get(0).as_ast().is_a(ast_class.getNC_ABSTRACT_ARITHMETIC())){
+                ast operand = no_expr.children().get(0).as_ast();
+                ast operands = un_expr.get(ast_ordinal.getUC_OPERANDS()).as_ast()
+                        .children().get(0).get(ast_ordinal.getUC_OPERANDS()).as_ast();
+                CBinaryExpression.BinaryOperator operator = getBinaryOperator(operand);
+
+                CExpression exper1;
+
+                CType op1Type = typeConverter.getCType(
+                        operands.children().get(0).as_ast().get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
+
+                if(operand.children().get(0).as_ast().pretty_print().contains("$temp")){
+                    exper1 = getExpressionWithTempVar(operand.children().get(0).as_ast(),
+                            operands.children().get(0).as_ast(),fileLocation);
+                }else
+                    exper1 = getExpressionFromUC(operands.children().get(0).as_ast(),op1Type,fileLocation);
+
+                CExpression exper2;
+
+                CType op2Type = typeConverter.getCType(
+                        operands.children().get(1).as_ast().get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
+
+                if(operand.children().get(1).as_ast().pretty_print().contains("$temp")){
+                    exper2 = getExpressionWithTempVar(operand.children().get(1).as_ast(),
+                            operands.children().get(1).as_ast(),fileLocation);
+                }else
+                    exper2 = getExpressionFromUC(operands.children().get(1).as_ast(),op2Type,fileLocation);
+
+
+                CCastExpression op1Cast = new CCastExpression(
+                        fileLocation,
+                        op1Type,
+                        exper1);
+                CCastExpression op2Cast = new CCastExpression(
+                        fileLocation,
+                        op2Type,
+                        exper2);
+                CExpression expression = buildBinaryExpression(op1Cast,op2Cast,operator);
+                CType type1 = typeConverter.getCType(un_expr.get(ast_ordinal.getBASE_TYPE()).as_ast(),this);
+                return  new CPointerExpression(fileLocation, type1,expression);
             }else
                 return getExpressionFromNO(no_expr, type, fileLocation);//TODO
         }else if(no_expr.is_a(ast_class.getNC_ADDREXPR())){
@@ -783,8 +841,9 @@ public class CFGHandleExpression {
             CExpression operand = getExpressionFromNO(operandAST,operandType, fileLoc);
             return new CCastExpression(fileLoc, castType, operand);
         }else if(isPointerExpr(value_ast)){//pointer, e.g., int i = *(p+1);
-            CBinaryExpression operand = getBinaryExpression(value_ast,fileLoc);
-            CPointerType pointerType = new CPointerType(false,false,operand.getExpressionType());
+            CType type  = typeConverter.getCType(value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
+            CBinaryExpression operand = getBinaryExpression(value_ast.children().get(0).as_ast(),fileLoc);
+            CPointerType pointerType = new CPointerType(false,false,type);
             return new CPointerExpression(fileLoc, pointerType, operand);
         }else
             throw new RuntimeException("Not support this expr: "+value_ast.toString());
