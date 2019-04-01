@@ -124,10 +124,12 @@ public class ARGToCTranslator {
       buffer.append(" ");
     }
 
-    public String getLabel() {
+    public String getLabel(Collection<String> pExistingLabels) {
       if (!isGotoTarget) {
-        gotoLabel = "label_" + gotoCounter;
-        gotoCounter++;
+        do {
+          gotoLabel = "label_" + gotoCounter;
+          gotoCounter++;
+        } while (pExistingLabels.contains(gotoLabel));
         isGotoTarget = true;
       }
       return gotoLabel;

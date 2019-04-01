@@ -157,18 +157,19 @@ public class CFAToCTranslator {
     }
 
     Collection<CFAEdge> relevantEdges = null;
+    Collection<CLabelNode> labelNodes = getAllLabelNodes(pCfa).collect(Collectors.toSet());
     if (whitelistLabelFile != null) {
-      relevantEdges = getEdgesReachingLabels(pCfa, whitelistLabelFile);
+      relevantEdges = getEdgesReachingLabels(pCfa, labelNodes, whitelistLabelFile);
     }
 
     for (FunctionEntryNode func : pCfa.getAllFunctionHeads()) {
-      translate((CFunctionEntryNode) func, relevantEdges);
+      translate((CFunctionEntryNode) func, relevantEdges, labelNodes);
     }
 
     return generateCCode();
   }
 
-  private Collection<CFAEdge> getEdgesReachingLabels(CFA pCfa, Path pWhitelistLabelFile)
+  private Collection<CFAEdge> getEdgesReachingLabels(CFA pCfa, Collection<CLabelNode> pLabelNodes, Path pWhitelistLabelFile)
       throws IOException {
 
     // TODO: At the moment, this is function-agnostic; all labels with the given name are considered
@@ -177,10 +178,7 @@ public class CFAToCTranslator {
     final List<String> labels = Files.readAllLines(pWhitelistLabelFile, Charset.defaultCharset());
     final Multimap<String, CFANode> labelNodes = HashMultimap.create();
 
-    pCfa.getAllNodes()
-        .parallelStream()
-        .filter(n -> n instanceof CLabelNode)
-        .forEach(n -> labelNodes.put(((CLabelNode) n).getLabel(), n));
+    pLabelNodes.forEach(n -> labelNodes.put(n.getLabel(), n));
 
     final Set<CFAEdge> reachableNodes = new HashSet<>();
     for (CFAEdge edgeToLabel :
@@ -205,6 +203,14 @@ public class CFAToCTranslator {
     return reachableNodes;
   }
 
+  private Stream<CLabelNode> getAllLabelNodes(CFA pCfa) {
+
+    return pCfa.getAllNodes()
+        .parallelStream()
+        .filter(n -> n instanceof CLabelNode)
+        .map(CLabelNode.class::cast);
+  }
+
   private Stream<CFAEdge> getAllSummaryEdges(CFA pCfa) {
     return pCfa.getAllFunctionHeads().stream()
         .flatMap(h -> CFAUtils.enteringEdges(h).stream())
@@ -227,8 +233,12 @@ public class CFAToCTranslator {
     return buffer.toString();
   }
 
-  private void translate(CFunctionEntryNode pEntry, @Nullable Collection<CFAEdge> pRelevantEdges)
+  private void translate(CFunctionEntryNode pEntry, @Nullable Collection<CFAEdge> pRelevantEdges, Collection<CLabelNode> pLabelNodes)
       throws CPAException {
+    Collection<String> existingLabels = pLabelNodes.stream()
+        .map(n -> n.getLabel())
+        .collect(Collectors.toSet());
+
     // waitlist for the edges to be processed
     Deque<NodeAndBlock> waitlist = new ArrayDeque<>();
 
@@ -239,20 +249,21 @@ public class CFAToCTranslator {
 
     while (!waitlist.isEmpty()) {
       NodeAndBlock nextNode = waitlist.poll();
-      handleNode(nextNode, waitlist, pRelevantEdges);
+      handleNode(nextNode, waitlist, pRelevantEdges, existingLabels);
     }
   }
 
   private void handleNode(
       NodeAndBlock pNode,
       Deque<NodeAndBlock> pWaitlist,
-      @Nullable Collection<CFAEdge> pEdgesToHandle)
+      @Nullable Collection<CFAEdge> pEdgesToHandle,
+      Collection<String> pExistingLabels)
       throws CPAException {
     CFANode node = pNode.getCfaNode();
     CompoundStatement currentBlock = pNode.getCurrentBlock();
 
     if (createdStatements.containsKey(node)) {
-      String label = getLabel(node, Collections.emptySet());
+      String label = getLabel(node, Collections.emptySet(), pExistingLabels);
       String gotoStatement = "goto " + label + ";";
       addStatement(currentBlock, createSimpleStatement(node, gotoStatement));
       return;
@@ -274,7 +285,7 @@ public class CFAToCTranslator {
     assert !createdStatements.containsKey(node) : "Node was already handled";
 
     if (node instanceof CLabelNode) {
-      String labelStmt = getLabelCode(getLabel(node, Collections.emptySet()));
+      String labelStmt = getLabelCode(((CLabelNode) node).getLabel());
       currentBlock.addStatement(createSimpleStatement(node, labelStmt));
     }
     if (node instanceof CFATerminationNode) {
@@ -567,7 +578,7 @@ public class CFAToCTranslator {
         .filter(e -> e.getEdgeType() != CFAEdgeType.FunctionCallEdge);
   }
 
-  private String getLabel(CFANode pNode, Set<CFAEdge> pEdgesToIgnore) {
+  private String getLabel(CFANode pNode, Set<CFAEdge> pEdgesToIgnore, Collection<String> pExistingLabels) {
     if (pNode instanceof CLabelNode) {
       return ((CLabelNode) pNode).getLabel();
     } else {
@@ -580,9 +591,9 @@ public class CFAToCTranslator {
           .filter(x -> createdStatements.get(x).get(0).getSurroundingBlock().equals(targetBlock))
           .first();
       if (maybeBlankPredecessor.isPresent()) {
-        return getLabel(maybeBlankPredecessor.get(), pEdgesToIgnore);
+        return getLabel(maybeBlankPredecessor.get(), pEdgesToIgnore, pExistingLabels);
       } else {
-        return createdStatements.get(pNode).get(0).getLabel();
+        return createdStatements.get(pNode).get(0).getLabel(pExistingLabels);
       }
     }
   }
