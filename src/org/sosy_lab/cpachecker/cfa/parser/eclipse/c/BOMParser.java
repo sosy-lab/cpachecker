@@ -19,132 +19,187 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
-import java.nio.ByteBuffer;
+import com.google.common.base.Ascii;
+import com.google.common.io.MoreFiles;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
+/** Detects Byte Order Mark (BOM) in a C file and decodes the file accordingly */
 public class BOMParser {
 
-  private static final byte[] UTF8_BYTE_ORDER_MARK = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+  private enum ByteOrderMark {
+    NO_BOM,
+    UTF8_BOM,
+    UTF16_BE_BOM,
+    UTF16_LE_BOM,
+    UTF32_BE_BOM,
+    UTF32_LE_BOM,
+    UNKNOWN_BOM;
+  }
 
-  private static final byte[] UTF16_BE_BYTE_ORDER_MARK = {
-    (byte) 0xFE, (byte) 0xFF, (byte) 0xFE, (byte) 0xFF
+  private static final int[] UTF8_BYTE_ORDER_MARK = {0xEF, 0xBB, 0xBF};
+
+  private static final int[] UTF16_BE_BYTE_ORDER_MARK = {0xFE, 0xFF, 0xFE, 0xFF};
+
+  private static final int[] UTF16_LE_BYTE_ORDER_MARK = {
+    0xFF, 0xFE, 0xFF, 0xFE,
   };
 
-  private static final byte[] UTF16_LE_BYTE_ORDER_MARK = {
-    (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, (byte) 0xFE,
+  private static final int[] UTF32_BE_BYTE_ORDER_MARK = {
+    0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0xFE, 0xFF
   };
 
-  private static final byte[] UTF32_BE_BYTE_ORDER_MARK = {
-    (byte) 0x00,
-    (byte) 0x00,
-    (byte) 0xFE,
-    (byte) 0xFF,
-    (byte) 0x00,
-    (byte) 0x00,
-    (byte) 0xFE,
-    (byte) 0xFF
+  private static final int[] UTF32_LE_BYTE_ORDER_MARK = {
+    0xFF, 0xFE, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00
   };
 
-  private static final byte[] UTF32_LE_BYTE_ORDER_MARK = {
-    (byte) 0xFF,
-    (byte) 0xFE,
-    (byte) 0x00,
-    (byte) 0x00,
-    (byte) 0xFF,
-    (byte) 0xFE,
-    (byte) 0x00,
-    (byte) 0x00
-  };
-
-  // ASCII Range
-  private static final byte NULL_CHAR = (byte) 0x00;
-  private static final byte DEL_CHAR = (byte) 0x7F;
+  private static final int MAX_BOM_LENGTH = 8;
 
   /**
-   * Filters the BOM in the {@code input} if available. If BOM detected and filtered it is also
-   * checked if {@code input} has further non ascii values
+   * Filters the BOM in the {@code pFilename} if present. If a BOM is detected the corresponding
+   * charset is applied and the file is read starting at the first character after the BOM. If no
+   * BOM is detected the default charset is applied and the file is read starting from the beginning
+   * of the file.
    *
-   * @param input - the input code as byte array
+   * @param pFilename - the file name as string
    * @return String - the code as string
    * @throws CParserException - if we have a unknown BOM or a BOM file with non ascii characters in
    *     the code
    */
-  public static String filterAndDecode(byte[] input) throws CParserException {
-    if (hasNoBOM(input)) {
-      return new String(input);
-    }
-    if (hasBOM(input, UTF8_BYTE_ORDER_MARK)) {
-      byte[] filtered = filterBOM(input, UTF8_BYTE_ORDER_MARK);
-      if (isPureAscii(filtered)) {
-        return new String(filtered);
+  public static String filterAndDecode(String pFilename) throws IOException, CParserException {
+    BufferedReader bufferedReader = null;
+    try (InputStream in = MoreFiles.asByteSource(Paths.get(pFilename)).openStream()) {
+      List<Integer> codeBeginning = new LinkedList<>();
+      int c = 0;
+      int counter = 0;
+      ByteOrderMark bom = ByteOrderMark.NO_BOM;
+      while ((c = in.read()) > -1 && counter < MAX_BOM_LENGTH) {
+        codeBeginning.add(c);
+        counter++;
+        bom = getBOM(toArray(codeBeginning));
+        if (bom != ByteOrderMark.NO_BOM && bom != ByteOrderMark.UNKNOWN_BOM) {
+          break;
+        }
       }
-      throw new CParserException(noAsciiValuesErrorMessage("UTF-8"));
-    }
-    if (hasBOM(input, UTF16_BE_BYTE_ORDER_MARK)) {
-      byte[] filtered = filterBOM(input, UTF16_BE_BYTE_ORDER_MARK);
-      if (isPureAscii(filtered)) {
-        return Charset.forName("UTF-16BE").decode(ByteBuffer.wrap(filtered)).toString();
+      switch (bom) {
+        case NO_BOM:
+          // Read the file from the beginning again
+          return MoreFiles.asCharSource(Paths.get(pFilename), Charset.defaultCharset()).read();
+        case UTF8_BOM:
+          bufferedReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+          break;
+        case UTF16_BE_BOM:
+          bufferedReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_16BE));
+          break;
+        case UTF16_LE_BOM:
+          bufferedReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_16LE));
+          break;
+        case UTF32_BE_BOM:
+          bufferedReader =
+              new BufferedReader(new InputStreamReader(in, Charset.forName("UTF-32BE")));
+          break;
+        case UTF32_LE_BOM:
+          bufferedReader =
+              new BufferedReader(new InputStreamReader(in, Charset.forName("UTF-32LE")));
+          break;
+        default:
+          throw new CParserException("Byte Order Mark Unknown");
       }
-      throw new CParserException(noAsciiValuesErrorMessage("UTF-16BE"));
-    }
-    if (hasBOM(input, UTF16_LE_BYTE_ORDER_MARK)) {
-      byte[] filtered = filterBOM(input, UTF16_LE_BYTE_ORDER_MARK);
-      if (isPureAscii(filtered)) {
-        return Charset.forName("UTF-16LE").decode(ByteBuffer.wrap(filtered)).toString();
+      StringBuilder sb = new StringBuilder();
+      int data;
+      while ((data = bufferedReader.read()) != -1) {
+        // when we continue to read the data in a BOM file we do not want any no ascii characters
+        if (Ascii.MAX < data) {
+          throw new CParserException(noAsciiValuesErrorMessage(bom));
+        }
+        sb.append((char) data);
       }
-      throw new CParserException(noAsciiValuesErrorMessage("UTF-16LE"));
-    }
-    if (hasBOM(input, UTF32_BE_BYTE_ORDER_MARK)) {
-      byte[] filtered = filterBOM(input, UTF32_BE_BYTE_ORDER_MARK);
-      if (isPureAscii(filtered)) {
-        return Charset.forName("UTF-32BE").decode(ByteBuffer.wrap(filtered)).toString();
+      return sb.toString();
+    } finally {
+      if (bufferedReader != null) {
+        bufferedReader.close();
       }
-      throw new CParserException(noAsciiValuesErrorMessage("UTF-32BE"));
     }
-    if (hasBOM(input, UTF32_LE_BYTE_ORDER_MARK)) {
-      byte[] filtered = filterBOM(input, UTF32_LE_BYTE_ORDER_MARK);
-      if (isPureAscii(filtered)) {
-        return Charset.forName("UTF-32LE").decode(ByteBuffer.wrap(filtered)).toString();
-      }
-      throw new CParserException(noAsciiValuesErrorMessage("UTF-32LE"));
-    }
-    throw new CParserException("Byte Order Mark Unknown");
   }
 
-  private static boolean hasBOM(byte[] source, byte[] bomBytes) {
-    if (source.length < bomBytes.length) {
+  private static int[] toArray(List<Integer> code) {
+    int[] result = new int[code.size()];
+    int i = 0;
+    for (int c : code) {
+      result[i] = c;
+      i++;
+    }
+    return result;
+  }
+
+  private static ByteOrderMark getBOM(int[] codeBeginning) {
+    if (pureAscii(codeBeginning)) {
+      return ByteOrderMark.NO_BOM;
+    } else if (containsBOM(codeBeginning, UTF8_BYTE_ORDER_MARK)) {
+      return ByteOrderMark.UTF8_BOM;
+    } else if (containsBOM(codeBeginning, UTF16_LE_BYTE_ORDER_MARK)) {
+      return ByteOrderMark.UTF16_LE_BOM;
+    } else if (containsBOM(codeBeginning, UTF16_BE_BYTE_ORDER_MARK)) {
+      return ByteOrderMark.UTF16_BE_BOM;
+    } else if (containsBOM(codeBeginning, UTF32_LE_BYTE_ORDER_MARK)) {
+      return ByteOrderMark.UTF32_LE_BOM;
+    } else if (containsBOM(codeBeginning, UTF32_BE_BYTE_ORDER_MARK)) {
+      return ByteOrderMark.UTF32_BE_BOM;
+    } else {
+      return ByteOrderMark.UNKNOWN_BOM;
+    }
+  }
+
+  private static boolean containsBOM(int[] codeBeginning, int[] bomBytes) {
+    if (codeBeginning.length < bomBytes.length) {
       return false;
     }
-    return Arrays.equals(Arrays.copyOfRange(source, 0, bomBytes.length), bomBytes);
+    return Arrays.equals(Arrays.copyOfRange(codeBeginning, 0, bomBytes.length), bomBytes);
   }
 
-  private static byte[] filterBOM(byte[] source, byte[] bomBytes) {
-    return Arrays.copyOfRange(source, bomBytes.length, source.length);
-  }
-
-  private static boolean isPureAscii(byte[] source) {
-    for (int i = 0; i < source.length; i++) {
-      if (source[i] < NULL_CHAR || source[i] > DEL_CHAR) {
+  private static boolean pureAscii(int[] code) {
+    for (int b : code) {
+      if (Ascii.MAX < b) {
         return false;
       }
     }
     return true;
   }
 
-  private static boolean hasNoBOM(byte[] source) {
-    // if we have values not in the ASCII Range for the first 4 values we have a BOM or other
-    // non-ascii values
-    for (int i = 0; i < 4; i++) {
-      if (source[i] < NULL_CHAR || source[i] > DEL_CHAR) {
-        return false;
-      }
+  private static String noAsciiValuesErrorMessage(ByteOrderMark bom) {
+    String encoding;
+    switch (bom) {
+      case NO_BOM:
+        encoding = "Default";
+        break;
+      case UTF16_BE_BOM:
+        encoding = "UTF16 BE";
+        break;
+      case UTF16_LE_BOM:
+        encoding = "UTF16 LE";
+        break;
+      case UTF32_BE_BOM:
+        encoding = "UTF32 BE";
+        break;
+      case UTF32_LE_BOM:
+        encoding = "UTF32 LE";
+        break;
+      case UTF8_BOM:
+        encoding = "UTF8";
+        break;
+      default:
+        encoding = "Unknown BOM";
+        break;
     }
-    return true;
-  }
-
-  private static String noAsciiValuesErrorMessage(String usedEncoding) {
-    return usedEncoding + " encoded file has non-ascii values";
+    return encoding + " encoded file has non-ascii values";
   }
 }

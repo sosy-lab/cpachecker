@@ -24,12 +24,10 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.Lists;
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -99,8 +97,7 @@ public class CParserWithLocationMapper implements CParser {
 
   private String tokenizeSourcefile(String pFilename,
       CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException {
-    byte[] source = MoreFiles.asByteSource(Paths.get(pFilename)).read();
-    String code = BOMParser.filterAndDecode(source);
+    String code = BOMParser.filterAndDecode(pFilename);
     return processCode(pFilename, code, sourceOriginMapping);
   }
 
