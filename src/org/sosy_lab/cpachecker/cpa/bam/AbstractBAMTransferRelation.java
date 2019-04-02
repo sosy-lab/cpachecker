@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -52,12 +53,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public abstract class AbstractBAMTransferRelation<EX extends CPAException>
-    implements TransferRelation {
+    extends AbstractSingleWrapperTransferRelation implements TransferRelation {
 
   final BAMDataManager data;
   protected final BlockPartitioning partitioning;
   protected final LogManager logger;
-  protected final TransferRelation wrappedTransfer;
   protected final Reducer wrappedReducer;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -65,8 +65,8 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
 
   protected AbstractBAMTransferRelation(
       AbstractBAMCPA pBamCPA, ShutdownNotifier pShutdownNotifier) {
+    super(pBamCPA.getWrappedCpa().getTransferRelation());
     logger = pBamCPA.getLogger();
-    wrappedTransfer = pBamCPA.getWrappedCpa().getTransferRelation();
     wrappedReducer = pBamCPA.getReducer();
     data = pBamCPA.getData();
     partitioning = pBamCPA.getBlockPartitioning();
@@ -136,7 +136,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   protected Collection<? extends AbstractState> getWrappedTransferSuccessor(
       final ARGState pState, final Precision pPrecision, final CFANode pNode)
       throws EX, InterruptedException, CPATransferException {
-    return wrappedTransfer.getAbstractSuccessors(pState, pPrecision);
+    return transferRelation.getAbstractSuccessors(pState, pPrecision);
   }
 
   /**
@@ -295,7 +295,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
-    return wrappedTransfer.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
+    return transferRelation.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
   }
 
   @Override

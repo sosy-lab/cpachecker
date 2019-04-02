@@ -56,9 +56,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -69,9 +71,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 
 @Options(prefix = "cpa.usage")
-public class UsageTransferRelation implements TransferRelation {
+public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation {
 
-  private final TransferRelation wrappedTransfer;
   private final UsageCPAStatistics statistics;
 
   @Option(description = "functions, which we don't analize", secure = true)
@@ -101,12 +102,13 @@ public class UsageTransferRelation implements TransferRelation {
       TransferRelation pWrappedTransfer,
       Configuration config,
       LogManager pLogger,
-      UsageCPAStatistics s,
-      CallstackTransferRelation transfer)
+      UsageCPAStatistics s)
       throws InvalidConfigurationException {
-    config.inject(this);
-    wrappedTransfer = pWrappedTransfer;
-    callstackTransfer = transfer;
+    super(pWrappedTransfer);
+    config.inject(this, UsageTransferRelation.class);
+    callstackTransfer =
+        ((WrapperTransferRelation) transferRelation)
+            .retrieveWrappedTransferRelation(CallstackTransferRelation.class);
     statistics = s;
     logger = pLogger;
 
@@ -174,7 +176,7 @@ public class UsageTransferRelation implements TransferRelation {
 
     statistics.innerAnalysisTimer.start();
     Collection<? extends AbstractState> newWrappedStates =
-        wrappedTransfer.getAbstractSuccessorsForEdge(oldWrappedState, pPrecision, currentEdge);
+        transferRelation.getAbstractSuccessorsForEdge(oldWrappedState, pPrecision, currentEdge);
     statistics.innerAnalysisTimer.stop();
 
     // Do not know why, but replacing the loop into lambda greatly decreases the speed
