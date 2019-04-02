@@ -32,6 +32,8 @@ import static org.nulist.plugin.parser.CFGAST.*;
 import static org.nulist.plugin.parser.CFGNode.*;
 import static org.nulist.plugin.parser.CFGNode.DECLARATION;
 import static org.nulist.plugin.util.ClassTool.getUnsignedInt;
+import static org.nulist.plugin.util.ClassTool.printWARNING;
+import static org.nulist.plugin.util.ClassTool.printf;
 import static org.nulist.plugin.util.FileOperations.getLocation;
 import static org.nulist.plugin.util.FileOperations.getQualifiedName;
 
@@ -156,7 +158,6 @@ public class CFGFunctionBuilder  {
      **/
     public CFunctionEntryNode handleFunctionDefinition() throws result{
 
-        assert labelMap.isEmpty();
         assert cfa == null;
 
         String functionName = function.name();
@@ -272,6 +273,7 @@ public class CFGFunctionBuilder  {
             if(node.getNumEnteringEdges()>0 || node.getNumLeavingEdges()>0)
                 cfaBuilder.addNode(functionName, node);
         }
+        cfaNodeMap = new HashMap<>();
         if(cfa.getExitNode().getNumEnteringEdges()==0)
             System.out.println("Dead exit node in "+ functionName);
     }
@@ -354,10 +356,22 @@ public class CFGFunctionBuilder  {
      *@return void
      **/
     private void traverseCFGNode(point cfgNode) throws result{
-        CFANode cfaNode = cfaNodeMap.get(cfgNode.id());
 
         cfg_edge_set cfgEdgeSet = cfgNode.cfg_targets();
+
         FileLocation fileLocation = getLocation(cfgNode,fileName);//new FileLocation(fileName, 0, 1,getFileLineNumber(cfgNode),0);
+
+        if(isReturn(cfgNode) && fileLocation == null){
+            fileLocation = new FileLocation(fileName,0,0,
+                    cfa.getFileLocation().getEndingLineNumber(),
+                    cfa.getFileLocation().getEndingLineNumber());
+        }else if(fileLocation == null)
+            printWARNING("A CFG Node has no line: "+ cfgNode.file_line().get_second());
+
+        //printWARNING(cfgNode.toString()+":"+cfgNode.file_line().get_second());
+
+        CFANode cfaNode = cfaNodeMap.get(cfgNode.id());
+
 
         if(cfgEdgeSet.empty() && !isFunctionExit(cfgNode)){
             //throw new Exception("");
@@ -384,8 +398,10 @@ public class CFGFunctionBuilder  {
                     handleSwitchPoint(cfgNode,fileLocation);
                 else if(isNodeNode(cfgNode)){
                     handleIFPoint(cfgNode, fileLocation);//ternary operation or if node in Macro
+                }else if(isReturnControlPointNode(cfgNode)){
+                    handleIFPoint(cfgNode,fileLocation);
                 }else
-                    throw new RuntimeException("other control point");
+                    throw new RuntimeException("other control point:"+ cfgNode.toString()+":"+cfgNode.get_syntax_kind().name()+" "+cfgNode.file_line().get_second());
                 break;
             case JUMP:
                 if(isGotoNode(cfgNode)){
@@ -409,7 +425,11 @@ public class CFGFunctionBuilder  {
                     handleDoLabelPoint(cfgNode, fileLocation);
                 else if(isNodeNode(cfgNode)){//macro
                     if(cfgNode.get_ast(ast_family.getC_UNNORMALIZED()).is_a(ast_class.getUC_END_TEST_WHILE())){//do label in do while of macro
-                        handleDoLabelPoint(cfgNode, fileLocation);
+                        if(cfgNode.is_inside_macro() &&
+                                (cfgNode.toString().contains("ASN_DEBUG(")|| cfgNode.toString().contains("ASN_ERROR("))){
+                            handleLogMacroPoint(cfgNode, fileLocation);
+                        }else
+                            handleDoLabelPoint(cfgNode, fileLocation);
                     }else {
                         System.out.println("None label node but not an end-test-while node: "+cfgNode.toString()+" "+cfgNode.file_line().get_second());
                     }
@@ -423,6 +443,24 @@ public class CFGFunctionBuilder  {
 
         }
 
+    }
+
+
+    private void handleLogMacroPoint(final point macrolog, FileLocation fileLocation)throws result{
+        CFANode prevNode = cfaNodeMap.get(macrolog.id());
+        cfg_edge_vector cfgEdgeVector = macrolog.cfg_targets().to_vector();
+        if(cfgEdgeVector.size()==1 && isControl_Point(cfgEdgeVector.get(0).get_first())){//shall only have one target, and is an control point
+            point nextMacroPoint = cfgEdgeVector.get(0).get_first().cfg_targets().to_vector().get(1).get_first();
+            if(cfgEdgeVector.get(0).get_first().cfg_targets().to_vector().get(1).get_second().name().equals("F")){
+                CFANode nextNode = cfaNodeMap.get(nextMacroPoint.id());
+                BlankEdge edge = new BlankEdge("LOG", fileLocation, prevNode, nextNode, "LOG");
+                addToCFA(edge);
+                traverseCFGNode(nextMacroPoint);
+            }else
+                throw new RuntimeException("Abnormal macro control point: "+ cfgEdgeVector.get(0).get_first().toString());
+        }else {
+            throw new RuntimeException("Abnormal macro log point: "+ macrolog.toString());
+        }
     }
 
     /**
@@ -475,14 +513,14 @@ public class CFGFunctionBuilder  {
                 type = new CPointerType(false, false, type);
             }else if(no_ast.children().get(0).as_ast().is_a(ast_class.getNC_VARIABLE())){
                 tempVar = no_ast.children().get(0).as_ast();
-                type =  typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
+                type =  typeConverter.getCType(tempVar.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
                 rawString = type.toString()+" "+no_ast.pretty_print();
             }else{
                 dumpAST(no_ast,0, no_ast.get_class().name());
                 throw new RuntimeException("Not a pointer expr "+ exprNode.toString());
             }
 
-            CExpression expression = expressionHandler.getExpressionFromUC(un_ast, type, fileLocation);
+            CExpression expression = expressionHandler.getExpression(un_ast, type, no_ast.children().get(1).as_ast(), fileLocation);
             CInitializer cInitializer = new CInitializerExpression(fileLocation, expression);
             String varName = tempVar.get(ast_ordinal.getNC_NAME()).as_str();
             CVariableDeclaration newVarDecl =
@@ -501,6 +539,7 @@ public class CFGFunctionBuilder  {
             addToCFA(declarationEdge);
 
             if(nextCFGNode.get_ast(ast_family.getC_UNNORMALIZED()).is_a(ast_class.getUC_VLA_DECL())){
+                un_ast = nextCFGNode.get_ast(ast_family.getC_UNNORMALIZED());
                 ast variable = un_ast.get(ast_ordinal.getUC_VARIABLE()).as_ast();
                 ast vartype = variable.get(ast_ordinal.getBASE_TYPE()).as_ast();
                 String arrayName = variable.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().name().replace("-","_");
@@ -535,46 +574,22 @@ public class CFGFunctionBuilder  {
         }else if(isTempVariableAssignment(no_ast)){
             ast tempVar;
             CType type;
+            CVariableDeclaration variableDeclaration;
             if(no_ast.children().get(0).as_ast().is_a(ast_class.getNC_POINTEREXPR())){
                 tempVar = no_ast.children().get(0).as_ast().children().get(0).as_ast();
-                type =  typeConverter.getCType(tempVar.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
-               // type = new CPointerType(false, false, type);
             }else if(no_ast.children().get(0).as_ast().is_a(ast_class.getNC_VARIABLE())){
                 tempVar = no_ast.children().get(0).as_ast();
-                type =  typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
             }else{
                 dumpAST(no_ast,0, no_ast.get_class().name());
                 throw new RuntimeException("Not a pointer expr "+ exprNode.toString());
             }
-            CExpression rightHandSide;
-            if(no_ast.children().get(1).as_ast().pretty_print().contains("$temp")){
-                //TODO get type from noramlized
-                rightHandSide = expressionHandler.getExpressionWithTempVar(
-                        no_ast.children().get(1).as_ast(),
-                        un_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(1).as_ast(),
-                        fileLocation);
-            }else if(un_ast.is_a(ast_class.getUC_ABSTRACT_ASSIGN()))
-                rightHandSide = expressionHandler.getExpressionFromUC(
-                        un_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(1).as_ast(),
-                        type,fileLocation);
-            else
-                rightHandSide = expressionHandler.getExpressionFromUC(un_ast,type,fileLocation);
 
             String variableName = tempVar.get(ast_ordinal.getNC_NAME()).as_str();
-            CVariableDeclaration variableDeclaration;
-            if(expressionHandler.variableDeclarations.containsKey(variableName.hashCode())){
-                variableDeclaration = (CVariableDeclaration)
-                        expressionHandler.variableDeclarations.get(variableName.hashCode());
-                CIdExpression leftHandSide =
-                        (CIdExpression) expressionHandler.getAssignedIdExpression(
-                                variableDeclaration, variableDeclaration.getType(), fileLocation);
-                CStatement statement  = new CExpressionAssignmentStatement(fileLocation, leftHandSide, rightHandSide);
-                CStatementEdge edge = new CStatementEdge(no_ast.pretty_print(), statement,
-                        fileLocation, prevNode, nextNode);
-                addToCFA(edge);
-                traverseCFGNode(nextCFGNode);
-            }else {
-                CInitializer initializer = new CInitializerExpression(fileLocation, rightHandSide);
+
+            if(un_ast.is_a(ast_class.getUC_ABSTRACT_DYNAMIC_INIT())){
+                ast dyam = un_ast.get(ast_ordinal.getUC_CONSTANT()).as_ast();
+                type = typeConverter.getCType(dyam.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
+                CInitializer initializer = expressionHandler.getInitializerFromUC(un_ast,type, fileLocation);
                 variableDeclaration = new CVariableDeclaration(fileLocation,
                         false,
                         CStorageClass.AUTO,
@@ -588,7 +603,63 @@ public class CFGFunctionBuilder  {
                 CDeclarationEdge edge = new CDeclarationEdge(rawstring, fileLocation, prevNode, nextNode, variableDeclaration);
                 addToCFA(edge);
                 traverseCFGNode(nextCFGNode);
+            }else {
+                if(no_ast.children().get(0).as_ast().is_a(ast_class.getNC_POINTEREXPR())){
+                    type =  typeConverter.getCType(tempVar.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
+                }else if(no_ast.children().get(0).as_ast().is_a(ast_class.getNC_VARIABLE())){
+                    type =  typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
+                }else {
+                    throw new RuntimeException("Not a pointer expr "+ exprNode.toString());
+                }
+
+                CExpression rightHandSide;
+                if(no_ast.children().get(1).as_ast().pretty_print().contains("$temp")){
+                    //TODO get type from noramlized
+                    rightHandSide = expressionHandler.getExpressionWithTempVar(
+                            no_ast.children().get(1).as_ast(),
+                            un_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(1).as_ast(),
+                            fileLocation);
+                }else if(un_ast.is_a(ast_class.getUC_LAND()) || un_ast.is_a(ast_class.getUC_LOR())){
+                    rightHandSide = expressionHandler.getExpressionWithTempVar(
+                            no_ast.children().get(1).as_ast(),
+                            un_ast,
+                            fileLocation);
+                }else if(un_ast.is_a(ast_class.getUC_ABSTRACT_ASSIGN()))
+                    rightHandSide = expressionHandler.getExpressionFromUC(
+                            un_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(1).as_ast(),
+                            type,fileLocation);
+                else
+                    rightHandSide = expressionHandler.getExpressionFromUC(un_ast,type,fileLocation);
+
+                if(expressionHandler.variableDeclarations.containsKey(variableName.hashCode())){
+                    variableDeclaration = (CVariableDeclaration)
+                            expressionHandler.variableDeclarations.get(variableName.hashCode());
+                    CIdExpression leftHandSide =
+                            (CIdExpression) expressionHandler.getAssignedIdExpression(
+                                    variableDeclaration, variableDeclaration.getType(), fileLocation);
+                    CStatement statement  = new CExpressionAssignmentStatement(fileLocation, leftHandSide, rightHandSide);
+                    CStatementEdge edge = new CStatementEdge(no_ast.pretty_print(), statement,
+                            fileLocation, prevNode, nextNode);
+                    addToCFA(edge);
+                    traverseCFGNode(nextCFGNode);
+                }else {
+                    CInitializer initializer = new CInitializerExpression(fileLocation, rightHandSide);
+                    variableDeclaration = new CVariableDeclaration(fileLocation,
+                            false,
+                            CStorageClass.AUTO,
+                            type,
+                            variableName,
+                            variableName,
+                            variableName,
+                            initializer);
+                    expressionHandler.variableDeclarations.put(variableName.hashCode(),variableDeclaration);
+                    String rawstring = type.toString()+" "+no_ast.pretty_print();
+                    CDeclarationEdge edge = new CDeclarationEdge(rawstring, fileLocation, prevNode, nextNode, variableDeclaration);
+                    addToCFA(edge);
+                    traverseCFGNode(nextCFGNode);
+                }
             }
+
         }else if(un_ast.is_a(ast_class.getUC_INIT())){
             CVariableDeclaration variableDeclaration;
 
@@ -644,8 +715,11 @@ public class CFGFunctionBuilder  {
                     fileLocation, prevNode, nextNode);
             addToCFA(edge);
             traverseCFGNode(nextCFGNode);
-        }else {
-            throw new RuntimeException("Not support expression: "+ exprNode.toString()+ " "+ un_ast.get_class().name());
+        }else if(un_ast.is_a(ast_class.getUC_ASM())){
+            dumpASTWITHClass(un_ast);
+            throw new RuntimeException("Not support expression: "+ exprNode.toString()+ " "+ exprNode.file_line().get_second()+ " " +un_ast.get_class().name());
+        }else  {
+            throw new RuntimeException("Not support expression: "+ exprNode.toString()+ " "+ exprNode.file_line().get_second()+ " "+ un_ast.get_class().name() +" "+ nextCFGNode.get_kind().name());
         }
     }
 
@@ -907,9 +981,8 @@ public class CFGFunctionBuilder  {
                 ast actual_in = actualIns.get(i-1).get_ast(ast_family.getC_NORMALIZED());
                 ast oper = operands.children().get(i).as_ast();
                 CType paramType = typeConverter.getCType(oper.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
-                CExpression param;
-
-                param = expressionHandler.getExpression(oper, paramType, actual_in.children().get(1).as_ast(), fileLocation);
+                CExpression param =expressionHandler.
+                        getExpression(oper, paramType, actual_in.children().get(1).as_ast(), fileLocation);
 
                 if(i==operands.children().size()-1)
                 sb.append(param.toString()).append(")");
@@ -1132,39 +1205,43 @@ public class CFGFunctionBuilder  {
                 addToCFA(edge);
                 return;
             }
+            try {
+                ast un_ast = returnNode.get_ast(ast_family.getC_UNNORMALIZED());
 
-            ast un_ast = returnNode.get_ast(ast_family.getC_UNNORMALIZED());
+                if(un_ast.has_field(ast_ordinal.getUC_RETURN_VALUE())){
+                    ast returnValue = un_ast.get(ast_ordinal.getUC_RETURN_VALUE()).as_ast();
 
-            if(un_ast.has_field(ast_ordinal.getUC_RETURN_VALUE())){
-                ast returnValue = un_ast.get(ast_ordinal.getUC_RETURN_VALUE()).as_ast();
+                    CType expectedType = typeConverter.getCType(returnValue.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
+                    CExpression returnExp =expressionHandler.getExpression(returnValue,
+                            expectedType,
+                            returnNode.get_ast(ast_family.getC_NORMALIZED()),
+                            fileloc);
 
-                CType expectedType = typeConverter.getCType(returnValue.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
-                CExpression returnExp =expressionHandler.getExpression(returnValue,
-                        expectedType,
-                        returnNode.get_ast(ast_family.getC_NORMALIZED()),
-                        fileloc);
+                    Optional<CExpression> returnExpression = Optional.of(returnExp);
 
-                Optional<CExpression> returnExpression = Optional.of(returnExp);
+                    CSimpleDeclaration returnVarDecl = (CSimpleDeclaration) cfa.getReturnVariable();
 
-                CSimpleDeclaration returnVarDecl = (CSimpleDeclaration) cfa.getReturnVariable();
+                    CIdExpression returnVar = new CIdExpression(fileloc, returnVarDecl);
 
-                CIdExpression returnVar = new CIdExpression(fileloc, returnVarDecl);
+                    CAssignment returnVarAssignment =
+                            new CExpressionAssignmentStatement(
+                                    fileloc, returnVar, returnExp);
+                    Optional<CAssignment> returnAssignment = Optional.of(returnVarAssignment);
+                    CReturnStatement returnStatement = new CReturnStatement(fileloc, returnExpression, returnAssignment);
 
-                CAssignment returnVarAssignment =
-                        new CExpressionAssignmentStatement(
-                                fileloc, returnVar, returnExp);
-                Optional<CAssignment> returnAssignment = Optional.of(returnVarAssignment);
-                CReturnStatement returnStatement = new CReturnStatement(fileloc, returnExpression, returnAssignment);
-
-                CReturnStatementEdge returnStatementEdge = new CReturnStatementEdge(getRawSignature(returnNode),
-                        returnStatement, fileloc, prevNode, cfa.getExitNode());
-                addToCFA(returnStatementEdge);
-            }else {
-                BlankEdge edge;
-                if(isReturn(returnNode))
-                    edge = new BlankEdge("",fileloc, prevNode, cfa.getExitNode(), "default return");
-                else
-                    edge = new BlankEdge("",fileloc, prevNode, cfa.getExitNode(), "normal return");
+                    CReturnStatementEdge returnStatementEdge = new CReturnStatementEdge(getRawSignature(returnNode),
+                            returnStatement, fileloc, prevNode, cfa.getExitNode());
+                    addToCFA(returnStatementEdge);
+                }else {
+                    BlankEdge edge;
+                    if(isReturn(returnNode))
+                        edge = new BlankEdge("",fileloc, prevNode, cfa.getExitNode(), "default return");
+                    else
+                        edge = new BlankEdge("",fileloc, prevNode, cfa.getExitNode(), "normal return");
+                    addToCFA(edge);
+                }
+            }catch (result r){
+                BlankEdge edge = new BlankEdge("",fileloc, prevNode, cfa.getExitNode(), "default return");
                 addToCFA(edge);
             }
         }else {
@@ -1243,15 +1320,20 @@ public class CFGFunctionBuilder  {
         CFANode falseNode = cfaNodeMap.get(falseCFGNode.id());
 
         ast uc_condition = forNode.get_ast(ast_family.getC_UNNORMALIZED());
-        CType type = typeConverter.getCType(uc_condition.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
+        if(uc_condition.is_a(ast_class.getUC_FOR())){
+            BlankEdge edge = new BlankEdge("for", fileLocation, prevNode, trueNode, "for");
+            addToCFA(edge);
+            traverseCFGNode(trueCFGNode);
+        }else {
+            CType type = typeConverter.getCType(uc_condition.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
 
-        CExpression conditionExpr= expressionHandler.getExpression(uc_condition,
-                type,
-                forNode.get_ast(ast_family.getC_NORMALIZED()),
-                fileLocation);
+            CExpression conditionExpr= expressionHandler.getExpression(uc_condition,
+                    type,
+                    forNode.get_ast(ast_family.getC_NORMALIZED()),
+                    fileLocation);
 
-        createConditionEdges(prevNode,trueNode,trueCFGNode,falseNode,falseCFGNode, conditionExpr,fileLocation);
-
+            createConditionEdges(prevNode,trueNode,trueCFGNode,falseNode,falseCFGNode, conditionExpr,fileLocation);
+        }
     }
 
     private void handleSwitchPoint(point switchNode, FileLocation fileLocation)throws result{

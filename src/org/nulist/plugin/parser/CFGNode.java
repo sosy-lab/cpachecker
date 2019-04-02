@@ -297,6 +297,16 @@ public class CFGNode {
         }
     }
 
+    public static boolean isReturnControlPointNode(point node){
+        try {
+            if(isControl_Point(node) && node.get_syntax_kind().equals(point_syntax_kind.getRETURN()))
+                return true;
+            return false;
+        }catch (result r){
+            return false;
+        }
+    }
+
     /**
      *@Description codesurfer stores do, else and other labels as label nodes
      *@Param [node]
@@ -538,7 +548,8 @@ public class CFGNode {
                     ast original1 = no_ast1.get(ast_ordinal.getNC_ORIGINAL()).as_ast();
                     if(original1.pretty_print().equals(originalStr)){
                         nextNode = nextNode.cfg_targets().cbegin().current().get_first();
-                    }
+                    }else
+                        getNextPoint = true;
                 }else
                     getNextPoint = true;
             }else

@@ -143,7 +143,7 @@ public class CFABuilder {
             procedure proc = proc_it.current();
             if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
                 String funcName = proc.name();
-                if(funcName.equals("cmpint")|| funcName.equals("ASN__STACK_OVERFLOW_CHECK"))
+                if(funcName.equals("cmpint")|| funcName.equals("ASN__STACK_OVERFLOW_CHECK") || funcName.equals("rrc_control_socket_init"))
                     continue;
                 System.out.println(funcName);
                 CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
@@ -209,7 +209,7 @@ public class CFABuilder {
 
                 if (storageClass == CStorageClass.STATIC) {
                     //file static
-                    normalizedName = expressionHandler.getSimpleFileName(pFileName)+"__static__"+normalizedName;
+                    normalizedName = "static__"+normalizedName;
                     storageClass = CStorageClass.AUTO;
                 }
                 if(variableList.contains(normalizedName) && node.get_ast(ast_family.getC_NORMALIZED()).is_a(ast_class.getNC_BLOCKASSIGN())){

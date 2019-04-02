@@ -6,7 +6,7 @@ import org.sosy_lab.cpachecker.cmdline.CPAMain;
 import java.lang.*;
 
 import static org.nulist.plugin.util.CFGDumping.dumpCFG2Dot;
-
+import static org.nulist.plugin.util.ClassTool.*;
 //Combine CPAChecker as a plugin of CodeSurfer
 
 public class CSurfPlugin {
@@ -30,12 +30,12 @@ public class CSurfPlugin {
 
         //perform parser execution
         try{
-            System.out.println("==================CSURF_PLUGIN_BEGIN==================");
+            printINFO("==================CSURF_PLUGIN_BEGIN==================");
             project proj = project.current();
             CPAMain.executionTesting(arguments, cpacheckPath, programPath, proj);
             //CPAMain.executeParser(arguments, cpacheckPath, programPath, proj);
 
-            System.out.println("==================CSURF_PLUGIN_END==================");
+            printINFO("==================CSURF_PLUGIN_END==================");
         }catch(result r){
             System.out.println("Uncaught exception: " + r);
         }

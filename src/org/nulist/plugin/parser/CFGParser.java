@@ -27,6 +27,9 @@ public class CFGParser implements Parser{
 
     private LogManager logger=null;
     private CFABuilder cfaBuilder=null;
+    private final static String ENB = "OAI-ENB";
+    private final static String MME = "OAI-MME";
+    private final static String UE = "OAI-UE";
 
     private final Timer parseTimer = new Timer();
     private final Timer cfaCreationTimer = new Timer();
@@ -54,6 +57,7 @@ public class CFGParser implements Parser{
     public ParseResult parseProject(project project) throws result {
         List<Path> input_file = new ArrayList<>();
         parseTimer.start();
+        String projectName = project.name();
 
         //the first traverse for building all functionEntry node
         for(project_compunits_iterator cu_it = project.compunits();
@@ -63,7 +67,7 @@ public class CFGParser implements Parser{
             // only focus on user-defined c files
 //            input_file.add(Paths.get(cu.normalized_name()));
 //            cfaBuilder.basicBuild(cu);
-            if(fileFilter(cu.name()) ||cu.is_library_model())
+            if(filter(cu.name(), projectName) ||cu.is_library_model())
             {
                 input_file.add(Paths.get(cu.normalized_name()));
                 cfaBuilder.basicBuild(cu);
@@ -77,7 +81,7 @@ public class CFGParser implements Parser{
         {
             compunit cu = cu_it.current();
             // only focus on user-defined c files
-            if(fileFilter(cu.name()))
+            if(filter(cu.name(),projectName))
             {
             //input_file.add(Paths.get(cu.normalized_name()));
                 System.out.println(cu.name());
@@ -93,20 +97,23 @@ public class CFGParser implements Parser{
 
     }
 
-    public static boolean targetFile(String path){
-        return path.endsWith("openair3/S1AP/s1ap_eNB_management_procedures.c");
+    private static boolean filter(String path, String projectName){
+        return targetFile(path, projectName);
+    }
+
+    public static boolean targetFile(String path, String projectName){
+        return path.endsWith("openair3/NAS/UE/EMM/Authentication.c");
     }
 
 
-    private boolean fileFilter(String name){
-        return name.contains("RRC_Rel14") ||
-                name.contains("S1AP_R14") ||
-                name.contains("X2AP_R14") ||
-                name.contains("openair2/RRC") ||
-                name.contains("openair2/NAS") ||
+    private static boolean fileFilter(String name, String projectName){
+        return (name.contains("RRC_Rel14") && (projectName.equals(UE) || projectName.equals(ENB))) || //AS application protocol interfaces between UE and ENB: radio resource control
+                (name.contains("S1AP_R14") && (projectName.equals(MME) || projectName.equals(ENB))) || //application protocol interfaces between MME and ENB: UE context management
+                (name.contains("X2AP_R14") && projectName.equals(ENB)) || //application protocol interfaces between enbs for handover (UE mobility) and/or self organizing network related function:
+                (name.contains("openair2/RRC") && (projectName.equals(UE) || projectName.equals(ENB))) || //
                 name.contains("openair2/COMMON") ||
-                name.contains("openair3/S1AP") ||
-                name.contains("openair3/NAS") ||
+                (name.contains("openair3/S1AP") && (projectName.equals(MME) || projectName.equals(ENB))) ||
+                (name.contains("openair3/NAS/UE") && projectName.equals(UE)) ||
                 name.contains("openair3/COMMON") ||
                 name.contains("openair3/UTILS");
     }

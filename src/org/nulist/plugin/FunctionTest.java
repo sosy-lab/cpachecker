@@ -12,7 +12,6 @@ import static org.nulist.plugin.parser.CFGParser.*;
  * @Version 1.0
  **/
 public class FunctionTest {
-
     public static void test(project proj){
         try{
             System.out.println("==================TEST CSURF_PLUGIN_BEGIN==================");
@@ -24,7 +23,7 @@ public class FunctionTest {
             {
                 compunit cu = cu_it.current();
                 // only focus on user-defined c files
-                if(targetFile(cu.name()))
+                if(targetFile(cu.name(),proj.name()))
                 {
                     //input_file.add(Paths.get(cu.normalized_name()));
                     System.out.println(cu.name());
