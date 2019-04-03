@@ -336,8 +336,14 @@ public class CFGFunctionBuilder  {
                 lastDecSymbol = variable;
                 if(variable.get_kind().equals(symbol_kind.getRETURN()))
                     fileLocation = getLocation((int)function.entry_point().file_line().get_second()+1, fileName);
-                else
-                    fileLocation = getLocation((int)del.file_line().get_second(),fileName);
+                else{
+                    try {
+                        fileLocation = getLocation((int)del.file_line().get_second(),fileName);
+                    }catch (result r){
+                        fileLocation = getLocation((int)function.entry_point().file_line().get_second()+1, fileName);
+                    }
+                }
+
                 preVar = (CVariableDeclaration) expressionHandler
                         .generateVariableDeclaration(variable, type, false,
                                 null, fileLocation);
@@ -471,6 +477,8 @@ public class CFGFunctionBuilder  {
     private void handleExpression(final point exprNode,
                                   FileLocation fileLocation)throws result{
         assert isExpression(exprNode);
+//        if(fileLocation.getStartingLineNumber()==86)
+//            printf(exprNode.toString());
 
         CFANode prevNode = cfaNodeMap.get(exprNode.id());
 
@@ -479,11 +487,11 @@ public class CFGFunctionBuilder  {
         ast un_ast = exprNode.get_ast(ast_family.getC_UNNORMALIZED());
         ast no_ast = exprNode.get_ast(ast_family.getC_NORMALIZED());
 
-        // assign a struct variable to another struct variable
-        // for struct each member, CFG will have a block assign expr, but actually we only need one express
-        // or a struct variable initialization
 
         if(no_ast.is_a(ast_class.getNC_BLOCKASSIGN())){
+            // assign a struct variable to another struct variable
+            // for struct each member, CFG will have a block assign expr, but actually we only need one express
+            // or a struct variable initialization
             CType varType;
             if(un_ast.is_a(ast_class.getUC_INIT())){
                 ast init = un_ast.get(ast_ordinal.getUC_DYNAMIC_INIT()).as_ast();
@@ -497,7 +505,7 @@ public class CFGFunctionBuilder  {
             nextCFGNode = pointNextToBlockAssignmentExpr(exprNode, varType);
         }
 
-        CFANode nextNode =handleSwitchCasePoint(nextCFGNode);
+        CFANode nextNode =handleAllSideEffects(nextCFGNode);
 
         if(un_ast.is_a(ast_class.getUC_VLA_DECL())) {//(void)$temp314 = type array[$temp314];
             throw new RuntimeException("VLA DECL shall have been processed in the previous expression");
@@ -716,8 +724,19 @@ public class CFGFunctionBuilder  {
             addToCFA(edge);
             traverseCFGNode(nextCFGNode);
         }else if(un_ast.is_a(ast_class.getUC_ASM())){
-            dumpASTWITHClass(un_ast);
-            throw new RuntimeException("Not support expression: "+ exprNode.toString()+ " "+ exprNode.file_line().get_second()+ " " +un_ast.get_class().name());
+            ast operands = un_ast.get(ast_ordinal.getUC_ASM_ENTRY()).get(ast_ordinal.getUC_GNU_OPERANDS()).as_ast();
+            ast leftOper = operands.children().get(0).get(ast_ordinal.getUC_EXPR()).as_ast();
+            CType leftType = typeConverter.getCType(leftOper.get(ast_ordinal.getBASE_TYPE()).as_ast(),expressionHandler);
+            ast rightOper = operands.children().get(1).get(ast_ordinal.getUC_EXPR()).as_ast();
+            CType rightType = typeConverter.getCType(leftOper.get(ast_ordinal.getBASE_TYPE()).as_ast(),expressionHandler);
+            CLeftHandSide leftHandSide = (CLeftHandSide)expressionHandler.getExpressionFromUC(leftOper,leftType,fileLocation);
+            CExpression rightHandSide = expressionHandler.getExpressionFromUC(rightOper,rightType,fileLocation);
+            CStatement statement = new CExpressionAssignmentStatement(fileLocation, leftHandSide, rightHandSide);
+
+            CStatementEdge edge = new CStatementEdge(statement.toString(), statement,
+                    fileLocation, prevNode, nextNode);
+            addToCFA(edge);
+            traverseCFGNode(nextCFGNode);
         }else  {
             throw new RuntimeException("Not support expression: "+ exprNode.toString()+ " "+ exprNode.file_line().get_second()+ " "+ un_ast.get_class().name() +" "+ nextCFGNode.get_kind().name());
         }
@@ -795,7 +814,7 @@ public class CFGFunctionBuilder  {
                 rawCharacters=sb.toString().replace(", ",")");
             }
 
-            nextNode = handleSwitchCasePoint(nextCFGNode);
+            nextNode = handleAllSideEffects(nextCFGNode);
             //nextNode = cfaNodeMap.get(nextCFGNode.id());
             CFunctionDeclaration calledFunctionDeclaration =
                     cfaBuilder.functionDeclarations.get(functionCallNode.get_procedure().name());
@@ -938,7 +957,7 @@ public class CFGFunctionBuilder  {
                     fileLocation, assignedVarExp,
                     functionCallExpression);
 
-            nextNode = handleSwitchCasePoint(nextCFGNode);
+            nextNode = handleAllSideEffects(nextCFGNode);
 
 //            CStatementEdge statementEdge= new CStatementEdge(rawCharacters,functionCallStatement, fileLocation,
 //                    prevNode, nextNode);
@@ -1053,7 +1072,7 @@ public class CFGFunctionBuilder  {
 
         CFunctionCall functionCallStatement;
 
-        nextNode = handleSwitchCasePoint(nextCFGNode);
+        nextNode = handleAllSideEffects(nextCFGNode);
         CStatementEdge statementEdge;
 
         if(actualoutCFGNode==null){
@@ -1136,7 +1155,7 @@ public class CFGFunctionBuilder  {
         CFANode prevNode = cfaNodeMap.get(labelNode.id());
 
         point nextCFGNode = labelNode.cfg_targets().cbegin().current().get_first();
-        CFANode nextNode = handleSwitchCasePoint(nextCFGNode);// cfaNodeMap.get(nextCFGNode.id());
+        CFANode nextNode = handleAllSideEffects(nextCFGNode);// cfaNodeMap.get(nextCFGNode.id());
         BlankEdge blankEdge =
                 new BlankEdge(
                         getRawSignature(labelNode),
@@ -1183,8 +1202,7 @@ public class CFGFunctionBuilder  {
 
         point nextCFGNode = node.cfg_targets().cbegin().current().get_first();
 
-        CFANode nextCFANode = handleSwitchCasePoint(nextCFGNode);//cfaNodeMap.get(nextCFGNode.id());
-
+        CFANode nextCFANode = handleAllSideEffects(nextCFGNode);//cfaNodeMap.get(nextCFGNode.id());
 
         BlankEdge gotoEdge = new BlankEdge(getRawSignature(node),
                     fileLocation, prevNode, nextCFANode, description);
@@ -1291,10 +1309,14 @@ public class CFGFunctionBuilder  {
         cfg_edge_set cfgEdgeSet = whileNode.cfg_targets();
 
         point trueCFGNode = cfgEdgeSet.to_vector().get(0).get_first();
-        CFANode trueCFANode = cfaNodeMap.get(trueCFGNode.id()).getLeavingEdge(0).getSuccessor();
+        CFANode trueCFANode;
+        if(isDoLabel(trueCFGNode))
+            trueCFANode = cfaNodeMap.get(trueCFGNode.id()).getLeavingEdge(0).getSuccessor();
+        else
+            trueCFANode = handleSwitchCasePoint(trueCFGNode);
 
         point falseCFGNode = cfgEdgeSet.to_vector().get(1).get_first();
-        CFANode falseCFANode = cfaNodeMap.get(falseCFGNode.id());
+        CFANode falseCFANode = handleSwitchCasePoint(falseCFGNode);
 
         ast uc_condition = whileNode.get_ast(ast_family.getC_UNNORMALIZED());
         CType type = typeConverter.getCType(uc_condition.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
@@ -1461,7 +1483,7 @@ public class CFGFunctionBuilder  {
         CBinaryExpression conditionExpr = expressionHandler.buildBinaryExpression(
                 switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS);
 
-        CFANode nextCFANode = handleSwitchCasePoint(nextCFGNode);
+        CFANode nextCFANode = handleAllSideEffects(nextCFGNode);
 
         String conditionString = conditionExpr.toASTString();
         final CAssumeEdge trueEdge =
@@ -1479,6 +1501,19 @@ public class CFGFunctionBuilder  {
             traverseCFGNode(nextCFGNode);
 
         return conditionExpr;
+    }
+
+    private CFANode handleAllSideEffects(point nextNode)throws result{
+
+//        //eliminate asm point
+//        if(isExpression(nextNode)){
+//            if(nextNode.get_ast(ast_family.getC_UNNORMALIZED()).is_a(ast_class.getUC_ASM())){
+//                point nextPoint = nextNode.cfg_targets().cbegin().current().get_first();
+//                return cfaNodeMap.get(nextPoint.id());
+//            }
+//        }
+
+        return handleSwitchCasePoint(nextNode);
     }
 
     private CFANode handleSwitchCasePoint(point caseNode)throws result{
@@ -1502,6 +1537,7 @@ public class CFGFunctionBuilder  {
         caseCFANode.addEnteringEdge(blankEdge);
         return fallNode;
     }
+
 
     private void handleDoLabelPoint(point doWhileNode, FileLocation fileLocation)throws result{
         //assert isDoControlPointNode(doWhileNode);

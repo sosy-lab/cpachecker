@@ -30,6 +30,7 @@ import java.util.*;
 
 import static org.nulist.plugin.parser.CFGAST.*;
 import static org.nulist.plugin.parser.CFGNode.*;
+import static org.nulist.plugin.util.CFGDumping.dumpCFG2Dot;
 import static org.nulist.plugin.util.FileOperations.*;
 
 /**

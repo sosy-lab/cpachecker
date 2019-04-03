@@ -98,11 +98,11 @@ public class CFGParser implements Parser{
     }
 
     private static boolean filter(String path, String projectName){
-        return targetFile(path, projectName);
+        return fileFilter(path, projectName);
     }
 
     public static boolean targetFile(String path, String projectName){
-        return path.endsWith("openair3/NAS/UE/EMM/Authentication.c");
+        return path.endsWith("openair3/NAS/COMMON/UTIL/device.c");
     }
 
 
@@ -113,7 +113,7 @@ public class CFGParser implements Parser{
                 (name.contains("openair2/RRC") && (projectName.equals(UE) || projectName.equals(ENB))) || //
                 name.contains("openair2/COMMON") ||
                 (name.contains("openair3/S1AP") && (projectName.equals(MME) || projectName.equals(ENB))) ||
-                (name.contains("openair3/NAS/UE") && projectName.equals(UE)) ||
+                (name.contains("openair3/NAS") && projectName.equals(UE)) ||
                 name.contains("openair3/COMMON") ||
                 name.contains("openair3/UTILS");
     }

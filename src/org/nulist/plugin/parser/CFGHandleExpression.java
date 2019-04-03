@@ -113,25 +113,24 @@ public class CFGHandleExpression {
         String assignedVarName = assignedVarDeclaration.getName();
 
         CType expressionType = assignedVarDeclaration.getType();
-        return new CIdExpression(fileLocation, expressionType, assignedVarName, assignedVarDeclaration);
+        CIdExpression idExpression = new CIdExpression(fileLocation, expressionType, assignedVarName, assignedVarDeclaration);
+
+        return idExpression;
 
 //        if (expressionType.canBeAssignedFrom(pExpectedType)) {
 //            return idExpression;
-//        } else
-        /*if (pointerOf(pExpectedType, expressionType)) {
-            CType typePointingTo = ((CPointerType) pExpectedType).getType().getCanonicalType();
-            if (expressionType.canBeAssignedFrom(typePointingTo)
-                    || expressionType.equals(typePointingTo)) {
-                return new CUnaryExpression(
-                        fileLocation, pExpectedType, idExpression, CUnaryExpression.UnaryOperator.AMPER);
-            } else {
-                throw new AssertionError("Unhandled type structure "+ assignedVarName+ " "+ expressionType.toString());
-            }
-        } else if (pExpectedType instanceof CPointerType) {
-            return new CPointerExpression(fileLocation, pExpectedType, idExpression);
-        }else
-            return idExpression;*/
-//        else {
+//        } else if (pointerOf(pExpectedType, expressionType)) {
+//            CType typePointingTo = ((CPointerType) pExpectedType).getType().getCanonicalType();
+//            if (expressionType.canBeAssignedFrom(typePointingTo)
+//                    || expressionType.equals(typePointingTo)) {
+//                return new CUnaryExpression(
+//                        fileLocation, pExpectedType, idExpression, CUnaryExpression.UnaryOperator.AMPER);
+//            } else {
+//                throw new AssertionError("Unhandled type structure "+ assignedVarName+ " "+ expressionType.toString());
+//            }
+//        } else if (pExpectedType instanceof CPointerType) {
+//            return new CPointerExpression(fileLocation, pExpectedType, idExpression);
+//        }else {
 //            throw new AssertionError("Unhandled types structure " + assignedVarName+ " "+ expressionType.toString());
 //        }
 
@@ -925,9 +924,10 @@ public class CFGHandleExpression {
 
             ast value = cast.children().get(0).as_ast();
             CType castType = typeConverter.getCType(value.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
+
             CExpression castExpr = getExpressionFromUC(value, castType, fileLoc);
 
-            return new CCastExpression(fileLoc, castType, castExpr);
+            return new CCastExpression(fileLoc, valueType, castExpr);
 
         }else if(value_ast.is_a(ast_class.getUC_EXPR_FIELD())){
 
@@ -1075,10 +1075,10 @@ public class CFGHandleExpression {
             ast oper1 = operands.children().get(0).as_ast();
             CType type = typeConverter.getCType(value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
             CType operType1 = typeConverter.getCType(oper1.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
-            CExpression right = getExpressionFromUC(oper1,type,fileLoc);
+            CExpression right = getExpressionFromUC(oper1,operType1,fileLoc);
             ast oper2 = operands.children().get(1).as_ast();
             CType operType2 = typeConverter.getCType(oper2.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
-            CExpression left = getExpressionFromUC(oper2,type,fileLoc);
+            CExpression left = getExpressionFromUC(oper2,operType2,fileLoc);
 
             return buildBinaryExpression(right,left,operator);
 

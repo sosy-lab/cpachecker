@@ -96,7 +96,7 @@ public class CFGDumping {
 
             builder.append("[Kind] ").append(p.get_kind().name()).append("\\l");
             try {
-                String character = p.characters();
+                String character = p.get_ast(ast_family.getC_NORMALIZED()).pretty_print();
                 character =character.replace('"','\'');
                 builder.append("[Char] ").append(character).append("\\l");
             }catch (result r){
@@ -126,7 +126,7 @@ public class CFGDumping {
             System.out.println("Dump CFG of "+proc.name());
             StringBuilder stringBuilder = new StringBuilder();
 
-            stringBuilder.append("subgraph cluster").append(getUnsignedInt(proc.hashCode()))
+            stringBuilder.append("digraph cluster").append(getUnsignedInt(proc.hashCode()))
                     .append(" {\n");
             stringBuilder.append("label=\"Function Name: ").append(proc.name()).append("\";\n");
             stringBuilder.append("style=filled;\n");
