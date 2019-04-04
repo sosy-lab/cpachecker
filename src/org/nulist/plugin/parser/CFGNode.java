@@ -106,7 +106,9 @@ public class CFGNode {
     }
 
     public static boolean isFunctionExit(point node) throws result{
-        return node.get_kind().equals(point_kind.getEXIT());
+        return node.get_kind().equals(point_kind.getEXIT())||
+                node.get_kind().equals(point_kind.getNORMAL_EXIT())||
+                node.get_kind().equals(point_kind.getEXCPT_EXIT());
     }
 
     public static boolean isDeclaration(point node) throws result{

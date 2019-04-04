@@ -32,7 +32,7 @@ import static org.nulist.plugin.parser.CFGAST.*;
 import static org.nulist.plugin.parser.CFGNode.*;
 import static org.nulist.plugin.util.CFGDumping.dumpCFG2Dot;
 import static org.nulist.plugin.util.FileOperations.*;
-
+import static org.nulist.plugin.FunctionTest.*;
 /**
  * @ClassName CFABuilder
  * @Description For a C file
@@ -148,6 +148,7 @@ public class CFABuilder {
                     continue;
                 System.out.println(funcName);
                 CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
+                //functionTest(cfgFunctionBuilder);
                 cfgFunctionBuilder.visitFunction();
             }
         }

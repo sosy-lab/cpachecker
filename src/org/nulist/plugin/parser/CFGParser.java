@@ -102,7 +102,7 @@ public class CFGParser implements Parser{
     }
 
     public static boolean targetFile(String path, String projectName){
-        return path.endsWith("openair3/NAS/COMMON/UTIL/device.c");
+        return path.endsWith("CMakeFiles/S1AP_R14/ber_tlv_length.c");
     }
 
 
