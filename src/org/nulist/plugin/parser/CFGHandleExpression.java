@@ -1064,6 +1064,8 @@ public class CFGHandleExpression {
             ast variable = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(0).as_ast();
             return getExpressionFromUC(variable, valueType, fileLoc);
         }if(value_ast.is_a(ast_class.getUC_ABSTRACT_OPERATION())){//
+            if(value_ast.is_a(ast_class.getUC_QUESTION()))
+                return null;
 
             CBinaryExpression.BinaryOperator operator = getBinaryOperatorFromUC(value_ast);
             ast operands = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();

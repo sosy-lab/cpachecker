@@ -144,7 +144,10 @@ public class CFABuilder {
             procedure proc = proc_it.current();
             if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
                 String funcName = proc.name();
-                if(funcName.equals("cmpint")|| funcName.equals("ASN__STACK_OVERFLOW_CHECK") || funcName.equals("rrc_control_socket_init"))
+                if(funcName.equals("cmpint") ||
+                        funcName.equals("ASN__STACK_OVERFLOW_CHECK") ||
+                        funcName.equals("rrc_control_socket_init") ||
+                        funcName.startsWith("dump_"))
                     continue;
                 System.out.println(funcName);
                 CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);

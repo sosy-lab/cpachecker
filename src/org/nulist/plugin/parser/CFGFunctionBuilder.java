@@ -313,9 +313,9 @@ public class CFGFunctionBuilder  {
         cfaNodeMap = new HashMap<>();
         locStack = new ArrayDeque<>();
         cfaNodes = new HashSet<>();
-        variableDeclarations.putAll(expressionHandler.variableDeclarations);
-        expressionHandler = null;
-        cfaBuilder = null;
+        //variableDeclarations.putAll(expressionHandler.variableDeclarations);
+        //expressionHandler = null;
+        //cfaBuilder = null;
         if(cfa.getExitNode().getNumEnteringEdges()==0)
             printWARNING("Dead exit node in "+ functionName);
     }
@@ -667,10 +667,18 @@ public class CFGFunctionBuilder  {
                 CExpression rightHandSide;
                 if(no_ast.children().get(1).as_ast().pretty_print().contains("$temp")){
                     //TODO get type from noramlized
-                    rightHandSide = expressionHandler.getExpressionWithTempVar(
-                            no_ast.children().get(1).as_ast(),
-                            un_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(1).as_ast(),
-                            fileLocation);
+                    if(un_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast().children().size()==1){
+                        rightHandSide = expressionHandler.getExpressionWithTempVar(
+                                no_ast.children().get(1).as_ast(),
+                                un_ast,
+                                fileLocation);
+                    }else {
+                        rightHandSide = expressionHandler.getExpressionWithTempVar(
+                                no_ast.children().get(1).as_ast(),
+                                un_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(1).as_ast(),
+                                fileLocation);
+                    }
+
                 }else if(un_ast.is_a(ast_class.getUC_LAND()) || un_ast.is_a(ast_class.getUC_LOR())){
                     rightHandSide = expressionHandler.getExpressionWithTempVar(
                             no_ast.children().get(1).as_ast(),
