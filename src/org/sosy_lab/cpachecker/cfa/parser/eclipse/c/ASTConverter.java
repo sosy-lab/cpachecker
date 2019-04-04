@@ -2199,7 +2199,8 @@ class ASTConverter {
       if (enumValue.hasValue()) {
         values.add(enumValue.getValue());
       } else {
-        // strange case, when does this happen?
+        // happens when values are constant expressions
+        // that are not simplified and evaluated when parsing the expression.
       }
     }
     Preconditions.checkState(!values.isEmpty());
@@ -2251,8 +2252,13 @@ class ASTConverter {
           value = ~value;
         }
       } else {
-        // ignoring unsupported enum value
-        // TODO Warning
+        // ignore unsupported enum value and set it to NULL.
+        // TODO bug? constant enums are ignored, if 'cfa.simplifyConstExpressions' is disabled.
+        logger.logf(
+            Level.WARNING,
+            "enum constant '%s = %s' was not simplified and will be ignored in the following.",
+            e.getName(),
+            v.toQualifiedASTString());
       }
     }
 
