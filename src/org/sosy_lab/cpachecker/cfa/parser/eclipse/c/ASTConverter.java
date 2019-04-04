@@ -2230,6 +2230,12 @@ class ASTConverter {
       value = lastValue + 1;
     } else {
       CExpression v = convertExpressionWithoutSideEffects(e.getValue());
+
+      // for enums we always expect constants and simplify them,
+      // even if 'cfa.simplifyConstExpressions is disabled.
+      // Lets assume that there is never a signed integer overflow or another property violation.
+      v = simplifyExpressionRecursively(v);
+
       boolean negate = false;
       boolean complement = false;
 
