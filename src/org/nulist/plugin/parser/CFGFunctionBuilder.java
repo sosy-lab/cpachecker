@@ -531,7 +531,7 @@ public class CFGFunctionBuilder  {
 
         ast un_ast = exprNode.get_ast(ast_family.getC_UNNORMALIZED());
         ast no_ast = exprNode.get_ast(ast_family.getC_NORMALIZED());
-
+        String rawString = no_ast.pretty_print();
 
         if(no_ast.is_a(ast_class.getNC_BLOCKASSIGN())){
             // assign a struct variable to another struct variable
@@ -544,9 +544,13 @@ public class CFGFunctionBuilder  {
                 varType = typeConverter.getCType(
                         variable.get(ast_ordinal.getBASE_TYPE()).as_ast(),
                         expressionHandler);
-            }
-            else
+            }else if(un_ast.is_a(ast_class.getUC_DYNAMIC_INIT_NONCONSTANT_AGGREGATE())){
+                ast constant = un_ast.get(ast_ordinal.getUC_CONSTANT()).as_ast();
+                varType = typeConverter.getCType(constant.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
+            } else{
                 varType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
+            }
+            rawString = no_ast.get(ast_ordinal.getNC_ORIGINAL()).as_ast().pretty_print();
             nextCFGNode = pointNextToBlockAssignmentExpr(exprNode, varType);
         }
 
@@ -556,18 +560,17 @@ public class CFGFunctionBuilder  {
             throw new RuntimeException("VLA DECL shall have been processed in the previous expression");
         }else if(isTempVariableAssignment(no_ast) && un_ast.is_a(ast_class.getUC_SET_VLA_SIZE())){
             //use temp variable as the function input
-            String rawString;
             ast tempVar;
             CType type;
             if(no_ast.children().get(0).as_ast().is_a(ast_class.getNC_POINTEREXPR())){
                 tempVar = no_ast.children().get(0).as_ast().children().get(0).as_ast();
                 type =  typeConverter.getCType(tempVar.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
-                rawString = type.toString()+" "+no_ast.pretty_print();
+                rawString = type.toString()+" "+rawString;
                 type = new CPointerType(false, false, type);
             }else if(no_ast.children().get(0).as_ast().is_a(ast_class.getNC_VARIABLE())){
                 tempVar = no_ast.children().get(0).as_ast();
                 type =  typeConverter.getCType(tempVar.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
-                rawString = type.toString()+" "+no_ast.pretty_print();
+                rawString = type.toString()+" "+rawString;
             }else{
                 dumpAST(no_ast,0, no_ast.get_class().name());
                 throw new RuntimeException("Not a pointer expr "+ exprNode.toString());
@@ -609,12 +612,13 @@ public class CFGFunctionBuilder  {
                                 arrayName,
                                 variable.pretty_print(),
                                 arrayName,
-                                cInitializer);
+                                null);
+
                 expressionHandler.variableDeclarations.put(arrayName.hashCode(),arraryDecl);
                 nextCFGNode = nextCFGNode.cfg_targets().cbegin().current().get_first();
-
+                rawString = arrayType.toString()+" "+no_ast.pretty_print();
                 CFANode nextnextNode = cfaNodeMap.get(nextCFGNode.id());
-                CDeclarationEdge edge = new CDeclarationEdge(arraryDecl.toASTString(),
+                CDeclarationEdge edge = new CDeclarationEdge(rawString,
                         fileLocation,
                         nextNode,
                         nextnextNode,
@@ -627,11 +631,13 @@ public class CFGFunctionBuilder  {
             ast tempVar;
             CType type;
             CVariableDeclaration variableDeclaration;
-            if(no_ast.children().get(0).as_ast().is_a(ast_class.getNC_POINTEREXPR())){
+            if(no_ast.is_a(ast_class.getNC_BLOCKASSIGN())){
+                tempVar= no_ast.get(ast_ordinal.getNC_ORIGINAL()).as_ast().children().get(0).as_ast();
+            }else if(no_ast.children().get(0).as_ast().is_a(ast_class.getNC_POINTEREXPR())){
                 tempVar = no_ast.children().get(0).as_ast().children().get(0).as_ast();
             }else if(no_ast.children().get(0).as_ast().is_a(ast_class.getNC_VARIABLE())){
                 tempVar = no_ast.children().get(0).as_ast();
-            }else{
+            }else {
                 dumpAST(no_ast,0, no_ast.get_class().name());
                 throw new RuntimeException("Not a pointer expr "+ exprNode.toString());
             }
@@ -651,7 +657,7 @@ public class CFGFunctionBuilder  {
                         variableName,
                         initializer);
                 expressionHandler.variableDeclarations.put(variableName.hashCode(),variableDeclaration);
-                String rawstring = type.toString()+" "+no_ast.pretty_print();
+                String rawstring = type.toString()+" "+rawString;
                 CDeclarationEdge edge = new CDeclarationEdge(rawstring, fileLocation, prevNode, nextNode, variableDeclaration);
                 addToCFA(edge);
                 traverseCFGNode(nextCFGNode, endNode);
@@ -698,8 +704,8 @@ public class CFGFunctionBuilder  {
                             (CIdExpression) expressionHandler.getAssignedIdExpression(
                                     variableDeclaration, variableDeclaration.getType(), fileLocation);
                     CStatement statement  = new CExpressionAssignmentStatement(fileLocation, leftHandSide, rightHandSide);
-                    CStatementEdge edge = new CStatementEdge(no_ast.pretty_print(), statement,
-                            fileLocation, prevNode, nextNode);
+                    CStatementEdge edge = new CStatementEdge(rawString,
+                            statement, fileLocation, prevNode, nextNode);
                     addToCFA(edge);
                     traverseCFGNode(nextCFGNode, endNode);
                 }else {
@@ -713,7 +719,7 @@ public class CFGFunctionBuilder  {
                             variableName,
                             initializer);
                     expressionHandler.variableDeclarations.put(variableName.hashCode(),variableDeclaration);
-                    String rawstring = type.toString()+" "+no_ast.pretty_print();
+                    String rawstring = type.toString()+" "+rawString;
                     CDeclarationEdge edge = new CDeclarationEdge(rawstring, fileLocation, prevNode, nextNode, variableDeclaration);
                     addToCFA(edge);
                     traverseCFGNode(nextCFGNode, endNode);
@@ -730,24 +736,21 @@ public class CFGFunctionBuilder  {
                         expressionHandler.generateInitVarDeclFromUC(un_ast,fileLocation);
             }
 
-            CDeclarationEdge edge = new CDeclarationEdge(getRawSignature(exprNode),
+            rawString = variableDeclaration.getType().toString()+" "+rawString;
+            CDeclarationEdge edge = new CDeclarationEdge(rawString,
                     fileLocation,
                     prevNode,
                     nextNode,
                     variableDeclaration);
             addToCFA(edge);
             traverseCFGNode(nextCFGNode, endNode);
-        }else if(isReturn(nextCFGNode) && hasReturnVariable()){
+        }else if(isReturn(nextCFGNode)&& hasReturnVariable()){
             CType type = functionDeclaration.getType().getReturnType();
             CLeftHandSide leftHandSide = (CLeftHandSide) expressionHandler.
                         getAssignedIdExpression((CVariableDeclaration)cfa.getReturnVariable().get(),
                                 type, fileLocation);
 
-            CExpression rightHandSide;
-
-            //the expression shall find the part that use the temp var
-
-            rightHandSide = expressionHandler.getExpression(un_ast,type,no_ast.children().get(1).as_ast(),fileLocation);
+            CExpression rightHandSide = expressionHandler.getExpression(un_ast,type,no_ast.children().get(1).as_ast(),fileLocation);
 
             CStatement statement = new CExpressionAssignmentStatement(fileLocation, leftHandSide, rightHandSide);
 
@@ -755,22 +758,30 @@ public class CFGFunctionBuilder  {
                                                                     Optional.of(rightHandSide),
                                                                     Optional.of((CAssignment) statement));
 
-            String rawString = getRawSignature(exprNode);
-            CReturnStatementEdge edge = new CReturnStatementEdge(returnStatement.toASTString(),
+            CReturnStatementEdge edge = new CReturnStatementEdge(rawString,
                                             returnStatement, fileLocation,
                                             prevNode, cfa.getExitNode());
             addToCFA(edge);
-        }else if(useTempVariable(no_ast) && !isReturn(nextCFGNode)){
+        }else if(isReturn(nextCFGNode)){
+            CType type = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
+            CExpression expression = expressionHandler.getExpressionFromUC(un_ast,type,fileLocation);
+            CReturnStatement returnStatement = new CReturnStatement(fileLocation, Optional.of(expression),
+                    Optional.absent());
+            CReturnStatementEdge edge = new CReturnStatementEdge(no_ast.toString(),
+                    returnStatement, fileLocation,
+                    prevNode, cfa.getExitNode());
+            addToCFA(edge);
+        }else if(useTempVariable(no_ast) && (!isReturn(nextCFGNode) || !hasReturnVariable())){
             //these expression points that uses a temp var
             // we need to noramlize the expression with the temp var, for example, a[i++]=10==> int temp=i; i=i+1; a[temp]=10;
             CStatement statement = expressionHandler.getAssignStatement(exprNode, fileLocation);
-            CStatementEdge edge = new CStatementEdge(getRawSignature(exprNode), statement,
+            CStatementEdge edge = new CStatementEdge(no_ast.toString(), statement,
                     fileLocation, prevNode, nextNode);
             addToCFA(edge);
             traverseCFGNode(nextCFGNode, endNode);
         }else if(un_ast.is_a(ast_class.getUC_ABSTRACT_OPERATION())){
             CStatement statement = expressionHandler.getAssignStatementFromUC(un_ast, fileLocation);
-            CStatementEdge edge = new CStatementEdge(getRawSignature(exprNode), statement,
+            CStatementEdge edge = new CStatementEdge(no_ast.toString(), statement,
                     fileLocation, prevNode, nextNode);
             addToCFA(edge);
             traverseCFGNode(nextCFGNode, endNode);
@@ -788,8 +799,21 @@ public class CFGFunctionBuilder  {
                     fileLocation, prevNode, nextNode);
             addToCFA(edge);
             traverseCFGNode(nextCFGNode, endNode);
+        }else if(un_ast.is_a(ast_class.getUC_EXPR_VARIABLE())){
+            CType type = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
+            CExpression expression = expressionHandler.getExpressionFromUC(un_ast,type, fileLocation);
+            CStatement statement = new CExpressionStatement(fileLocation, expression);
+            CStatementEdge edge = new CStatementEdge(no_ast.pretty_print(), statement,
+                    fileLocation, prevNode, nextNode);
+            addToCFA(edge);
+            traverseCFGNode(nextCFGNode, endNode);
+        }else if(un_ast.is_a(ast_class.getUC_RUNTIME_SIZEOF())){
+            //actually, the runtime_sizeof has been processed before
+            BlankEdge edge = new BlankEdge(no_ast.pretty_print(),fileLocation, prevNode, nextNode, no_ast.pretty_print());
+            addToCFA(edge);
+            traverseCFGNode(nextCFGNode, endNode);
         }else  {
-            throw new RuntimeException("Not support expression: "+ exprNode.toString()+ " "+ exprNode.file_line().get_second()+ " "+ un_ast.get_class().name() +" "+ nextCFGNode.get_kind().name());
+            throw new RuntimeException("Not support expression: "+ exprNode.toString()+ " "+ exprNode.file_line().get_second()+ " "+ un_ast.get_class().name() +" "+ nextCFGNode.get_kind().name() +" "+ hasReturnVariable());
         }
     }
 

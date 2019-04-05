@@ -29,6 +29,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 import static org.nulist.plugin.parser.CFGAST.*;
+import static org.nulist.plugin.parser.CFGAST.dumpASTWITHClass;
 import static org.nulist.plugin.parser.CFGNode.*;
 import static org.nulist.plugin.util.CFGDumping.dumpCFG2Dot;
 import static org.nulist.plugin.util.FileOperations.*;
@@ -93,7 +94,7 @@ public class CFABuilder {
 
     public void basicBuild(compunit cu)throws result{
         String pFileName = cu.normalized_name();
-
+        //System.out.println(cu.name());
         // Iterate over all procedures in the compilation unit
         // procedure = function
 
@@ -236,8 +237,15 @@ public class CFABuilder {
                 }
 
                 CInitializer initializer = null;
-                if(init.is_a(ast_class.getUC_STATIC_INITIALIZER()))
-                    initializer = expressionHandler.getInitializerFromUC(init,varType,fileLocation);
+                if(init.is_a(ast_class.getUC_STATIC_INITIALIZER())){
+                    //System.out.println(un_ast.toString());
+                    if(un_ast.pretty_print().equals("mcc_mnc_list")){//can only get error from codesurfer CFG
+                        //read from txt
+                        initializer = expressionHandler.getInitializerFromTXT(varType,fileLocation);
+                    }else{
+                        initializer = expressionHandler.getInitializerFromUC(init,varType,fileLocation);
+                    }
+                }
 
                 CSimpleDeclaration newDecl =
                         new CVariableDeclaration(

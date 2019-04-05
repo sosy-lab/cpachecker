@@ -94,7 +94,6 @@ public class CFGParser implements Parser{
                 cfaBuilder.cfaNodes,
                 cfaBuilder.getGlobalVariableDeclarations(),
                 input_file);
-
     }
 
     private static boolean filter(String path, String projectName){
@@ -102,7 +101,7 @@ public class CFGParser implements Parser{
     }
 
     public static boolean targetFile(String path, String projectName){
-        return path.endsWith("openair2/RRC/LTE/rrc_eNB_S1AP.c");
+        return path.endsWith("openair-cn/src/s1ap/s1ap_mme_handlers.c");
     }
 
 
@@ -113,9 +112,21 @@ public class CFGParser implements Parser{
                 (name.contains("openair2/RRC") && (projectName.equals(UE) || projectName.equals(ENB))) || //
                 name.contains("openair2/COMMON") ||
                 (name.contains("openair3/S1AP") && (projectName.equals(MME) || projectName.equals(ENB))) ||
-                (name.contains("openair3/NAS") && projectName.equals(UE)) ||
+                (name.contains("openair3/NAS/UE") && projectName.equals(UE)) ||
+                (name.contains("openair3/NAS/TOOLS") && projectName.equals(UE)) ||
+                (name.contains("openair3/NAS/COMMON/API") && projectName.equals(UE)) ||
+                (name.contains("openair3/NAS/COMMON/EMM") && projectName.equals(UE)) ||
+                (name.contains("openair3/NAS/COMMON/ESM") && projectName.equals(UE)) ||
+                (name.contains("openair3/NAS/COMMON/IES") && projectName.equals(UE)) ||
+                (name.contains("openair3/NAS/COMMON/ESM") && projectName.equals(UE)) ||
+                ((name.contains("openair3/NAS/COMMON/UTIL/nas_timer.c")||
+                        name.contains("openair3/NAS/COMMON/UTIL/OctetString.c") ||
+                        name.contains("openair3/NAS/COMMON/UTIL/parser.c") ||
+                        name.contains("openair3/NAS/COMMON/UTIL/TLVDecoder.c") ||
+                        name.contains("openair3/NAS/COMMON/UTIL/TLVEncoder.c")) && projectName.equals(UE)) ||
                 name.contains("openair3/COMMON") ||
-                name.contains("openair3/UTILS");
+                name.contains("openair3/UTILS")||
+                (name.contains("openair-cn/src") && !name.contains("openair-cn/src/utils/log.c"));
     }
 
     @Override

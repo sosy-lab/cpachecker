@@ -10,8 +10,16 @@ package org.nulist.plugin.util;
 import com.grammatech.cs.point;
 import com.grammatech.cs.procedure;
 import com.grammatech.cs.result;
+import org.nulist.plugin.CSurfPlugin;
 import org.nulist.plugin.parser.CFGNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Map;
+import java.util.HashMap;
 
 import static org.nulist.plugin.parser.CFGNode.getFileLineNumber;
 
@@ -57,6 +65,28 @@ public class FileOperations {
 
     public static String getQualifiedFunctionName(String pFuncName, String pFileName) {
         return pFileName + "::" + pFuncName;
+    }
+
+
+    public static Map<Integer, String> readMCCMNCList(){
+        Map<Integer, String> mccMNCMap = new HashMap<>();
+        String path =CSurfPlugin.class.getResource("").getPath();
+        path = path.replace("bin/org/nulist/plugin/","libmodels/mcc_mnc_list.txt");
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(new File(path)));
+
+            String in;
+            while ((in=reader.readLine())!=null){
+                int mcc = Integer.valueOf(in.split(",")[0]);
+                String mnc = in.split(",")[1];
+                mccMNCMap.put(mcc,mnc);
+            }
+            reader.close();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
+        return mccMNCMap;
     }
 
 }
