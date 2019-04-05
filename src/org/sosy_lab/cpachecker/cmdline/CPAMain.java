@@ -143,9 +143,9 @@ public class CPAMain {
     CFGParser cfgParser = new CFGParser(logManager, MachineModel.LINUX64);
     try {
       ParseResult result = cfgParser.parseProject(target);
-      //FunctionEntryNode main = result.getFunctions().get("main");
-      //CFACreator cfaCreator = new CFACreator(cpaConfig, logManager, shutdownNotifier);
-      //cfaCreator.createCFA(result,main);
+      FunctionEntryNode main = result.getFunctions().get("main");
+      CFACreator cfaCreator = new CFACreator(cpaConfig, logManager, shutdownNotifier);
+      cfaCreator.createCFA(result,main);
     }catch (result r){
       r.printStackTrace();
     }catch (Exception e){

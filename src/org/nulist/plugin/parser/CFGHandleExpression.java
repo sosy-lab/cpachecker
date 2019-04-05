@@ -89,16 +89,18 @@ public class CFGHandleExpression {
                 fileLocation,
                 op2Type,
                 getExpressionFromNO(value_ast, op2Type, fileLocation));
+        CType resultType = typeConverter.getCType(condition.get(ast_ordinal.getBASE_TYPE()).as_ast(),this);
 
-        return buildBinaryExpression(op1Cast, op2Cast, operator);
+        return buildBinaryExpression(op1Cast, op2Cast, operator, resultType);
     }
 
     public CBinaryExpression buildBinaryExpression(
-            CExpression operand1, CExpression operand2, CBinaryExpression.BinaryOperator op) {
+            CExpression operand1, CExpression operand2, CBinaryExpression.BinaryOperator op, CType resultType) {
         try {
             return binExprBuilder.buildBinaryExpression(operand1, operand2, op);
         } catch (UnrecognizedCodeException e) {
-            throw new RuntimeException(e);
+            return  new CBinaryExpression(operand1.getFileLocation(), resultType, operand2.getExpressionType(), operand1, operand2, op);
+            //throw new RuntimeException(e);
         }
     }
 
@@ -444,6 +446,7 @@ public class CFGHandleExpression {
         CExpression rightHandSide = null;
         if(!un_ast.has_field(ast_ordinal.getUC_OPERANDS()))
             dumpAST(un_ast,0,un_ast.get_class().name());
+        CType type = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
         ast operands = un_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
         ast oper1 = operands.children().get(0).as_ast();
         CType leftType = typeConverter.getCType(oper1.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
@@ -471,7 +474,7 @@ public class CFGHandleExpression {
         }else if(un_ast.is_a(ast_class.getUC_GENERIC_PRE_DECR())){//--a;
             if(operands.children().size()==1){
                 leftHandSide = (CLeftHandSide) variable;
-                rightHandSide = buildBinaryExpression(variable, ONE, CBinaryExpression.BinaryOperator.MINUS);
+                rightHandSide = buildBinaryExpression(variable, ONE, CBinaryExpression.BinaryOperator.MINUS, type);
                 return new CExpressionAssignmentStatement(fileLocation, leftHandSide, rightHandSide);
             }else {
                 throw new RuntimeException("Issue in getAssignStatementFromUC with "+ un_ast.toString());
@@ -479,7 +482,7 @@ public class CFGHandleExpression {
         }else if(un_ast.is_a(ast_class.getUC_GENERIC_PRE_INCR())){//++a
             if(operands.children().size()==1){
                 leftHandSide = (CLeftHandSide) variable;
-                rightHandSide = buildBinaryExpression(variable, ONE, CBinaryExpression.BinaryOperator.PLUS);
+                rightHandSide = buildBinaryExpression(variable, ONE, CBinaryExpression.BinaryOperator.PLUS, type);
                 return new CExpressionAssignmentStatement(fileLocation, leftHandSide, rightHandSide);
             }else {
                 throw new RuntimeException("Issue in getAssignStatementFromUC with "+ un_ast.toString());
@@ -487,7 +490,7 @@ public class CFGHandleExpression {
         }else if(un_ast.is_a(ast_class.getUC_GENERIC_POST_DECR())){//a--
             if(operands.children().size()==1){
                 leftHandSide = (CLeftHandSide) variable;
-                rightHandSide = buildBinaryExpression(variable, ONE, CBinaryExpression.BinaryOperator.MINUS);
+                rightHandSide = buildBinaryExpression(variable, ONE, CBinaryExpression.BinaryOperator.MINUS, type);
                 return new CExpressionAssignmentStatement(fileLocation, leftHandSide, rightHandSide);
             }else {
                 throw new RuntimeException("Issue in getAssignStatementFromUC with "+ un_ast.toString());
@@ -495,7 +498,7 @@ public class CFGHandleExpression {
         }else if(un_ast.is_a(ast_class.getUC_GENERIC_POST_INCR())){//a++
             if(operands.children().size()==1){
                 leftHandSide = (CLeftHandSide) variable;
-                rightHandSide = buildBinaryExpression(variable, ONE, CBinaryExpression.BinaryOperator.PLUS);
+                rightHandSide = buildBinaryExpression(variable, ONE, CBinaryExpression.BinaryOperator.PLUS, type);
                 return new CExpressionAssignmentStatement(fileLocation, leftHandSide, rightHandSide);
             }else {
                 throw new RuntimeException("Issue in getAssignStatementFromUC with "+ un_ast.toString());
@@ -512,7 +515,7 @@ public class CFGHandleExpression {
             CBinaryExpression.BinaryOperator operator = getBinaryOperatorFromUC(un_ast);
             if(operands.children().size()==2 && value!=null && operator!=null){
                 leftHandSide = (CLeftHandSide) variable;
-                rightHandSide = buildBinaryExpression(variable, value, operator);
+                rightHandSide = buildBinaryExpression(variable, value, operator, type);
                 return new CExpressionAssignmentStatement(fileLocation, leftHandSide, rightHandSide);
             }else {
                 dumpAST(un_ast,0,un_ast.toString());
@@ -692,7 +695,7 @@ public class CFGHandleExpression {
                         fileLocation,
                         type,
                         exper2);
-                CExpression expression = buildBinaryExpression(op1Cast,op2Cast,operator);
+                CExpression expression = buildBinaryExpression(op1Cast,op2Cast,operator, type);
                 return  new CPointerExpression(fileLocation, type,expression);
             }else if(no_expr.children().get(0).as_ast().is_a(ast_class.getNC_CASTEXPR())){
                 ast cast = no_expr.children().get(0).as_ast();
@@ -766,13 +769,13 @@ public class CFGHandleExpression {
             CExpression leftExpession = getExpression(leftOper, typeLeft, left, fileLocation);
 
             if(operands.children().size()==1){
-                return buildBinaryExpression(leftExpession,CIntegerLiteralExpression.ONE, operator);
+                return buildBinaryExpression(leftExpession,CIntegerLiteralExpression.ONE, operator, type);
             }
             ast rightOper = operands.children().get(1).as_ast();
             CType typeRight = typeConverter.getCType(rightOper.get(ast_ordinal.getBASE_TYPE()).as_ast(),this);
             CExpression rightExpression = getExpression(rightOper, typeRight,right,fileLocation);
 
-            CBinaryExpression binaryExpression =  buildBinaryExpression(leftExpession,rightExpression, operator);
+            CBinaryExpression binaryExpression =  buildBinaryExpression(leftExpession,rightExpression, operator, type);
             if(un_expr.is_a(ast_class.getUC_GENERIC_CAST()))
                 return new CCastExpression(fileLocation,type,binaryExpression);
             else
@@ -955,10 +958,11 @@ public class CFGHandleExpression {
             ast operands = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
             ast variable = operands.children().get(0).as_ast();
             CType cType = typeConverter.getCType(variable.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
-            CExpression operand = getExpressionFromUC(variable, valueType, fileLoc);
-            if(typeConverter.isFunctionPointerType(operand.getExpressionType())){
-                CType functionType = typeConverter.getFuntionTypeFromFunctionPointer(operand.getExpressionType());
-                return new CPointerExpression(fileLoc, valueType, operand);
+            CExpression operand = getExpressionFromUC(variable, cType, fileLoc);
+            if(typeConverter.isFunctionPointerType(valueType)){
+                String functionName =getFunctionName(operand);
+                CType functionType = typeConverter.convertCFuntionType(valueType, functionName, fileLoc);
+                return new CPointerExpression(fileLoc, functionType, operand);
             }else
                 return new CPointerExpression(fileLoc, valueType, operand);
 
@@ -975,7 +979,7 @@ public class CFGHandleExpression {
             CExpression subscriptExpr= getExpressionFromUC(index_ast,indexType, fileLoc);
             return new CArraySubscriptExpression(fileLoc, arrayType, arrayExpr, subscriptExpr);
 
-        }else if(value_ast.is_a(ast_class.getUC_PADD())){//function$return=*(p+2), operands
+        }else if(value_ast.is_a(ast_class.getUC_PADD())){//function$return=*(p+2), operands //TODO
 
             CBinaryExpression.BinaryOperator operator = CBinaryExpression.BinaryOperator.PLUS;
             ast operand = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
@@ -984,7 +988,7 @@ public class CFGHandleExpression {
             ast index = operand.children().get(1).as_ast();
             CType indexType = typeConverter.getCType(index.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
             CExpression indexExpr = getExpressionFromUC(index, indexType, fileLoc);
-            return buildBinaryExpression(pointerExpr, indexExpr, operator);
+            return buildBinaryExpression(pointerExpr, indexExpr, operator, valueType);
             //return new CPointerExpression(fileLoc, valueType, binaryExpression);
 
         }else if(value_ast.is_a(ast_class.getUC_ARRAY_TO_POINTER_DECAY())){//d[1], d[1][2]
@@ -1071,6 +1075,7 @@ public class CFGHandleExpression {
                             CUnaryExpression.UnaryOperator.TILDE);
             }
         }else if(value_ast.is_a(ast_class.getUC_NOT())){
+
             ast operands = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
             ast oper = operands.children().get(0).as_ast();
             CType operType = typeConverter.getCType(oper.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
@@ -1078,7 +1083,8 @@ public class CFGHandleExpression {
             return buildBinaryExpression(
                     CIntegerLiteralExpression.ZERO,
                     expression,
-                    CBinaryExpression.BinaryOperator.EQUALS);
+                    CBinaryExpression.BinaryOperator.EQUALS,
+                    valueType);
 
         }else if(value_ast.is_a(ast_class.getUC_ABSTRACT_ASSIGN())){//actually assignment should have been processed in the previous expression,
             ast operands = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
@@ -1106,7 +1112,7 @@ public class CFGHandleExpression {
             CType operType2 = typeConverter.getCType(oper2.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
             CExpression left = getExpressionFromUC(oper2,operType2,fileLoc);
 
-            return buildBinaryExpression(right,left,operator);
+            return buildBinaryExpression(right,left,operator,type);
 
         } else if(value_ast.is_a(ast_class.getUC_STRING())){
 
@@ -1160,6 +1166,22 @@ public class CFGHandleExpression {
             throw new RuntimeException("Unsupport ast "+ value_ast.toString());
     }
 
+
+    public String getFunctionName(CExpression expression){
+        if(expression instanceof CFieldReference)
+            return ((CFieldReference) expression).getFieldName();
+        else if(expression instanceof CArraySubscriptExpression){
+            return getFunctionName(((CArraySubscriptExpression) expression).getArrayExpression());
+        }else if(expression instanceof CUnaryExpression)
+            return getFunctionName(((CUnaryExpression) expression).getOperand());
+        else if(expression instanceof CPointerExpression)
+            return getFunctionName(((CPointerExpression) expression).getOperand());
+        else if(expression instanceof CIdExpression)
+            return ((CIdExpression)expression).getName();
+        else
+            throw new RuntimeException("Not support to get function name from expression "+ expression.toString());
+
+    }
 
     /**
      * @Description //get function result variable from the unnormalized ast of an actual out point

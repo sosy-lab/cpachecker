@@ -33,6 +33,7 @@ import static org.nulist.plugin.parser.CFGAST.dumpASTWITHClass;
 import static org.nulist.plugin.parser.CFGNode.*;
 import static org.nulist.plugin.util.CFGDumping.dumpCFG2Dot;
 import static org.nulist.plugin.util.FileOperations.*;
+import static org.nulist.plugin.util.ClassTool.*;
 import static org.nulist.plugin.FunctionTest.*;
 /**
  * @ClassName CFABuilder
@@ -109,11 +110,16 @@ public class CFABuilder {
                 String funcName = proc.name();
                 if(funcName.equals("cmpint")|| funcName.equals("ASN__STACK_OVERFLOW_CHECK"))
                     continue;
+                //oai has inline functions and asn generated codes have several same functions
+                if(functionDeclarations.containsKey(funcName)){
+                    continue;
+                }
                 //System.out.println(funcName);
                 CFGFunctionBuilder cfgFunctionBuilder =
-                        new CFGFunctionBuilder(logger, typeConverter,  proc,funcName, pFileName, this);
+                        new CFGFunctionBuilder(logger, typeConverter, proc,funcName, pFileName, this);
                 // add function declaration
                 CFunctionDeclaration functionDeclaration = cfgFunctionBuilder.handleFunctionDeclaration();
+
                 functionDeclarations.put(funcName, functionDeclaration);
                 expressionHandler.globalDeclarations.put(funcName.hashCode(), functionDeclaration);
                 // handle the function definition
@@ -148,12 +154,14 @@ public class CFABuilder {
                 if(funcName.equals("cmpint") ||
                         funcName.equals("ASN__STACK_OVERFLOW_CHECK") ||
                         funcName.equals("rrc_control_socket_init") ||
-                        funcName.startsWith("dump_"))
+                        funcName.startsWith("dump_") ||
+                        funcName.startsWith("memb_"))
                     continue;
                 System.out.println(funcName);
                 CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
                 //functionTest(cfgFunctionBuilder);
-                cfgFunctionBuilder.visitFunction();
+                if(!cfgFunctionBuilder.isFinished)
+                    cfgFunctionBuilder.visitFunction();
             }
         }
     }

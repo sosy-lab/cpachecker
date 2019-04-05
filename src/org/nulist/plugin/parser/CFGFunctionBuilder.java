@@ -58,6 +58,7 @@ public class CFGFunctionBuilder  {
     public final String fileName;
     public CFABuilder cfaBuilder;
     private boolean directAddEdge = true;
+    public boolean isFinished = false;
 
     public CFGFunctionBuilder(
             LogManager pLogger,
@@ -101,7 +102,6 @@ public class CFGFunctionBuilder  {
         //for struct example: struct test{int a, int b}
         //function example: test function(int c,int d)
         //routine type: test (c,d)
-
         ast entryAST = function.entry_point().get_ast(ast_family.getC_UNNORMALIZED());
         CFunctionType cFunctionType = (CFunctionType) typeConverter
                 .getCType(entryAST.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
@@ -318,6 +318,7 @@ public class CFGFunctionBuilder  {
         //cfaBuilder = null;
         if(cfa.getExitNode().getNumEnteringEdges()==0)
             printWARNING("Dead exit node in "+ functionName);
+        isFinished = true;
     }
 
 
@@ -830,12 +831,17 @@ public class CFGFunctionBuilder  {
         CFANode prevNode = cfaNodeMap.get(cfgNode.id());
         CFANode nextNode;
 
+        if(fileLocation.getFileName().endsWith("openair-cn/src/nas/emm/sap/EmmCommonProcedureInitiated.c") && fileLocation.getStartingLineNumber()==424)
+            printf("");
+
         ast callAST = cfgNode.get_ast(ast_family.getC_UNNORMALIZED());
         ast operands = callAST.get(ast_ordinal.getUC_OPERANDS()).as_ast();
         CType type = typeConverter.getCType(callAST.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
         //the 1st child is the function, others are inputs,
+
+        CType functionType = typeConverter.getCType(operands.children().get(0).get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
         CExpression funcNameExpr = expressionHandler
-                .getExpressionFromUC(operands.children().get(0).as_ast(),type,fileLocation);
+                .getExpressionFromUC(operands.children().get(0).as_ast(),functionType,fileLocation);
         String rawCharacters="";
         point actualoutCFGNode = null, nextCFGNode = null;
         point_set actuals_in = cfgNode.actuals_in();
@@ -907,10 +913,10 @@ public class CFGFunctionBuilder  {
             if(refType instanceof CTypedefType){
                 refType = ((CTypedefType) refType).getRealType();
             }
-            CFunctionType functionType = (CFunctionType) ((CPointerType)refType).getType();
+            CFunctionType functionType1 = (CFunctionType) ((CPointerType)refType).getType();
 
             CPointerExpression pointerExpression = new CPointerExpression(fileLocation,
-                    functionType, funcNameExpr);
+                    functionType1, funcNameExpr);
             functionCallExpression = new CFunctionCallExpression(fileLocation,
                     type, pointerExpression, params, null);
         }else if(((CIdExpression)funcNameExpr).getDeclaration() instanceof CParameterDeclaration){
@@ -1341,6 +1347,7 @@ public class CFGFunctionBuilder  {
         FileLocation fileLocation = getLocation(caseNode,fileName);
         //case node: no normalized ast
         ast condition = caseNode.get_ast(ast_family.getC_UNNORMALIZED());
+
         ast valueAST = condition.get(ast_ordinal.getBASE_VALUE()).as_ast()
                     .get(ast_ordinal.getUC_CONSTANT()).as_ast();
 
@@ -1350,7 +1357,7 @@ public class CFGFunctionBuilder  {
         CExpression caseExpr = expressionHandler.getExpressionFromUC(valueAST, valueType, fileLocation);
 
         CBinaryExpression conditionExpr = expressionHandler.buildBinaryExpression(
-                switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS);
+                switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS, valueType);
 
         CFANode nextCFANode = handleAllSideEffects(nextCFGNode);
 
