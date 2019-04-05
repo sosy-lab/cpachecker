@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.nulist.plugin.parser.CFABuilder.pointerOf;
 import static org.nulist.plugin.parser.CFGAST.*;
 import static org.nulist.plugin.parser.CFGNode.*;
@@ -407,13 +408,17 @@ public class CFGHandleExpression {
                         parameters.add(parameter);
                 }
             }
+            CFunctionTypeWithNames functionTypeWithNames = new CFunctionTypeWithNames(
+                    checkNotNull(functionType.getReturnType()),
+                    parameters,
+                    functionType.takesVarArgs());
+            functionTypeWithNames.setName(functionName);
             CFunctionDeclaration functionDeclaration =
-                    new CFunctionDeclaration(FileLocation.DUMMY,functionType,functionName,parameters);
+                    new CFunctionDeclaration(FileLocation.DUMMY,functionTypeWithNames,functionName,parameters);
             globalDeclarations.put(functionName.hashCode(), functionDeclaration);
             return functionDeclaration;
         }catch (result r){
             String functionName = function.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().name();
-            printWARNING("A function has no scope: "+ functionName);
 
             List<CParameterDeclaration> parameters = new ArrayList<>(functionType.getParameters().size());
             if(!functionType.getParameters().isEmpty()){
@@ -426,11 +431,16 @@ public class CFGHandleExpression {
                     parameters.add(parameter);
                 }
             }
+            CFunctionTypeWithNames functionTypeWithNames = new CFunctionTypeWithNames(
+                    checkNotNull(functionType.getReturnType()),
+                    parameters,
+                    functionType.takesVarArgs());
+            functionTypeWithNames.setName(functionName);
             CFunctionDeclaration functionDeclaration =
-                    new CFunctionDeclaration(FileLocation.DUMMY,functionType,functionName,parameters);
+                    new CFunctionDeclaration(FileLocation.DUMMY,functionTypeWithNames,functionName,parameters);
+            printWARNING("A function has no scope: "+ functionName+":"+ functionDeclaration.toString());
             globalDeclarations.put(functionName.hashCode(), functionDeclaration);
             return functionDeclaration;
-            //throw  new RuntimeException(r);
         }
     }
 
@@ -874,9 +884,9 @@ public class CFGHandleExpression {
             return new CCastExpression(fileLoc, castType, operand);
         }else if(isPointerExpr(value_ast)){//pointer, e.g., int i = *(p+1);
             CType type  = typeConverter.getCType(value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
-            CBinaryExpression operand = getBinaryExpression(value_ast.children().get(0).as_ast(),fileLoc);
-            CPointerType pointerType = new CPointerType(false,false,type);
-            return new CPointerExpression(fileLoc, pointerType, operand);
+            ast variable = value_ast.children().get(0).as_ast();
+            CExpression operand = getExpressionFromNO(variable, type, fileLoc);
+            return new CPointerExpression(fileLoc, valueType, operand);
         }else if(value_ast.is_a(ast_class.getNC_CASTEXPR())){
 
         }
@@ -960,9 +970,12 @@ public class CFGHandleExpression {
             CType cType = typeConverter.getCType(variable.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
             CExpression operand = getExpressionFromUC(variable, cType, fileLoc);
             if(typeConverter.isFunctionPointerType(valueType)){
-                String functionName =getFunctionName(operand);
-                CType functionType = typeConverter.convertCFuntionType(valueType, functionName, fileLoc);
-                return new CPointerExpression(fileLoc, functionType, operand);
+                //String functionName =getFunctionName(operand);
+                CType funcType  = typeConverter.getFuntionTypeFromFunctionPointer(operand.getExpressionType());
+                if(funcType instanceof CTypedefType){
+                    funcType = ((CTypedefType) funcType).getRealType();
+                }
+                return new CPointerExpression(fileLoc, funcType, operand);
             }else
                 return new CPointerExpression(fileLoc, valueType, operand);
 
@@ -1010,20 +1023,22 @@ public class CFGHandleExpression {
 
             ast routine = value_ast.get(ast_ordinal.getUC_ROUTINE()).as_ast();
             CType type = typeConverter.getCType(routine.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
-            String functionName = routine.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().name();
-            if(type instanceof CTypedefType){
-                CFunctionType functionType = (CFunctionType) ((CTypedefType)type).getRealType();
-                CFunctionTypeWithNames cFunctionTypeWithNames =
-                        typeConverter.convertCFuntionType(functionType, functionName, fileLoc);
-                type = new CTypedefType(type.isConst(),type.isVolatile(),
-                        ((CTypedefType) type).getName(),cFunctionTypeWithNames);
-                return getAssignedIdExpression(routine,type,fileLoc);
-            }else {
+            return getAssignedIdExpression(routine,type,fileLoc);
 
-                CFunctionTypeWithNames cFunctionTypeWithNames =
-                        typeConverter.convertCFuntionType((CFunctionType) type, functionName, fileLoc);
-                return getAssignedIdExpression(routine,cFunctionTypeWithNames,fileLoc);
-            }
+//            String functionName = routine.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().name();
+//            if(type instanceof CTypedefType){
+//                CFunctionType functionType = (CFunctionType) ((CTypedefType)type).getRealType();
+//                CFunctionTypeWithNames cFunctionTypeWithNames =
+//                        typeConverter.convertCFuntionType(functionType, functionName, fileLoc);
+//                type = new CTypedefType(type.isConst(),type.isVolatile(),
+//                        ((CTypedefType) type).getName(),cFunctionTypeWithNames);
+//                return getAssignedIdExpression(routine,type,fileLoc);
+//            }else {
+//
+//                CFunctionTypeWithNames cFunctionTypeWithNames =
+//                        typeConverter.convertCFuntionType((CFunctionType) type, functionName, fileLoc);
+//                return getAssignedIdExpression(routine,cFunctionTypeWithNames,fileLoc);
+//            }
         }else if(value_ast.is_a(ast_class.getUC_ADDRESS_OP())){// &d;
 
             ast operands = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
@@ -1276,7 +1291,7 @@ public class CFGHandleExpression {
 
         CBinaryExpression.BinaryOperator operator = getBinaryOperator(value_ast);
 
-        final CType expressionType = typeConverter.getCType(value_ast.children().get(0).as_ast(), this);
+        final CType expressionType = typeConverter.getCType(value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
 
         ast operand1 = value_ast.children().get(0).as_ast(); // First operand
         //logger.log(Level.FINE, "Getting id expression for operand 1");

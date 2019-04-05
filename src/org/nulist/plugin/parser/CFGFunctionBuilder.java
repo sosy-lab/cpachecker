@@ -137,6 +137,7 @@ public class CFGFunctionBuilder  {
         CFunctionTypeWithNames cFuncType =
                 new CFunctionTypeWithNames(checkNotNull(cFunctionType.getReturnType()),parameters,cFunctionType.takesVarArgs());
 
+        cFuncType.setName(functionName);
         // Function declaration, exit
         functionDeclaration =
                 new CFunctionDeclaration(
@@ -831,9 +832,6 @@ public class CFGFunctionBuilder  {
         CFANode prevNode = cfaNodeMap.get(cfgNode.id());
         CFANode nextNode;
 
-        if(fileLocation.getFileName().endsWith("openair-cn/src/nas/emm/sap/EmmCommonProcedureInitiated.c") && fileLocation.getStartingLineNumber()==424)
-            printf("");
-
         ast callAST = cfgNode.get_ast(ast_family.getC_UNNORMALIZED());
         ast operands = callAST.get(ast_ordinal.getUC_OPERANDS()).as_ast();
         CType type = typeConverter.getCType(callAST.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
@@ -903,6 +901,9 @@ public class CFGFunctionBuilder  {
         }else if(typeConverter.isFunctionPointerType(funcNameExpr.getExpressionType())){
             //TODO it may be incorrect
             CType funcType  = typeConverter.getFuntionTypeFromFunctionPointer(funcNameExpr.getExpressionType());
+            if(funcType instanceof CTypedefType){
+                funcType = ((CTypedefType) funcType).getRealType();
+            }
             CPointerExpression pointerExpression = new CPointerExpression(fileLocation, funcType, funcNameExpr);
             functionCallExpression = new CFunctionCallExpression(fileLocation,
                     type, pointerExpression, params, null);
@@ -927,6 +928,9 @@ public class CFGFunctionBuilder  {
                     type, funcNameExpr, params,
                     (CFunctionDeclaration) ((CIdExpression)funcNameExpr).getDeclaration());
         }
+
+        if(functionCallExpression.getFunctionNameExpression().getExpressionType() instanceof CPointerType)
+            System.out.println();
 
         CFunctionCall functionCallStatement;
 

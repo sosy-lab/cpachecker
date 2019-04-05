@@ -144,6 +144,7 @@ public class CPAMain {
     try {
       ParseResult result = cfgParser.parseProject(target);
       FunctionEntryNode main = result.getFunctions().get("main");
+      System.out.println(main.toString()+":"+main.getFileLocation().getFileName());
       CFACreator cfaCreator = new CFACreator(cpaConfig, logManager, shutdownNotifier);
       cfaCreator.createCFA(result,main);
     }catch (result r){

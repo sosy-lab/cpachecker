@@ -757,13 +757,13 @@ private boolean classifyNodes = false;
       cfa = fca.unwindRecursion();
     }
 
-    if (useCFACloningForMultiThreadedPrograms && isMultiThreadedProgram(cfa)) {
-      // cloning must be done before adding global vars,
-      // current use case is ThreadingCPA, thus we check for the creation of new threads first.
-      logger.log(Level.INFO, "program contains concurrency, cloning functions...");
-      final CFACloner cloner = new CFACloner(cfa, config);
-      cfa = cloner.execute();
-    }
+//    if (useCFACloningForMultiThreadedPrograms && isMultiThreadedProgram(cfa)) {
+//      // cloning must be done before adding global vars,
+//      // current use case is ThreadingCPA, thus we check for the creation of new threads first.
+//      logger.log(Level.INFO, "program contains concurrency, cloning functions...");
+//      final CFACloner cloner = new CFACloner(cfa, config);
+//      cfa = cloner.execute();
+//    }
 
     if (useGlobalVars) {
       // add global variables at the beginning of main
