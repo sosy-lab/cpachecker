@@ -151,7 +151,9 @@ public class LabelAdder {
 
   private void addLabels(final MutableCFA pCfa, final Collection<CFAEdge> pEdgesToLabel) {
     for (CFAEdge e : pEdgesToLabel) {
-      labelsAdded += addLabelBefore(e.getSuccessor(), BLOCK_LABEL_NAME, labelsAdded, pCfa);
+        String labelName = BLOCK_LABEL_NAME + labelsAdded;
+        addLabel(e, labelName, pCfa);
+        labelsAdded++;
     }
   }
 
@@ -183,14 +185,18 @@ public class LabelAdder {
     int num = 0;
     for (CFAEdge e : enteringEdges)  {
       final String labelName = pBlockSuffix + (pBlockNumberStart + num);
-      if (pNode instanceof FunctionExitNode) {
-        addLabelBefore(e, labelName, pCfa);
-      } else {
-        addLabelAfter(e, labelName, pCfa);
-      }
+      addLabel(e, labelName, pCfa);
       num++;
     }
     return num;
+  }
+
+  private void addLabel(CFAEdge pE, String pLabelName, MutableCFA pCfa) {
+    if (pE.getSuccessor() instanceof FunctionExitNode) {
+      addLabelBefore(pE, pLabelName, pCfa);
+    } else {
+      addLabelAfter(pE, pLabelName, pCfa);
+    }
   }
 
   private void addLabelBefore(CFAEdge pEdge, String pLabelName, MutableCFA pCfa) {
