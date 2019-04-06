@@ -367,9 +367,9 @@ public class CFAToCTranslator {
   }
 
   private boolean isGotoEdge(CFAEdge pEdge) {
-    return pEdge.getEdgeType().equals(CFAEdgeType.BlankEdge)
-        && pEdge.getDescription().startsWith("Goto:")
-        && pEdge.getSuccessor() instanceof CLabelNode;
+    return pEdge.getSuccessor() instanceof CLabelNode
+        && pEdge.getEdgeType().equals(CFAEdgeType.BlankEdge)
+        && pEdge.getDescription().startsWith("Goto:");
   }
 
   private FunctionBody startFunction(CFunctionEntryNode pFunctionStartNode) {
