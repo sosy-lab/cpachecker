@@ -190,8 +190,8 @@ public class LabelAdder {
   private int addLabel(CFAEdge pE, String pLabelName, MutableCFA pCfa) {
     CFANode successorLocation = pE.getSuccessor();
     if (skipConditionGraphs
-        && CFAUtils.enteringEdges(successorLocation).allMatch(n -> n instanceof AssumeEdge)
-        && CFAUtils.leavingEdges(successorLocation).allMatch(n -> n instanceof AssumeEdge)) {
+        && pE instanceof AssumeEdge
+        && CFAUtils.leavingEdges(successorLocation).allMatch(e -> isPartOfConditionGraph(e))) {
       return 0;
     }
 
@@ -201,6 +201,12 @@ public class LabelAdder {
       addLabelAfter(pE, pLabelName, pCfa);
     }
     return 1;
+  }
+
+  private boolean isPartOfConditionGraph(CFAEdge pE) {
+    return pE instanceof AssumeEdge
+        || (pE instanceof BlankEdge
+            && CFAUtils.leavingEdges(pE.getSuccessor()).allMatch(this::isPartOfConditionGraph));
   }
 
   private void addLabelBefore(CFAEdge pEdge, String pLabelName, MutableCFA pCfa) {
