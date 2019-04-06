@@ -112,12 +112,14 @@ public class CFAToCTranslator {
       return currentBlock;
     }
 
+    @Override
     public boolean equals(Object pO) {
       // Use fast identity comparison for performance reasons ; the equals-computation
       // of the compound statement contained in this object may take very long.
       return pO == this;
     }
 
+    @Override
     public int hashCode() {
       // Use object address for performance reasons ; the hashCode computation
       // of the compound statement contained in this object may take very long.
