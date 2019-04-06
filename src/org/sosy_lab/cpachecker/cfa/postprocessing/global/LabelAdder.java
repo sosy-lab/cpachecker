@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -77,6 +78,13 @@ public class LabelAdder {
       description = "Add a unique label before each program exit"
   )
   private boolean addProgramExitLabels = false;
+
+  @Option(
+      secure = true,
+      name = "skipConditionGraphs",
+      description = "Don't add any block labels between succinct conditions"
+  )
+  private boolean skipConditionGraphs = false;
 
   private final Configuration config;
 
@@ -143,13 +151,7 @@ public class LabelAdder {
 
   private void addLabels(final MutableCFA pCfa, final Collection<CFAEdge> pEdgesToLabel) {
     for (CFAEdge e : pEdgesToLabel) {
-      String labelName = BLOCK_LABEL_NAME + labelsAdded;
-      if (e.getSuccessor() instanceof FunctionExitNode) {
-        addLabelBefore(e, labelName, pCfa);
-      } else {
-        addLabelAfter(e, labelName, pCfa);
-      }
-      labelsAdded++;
+      labelsAdded += addLabelBefore(e.getSuccessor(), BLOCK_LABEL_NAME, labelsAdded, pCfa);
     }
   }
 
@@ -171,6 +173,12 @@ public class LabelAdder {
   }
 
   private int addLabelBefore(CFANode pNode, String pBlockSuffix, int pBlockNumberStart, MutableCFA pCfa) {
+    if (skipConditionGraphs
+      && CFAUtils.enteringEdges(pNode).allMatch(n -> n instanceof AssumeEdge)
+      && CFAUtils.leavingEdges(pNode).allMatch(n -> n instanceof AssumeEdge)) {
+      return 0;
+    }
+
     final List<CFAEdge> enteringEdges = CFAUtils.enteringEdges(pNode).toList();
     int num = 0;
     for (CFAEdge e : enteringEdges)  {
