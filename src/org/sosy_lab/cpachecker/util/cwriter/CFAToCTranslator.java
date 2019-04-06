@@ -359,7 +359,7 @@ public class CFAToCTranslator {
     if (pNode.getNumLeavingEdges() == 1) {
       CFAEdge leavingEdge = pNode.getLeavingEdge(0);
       if (isGotoEdge(leavingEdge)
-          && !(CFAUtils.enteringEdges(leavingEdge.getSuccessor()).allMatch(n -> isGotoEdge(n)))) {
+          && !CFAUtils.enteringEdges(leavingEdge.getSuccessor()).allMatch(n -> isGotoEdge(n))) {
         return !createdStatements.containsKey(leavingEdge.getSuccessor());
       }
     }
