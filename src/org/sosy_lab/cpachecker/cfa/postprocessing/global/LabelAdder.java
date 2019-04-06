@@ -152,8 +152,7 @@ public class LabelAdder {
   private void addLabels(final MutableCFA pCfa, final Collection<CFAEdge> pEdgesToLabel) {
     for (CFAEdge e : pEdgesToLabel) {
         String labelName = BLOCK_LABEL_NAME + labelsAdded;
-        addLabel(e, labelName, pCfa);
-        labelsAdded++;
+        labelsAdded += addLabel(e, labelName, pCfa);
     }
   }
 
@@ -163,40 +162,45 @@ public class LabelAdder {
   }
 
   private void addLabelsAtProgramExits(final MutableCFA pCfa, Collection<CFANode> pCandidates) {
-    addLabelBefore(pCfa.getMainFunction().getExitNode(), EXIT_LABEL_NAME, labelsAdded, pCfa);
-    labelsAdded++;
+    labelsAdded += addLabelBefore(pCfa.getMainFunction().getExitNode(), EXIT_LABEL_NAME, labelsAdded, pCfa);
 
     for (CFANode n : pCandidates) {
       if (n instanceof CFATerminationNode) {
-        addLabelBefore(n, EXIT_LABEL_NAME, labelsAdded, pCfa);
-        labelsAdded++;
+        labelsAdded += addLabelBefore(n, EXIT_LABEL_NAME, labelsAdded, pCfa);
       }
     }
   }
 
   private int addLabelBefore(CFANode pNode, String pBlockSuffix, int pBlockNumberStart, MutableCFA pCfa) {
-    if (skipConditionGraphs
-      && CFAUtils.enteringEdges(pNode).allMatch(n -> n instanceof AssumeEdge)
-      && CFAUtils.leavingEdges(pNode).allMatch(n -> n instanceof AssumeEdge)) {
-      return 0;
-    }
-
     final List<CFAEdge> enteringEdges = CFAUtils.enteringEdges(pNode).toList();
     int num = 0;
     for (CFAEdge e : enteringEdges)  {
       final String labelName = pBlockSuffix + (pBlockNumberStart + num);
-      addLabel(e, labelName, pCfa);
-      num++;
+      num += addLabel(e, labelName, pCfa);
     }
     return num;
   }
 
-  private void addLabel(CFAEdge pE, String pLabelName, MutableCFA pCfa) {
-    if (pE.getSuccessor() instanceof FunctionExitNode) {
+  /**
+   * Adds a label for the given CFAEdge, if applicable.
+   *
+   * @return number of labels added (at the moment, this means: 0 if no label was added,
+   *    1 if a label was added)
+   */
+  private int addLabel(CFAEdge pE, String pLabelName, MutableCFA pCfa) {
+    CFANode successorLocation = pE.getSuccessor();
+    if (skipConditionGraphs
+        && CFAUtils.enteringEdges(successorLocation).allMatch(n -> n instanceof AssumeEdge)
+        && CFAUtils.leavingEdges(successorLocation).allMatch(n -> n instanceof AssumeEdge)) {
+      return 0;
+    }
+
+    if (successorLocation instanceof FunctionExitNode) {
       addLabelBefore(pE, pLabelName, pCfa);
     } else {
       addLabelAfter(pE, pLabelName, pCfa);
     }
+    return 1;
   }
 
   private void addLabelBefore(CFAEdge pEdge, String pLabelName, MutableCFA pCfa) {
