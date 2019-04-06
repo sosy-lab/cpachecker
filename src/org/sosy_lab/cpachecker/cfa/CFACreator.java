@@ -558,6 +558,7 @@ private boolean classifyNodes = false;
       spbuilder.insertCallEdgesRecursively();
     }
 
+    exportCFAAsync(cfa);
     // FIFTH, do post-processings on the supergraph
     // Mutating post-processings should be checked carefully for their effect
     // on the information collected above (such as loops and post-order ids).
@@ -591,7 +592,7 @@ private boolean classifyNodes = false;
     }
 
     Optional<DependenceGraph> depGraph;
-    if (createDependenceGraph) {
+      if (createDependenceGraph) {
       if (!varClassification.isPresent()) {
         logger.log(
             Level.WARNING,

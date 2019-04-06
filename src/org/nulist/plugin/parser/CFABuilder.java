@@ -31,6 +31,7 @@ import java.util.*;
 import static org.nulist.plugin.parser.CFGAST.*;
 import static org.nulist.plugin.parser.CFGAST.dumpASTWITHClass;
 import static org.nulist.plugin.parser.CFGNode.*;
+import static org.nulist.plugin.parser.CFGParser.*;
 import static org.nulist.plugin.util.CFGDumping.dumpCFG2Dot;
 import static org.nulist.plugin.util.FileOperations.*;
 import static org.nulist.plugin.util.ClassTool.*;
@@ -93,7 +94,8 @@ public class CFABuilder {
         cfaNodes.put(funcName, nd);
     }
 
-    public void basicBuild(compunit cu)throws result{
+    public void basicBuild(compunit cu, String projectName)throws result{
+
         String pFileName = cu.normalized_name();
         //System.out.println(cu.name());
         // Iterate over all procedures in the compilation unit
@@ -108,12 +110,12 @@ public class CFABuilder {
             if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())||
                     proc.get_kind().equals(procedure_kind.getLIBRARY())){
                 String funcName = proc.name();
-                if(funcName.equals("cmpint")|| funcName.equals("ASN__STACK_OVERFLOW_CHECK"))
+                if((funcName.equals("main") && !isProjectMainFunction(cu.name(),projectName)) ||
+                        funcName.equals("cmpint") ||
+                        funcName.equals("ASN__STACK_OVERFLOW_CHECK") ||
+                        functionDeclarations.containsKey(funcName)) //oai has inline functions and asn generated codes have several same functions
                     continue;
-                //oai has inline functions and asn generated codes have several same functions
-                if(functionDeclarations.containsKey(funcName)){
-                    continue;
-                }
+
                 //System.out.println(funcName);
                 CFGFunctionBuilder cfgFunctionBuilder =
                         new CFGFunctionBuilder(logger, typeConverter, proc,funcName, pFileName, this);

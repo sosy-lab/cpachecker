@@ -70,7 +70,7 @@ public class CFGParser implements Parser{
             if(filter(cu.name(), projectName) ||cu.is_library_model())
             {
                 input_file.add(Paths.get(cu.normalized_name()));
-                cfaBuilder.basicBuild(cu);
+                cfaBuilder.basicBuild(cu, project.name());
             }
         }
         System.out.println("Fisrt Traverse complete!");
@@ -101,9 +101,19 @@ public class CFGParser implements Parser{
     }
 
     public static boolean targetFile(String path, String projectName){
-        return path.endsWith("CMakeFiles/r10.5/der_encoder.c");
+        return path.endsWith("targets/RT/USER/lte-ue.c");
     }
 
+    public static boolean isProjectMainFunction(String filePath, String projectName){
+        if(projectName.equals(ENB))
+            return filePath.endsWith("targets/RT/USER/lte-softmodem.c");
+        else if(projectName.equals(UE))
+            return filePath.endsWith("targets/RT/USER/lte-uesoftmodem.c");
+        else if(projectName.equals(MME))
+            return filePath.endsWith("openair-cn/src/oai_mme/oai_mme.c");
+        else
+            return true;
+    }
 
     private static boolean fileFilter(String name, String projectName){
         return (name.contains("RRC_Rel14") && (projectName.equals(UE) || projectName.equals(ENB))) || //AS application protocol interfaces between UE and ENB: radio resource control
@@ -111,7 +121,8 @@ public class CFGParser implements Parser{
                 (name.contains("X2AP_R14") && projectName.equals(ENB)) || //application protocol interfaces between enbs for handover (UE mobility) and/or self organizing network related function:
                 (name.contains("openair2/RRC") && (projectName.equals(UE) || projectName.equals(ENB))) || //
                 name.contains("openair2/COMMON") ||
-                (name.contains("openair3/S1AP") && projectName.equals(ENB)) ||
+                (name.contains("targets/RT/USER") && (projectName.equals(UE) || projectName.equals(ENB))) ||
+                //(name.contains("openair3/S1AP") && projectName.equals(ENB)) ||
                 (name.contains("openair3/NAS/UE") && projectName.equals(UE)) ||
                 (name.contains("openair3/NAS/TOOLS") && projectName.equals(UE)) ||
                 (name.contains("openair3/NAS/COMMON/API") && projectName.equals(UE)) ||
@@ -128,6 +139,7 @@ public class CFGParser implements Parser{
                 name.contains("openair3/UTILS") ||
                 (name.contains("openair-cn/src/nas") && projectName.equals(MME)) ||
                 (name.contains("openair-cn/src/mme") && projectName.equals(MME)) ||
+                (name.contains("openair-cn/src/oai_mme") && projectName.equals(MME)) ||
                 (name.contains("openair-cn/src/mme_app") && projectName.equals(MME)) ||
                 (name.contains("openair-cn/src/common") && projectName.equals(MME)) ||
                 (name.contains("openair-cn/src/utils") && !name.contains("openair-cn/src/utils/log.c") && projectName.equals(MME));// ||

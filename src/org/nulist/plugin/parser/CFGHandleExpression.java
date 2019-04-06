@@ -838,7 +838,8 @@ public class CFGHandleExpression {
 
             CBasicType basicType = ((CSimpleType) valueType).getType();
             if (basicType == CBasicType.FLOAT || basicType == CBasicType.DOUBLE) {
-                BigDecimal value = BigDecimal.valueOf(value_ast.get(ast_ordinal.getBASE_VALUE()).as_flt32());
+                //BigDecimal.valueOf(value_ast.get(ast_ordinal.getBASE_VALUE()).as_flt32());
+                BigDecimal value = getFloatValue(value_ast);
                 return new CFloatLiteralExpression(fileLoc, valueType,value);
             }else if (basicType == CBasicType.BOOL) {
                 long value = value_ast.get(ast_ordinal.getBASE_VALUE()).as_uint32();
@@ -1249,6 +1250,22 @@ public class CFGHandleExpression {
         return null;
     }
 
+    public BigDecimal getFloatValue(ast valueast)throws result{
+        ast_field valueField;
+        try {
+            valueField= valueast.get(ast_ordinal.getBASE_VALUE()).get(ast_ordinal.getBASE_VALUE());
+        }catch (result r){
+            valueField= valueast.get(ast_ordinal.getBASE_VALUE());
+        }
+        if(valueField.get_type().equals(ast_field_type.getFLT32()))
+            return BigDecimal.valueOf(valueField.as_flt32());
+        else if(valueField.get_type().equals(ast_field_type.getFLT64()))
+            return BigDecimal.valueOf(valueField.as_flt64());
+        else if(valueField.get_type().equals(ast_field_type.getFLT96()) || valueField.get_type().equals(ast_field_type.getFLT128()))
+            return BigDecimal.valueOf(valueField.as_flt64());
+        else
+            throw new RuntimeException("Not support float value: "+ valueast.toString()+" "+ valueField.toString());
+    }
 
     public BigInteger getIntegerValue(ast valueast)throws result{
 
@@ -1667,8 +1684,7 @@ public class CFGHandleExpression {
                     return new CIntegerLiteralExpression(fileLocation, type, integer);
                 }
             }else if(cBasicType.equals(CBasicType.FLOAT)){
-                double value = Double.valueOf(constant.get(ast_ordinal.getBASE_VALUE()).as_ast().pretty_print());
-                return new CFloatLiteralExpression(fileLocation, type, BigDecimal.valueOf(value));
+                return new CFloatLiteralExpression(fileLocation, type, getFloatValue(constant));
             }else if(cBasicType.equals(CBasicType.UNSPECIFIED)){//pointer type,,int *p=NULL;
                 if (constant.has_field(ast_ordinal.getUC_EXPR())
                         && constant.get(ast_ordinal.getUC_EXPR()).as_ast().is_a(ast_class.getUC_GENERIC_CAST())) {

@@ -228,6 +228,17 @@ public class CFGTypeConverter {
         }
     }
 
+    public int getDimensionOfArrayType(CType type){
+        int dimension = 0;
+        if(type instanceof CArrayType){
+            dimension++;
+            CType subType = ((CArrayType) type).getType();
+            dimension += getDimensionOfArrayType(subType);
+        }
+
+        return dimension;
+    }
+
     private String handleUnnamedType(ast type) throws result{
         String typeString = type.pretty_print();
         String typeName ="";

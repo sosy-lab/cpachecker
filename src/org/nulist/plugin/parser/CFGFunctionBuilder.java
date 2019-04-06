@@ -558,8 +558,71 @@ public class CFGFunctionBuilder  {
 
         CFANode nextNode =handleAllSideEffects(nextCFGNode);
 
-        if(un_ast.is_a(ast_class.getUC_VLA_DECL())) {//(void)$temp314 = type array[$temp314];
-            throw new RuntimeException("VLA DECL shall have been processed in the previous expression");
+        if(un_ast.is_a(ast_class.getUC_VLA_DECL())) {//(void)$temp314  type array[$temp314];
+            //un_ast = nextCFGNode.get_ast(ast_family.getC_UNNORMALIZED());
+            ast variable = un_ast.get(ast_ordinal.getUC_VARIABLE()).as_ast();
+            ast vartype = variable.get(ast_ordinal.getBASE_TYPE()).as_ast();
+            CExpression length = expressionHandler.
+                    getExpressionFromNO(no_ast.children().get(1).as_ast(), CNumericTypes.INT,fileLocation);
+            String arrayName = variable.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().name().replace("-","_");
+            //CType elementType = typeConverter.getCType(vartype.get(ast_ordinal.getUC_ELEMENT_TYPE()).as_ast(), expressionHandler);
+            CType arrayType = typeConverter.getCType(vartype,expressionHandler);
+            if(typeConverter.getDimensionOfArrayType(arrayType)==1){
+                CType type = ((CArrayType)arrayType).getType();
+                arrayType = new CArrayType(arrayType.isConst(),arrayType.isVolatile(),type,length);
+                rawString = type.toString()+" "+arrayName+"["+length.toString()+"];";
+
+            }else if(typeConverter.getDimensionOfArrayType(arrayType)==2){
+                if(isExpression(nextCFGNode) && nextCFGNode.get_ast(ast_family.getC_UNNORMALIZED()).is_a(ast_class.getUC_VLA_DECL())){
+                    ast no_ast1 = nextCFGNode.get_ast(ast_family.getC_NORMALIZED());
+                    CExpression length2 = expressionHandler.
+                            getExpressionFromNO(no_ast1.children().get(1).as_ast(), CNumericTypes.INT,fileLocation);
+                    CType type = ((CArrayType)arrayType).getType();
+                    CType originType = ((CArrayType)type).getType();
+                    arrayType = new CArrayType(arrayType.isConst(),arrayType.isVolatile(),originType, length2);
+                    arrayType = new CArrayType(arrayType.isConst(),arrayType.isVolatile(),arrayType, length);
+                    nextCFGNode = nextCFGNode.cfg_targets().cbegin().current().get_first();
+                    nextNode = handleAllSideEffects(nextCFGNode);
+                    rawString = originType.toString()+" "+arrayName+"["+length.toString()+"]["+length2.toString()+"];";
+                }else {
+                    // an array length is an integer value
+                    ast elementType = vartype.get(ast_ordinal.getUC_ELEMENT_TYPE()).as_ast();
+                    CType type = ((CArrayType)arrayType).getType();
+                    CType originType = ((CArrayType)type).getType();
+                    if(elementType.is_a(ast_class.getUC_VLA())){
+                        arrayType = new CArrayType(arrayType.isConst(),arrayType.isVolatile(),originType, length);
+                        arrayType = new CArrayType(arrayType.isConst(),arrayType.isVolatile(),arrayType, ((CArrayType) type).getLength());
+                        rawString = originType.toString()+" "+arrayName+"["+((CArrayType) arrayType).getLength().toString()+"]["+length.toString()+"];";
+                    }else {
+                        arrayType = new CArrayType(arrayType.isConst(),arrayType.isVolatile(),type, length);
+                        rawString = originType.toString()+" "+arrayName+"["+length.toString()+"]["+((CArrayType) type).getLength().toString()+"];";
+                    }
+                }
+            }else {
+                throw new RuntimeException("Not an array type:"+ typeConverter.getDimensionOfArrayType(arrayType));
+            }
+
+            CVariableDeclaration arraryDecl =
+                    new CVariableDeclaration(
+                            fileLocation,
+                            false,
+                            CStorageClass.AUTO,
+                            arrayType,
+                            arrayName,
+                            variable.pretty_print(),
+                            arrayName,
+                            null);
+
+            expressionHandler.variableDeclarations.put(arrayName.hashCode(),arraryDecl);
+
+            CDeclarationEdge edge = new CDeclarationEdge(rawString,
+                    fileLocation,
+                    prevNode,
+                    nextNode,
+                    arraryDecl);
+            addToCFA(edge);
+            traverseCFGNode(nextCFGNode, endNode);
+
         }else if(isTempVariableAssignment(no_ast) && un_ast.is_a(ast_class.getUC_SET_VLA_SIZE())){
             //use temp variable as the function input
             ast tempVar;
@@ -595,40 +658,41 @@ public class CFGFunctionBuilder  {
 
             CDeclarationEdge declarationEdge = new CDeclarationEdge(rawString,fileLocation,prevNode,nextNode,newVarDecl);
             addToCFA(declarationEdge);
+            traverseCFGNode(nextCFGNode, endNode);
 
-            if(nextCFGNode.get_ast(ast_family.getC_UNNORMALIZED()).is_a(ast_class.getUC_VLA_DECL())){
-                un_ast = nextCFGNode.get_ast(ast_family.getC_UNNORMALIZED());
-                ast variable = un_ast.get(ast_ordinal.getUC_VARIABLE()).as_ast();
-                ast vartype = variable.get(ast_ordinal.getBASE_TYPE()).as_ast();
-                String arrayName = variable.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().name().replace("-","_");
-                CType elementType = typeConverter.getCType(vartype.get(ast_ordinal.getUC_ELEMENT_TYPE()).as_ast(), expressionHandler);
-
-                CExpression length = new CIdExpression(fileLocation, newVarDecl);
-                CType arrayType = new CArrayType(false,false, elementType, length);
-                CVariableDeclaration arraryDecl =
-                        new CVariableDeclaration(
-                                fileLocation,
-                                false,
-                                CStorageClass.AUTO,
-                                arrayType,
-                                arrayName,
-                                variable.pretty_print(),
-                                arrayName,
-                                null);
-
-                expressionHandler.variableDeclarations.put(arrayName.hashCode(),arraryDecl);
-                nextCFGNode = nextCFGNode.cfg_targets().cbegin().current().get_first();
-                rawString = arrayType.toString()+" "+no_ast.pretty_print();
-                CFANode nextnextNode = cfaNodeMap.get(nextCFGNode.id());
-                CDeclarationEdge edge = new CDeclarationEdge(rawString,
-                        fileLocation,
-                        nextNode,
-                        nextnextNode,
-                        arraryDecl);
-                addToCFA(edge);
-                traverseCFGNode(nextCFGNode, endNode);
-            }else
-                throw new RuntimeException("Issue in VLA");
+//            if(nextCFGNode.get_ast(ast_family.getC_UNNORMALIZED()).is_a(ast_class.getUC_VLA_DECL())){
+//                un_ast = nextCFGNode.get_ast(ast_family.getC_UNNORMALIZED());
+//                ast variable = un_ast.get(ast_ordinal.getUC_VARIABLE()).as_ast();
+//                ast vartype = variable.get(ast_ordinal.getBASE_TYPE()).as_ast();
+//                String arrayName = variable.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().name().replace("-","_");
+//                CType elementType = typeConverter.getCType(vartype.get(ast_ordinal.getUC_ELEMENT_TYPE()).as_ast(), expressionHandler);
+//
+//                CExpression length = new CIdExpression(fileLocation, newVarDecl);
+//                CType arrayType = new CArrayType(false,false, elementType, length);
+//                CVariableDeclaration arraryDecl =
+//                        new CVariableDeclaration(
+//                                fileLocation,
+//                                false,
+//                                CStorageClass.AUTO,
+//                                arrayType,
+//                                arrayName,
+//                                variable.pretty_print(),
+//                                arrayName,
+//                                null);
+//
+//                expressionHandler.variableDeclarations.put(arrayName.hashCode(),arraryDecl);
+//                nextCFGNode = nextCFGNode.cfg_targets().cbegin().current().get_first();
+//                rawString = arrayType.toString()+" "+no_ast.pretty_print();
+//                CFANode nextnextNode = cfaNodeMap.get(nextCFGNode.id());
+//                CDeclarationEdge edge = new CDeclarationEdge(rawString,
+//                        fileLocation,
+//                        nextNode,
+//                        nextnextNode,
+//                        arraryDecl);
+//                addToCFA(edge);
+//                traverseCFGNode(nextCFGNode, endNode);
+//            }else
+//                throw new RuntimeException("Issue in VLA: "+ exprNode.toString()+" "+fileLocation.getStartingLineNumber()+" "+nextCFGNode.toString());
         }else if(isTempVariableAssignment(no_ast)){
             ast tempVar;
             CType type;
@@ -801,17 +865,19 @@ public class CFGFunctionBuilder  {
                     fileLocation, prevNode, nextNode);
             addToCFA(edge);
             traverseCFGNode(nextCFGNode, endNode);
-        }else if(un_ast.is_a(ast_class.getUC_EXPR_VARIABLE())){
+        }else if(un_ast.is_a(ast_class.getUC_RUNTIME_SIZEOF())){
+            //actually, the runtime_sizeof has been processed before
+            BlankEdge edge = new BlankEdge(no_ast.pretty_print(),fileLocation, prevNode, nextNode, no_ast.pretty_print());
+            addToCFA(edge);
+            traverseCFGNode(nextCFGNode, endNode);
+        }else if(un_ast.is_a(ast_class.getUC_EXPR_VARIABLE()) ||
+                un_ast.is_a(ast_class.getUC_INTEGER_VALUE()) ||
+                un_ast.is_a(ast_class.getUC_FLOAT_VALUE())){
             CType type = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
             CExpression expression = expressionHandler.getExpressionFromUC(un_ast,type, fileLocation);
             CStatement statement = new CExpressionStatement(fileLocation, expression);
             CStatementEdge edge = new CStatementEdge(no_ast.pretty_print(), statement,
                     fileLocation, prevNode, nextNode);
-            addToCFA(edge);
-            traverseCFGNode(nextCFGNode, endNode);
-        }else if(un_ast.is_a(ast_class.getUC_RUNTIME_SIZEOF())){
-            //actually, the runtime_sizeof has been processed before
-            BlankEdge edge = new BlankEdge(no_ast.pretty_print(),fileLocation, prevNode, nextNode, no_ast.pretty_print());
             addToCFA(edge);
             traverseCFGNode(nextCFGNode, endNode);
         }else  {
