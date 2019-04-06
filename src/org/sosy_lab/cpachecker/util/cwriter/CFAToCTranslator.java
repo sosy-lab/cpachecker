@@ -91,6 +91,10 @@ public class CFAToCTranslator {
     }
   }
 
+  /**
+   * Pair of {@link CFANode} and corresponding code block (i.e., compound statement).
+   * Each object of this class is unique and equals will only work on the identity.
+   */
   private static class NodeAndBlock {
     private final CFANode cfaNode;
     private final CompoundStatement currentBlock;
@@ -108,22 +112,16 @@ public class CFAToCTranslator {
       return currentBlock;
     }
 
-    @Override
     public boolean equals(Object pO) {
-      if (this == pO) {
-        return true;
-      }
-      if (pO == null || getClass() != pO.getClass()) {
-        return false;
-      }
-      NodeAndBlock that = (NodeAndBlock) pO;
-      return Objects.equals(cfaNode, that.cfaNode) &&
-          Objects.equals(currentBlock, that.currentBlock);
+      // Use fast identity comparison for performance reasons ; the equals-computation
+      // of the compound statement contained in this object may take very long.
+      return pO == this;
     }
 
-    @Override
     public int hashCode() {
-      return Objects.hash(cfaNode, currentBlock);
+      // Use object address for performance reasons ; the hashCode computation
+      // of the compound statement contained in this object may take very long.
+      return super.hashCode();
     }
   }
 
