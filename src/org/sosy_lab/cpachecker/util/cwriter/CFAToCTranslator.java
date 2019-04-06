@@ -497,7 +497,9 @@ public class CFAToCTranslator {
    */
   private @Nullable CompoundStatement getJoinBlock(CFANode pJoinNode) {
     FluentIterable<CFANode> predecessorNodes =
-        getRelevant(CFAUtils.allEnteringEdges(pJoinNode)).transform(e -> e.getPredecessor());
+        getRelevant(CFAUtils.allEnteringEdges(pJoinNode))
+            .filter(e -> !isGotoEdge(e))
+            .transform(e -> e.getPredecessor());
     if (predecessorNodes.anyMatch(n -> !createdStatements.containsKey(n))) {
       return null;
     }
