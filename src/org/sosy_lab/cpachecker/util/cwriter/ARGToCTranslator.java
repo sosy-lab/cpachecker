@@ -44,6 +44,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -197,14 +198,51 @@ public class ARGToCTranslator {
     @Override
     public void translateToCode0(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
-      buffer.append("{\n");
-
-      for(Statement statement : statements) {
-        statement.translateToCode(buffer, indent + 4);
+      boolean requiresBraces = getSurroundingBlock() == null;
+      if (requiresBraces) {
+        buffer.append("{\n");
       }
+      Statement lastStatement = null;
+      for (Statement statement : statements) {
+        boolean isNestedBlock = false;
+        if (statement instanceof CompoundStatement) {
+          isNestedBlock = true;
+          if (isElseStatement(lastStatement)) {
+            List<Statement> nestedStatements = ((CompoundStatement) statement).statements.stream()
+                .filter(n -> n instanceof SimpleStatement || n instanceof CompoundStatement)
+                .collect(Collectors.toList());
+            if (nestedStatements.size() == 4
+                && isIfStatement(nestedStatements.get(0))
+                && nestedStatements.get(1) instanceof CompoundStatement
+                && isElseStatement(nestedStatements.get(2))
+                && nestedStatements.get(3) instanceof CompoundStatement) {
+              isNestedBlock = false;
+            }
+          }
+        }
 
-      writeIndent(buffer, indent);
-      buffer.append("}\n");
+        if (isNestedBlock) {
+          buffer.append("{\n");
+        }
+        statement.translateToCode(buffer, indent + 4);
+        writeIndent(buffer, indent);
+        if (isNestedBlock) {
+          buffer.append("}\n");
+        }
+
+        lastStatement = statement;
+      }
+      if (requiresBraces) {
+        buffer.append("}\n");
+      }
+    }
+
+    private boolean isIfStatement(Statement s) {
+      return s instanceof SimpleStatement && ((SimpleStatement) s).code.startsWith("if");
+    }
+
+    private boolean isElseStatement(Statement s) {
+      return s instanceof SimpleStatement && ((SimpleStatement) s).code.startsWith("else");
     }
 
     @Override
