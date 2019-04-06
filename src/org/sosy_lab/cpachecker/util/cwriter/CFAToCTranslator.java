@@ -139,6 +139,7 @@ public class CFAToCTranslator {
   private final List<String> globalDefinitionsList = new ArrayList<>();
   private final Set<NodeAndBlock> discoveredElements = new HashSet<>();
   private final ListMultimap<CFANode, Statement> createdStatements = ArrayListMultimap.create();
+  private Deque<NodeAndBlock> lastResorts = new ArrayDeque<>();
   private Collection<FunctionBody> functions;
 
   private NodeAndBlock noProgressSince = null;
@@ -250,7 +251,15 @@ public class CFAToCTranslator {
     while (!waitlist.isEmpty()) {
       NodeAndBlock nextNode = waitlist.poll();
       handleNode(nextNode, waitlist, pRelevantEdges, existingLabels);
+      if (waitlist.isEmpty() && !lastResorts.isEmpty()) {
+        useLastResorts(waitlist);
+      }
     }
+  }
+
+  private void useLastResorts(Deque<NodeAndBlock> pWaitlist) {
+    pWaitlist.addAll(lastResorts);
+    lastResorts = new ArrayDeque<>();
   }
 
   private void handleNode(
@@ -269,13 +278,17 @@ public class CFAToCTranslator {
       return;
     }
 
-    if (!areAllEnteringEdgesHandled(node) || isGotoAndLabelNotHandledYet(node)) {
+    if (isGotoAndLabelNotHandledYet(node) || !areAllEnteringEdgesHandled(node)) {
       if (noProgressSince == null) {
         noProgressSince = pNode;
       } else if (noProgressSince.equals(pNode)) {
-        throw new CPAException("No progress in C translation at node " + node);
+        if (lastResorts.isEmpty()) {
+          throw new CPAException("No progress in C translation at node " + node);
+        } else {
+          useLastResorts(pWaitlist);
+        }
       }
-      offerWaitlist(pWaitlist, node, currentBlock);
+      offerWaitlist(lastResorts, node, currentBlock);
       return;
 
     } else {
