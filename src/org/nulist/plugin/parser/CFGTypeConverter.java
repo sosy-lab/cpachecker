@@ -184,9 +184,10 @@ public class CFGTypeConverter {
                 CCompositeType cCompositeType = new CCompositeType(isConst, false,
                         CComplexType.ComplexTypeKind.UNION,
                         members, typeName, typeString);
+
                 CElaboratedType cElaboratedType= new CElaboratedType(isConst, false,
                         CComplexType.ComplexTypeKind.UNION,
-                        typeName, typeString,cCompositeType);
+                        typeName, typeString, cCompositeType);
                 typeCache.put(typeName.hashCode(), cElaboratedType);
                 return cElaboratedType;
 
@@ -374,10 +375,12 @@ public class CFGTypeConverter {
         typeMap.put(typeName, cEStructType);
         for (int i = 0; i < items.size(); i++) {
             ast member = items.get(i).as_ast();
+            ast memberType = member.get(ast_ordinal.getBASE_TYPE()).as_ast();
             String memberName = member.pretty_print();
-            String memberTypeName = member.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print();
+            String memberTypeName = memberType.pretty_print();
             if(memberTypeName.endsWith("<UNNAMED>") || memberTypeName.endsWith("<unnamed>") ){
-                memberTypeName = handleUnnamedType(type);
+                memberTypeName = handleUnnamedType(memberType);
+                memberName = memberTypeName.replace(UNION_PREF,"");
             }
 
             if(typeMap.containsKey(memberTypeName)){
@@ -385,7 +388,7 @@ public class CFGTypeConverter {
                         new CCompositeType.CCompositeTypeMemberDeclaration(typeMap.get(memberTypeName), memberName);
                 members.add(memDecl);
             }else {
-                CType cMemType = getSubType(member.get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionhandler);
+                CType cMemType = getSubType(memberType, expressionhandler);
                 if(isFunctionPointerType(cMemType))
                     cMemType = convertCFuntionType(cMemType,memberName, FileLocation.DUMMY);
                 CCompositeType.CCompositeTypeMemberDeclaration memDecl =
