@@ -65,7 +65,7 @@ public class LassoAnalysisResult {
     return terminationArgument.get();
   }
 
-  public boolean isUnknowm() {
+  public boolean isUnknown() {
     return !hasNonTerminationArgument() && !hasTerminationArgument();
   }
 
@@ -79,9 +79,9 @@ public class LassoAnalysisResult {
 
   @CheckReturnValue
   public LassoAnalysisResult update(LassoAnalysisResult pOther) {
-    if (isUnknowm()) {
+    if (isUnknown()) {
       return pOther;
-    } else if (pOther.isUnknowm()) {
+    } else if (pOther.isUnknown()) {
       return this;
     } else if (hasNonTerminationArgument()) {
       return this;
