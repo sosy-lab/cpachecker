@@ -48,6 +48,7 @@ public class StateManager {
 
   private final State initState;
   private final State itpState;
+  private final State sinkState;
   private final State finalState;
 
   private final FormulaManagerView formulaManagerView;
@@ -77,6 +78,7 @@ public class StateManager {
 
     initState = new InitState(this, pInitState);
     itpState = new InterpolationState(this);
+    sinkState = new SinkState(this);
     finalState = new FinalState(this);
 
     setCurrentState(initState);
@@ -111,6 +113,7 @@ public class StateManager {
         ImmutableList.of(
             initState.buildInternalState(),
             itpState.buildInternalState(),
+            sinkState.buildInternalState(),
             finalState.buildInternalState()),
         initState.getStateName());
   }
@@ -127,12 +130,8 @@ public class StateManager {
     return interpolant;
   }
 
-  String getInterpolant(boolean negated) {
-    if (!negated) {
-      return getInterpolant();
-    } else {
-      return interpolantNegated;
-    }
+  String getNegatedInterpolant() {
+    return interpolantNegated;
   }
 
   void addTransition(BooleanFormula pInterpolant, ARGState pCurrentState)
@@ -280,10 +279,7 @@ public class StateManager {
     private void
         addEdgeToTransition(String pFollowStateName, CFAEdge pEdge, Optional<String> pAssumptionOpt)
             throws InvalidAutomatonException {
-      AutomatonTransition matchST = matchST(pFollowStateName, pEdge, pAssumptionOpt);
-      if (matchST != null) {
-        transitions.add(matchST);
-      }
+      transitions.add(matchST(pFollowStateName, pEdge, pAssumptionOpt));
     }
 
     void addEdgesToTransition(
@@ -291,7 +287,9 @@ public class StateManager {
         Iterable<CFAEdge> pEdges,
         Optional<String> pAssumptionOpt)
         throws InvalidAutomatonException {
-      transitions.addAll(matchST(pFollowStateName, pEdges, pAssumptionOpt));
+      for (CFAEdge cfaEdge : pEdges) {
+        addEdgeToTransition(pFollowStateName, cfaEdge, pAssumptionOpt);
+      }
     }
 
     void setCurrentStateAsParent(ARGState pCurrentState) {
@@ -304,10 +302,7 @@ public class StateManager {
             throws InvalidAutomatonException {
       List<AutomatonTransition> list = new ArrayList<>();
       for (CFAEdge cfaEdge : pEdges) {
-        AutomatonTransition matchST = matchST(pStateName, cfaEdge, pAssumptionOpt);
-        if (matchST != null) {
-          list.add(matchST);
-        }
+        list.add(matchST(pStateName, cfaEdge, pAssumptionOpt));
       }
       return list;
     }
@@ -315,11 +310,11 @@ public class StateManager {
     private AutomatonTransition
         matchST(String pFollowStateName, CFAEdge pCFAEdge, Optional<String> pAssumptionOpt)
             throws InvalidAutomatonException {
-      if (pCFAEdge.getRawStatement().equals("")) {
-        return null;
-      }
-      AutomatonBoolExpr.MatchCFAEdgeExact trigger =
-          new AutomatonBoolExpr.MatchCFAEdgeExact(pCFAEdge.getRawStatement());
+      AutomatonBoolExpr.MatchCFAEdgeNodes trigger =
+          new AutomatonBoolExpr.MatchCFAEdgeNodes(
+              pCFAEdge.getPredecessor().getNodeNumber(),
+              pCFAEdge.getSuccessor().getNodeNumber(),
+              pCFAEdge.getRawStatement());
       boolExpressions.add(trigger);
       AutomatonTransition.Builder builder =
           new AutomatonTransition.Builder(trigger, pFollowStateName);
@@ -402,18 +397,18 @@ public class StateManager {
 
     @Override
     void createInvariantTrueTransition(ARGState pCurrentState) throws InvalidAutomatonException {
+      createTransitionToSameState(pCurrentState, Optional.of(stateMgr.getNegatedInterpolant()));
       List<CFAEdge> edges =
-          createTransitionToSameState(pCurrentState, Optional.of(stateMgr.getInterpolant(true)));
-      createTransitionToNextState(pCurrentState, Optional.of(stateMgr.getInterpolant()));
+          createTransitionToNextState(pCurrentState, Optional.of(stateMgr.getInterpolant()));
       cfaEdges.addAll(edges);
     }
 
     @Override
     void createInterpolantTransition(BooleanFormula pInterpolant, ARGState pCurrentState)
         throws InvalidAutomatonException, InterruptedException {
+      createTransitionToSameState(pCurrentState, Optional.of(stateMgr.getNegatedInterpolant()));
       List<CFAEdge> edges =
-          createTransitionToSameState(pCurrentState, Optional.of(stateMgr.getInterpolant(true)));
-      createTransitionToNextState(pCurrentState, Optional.of(stateMgr.getInterpolant()));
+          createTransitionToNextState(pCurrentState, Optional.of(stateMgr.getInterpolant()));
       cfaEdges.addAll(edges);
       stateMgr.setNextState();
       stateMgr.addTransition(pInterpolant, pCurrentState);
@@ -436,7 +431,9 @@ public class StateManager {
           boolExpressions.stream().reduce((x, y) -> new AutomatonBoolExpr.Or(x, y));
       checkArgument(boolExprOpt.isPresent());
       Negation negatedTrigger = new AutomatonBoolExpr.Negation(boolExprOpt.get());
-      transitions.add(new AutomatonTransition.Builder(negatedTrigger, getStateName()).build());
+      transitions.add(
+          new AutomatonTransition.Builder(negatedTrigger, stateMgr.sinkState.getStateName())
+              .build());
       return ImmutableList.copyOf(transitions);
     }
 
@@ -448,12 +445,12 @@ public class StateManager {
 
   class InterpolationState extends State {
 
-    private static final String IPT_STATE = "ipt_state";
+    private static final String ITP_STATE = "itp_state";
 
     private final StringExpression violatedPropertyDescription;
 
     InterpolationState(StateManager pStateMgr) {
-      super(pStateMgr, IPT_STATE);
+      super(pStateMgr, ITP_STATE);
       violatedPropertyDescription = new StringExpression(stateMgr.getAutomatonName());
     }
 
@@ -465,18 +462,19 @@ public class StateManager {
     @Override
     void createInterpolantTransition(BooleanFormula pInterpolant, ARGState pCurrentState)
         throws InvalidAutomatonException {
+      createTransitionToSameState(pCurrentState, Optional.of(stateMgr.getInterpolant()));
       List<CFAEdge> edges =
-          createTransitionToSameState(pCurrentState, Optional.of(stateMgr.getInterpolant()));
-      createTransitionToNextState(pCurrentState, Optional.of(stateMgr.getInterpolant(true)));
+          createTransitionToNextState(pCurrentState, Optional.of(stateMgr.getNegatedInterpolant()));
       cfaEdges.addAll(edges);
     }
 
     @Override
     void createInvariantFalseTransition(BooleanFormula pInterpolant, ARGState pCurrentState)
         throws InvalidAutomatonException, InterruptedException {
+
+      createTransitionToSameState(pCurrentState, Optional.of(stateMgr.getInterpolant()));
       List<CFAEdge> edges =
-          createTransitionToSameState(pCurrentState, Optional.of(stateMgr.getInterpolant()));
-      createTransitionToNextState(pCurrentState, Optional.of(stateMgr.getInterpolant(true)));
+          createTransitionToNextState(pCurrentState, Optional.of(stateMgr.getNegatedInterpolant()));
       cfaEdges.addAll(edges);
       stateMgr.setNextState();
       stateMgr.addTransition(pInterpolant, pCurrentState);
@@ -494,7 +492,9 @@ public class StateManager {
           boolExpressions.stream().reduce((x, y) -> new AutomatonBoolExpr.Or(x, y));
       checkArgument(boolExprOpt.isPresent());
       Negation negatedTrigger = new AutomatonBoolExpr.Negation(boolExprOpt.get());
-      transitions.add(new AutomatonTransition.Builder(negatedTrigger, getStateName()).build());
+      transitions.add(
+          new AutomatonTransition.Builder(negatedTrigger, stateMgr.sinkState.getStateName())
+              .build());
       return ImmutableList.copyOf(transitions);
     }
 
@@ -526,7 +526,7 @@ public class StateManager {
     @Override
     void createInvariantFalseTransition(BooleanFormula pInterpolant, ARGState pCurrentState)
         throws InvalidAutomatonException {
-      createTransitionToSameState(pCurrentState, Optional.empty());
+      // do nothing
     }
 
     @Override
@@ -545,6 +545,52 @@ public class StateManager {
     @Override
     boolean isTargetState() {
       return false;
+    }
+  }
+
+  class SinkState extends State {
+
+    private static final String SINK_STATE = "sink_state";
+
+    private final StringExpression violatedPropertyDescription;
+
+    SinkState(StateManager pStateMgr) {
+      super(pStateMgr, SINK_STATE);
+      violatedPropertyDescription = new StringExpression(stateMgr.getAutomatonName());
+    }
+
+    @Override
+    void createInvariantTrueTransition(ARGState pCurrentState) throws InvalidAutomatonException {
+      throw new IllegalStateException(String.format("Illegal state: %s", pCurrentState));
+    }
+
+    @Override
+    void createInterpolantTransition(BooleanFormula pInterpolant, ARGState pCurrentState) {
+      throw new IllegalStateException(
+          String.format("Illegal state: %s, %s", pInterpolant, pCurrentState));
+    }
+
+    @Override
+    void createInvariantFalseTransition(BooleanFormula pInterpolant, ARGState pCurrentState)
+        throws InvalidAutomatonException {
+      throw new IllegalStateException(
+          String.format("Illegal state: %s, %s", pInterpolant, pCurrentState));
+    }
+
+    @Override
+    void addViolationPropertyToBuilder(Builder pBuilder) {
+      pBuilder.withViolatedPropertyDescription(violatedPropertyDescription);
+    }
+
+    @Override
+    List<AutomatonTransition> buildTransitions() {
+      transitions.add(new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, SINK_STATE).build());
+      return ImmutableList.copyOf(transitions);
+    }
+
+    @Override
+    boolean isTargetState() {
+      return true;
     }
   }
 
