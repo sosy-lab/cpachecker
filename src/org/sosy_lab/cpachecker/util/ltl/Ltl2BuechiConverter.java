@@ -52,7 +52,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.cpa.automaton.LtlParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.BuechiConverterUtils;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Literal;
 
@@ -92,7 +92,7 @@ public class Ltl2BuechiConverter {
     checkNotNull(pFormula);
 
     StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula, pLogger).createHoaAutomaton();
-    return LtlParserUtils.convertFromHOAFormat(hoaAutomaton, pConfig, pLogger, pMachineModel, pScope);
+    return BuechiConverterUtils.convertFromHOAFormat(hoaAutomaton, pConfig, pLogger, pMachineModel, pScope);
   }
 
   /**
@@ -108,7 +108,7 @@ public class Ltl2BuechiConverter {
     checkNotNull(pFormula);
 
     StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula, pLogger).createHoaAutomaton();
-    return LtlParserUtils.convertFromHOAFormat(hoaAutomaton);
+    return BuechiConverterUtils.convertFromHOAFormat(hoaAutomaton);
   }
 
   public static String getNameOfExecutable() {
