@@ -671,8 +671,15 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     private Result determineAnalysisResult(Result pResult, String pActualAnalysisName) {
       if (successfulAnalysisName != null && !successfulAnalysisName.equals(pActualAnalysisName)) {
-        // Signal that the result is not important for the final verdict:
-        return Result.DONE;
+        if (pResult == Result.TRUE) {
+          // we need this to let the invariant analysis write a correctness witness if we use
+          // k-induction. TODO: find a better fix for this mess.
+          return Result.UNKNOWN;
+        } else {
+          // Signal that this analysis is not important for the final verdict:
+          // (especially, do NOT generate a correctness witness)
+          return Result.DONE;
+        }
       }
       return pResult;
     }

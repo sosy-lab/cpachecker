@@ -23,117 +23,121 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
-import org.junit.Test;
-import org.sosy_lab.common.log.LoggingOptions;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cmdline.CPAMain.MainOptions;
 
+@SuppressWarnings("deprecation")
+@RunWith(Parameterized.class)
 public class CPAMainTest {
 
-  Configuration config;
-  ConfigurationBuilder configBuilder;
-  LoggingOptions logOptions;
-  LogManager logManager;
-  MainOptions options;
-
-
-  @Before
-  public void setup() throws InvalidConfigurationException {
-    // setup config
-    configBuilder = Configuration.builder();
-    config = configBuilder.build();
-    // setup logManager
-    logOptions = new LoggingOptions(config);
-    logManager = BasicLogManager.create(logOptions);
-    config.enableLogging(logManager);
+  @Parameters(name = "{0}")
+  public static Object[] getAllLanguages() {
+    return Language.values();
   }
 
-  @SuppressWarnings("deprecation")
+  @Parameter(0)
+  public Language language;
+
+  private final ConfigurationBuilder configBuilder = Configuration.builder();
+  private final LogManager logManager = LogManager.createTestLogManager();
+  private final Multimap<Language, String> map = HashMultimap.create();
+
+  @Before
+  public void init() {
+    map.put(Language.C, "test.c");
+    map.put(Language.C, "test.i");
+    map.put(Language.C, "test.h");
+    map.put(Language.C, "test.c, test.i, test.h");
+    map.put(Language.JAVA, "test.java");
+    map.put(Language.LLVM, "test.ll");
+    map.put(Language.LLVM, "test.bc");
+    map.put(Language.LLVM, "test.ll, test.bc");
+  }
+
   @Test
   public void testLanguageDetection() throws InvalidConfigurationException {
     // when language not given by user, right language based on file ending(s) must be detected
-    for (Language language : Language.values()) {
+    for (Language fileLanguage : Language.values()) {
+      for (String file : map.get(fileLanguage)) {
+        configBuilder.setOption("analysis.programNames", file);
+        Configuration config = configBuilder.build();
 
-      options = new MainOptions();
+        MainOptions options = new MainOptions();
+        config.inject(options);
+        Configuration newConfig =
+            CPAMain.extractFrontendfromFileending(options, config, logManager);
 
-      switch(language) {
-        case C:
-          configBuilder.setOption("analysis.programNames", "test.c, test.i ,test.h");
-          break;
-        case JAVA:
-          configBuilder.setOption("analysis.programNames", "test.java");
-          break;
-        case LLVM:
-          configBuilder.setOption("analysis.programNames", "test.ll, test.bc");
-          break;
-        default:
-          break;
+        assertFalse(config.hasProperty("language"));
+        assertEquals(fileLanguage.toString(), newConfig.getProperty("language"));
       }
-
-      config = configBuilder.build();
-      config.inject(options);
-
-      Configuration newConfig = CPAMain.extractFrontendfromFileending(options, config, logManager);
-
-      assertThat(newConfig.getProperty("language")).contains(language.toString());
-   }
+    }
   }
 
   @SuppressWarnings("deprecation")
   @Test
   public void testDeclaredLanguageDetection() throws InvalidConfigurationException {
     // detection of language declared by user
-    String declLanguage = "";
-    for (Language declaredLanguage : Language.values()) {
-      options = new MainOptions();
+    String declLanguage = language == Language.LLVM ? "LLVM" : language.toString();
 
-      for (Language fileLanguage : Language.values()) {
-        switch (fileLanguage) {
-          case C:
-            configBuilder.setOption("analysis.programNames", "test.c, test.i ,test.h");
-            break;
-          case JAVA:
-            configBuilder.setOption("analysis.programNames", "test.java");
-            break;
-          case LLVM:
-            configBuilder.setOption("analysis.programNames", "test.ll, test.bc");
-            break;
-          default:
-            break;
-        }
-
-        if(declaredLanguage.toString() == "LLVM IR") {
-          declLanguage = "LLVM";
-        } else {
-          declLanguage = declaredLanguage.toString();
-        }
-
+    for (Language fileLanguage : Language.values()) {
+      for (String file : map.get(fileLanguage)) {
         configBuilder.setOption("language", declLanguage);
+        configBuilder.setOption("analysis.programNames", file);
+        Configuration config = configBuilder.build();
 
-        config = configBuilder.build();
+        MainOptions options = new MainOptions();
         config.inject(options);
-        Configuration newConfig = CPAMain.extractFrontendfromFileending(options, config, logManager);
+        Configuration newConfig =
+            CPAMain.extractFrontendfromFileending(options, config, logManager);
 
-        assertThat(newConfig.getProperty("language")).contains(declLanguage);
+        assertEquals(declLanguage, newConfig.getProperty("language"));
       }
     }
   }
 
-  @Test(expected=InvalidConfigurationException.class)
+  @Test
   public void testMultipleLanguagesDetected() throws InvalidConfigurationException {
-    // detection of mixed file languages should throw an Invalid Configuration Exception
-    options = new MainOptions();
-    configBuilder.setOption("analysis.programNames","test.c, test.i, test.h, test.java, test.ll, test.bc");
-    config = configBuilder.build();
+    // user-given language should override detection of mixed file languages
+    String declLanguage = language == Language.LLVM ? "LLVM" : language.toString();
+
+    configBuilder.setOption("language", declLanguage);
+    configBuilder.setOption(
+        "analysis.programNames", "test.c, test.i, test.h, test.java, test.ll, test.bc");
+    Configuration config = configBuilder.build();
+
+    MainOptions options = new MainOptions();
     config.inject(options);
+    Configuration newConfig = CPAMain.extractFrontendfromFileending(options, config, logManager);
+
+    assertEquals(declLanguage, newConfig.getProperty("language"));
+  }
+
+  @Test(expected = InvalidConfigurationException.class)
+  public void testMultipleLanguagesDetectedFail() throws InvalidConfigurationException {
+    // detection of mixed file languages should throw an Invalid Configuration Exception
+    configBuilder.setOption(
+        "analysis.programNames", "test.c, test.i, test.h, test.java, test.ll, test.bc");
+    Configuration config = configBuilder.build();
+
+    MainOptions options = new MainOptions();
+    config.inject(options);
+
     CPAMain.extractFrontendfromFileending(options, config, logManager);
     fail();
   }

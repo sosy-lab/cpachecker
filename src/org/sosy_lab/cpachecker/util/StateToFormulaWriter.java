@@ -136,7 +136,10 @@ public class StateToFormulaWriter implements StatisticsProvider {
 
             @Override
             public void printStatistics(
-                PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+                PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {}
+
+            @Override
+            public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
               verify(fmgr != null);
               try (Writer w = IO.openOutputFile(exportFile, Charset.defaultCharset())) {
                 write(pReached, w);

@@ -253,7 +253,10 @@ public class ExpressionSimplificationVisitor
         case BOOL: // negation of zero is zero, other values should be irrelevant
         case CHAR:
         case INT:
-          return new CIntegerLiteralExpression(loc, exprType, BigInteger.valueOf(negatedValue.longValue()));
+            // better do not convert to long, but directly use the computed value,
+            // i.e. "-1ULL" would be converted to long -1, which is valid,
+            // but does not match its CType bounds.
+            return new CIntegerLiteralExpression(loc, exprType, negatedValue.bigInteger());
         case FLOAT:
         case DOUBLE:
           double v = negatedValue.doubleValue();
@@ -271,7 +274,7 @@ public class ExpressionSimplificationVisitor
         // cast the value, because the evaluation of "~" is done for long and maybe the target-type is integer.
         final NumericValue complementValue = (NumericValue) AbstractExpressionValueVisitor.castCValue(
             new NumericValue(~value.longValue()), exprType, machineModel, logger, loc);
-        return new CIntegerLiteralExpression(loc, exprType, BigInteger.valueOf(complementValue.longValue()));
+        return new CIntegerLiteralExpression(loc, exprType, complementValue.bigInteger());
       }
     }
 
