@@ -59,7 +59,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -116,7 +116,7 @@ public class LassoBuilder {
   private final NotEqualAndNotInequalityElimination notEqualAndNotInequalityElimination;
   private final DnfTransformation dnfTransformation;
 
-  private final TerminationStatistics stats;
+  private final LassoAnalysisStatistics stats;
 
   public LassoBuilder(
       Configuration pConfig,
@@ -126,7 +126,7 @@ public class LassoBuilder {
       FormulaManagerView pFormulaManagerView,
       Supplier<ProverEnvironment> pProverEnvironmentSupplier,
       PathFormulaManager pPathFormulaManager,
-      final TerminationStatistics pTermStats)
+      final LassoAnalysisStatistics pLassoAnalysisStats)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
@@ -146,7 +146,7 @@ public class LassoBuilder {
     dnfTransformation =
         new DnfTransformation(logger, shutdownNotifier, fmgrView, proverEnvironmentSupplier);
 
-    stats = pTermStats;
+    stats = pLassoAnalysisStats;
   }
 
   protected static boolean isMetaVariable(String variableName) {
