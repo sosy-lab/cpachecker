@@ -250,8 +250,7 @@ public class ARGToAutomatonConverter {
           id = id(child);
         }
         transitions.add(
-            new AutomatonTransition(
-                locationQuery, ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), id));
+            new AutomatonTransition.Builder(locationQuery, id).build());
         waitlist.add(child);
       }
 
@@ -259,12 +258,10 @@ public class ARGToAutomatonConverter {
         assert transitions.isEmpty();
         assert states.contains(AutomatonInternalState.ERROR);
       } else {
-        transitions.add(
-            new AutomatonTransition(
-                buildOtherwise(locationQueries),
-                ImmutableList.of(),
-                ImmutableList.of(),
-                AutomatonInternalState.BOTTOM));
+      transitions.add(
+          new AutomatonTransition.Builder(
+              buildOtherwise(locationQueries),
+              AutomatonInternalState.BOTTOM).build());
 
         boolean hasSeveralChildren = transitions.size() > 1;
         states.add(
@@ -963,13 +960,10 @@ public class ARGToAutomatonConverter {
   private static AutomatonTransition makeLocationTransition(
       int nodeNumber, String followStateName, Collection<AExpression> assumptions, boolean negate) {
     AutomatonBoolExpr expr = new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + nodeNumber);
-    return new AutomatonTransition(
-        negate ? new AutomatonBoolExpr.Negation(expr) : expr,
-        ImmutableList.of(),
-        ImmutableList.copyOf(assumptions),
-        ImmutableList.of(),
-        followStateName);
-  }
+    return new AutomatonTransition.Builder(
+        negate ? new AutomatonBoolExpr.Negation(expr) : expr, followStateName)
+        .withAssumptions(assumptions)
+        .build());
 
   private CExpression negateExpression(CExpression expr) {
     try {

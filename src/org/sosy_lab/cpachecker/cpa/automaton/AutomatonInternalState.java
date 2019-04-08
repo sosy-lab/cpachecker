@@ -51,13 +51,9 @@ public class AutomatonInternalState {
       new AutomatonInternalState(
           "_predefinedState_ERROR",
           Collections.singletonList(
-              new AutomatonTransition(
-                  AutomatonBoolExpr.TRUE,
-                  Collections.emptyList(),
-                  null,
-                  Collections.emptyList(),
-                  BOTTOM,
-                  new StringExpression(""))),
+              new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, BOTTOM)
+                  .withViolatedPropertyDescription(new StringExpression(""))
+                  .build()),
           true,
           false,
           false) {
@@ -72,13 +68,7 @@ public class AutomatonInternalState {
       new AutomatonInternalState(
           "_predefinedState_BREAK",
           Collections.singletonList(
-              new AutomatonTransition(
-                  AutomatonBoolExpr.TRUE,
-                  Collections.emptyList(),
-                  null,
-                  Collections.emptyList(),
-                  BOTTOM,
-                  null)),
+              new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, BOTTOM).build()),
           false,
           false,
           false);

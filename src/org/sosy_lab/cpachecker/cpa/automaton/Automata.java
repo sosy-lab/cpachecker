@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.Lists;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -35,19 +34,13 @@ public class Automata {
 
   static {
     String initStateName = "Init";
-    AutomatonTransition toInit = new AutomatonTransition(
-        AutomatonBoolExpr.TRUE,
-        Collections.emptyList(),
-        Collections.emptyList(),
-        Collections.emptyList(),
-        initStateName);
+    AutomatonTransition toInit =
+        new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, initStateName).build();
 
     AutomatonInternalState targetState = AutomatonInternalState.ERROR;
-    AutomatonTransition toTarget = new AutomatonTransition(
-        AutomatonBoolExpr.MatchLoopStart.INSTANCE,
-        Collections.emptyList(),
-        Collections.emptyList(),
-        targetState);
+    AutomatonTransition toTarget =
+        new AutomatonTransition.Builder(AutomatonBoolExpr.MatchLoopStart.INSTANCE, targetState)
+            .build();
 
     AutomatonInternalState initState = new AutomatonInternalState(initStateName, Lists.newArrayList(toInit, toTarget), false, true);
 

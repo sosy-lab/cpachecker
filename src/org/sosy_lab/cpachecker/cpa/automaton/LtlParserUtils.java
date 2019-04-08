@@ -315,12 +315,9 @@ public class LtlParserUtils {
 
     private AutomatonTransition
         createTransition(List<AExpression> pAssumptions, String pFollowStateName) {
-      return new AutomatonTransition(
-          AutomatonBoolExpr.TRUE,
-          ImmutableList.of(),
-          pAssumptions,
-          ImmutableList.of(),
-          pFollowStateName);
+      return new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, pFollowStateName)
+          .withAssumptions(pAssumptions)
+          .build();
     }
   }
 }
