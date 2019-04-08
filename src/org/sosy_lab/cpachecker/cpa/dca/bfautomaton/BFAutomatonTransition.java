@@ -125,13 +125,6 @@ public class BFAutomatonTransition {
     } else if (!followStateName.equals(other.followStateName)) {
       return false;
     }
-    if (followState == null) {
-      if (other.followState != null) {
-        return false;
-      }
-    } else if (!followState.equals(other.followState)) {
-      return false;
-    }
     return true;
   }
 
