@@ -193,7 +193,7 @@ public class Automaton {
 
     for (AutomatonInternalState s : states) {
       str.append("STATE ")
-          .append(s.getDoesMatchAll() ? "USEALL " : "USEFIRST ")
+          .append(s.isNonDetState() ? "USEALL " : "USEFIRST ")
           .append(s.getName())
           .append(":\n");
       for (AutomatonTransition t : s.getTransitions()) {

@@ -31,6 +31,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -959,9 +960,9 @@ public class ARGToAutomatonConverter {
       int nodeNumber, String followStateName, Collection<AExpression> assumptions, boolean negate) {
     AutomatonBoolExpr expr = new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + nodeNumber);
     return new AutomatonTransition.Builder(
-        negate ? new AutomatonBoolExpr.Negation(expr) : expr, followStateName)
-        .withAssumptions(assumptions)
-        .build());
+        negate ? new AutomatonBoolExpr.Negation(expr) : expr,
+        followStateName).withAssumptions(ImmutableList.copyOf(assumptions)).build();
+  }
 
   private CExpression negateExpression(CExpression expr) {
     try {
