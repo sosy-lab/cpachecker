@@ -146,15 +146,15 @@ public class CFACreator {
 
   @Option(secure=true, name="analysis.machineModel",
       description = "the machine model, which determines the sizes of types like int")
-  private MachineModel machineModel = MachineModel.LINUX32;
+  private MachineModel machineModel = MachineModel.LINUX64;
 
   @Option(secure=true, name="analysis.interprocedural",
       description="run interprocedural analysis")
-  private boolean interprocedural = true;//has done in the cfaparser
+  private boolean interprocedural = true;
 
   @Option(secure=true, name="analysis.functionPointerCalls",
       description="create all potential function pointer call edges")
-  private boolean fptrCallEdges = true;//has done in the cfaparser
+  private boolean fptrCallEdges = true;
 
   @Option(
     secure = true,

@@ -10,6 +10,9 @@ import static org.nulist.plugin.util.ClassTool.*;
 //Combine CPAChecker as a plugin of CodeSurfer
 
 public class CSurfPlugin {
+    private final static String ENBProjectPath = "/OAI-ENB/OAI-ENB.prj_files/OAI-ENB.sdg";
+    private final static String MMEProjectPath = "/OAI-MME/OAI-MME.prj_files/OAI-MME.sdg";
+    private final static String UEProjectPath = "/OAI-UE/OAI-UE.prj_files/OAI-UE.sdg";
 
     /**
      * @Description
@@ -21,18 +24,35 @@ public class CSurfPlugin {
         //Arguments to CPAChecker
         String[] arguments = null;
         String cpacheckPath ="";
-        String programPath = "";
+        String projectPath = "";
         if(args.length>=3){
             cpacheckPath = args[0];
-            programPath = args[1];
+            projectPath = args[1];
             arguments = args[2].split(" ");
         }
 
         //perform parser execution
         try{
             printINFO("==================CSURF_PLUGIN_BEGIN==================");
+            printINFO("==================Parse UE==================");
+            project.load(projectPath+UEProjectPath,true);
             project proj = project.current();
-            CPAMain.executionTesting(arguments, cpacheckPath, programPath, proj);
+            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
+            //project.unload();
+            printINFO("==================Finish==================");
+            printINFO("==================Parse ENB==================");
+            project.load(projectPath+ENBProjectPath,true);
+            proj = project.current();
+            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
+            //project.unload();
+            printINFO("==================Finish==================");
+            printINFO("==================Parse UE==================");
+            project.load(projectPath+MMEProjectPath,true);
+            proj = project.current();
+            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+MMEProjectPath, proj);
+            //project.unload();
+            printINFO("==================Finish==================");
+
             //CPAMain.executeParser(arguments, cpacheckPath, programPath, proj);
 
             printINFO("==================CSURF_PLUGIN_END==================");

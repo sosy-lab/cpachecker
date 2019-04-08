@@ -127,7 +127,7 @@ export JAVA_TOOL_OPTIONS
 CODESURFER_STK="$PATH_TO_CPACHECKER/scripts/csurfJava_plugin.stk"
 
 # Check the path of the target project
-if [  -e "$PROJECT" ];then
+if [ "$PROJECT" = "" ];then
     echo "Please input the project you want to model check!"
     exit 1
 else
@@ -166,4 +166,4 @@ sed "6c \    \"${PROJECT}\"" -i scripts/csurfJava_plugin.stk
 sed "7c \    \"${CPACHECKER_ARGUMENTS}\"" -i scripts/csurfJava_plugin.stk
 
 # Perform the plugin
-csurf -nogui $PROJECT -l $CODESURFER_STK
+csurf -nogui -l $CODESURFER_STK
