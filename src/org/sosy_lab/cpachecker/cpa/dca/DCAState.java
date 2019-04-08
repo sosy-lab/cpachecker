@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.dca.bfautomaton.BFAutomatonState;
-import org.sosy_lab.cpachecker.cpa.dca.bfautomaton.BFTestMain;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -184,10 +183,9 @@ public class DCAState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
-    BooleanFormula makeConcat = pManager.makeConcat(assumptions);
-    BooleanFormula translateFrom =
-        pManager.translateFrom(makeConcat, BFTestMain.getFormulaManagerView());
-    return translateFrom;
+    BooleanFormula bf = pManager.getBooleanFormulaManager().makeTrue();
+    assumptions.stream().forEach(x -> pManager.makeAnd(bf, x));
+    return bf;
   }
 
 }

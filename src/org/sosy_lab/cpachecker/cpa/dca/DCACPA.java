@@ -49,9 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.dca.bfautomaton.BFAutomaton;
-import org.sosy_lab.cpachecker.cpa.dca.bfautomaton.BFAutomatonException;
 import org.sosy_lab.cpachecker.cpa.dca.bfautomaton.BFAutomatonState;
-import org.sosy_lab.cpachecker.cpa.dca.bfautomaton.BFTestMain;
 
 @Options(prefix = "cpa.dca")
 public class DCACPA implements StatisticsProvider, ConfigurableProgramAnalysis, ProofCheckerCPA {
@@ -73,16 +71,6 @@ public class DCACPA implements StatisticsProvider, ConfigurableProgramAnalysis, 
 
     automatonMap = new HashMap<>();
     logger = pLogger;
-
-//    try {
-//      BFAutomaton automaton = BFTestMain.createMinimalAutomaton_withAsmpts();
-//      DCAProperty property = new DCAProperty(automaton.getName());
-//      automatonMap.put(automaton, property);
-//    } catch (BFAutomatonException e) {
-//      throw new InvalidConfigurationException(
-//          "An error occured while building the test-automaton",
-//          e);
-//    }
   }
 
   ImmutableMap<BFAutomaton, DCAProperty> getAutomatonMap() {
