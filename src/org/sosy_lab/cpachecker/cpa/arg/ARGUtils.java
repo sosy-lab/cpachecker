@@ -704,6 +704,141 @@ public class ARGUtils {
     return true;
   }
 
+  public static List<List<ARGState>> retrieveSimpleCycles(List<ARGState> pStates) {
+    return retrieveSimpleCycles(pStates, Optional.empty());
+  }
+
+  /**
+   * Find and retrieve all cycles from a list of {@link ARGState}s using Donald B. Johnson's
+   * algorithm.
+   *
+   * <p>The algorithm finds all elementary circuits in time bounded by O((n + e)(c + 1)), with n
+   * being the nodes, e the edges, and c the number of cycles found.
+   *
+   * @param pStates the ARGStates to be looked for cycles
+   * @return An adjacency list containing all cycles, given as a list of {@link ARGState}
+   * @see <a
+   *     href="https://github.com/jgrapht/jgrapht/blob/master/jgrapht-core/src/main/java/org/jgrapht/alg/cycle/JohnsonSimpleCycles.java">code-references</a>
+   * @see <a
+   *     href="https://github.com/mission-peace/interview/blob/master/src/com/interview/graph/AllCyclesInDirectedGraphJohnson.java">code-references
+   *     2</a>
+   */
+  public static List<List<ARGState>>
+      retrieveSimpleCycles(List<ARGState> pStates, Optional<Set<ARGState>> pExcludeStates) {
+    Set<ARGState> blockedSet = new HashSet<>();
+    Map<ARGState, Set<ARGState>> blockedMap = new HashMap<>();
+    Deque<ARGState> stack = new ArrayDeque<>();
+    List<List<ARGState>> allCycles = new ArrayList<>();
+
+    int startIndex = 0;
+    while (startIndex < pStates.size() - 1) {
+      // Find SCCs in the subgraph induced by pStates starting with startIndex and beyond.
+      // This is done by using Tarjan's algorithm and pretending that nodes with an index
+      // smaller than startIndex do not exist (these are stored in the excludeSet)
+      List<ARGState> subList = pStates.subList(startIndex, pStates.size());
+      Set<ARGState> excludeSet = new HashSet<>(pStates);
+      if (pExcludeStates.isPresent()) {
+        excludeSet.addAll(pExcludeStates.get());
+      }
+      excludeSet.removeAll(subList);
+      ImmutableSet<StronglyConnectedComponent> SCCs =
+          ARGUtils.retrieveSCCs(subList, Optional.of(excludeSet))
+              .stream()
+              .filter(x -> x.getNodes().size() > 1)
+              .collect(ImmutableSet.toImmutableSet());
+
+      if (!SCCs.isEmpty()) {
+        // find the SCC with the minimum index with respect to pStates
+        ARGState s =
+            SCCs.stream()
+                .map(x -> pStates.indexOf(x.getRootNode()))
+                .reduce((x, y) -> x.compareTo(y) <= 0 ? x : y)
+                .map(pStates::get)
+                .get();
+
+        blockedSet.clear();
+        blockedMap.clear();
+
+        findCyclesInSCC(s, s, blockedSet, blockedMap, stack, allCycles, Optional.of(excludeSet));
+
+        // TODO: the next line only works if pStates has a deterministic order
+        startIndex = pStates.indexOf(s) + 1;
+
+      } else {
+        break;
+      }
+    }
+
+    return allCycles;
+  }
+
+  /** Find cycles in a strongly connected graph per Johnson. */
+  private static boolean findCyclesInSCC(
+      ARGState pStartState,
+      ARGState pCurrentState,
+      Set<ARGState> pBlockedSet,
+      Map<ARGState, Set<ARGState>> pBlockedMap,
+      Deque<ARGState> pStack,
+      List<List<ARGState>> pAllCycles,
+      Optional<Set<ARGState>> pExcludeSet) {
+
+    if (pExcludeSet.isPresent() && pExcludeSet.get().contains(pCurrentState)) {
+      // Do not regard nodes which were deliberately put into a set of excluded states
+      return false;
+    }
+
+    boolean foundCycle = false;
+    pStack.push(pCurrentState);
+    pBlockedSet.add(pCurrentState);
+
+    for (ARGState successor : pCurrentState.getChildren()) {
+      // If the successor is equal to the startState, a cycle has been found.
+      // Store contents of stack in the final result.
+      if (successor.equals(pStartState)) {
+        List<ARGState> cycle = new ArrayList<>();
+        pStack.push(pStartState);
+        cycle.addAll(pStack);
+        Collections.reverse(cycle);
+        pStack.pop();
+        pAllCycles.add(cycle);
+        foundCycle = true;
+      } else if (!pBlockedSet.contains(successor)) {
+        // Explore this successor only if it is not already in the blocked set.
+        boolean gotCycle =
+            findCyclesInSCC(
+                pStartState, successor, pBlockedSet, pBlockedMap, pStack, pAllCycles, pExcludeSet);
+        foundCycle = foundCycle || gotCycle;
+      }
+    }
+
+    if (foundCycle) {
+      unblock(pCurrentState, pBlockedSet, pBlockedMap);
+    } else {
+      for (ARGState s : pCurrentState.getChildren()) {
+        Set<ARGState> blockedSet = pBlockedMap.computeIfAbsent(s, (key) -> new HashSet<>());
+        blockedSet.add(pCurrentState);
+      }
+    }
+    pStack.pop();
+
+    return foundCycle;
+  }
+
+  private static void unblock(
+      ARGState pCurrentState, Set<ARGState> pBlockedSet, Map<ARGState, Set<ARGState>> pBlockedMap) {
+    pBlockedSet.remove(pCurrentState);
+    if (pBlockedMap.get(pCurrentState) != null) {
+      pBlockedMap
+          .get(pCurrentState)
+          .forEach(
+              state -> {
+                if (pBlockedSet.contains(state)) {
+                  unblock(state, pBlockedSet, pBlockedMap);
+                }
+              });
+    }
+  }
+
   /**
    * Find all strongly connected components recursively within the reached set using Tarjan's
    * algorithm.
