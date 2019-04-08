@@ -709,6 +709,29 @@ public class ARGUtils {
   }
 
   /**
+   * Find and retrieve all cycles from an exclusive list of {@link ARGState}s. I.e., only the states
+   * within the list are considered, while every other ARGState from the {@link ReachedSet} is
+   * explicitly ignored.
+   *
+   * <p>
+   * For more information, see {@link ARGUtils#retrieveSimpleCycles(List, Optional)}
+   *
+   * @param pStates list of {@link ARGState}s to be looked for cycles
+   * @param pReached the {@link ReachedSet} to retrieve all other states which are ignored later on
+   * @return An adjacency list containing all cycles, given as a list of {@link ARGState}
+   */
+  public static List<List<ARGState>>
+      retrieveSimpleCycles(List<ARGState> pStates, ReachedSet pReached) {
+    HashSet<ARGState> filteredStates =
+        pReached.asCollection()
+            .stream()
+            .map(x -> (ARGState) x)
+            .filter(x -> !pStates.contains(x))
+            .collect(Collectors.toCollection(HashSet::new));
+    return retrieveSimpleCycles(pStates, Optional.of(filteredStates));
+  }
+
+  /**
    * Find and retrieve all cycles from a list of {@link ARGState}s using Donald B. Johnson's
    * algorithm.
    *
@@ -872,8 +895,10 @@ public class ARGUtils {
 
     int index = 0;
 
-    Deque<ARGState> dfsStack = new ArrayDeque<>();
+    Deque<ARGState> dfsStack = new ArrayDeque<>(); // TODO: eventually replace this with a LinkedHashSet
     Map<ARGState, Integer> stateIndex = new HashMap<>();
+
+    // Map to store the topmost reachable ancestor with the minimum possible index value
     Map<ARGState, Integer> stateLowLink = new HashMap<>();
 
     for (ARGState state : pARGStates) {
@@ -890,6 +915,9 @@ public class ARGUtils {
     return ImmutableSet.copyOf(SCCs);
   }
 
+  /**
+   * Recursively find {@link StronglyConnectedComponent}s using DFS traversal
+   */
   private static void strongConnect(
       ARGState pState,
       int pIndex,
@@ -915,17 +943,18 @@ public class ARGUtils {
             sucessorState, pIndex, pStateIndex, pStateLowLink, pDfsStack, pSCCs, pExcludeStates);
         pStateLowLink.put(
             pState, Math.min(pStateLowLink.get(pState), pStateLowLink.get(sucessorState)));
-      } else {
+      } else if (pDfsStack.contains(sucessorState)) {
         // Successor is in the stack ('dfsNodeStack') and hence in the current SCC
-        // If 'sucessorState' is not on the stack, then (pState, sucessorState) is a cross-edge
-        // in the DFS tree and must be ignored
-        pStateLowLink.put(
-            pState, Math.min(pStateLowLink.get(pState), pStateIndex.get(sucessorState)));
+        // Otherwise, if the sucessorState is not on the stack, then (pState, sucessorState) is a
+        // cross-edge (not a back edge) in the DFS tree and thus it must be ignored
+        pStateLowLink
+            .put(pState, Math.min(pStateLowLink.get(pState), pStateIndex.get(sucessorState)));
+
       }
     }
 
     // If pState is a root node, pop the stack and generate an SCC
-    if (pStateIndex.get(pState) == pStateLowLink.get(pState)) {
+    if (pStateIndex.get(pState).intValue() == pStateLowLink.get(pState).intValue()) {
       ARGState s;
       StronglyConnectedComponent scc = new StronglyConnectedComponent(pState);
       do {
