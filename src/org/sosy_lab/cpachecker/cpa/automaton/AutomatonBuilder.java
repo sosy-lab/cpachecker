@@ -66,9 +66,9 @@ public class AutomatonBuilder {
     logger = pLogger;
     machineModel = pCFA.getMachineModel();
     scope = new CProgramScope(pCFA, pLogger);
-    CParser parser2 =
+    CParser cParser =
         CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(pConfig), machineModel);
-    parser = new CParserWithLocationMapper(pConfig, logger, parser2, false);
+    parser = new CParserWithLocationMapper(pConfig, logger, cParser, false);
     formulaToCConverter = new FormulaToCExpressionConverter(formulaManagerView);
   }
 
