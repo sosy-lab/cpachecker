@@ -161,9 +161,18 @@ public final class Solver implements AutoCloseable {
     }
   }
 
+  public static Solver create(
+      SolverContextFactory pSolverFactory,
+      Solvers pSolver,
+      SolverContext pSolverContext,
+      Configuration pConfig,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
+    return new Solver(pSolverFactory, pSolver, pSolverContext, pConfig, pLogger);
+  }
+
   /**
-   * Please use {@link #create(Configuration, LogManager, ShutdownNotifier)} in normal code. This
-   * constructor is only for test code.
+   * Please use {@link #create(Configuration, LogManager, ShutdownNotifier)} if possible.
    *
    * <p>Please note that calling {@link #close()} on the returned instance will also close the
    * formula managers created by the passed {@link SolverContextFactory}.
