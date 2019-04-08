@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -43,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -213,7 +216,26 @@ public class ControlAutomatonCPA
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0, null);
+    AutomatonInternalState initState = automaton.getInitialState();
+    AutomatonSafetyProperty safetyProp = null;
+    if (initState.isTarget()) {
+      for (AutomatonTransition t : initState.getTransitions()) {
+        if (t.getFollowState().isTarget()) {
+          AExpression assumption =
+              Iterables.getOnlyElement(t.getAssumptions(null, logger, cfa.getMachineModel()));
+          safetyProp = new AutomatonSafetyProperty(automaton, t, assumption.toASTString());
+          break;
+        }
+      }
+      Verify.verifyNotNull(safetyProp);
+    }
+    return AutomatonState.automatonStateFactory(
+        automaton.getInitialVariables(),
+        automaton.getInitialState(),
+        this,
+        0,
+        0,
+        safetyProp);
   }
 
   @Override
