@@ -558,7 +558,7 @@ private boolean classifyNodes = false;
       spbuilder.insertCallEdgesRecursively();
     }
 
-    exportCFAAsync(cfa);
+    //exportCFAAsync(cfa);
     // FIFTH, do post-processings on the supergraph
     // Mutating post-processings should be checked carefully for their effect
     // on the information collected above (such as loops and post-order ids).

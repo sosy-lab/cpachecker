@@ -27,9 +27,9 @@ public class CFGParser implements Parser{
 
     private LogManager logger=null;
     private CFABuilder cfaBuilder=null;
-    private final static String ENB = "OAI-ENB";
-    private final static String MME = "OAI-MME";
-    private final static String UE = "OAI-UE";
+    public final static String ENB = "OAI-ENB";
+    public final static String MME = "OAI-MME";
+    public final static String UE = "OAI-UE";
 
     private final Timer parseTimer = new Timer();
     private final Timer cfaCreationTimer = new Timer();
@@ -101,7 +101,7 @@ public class CFGParser implements Parser{
     }
 
     public static boolean targetFile(String path, String projectName){
-        return path.endsWith("targets/RT/USER/lte-ru.c");
+        return path.endsWith("openair3/NAS/UE/nas_parser.c");
     }
 
     public static boolean isProjectMainFunction(String filePath, String projectName){
@@ -115,13 +115,17 @@ public class CFGParser implements Parser{
             return true;
     }
 
-    private static boolean fileFilter(String name, String projectName){
+    public static boolean fileFilter(String name, String projectName){
         return (name.contains("RRC_Rel14/LTE_") && (projectName.equals(UE) || projectName.equals(ENB))) || //AS application protocol interfaces between UE and ENB: radio resource control
                 //(name.contains("S1AP_R14") && (projectName.equals(MME) || projectName.equals(ENB))) || //application protocol interfaces between MME and ENB: UE context management
                 //(name.contains("X2AP_R14") && projectName.equals(ENB)) || //application protocol interfaces between enbs for handover (UE mobility) and/or self organizing network related function:
                 (name.contains("openair2/RRC") && (projectName.equals(UE) || projectName.equals(ENB))) || //
                 name.contains("openair2/COMMON") ||
-                (name.contains("targets/RT/USER") && (projectName.equals(UE) || projectName.equals(ENB))) ||
+                (name.contains("targets/RT/USER/lte-ue.c") && projectName.equals(UE)) ||
+                (name.contains("targets/RT/USER/lte-uesoftmodem.c") && projectName.equals(UE)) ||
+                (name.contains("targets/RT/USER/lte-enb.c") && projectName.equals(ENB)) ||
+                (name.contains("targets/RT/USER/lte-softmodem.c") && projectName.equals(ENB)) ||
+                name.contains("targets/RT/USER/lte-softmodem-common.c") ||
                 //(name.contains("openair3/S1AP") && projectName.equals(ENB)) ||
                 (name.contains("openair3/NAS/UE") && projectName.equals(UE)) ||
                 (name.contains("openair3/NAS/TOOLS") && projectName.equals(UE)) ||

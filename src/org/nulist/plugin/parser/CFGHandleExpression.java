@@ -1133,7 +1133,7 @@ public class CFGHandleExpression {
         } else if(value_ast.is_a(ast_class.getUC_STRING())){
 
             String value = value_ast.get(ast_ordinal.getBASE_VALUE()).as_str();
-            CPointerType pointerType = new CPointerType(true, false, CNumericTypes.CHAR);
+            CPointerType pointerType = new CPointerType(false, false, CNumericTypes.CONST_CHAR);
             return new CStringLiteralExpression(fileLoc, pointerType, value);
 
         }else if(value_ast.is_a(ast_class.getUC_INTEGER_VALUE())){
@@ -1242,7 +1242,7 @@ public class CFGHandleExpression {
                 return new CUnaryExpression(fileloc, cType, operand, CUnaryExpression.UnaryOperator.AMPER);
             }else if(pointedto.is_a(ast_class.getNC_STRING())){
                 String value = pointedto.get(ast_ordinal.getBASE_VALUE()).as_str();
-                cType = new CPointerType(true,false,CNumericTypes.CHAR);
+                cType = new CPointerType(false,false,CNumericTypes.CONST_CHAR);
                 return new CStringLiteralExpression(fileloc, cType, value);
             }
         }
@@ -1383,6 +1383,70 @@ public class CFGHandleExpression {
         return initializer;
     }
 
+    //for block assignment:
+    public CInitializer getInitializerFromOriginal(ast originalValue, CType expectedType, FileLocation fileLoc)throws result{
+
+        int length = (int)originalValue.children().size();
+        List<CInitializer> elementInitializers = new ArrayList<>(length);
+        int index =0;
+        CType aggregateType = getAggregateType(expectedType);
+        for(int i=0;i<length;i++){
+            ast elementAST = originalValue.children().get(i).as_ast();
+            CInitializer elementInitializer;
+            CType elementType;
+            if(aggregateType instanceof CCompositeType)
+                elementType = ((CCompositeType) aggregateType).getMembers().get(index).getType();
+            else if(aggregateType instanceof CArrayType)
+                elementType = ((CArrayType) aggregateType).getType();
+            else
+                throw new RuntimeException("Not support type");
+            if(elementAST.is_a(ast_class.getNC_DESIGNATOR_INIT())){
+
+                List<CDesignator> designatorList = new ArrayList<>();
+                String field  = elementAST.children().get(0).as_ast().pretty_print();
+                if(field.equals("")){
+                    if(aggregateType instanceof CCompositeType)
+                        field = ((CCompositeType) aggregateType).getMembers().get(index).getName();
+                    else
+                        throw new RuntimeException("Not support type for field");
+                }
+                designatorList.add(new CFieldDesignator(fileLoc, field));
+                CInitializer rightInitializer = null;
+
+                ast subconstant = elementAST.children().get(1).as_ast();
+                //CType type = typeConverter.getCType(subconstant.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
+                if(isConstantAggreateZeroFromUC(subconstant)){
+                    rightInitializer = getZeroInitializer(elementType,fileLoc);
+                }else if(subconstant.is_a(ast_class.getUC_AGGREGATE())){
+                    rightInitializer = getConstantAggregateInitializerFromUC(subconstant,elementType, fileLoc);
+                }else if(subconstant.is_a(ast_class.getUC_CONSTANT_DYNAMIC_INITIALIZATION())){
+                    ast dynamicInit = subconstant.get(ast_ordinal.getUC_DYNAMIC_INIT()).as_ast();
+                    rightInitializer = getInitializerFromUC(dynamicInit, elementType, fileLoc);
+                }else {
+                    CExpression expression = getConstantFromUC(subconstant, elementType, fileLoc);
+                    rightInitializer = new CInitializerExpression(fileLoc, expression);
+                }
+                elementInitializer = new CDesignatedInitializer(fileLoc, designatorList, rightInitializer);
+            }else {
+                if(isConstantAggreateZeroFromUC(elementAST)){
+                    elementInitializer =
+                            getZeroInitializer(elementType, fileLoc);
+                }else if(elementAST.is_a(ast_class.getUC_AGGREGATE())){
+                    elementInitializer = getConstantAggregateInitializerFromUC(elementAST, elementType, fileLoc);
+                } else if(elementAST.is_a(ast_class.getUC_CONSTANT_DYNAMIC_INITIALIZATION())){
+                    ast dynamicInit = elementAST.get(ast_ordinal.getUC_DYNAMIC_INIT()).as_ast();
+                    elementInitializer = getInitializerFromUC(dynamicInit, elementType, fileLoc);
+                }else {
+                    elementInitializer = new CInitializerExpression(
+                            fileLoc, getConstantFromUC(elementAST, elementType,fileLoc));
+                }
+            }
+            index++;
+            elementInitializers.add(elementInitializer);
+        }
+
+        return new CInitializerList(fileLoc, elementInitializers);
+    }
 
     public CInitializer getInitializerFromTXT(CType type, FileLocation fileLocation){
         if(type instanceof CArrayType){
@@ -1399,13 +1463,14 @@ public class CFGHandleExpression {
                 Iterator<Map.Entry<Integer,String>> iterator = mccMNCMap.entrySet().iterator();
                 CType mccType = ((CCompositeType) realType).getMembers().get(0).getType();
                 CType mncType = ((CCompositeType) realType).getMembers().get(1).getType();
+                CPointerType pointerType = new CPointerType(false,false, CNumericTypes.CONST_CHAR);
                 while (iterator.hasNext()){
                     Map.Entry<Integer,String> entry = iterator.next();
 
                     CIntegerLiteralExpression mcc = new CIntegerLiteralExpression(fileLocation, mccType, BigInteger.valueOf(entry.getKey()));
                     CInitializer mccInitializer = new CInitializerExpression(
                             fileLocation, mcc);
-                    CStringLiteralExpression mnc = new CStringLiteralExpression(fileLocation, mncType, entry.getValue());
+                    CStringLiteralExpression mnc = new CStringLiteralExpression(fileLocation, pointerType, entry.getValue());
                     CInitializer mncInitializer = new CInitializerExpression(
                             fileLocation, mnc);
                     List<CInitializer> mccmncInitializer = new ArrayList<>(2);
@@ -1502,7 +1567,7 @@ public class CFGHandleExpression {
                 elementInitializer = new CDesignatedInitializer(fileLoc, designatorList, rightInitializer);
             }else {
                 ast elementType_ast = elementAST.get(ast_ordinal.getBASE_TYPE()).as_ast();
-                //CType elementType = typeConverter.getCType(elementType_ast, this);
+                //CType elementType1 = typeConverter.getCType(elementType_ast, this);
                 if(isConstantAggreateZeroFromUC(elementAST)){
                     elementInitializer =
                             getZeroInitializer(elementType, fileLoc);
@@ -1519,6 +1584,14 @@ public class CFGHandleExpression {
             index++;
             elementInitializers.add(elementInitializer);
         }
+//
+//        if(aggregateType instanceof CCompositeType){
+//            int membersize = ((CCompositeType) aggregateType).getMembers().size();
+//            if(membersize>length){
+//                for(;index<membersize;index++)
+//                    elementInitializers.add(null);
+//            }
+//        }
 
         return new CInitializerList(fileLoc, elementInitializers);
     }
@@ -1553,7 +1626,7 @@ public class CFGHandleExpression {
             for(int i=0;i<length;i++){
                 items[i]=(char) elements.get(i).as_ast().get(ast_ordinal.getBASE_VALUE()).as_int32();
             }
-            CType cType = new CPointerType(true,false,CNumericTypes.CHAR);
+            CType cType = new CPointerType(false,false,CNumericTypes.CONST_CHAR);
             CStringLiteralExpression stringLiteralExpression =
                     new CStringLiteralExpression(fileLoc,cType, String.copyValueOf(items,0,items.length-1));
             return new CInitializerExpression(fileLoc,stringLiteralExpression);
@@ -1682,7 +1755,7 @@ public class CFGHandleExpression {
         }else if(constant.is_a(ast_class.getUC_STRING())){
             String value = constant.get(ast_ordinal.getBASE_VALUE()).as_str();
             //CType type = typeConverter.getCType(constant.get(ast_ordinal.getBASE_TYPE()).as_ast());
-            CPointerType pointerType = new CPointerType(true, false, CNumericTypes.CHAR);
+            CPointerType pointerType = new CPointerType(false, false, CNumericTypes.CONST_CHAR);
             return new CStringLiteralExpression(fileLocation, pointerType, value);
         }else if(constant.has_field(ast_ordinal.getBASE_VALUE())){
             ast typeAST = constant.get(ast_ordinal.getBASE_TYPE()).as_ast();

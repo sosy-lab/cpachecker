@@ -115,13 +115,16 @@ public class CFGTypeConverter {
                 long length = type.get(ast_ordinal.getBASE_NUM_ELEMENTS()).as_uint32();
                 ast elementType = type.get(ast_ordinal.getBASE_ELEMENT_TYPE()).as_ast();
                 cType = getSubType(elementType, expressionhandler);
-                CIntegerLiteralExpression arrayLength =
-                        new CIntegerLiteralExpression(
-                                FileLocation.DUMMY,
-                                ARRAY_LENGTH_TYPE,
-                                BigInteger.valueOf(length));
-                return   new CArrayType(isConst, false, cType, arrayLength);
-
+                if(length==0 && type.pretty_print().contains("[]"))
+                    return new CArrayType(isConst, false, cType, null);
+                else {
+                    CIntegerLiteralExpression arrayLength =
+                            new CIntegerLiteralExpression(
+                                    FileLocation.DUMMY,
+                                    ARRAY_LENGTH_TYPE,
+                                    BigInteger.valueOf(length));
+                    return new CArrayType(isConst, false, cType, arrayLength);
+                }
             }else if(isVLAType(type)){
                 CType elementType = getSubType(type.get(ast_ordinal.getUC_ELEMENT_TYPE()).as_ast(), expressionhandler);
                 ast element = type.get(ast_ordinal.getUC_NUM_ELEMENTS()).as_ast();
@@ -334,6 +337,8 @@ public class CFGTypeConverter {
             typeName = handleUnnamedType(type);
             structName = "";
         }
+        if(structName.contains("memory_pool_item_s"))
+            System.out.println();
 
         ast struct_type = getStructType(type);
 
@@ -366,6 +371,7 @@ public class CFGTypeConverter {
             items =struct_type.children(); //
 
         if(items==null || items.isEmpty()){
+            cStructType.setMembers(new ArrayList<>());
             typeCache.put(typeName.hashCode(), cEStructType);
             return cEStructType;
         }

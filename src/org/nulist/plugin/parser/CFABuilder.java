@@ -135,7 +135,7 @@ public class CFABuilder {
 
             }else if(cu.is_user() && proc.get_kind().equals(procedure_kind.getFILE_INITIALIZATION())
                     && proc.name().contains("Global_Initialization")){
-                visitGlobalItem(proc);
+                visitGlobalItem(proc,projectName);
             }
         }
 
@@ -168,30 +168,6 @@ public class CFABuilder {
         }
     }
 
-
-
-    /**
-     *@Description all global and file static variables are defined in File_Initialization-
-     *              Global_Initialization_0 (no initializer) and Global_Initialization_1 (static initializer)
-     *              all symbols of global and file static variables also can be obtained by compunit.global_symbols
-     *                 and figured out by symbol.is_gobal() or symbol.is_file_static() (or directly is_user())
-     *@Param [compunit, pFileName]
-     *@return void
-     **/
-    private void declareGlobalVariables(compunit cu) throws result{
-
-        for (compunit_procedure_iterator proc_it = cu.procedures();
-             !proc_it.at_end(); proc_it.advance()) {
-            procedure proc = proc_it.current();
-            if(proc.get_kind().equals(procedure_kind.getFILE_INITIALIZATION())
-                && proc.name().contains("Global_Initialization")){
-                visitGlobalItem(proc);
-            }
-        }
-        
-    }
-
-
     /**
      *@Description global variables and their initialization
      * in Codesurfer, all global variables are initialized in the following procedures:
@@ -200,7 +176,7 @@ public class CFABuilder {
      *@Param [global_initialization, pFileName]
      *@return void
      **/
-    private void visitGlobalItem(procedure global_initialization) throws result {
+    private void visitGlobalItem(procedure global_initialization, String projectName) throws result {
 
         point_set pointSet = global_initialization.points();
         List<String> variableList = new ArrayList<>();
@@ -211,9 +187,16 @@ public class CFABuilder {
 
             //f
             if(isVariable_Initialization(node)|| isExpression(node)){
+
+                try {
+                    if(!fileFilter(node.file_line().get_first().name(), projectName))
+                        continue;
+                }catch (result r){
+                    System.out.println(node.get_procedure().get_compunit().name()+":"+node.toString());
+                    throw new RuntimeException(r);
+                }
                 ast un_ast = node.get_ast(ast_family.getC_UNNORMALIZED());
                 symbol variableSym = un_ast.get(ast_ordinal.getUC_ABS_LOC()).as_symbol();
-
                 String variableName =variableSym.name();
 
                 String pFileName = node.file_line().get_first().name();
@@ -246,6 +229,8 @@ public class CFABuilder {
                     varType = typeConverter.convertCFuntionType(varType, variableName, fileLocation);
                 }
 
+                if(variableName.equals("mme_app_desc"))
+                    System.out.println();
                 CInitializer initializer = null;
                 if(init.is_a(ast_class.getUC_STATIC_INITIALIZER())){
                     //System.out.println(un_ast.toString());

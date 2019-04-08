@@ -30,6 +30,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -93,7 +94,7 @@ public final class CCompositeType implements CComplexType {
   }
 
   public List<CCompositeTypeMemberDeclaration> getMembers() {
-    checkState(members != null, "list of CCompositeType members not yet initialized");
+    checkState(members != null, "list of CCompositeType members not yet initialized: "+this.toString());
     return members;
   }
 
