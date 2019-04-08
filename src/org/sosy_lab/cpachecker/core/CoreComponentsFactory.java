@@ -413,7 +413,9 @@ public class CoreComponentsFactory {
       }
 
       if (useCEGAR) {
-        algorithm = new CEGARAlgorithmFactory(algorithm, cpa, logger, config).newInstance();
+        algorithm =
+            new CEGARAlgorithmFactory(algorithm, cpa, logger, config, shutdownNotifier)
+                .newInstance();
       }
 
       if (usePDR) {

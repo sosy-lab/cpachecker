@@ -37,6 +37,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.sosy_lab.common.AbstractMBean;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -175,22 +176,24 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
         Algorithm pAlgorithm,
         ConfigurableProgramAnalysis pCpa,
         LogManager pLogger,
-        Configuration pConfig)
+        Configuration pConfig,
+        ShutdownNotifier pShutdownNotifier)
         throws InvalidConfigurationException {
-      this(() -> pAlgorithm, pCpa, pLogger, pConfig);
+      this(() -> pAlgorithm, pCpa, pLogger, pConfig, pShutdownNotifier);
     }
 
     public CEGARAlgorithmFactory(
         AlgorithmFactory pAlgorithmFactory,
         ConfigurableProgramAnalysis pCpa,
         LogManager pLogger,
-        Configuration pConfig)
+        Configuration pConfig,
+        ShutdownNotifier pShutdownNotifier)
         throws InvalidConfigurationException {
       pConfig.inject(this);
       algorithmFactory = pAlgorithmFactory;
       logger = pLogger;
       verifyNotNull(refinerFactory);
-      refiner = refinerFactory.create(pCpa);
+      refiner = refinerFactory.create(pCpa, pLogger, pShutdownNotifier);
     }
 
     @Override
