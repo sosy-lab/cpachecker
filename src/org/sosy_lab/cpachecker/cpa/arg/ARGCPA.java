@@ -98,6 +98,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA
               + "is subsumed by the second wrapped state (and the parents are not yet subsumed).")
   private boolean mergeOnWrappedSubsumption = false;
 
+  @Option(
+      secure = true,
+      description =
+    "prevent the stop-operator from aborting the stop-check early when it crosses a target state")
+  private boolean coverTargetStates = false;
+
   private final LogManager logger;
 
   private final ARGStatistics stats;
@@ -144,7 +150,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA
         getWrappedCpa().getStopOperator(),
         logger,
         inCPAEnabledAnalysis,
-        keepCoveredStatesInReached);
+        keepCoveredStatesInReached,
+        coverTargetStates);
   }
 
   @Override
