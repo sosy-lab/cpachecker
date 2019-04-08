@@ -23,72 +23,48 @@
  */
 package org.sosy_lab.cpachecker.cpa.dca;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collection;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.cpa.dca.bfautomaton.BFAutomatonState;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 
-public class DCAState
-    implements AbstractQueryableState, Targetable, FormulaReportingState, Graphable {
+public class DCAState implements AbstractQueryableState, Targetable, Graphable, Serializable,
+    AbstractStateWithAssumptions {
 
-  static final DCAState EMPTY_STATE = new DCAState("_predefined_empty_");
+  private static final long serialVersionUID = -3454798281550882095L;
 
-  private final String stateName;
-  private final ImmutableSet<BFAutomatonState> compositeStates;
-  private final ImmutableSet<DCAProperty> violatedProperties;
+  private final ImmutableList<AutomatonState> compositeStates;
 
-  private final ImmutableList<BooleanFormula> assumptions;
-
-  private DCAState(String pStateName) {
-    this(pStateName, ImmutableSet.of(), ImmutableSet.of());
-  }
-
-  private DCAState(
-      String pStateName,
-      Set<BFAutomatonState> pCompositeStates,
-      Collection<DCAProperty> pProperties) {
-    this(pStateName, pCompositeStates, pProperties, ImmutableList.of());
-  }
-
-  public DCAState(
-      String pStateName,
-      Set<BFAutomatonState> pCompositeStates,
-      Collection<DCAProperty> pProperties,
-      List<BooleanFormula> pAssumptions) {
-    stateName = Preconditions.checkNotNull(pStateName);
-    violatedProperties = ImmutableSet.copyOf(pProperties);
-    compositeStates = ImmutableSet.copyOf(pCompositeStates);
-    assumptions = ImmutableList.copyOf(pAssumptions);
-  }
-
-  static DCAState
-      createInitialState(
-          Set<BFAutomatonState> pCompositeStates,
-          Collection<DCAProperty> pProperties) {
-    return new DCAState("Init", pCompositeStates, pProperties);
+  public DCAState(List<AutomatonState> pCompositeStates) {
+    compositeStates = ImmutableList.copyOf(pCompositeStates);
+    checkArgument(!compositeStates.isEmpty());
   }
 
   @Override
   public boolean isTarget() {
-    return compositeStates.stream().anyMatch(BFAutomatonState::isAcceptingState);
+    return !compositeStates.isEmpty()
+        && compositeStates.stream().allMatch(AutomatonState::isTarget);
   }
 
   @Override
   public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
-    return ImmutableSet.copyOf(violatedProperties);
+    checkArgument(isTarget());
+    return compositeStates.stream()
+        .flatMap(x -> x.getViolatedProperties().stream())
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   @Override
@@ -96,23 +72,21 @@ public class DCAState
     return "DCAState";
   }
 
-  ImmutableSet<BFAutomatonState> getCompositeStates() {
+  ImmutableList<AutomatonState> getCompositeStates() {
     return compositeStates;
   }
 
-  public ImmutableList<BooleanFormula> getAssumptions() {
-    return assumptions;
+  @Override
+  public ImmutableList<AExpression> getAssumptions() {
+    return compositeStates.stream()
+        .flatMap(x -> x.getAssumptions().stream())
+        .distinct()
+        .collect(ImmutableList.toImmutableList());
   }
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((assumptions == null) ? 0 : assumptions.hashCode());
-    result = prime * result + ((compositeStates == null) ? 0 : compositeStates.hashCode());
-    result = prime * result + ((stateName == null) ? 0 : stateName.hashCode());
-    result = prime * result + ((violatedProperties == null) ? 0 : violatedProperties.hashCode());
-    return result;
+    return compositeStates.hashCode();
   }
 
   @Override
@@ -127,13 +101,6 @@ public class DCAState
       return false;
     }
     DCAState other = (DCAState) obj;
-    if (assumptions == null) {
-      if (other.assumptions != null) {
-        return false;
-      }
-    } else if (!assumptions.equals(other.assumptions)) {
-      return false;
-    }
     if (compositeStates == null) {
       if (other.compositeStates != null) {
         return false;
@@ -141,51 +108,31 @@ public class DCAState
     } else if (!compositeStates.equals(other.compositeStates)) {
       return false;
     }
-    if (stateName == null) {
-      if (other.stateName != null) {
-        return false;
-      }
-    } else if (!stateName.equals(other.stateName)) {
-      return false;
-    }
-    if (violatedProperties == null) {
-      if (other.violatedProperties != null) {
-        return false;
-      }
-    } else if (!violatedProperties.equals(other.violatedProperties)) {
-      return false;
-    }
     return true;
   }
 
   @Override
   public String toString() {
-    return stateName
-        + " (States: "
-        + Joiner.on("; ").join(Collections2.transform(compositeStates, BFAutomatonState::getName))
-        + ")\n:DCA-Asmpts: "
-        + Joiner.on("; ").join(assumptions);
+    if (compositeStates.isEmpty()) {
+      return "_empty_state_";
+    }
+
+    return Joiner.on("; ").join(Collections2.transform(compositeStates, AutomatonState::toString));
   }
 
   @Override
   public String toDOTLabel() {
     if (compositeStates.isEmpty()) {
-      return stateName;
+      return "_empty_state_";
     }
 
-    return stateName + "\n:DCA-Asmpts: " + Joiner.on("; ").join(assumptions);
+    return Joiner.on("\n")
+        .join(Collections2.transform(compositeStates, AutomatonState::toDOTLabel));
   }
 
   @Override
   public boolean shouldBeHighlighted() {
     return false;
-  }
-
-  @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
-    BooleanFormula bf = pManager.getBooleanFormulaManager().makeTrue();
-    assumptions.stream().forEach(x -> pManager.makeAnd(bf, x));
-    return bf;
   }
 
 }

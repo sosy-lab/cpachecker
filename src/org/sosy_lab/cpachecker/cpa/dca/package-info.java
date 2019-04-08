@@ -22,7 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The package contains all classes related to performing ltl software model checking by refining
- * the arg via so-called 'interpolation automatons'. DCA is short for 'Dynamic Composite Automaton'.
+ * The package contains all classes related to perform ltl software model checking by refining the
+ * arg via automatons, which are dynamically created during the refinement using interpolants. DCA
+ * is short for 'Dynamic Composite Automaton'.
  */
 package org.sosy_lab.cpachecker.cpa.dca;

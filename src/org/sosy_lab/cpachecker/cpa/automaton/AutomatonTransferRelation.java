@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
  * The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState} and
  * strengthens an {@link AutomatonState.AutomatonUnknownState}.
  */
-class AutomatonTransferRelation implements TransferRelation {
+public class AutomatonTransferRelation implements TransferRelation {
 
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
@@ -320,7 +320,7 @@ class AutomatonTransferRelation implements TransferRelation {
    * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState, java.util.List, org.sosy_lab.cpachecker.cfa.model.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
    */
   @Override
-  public Collection<? extends AbstractState> strengthen(
+  public Collection<AutomatonState> strengthen(
       AbstractState pElement,
       List<AbstractState> pOtherElements,
       CFAEdge pCfaEdge,
@@ -328,7 +328,7 @@ class AutomatonTransferRelation implements TransferRelation {
       throws CPATransferException {
     if (pElement instanceof AutomatonUnknownState) {
       totalStrengthenTime.start();
-      Collection<AbstractState> successors =
+      Collection<AutomatonState> successors =
           strengthenAutomatonUnknownState(
               (AutomatonUnknownState) pElement, pOtherElements, pCfaEdge, pPrecision);
       totalStrengthenTime.stop();
@@ -352,10 +352,10 @@ class AutomatonTransferRelation implements TransferRelation {
         }
       }
     }
-    return Collections.singleton(pElement);
+    return Collections.singleton(state);
   }
 
-  private Collection<? extends AbstractState> handleThreadCreationForWitnessValidation(
+  private Collection<AutomatonState> handleThreadCreationForWitnessValidation(
       CFAEdge pthreadCreateEdge,
       Precision pPrecision,
       AutomatonState state,
@@ -401,7 +401,7 @@ class AutomatonTransferRelation implements TransferRelation {
    * Strengthening might depend on the strengthening of other automaton states, so we do a
    * fixed-point iteration.
    */
-  private Collection<AbstractState> strengthenAutomatonUnknownState(
+  private Collection<AutomatonState> strengthenAutomatonUnknownState(
       AutomatonUnknownState lUnknownState,
       List<AbstractState> pOtherElements,
       CFAEdge pCfaEdge,
@@ -458,7 +458,7 @@ class AutomatonTransferRelation implements TransferRelation {
     }
 
     // For each list of other states, do the strengthening
-    Collection<AbstractState> successors = new LinkedHashSet<>();
+    Collection<AutomatonState> successors = new LinkedHashSet<>();
     for (List<AbstractState> otherStates : strengtheningCombinations) {
       successors.addAll(
           getFollowStates(
