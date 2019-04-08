@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.dca;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -40,29 +41,41 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class DCAState implements AbstractQueryableState, Targetable, Graphable, Serializable,
     AbstractStateWithAssumptions {
 
   private static final long serialVersionUID = -3454798281550882095L;
 
-  private final ImmutableList<AutomatonState> compositeStates;
+  private final AutomatonState buechiState;
+  private final ImmutableList<AutomatonState> productStates;
 
-  public DCAState(List<AutomatonState> pCompositeStates) {
+  private final ImmutableList<AutomatonState> compositeStates;
+  private ImmutableList<AExpression> predecessorStateBuechiAssumptions;
+
+  public DCAState(
+      AutomatonState pBuechiState,
+      List<AutomatonState> pCompositeStates,
+      ImmutableList<AExpression> pPredecessorBuechiAssumptions) {
+    buechiState = checkNotNull(pBuechiState);
     compositeStates = ImmutableList.copyOf(pCompositeStates);
-    checkArgument(!compositeStates.isEmpty());
+    productStates =
+        new ImmutableList.Builder<AutomatonState>().add(buechiState)
+            .addAll(compositeStates)
+            .build();
+    predecessorStateBuechiAssumptions = pPredecessorBuechiAssumptions;
   }
 
   @Override
   public boolean isTarget() {
-    return !compositeStates.isEmpty()
-        && compositeStates.stream().allMatch(AutomatonState::isTarget);
+    return !productStates.isEmpty() && productStates.stream().allMatch(AutomatonState::isTarget);
   }
 
   @Override
   public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
     checkArgument(isTarget());
-    return compositeStates.stream()
+    return productStates.stream()
         .flatMap(x -> x.getViolatedProperties().stream())
         .collect(ImmutableSet.toImmutableSet());
   }
@@ -72,13 +85,17 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
     return "DCAState";
   }
 
-  ImmutableList<AutomatonState> getCompositeStates() {
+  AutomatonState getBuechiState() {
+    return buechiState;
+  }
+
+  List<AutomatonState> getCompositeStates() {
     return compositeStates;
   }
 
   @Override
   public ImmutableList<AExpression> getAssumptions() {
-    return compositeStates.stream()
+    return productStates.stream()
         .flatMap(x -> x.getAssumptions().stream())
         .distinct()
         .collect(ImmutableList.toImmutableList());
@@ -86,7 +103,11 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
 
   @Override
   public int hashCode() {
-    return compositeStates.hashCode();
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((buechiState == null) ? 0 : buechiState.hashCode());
+    result = prime * result + ((compositeStates == null) ? 0 : compositeStates.hashCode());
+    return result;
   }
 
   @Override
@@ -101,6 +122,13 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
       return false;
     }
     DCAState other = (DCAState) obj;
+    if (buechiState == null) {
+      if (other.buechiState != null) {
+        return false;
+      }
+    } else if (!buechiState.equals(other.buechiState)) {
+      return false;
+    }
     if (compositeStates == null) {
       if (other.compositeStates != null) {
         return false;
@@ -113,26 +141,38 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
 
   @Override
   public String toString() {
-    if (compositeStates.isEmpty()) {
+    if (productStates.isEmpty()) {
       return "_empty_state_";
     }
 
-    return Joiner.on("; ").join(Collections2.transform(compositeStates, AutomatonState::toString));
+    return Joiner.on("; ").join(Collections2.transform(productStates, AutomatonState::toString));
   }
 
   @Override
   public String toDOTLabel() {
-    if (compositeStates.isEmpty()) {
+    if (productStates.isEmpty()) {
       return "_empty_state_";
     }
 
-    return Joiner.on("\n")
-        .join(Collections2.transform(compositeStates, AutomatonState::toDOTLabel));
+    return Joiner.on("\n").join(Collections2.transform(productStates, AutomatonState::toDOTLabel));
   }
 
   @Override
   public boolean shouldBeHighlighted() {
     return false;
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    if (predecessorStateBuechiAssumptions.isEmpty()) {
+      return true;
+    }
+
+    String predecessorStateBuechiExpressions =
+        Joiner.on("; ")
+            .join(Collections2.transform(buechiState.getAssumptions(), AExpression::toASTString));
+
+    return predecessorStateBuechiExpressions.equals(pProperty);
   }
 
 }

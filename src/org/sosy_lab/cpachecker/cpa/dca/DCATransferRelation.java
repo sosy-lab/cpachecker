@@ -50,8 +50,9 @@ public class DCATransferRelation extends SingleEdgeTransferRelation {
           throws CPATransferException, InterruptedException {
     checkArgument(pState instanceof DCAState);
 
+    DCAState state = (DCAState) pState;
     List<Set<AutomatonState>> listOfStates = new ArrayList<>();
-    for (AutomatonState compositeState : ((DCAState) pState).getCompositeStates()) {
+    for (AutomatonState compositeState : state.getCompositeStates()) {
       ImmutableSet<AutomatonState> successorsStates =
           ImmutableSet.copyOf(
               automatonTR.getAbstractSuccessorsForEdge(compositeState, pPrecision, pCfaEdge));
@@ -61,7 +62,21 @@ public class DCATransferRelation extends SingleEdgeTransferRelation {
       listOfStates.add(successorsStates);
     }
     Set<List<AutomatonState>> cartesianProduct = Sets.cartesianProduct(listOfStates);
-    return cartesianProduct.stream().map(DCAState::new).collect(ImmutableSet.toImmutableSet());
+
+    ImmutableSet<AutomatonState> buechiSuccessorsStates =
+        ImmutableSet.copyOf(
+            automatonTR.getAbstractSuccessorsForEdge(state.getBuechiState(), pPrecision, pCfaEdge));
+    ImmutableSet.Builder<DCAState> builder = ImmutableSet.<DCAState>builder();
+    for (List<AutomatonState> productStates : cartesianProduct) {
+      for (AutomatonState buechiSuccessorState : buechiSuccessorsStates) {
+        builder.add(
+            new DCAState(
+                buechiSuccessorState,
+                productStates,
+                state.getBuechiState().getAssumptions()));
+      }
+    }
+    return builder.build();
   }
 
   @Override
@@ -74,7 +89,8 @@ public class DCATransferRelation extends SingleEdgeTransferRelation {
     checkArgument(pState instanceof DCAState);
 
     List<Set<AutomatonState>> listOfStates = new ArrayList<>();
-    for (AutomatonState s : ((DCAState) pState).getCompositeStates()) {
+    DCAState state = (DCAState) pState;
+    for (AutomatonState s : state.getCompositeStates()) {
       Set<AutomatonState> strengthenResult =
           ImmutableSet.copyOf(automatonTR.strengthen(s, pOtherStates, pCfaEdge, pPrecision));
       if (strengthenResult.isEmpty()) {
@@ -83,7 +99,21 @@ public class DCATransferRelation extends SingleEdgeTransferRelation {
       listOfStates.add(strengthenResult);
     }
     Set<List<AutomatonState>> cartesianProduct = Sets.cartesianProduct(listOfStates);
-    return cartesianProduct.stream().map(DCAState::new).collect(ImmutableSet.toImmutableSet());
+
+    Set<AutomatonState> buechiStrengthenResults =
+        ImmutableSet.copyOf(
+            automatonTR.strengthen(state.getBuechiState(), pOtherStates, pCfaEdge, pPrecision));
+    ImmutableSet.Builder<DCAState> builder = ImmutableSet.<DCAState>builder();
+    for (List<AutomatonState> productStates : cartesianProduct) {
+      for (AutomatonState buechiStrenghtenState : buechiStrengthenResults) {
+        builder.add(
+            new DCAState(
+                buechiStrenghtenState,
+                productStates,
+                state.getBuechiState().getAssumptions()));
+      }
+    }
+    return builder.build();
   }
 
 }

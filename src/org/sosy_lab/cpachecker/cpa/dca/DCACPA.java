@@ -27,17 +27,23 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -50,51 +56,51 @@ public class DCACPA extends AbstractSingleWrapperCPA {
   }
 
   private final ControlAutomatonCPA automatonCPA;
-  private final Set<Automaton> automatonSet;
+  private final List<Automaton> automatonList;
 
   public DCACPA(ConfigurableProgramAnalysis pCpa) {
     super(pCpa);
 
     checkArgument(pCpa instanceof ControlAutomatonCPA);
     automatonCPA = (ControlAutomatonCPA) pCpa;
-    automatonSet = new LinkedHashSet<>();
+    automatonList = new ArrayList<>();
   }
 
   void addAutomaton(Automaton pAutomaton) {
-    if (automatonSet.add(pAutomaton) == false) {
+    if (automatonList.add(pAutomaton) == false) {
       throw new IllegalArgumentException("DCA-CPA already contains the specified automaton.");
     }
   }
 
   ImmutableCollection<Automaton> getAutomatonSet() {
-    return ImmutableList.copyOf(automatonSet);
+    return ImmutableList.copyOf(automatonList);
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
     ImmutableList.Builder<AutomatonState> builder = new ImmutableList.Builder<>();
-    builder.add((AutomatonState) super.getInitialState(pNode, pPartition));
-    automatonSet.stream()
+    automatonList.stream()
         .map(automatonCPA::buildInitStateForAutomaton)
         .forEach(x -> builder.add(x));
-    return new DCAState(builder.build());
+    AutomatonState buechiState = (AutomatonState) super.getInitialState(pNode, pPartition);
+    return new DCAState(buechiState, builder.build(), ImmutableList.of());
   }
 
-  // @Override
-  // public AbstractDomain getAbstractDomain() {
-  // return new FlatLatticeDomain();
-  // }
-  //
-  // @Override
-  // public MergeOperator getMergeOperator() {
-  // return MergeSepOperator.getInstance();
-  // }
-  //
-  // @Override
-  // public StopOperator getStopOperator() {
-  // return new StopSepOperator(getAbstractDomain());
-  // }
+  @Override
+  public AbstractDomain getAbstractDomain() {
+    return new FlatLatticeDomain();
+  }
+
+  @Override
+  public MergeOperator getMergeOperator() {
+    return MergeSepOperator.getInstance();
+  }
+
+  @Override
+  public StopOperator getStopOperator() {
+    return new StopSepOperator(getAbstractDomain());
+  }
 
   @Override
   public TransferRelation getTransferRelation() {
