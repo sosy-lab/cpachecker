@@ -122,8 +122,15 @@ public class ValueAnalysisState
     hashCode = constantsMap.hashCode();
   }
 
+  private ValueAnalysisState(ValueAnalysisState state) {
+    machineModel = state.machineModel;
+    constantsMap = checkNotNull(state.constantsMap);
+    hashCode = state.hashCode;
+    assert hashCode == constantsMap.hashCode();
+  }
+
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
-    return new ValueAnalysisState(state.machineModel, state.constantsMap);
+    return new ValueAnalysisState(state);
   }
 
   /**
@@ -149,6 +156,10 @@ public class ValueAnalysisState
     }
 
     ValueAndType valueAndType = new ValueAndType(checkNotNull(valueToAdd), pType);
+    ValueAndType oldValueAndType = constantsMap.get(pMemLoc);
+    if (oldValueAndType != null) {
+      hashCode -= (pMemLoc.hashCode() ^ oldValueAndType.hashCode());
+    }
     constantsMap = constantsMap.putAndCopy(pMemLoc, valueAndType);
     hashCode += (pMemLoc.hashCode() ^ valueAndType.hashCode());
   }
@@ -670,23 +681,6 @@ public class ValueAnalysisState
     return difference;
   }
 
-  /**
-   * This method returns the set of tracked variables by this state.
-   *
-   * @return the set of tracked variables by this state
-   */
-  @Deprecated
-  public Set<String> getTrackedVariableNames() {
-    Set<String> result = new HashSet<>();
-
-    for (MemoryLocation loc : constantsMap.keySet()) {
-      result.add(loc.getAsSimpleString());
-    }
-
-    // no copy necessary, fresh instance of set
-    return Collections.unmodifiableSet(result);
-  }
-
   @Override
   public Set<MemoryLocation> getTrackedMemoryLocations() {
     // no copy necessary, set is immutable
@@ -708,43 +702,6 @@ public class ValueAnalysisState
 
   public ValueAnalysisInformation getInformation() {
     return new ValueAnalysisInformation(constantsMap);
-  }
-
-  @Deprecated
-  public Set<MemoryLocation> getMemoryLocationsOnStack(String pFunctionName) {
-    Set<MemoryLocation> result = new HashSet<>();
-
-    for (MemoryLocation memoryLocation : constantsMap.keySet()) {
-      if (memoryLocation.isOnFunctionStack() && memoryLocation.getFunctionName().equals(pFunctionName)) {
-        result.add(memoryLocation);
-      }
-    }
-
-    // Doesn't need a copy, Memory Location is Immutable
-    return Collections.unmodifiableSet(result);
-  }
-
-  @Deprecated
-  public Set<MemoryLocation> getGlobalMemoryLocations() {
-    Set<MemoryLocation> result = new HashSet<>();
-
-    for (MemoryLocation memoryLocation : constantsMap.keySet()) {
-      if (!memoryLocation.isOnFunctionStack()) {
-        result.add(memoryLocation);
-      }
-    }
-
-    // Doesn't need a copy, Memory Location is Immutable
-    return Collections.unmodifiableSet(result);
-  }
-
-  @Deprecated
-  public void forgetValuesWithIdentifier(String pIdentifier) {
-    for (MemoryLocation memoryLocation : constantsMap.keySet()) {
-      if (memoryLocation.getIdentifier().equals(pIdentifier)) {
-        constantsMap = constantsMap.removeAndCopy(memoryLocation);
-      }
-    }
   }
 
   /** If there was a recursive function, we have wrong values for scoped variables in the returnState.

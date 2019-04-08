@@ -409,7 +409,13 @@ class GlobalScope extends AbstractScope {
       List<CEnumerator> list = new ArrayList<>(((CEnumType) oldType).getEnumerators().size());
 
       for (CEnumerator c : ((CEnumType) oldType).getEnumerators()) {
-        CEnumerator newC = new CEnumerator(c.getFileLocation(), c.getName(), c.getQualifiedName(), c.hasValue() ? c.getValue() : null);
+        CEnumerator newC =
+            new CEnumerator(
+                c.getFileLocation(),
+                c.getName(),
+                c.getQualifiedName(),
+                c.getType(),
+                c.hasValue() ? c.getValue() : null);
         list.add(newC);
       }
 

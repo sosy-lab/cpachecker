@@ -123,4 +123,8 @@ public class StatHist extends AbstractStatValue {
   public int getUpdateCount() {
     return hist.size();
   }
+
+  public void mergeWith(StatHist other) {
+    hist.addAll(other.hist);
+  }
 }

@@ -150,7 +150,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
   public static class VariableClassificationStatistics implements Statistics {
 
-    private final StatTimer variableClassificationTimer = new StatTimer("Time for var class.");
+    private final StatTimer variableClassificationTimer =
+        new StatTimer("Time for classifying variables");
     private final StatTimer collectTimer = new StatTimer("Time for collecting variables");
     private final StatTimer dependencyTimer = new StatTimer("Time for solving dependencies");
     private final StatTimer hierarchyTimer = new StatTimer("Time for building hierarchy");

@@ -1721,15 +1721,15 @@ public class DomainSpecificAbstraction<T> {
       }
 
       for(Formula x : relationAbstraction1Formula){
-        logger.log(Level.WARNING, x.toString());
+        logger.log(Level.INFO, "Relation Abstraction 1: " + x.toString());
       }
 
       for(Formula y : relationAbstraction2Formula){
-        logger.log(Level.WARNING, y.toString());
+        logger.log(Level.INFO, "Relation Abstraction 2: " + y.toString());
       }
 
       for(int i=0; i < latticeNames.length; i++){
-        logger.log(Level.WARNING, "LatticeName: " + latticeNames[i] + " "
+        logger.log(Level.INFO, "LatticeName: " + latticeNames[i] + " "
             + "LatticeNameType: " + latticeNamesTypes.get
             (latticeNames[i]));
       }
@@ -1833,11 +1833,13 @@ public class DomainSpecificAbstraction<T> {
           BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
           feasibilityCheckTimer.start();
           try {
+            logger.log(Level.INFO, "Feasibility Check on " + toCheckFormulaBlocked.toString());
             abstractionFeasible = prove(toCheckFormulaBlocked, prover);
           } finally {
             feasibilityCheckTimer.stop();
           }
           if (abstractionFeasible) {
+            logger.log(Level.INFO, toCheckFormulaBlocked.toString() + " is feasible");
             List<List<Formula>> frontierListCopy = Lists
                 .newArrayListWithExpectedSize(oldFormulas.size() - 1);
             for ( List<Formula> s : frontierList) {
@@ -1847,7 +1849,9 @@ public class DomainSpecificAbstraction<T> {
                 latticenamesH, latticeNames);
 
             if (isIncomparable) {
+              logger.log(Level.INFO,  "Incomparable");
               maximisationTimer.start();
+              logger.log(Level.INFO, "Maximisation");
               try {
                 List<Formula> new_frontier_elem = maximise(firstPartChanged,
                     scndPartChanged,
@@ -1857,6 +1861,8 @@ public class DomainSpecificAbstraction<T> {
                     latticenamesH,
                      prover);
                 frontierList.add(new_frontier_elem);
+                logger.log(Level.INFO,  "Newly added element into frontier list: " +
+                    new_frontier_elem.toString());
               } finally {
                 maximisationTimer.stop();
               }
@@ -1871,6 +1877,7 @@ public class DomainSpecificAbstraction<T> {
     buildingAbstractionsTimer.stop();
   }
 
+      logger.log(Level.INFO,  "Frontier List: " + frontierList.toString());
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
       if (frontierList != null && (frontierList.size() >= 1)) {
@@ -1940,6 +1947,7 @@ public class DomainSpecificAbstraction<T> {
 
     }
     if (interpolants != null && !interpolants.isEmpty()) {
+      logger.log(Level.INFO,  "Interpolants: " + interpolants.toString());
       return interpolants;
     } else {
       return Collections.emptyList();

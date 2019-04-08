@@ -295,6 +295,9 @@ analysis.programNames = []
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
 
+# track more statistics about the reachedset
+analysis.reachedSet.withStatistics = false
+
 # Use if you are going to change function with function pionter parameter
 analysis.replaceFunctionWithParameterPointer = false
 
@@ -3136,6 +3139,10 @@ java.typeHierarchyFile = "typeHierarchy.dot"
 java.version = JavaCore.VERSION_1_7
 
 # C, Java, or LLVM IR?
+language = C
+  enum:     [C, JAVA, LLVM]
+language = no default value
+  enum:     [C, JAVA, LLVM]
 language = C
   enum:     [C, JAVA, LLVM]
 

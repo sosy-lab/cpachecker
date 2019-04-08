@@ -152,7 +152,7 @@ enum GraphBuilder {
               boolean addArtificialSinkEdge = true;
               for (ARGState sibling : s.getChildren()) {
                 if (sibling != child
-                    && s.getEdgeToChild(sibling).equals(siblingEdge)
+                    && siblingEdge.equals(s.getEdgeToChild(sibling))
                     && pIsRelevantEdge.apply(Pair.of(s, sibling))) {
                   addArtificialSinkEdge = false;
                   break;

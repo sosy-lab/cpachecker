@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableSubgraphReachedSetView;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SSCSubgraphComputer.SSCARGState;
 
 class SSCReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
