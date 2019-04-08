@@ -96,7 +96,9 @@ public final class Specification {
           } catch (InterruptedException e) {
             throw new InvalidConfigurationException(
                 String.format(
-                    "Error when executing the external tool '%s': %s", "Ltl3ba", e.getMessage()),
+                    "Error when executing the external tool '%s': %s",
+                    Ltl2BuechiConverter.getNameOfExecutable(),
+                    e.getMessage()),
                 e);
           }
         }
