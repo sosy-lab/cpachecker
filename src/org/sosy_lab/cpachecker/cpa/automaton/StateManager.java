@@ -22,6 +22,8 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -31,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -38,9 +41,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Negation;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.Builder;
+import org.sosy_lab.cpachecker.cpa.dca.DCAState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -198,97 +203,70 @@ public class StateManager {
       return stateName;
     }
 
-    private Optional<CFAEdge> handleSingleEdge(
-        ARGState parentState,
-        ARGState currentState,
-        String pFollowStateName,
-        Optional<String> pAssumptionOpt)
-        throws InvalidAutomatonException {
+    private Optional<CFAEdge>
+        handleSingleEdge(ARGState parentState, ARGState currentState, String pFollowStateName)
+            throws InvalidAutomatonException {
       Optional<CFAEdge> singleEdgeOpt =
           Optional.ofNullable(parentState.getEdgeToChild(currentState));
       if (singleEdgeOpt.isPresent()) {
-        addEdgeToTransition(pFollowStateName, singleEdgeOpt.get(), pAssumptionOpt);
+        DCAState dcaState = AbstractStates.extractStateByType(currentState, DCAState.class);
+        String buechiExpressionString =
+            Joiner.on("; ")
+                .join(Collections2.transform(dcaState.getAssumptions(), AExpression::toASTString));
+        addEdgeToTransition(pFollowStateName, singleEdgeOpt.get(), buechiExpressionString);
       }
       return singleEdgeOpt;
     }
 
-    List<CFAEdge>
-        createTransitionToSameState(ARGState pCurrentState, Optional<String> pAssumptionOpt)
-            throws InvalidAutomatonException {
+    List<CFAEdge> createTransitionToSameState(ARGState pCurrentState)
+        throws InvalidAutomatonException {
       Optional<CFAEdge> singleEdgeOpt =
-          handleSingleEdge(getLastParentState(), pCurrentState, getStateName(), pAssumptionOpt);
+          handleSingleEdge(getLastParentState(), pCurrentState, getStateName());
       if (singleEdgeOpt.isPresent()) {
         return ImmutableList.of(singleEdgeOpt.get());
       } else {
         // aggregateBasicBlocks is enabled!
-        List<CFAEdge> edges = getLastParentState().getEdgesToChild(pCurrentState);
-        checkArgument(!edges.isEmpty());
-        addEdgesToTransition(getStateName(), edges, pAssumptionOpt);
-        return edges;
+        throw new UnsupportedOperationException();
       }
     }
 
-    List<CFAEdge>
-        createTransitionToNextState(ARGState pCurrentState, Optional<String> pAssumptionOpt)
-            throws InvalidAutomatonException {
+    List<CFAEdge> createTransitionToNextState(ARGState pCurrentState)
+        throws InvalidAutomatonException {
       Optional<CFAEdge> singleEdgeOpt =
-          handleSingleEdge(
-              getLastParentState(),
-              pCurrentState,
-              stateMgr.getNameOfNextState(),
-              pAssumptionOpt);
+          handleSingleEdge(getLastParentState(), pCurrentState, stateMgr.getNameOfNextState());
       if (singleEdgeOpt.isPresent()) {
         return ImmutableList.of(singleEdgeOpt.get());
       } else {
         // aggregateBasicBlocks is enabled!
-        List<CFAEdge> edges = getLastParentState().getEdgesToChild(pCurrentState);
-        checkArgument(!edges.isEmpty());
-        addEdgesToTransition(stateMgr.getNameOfNextState(), edges, pAssumptionOpt);
-        return edges;
+        throw new UnsupportedOperationException();
       }
     }
 
-    // List<CFAEdge> createTransitionToNextState(
-    // BooleanFormula pInterpolant,
-    // ARGState pCurrentState,
-    // Optional<String> pAssumptionOpt)
-    // throws InvalidAutomatonException, InterruptedException {
-    // Optional<CFAEdge> singleEdgeOpt =
-    // handleSingleEdge(
-    // getLastParentState(),
-    // pCurrentState,
-    // stateMgr.getNameOfNextState(),
-    // pAssumptionOpt);
-    //
-    // if (singleEdgeOpt.isPresent()) {
-    // setCurrentStateAsParent(pCurrentState);
-    // stateMgr.setNextState();
-    // return ImmutableList.of(singleEdgeOpt.get());
-    // } else {
-    // // aggregateBasicBlocks is enabled!
-    // List<CFAEdge> edges = getLastParentState().getEdgesToChild(pCurrentState);
-    // addEdgeToTransition(stateMgr.getNameOfNextState(), edges.iterator().next(), pAssumptionOpt);
-    //
-    // setCurrentStateAsParent(pCurrentState);
-    // stateMgr.setNextState();
-    // stateMgr.addEdgesToNextTransition(Iterables.skip(edges, 1), pInterpolant, pCurrentState);
-    // return edges;
-    // }
-    // }
+    List<CFAEdge> createTransitionToSinkState(ARGState pCurrentState)
+        throws InvalidAutomatonException {
+      Optional<CFAEdge> singleEdgeOpt =
+          handleSingleEdge(getLastParentState(), pCurrentState, stateMgr.sinkState.getStateName());
+      if (singleEdgeOpt.isPresent()) {
+        return ImmutableList.of(singleEdgeOpt.get());
+      } else {
+        // aggregateBasicBlocks is enabled!
+        throw new UnsupportedOperationException();
+      }
+    }
 
     private void
-        addEdgeToTransition(String pFollowStateName, CFAEdge pEdge, Optional<String> pAssumptionOpt)
+        addEdgeToTransition(String pFollowStateName, CFAEdge pEdge, String pBuechiExpressionString)
             throws InvalidAutomatonException {
-      transitions.add(matchST(pFollowStateName, pEdge, pAssumptionOpt));
+      transitions.add(matchST(pFollowStateName, pEdge, pBuechiExpressionString));
     }
 
     void addEdgesToTransition(
         String pFollowStateName,
         Iterable<CFAEdge> pEdges,
-        Optional<String> pAssumptionOpt)
+        String pBuechiExpressionString)
         throws InvalidAutomatonException {
       for (CFAEdge cfaEdge : pEdges) {
-        addEdgeToTransition(pFollowStateName, cfaEdge, pAssumptionOpt);
+        addEdgeToTransition(pFollowStateName, cfaEdge, pBuechiExpressionString);
       }
     }
 
@@ -298,30 +276,29 @@ public class StateManager {
     }
 
     List<AutomatonTransition>
-        matchST(String pStateName, Iterable<CFAEdge> pEdges, Optional<String> pAssumptionOpt)
+        matchST(String pStateName, Iterable<CFAEdge> pEdges, String pBuechiExpressionString)
             throws InvalidAutomatonException {
       List<AutomatonTransition> list = new ArrayList<>();
       for (CFAEdge cfaEdge : pEdges) {
-        list.add(matchST(pStateName, cfaEdge, pAssumptionOpt));
+        list.add(matchST(pStateName, cfaEdge, pBuechiExpressionString));
       }
       return list;
     }
 
     private AutomatonTransition
-        matchST(String pFollowStateName, CFAEdge pCFAEdge, Optional<String> pAssumptionOpt)
+        matchST(String pFollowStateName, CFAEdge pCFAEdge, String pBuechiExpressionString)
             throws InvalidAutomatonException {
       AutomatonBoolExpr.MatchCFAEdgeNodes trigger =
           new AutomatonBoolExpr.MatchCFAEdgeNodes(
               pCFAEdge.getPredecessor().getNodeNumber(),
               pCFAEdge.getSuccessor().getNodeNumber(),
               pCFAEdge.getRawStatement());
-      boolExpressions.add(trigger);
-      AutomatonTransition.Builder builder =
-          new AutomatonTransition.Builder(trigger, pFollowStateName);
+      AutomatonBoolExpr.CPAQuery matchCFAEdgeNodes =
+          new AutomatonBoolExpr.CPAQuery("DCAState", pBuechiExpressionString);
+      And and = new AutomatonBoolExpr.And(trigger, matchCFAEdgeNodes);
+      boolExpressions.add(and);
+      AutomatonTransition.Builder builder = new AutomatonTransition.Builder(and, pFollowStateName);
       addViolationPropertyToBuilder(builder);
-      if (pAssumptionOpt.isPresent()) {
-        builder.withAssumptions(assume(pAssumptionOpt.get()));
-      }
       return builder.build();
     }
 
@@ -397,22 +374,15 @@ public class StateManager {
 
     @Override
     void createInvariantTrueTransition(ARGState pCurrentState) throws InvalidAutomatonException {
-      createTransitionToSameState(pCurrentState, Optional.of(stateMgr.getNegatedInterpolant()));
-      List<CFAEdge> edges =
-          createTransitionToNextState(pCurrentState, Optional.of(stateMgr.getInterpolant()));
-      cfaEdges.addAll(edges);
+      cfaEdges.addAll(createTransitionToSameState(pCurrentState));
     }
 
     @Override
     void createInterpolantTransition(BooleanFormula pInterpolant, ARGState pCurrentState)
         throws InvalidAutomatonException, InterruptedException {
-      createTransitionToSameState(pCurrentState, Optional.of(stateMgr.getNegatedInterpolant()));
-      List<CFAEdge> edges =
-          createTransitionToNextState(pCurrentState, Optional.of(stateMgr.getInterpolant()));
-      cfaEdges.addAll(edges);
-      stateMgr.setNextState();
-      stateMgr.addTransition(pInterpolant, pCurrentState);
+      cfaEdges.addAll(createTransitionToNextState(pCurrentState));
       setCurrentStateAsParent(pCurrentState);
+      stateMgr.setNextState();
     }
 
     @Override
@@ -427,13 +397,16 @@ public class StateManager {
 
     @Override
     List<AutomatonTransition> buildTransitions() {
+      Stream<AutomatonBoolExpr> stream =
+          boolExpressions.stream().map(x -> new AutomatonBoolExpr.Negation(x));
       Optional<AutomatonBoolExpr> boolExprOpt =
-          boolExpressions.stream().reduce((x, y) -> new AutomatonBoolExpr.Or(x, y));
+          stream.reduce((x, y) -> new AutomatonBoolExpr.And(x, y));
       checkArgument(boolExprOpt.isPresent());
-      Negation negatedTrigger = new AutomatonBoolExpr.Negation(boolExprOpt.get());
-      transitions.add(
-          new AutomatonTransition.Builder(negatedTrigger, stateMgr.sinkState.getStateName())
-              .build());
+      AutomatonTransition transition =
+          new AutomatonTransition.Builder(boolExprOpt.get(), stateMgr.sinkState.getStateName())
+              .build();
+
+      transitions.add(transition);
       return ImmutableList.copyOf(transitions);
     }
 
@@ -462,23 +435,15 @@ public class StateManager {
     @Override
     void createInterpolantTransition(BooleanFormula pInterpolant, ARGState pCurrentState)
         throws InvalidAutomatonException {
-      createTransitionToSameState(pCurrentState, Optional.of(stateMgr.getInterpolant()));
-      List<CFAEdge> edges =
-          createTransitionToNextState(pCurrentState, Optional.of(stateMgr.getNegatedInterpolant()));
-      cfaEdges.addAll(edges);
+      cfaEdges.addAll(createTransitionToSameState(pCurrentState));
     }
 
     @Override
     void createInvariantFalseTransition(BooleanFormula pInterpolant, ARGState pCurrentState)
         throws InvalidAutomatonException, InterruptedException {
-
-      createTransitionToSameState(pCurrentState, Optional.of(stateMgr.getInterpolant()));
-      List<CFAEdge> edges =
-          createTransitionToNextState(pCurrentState, Optional.of(stateMgr.getNegatedInterpolant()));
-      cfaEdges.addAll(edges);
-      stateMgr.setNextState();
-      stateMgr.addTransition(pInterpolant, pCurrentState);
+      cfaEdges.addAll(createTransitionToNextState(pCurrentState));
       setCurrentStateAsParent(pCurrentState);
+      stateMgr.setNextState();
     }
 
     @Override
@@ -488,13 +453,16 @@ public class StateManager {
 
     @Override
     List<AutomatonTransition> buildTransitions() {
+      Stream<AutomatonBoolExpr> stream =
+          boolExpressions.stream().map(x -> new AutomatonBoolExpr.Negation(x));
       Optional<AutomatonBoolExpr> boolExprOpt =
-          boolExpressions.stream().reduce((x, y) -> new AutomatonBoolExpr.Or(x, y));
+          stream.reduce((x, y) -> new AutomatonBoolExpr.And(x, y));
       checkArgument(boolExprOpt.isPresent());
-      Negation negatedTrigger = new AutomatonBoolExpr.Negation(boolExprOpt.get());
-      transitions.add(
-          new AutomatonTransition.Builder(negatedTrigger, stateMgr.sinkState.getStateName())
-              .build());
+      AutomatonTransition transition =
+          new AutomatonTransition.Builder(boolExprOpt.get(), stateMgr.sinkState.getStateName())
+              .build();
+
+      transitions.add(transition);
       return ImmutableList.copyOf(transitions);
     }
 
@@ -526,6 +494,7 @@ public class StateManager {
     @Override
     void createInvariantFalseTransition(BooleanFormula pInterpolant, ARGState pCurrentState)
         throws InvalidAutomatonException {
+      cfaEdges.addAll(createTransitionToSameState(pCurrentState));
       // do nothing
     }
 
@@ -584,7 +553,8 @@ public class StateManager {
 
     @Override
     List<AutomatonTransition> buildTransitions() {
-      transitions.add(new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, SINK_STATE).build());
+      transitions
+          .add(new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, getStateName()).build());
       return ImmutableList.copyOf(transitions);
     }
 
