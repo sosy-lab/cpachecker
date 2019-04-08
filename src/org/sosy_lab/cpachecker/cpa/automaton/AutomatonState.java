@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -275,7 +276,10 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   @Override
   public String toDOTLabel() {
     if (!internalState.getName().equals("Init")) {
-      return (automatonCPA!=null?automatonCPA.getAutomaton().getName() + ": ": "") + internalState.getName();
+      return (automatonCPA != null ? automatonCPA.getAutomaton().getName() + ": " : "")
+          + internalState.getName()
+          + "\nAssumptions: "
+          + assumptions.stream().map(x -> x.toASTString()).collect(Collectors.joining("; "));
     }
     return "";
   }
