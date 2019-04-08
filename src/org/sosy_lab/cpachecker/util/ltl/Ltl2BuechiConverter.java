@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.ltl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -57,7 +58,7 @@ import org.sosy_lab.cpachecker.util.ltl.formulas.Literal;
 
 public class Ltl2BuechiConverter {
 
-  private static final String LTL3BA = "./ltl3ba";
+  private static final Converter EXECUTABLE = Converter.LTL3BA;
 
   private final LabelledFormula labelledFormula;
   private final ProcessBuilder builder;
@@ -124,13 +125,15 @@ public class Ltl2BuechiConverter {
     Path nativeLibraryPath = NativeLibraries.getNativeLibraryPath();
     builder.directory(nativeLibraryPath.toFile());
 
-    /*
-     * '-H' to print the resulting output (the buechi-automaton) in HOA format
-     * '-f "formula"' to translate the LTL formula into a never claim
-     */
     String formula =
         LtlStringVisitor.toString(labelledFormula.getFormula(), labelledFormula.getAPs());
-    builder.command(LTL3BA, "-H", "-f", formula);
+    ImmutableList<String> commands =
+        ImmutableList.<String>builder()
+            .add(EXECUTABLE.execTool())
+            .addAll(EXECUTABLE.getArgs())
+            .add("-f", formula)
+            .build();
+    builder.command(commands);
   }
 
   /**
@@ -156,24 +159,24 @@ public class Ltl2BuechiConverter {
       }
       storedAutomaton.getStoredHeader().setAPs(list);
 
-      if (!storedAutomaton
-          .getStoredHeader()
+      if (!storedAutomaton.getStoredHeader()
           .getAPs()
           .stream()
           .anyMatch(x -> labelledFormula.getAPs().contains(Literal.of(x, false)))) {
         throw new RuntimeException(
-            "Output from external tool contains APs that are not consistent with APs from the parsed ltl formula");
+            "Output from external tool contains APs which are not consistent with the APs from the provided ltl formula");
       }
 
       ByteArrayOutputStream os = new ByteArrayOutputStream();
       storedAutomaton.feedToConsumer(new HOAConsumerPrint(os));
-      logger.log(Level.FINEST, os.toString(StandardCharsets.UTF_8.name()));
+      logger.log(Level.FINE, os.toString(StandardCharsets.UTF_8.name()));
 
       return storedAutomaton;
     } catch (ParseException e) {
       throw new LtlParseException(
           String.format(
-              "An error occured while parsing the output from the external tool '%s'", LTL3BA),
+              "An error occured while parsing the output from the external tool '%s'",
+              EXECUTABLE.getToolName()),
           e);
     } catch (IOException e) {
       throw new LtlParseException(e.getMessage(), e);
@@ -199,7 +202,9 @@ public class Ltl2BuechiConverter {
         throw new LtlParseException(
             String.format(
                 "Tool '%s' exited with error code %d. Message from tool:%n%s",
-                LTL3BA, exitvalue, errMsg));
+                EXECUTABLE.getToolName(),
+                exitvalue,
+                errMsg));
       }
 
       return is;
@@ -220,5 +225,32 @@ public class Ltl2BuechiConverter {
     bufferedReader.lines().forEach(x -> list.add(x));
 
     return list.stream();
+  }
+
+  private static class Converter {
+
+    // '-H' lets 'ltl3ba' print the output as buechi-automaton in HOA-format
+    private static final Converter LTL3BA = new Converter("ltl3ba", "-H");
+
+    private final String toolName;
+    private final ImmutableList<String> commands;
+
+    private Converter(String toolName, String... commands) {
+      this.toolName = toolName;
+      this.commands = ImmutableList.copyOf(commands);
+    }
+
+    public String getToolName() {
+      return toolName;
+    }
+
+    private String execTool() {
+      return "./" + getToolName();
+    }
+
+    public ImmutableList<String> getArgs() {
+      return commands;
+    }
+
   }
 }
