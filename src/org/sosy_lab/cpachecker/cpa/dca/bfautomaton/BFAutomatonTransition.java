@@ -85,8 +85,8 @@ public class BFAutomatonTransition {
     StringBuilder sb = new StringBuilder();
     sb.append("MATCH BF  {");
     sb.append(Joiner.on("; ").join(Collections2.transform(assumptions, BooleanFormula::toString)));
-    sb.append("} ");
-    sb.append(" -> ");
+    sb.append("}  ->  GOTO ");
+    sb.append(followStateName);
     return sb.toString();
   }
 

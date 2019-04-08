@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.dca;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,7 +49,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.dca.bfautomaton.BFAutomaton;
+import org.sosy_lab.cpachecker.cpa.dca.bfautomaton.BFAutomatonException;
 import org.sosy_lab.cpachecker.cpa.dca.bfautomaton.BFAutomatonState;
+import org.sosy_lab.cpachecker.cpa.dca.bfautomaton.BFTestMain;
 
 @Options(prefix = "cpa.dca")
 public class DCACPA implements StatisticsProvider, ConfigurableProgramAnalysis, ProofCheckerCPA {
@@ -58,12 +60,9 @@ public class DCACPA implements StatisticsProvider, ConfigurableProgramAnalysis, 
     return AutomaticCPAFactory.forType(DCACPA.class);
   }
 
-  @SuppressWarnings("unused")
   private final Map<BFAutomaton, DCAProperty> automatonMap;
 
-  private final AbstractDomain dcaDomain = new FlatLatticeDomain();
-  static final DCAState DUMMY_STATE =
-      new DCAState(ImmutableSet.of(), Collections.emptySet());
+  private final AbstractDomain domain = new FlatLatticeDomain();
 
   private final DCAStatistics stats = new DCAStatistics(this);
   @SuppressWarnings("unused")
@@ -74,21 +73,39 @@ public class DCACPA implements StatisticsProvider, ConfigurableProgramAnalysis, 
 
     automatonMap = new HashMap<>();
     logger = pLogger;
+
+//    try {
+//      BFAutomaton automaton = BFTestMain.createMinimalAutomaton_withAsmpts();
+//      DCAProperty property = new DCAProperty(automaton.getName());
+//      automatonMap.put(automaton, property);
+//    } catch (BFAutomatonException e) {
+//      throw new InvalidConfigurationException(
+//          "An error occured while building the test-automaton",
+//          e);
+//    }
+  }
+
+  ImmutableMap<BFAutomaton, DCAProperty> getAutomatonMap() {
+    return ImmutableMap.copyOf(automatonMap);
   }
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return dcaDomain;
+    return domain;
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    if (automatonMap.isEmpty()) {
+      return DCAState.EMPTY_STATE;
+    }
+
     ImmutableSet<BFAutomatonState> compositeInitStates =
         automatonMap.keySet()
             .stream()
             .map(BFAutomaton::getInitialState)
             .collect(ImmutableSet.toImmutableSet());
-    return new DCAState(compositeInitStates, automatonMap.values());
+    return DCAState.createInitialState(compositeInitStates, automatonMap.values());
   }
 
   @Override
@@ -98,7 +115,7 @@ public class DCACPA implements StatisticsProvider, ConfigurableProgramAnalysis, 
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new DCATransferRelation();
+    return new DCATransferRelation(this);
   }
 
   @Override
@@ -110,4 +127,5 @@ public class DCACPA implements StatisticsProvider, ConfigurableProgramAnalysis, 
   public StopOperator getStopOperator() {
     return new StopSepOperator(getAbstractDomain());
   }
+
 }

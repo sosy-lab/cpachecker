@@ -20,21 +20,28 @@
 package org.sosy_lab.cpachecker.cpa.dca;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.dca.bfautomaton.BFAutomatonState;
+import org.sosy_lab.cpachecker.cpa.dca.bfautomaton.BFAutomatonTransition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class DCATransferRelation implements TransferRelation {
+public class DCATransferRelation extends SingleEdgeTransferRelation {
 
-  @Override
-  public Collection<? extends AbstractState>
-      getAbstractSuccessors(AbstractState pState, Precision pPrecision)
-          throws CPATransferException, InterruptedException {
-    return Collections.singleton(DCACPA.DUMMY_STATE);
+  private final DCACPA cpa;
+
+  public DCATransferRelation(DCACPA pCpa) {
+    cpa = pCpa;
   }
 
   @Override
@@ -42,7 +49,36 @@ public class DCATransferRelation implements TransferRelation {
       getAbstractSuccessorsForEdge(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
           throws CPATransferException, InterruptedException {
     Preconditions.checkArgument(pState instanceof DCAState);
-    return Collections.singleton(DCACPA.DUMMY_STATE);
+
+    if (cpa.getAutomatonMap().isEmpty()) {
+      return Collections.singleton(pState);
+    }
+
+    DCAState state = (DCAState) pState;
+
+    if (state.getCompositeStates().stream().anyMatch(x -> x.getOutgoingTransitions().isEmpty())) {
+      // shortcut -- don't return a successor state if there exists an automaton without an outgoing
+      // transition
+      return Collections.emptySet();
+    }
+
+    Set<DCAState> successors = Sets.newLinkedHashSetWithExpectedSize(2);
+    // for (BFAutomatonState bfState : state.getCompositeStates()) {
+    BFAutomatonState bfState = Iterables.getOnlyElement(state.getCompositeStates());
+    for (BFAutomatonTransition bfTransition : bfState.getOutgoingTransitions()) {
+      ImmutableList<BooleanFormula> bfAssumptions = bfTransition.getAssumptions();
+      // DCAProperty violatedProperty = null;
+      if (bfTransition.getFollowState().isAcceptingState()) {
+        // TODO: create DCAProperty
+      }
+      successors.add(
+          new DCAState(
+              bfTransition.getFollowState().getName(), // statename
+              ImmutableSet.of(bfTransition.getFollowState()),
+              ImmutableSet.of(),
+              bfAssumptions));
+    }
+    return successors;
   }
 
 }

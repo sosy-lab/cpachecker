@@ -105,9 +105,7 @@ public class BFAutomaton {
     for (BFAutomatonState s : states) {
       str.append("STATE ").append(s.getName()).append(":\n");
       for (BFAutomatonTransition t : s.getOutgoingTransitions()) {
-        str.append("  ").append(t);
-        str.append(" GOTO ");
-        str.append(t.getFollowState()).append(";\n");
+        str.append("  ").append(t).append(";\n");
       }
       str.append("\n");
     }
