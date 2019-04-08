@@ -271,14 +271,15 @@ public class LassoBuilder {
       for (BooleanFormula loop : loopDnf.getClauses()) {
 
         shutdownNotifier.shutdownIfNecessary();
-        if (!isUnsat(bfmrView.and(stem, loop))) {
-
-          LinearTransition stemTransition = createLinearTransition(stem, stemRankVars);
-          LinearTransition loopTransition = createLinearTransition(loop, loopRankVars);
-
-          Lasso lasso = new Lasso(stemTransition, loopTransition);
-          lassos.add(lasso);
+        if (checkSat && isUnsat(bfmrView.and(stem, loop))) {
+          continue;
         }
+
+        LinearTransition stemTransition = createLinearTransition(stem, stemRankVars);
+        LinearTransition loopTransition = createLinearTransition(loop, loopRankVars);
+
+        Lasso lasso = new Lasso(stemTransition, loopTransition);
+        lassos.add(lasso);
       }
     }
 
