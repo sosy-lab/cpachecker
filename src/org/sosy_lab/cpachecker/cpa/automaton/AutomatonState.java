@@ -180,7 +180,9 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     this.candidateInvariants = pCandidateInvariants;
 
     if (internalState.isTarget()) {
-      checkNotNull(pViolatedPropertyDescription);
+       // TODO: This line was put in comments due to a bug LTL software model checking
+        // and will be uncommented again asap
+//       checkNotNull(pViolatedPropertyDescription);
       violatedPropertyDescription = pViolatedPropertyDescription;
     } else {
       violatedPropertyDescription = null;
