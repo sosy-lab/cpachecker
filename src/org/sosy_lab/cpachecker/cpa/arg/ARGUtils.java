@@ -53,6 +53,7 @@ import java.util.AbstractCollection;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -701,6 +702,103 @@ public class ARGUtils {
     }
 
     return true;
+  }
+
+  /**
+   * Find all strongly connected components recursively within the reached set using Tarjan's
+   * algorithm.
+   *
+   * <p>The algorithm is based on a depth-first-search, so the respective procedure is called only
+   * once for each node. The time complexity is thus linear in the number of nodes and edges, i.e.
+   * O(|N| + |E|)
+   *
+   * @param pReached the reached set.
+   * @return A set containing all {@link StronglyConnectedComponent}s. This set also includes SCCs
+   *     that only consists of a single ARGState.
+   */
+  public static ImmutableSet<StronglyConnectedComponent> retrieveSCCs(ReachedSet pReached) {
+    checkNotNull(pReached);
+
+    ImmutableList<ARGState> argStates =
+        pReached
+            .asCollection()
+            .stream()
+            .map(x -> (ARGState) x)
+            .collect(ImmutableList.toImmutableList());
+
+    return retrieveSCCs(argStates, Optional.empty());
+  }
+
+  private static ImmutableSet<StronglyConnectedComponent> retrieveSCCs(
+      List<ARGState> pARGStates, Optional<Collection<ARGState>> pExcludeStates) {
+    checkNotNull(pARGStates);
+
+    List<StronglyConnectedComponent> SCCs = new ArrayList<>();
+
+    int index = 0;
+
+    Deque<ARGState> dfsStack = new ArrayDeque<>();
+    Map<ARGState, Integer> stateIndex = new HashMap<>();
+    Map<ARGState, Integer> stateLowLink = new HashMap<>();
+
+    for (ARGState state : pARGStates) {
+      if (pExcludeStates.isPresent()) {
+        if (pExcludeStates.get().contains(state)) {
+          continue;
+        }
+      }
+      if (!stateIndex.containsKey(state)) {
+        strongConnect(state, index, stateIndex, stateLowLink, dfsStack, SCCs, pExcludeStates);
+      }
+    }
+    Collections.reverse(SCCs);
+    return ImmutableSet.copyOf(SCCs);
+  }
+
+  private static void strongConnect(
+      ARGState pState,
+      int pIndex,
+      Map<ARGState, Integer> pStateIndex,
+      Map<ARGState, Integer> pStateLowLink,
+      Deque<ARGState> pDfsStack,
+      List<StronglyConnectedComponent> pSCCs,
+      Optional<Collection<ARGState>> pExcludeStates) {
+
+    pStateIndex.put(pState, pIndex);
+    pStateLowLink.put(pState, pIndex);
+    pIndex++;
+    pDfsStack.push(pState);
+
+    for (Iterator<ARGState> iterator = pState.getChildren().iterator(); iterator.hasNext(); ) {
+      ARGState sucessorState = iterator.next();
+      if (pExcludeStates.isPresent() && pExcludeStates.get().contains(sucessorState)) {
+          continue;
+      }
+      if (!pStateIndex.containsKey(sucessorState)) {
+        // Successor has not yet been visited; recurse on it
+        strongConnect(
+            sucessorState, pIndex, pStateIndex, pStateLowLink, pDfsStack, pSCCs, pExcludeStates);
+        pStateLowLink.put(
+            pState, Math.min(pStateLowLink.get(pState), pStateLowLink.get(sucessorState)));
+      } else {
+        // Successor is in the stack ('dfsNodeStack') and hence in the current SCC
+        // If 'sucessorState' is not on the stack, then (pState, sucessorState) is a cross-edge
+        // in the DFS tree and must be ignored
+        pStateLowLink.put(
+            pState, Math.min(pStateLowLink.get(pState), pStateIndex.get(sucessorState)));
+      }
+    }
+
+    // If pState is a root node, pop the stack and generate an SCC
+    if (pStateIndex.get(pState) == pStateLowLink.get(pState)) {
+      ARGState s;
+      StronglyConnectedComponent scc = new StronglyConnectedComponent(pState);
+      do {
+        s = pDfsStack.pop();
+        scc.addNode(s);
+      } while (pState != s);
+      pSCCs.add(scc);
+    }
   }
 
   /**
