@@ -1184,7 +1184,8 @@ public class CFABuilder {
           getLocation(pItem, pFileName), type, constantValue);
 
     } else if (pItem.isConstantPointerNull()) {
-      return new CPointerExpression(location, pExpectedType, getNull(location));
+      return new CCastExpression(location, pExpectedType,
+                                 getNull(location));
 
     } else if (pItem.isConstantExpr()) {
       return getExpression(pItem, pExpectedType, pFileName);
