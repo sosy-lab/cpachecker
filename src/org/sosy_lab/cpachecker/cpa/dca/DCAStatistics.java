@@ -35,7 +35,7 @@ class DCAStatistics extends LassoAnalysisStatistics {
   @SuppressWarnings("unused")
   private final DCACPA dynamicCompositeAutomatonCPA;
 
-  final Timer argUpdate = new Timer();
+  final Timer refinementTotalTimer = new Timer();
 
   public DCAStatistics(DCACPA pDynamicCompositeAutomatonCPA) {
     dynamicCompositeAutomatonCPA = pDynamicCompositeAutomatonCPA;
@@ -48,12 +48,12 @@ class DCAStatistics extends LassoAnalysisStatistics {
   @Override
   @Nullable
   public String getName() {
-    return "ARG path refiner";
+    return "DCARefiner";
   }
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    pOut.println("  ARG update:                         " + argUpdate);
+    pOut.println("  Refinment total time:      " + refinementTotalTimer);
     pOut.println();
   }
 }
