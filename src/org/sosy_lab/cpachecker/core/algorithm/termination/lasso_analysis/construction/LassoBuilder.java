@@ -212,6 +212,11 @@ public class LassoBuilder {
       }
     }
 
+    return createStemAndLoop(stemEdges, loopEdges);
+  }
+
+  public StemAndLoop createStemAndLoop(List<CFAEdge> stemEdges, List<CFAEdge> loopEdges)
+      throws CPATransferException, InterruptedException {
     PathFormula stemPathFormula = pathFormulaManager.makeFormulaForPath(stemEdges);
     PathFormula loopPathFormula = pathFormulaManager.makeEmptyPathFormula(stemPathFormula);
     SSAMapBuilder loopInVars = stemPathFormula.getSsa().builder();
@@ -238,6 +243,16 @@ public class LassoBuilder {
       throws InterruptedException, TermException, SolverException {
     Dnf stemDnf = toDnf(pStemAndLoop.getStem(), Result.empty(fmgr));
     Dnf loopDnf = toDnf(pStemAndLoop.getLoop(), stemDnf.getUfEliminationResult());
+    return createLassos(pStemAndLoop, stemDnf, loopDnf, pRelevantVariables, true);
+  }
+
+  public Collection<Lasso> createLassos(
+      StemAndLoop pStemAndLoop,
+      Dnf stemDnf,
+      Dnf loopDnf,
+      ImmutableMap<String, CVariableDeclaration> pRelevantVariables,
+      boolean checkSat)
+      throws InterruptedException, TermException, SolverException {
     InOutVariables stemRankVars =
         extractRankVars(
             stemDnf,
@@ -295,14 +310,18 @@ public class LassoBuilder {
     return polyhedra;
   }
 
-  private Dnf toDnf(BooleanFormula path, UfElimination.Result eliminatedUfs)
+  public Dnf toDnf(BooleanFormula pFormula) throws InterruptedException {
+    return toDnf(pFormula, Result.empty(fmgr));
+  }
+
+  public Dnf toDnf(BooleanFormula pFormula, UfElimination.Result eliminatedUfs)
       throws InterruptedException {
 
     BooleanFormula simplified;
     if (simplify) {
-      simplified = fmgrView.simplify(path);
+      simplified = fmgrView.simplify(pFormula);
     } else {
-      simplified = path;
+      simplified = pFormula;
     }
 
     BooleanFormula withoutDivAndMod = transformRecursively(divAndModElimination, simplified);
@@ -413,7 +432,7 @@ public class LassoBuilder {
     }
   }
 
-  private static class StemAndLoop {
+  public static class StemAndLoop {
 
     private final PathFormula stem;
     private final PathFormula loop;
@@ -450,7 +469,7 @@ public class LassoBuilder {
     }
   }
 
-  private static class Dnf {
+  public static class Dnf {
 
     private final ImmutableSet<BooleanFormula> clauses;
     private final Result ufEliminationResult;

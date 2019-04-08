@@ -81,7 +81,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
 
-class RankingRelationBuilder {
+public class RankingRelationBuilder {
 
   private final LogManager logger;
 
@@ -97,7 +97,7 @@ class RankingRelationBuilder {
 
   private final FormulaCreator<Term, ?, ?, ?> formulaCreator;
 
-  RankingRelationBuilder(
+  public RankingRelationBuilder(
       MachineModel pMachineModel,
       LogManager pLogger,
       FormulaManagerView pFormulaManagerView,
