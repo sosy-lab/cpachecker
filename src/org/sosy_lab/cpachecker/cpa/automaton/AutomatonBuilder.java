@@ -31,14 +31,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.CParserWithLocationMapper;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
@@ -50,25 +46,15 @@ public class AutomatonBuilder {
   private static final String AUTOMATON_PRE_NAME = "ItpAut";
 
   private final LogManager logger;
-  private MachineModel machineModel;
   private CProgramScope scope;
   private CParser parser;
   private FormulaManagerView formulaManagerView;
   private FormulaToCExpressionConverter formulaToCConverter;
 
-  public AutomatonBuilder(
-      FormulaManagerView pFormulaManagerView,
-      CFA pCFA,
-      Configuration pConfig,
-      LogManager pLogger)
-      throws InvalidConfigurationException {
+  public AutomatonBuilder(FormulaManagerView pFormulaManagerView, CFA pCFA, LogManager pLogger) {
     formulaManagerView = pFormulaManagerView;
     logger = pLogger;
-    machineModel = pCFA.getMachineModel();
     scope = new CProgramScope(pCFA, pLogger);
-    CParser parser2 =
-        CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(pConfig), machineModel);
-    parser = new CParserWithLocationMapper(pConfig, logger, parser2, false);
     formulaToCConverter = new FormulaToCExpressionConverter(formulaManagerView);
   }
 
