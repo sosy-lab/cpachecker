@@ -521,8 +521,6 @@ final class VariableAndFieldRelevancyComputer {
           if (statement instanceof CAssignment) {
             final CAssignment assignment = (CAssignment) statement;
             final CRightHandSide rhs = assignment.getRightHandSide();
-            if(assignment.toString().contains("emm_sap_1648.u.emm_as.u.cell_info.plmnIDs.n_plmns = 1;"))
-              System.out.println(assignment.toString()+" ");
             final Pair<VariableOrField, VarFieldDependencies> r =
                 assignment.getLeftHandSide().accept(CollectingLHSVisitor.create(pCfa));
             if (rhs instanceof CExpression || rhs instanceof CFunctionCallExpression) {

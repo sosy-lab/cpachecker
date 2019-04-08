@@ -271,7 +271,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
       CExpression nameExp = fExp.getFunctionNameExpression();
       CFunctionType func = (CFunctionType) nameExp.getExpressionType().getCanonicalType();
       logger.log(Level.FINEST, "Function pointer call", fExp);
-      System.out.println(fExp.toString()+":"+ nameExp);
+      //System.out.println(fExp.toString()+":"+ nameExp);
       Collection<CFunctionEntryNode> funcs = getTargets(nameExp, func, targetFunctionsProvider);
 
       // need only to remove the symbol "*"

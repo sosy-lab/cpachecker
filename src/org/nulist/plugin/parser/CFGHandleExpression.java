@@ -835,7 +835,8 @@ public class CFGHandleExpression {
             CSimpleDeclaration variableDeclaration = variableDeclarations.get(value_ast.pretty_print().hashCode());
             return getAssignedIdExpression(variableDeclaration, valueType, fileLoc);
         }else if(isValue(value_ast)){//a=2;
-
+            if(valueType instanceof CTypedefType)
+                valueType = ((CTypedefType) valueType).getRealType();
             CBasicType basicType = ((CSimpleType) valueType).getType();
             if (basicType == CBasicType.FLOAT || basicType == CBasicType.DOUBLE) {
                 //BigDecimal.valueOf(value_ast.get(ast_ordinal.getBASE_VALUE()).as_flt32());
@@ -1418,10 +1419,10 @@ public class CFGHandleExpression {
                 if(isConstantAggreateZeroFromUC(subconstant)){
                     rightInitializer = getZeroInitializer(elementType,fileLoc);
                 }else if(subconstant.is_a(ast_class.getUC_AGGREGATE())){
-                    rightInitializer = getConstantAggregateInitializerFromUC(subconstant,elementType, fileLoc);
+                    rightInitializer = getConstantAggregateInitializer(subconstant, fileLoc);
                 }else if(subconstant.is_a(ast_class.getUC_CONSTANT_DYNAMIC_INITIALIZATION())){
                     ast dynamicInit = subconstant.get(ast_ordinal.getUC_DYNAMIC_INIT()).as_ast();
-                    rightInitializer = getInitializerFromUC(dynamicInit, elementType, fileLoc);
+                    rightInitializer = getInitializer(dynamicInit, fileLoc);
                 }else {
                     CExpression expression = getConstantFromUC(subconstant, elementType, fileLoc);
                     rightInitializer = new CInitializerExpression(fileLoc, expression);
@@ -1431,14 +1432,14 @@ public class CFGHandleExpression {
                 if(isConstantAggreateZeroFromUC(elementAST)){
                     elementInitializer =
                             getZeroInitializer(elementType, fileLoc);
-                }else if(elementAST.is_a(ast_class.getUC_AGGREGATE())){
-                    elementInitializer = getConstantAggregateInitializerFromUC(elementAST, elementType, fileLoc);
+                }else if(elementAST.is_a(ast_class.getNC_EXPRS())){
+                    elementInitializer = getConstantAggregateInitializer(elementAST, fileLoc);
                 } else if(elementAST.is_a(ast_class.getUC_CONSTANT_DYNAMIC_INITIALIZATION())){
                     ast dynamicInit = elementAST.get(ast_ordinal.getUC_DYNAMIC_INIT()).as_ast();
-                    elementInitializer = getInitializerFromUC(dynamicInit, elementType, fileLoc);
+                    elementInitializer = getInitializer(dynamicInit, fileLoc);
                 }else {
                     elementInitializer = new CInitializerExpression(
-                            fileLoc, getConstantFromUC(elementAST, elementType,fileLoc));
+                            fileLoc, (CExpression) getConstant(elementAST, elementType,fileLoc));
                 }
             }
             index++;
@@ -1531,12 +1532,12 @@ public class CFGHandleExpression {
             ast elementAST = constantList.children().get(i).as_ast();
             CInitializer elementInitializer;
             CType elementType;
-            if(aggregateType instanceof CCompositeType)
-                elementType = ((CCompositeType) aggregateType).getMembers().get(index).getType();
-            else if(aggregateType instanceof CArrayType)
-                elementType = ((CArrayType) aggregateType).getType();
-            else
-                throw new RuntimeException("Not support type");
+//            if(aggregateType instanceof CCompositeType)
+//                elementType = ((CCompositeType) aggregateType).getMembers().get(index).getType();
+//            else if(aggregateType instanceof CArrayType)
+//                elementType = ((CArrayType) aggregateType).getType();
+//            else
+//                throw new RuntimeException("Not support type");
             if(elementAST.is_a(ast_class.getUC_DESIGNATOR())){
                 List<CDesignator> designatorList = new ArrayList<>();
                 String field  = elementAST.get(ast_ordinal.getUC_FIELD()).as_ast().pretty_print();
@@ -1551,7 +1552,7 @@ public class CFGHandleExpression {
                 if(i+1<length){
                     i++;
                     ast subconstant = constantList.children().get(i).as_ast();
-                    //CType type = typeConverter.getCType(subconstant.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
+                    elementType = typeConverter.getCType(subconstant.get(ast_ordinal.getBASE_TYPE()).as_ast(), this);
                     if(isConstantAggreateZeroFromUC(subconstant)){
                         rightInitializer = getZeroInitializer(elementType,fileLoc);
                     }else if(subconstant.is_a(ast_class.getUC_AGGREGATE())){
@@ -1567,7 +1568,7 @@ public class CFGHandleExpression {
                 elementInitializer = new CDesignatedInitializer(fileLoc, designatorList, rightInitializer);
             }else {
                 ast elementType_ast = elementAST.get(ast_ordinal.getBASE_TYPE()).as_ast();
-                //CType elementType1 = typeConverter.getCType(elementType_ast, this);
+                elementType = typeConverter.getCType(elementType_ast, this);
                 if(isConstantAggreateZeroFromUC(elementAST)){
                     elementInitializer =
                             getZeroInitializer(elementType, fileLoc);

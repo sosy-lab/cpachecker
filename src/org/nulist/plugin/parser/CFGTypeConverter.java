@@ -337,8 +337,6 @@ public class CFGTypeConverter {
             typeName = handleUnnamedType(type);
             structName = "";
         }
-        if(structName.contains("memory_pool_item_s"))
-            System.out.println();
 
         ast struct_type = getStructType(type);
 

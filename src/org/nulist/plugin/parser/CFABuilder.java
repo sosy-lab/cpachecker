@@ -229,12 +229,15 @@ public class CFABuilder {
                     varType = typeConverter.convertCFuntionType(varType, variableName, fileLocation);
                 }
 
-                if(variableName.equals("mme_app_desc"))
-                    System.out.println();
+
                 CInitializer initializer = null;
                 if(init.is_a(ast_class.getUC_STATIC_INITIALIZER())){
                     //System.out.println(un_ast.toString());
-                    if(un_ast.pretty_print().equals("mcc_mnc_list")){//can only get error from codesurfer CFG
+                    if(variableName.equals("mme_app_desc")){
+                        ast no_ast = node.get_ast(ast_family.getC_NORMALIZED());
+                        ast orginal = no_ast.get(ast_ordinal.getNC_ORIGINAL()).as_ast();
+                        initializer = expressionHandler.getInitializerFromOriginal(orginal.children().get(1).as_ast(),varType,fileLocation);
+                    } else if(un_ast.pretty_print().equals("mcc_mnc_list")){//can only get error from codesurfer CFG
                         //read from txt
                         initializer = expressionHandler.getInitializerFromTXT(varType,fileLocation);
                     }else{

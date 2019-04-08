@@ -109,8 +109,6 @@ public final class CInitializers {
       return ImmutableList.of(assignment);
 
     } else if (init instanceof CInitializerList) {
-      if(init.toString().contains("{NASprocess, 8, {{-ueid, <ueid>}}"))
-        System.out.println(init.toString());
       return handleInitializerList(lhs, (CInitializerList)init,
           decl.getFileLocation(), edge);
 

@@ -995,9 +995,6 @@ public class CFGFunctionBuilder  {
                     (CFunctionDeclaration) ((CIdExpression)funcNameExpr).getDeclaration());
         }
 
-        if(functionCallExpression.getFunctionNameExpression().getExpressionType() instanceof CPointerType)
-            System.out.println();
-
         CFunctionCall functionCallStatement;
 
         nextNode = handleAllSideEffects(nextCFGNode);
