@@ -92,7 +92,7 @@ public class Ltl2BuechiConverter {
     checkNotNull(pFormula);
 
     StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula, pLogger).createHoaAutomaton();
-    return LtlParserUtils.transform(hoaAutomaton, pConfig, pLogger, pMachineModel, pScope);
+    return LtlParserUtils.convertFromHOAFormat(hoaAutomaton, pConfig, pLogger, pMachineModel, pScope);
   }
 
   /**
@@ -108,7 +108,11 @@ public class Ltl2BuechiConverter {
     checkNotNull(pFormula);
 
     StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula, pLogger).createHoaAutomaton();
-    return LtlParserUtils.transform(hoaAutomaton);
+    return LtlParserUtils.convertFromHOAFormat(hoaAutomaton);
+  }
+
+  public static String getNameOfExecutable() {
+    return EXECUTABLE.getToolName();
   }
 
   /**

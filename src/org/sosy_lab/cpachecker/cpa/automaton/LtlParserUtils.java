@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import jhoafparser.ast.AtomLabel;
 import jhoafparser.ast.BooleanExpression;
 import jhoafparser.ast.BooleanExpression.Type;
@@ -51,21 +52,22 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 
 public class LtlParserUtils {
 
   /**
-   * Takes a {@link jhoafparser.storage.StoredAutomaton} (i.e., an automaton in HOA-format) as
-   * argument and transforms that into an {@link org.sosy_lab.cpachecker.cpa.automaton.Automaton}.
+   * Takes a {@link StoredAutomaton} (an automaton in HOA-format) as argument and transforms that
+   * into an {@link Automaton}.
    *
    * @param pStoredAutomaton the storedAutomaton created by parsing an input in HOA-format.
    * @return an automaton from the automaton-framework in CPAchecker
    * @throws LtlParseException if the transformation fails either due to some false values in {@code
    *     pStoredAutomaton} or because of an erroneous config.
    */
-  public static Automaton transform(
+  public static Automaton convertFromHOAFormat(
       StoredAutomaton pStoredAutomaton,
       Configuration pConfig,
       LogManager pLogger,
@@ -73,17 +75,19 @@ public class LtlParserUtils {
       Scope pScope)
       throws LtlParseException {
     return new HoaToAutomatonTransformer(pStoredAutomaton, pConfig, pLogger, pMachineModel, pScope)
-        .doTransform();
+        .doConvert();
   }
 
   /**
-   * Produces an {@link Automaton} from an HOA-formatted {@link StoredAutomaton}, without having to
-   * provide a logger, machine-model and scope.
+   * Produces an {@link Automaton} from a {@link StoredAutomaton} (an automaton in HOA-format)
+   * without requiring a logger, machine-model and scope.
    *
-   * <p>This method is mainly used for testing the transformation outside of CPAchecker.
+   * <p>
+   * This method is mainly used for testing the transformation outside of CPAchecker.
    */
-  public static Automaton transform(StoredAutomaton pStoredAutomaton) throws LtlParseException {
-    return new HoaToAutomatonTransformer(pStoredAutomaton).doTransform();
+  public static Automaton convertFromHOAFormat(StoredAutomaton pStoredAutomaton)
+      throws LtlParseException {
+    return new HoaToAutomatonTransformer(pStoredAutomaton).doConvert();
   }
 
   private static class HoaToAutomatonTransformer {
@@ -128,16 +132,18 @@ public class LtlParserUtils {
       }
     }
 
-    private Automaton doTransform() throws LtlParseException {
+    private Automaton doConvert() throws LtlParseException {
 
       StoredHeader storedHeader = storedAutomaton.getStoredHeader();
 
-      List<NameAndExtra<List<Object>>> accNames = storedHeader.getAcceptanceNames();
-      if (!Iterables.getOnlyElement(accNames).name.equals("Buchi")) {
+      NameAndExtra<List<Object>> accName =
+          Iterables.getOnlyElement(storedHeader.getAcceptanceNames());
+      if (!accName.name.equals("Buchi")) {
         throw new LtlParseException(
             String.format(
-                "Only 'Buchi'-acceptance is allowed, but instead the following was found: %s",
-                accNames));
+                "Only 'Buchi'-acceptance is allowed, but instead the following was found: %s (%s)",
+                accName.name,
+                accName.extra.toString()));
       }
 
       String accCond = storedHeader.getAcceptanceCondition().toStringInfix();
@@ -145,16 +151,25 @@ public class LtlParserUtils {
         throw new LtlParseException(
             String.format(
                 "The only allowed acceptance-condition is %s, but instead the following was found: %s",
-                "Inf(0)", accCond));
+                "Inf(0)",
+                accCond));
       }
 
       ImmutableSet<String> requiredProperties =
-          ImmutableSet.of("trans-labels", "explicit-labels", "state-acc", "no-univ-branch");
+          ImmutableSet.of(
+              "complete",
+              "deterministic",
+              "trans-labels",
+              "explicit-labels",
+              "state-acc",
+              "no-univ-branch");
+      // The automaton should only contain properties which are included in the above list
       if (!storedHeader.getProperties().stream().allMatch(x -> requiredProperties.contains(x))) {
         throw new LtlParseException(
             String.format(
                 "The storedAutomaton-param may only contain %s as properties, but instead the following were found: %s",
-                requiredProperties, storedHeader.getProperties()));
+                requiredProperties,
+                storedHeader.getProperties()));
       }
 
       List<Integer> initStateList = Iterables.getOnlyElement(storedHeader.getStartStates());
@@ -166,7 +181,8 @@ public class LtlParserUtils {
       if (numAccSets != 1) {
         throw new LtlParseException(
             String.format(
-                "Only one acceptance set was expected, but instead %d were found", numAccSets));
+                "Only one acceptance set was expected, but instead %d were found",
+                numAccSets));
       }
 
       try {
@@ -178,43 +194,56 @@ public class LtlParserUtils {
 
           for (StoredEdgeWithLabel edge : storedAutomaton.getEdgesWithLabel(i)) {
             int successorStateId = Iterables.getOnlyElement(edge.getConjSuccessors()).intValue();
-            String successorName = storedAutomaton.getStoredState(successorStateId).getInfo();
+            String successorName = getStateName(storedAutomaton.getStoredState(successorStateId));
 
             transitionList.addAll(getTransitions(edge.getLabelExpr(), successorName));
           }
 
-          boolean isAcceptingState = false;
+          boolean isTargetState = false;
           if (storedState.getAccSignature() != null) {
             int accSig = Iterables.getOnlyElement(storedState.getAccSignature());
-            isAcceptingState = accSig == 0;
-            if (!isAcceptingState) {
+            isTargetState = accSig == 0;
+            if (!isTargetState) {
               throw new LtlParseException(
                   String.format(
-                      "Automaton state has an acceptance signature, but the value is different to what was expected (expected: 0, actual: %d",
+                      "Automaton state has an acceptance signature, but the value is different to the exptected value (expected: 0, actual: %d",
                       accSig));
             }
           }
 
           stateList.add(
               new AutomatonInternalState(
-                  storedState.getInfo(), transitionList, false, true, false, isAcceptingState));
+                  getStateName(storedState),
+                  transitionList,
+                  isTargetState,
+                  true,
+                  false));
         }
 
         StoredState initState =
             storedAutomaton.getStoredState(Iterables.getOnlyElement(initStateList).intValue());
-        return new Automaton(BUECHI_AUTOMATON, ImmutableMap.of(), stateList, initState.getInfo());
+        return new Automaton(
+            BUECHI_AUTOMATON,
+            ImmutableMap.of(),
+            stateList,
+            getStateName(initState));
 
       } catch (InvalidAutomatonException e) {
         throw new RuntimeException(
-            "The passed storedAutomaton-parameter produces an inconsistent automaton", e);
+            "The passed storedAutomaton-parameter produces an inconsistent automaton",
+            e);
       } catch (UnrecognizedCodeException e) {
         throw new LtlParseException(e.getMessage(), e);
       }
     }
 
-    private List<AutomatonTransition> getTransitions(
-        BooleanExpression<AtomLabel> pLabelExpr, String pSuccessorName)
-        throws LtlParseException, UnrecognizedCodeException {
+    private String getStateName(StoredState pState) {
+      return pState.getInfo() != null ? pState.getInfo() : String.valueOf(pState.getStateId());
+    }
+
+    private List<AutomatonTransition>
+        getTransitions(BooleanExpression<AtomLabel> pLabelExpr, String pSuccessorName)
+            throws LtlParseException, UnrecognizedCodeException {
       ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
 
       switch (pLabelExpr.getType()) {
@@ -271,13 +300,21 @@ public class LtlParserUtils {
         sourceAST = CParserUtils.parseSingleStatement(pExpression, parser, scope);
       } catch (InvalidAutomatonException e) {
         throw new LtlParseException(
-            String.format("Error in literal of ltl-formula: %s", e.getMessage()), e);
+            String.format("Error in literal of ltl-formula: %s", e.getMessage()),
+            e);
       }
-      return ((CExpressionStatement) sourceAST).getExpression();
+      CExpression expression = ((CExpressionStatement) sourceAST).getExpression();
+      if (expression.getExpressionType() instanceof CProblemType) {
+        logger.log(
+            Level.WARNING,
+            "The parsed expression is of type 'CProblemType', "
+                + "most likely because it depends on an unresolved name within the c-code");
+      }
+      return expression;
     }
 
-    private AutomatonTransition createTransition(
-        List<AExpression> pAssumptions, String pFollowStateName) {
+    private AutomatonTransition
+        createTransition(List<AExpression> pAssumptions, String pFollowStateName) {
       return new AutomatonTransition(
           AutomatonBoolExpr.TRUE,
           ImmutableList.of(),
