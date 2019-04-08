@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.dca;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
@@ -30,6 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.MoreCollectors;
 import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
 import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
@@ -38,7 +40,6 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -56,6 +57,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.termination.ClassVariables;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysis;
@@ -65,8 +67,11 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.Ranking
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder.Dnf;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder.StemAndLoop;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -75,6 +80,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.StronglyConnectedComponent;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+//import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBuilder;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
@@ -88,8 +95,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.SolverContextFactory;
@@ -105,8 +110,8 @@ public class DCARefiner implements Refiner, StatisticsProvider {
 
   private static final Solvers SMTINTERPOL = Solvers.SMTINTERPOL;
 
-  @SuppressWarnings("unused")
-  private final ARGCPA argCpa;
+  private final ARGCPA argCPA;
+  private final DCACPA dcaCPA;
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -117,21 +122,28 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   private final LassoAnalysis lassoAnalysis;
   private final LassoBuilder lassoBuilder;
   private final Solver solver;
-  private final AbstractFormulaManager<Term, ?, ?, ?> formulaManager;
   private final FormulaManagerView formulaManagerView;
   private final InterpolationManager interpolationManager;
+  // private final AutomatonBuilder automatonBuilder;
+
+  private int refinementCounter;
 
   @Option(
     secure = false,
-    name = "skipRefinement",
-    description = "Allows to abort the refinement early in order to only produce the ARG for debugging purposes")
-  private boolean skipRefinement = false;
+    description = "Allows to abort the analysis early in order to only produce the ARG")
+  private boolean skipAnalysis = false;
 
-  private ARGState rootState;
+  @Option(
+    secure = false,
+    description = "Abort the refinement of finite prefixes for the purpose of better debugging")
+  private boolean skipFiniteRefinement = false;
+
+  private ReachedSet reached;
 
   @SuppressWarnings({"resource", "unchecked"})
   private DCARefiner(
       final ARGCPA pArgCpa,
+      final DCACPA pDcaCpa,
       final CFA pCfa,
       final LogManager pLogger,
       final ShutdownNotifier pNotifier,
@@ -139,7 +151,8 @@ public class DCARefiner implements Refiner, StatisticsProvider {
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    argCpa = checkNotNull(pArgCpa);
+    argCPA = checkNotNull(pArgCpa);
+    dcaCPA = checkNotNull(pDcaCpa);
     cfa = checkNotNull(pCfa);
     logger = checkNotNull(pLogger);
     shutdownNotifier = checkNotNull(pNotifier);
@@ -148,7 +161,8 @@ public class DCARefiner implements Refiner, StatisticsProvider {
 
     SolverContext solverContext =
         SolverContextFactory.createSolverContext(pConfig, pLogger, pNotifier, SMTINTERPOL);
-    formulaManager = (AbstractFormulaManager<Term, ?, ?, ?>) solverContext.getFormulaManager();
+    AbstractFormulaManager<Term, ?, ?, ?> formulaManager =
+        (AbstractFormulaManager<Term, ?, ?, ?>) solverContext.getFormulaManager();
     SolverContextFactory solverContextFactory =
         new SolverContextFactory(pConfig, pLogger, pNotifier);
     solver = Solver.create(solverContextFactory, SMTINTERPOL, solverContext, pConfig, pLogger);
@@ -198,6 +212,9 @@ public class DCARefiner implements Refiner, StatisticsProvider {
             pConfig,
             pNotifier,
             pLogger);
+
+    // automatonBuilder = AutomatonBuilder.Factory(formulaManagerView, cfa, pConfig, logger);
+    refinementCounter = 0;
   }
 
   @SuppressWarnings("resource")
@@ -208,6 +225,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
       throws InvalidConfigurationException {
 
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, DCARefiner.class);
+    DCACPA dcaCpa = CPAs.retrieveCPAOrFail(pCpa, DCACPA.class, DCARefiner.class);
     PredicateCPA predicateCpa = CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, DCARefiner.class);
 
     Configuration config = predicateCpa.getConfiguration();
@@ -216,274 +234,272 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.copyFrom(config).setOption("solver.solver", SMTINTERPOL.name());
 
-    return new DCARefiner(argCpa, cfa, pLogger, pNotifier, configBuilder.build());
+    return new DCARefiner(
+        argCpa,
+        dcaCpa,
+        cfa,
+        pLogger,
+        pNotifier,
+        configBuilder.build());
   }
 
   @Override
   public boolean performRefinement(final ReachedSet pReached)
       throws CPAException, InterruptedException {
-    if (skipRefinement) {
-      logger.logf(Level.WARNING, "Received flag to skip the refinement. Aborting analysis...");
+    if (skipAnalysis) {
+      logger.logf(Level.SEVERE, "Received flag to skip the refinement. Aborting analysis...");
       return false;
     }
 
+    logger.log(Level.INFO, String.format("Analyzing the reached set..."));
     statistics.argUpdate.start();
     try {
-      performRefinement0(pReached);
+      return performRefinement0(pReached);
     } finally {
+      logger.log(Level.INFO, String.format("Finished analyzing the reached set."));
       statistics.argUpdate.stop();
     }
-    return false;
   }
 
-  private void performRefinement0(final ReachedSet pReached)
+  private boolean performRefinement0(final ReachedSet pReached)
       throws InterruptedException, CPAException {
+    reached = pReached;
 
-    rootState = (ARGState) pReached.getFirstState();
+    shutdownNotifier.shutdownIfNecessary();
+    Set<StronglyConnectedComponent> SCCs =
+        ARGUtils.retrieveSCCs(reached)
+            .stream()
+            .filter(x -> x.getNodes().size() > 1)
+            .filter(StronglyConnectedComponent::hasTargetStates)
+            .collect(ImmutableSet.toImmutableSet());
 
-    while (true) {
+    logger.log(Level.INFO, String.format("Found %d SCC(s) with target-states", SCCs.size()));
+
+    for (StronglyConnectedComponent scc : SCCs) {
+
       shutdownNotifier.shutdownIfNecessary();
+      List<List<ARGState>> sscCycles = ARGUtils.retrieveSimpleCycles(scc.getNodes(), reached);
+      logger.log(Level.INFO, String.format("Found %d cycle(s) in current SCC", sscCycles.size()));
 
-      // Retrieve all SCCs from the reached set that contain at least one target state
-      Set<StronglyConnectedComponent> SCCs =
-          ARGUtils.retrieveSCCs(pReached)
-              .stream()
-              .filter(x -> x.getNodes().size() > 1)
-              .filter(x -> x.hasTargetStates())
-              .collect(ImmutableSet.toImmutableSet());
+      for (List<ARGState> cycle : sscCycles) {
+        logger.log(Level.INFO, String.format("Analyzing cycle: %s\n", printNodes(cycle)));
+        checkArgument(
+            cycle.stream().anyMatch(x -> x.isTarget()),
+            "Cycle does not contain a target");
 
-      if (SCCs.isEmpty()) {
-        // Reached set does not contain any cycles at all
-        // --> if ltl-prop is a liveness-prop, we're done here; i.e. program is safe
-        ARGState lastState = (ARGState) pReached.getLastState();
-        if (lastState == null) {
-          return;
-        }
-        checkNotNull(lastState);
+        shutdownNotifier.shutdownIfNecessary();
+        ARGState firstNodeInCycle = cycle.iterator().next();
+        ARGPath stemPath = ARGUtils.getShortestPathTo(firstNodeInCycle);
+        ARGPath loopPath = new ARGPath(cycle);
+        checkArgument(
+            loopPath.asStatesList().equals(cycle),
+            String.format(
+                "Nodes in cycle are not consistent to nodes in the ARGPath"
+                    + "\n(Nodes in cycle: %s)"
+                    + "\n(Nodes in loop: %s)",
+                printNodes(cycle),
+                printNodes(loopPath)));
+        logger.log(Level.INFO, String.format("Path to cycle: %s\n", printNodes(stemPath)));
+
         try {
-          // boolean feasiblePrefix = hasFeasibleFinitePrefixFromTo(rootState, lastState);
-          hasFeasibleFinitePrefixFromTo(rootState, lastState);
-          // TODO: handle result (i.e. sat or unsat)
-          return;
-        } catch (SolverException e) {
+          // create stem
+          List<PathFormula> stemPathFormulaList =
+              SlicingAbstractionsUtils.getFormulasForPath(
+                  pathFormulaManager,
+                  solver,
+                  (ARGState) reached.getFirstState(),
+                  stemPath.asStatesList(),
+                  false);
+          PathFormula stemPathFormula = createSinglePathFormula(stemPathFormulaList);
+
+          // create loop
+          List<PathFormula> loopPathFormulaList =
+              SlicingAbstractionsUtils.getFormulasForPath(
+                  pathFormulaManager,
+                  solver,
+                  firstNodeInCycle,
+                  loopPath.asStatesList(),
+                  stemPathFormula.getSsa(),
+                  Iterables.getLast(stemPathFormulaList).getPointerTargetSet(),
+                  false);
+          PathFormula loopPathFormula =
+              createSinglePathFormula(loopPathFormulaList, stemPathFormula);
+
+          // check stem prefixes for infeasibility
+          ImmutableList<BooleanFormula> stemBFList =
+              stemPathFormulaList.stream()
+                  .map(x -> x.getFormula())
+                  .collect(ImmutableList.toImmutableList());
+          if (isUnsat(stemBFList)) {
+            logger.log(Level.SEVERE, "Found unsat predicates in stem");
+            boolean refine = refineFinitePrefixes(stemPath, stemBFList);
+            if (refine) {
+              return true;
+            }
+          }
+
+          // check loop prefixes for infeasibility
+          ImmutableList<BooleanFormula> loopBFList =
+              loopPathFormulaList.stream()
+                  .map(x -> x.getFormula())
+                  .collect(ImmutableList.toImmutableList());
+          if (isUnsat(loopBFList)) {
+            logger.log(Level.SEVERE, "Found unsat predicates in loop");
+            boolean refine = refineFinitePrefixes(loopPath, loopBFList);
+            if (refine) {
+              return true;
+            }
+          }
+
+          // check stem and loop prefixes for infeasibility
+          ImmutableList<ARGState> stemAndLoopStates =
+              ImmutableList.<ARGState>builder()
+                  .addAll(stemPath.asStatesList())
+                  .addAll(loopPath.asStatesList().subList(1, loopPath.asStatesList().size()))
+                  .build();
+          ARGPath stemAndLoopPath = new ARGPath(stemAndLoopStates);
+          ImmutableList<BooleanFormula> stemAndLoopBFList =
+              ImmutableList.<BooleanFormula>builder()
+                  .addAll(stemBFList)
+                  .addAll(loopBFList.subList(1, loopBFList.size()))
+                  .build();
+          if (isUnsat(stemAndLoopBFList)) {
+            logger.log(Level.SEVERE, "Found unsat predicates in stem concatenated with loop");
+            boolean refine = refineFinitePrefixes(stemAndLoopPath, stemAndLoopBFList);
+            if (refine) {
+              return true;
+            }
+          }
+
+          // create lassos and check for ranking function
+          StemAndLoop stemAndLoop =
+              new LassoBuilder.StemAndLoop(
+                  stemPathFormula,
+                  loopPathFormula,
+                  stemPathFormula.getSsa());
+
+          Dnf stemDnf = lassoBuilder.toDnf(stemAndLoop.getStem());
+          Dnf loopDnf = lassoBuilder.toDnf(stemAndLoop.getLoop(), stemDnf.getUfEliminationResult());
+
+          LoopStructure loopStructure = cfa.getLoopStructure().get();
+          ImmutableList<Loop> loops =
+              loopStructure.getAllLoops()
+                  .stream()
+                  .filter(
+                      x -> cycle.stream()
+                          .map(AbstractStates::extractLocation)
+                          .allMatch(y -> x.getLoopNodes().contains(y)))
+                  .collect(ImmutableList.toImmutableList());
+          Loop loop = loops.iterator().next();
+
+          Set<CVariableDeclaration> varDeclarations = variables.getDeclarations(loop);
+          ImmutableMap<String, CVariableDeclaration> varDeclarationsForName =
+              Maps.uniqueIndex(varDeclarations, AVariableDeclaration::getQualifiedName);
+
+          shutdownNotifier.shutdownIfNecessary();
+          Collection<Lasso> lassos =
+              lassoBuilder
+                  .createLassos(stemAndLoop, stemDnf, loopDnf, varDeclarationsForName, false);
+
+          LassoAnalysisResult checkTermination =
+              lassoAnalysis.checkTermination(loop, lassos, varDeclarations);
+          if (checkTermination.hasNonTerminationArgument()) {
+            // feasible loop for CEX found
+            NonTerminationArgument nonTerminationArgument =
+                checkTermination.getNonTerminationArgument();
+            logger.logf(
+                Level.SEVERE,
+                "LassoRanker has non-termination argument: %s",
+                nonTerminationArgument.toString());
+          }
+          if (checkTermination.hasTerminationArgument()) {
+            RankingRelation terminationArgument = checkTermination.getTerminationArgument();
+            logger.logf(
+                Level.SEVERE,
+                "LassoRanker has termination argument %s",
+                terminationArgument.getSupportingInvariants().isEmpty()
+                    ? ""
+                    : "\nInvariants: " + terminationArgument.getSupportingInvariants());
+          }
+          if (checkTermination.isUnknown()) {
+            logger.logf(Level.SEVERE, "Argument from LassoRanker is unknown");
+          }
+        } catch (TermException | SolverException | SMTLIBException | IOException e) {
           logger.logfException(Level.SEVERE, e, e.getMessage());
           throw new CPAException(e.getMessage(), e);
         }
       }
-
-      if (!SCCs.isEmpty() && SCCs.stream().anyMatch(x -> !x.hasTargetStates())) {
-        // The SCCs in the ARG don't have a target state
-        // --> if ltl-prop is a liveness-prop, we're done here; i.e. program is safe
-        // TODO: otherwise - handle arg that has cycles, but none with a target state
-        ImmutableList<StronglyConnectedComponent> SCCsWithoutTarget =
-            SCCs.stream()
-                .filter(x -> !x.hasTargetStates())
-                .collect(ImmutableList.toImmutableList());
-        for (StronglyConnectedComponent scc : SCCsWithoutTarget) {
-
-          List<List<ARGState>> cycles =
-              ARGUtils.retrieveSimpleCycles(
-                  scc.getNodes(),
-                  Optional.of(
-                      pReached.asCollection()
-                          .stream()
-                          .map(x -> (ARGState) x)
-                          .collect(Collectors.toCollection(HashSet::new))));
-          for (List<ARGState> cycle : cycles) {
-            logger.log(
-                Level.WARNING,
-                String.format("Cycle without target-states in ssc: %s\n", printNodes(cycle)));
-          }
-        }
-        return;
-      }
-
-      for (StronglyConnectedComponent scc : SCCs) {
-
-        shutdownNotifier.shutdownIfNecessary();
-        List<List<ARGState>> sscCycles = ARGUtils.retrieveSimpleCycles(scc.getNodes());
-
-        for (List<ARGState> cycle : sscCycles) {
-          logger.log(Level.WARNING, String.format("Found cycle in scc: %s\n", printNodes(cycle)));
-
-          // Path to the first ARG-node in the cycle-set
-          ARGState firstNodeInCycle = cycle.iterator().next();
-
-          shutdownNotifier.shutdownIfNecessary();
-          ARGPath stemPath = ARGUtils.getShortestPathTo(firstNodeInCycle);
-          ARGPath loopPath = new ARGPath(cycle);
-          if (!loopPath.asStatesList().equals(cycle)) {
-            throw new RuntimeException(
-                String.format(
-                    "Nodes in cycle are not consistent to nodes in the ARGPath"
-                        + "\n(Nodes in cycle: %s)"
-                        + "\n(Nodes in loop: %s)",
-                    printNodes(cycle),
-                    printNodes(loopPath)));
-          }
-          logger.log(Level.WARNING, String.format("Path to cycle: %s\n", printNodes(stemPath)));
-
-          try {
-            // create stem
-            List<PathFormula> stemPathFormulaList =
-                SlicingAbstractionsUtils.getFormulasForPath(
-                    pathFormulaManager,
-                    solver,
-                    rootState,
-                    stemPath.asStatesList(),
-                    false);
-            PathFormula stemPathFormula = createSinglePathFormula(stemPathFormulaList);
-
-            // check stem prefixes for infeasibility
-            ImmutableList<BooleanFormula> stemBFList =
-                stemPathFormulaList.stream()
-                    .map(x -> x.getFormula())
-                    .collect(ImmutableList.toImmutableList());
-            if (isUnsat(stemBFList)) {
-              logger.log(Level.SEVERE, String.format("Found unsat predicates in stem\n"));
-              getCounterexampleTraceInfo(stemBFList);
-            }
-
-            // create loop
-            List<PathFormula> loopPathFormulaList =
-                SlicingAbstractionsUtils.getFormulasForPath(
-                    pathFormulaManager,
-                    solver,
-                    firstNodeInCycle,
-                    loopPath.asStatesList(),
-                    stemPathFormula.getSsa(),
-                    Iterables.getLast(stemPathFormulaList).getPointerTargetSet(),
-                    false);
-            PathFormula loopPathFormula =
-                createSinglePathFormula(loopPathFormulaList, stemPathFormula);
-
-            // check loop prefixes for infeasibility
-            ImmutableList<BooleanFormula> loopBFList =
-                loopPathFormulaList.stream()
-                    .map(x -> x.getFormula())
-                    .collect(ImmutableList.toImmutableList());
-            if (isUnsat(loopBFList)) {
-              logger.log(Level.SEVERE, String.format("Found unsat predicates in loop\n"));
-              getCounterexampleTraceInfo(loopBFList);
-            }
-
-            // check stem and loop prefixes for infeasibility
-            ImmutableList<BooleanFormula> stemAndLoopBFList =
-                ImmutableList.<BooleanFormula>builder()
-                    .addAll(stemBFList)
-                    .addAll(loopBFList.subList(1, loopBFList.size()))
-                    .build();
-
-            if (isUnsat(stemAndLoopBFList)) {
-              logger.log(
-                  Level.SEVERE,
-                  String.format("Found unsat predicates in stem concatenated with loop\n"));
-              getCounterexampleTraceInfo(stemAndLoopBFList);
-            }
-
-            // create lassos and check for ranking function
-            StemAndLoop stemAndLoop =
-                new LassoBuilder.StemAndLoop(
-                    stemPathFormula,
-                    loopPathFormula,
-                    stemPathFormula.getSsa());
-
-            Dnf stemDnf = lassoBuilder.toDnf(stemAndLoop.getStem());
-            Dnf loopDnf =
-                lassoBuilder.toDnf(stemAndLoop.getLoop(), stemDnf.getUfEliminationResult());
-
-            LoopStructure loopStructure = cfa.getLoopStructure().get();
-            ImmutableList<Loop> loops =
-                loopStructure.getAllLoops()
-                    .stream()
-                    .filter(
-                        x -> cycle.stream()
-                            .map(AbstractStates::extractLocation)
-                            .allMatch(y -> x.getLoopNodes().contains(y)))
-                    .collect(ImmutableList.toImmutableList());
-            Loop loop = loops.iterator().next();
-
-            Set<CVariableDeclaration> varDeclarations = variables.getDeclarations(loop);
-            ImmutableMap<String, CVariableDeclaration> varDeclarationsForName =
-                Maps.uniqueIndex(varDeclarations, AVariableDeclaration::getQualifiedName);
-
-            shutdownNotifier.shutdownIfNecessary();
-            Collection<Lasso> lassos =
-                lassoBuilder
-                    .createLassos(stemAndLoop, stemDnf, loopDnf, varDeclarationsForName, false);
-
-            for (Lasso lasso : lassos) {
-              LassoAnalysisResult checkTermination =
-                  lassoAnalysis.checkTermination(loop, ImmutableList.of(lasso), varDeclarations);
-              if (checkTermination.hasNonTerminationArgument()) {
-                // feasible loop for CEX found
-                @SuppressWarnings("unused")
-                NonTerminationArgument nonTerminationArgument =
-                    checkTermination.getNonTerminationArgument();
-                logger.logf(Level.SEVERE, "LassoRanker has non-termination argument");
-              }
-              if (checkTermination.hasTerminationArgument()) {
-                @SuppressWarnings("unused")
-                RankingRelation terminationArgument = checkTermination.getTerminationArgument();
-                logger.logf(Level.SEVERE, "LassoRanker has termination argument");
-              }
-              if (checkTermination.isUnknown()) {
-                logger.logf(Level.SEVERE, "Argument from LassoRanker is unknown");
-              }
-            }
-          } catch (TermException | SolverException | SMTLIBException | IOException e) {
-            logger.logfException(Level.SEVERE, e, e.getMessage());
-            throw new CPAException(e.getMessage(), e);
-          }
-        }
-      }
-
-      return;
-    }
-  }
-
-  private CounterexampleTraceInfo
-      getCounterexampleTraceInfo(ImmutableList<BooleanFormula> pBooleanFormulas)
-          throws CPAException, InterruptedException {
-    CounterexampleTraceInfo cexTraceInfo =
-        interpolationManager.buildCounterexampleTrace(new BlockFormulas(pBooleanFormulas));
-    logger.log(
-        Level.WARNING,
-        String.format(
-            "Distinct interpolants:\n%s",
-            cexTraceInfo.getInterpolants()
-                .stream()
-                .distinct()
-                .collect(ImmutableList.toImmutableList())));
-    return cexTraceInfo;
-  }
-
-  private boolean hasFeasibleFinitePrefixFromTo(ARGState from, ARGState to)
-      throws InterruptedException, CPAException, SolverException {
-    ARGPath path = ARGUtils.getShortestPathTo(to);
-    PathFormula pathFormula =
-        SlicingAbstractionsUtils.buildPathFormula(
-            from,
-            to,
-            path.asStatesList(),
-            SSAMap.emptySSAMap().withDefault(-1),
-            PointerTargetSet.emptyPointerTargetSet(),
-            solver,
-            pathFormulaManager,
-            false);
-    if (isUnsat(pathFormula.getFormula())) {
-      logger.log(Level.SEVERE, String.format("Found unsat predicates in path\n"));
-      return true;
     }
 
     return false;
   }
 
-  private boolean isUnsat(BooleanFormula formula) throws InterruptedException, SolverException {
-    return isUnsat(ImmutableList.of(formula));
+  private boolean refineFinitePrefixes(
+      @SuppressWarnings("unused") ARGPath pPath,
+      List<BooleanFormula> pBooleanFormulas)
+      throws CPAException, InterruptedException {
+    CounterexampleTraceInfo cexTraceInfo =
+        interpolationManager.buildCounterexampleTrace(new BlockFormulas(pBooleanFormulas));
+
+    List<BooleanFormula> interpolants = cexTraceInfo.getInterpolants();
+    Optional<BooleanFormula> interpolantOpt =
+        interpolants.stream()
+            .filter(x -> !formulaManagerView.getBooleanFormulaManager().isTrue(x))
+            .filter(x -> !formulaManagerView.getBooleanFormulaManager().isFalse(x))
+            .distinct()
+            .map(formulaManagerView::uninstantiate)
+            .collect(MoreCollectors.toOptional());
+    if (!interpolantOpt.isPresent()) {
+      logger.log(
+          Level.WARNING,
+          String.format(
+              "Could not find any interpolants to do a finite-prefixes refinement. "
+                  + "Skipping the process.",
+              interpolants));
+      return false;
+    }
+
+    logger.log(Level.WARNING, String.format("Interpolants:\n%s", interpolants));
+
+    // try {
+    Automaton itpAutomaton = null;
+    // automatonBuilder
+    // .buildInterpolantAutomaton(pPath, interpolants, interpolantOpt, refinementCounter);
+    // logger.log(Level.INFO, itpAutomaton.toString());
+
+      if (skipFiniteRefinement || refinementCounter > 0) {
+        return false;
+      }
+
+      dcaCPA.addAutomaton(itpAutomaton);
+
+      refinementCounter++;
+
+      reinitializeReachedSet();
+      logger.log(
+          Level.SEVERE,
+          String.format(
+              "Refining the arg with automaton using interpolant: %s",
+              interpolantOpt.get()));
+    // } catch (InvalidAutomatonException e) {
+    // logger.logfException(Level.SEVERE, e, e.getMessage());
+    // throw new CPAException(e.getMessage(), e);
+    // }
+
+    return true;
   }
 
-  private boolean isUnsat(List<BooleanFormula> formulas)
+  private void reinitializeReachedSet() throws InterruptedException {
+    reached.clear();
+
+    FunctionEntryNode mainFunction = cfa.getMainFunction();
+    StateSpacePartition defaultPartition = StateSpacePartition.getDefaultPartition();
+    AbstractState initialState = argCPA.getInitialState(mainFunction, defaultPartition);
+    Precision initialPrecision = argCPA.getInitialPrecision(mainFunction, defaultPartition);
+    reached.add(initialState, initialPrecision);
+  }
+
+  private boolean isUnsat(Collection<BooleanFormula> formulas)
       throws InterruptedException, SolverException {
     try (ProverEnvironment proverEnvironment = solver.newProverEnvironment()) {
       for (BooleanFormula formula : formulas) {
@@ -509,21 +525,16 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     }
 
     PathFormula lastListElement = Iterables.getLast(pPathFormulas);
-    if (!result.getSsa().equals(lastListElement.getSsa())) {
-      throw new RuntimeException(
-          String.format(
-              "Inconsistent SSA-map produced:" + "\n(actual: %s)" + "\n(expected %s)",
-              result.getSsa(),
-              lastListElement.getSsa()));
-    }
-
-    if (!result.getPointerTargetSet().equals(lastListElement.getPointerTargetSet())) {
-      throw new RuntimeException(
-          String.format(
-              "Inconsistent pointertarget-set produced:" + "\n(actual: %s)" + "\n(expected %s)",
-              result.getPointerTargetSet(),
-              lastListElement.getPointerTargetSet()));
-    }
+    checkArgument(
+        result.getSsa().equals(lastListElement.getSsa()),
+        "Inconsistent SSA-map produced:" + "\n(actual: %s)" + "\n(expected %s)",
+        result.getSsa(),
+        lastListElement.getSsa());
+    checkArgument(
+        result.getPointerTargetSet().equals(lastListElement.getPointerTargetSet()),
+        "Inconsistent pointertarget-set produced:" + "\n(actual: %s)" + "\n(expected %s)",
+        result.getPointerTargetSet(),
+        lastListElement.getPointerTargetSet());
 
     return result;
   }
