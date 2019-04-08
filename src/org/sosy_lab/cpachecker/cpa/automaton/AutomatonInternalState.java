@@ -60,8 +60,7 @@ public class AutomatonInternalState {
                   new StringExpression(""))),
           true,
           false,
-          false,
-          true) {
+          false) {
         @Override
         public String toString() {
           return "ERROR";
@@ -90,8 +89,6 @@ public class AutomatonInternalState {
   /** Outgoing transitions of this state. */
   private final ImmutableList<AutomatonTransition> transitions;
 
-  private final boolean isAcceptingState;
-
   private final boolean mIsTarget;
 
   /**
@@ -106,23 +103,12 @@ public class AutomatonInternalState {
       List<AutomatonTransition> pTransitions,
       boolean pIsTarget,
       boolean pAllTransitions,
-      boolean pIsCycleStart,
-      boolean isAcceptingState) {
+      boolean pIsCycleStart) {
     this.name = pName;
-    this.isAcceptingState = isAcceptingState;
     this.transitions = ImmutableList.copyOf(pTransitions);
     this.mIsTarget = pIsTarget;
     this.mAllTransitions = pAllTransitions;
     this.isCycleStart = pIsCycleStart;
-  }
-
-  public AutomatonInternalState(
-      String pName,
-      List<AutomatonTransition> pTransitions,
-      boolean pIsTarget,
-      boolean pAllTransitions,
-      boolean pIsCycleStart) {
-    this(pName, pTransitions, pIsTarget, pAllTransitions, pIsCycleStart, false);
   }
 
   public AutomatonInternalState(
@@ -139,10 +125,6 @@ public class AutomatonInternalState {
 
   public boolean isNonDetState() {
     return mAllTransitions;
-  }
-
-  public boolean isAcceptingState() {
-    return isAcceptingState;
   }
 
   public boolean isNontrivialCycleStart() {
@@ -184,10 +166,6 @@ public class AutomatonInternalState {
     }
 
     return false;
-  }
-
-  public boolean getDoesMatchAll() {
-    return mAllTransitions;
   }
 
   public ImmutableList<AutomatonTransition> getTransitions() {
