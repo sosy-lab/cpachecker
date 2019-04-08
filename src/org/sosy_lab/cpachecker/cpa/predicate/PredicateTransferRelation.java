@@ -306,7 +306,10 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
          * Add additional assumptions from an automaton state.
          */
         if (!options.ignoreStateAssumptions() && lElement instanceof AbstractStateWithAssumptions) {
-          element = strengthen(element, (AbstractStateWithAssumptions) lElement);
+          element = strengthen(element, (AbstractStateWithAssumptions) lElement, edge);
+          if (element == null) {
+            return Collections.emptySet();
+          }
         }
 
         if (options.strengthenWithFormulaReportingStates()
@@ -339,8 +342,8 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private PredicateAbstractState strengthen(
-      PredicateAbstractState pElement, AbstractStateWithAssumptions pAssumeElement)
-      throws CPATransferException, InterruptedException {
+      PredicateAbstractState pElement, AbstractStateWithAssumptions pAssumeElement, CFAEdge pEdge)
+      throws CPATransferException, InterruptedException, SolverException {
 
     PathFormula pf = pElement.getPathFormula();
 
@@ -378,6 +381,20 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
         } finally {
           pathFormulaTimer.stop();
         }
+      }
+    }
+
+    if (options.assumptionStrengtheningSatCheck()) {
+      PathFormula f = pathFormulaManager.makeFormulaForPath(Collections.singletonList(pEdge));
+      for (CExpression assumption :
+          from(pAssumeElement.getAssumptions()).filter(CExpression.class)) {
+        f = pathFormulaManager.makeAnd(f, assumption);
+      }
+      AbstractionFormula dummy = formulaManager.makeTrueAbstractionFormula(f);
+      if (formulaManager.unsat(dummy, f)) {
+        // if automaton has conflict with edge, do not return a successor
+        //        PredicateAbstractState.mkAbstractionState(f, pA, pAbstractionLocations);
+        return null;
       }
     }
 
