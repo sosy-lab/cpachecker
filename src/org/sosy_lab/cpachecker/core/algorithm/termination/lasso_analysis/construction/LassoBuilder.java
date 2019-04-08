@@ -137,10 +137,10 @@ public class LassoBuilder {
     bfmrView = fmgrView.getBooleanFormulaManager();
     pathFormulaManager = checkNotNull(pPathFormulaManager);
 
-    divAndModElimination = new DivAndModElimination(fmgrView, fmgr);
-    nonLinearMultiplicationElimination = new NonLinearMultiplicationElimination(fmgrView, fmgr);
+    divAndModElimination = new DivAndModElimination(fmgrView);
+    nonLinearMultiplicationElimination = new NonLinearMultiplicationElimination(fmgrView);
     ufElimination = SolverUtils.ufElimination(pFormulaManager);
-    ifThenElseElimination = new IfThenElseElimination(fmgrView, fmgr);
+    ifThenElseElimination = new IfThenElseElimination(fmgrView);
     equalElimination = new EqualElimination(fmgrView);
     notEqualAndNotInequalityElimination = new NotEqualAndNotInequalityElimination(fmgrView);
     dnfTransformation =
@@ -230,8 +230,7 @@ public class LassoBuilder {
     logger.logf(Level.FINE, "Stem formula %s", stemPathFormula.getFormula());
     logger.logf(Level.FINE, "Loop formula %s", loopPathFormula.getFormula());
 
-    StemAndLoop stemAndLoop = new StemAndLoop(stemPathFormula, loopPathFormula, loopInVars.build());
-    return stemAndLoop;
+    return new StemAndLoop(stemPathFormula, loopPathFormula, loopInVars.build());
   }
 
   private Collection<Lasso> createLassos(
@@ -307,13 +306,13 @@ public class LassoBuilder {
     }
 
     BooleanFormula withoutDivAndMod = transformRecursively(divAndModElimination, simplified);
-    BooleanFormula withoutNonLinearMutl =
+    BooleanFormula withoutNonLinearMult =
         transformRecursively(nonLinearMultiplicationElimination, withoutDivAndMod);
-    Result ufEliminationResult = ufElimination.eliminateUfs(withoutNonLinearMutl, eliminatedUfs);
+    Result ufEliminationResult = ufElimination.eliminateUfs(withoutNonLinearMult, eliminatedUfs);
     BooleanFormula withoutUfs =
         bfmrView.and(ufEliminationResult.getFormula(), ufEliminationResult.getConstraints());
     Map<Formula, Formula> ufSubstitution = ufEliminationResult.getSubstitution();
-    logger.logf(FINER, "Subsition of Ufs in lasso formula: %s", ufSubstitution);
+    logger.logf(FINER, "Substitution of Ufs in lasso formula: %s", ufSubstitution);
 
     BooleanFormula withoutIfThenElse = transformRecursively(ifThenElseElimination, withoutUfs);
     BooleanFormula nnf = fmgrView.applyTactic(withoutIfThenElse, Tactic.NNF);
@@ -339,17 +338,17 @@ public class LassoBuilder {
       SSAMap inSsa,
       SSAMap outSsa,
       ImmutableMap<String, CVariableDeclaration> pRelevantVariables) {
-    ImmutableMap<Formula, Formula> subsitution =
+    ImmutableMap<Formula, Formula> substitution =
         ImmutableMap.copyOf(pDnf.getUfEliminationResult().getSubstitution());
-    InOutVariablesCollector veriablesCollector =
+    InOutVariablesCollector variablesCollector =
         new InOutVariablesCollector(
-            fmgrView, inSsa, outSsa, pRelevantVariables.keySet(), subsitution);
-    fmgrView.visitRecursively(pDnf.getUfEliminationResult().getFormula(), veriablesCollector);
+            fmgrView, inSsa, outSsa, pRelevantVariables.keySet(), substitution);
+    fmgrView.visitRecursively(pDnf.getUfEliminationResult().getFormula(), variablesCollector);
 
     ImmutableMap<RankVar, Term> inRankVars =
-        createRankVars(veriablesCollector.getInVariables(), pRelevantVariables, subsitution);
+        createRankVars(variablesCollector.getInVariables(), pRelevantVariables, substitution);
     ImmutableMap<RankVar, Term> outRankVars =
-        createRankVars(veriablesCollector.getOutVariables(), pRelevantVariables, subsitution);
+        createRankVars(variablesCollector.getOutVariables(), pRelevantVariables, substitution);
 
     return new InOutVariables(inRankVars, outRankVars);
   }
