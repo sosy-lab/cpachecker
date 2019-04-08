@@ -31,7 +31,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -249,8 +248,7 @@ public class ARGToAutomatonConverter {
         } else {
           id = id(child);
         }
-        transitions.add(
-            new AutomatonTransition.Builder(locationQuery, id).build());
+        transitions.add(new AutomatonTransition.Builder(locationQuery, id).build());
         waitlist.add(child);
       }
 
@@ -258,10 +256,10 @@ public class ARGToAutomatonConverter {
         assert transitions.isEmpty();
         assert states.contains(AutomatonInternalState.ERROR);
       } else {
-      transitions.add(
-          new AutomatonTransition.Builder(
-              buildOtherwise(locationQueries),
-              AutomatonInternalState.BOTTOM).build());
+        transitions.add(
+            new AutomatonTransition.Builder(
+                buildOtherwise(locationQueries),
+                AutomatonInternalState.BOTTOM).build());
 
         boolean hasSeveralChildren = transitions.size() > 1;
         states.add(
