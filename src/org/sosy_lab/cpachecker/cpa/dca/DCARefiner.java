@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.MoreCollectors;
 import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
 import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
@@ -127,7 +126,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   private final InterpolationManager interpolationManager;
   private final AutomatonBuilder automatonBuilder;
 
-  private int refinementCounter;
+  private int curRefinementIteration = 0;
 
   @Option(
     secure = false,
@@ -138,6 +137,11 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     secure = false,
     description = "Abort the refinement of finite prefixes for the purpose of better debugging")
   private boolean skipFiniteRefinement = false;
+
+  @Option(
+    secure = false,
+    description = "Set number of refinements for the trace abstraction algorithm")
+  private int maxRefinementIterations = 0;
 
   private ReachedSet reached;
 
@@ -215,7 +219,6 @@ public class DCARefiner implements Refiner, StatisticsProvider {
             pLogger);
 
     automatonBuilder = new AutomatonBuilder(formulaManagerView, cfa, pConfig, logger);
-    refinementCounter = 0;
   }
 
   @SuppressWarnings("resource")
@@ -253,12 +256,12 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     }
 
     logger.log(Level.INFO, String.format("Analyzing the reached set..."));
-    statistics.argUpdate.start();
+    statistics.refinementTotalTimer.start();
     try {
       return performRefinement0(pReached);
     } finally {
       logger.log(Level.INFO, String.format("Finished analyzing the reached set."));
-      statistics.argUpdate.stop();
+      statistics.refinementTotalTimer.stop();
     }
   }
 
@@ -441,21 +444,32 @@ public class DCARefiner implements Refiner, StatisticsProvider {
         interpolationManager.buildCounterexampleTrace(new BlockFormulas(pBooleanFormulas));
 
     List<BooleanFormula> interpolants = cexTraceInfo.getInterpolants();
-    Optional<BooleanFormula> interpolantOpt =
+    ImmutableList<BooleanFormula> distinctInterpolants =
         interpolants.stream()
             .filter(x -> !formulaManagerView.getBooleanFormulaManager().isTrue(x))
             .filter(x -> !formulaManagerView.getBooleanFormulaManager().isFalse(x))
             .distinct()
             .map(formulaManagerView::uninstantiate)
-            .collect(MoreCollectors.toOptional());
+            .collect(ImmutableList.toImmutableList());
+    Optional<BooleanFormula> interpolantOpt =
+        Optional.ofNullable(distinctInterpolants.iterator().next());
     if (!interpolantOpt.isPresent()) {
       logger.log(
           Level.WARNING,
           String.format(
-              "Could not find any interpolants to do a finite-prefixes refinement. "
-                  + "Skipping the process.",
+              "Could not find any interpolants to do a finite-prefix refinement. "
+                  + "Skipping the process.\nInterpolants: %s",
               interpolants));
       return false;
+    }
+    if (distinctInterpolants.size() > 1) {
+      logger.log(
+          Level.SEVERE,
+          String.format(
+              "Found more than one interpolant to do a finite-prefix refinement. "
+                  + "\nInterpolants: %s",
+              interpolants));
+       return false;
     }
 
     logger.log(Level.WARNING, String.format("Interpolants:\n%s", interpolants));
@@ -463,16 +477,20 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     try {
       Automaton itpAutomaton =
           automatonBuilder
-              .buildInterpolantAutomaton(pPath, interpolants, interpolantOpt, refinementCounter);
+              .buildInterpolantAutomaton(
+                  pPath,
+                  interpolants,
+                  interpolantOpt,
+                  curRefinementIteration);
       logger.log(Level.INFO, itpAutomaton.toString());
 
-      if (skipFiniteRefinement || refinementCounter > 0) {
+      if (skipFiniteRefinement || curRefinementIteration >= maxRefinementIterations) {
         return false;
       }
 
       dcaCPA.addAutomaton(itpAutomaton);
 
-      refinementCounter++;
+      curRefinementIteration++;
 
       reinitializeReachedSet();
       logger.log(
