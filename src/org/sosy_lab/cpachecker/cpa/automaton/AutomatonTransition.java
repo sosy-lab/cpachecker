@@ -224,6 +224,78 @@ public class AutomatonTransition {
     }
   }
 
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((actions == null) ? 0 : actions.hashCode());
+    result = prime * result + ((assertion == null) ? 0 : assertion.hashCode());
+    result = prime * result + ((assumptions == null) ? 0 : assumptions.hashCode());
+    result = prime * result + ((followStateName == null) ? 0 : followStateName.hashCode());
+    result = prime * result + ((trigger == null) ? 0 : trigger.hashCode());
+    result =
+        prime * result
+            + ((violatedPropertyDescription == null) ? 0 : violatedPropertyDescription.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    AutomatonTransition other = (AutomatonTransition) obj;
+    if (actions == null) {
+      if (other.actions != null) {
+        return false;
+      }
+    } else if (!actions.equals(other.actions)) {
+      return false;
+    }
+    if (assertion == null) {
+      if (other.assertion != null) {
+        return false;
+      }
+    } else if (!assertion.equals(other.assertion)) {
+      return false;
+    }
+    if (assumptions == null) {
+      if (other.assumptions != null) {
+        return false;
+      }
+    } else if (!assumptions.equals(other.assumptions)) {
+      return false;
+    }
+    if (followStateName == null) {
+      if (other.followStateName != null) {
+        return false;
+      }
+    } else if (!followStateName.equals(other.followStateName)) {
+      return false;
+    }
+    if (trigger == null) {
+      if (other.trigger != null) {
+        return false;
+      }
+    } else if (!trigger.equals(other.trigger)) {
+      return false;
+    }
+    if (violatedPropertyDescription == null) {
+      if (other.violatedPropertyDescription != null) {
+        return false;
+      }
+    } else if (!violatedPropertyDescription.equals(other.violatedPropertyDescription)) {
+      return false;
+    }
+    return true;
+  }
+
   /**
    * Resolves the follow-state relation for this transition.
    */

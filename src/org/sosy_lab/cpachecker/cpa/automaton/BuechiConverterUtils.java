@@ -83,7 +83,7 @@ public class BuechiConverterUtils {
    * without requiring a logger, machine-model and scope.
    *
    * <p>
-   * This method is mainly used for testing the transformation outside of CPAchecker.
+   * This method can be used for testing the transformation outside of CPAchecker.
    */
   public static Automaton convertFromHOAFormat(StoredAutomaton pStoredAutomaton)
       throws LtlParseException {

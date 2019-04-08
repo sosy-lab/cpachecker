@@ -81,7 +81,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.StronglyConnectedComponent;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-//import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBuilder;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBuilder;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
@@ -124,7 +125,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   private final Solver solver;
   private final FormulaManagerView formulaManagerView;
   private final InterpolationManager interpolationManager;
-  // private final AutomatonBuilder automatonBuilder;
+  private final AutomatonBuilder automatonBuilder;
 
   private int refinementCounter;
 
@@ -213,7 +214,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
             pNotifier,
             pLogger);
 
-    // automatonBuilder = AutomatonBuilder.Factory(formulaManagerView, cfa, pConfig, logger);
+    automatonBuilder = new AutomatonBuilder(formulaManagerView, cfa, pConfig, logger);
     refinementCounter = 0;
   }
 
@@ -434,9 +435,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     return false;
   }
 
-  private boolean refineFinitePrefixes(
-      @SuppressWarnings("unused") ARGPath pPath,
-      List<BooleanFormula> pBooleanFormulas)
+  private boolean refineFinitePrefixes(ARGPath pPath, List<BooleanFormula> pBooleanFormulas)
       throws CPAException, InterruptedException {
     CounterexampleTraceInfo cexTraceInfo =
         interpolationManager.buildCounterexampleTrace(new BlockFormulas(pBooleanFormulas));
@@ -461,11 +460,11 @@ public class DCARefiner implements Refiner, StatisticsProvider {
 
     logger.log(Level.WARNING, String.format("Interpolants:\n%s", interpolants));
 
-    // try {
-    Automaton itpAutomaton = null;
-    // automatonBuilder
-    // .buildInterpolantAutomaton(pPath, interpolants, interpolantOpt, refinementCounter);
-    // logger.log(Level.INFO, itpAutomaton.toString());
+    try {
+      Automaton itpAutomaton =
+          automatonBuilder
+              .buildInterpolantAutomaton(pPath, interpolants, interpolantOpt, refinementCounter);
+      logger.log(Level.INFO, itpAutomaton.toString());
 
       if (skipFiniteRefinement || refinementCounter > 0) {
         return false;
@@ -481,10 +480,10 @@ public class DCARefiner implements Refiner, StatisticsProvider {
           String.format(
               "Refining the arg with automaton using interpolant: %s",
               interpolantOpt.get()));
-    // } catch (InvalidAutomatonException e) {
-    // logger.logfException(Level.SEVERE, e, e.getMessage());
-    // throw new CPAException(e.getMessage(), e);
-    // }
+    } catch (InvalidAutomatonException e) {
+      logger.logfException(Level.SEVERE, e, e.getMessage());
+      throw new CPAException(e.getMessage(), e);
+    }
 
     return true;
   }
