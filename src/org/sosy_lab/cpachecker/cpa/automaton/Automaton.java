@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -160,6 +161,20 @@ public class Automaton {
       }
     }
     return invariants;
+  }
+
+  ImmutableList<String> getAllAssumptions(LogManager pLogger, MachineModel pMachineModel) {
+    ImmutableList.Builder<String> builder = new ImmutableList.Builder<>();
+    for (AutomatonInternalState state : states) {
+      for (AutomatonTransition trans : state.getTransitions()) {
+        ImmutableList<AExpression> assumptions = trans.getAssumptions(null, pLogger, pMachineModel);
+        builder.addAll(
+            assumptions.stream()
+                .map(AExpression::toASTString)
+                .collect(ImmutableList.toImmutableList()));
+      }
+    }
+    return builder.build().stream().distinct().collect(ImmutableList.toImmutableList());
   }
 
   /**
