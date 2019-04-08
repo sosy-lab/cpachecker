@@ -67,17 +67,19 @@ public class Ltl2BuechiConverter {
   /**
    * Entry point to convert a ltl property into an {@link Automaton}.
    *
-   * <p>This method takes a {@link LabelledFormula} and passes the contained ltl-property to an
+   * <p>
+   * This method takes a {@link LabelledFormula} and passes the contained ltl-property to an
    * external tool, which in turn transforms it into a buechi-automaton.
    *
-   * <p>The output from the external tool is specified to be in 'Hanoi-Omega-Automaton' (HOA)
-   * format, and parsed as such accordingly afterwards. The resulting object will again be
-   * transformed into the final {@link Automaton}.
+   * <p>
+   * The output from the external tool is specified to be in 'Hanoi-Omega-Automaton' (HOA) format,
+   * and parsed as such accordingly afterwards. The resulting object will again be transformed into
+   * the final {@link Automaton}.
    *
    * @param pFormula the ltl-property together with a list of its atomic propositions
    * @return an automaton from the automaton-framework in CPAchecker
    * @throws LtlParseException if the transformation fails either due to some false values in the
-   *     intermediate resulting StoredAutomaton or because of an erroneous config.
+   *         intermediate resulting StoredAutomaton or because of an erroneous config.
    */
   public static Automaton convertFormula(
       LabelledFormula pFormula,
@@ -96,7 +98,8 @@ public class Ltl2BuechiConverter {
    * Produces an {@link Automaton} from a ltl-property without the necessity of specifying a logger,
    * machine-model and scope.
    *
-   * <p>This method is mainly used for testing / debugging the transformation of ltl properties to
+   * <p>
+   * This method is mainly used for testing / debugging the transformation of ltl properties to
    * automatons outside of CPAchecker.
    */
   static Automaton convertFormula(LabelledFormula pFormula, LogManager pLogger)

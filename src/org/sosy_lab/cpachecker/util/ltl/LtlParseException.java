@@ -28,8 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 /**
- * Super-class for all exceptions thrown by parsing ltl-formulas and generating their respective
- * automatons.
+ * Super-class for all thrown exceptions that occur while parsing ltl-properties
  */
 public class LtlParseException extends InvalidConfigurationException {
 
