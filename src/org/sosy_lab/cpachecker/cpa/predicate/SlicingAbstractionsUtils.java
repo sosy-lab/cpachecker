@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.dca.DCAState;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.slab.EdgeSet;
 import org.sosy_lab.cpachecker.cpa.slab.SLARGState;
@@ -374,6 +375,13 @@ public class SlicingAbstractionsUtils {
                 AbstractStates.extractStateByType(currentState, AutomatonState.class);
             if (automatonState != null) {
               for (CExpression assumption : from(automatonState.getAssumptions())
+                  .filter(CExpression.class)) {
+                currentBuilder = currentBuilder.makeAnd(assumption);
+              }
+            }
+            DCAState dcaState = AbstractStates.extractStateByType(currentState, DCAState.class);
+            if (dcaState != null) {
+              for (CExpression assumption : FluentIterable.from(dcaState.getAssumptions())
                   .filter(CExpression.class)) {
                 currentBuilder = currentBuilder.makeAnd(assumption);
               }
