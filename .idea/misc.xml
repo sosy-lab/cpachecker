@@ -45,14 +45,8 @@
             </SvnBranchConfiguration>
           </value>
         </entry>
-        <entry key="$PROJECT_DIR$/test/programs/sv-benchmarks">
-          <value>
-            <SvnBranchConfiguration>
-              <option name="trunkUrl" value="https://github.com/sosy-lab/sv-benchmarks" />
-            </SvnBranchConfiguration>
-          </value>
-        </entry>
       </map>
     </option>
+    <option name="mySupportsUserInfoFilter" value="true" />
   </component>
 </project>

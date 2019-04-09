@@ -1735,9 +1735,9 @@ public class DomainSpecificAbstraction<T> {
       }
 
       FirstPartRenamingFct renamer1 = new FirstPartRenamingFct
-          (arrayVariablesThatAreUsedInBothParts, arrayVariablesThatAreNotUsedInBothParts);
+          (arrayVariablesThatAreNotUsedInBothParts, arrayVariablesThatAreUsedInBothParts);
       ScndPartRenamingFct renamer2 = new ScndPartRenamingFct
-          (arrayVariablesThatAreUsedInBothParts, arrayVariablesThatAreNotUsedInBothParts);
+          (arrayVariablesThatAreNotUsedInBothParts, arrayVariablesThatAreUsedInBothParts);
       BooleanFormula firstPart;
       BooleanFormula scndPart;
 
