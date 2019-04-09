@@ -1884,16 +1884,16 @@ public class DomainSpecificAbstraction<T> {
         for (Formula y : frontierList.get(0)) {
           for (int k = 0; k < relationAbstraction1.length; k++) {
 
-            if (relationAbstraction1Formula.get(k).toString().contains("= " + y.toString())
-                || relationAbstraction1Formula.get(k).toString().contains("<= " + y.toString())) {
+            if (relationAbstraction1[k].contains(y.toString() + " = ")
+                || relationAbstraction1[k].contains(y.toString() + " < ")) {
               helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
                   (k));
 
 
             }
 
-            if (relationAbstraction2Formula.get(k).toString().contains("= " + y.toString())
-                || relationAbstraction1Formula.get(k).toString().contains("<= " + y.toString())) {
+            if (relationAbstraction2[k].contains(y.toString() + " = ")
+                || relationAbstraction2[k].contains(y.toString() + " < ")) {
               helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
                   (k));
 
@@ -1910,6 +1910,11 @@ public class DomainSpecificAbstraction<T> {
 
 
         List<T> myItpGroupIds = new ArrayList<>(formulas.size());
+
+        logger.log(Level.INFO,  "changedFormulasRest1: " + changedFomulasRest1.toString());
+        logger.log(Level.INFO,  "Helper Formula 1: " + helperFormula1.toString());
+        logger.log(Level.INFO,  "Helper Formula 2: " + helperFormula2.toString());
+        logger.log(Level.INFO,  "changedFomulasRest2: " + changedFomulasRest2.toString());
 
     interpolationTimer.start();
     try {
