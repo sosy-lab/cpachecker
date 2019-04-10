@@ -429,7 +429,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
             logger.logf(Level.SEVERE, "Argument from LassoRanker is unknown");
           }
         } catch (TermException | SolverException | SMTLIBException | IOException e) {
-          logger.logfException(Level.SEVERE, e, e.getMessage());
+          logger.logfException(Level.SEVERE, e, "%s", e.getMessage());
           throw new CPAException(e.getMessage(), e);
         }
       }
@@ -499,7 +499,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
               "Refining the arg with automaton using interpolant: %s",
               interpolantOpt.get()));
     } catch (InvalidAutomatonException e) {
-      logger.logfException(Level.SEVERE, e, e.getMessage());
+      logger.logfException(Level.SEVERE, e, "%s", e.getMessage());
       throw new CPAException(e.getMessage(), e);
     }
 
