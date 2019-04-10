@@ -115,6 +115,22 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
     BINARY_OR     ("|"),
     EQUALS        ("=="),
     NOT_EQUALS    ("!="),
+    /**
+     * Logical-or operator. This operator should be eliminated during CFA creation
+     * and thus must not be implemented in CPAs.
+     *
+     * @deprecated eliminated during CFA creation
+     */
+    @Deprecated
+    LOGICAL_OR    ("||"),
+    /**
+     * Logical-and operator. This operator should be eliminated during CFA creation
+     * and thus must not be implemented in CPAs.
+     *
+     * @deprecated eliminated during CFA creation
+     */
+    @Deprecated
+    LOGICAL_AND   ("&&"),
     ;
 
     private final String op;
@@ -150,6 +166,8 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
       case GREATER_THAN:
       case EQUALS:
       case NOT_EQUALS:
+      case LOGICAL_AND:
+      case LOGICAL_OR:
         return true;
       default:
         throw new AssertionError("Unhandled case statement");

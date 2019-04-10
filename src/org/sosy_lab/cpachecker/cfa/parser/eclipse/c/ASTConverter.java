@@ -655,8 +655,8 @@ class ASTConverter {
   private CAstNode convert(IASTBinaryExpression e) {
 
     int eop = e.getOperator();
-    if (eop == IASTBinaryExpression.op_logicalOr
-        || eop == IASTBinaryExpression.op_logicalAnd) {
+    if ((eop == IASTBinaryExpression.op_logicalOr
+        || eop == IASTBinaryExpression.op_logicalAnd) && !options.keepBranchStructure()) {
       CONDITION o1 = getConditionKind(e.getOperand1());
       CONDITION o2 = getConditionKind(e.getOperand2());
 

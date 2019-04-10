@@ -76,6 +76,9 @@ public class Parsers {
     @Option(secure = true, description = "simplify simple const expressions like 1+2")
     private boolean simplifyConstExpressions = true;
 
+    @Option(secure = true, name = "keepBranchStructure", description = "keep branch structure as is and don't optimize")
+    private boolean keepBranchStructure = false;
+
     public boolean initializeAllVariables() {
       return initializeAllVariables;
     }
@@ -90,6 +93,10 @@ public class Parsers {
 
     public boolean simplifyConstExpressions() {
       return simplifyConstExpressions;
+    }
+
+    public boolean keepBranchStructure() {
+      return keepBranchStructure;
     }
   }
 

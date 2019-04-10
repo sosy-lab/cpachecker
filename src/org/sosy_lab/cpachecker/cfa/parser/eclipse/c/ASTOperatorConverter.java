@@ -68,6 +68,7 @@ class ASTOperatorConverter {
 
   /** converts and returns the operator of an binaryExpression
    * (PLUS, MINUS, MULTIPLY,...) with an flag, if the operator causes an assignment. */
+  @SuppressWarnings("deprecation") // may use logical and/or
   Pair<BinaryOperator, Boolean> convertBinaryOperator(final IASTBinaryExpression e) {
     boolean isAssign = false;
     final BinaryOperator operator;
@@ -114,6 +115,12 @@ class ASTOperatorConverter {
       break;
     case IASTBinaryExpression.op_binaryOr:
       operator = BinaryOperator.BINARY_OR;
+      break;
+    case IASTBinaryExpression.op_logicalAnd:
+      operator = BinaryOperator.LOGICAL_AND;
+      break;
+    case IASTBinaryExpression.op_logicalOr:
+      operator = BinaryOperator.LOGICAL_OR;
       break;
     case IASTBinaryExpression.op_assign:
       operator = null;

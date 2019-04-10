@@ -686,6 +686,9 @@ cfa.functionCalls.recursionDepth = 5
 # uninitialized.
 cfa.initializeAllVariables = false
 
+# keep branch structure as is and don't optimize
+cfa.keepBranchStructure = false
+
 # With this option, all declarations in each function will be movedto the
 # beginning of each function. Do only use this option if you arenot able to
 # handle initializer lists and designated initializers (like they can be used
@@ -2970,7 +2973,7 @@ cpa.value.trackJavaArrayValues = true
 custominstructions.binaryOperatorForSimpleCustomInstruction = PLUS
   enum:     [MULTIPLY, DIVIDE, MODULO, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT, LESS_THAN,
              GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR,
-             EQUALS, NOT_EQUALS]
+             EQUALS, NOT_EQUALS, LOGICAL_OR, LOGICAL_AND]
 
 # Signature for custom instruction, describes names and order of input and
 # output variables of a custom instruction

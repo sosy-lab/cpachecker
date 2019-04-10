@@ -1160,7 +1160,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       return Optional.empty();
 
       // a && b
-    } else if (condition instanceof IASTBinaryExpression
+    } else if (condition instanceof IASTBinaryExpression && !options.keepBranchStructure()
         && ((IASTBinaryExpression) condition).getOperator() == IASTBinaryExpression.op_logicalAnd) {
       // This case is not necessary,
       // but it prevents the need for a temporary variable in the common case of
@@ -1194,7 +1194,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       return Optional.empty();
 
       // a || b
-    } else if (condition instanceof IASTBinaryExpression
+    } else if (condition instanceof IASTBinaryExpression && !options.keepBranchStructure()
         && ((IASTBinaryExpression) condition).getOperator() == IASTBinaryExpression.op_logicalOr) {
       // This case is not necessary,
       // but it prevents the need for a temporary variable in the common case of
