@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.Builder;
 import org.sosy_lab.cpachecker.cpa.dca.DCAState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -391,7 +390,7 @@ public class StateManager {
     }
 
     @Override
-    void addViolationPropertyToBuilder(Builder pBuilder) {
+    void addViolationPropertyToBuilder(AutomatonTransition.Builder pBuilder) {
       pBuilder.withViolatedPropertyDescription(violatedPropertyDescription);
     }
 
@@ -447,7 +446,8 @@ public class StateManager {
     }
 
     @Override
-    void addViolationPropertyToBuilder(Builder pBuilder) throws InvalidAutomatonException {
+    void addViolationPropertyToBuilder(AutomatonTransition.Builder pBuilder)
+        throws InvalidAutomatonException {
       pBuilder.withViolatedPropertyDescription(violatedPropertyDescription);
     }
 
@@ -499,7 +499,7 @@ public class StateManager {
     }
 
     @Override
-    void addViolationPropertyToBuilder(Builder pBuilder) {
+    void addViolationPropertyToBuilder(AutomatonTransition.Builder pBuilder) {
       // do nothing
     }
 
@@ -547,7 +547,7 @@ public class StateManager {
     }
 
     @Override
-    void addViolationPropertyToBuilder(Builder pBuilder) {
+    void addViolationPropertyToBuilder(AutomatonTransition.Builder pBuilder) {
       pBuilder.withViolatedPropertyDescription(violatedPropertyDescription);
     }
 
