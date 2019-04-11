@@ -424,7 +424,7 @@ public class CPAMain {
       Preconditions.checkNotNull(frontendLanguage);
       ConfigurationBuilder configBuilder = Configuration.builder();
       configBuilder.copyFrom(pConfig);
-      configBuilder.setOption("language", frontendLanguage.toString());
+      configBuilder.setOption("language", frontendLanguage.name());
       pConfig = configBuilder.build();
       pOptions.language = frontendLanguage;
       pLogManager.logf(Level.INFO, "Language %s detected and set for analysis", frontendLanguage);
