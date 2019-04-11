@@ -255,7 +255,9 @@ public class CPAMain {
     )
     private ImmutableList<String> programs = ImmutableList.of();
 
-    @Option(secure = true, description = "C, Java, or LLVM IR?")
+    @Option(secure=true,
+        description="Programming language of the input program. If not given explicitly, "
+            + "auto-detection will occur")
     // keep option name in sync with {@link CFACreator#language}, value might differ
     private Language language = null;
 

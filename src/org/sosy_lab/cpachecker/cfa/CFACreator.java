@@ -282,8 +282,11 @@ public class CFACreator {
       description="This option enables the computation of a classification of CFA nodes.")
 private boolean classifyNodes = false;
 
-  @Option(secure=true, description="C, Java, or LLVM IR?")
-  private Language language = Language.C;
+  @Option(secure=true,
+      description="Programming language of the input program. If not given explicitly, "
+          + "auto-detection will occur")
+  // keep option name in sync with {@link CPAMain#language}, value might differ
+  private Language language = null;
 
   private final LogManager logger;
   private final Parser parser;
