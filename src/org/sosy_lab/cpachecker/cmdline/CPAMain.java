@@ -390,11 +390,6 @@ public class CPAMain {
         Language language;
         String suffix = program.substring(program.lastIndexOf(".") + 1);
         switch (suffix) {
-          case "c":
-          case "i":
-          case "h":
-            language = Language.C;
-            break;
           case "ll":
           case "bc":
             language = Language.LLVM;
@@ -402,12 +397,12 @@ public class CPAMain {
           case "java":
             language = Language.JAVA;
             break;
+          case "c":
+          case "i":
+          case "h":
           default:
-            throw new InvalidConfigurationException(
-                String.format(
-                        "Cannot determine language from file '%s' with suffix '.%s'.",
-                        program, suffix)
-                    + LANGUAGE_HINT);
+            language = Language.C;
+            break;
         }
         Preconditions.checkNotNull(language);
         if (frontendLanguage == null) { // first iteration
