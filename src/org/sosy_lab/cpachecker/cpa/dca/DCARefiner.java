@@ -286,7 +286,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
       logger.log(Level.INFO, String.format("Found %d cycle(s) in current SCC", sscCycles.size()));
 
       for (List<ARGState> cycle : sscCycles) {
-        logger.log(Level.INFO, String.format("Analyzing cycle: %s\n", printNodes(cycle)));
+        logger.log(Level.INFO, String.format("Analyzing cycle: %s%n", printNodes(cycle)));
         checkArgument(
             cycle.stream().anyMatch(x -> x.isTarget()),
             "Cycle does not contain a target");
@@ -299,11 +299,11 @@ public class DCARefiner implements Refiner, StatisticsProvider {
             loopPath.asStatesList().equals(cycle),
             String.format(
                 "Nodes in cycle are not consistent to nodes in the ARGPath"
-                    + "\n(Nodes in cycle: %s)"
-                    + "\n(Nodes in loop: %s)",
+                    + "%n(Nodes in cycle: %s)"
+                    + "%n(Nodes in loop: %s)",
                 printNodes(cycle),
                 printNodes(loopPath)));
-        logger.log(Level.INFO, String.format("Path to cycle: %s\n", printNodes(stemPath)));
+        logger.log(Level.INFO, String.format("Path to cycle: %s%n", printNodes(stemPath)));
 
         try {
           // create stem
@@ -423,7 +423,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
                 "LassoRanker has termination argument %s",
                 terminationArgument.getSupportingInvariants().isEmpty()
                     ? ""
-                    : "\nInvariants: " + terminationArgument.getSupportingInvariants());
+                    : "%nInvariants: " + terminationArgument.getSupportingInvariants());
           }
           if (checkTermination.isUnknown()) {
             logger.logf(Level.SEVERE, "Argument from LassoRanker is unknown");
@@ -458,7 +458,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
           Level.WARNING,
           String.format(
               "Could not find any interpolants to do a finite-prefix refinement. "
-                  + "Skipping the process.\nInterpolants: %s",
+                  + "Skipping the process.%nInterpolants: %s",
               interpolants));
       return false;
     }
@@ -467,12 +467,12 @@ public class DCARefiner implements Refiner, StatisticsProvider {
           Level.SEVERE,
           String.format(
               "Found more than one interpolant to do a finite-prefix refinement. "
-                  + "\nInterpolants: %s",
+                  + "%nInterpolants: %s",
               interpolants));
        return false;
     }
 
-    logger.log(Level.WARNING, String.format("Interpolants:\n%s", interpolants));
+    logger.log(Level.WARNING, String.format("Interpolants:%n%s", interpolants));
 
     try {
       Automaton itpAutomaton =
@@ -544,12 +544,12 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     PathFormula lastListElement = Iterables.getLast(pPathFormulas);
     checkArgument(
         result.getSsa().equals(lastListElement.getSsa()),
-        "Inconsistent SSA-map produced:" + "\n(actual: %s)" + "\n(expected %s)",
+        "Inconsistent SSA-map produced:" + "%n(actual: %s)" + "%n(expected %s)",
         result.getSsa(),
         lastListElement.getSsa());
     checkArgument(
         result.getPointerTargetSet().equals(lastListElement.getPointerTargetSet()),
-        "Inconsistent pointertarget-set produced:" + "\n(actual: %s)" + "\n(expected %s)",
+        "Inconsistent pointertarget-set produced:" + "%n(actual: %s)" + "%n(expected %s)",
         result.getPointerTargetSet(),
         lastListElement.getPointerTargetSet());
 
