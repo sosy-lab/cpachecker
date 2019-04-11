@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.dca.DCACPA;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
@@ -108,6 +109,7 @@ public class CPAsTest {
     cpas.remove(BAMCPA.class);
     cpas.remove(BAMCPAWithBreakOnMissingBlock.class);
     cpas.remove(CacheCPA.class);
+    cpas.remove(DCACPA.class);
     cpas.remove(UsageCPA.class);
     cpas.remove(CompositeCPA.class);
     cpas.remove(MonitorCPA.class);
