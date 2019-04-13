@@ -369,8 +369,8 @@ public class DomainSpecificAbstraction<T> {
                 relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
                     arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
               } else {
-                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, true);
-                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                 relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                     arrayVariablesThatAreUsedInBothParts[i] + "#";
                 relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " < " +
@@ -436,8 +436,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "#";
                   relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -471,8 +471,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "#";
                   relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -508,8 +508,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "#";
                   relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -677,8 +677,8 @@ public class DomainSpecificAbstraction<T> {
                 relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
                     arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
               } else {
-                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, true);
-                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                 relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                     arrayVariablesThatAreUsedInBothParts[i] + "##";
                 relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " < " +
@@ -735,8 +735,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "##";
                   relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -771,8 +771,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "##";
                   relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -809,8 +809,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "##";
                   relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -986,8 +986,8 @@ public class DomainSpecificAbstraction<T> {
                 relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
                     arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
               } else {
-                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, true);
-                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                 relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                     arrayVariablesThatAreUsedInBothParts[i] + "#";
                 relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " < " +
@@ -1053,8 +1053,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "#";
                   relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -1088,8 +1088,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "#";
                   relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -1125,8 +1125,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "#";
                   relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -1289,8 +1289,8 @@ public class DomainSpecificAbstraction<T> {
                 relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
                     arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
               } else {
-                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, true);
-                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                 relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                     arrayVariablesThatAreUsedInBothParts[i] + "##";
                 relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " < " +
@@ -1347,8 +1347,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "##";
                   relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -1383,8 +1383,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "##";
                   relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -1421,8 +1421,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "##";
                   relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -1479,7 +1479,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
             } else {
-              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, true);
+              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, false);
               relationAbstraction1[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1499,7 +1499,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
             } else {
-              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, true);
+              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, false);
               relationAbstraction1[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1521,7 +1521,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
             } else {
-              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, true);
+              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, false);
               relationAbstraction1[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1557,7 +1557,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
             } else {
-              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, true);
+              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, false);
               relationAbstraction1[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1615,7 +1615,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
             } else {
-              helperFormula6 = fmgr.makeLessOrEqual(helperFormula4, helperFormula5, true);
+              helperFormula6 = fmgr.makeLessOrEqual(helperFormula4, helperFormula5, false);
               relationAbstraction2[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1635,7 +1635,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
             } else {
-              helperFormula6 = fmgr.makeLessOrEqual(helperFormula4, helperFormula5, true);
+              helperFormula6 = fmgr.makeLessOrEqual(helperFormula4, helperFormula5, false);
               relationAbstraction2[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1656,7 +1656,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
             } else {
-              helperFormula6 = fmgr.makeLessOrEqual(helperFormula4, helperFormula5, true);
+              helperFormula6 = fmgr.makeLessOrEqual(helperFormula4, helperFormula5, false);
               relationAbstraction2[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1692,7 +1692,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
             } else {
-              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, true);
+              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, false);
               relationAbstraction2[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
