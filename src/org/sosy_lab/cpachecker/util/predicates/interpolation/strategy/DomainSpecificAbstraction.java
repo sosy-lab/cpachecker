@@ -272,8 +272,21 @@ public class DomainSpecificAbstraction<T> {
                 helperFormula8 = fmgr.makeVariable(resultType2,
                     arrayVariablesThatAreUsedInBothParts[i+1] + "#");
               }
-              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              if (inequalityInterpolationAbstractions && (resultType2.isBitvectorType() ||
+                  resultType2.isIntegerType() || resultType2.isRationalType() ||
+                  resultType2.isFloatingPointRoundingModeType()
+              )){
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+              } else {
+                helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              }
+              if (inequalityInterpolationAbstractions && (resultType1.isBitvectorType() ||
+                  resultType1.isIntegerType() || resultType1.isRationalType() || resultType1.isFloatingPointRoundingModeType()
+              )) {
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
+              } else {
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              }
               relationAbstraction1Formula.add(helperFormula6);
               relationAbstraction1Formula.add(helperFormula5);
               latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
@@ -590,8 +603,21 @@ public class DomainSpecificAbstraction<T> {
                 helperFormula8 = fmgr.makeVariable(resultType2,
                     arrayVariablesThatAreUsedInBothParts[i+1] + "##");
               }
-              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              if (inequalityInterpolationAbstractions && (resultType2.isBitvectorType() ||
+                  resultType2.isIntegerType() || resultType2.isRationalType() ||
+                  resultType2.isFloatingPointRoundingModeType()
+              )){
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+              } else {
+                helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              }
+              if (inequalityInterpolationAbstractions && (resultType1.isBitvectorType() ||
+                  resultType1.isIntegerType() || resultType1.isRationalType() || resultType1.isFloatingPointRoundingModeType()
+              )) {
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
+              } else {
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              }
               relationAbstraction2Formula.add(helperFormula6);
               relationAbstraction2Formula.add(helperFormula5);
             } else if (resultType1.isArrayType() && resultType2.isArrayType()) {
@@ -927,8 +953,21 @@ public class DomainSpecificAbstraction<T> {
                   arrayVariablesThatAreUsedInBothParts[i + 1] + "#");*/
               helperFormula8 = fmgr.makeVariable(resultType2Array,
                   arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              if (inequalityInterpolationAbstractions && (resultType2.isBitvectorType() ||
+                  resultType2.isIntegerType() || resultType2.isRationalType() ||
+                  resultType2.isFloatingPointRoundingModeType()
+              )){
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+              } else {
+                helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              }
+              if (inequalityInterpolationAbstractions && (resultType1.isBitvectorType() ||
+                  resultType1.isIntegerType() || resultType1.isRationalType() || resultType1.isFloatingPointRoundingModeType()
+              )) {
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
+              } else {
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              }
               relationAbstraction1Formula.add(helperFormula6);
               relationAbstraction1Formula.add(helperFormula5);
               latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
@@ -1207,8 +1246,21 @@ public class DomainSpecificAbstraction<T> {
                 helperFormula8 = fmgr.makeVariable(resultType2,
                     arrayVariablesThatAreUsedInBothParts[i+1] + "##");
               }
-              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              if (inequalityInterpolationAbstractions && (resultType2.isBitvectorType() ||
+                  resultType2.isIntegerType() || resultType2.isRationalType() ||
+                  resultType2.isFloatingPointRoundingModeType()
+              )){
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+              } else {
+                helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              }
+              if (inequalityInterpolationAbstractions && (resultType1.isBitvectorType() ||
+                  resultType1.isIntegerType() || resultType1.isRationalType() || resultType1.isFloatingPointRoundingModeType()
+              )) {
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
+              } else {
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              }
               relationAbstraction2Formula.add(helperFormula6);
               relationAbstraction2Formula.add(helperFormula5);
             } else if (resultType1.isArrayType() && resultType2.isArrayType()) {
@@ -1901,6 +1953,29 @@ public class DomainSpecificAbstraction<T> {
             }
           }
         }
+      } else {
+        if (it == 0) {
+          firstPart = formulas.get(0);
+          scndPart = formulas.get(1);
+        } else {
+          firstPart = formulas.get(1);
+          scndPart = formulas.get(2);
+        }
+        helperFormula1 = firstPart;
+        helperFormula2 = scndPart;
+
+        changedFomulasRest1.clear();
+        changedFomulasRest2.clear();
+
+          if (it != 0) {
+            BooleanFormula addFormula = interpolants.get(it - 1);
+            changedFomulasRest1.add(addFormula);
+          }
+          for (int i = it + 2; i < oldFormulas.size(); i++) {
+            BooleanFormula addFormula = oldFormulas.get(i);
+            changedFomulasRest2.add(addFormula);
+          }
+
       }
 
       try (@SuppressWarnings("unchecked")
