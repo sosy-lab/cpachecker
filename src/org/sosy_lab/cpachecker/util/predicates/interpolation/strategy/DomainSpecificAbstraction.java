@@ -1929,7 +1929,7 @@ public class DomainSpecificAbstraction<T> {
     buildingAbstractionsTimer.stop();
   }
 
-      logger.log(Level.INFO,  "Frontier List: " + frontierList.toString());
+      //logger.log(Level.INFO,  "Frontier List: " + frontierList.toString());
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
       if (frontierList != null && (frontierList.size() >= 1)) {
@@ -1987,10 +1987,10 @@ public class DomainSpecificAbstraction<T> {
 
         List<T> myItpGroupIds = new ArrayList<>(formulas.size());
 
-        logger.log(Level.INFO,  "changedFormulasRest1: " + changedFomulasRest1.toString());
+    /*    logger.log(Level.INFO,  "changedFormulasRest1: " + changedFomulasRest1.toString());
         logger.log(Level.INFO,  "Helper Formula 1: " + helperFormula1.toString());
         logger.log(Level.INFO,  "Helper Formula 2: " + helperFormula2.toString());
-        logger.log(Level.INFO,  "changedFomulasRest2: " + changedFomulasRest2.toString());
+        logger.log(Level.INFO,  "changedFomulasRest2: " + changedFomulasRest2.toString());*/
 
     interpolationTimer.start();
     try {
