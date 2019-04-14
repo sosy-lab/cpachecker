@@ -37,12 +37,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
@@ -106,27 +105,19 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
       return ((SymbolicValue) pValue).accept(this);
 
     } else if (pValue instanceof NumericValue) {
-      if (isIntegerType(pType)) {
+      if (CTypes.isIntegerType(pType)) {
         BigInteger valueAsBigInt = BigInteger.valueOf(((NumericValue) pValue).longValue());
 
         return new CIntegerLiteralExpression(DUMMY_LOCATION, pType, valueAsBigInt);
 
-      } else {
-        assert pType instanceof CSimpleType;
+      } else if (pType instanceof CSimpleType
+          && ((CSimpleType) pType).getType().isFloatingPointType()) {
         double valueAsDouble = ((NumericValue) pValue).doubleValue();
 
         return doubleToExpression(valueAsDouble, (CSimpleType) pType);
       }
-    } else {
-      throw new AssertionError("Unhandled value " + pValue);
     }
-  }
-
-  private boolean isIntegerType(CType pType) {
-    CType canonicalType = pType.getCanonicalType();
-
-    return canonicalType instanceof CPointerType || canonicalType instanceof CEnumType
-        || ((CSimpleType) canonicalType).getType().isIntegerType();
+    throw new AssertionError("Unhandled value type: " + pType);
   }
 
   private CExpression doubleToExpression(double pValue, CSimpleType pType) {
