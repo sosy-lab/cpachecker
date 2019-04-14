@@ -3141,6 +3141,8 @@ java.version = JavaCore.VERSION_1_7
 # Programming language of the input program. If not given explicitly,
 # auto-detection will occur
 # C, Java, or LLVM IR?
+language = C
+  enum:     [C, JAVA, LLVM]
 language = no default value
   enum:     [C, JAVA, LLVM]
 language = C

@@ -286,7 +286,7 @@ private boolean classifyNodes = false;
       description="Programming language of the input program. If not given explicitly, "
           + "auto-detection will occur")
   // keep option name in sync with {@link CPAMain#language}, value might differ
-  private Language language = null;
+  private Language language = Language.C;
 
   private final LogManager logger;
   private final Parser parser;
