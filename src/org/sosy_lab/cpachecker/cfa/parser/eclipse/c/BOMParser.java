@@ -37,30 +37,22 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 public class BOMParser {
 
   private enum ByteOrderMark {
-    NO_BOM,
-    UTF8_BOM,
-    UTF16_BE_BOM,
-    UTF16_LE_BOM,
-    UTF32_BE_BOM,
-    UTF32_LE_BOM,
-    UNKNOWN_BOM;
+    NO_BOM("Without BOM", new int[] {}),
+    UTF8_BOM("UTF8", new int[] {0xEF, 0xBB, 0xBF}),
+    UTF16_BE_BOM("UTF16 BE", new int[] {0xFE, 0xFF, 0xFE, 0xFF}),
+    UTF16_LE_BOM("UTF16 LE", new int[] {0xFF, 0xFE, 0xFF, 0xFE}),
+    UTF32_BE_BOM("UTF32 BE", new int[] {0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0xFE, 0xFF}),
+    UTF32_LE_BOM("UTF32 LE", new int[] {0xFF, 0xFE, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00}),
+    UNKNOWN_BOM("Unknown BOM", new int[] {});
+
+    private String encoding;
+    private int[] sequence;
+
+    ByteOrderMark(String encoding, int[] sequence) {
+      this.encoding = encoding;
+      this.sequence = sequence;
+    }
   }
-
-  private static final int[] UTF8_BYTE_ORDER_MARK = {0xEF, 0xBB, 0xBF};
-
-  private static final int[] UTF16_BE_BYTE_ORDER_MARK = {0xFE, 0xFF, 0xFE, 0xFF};
-
-  private static final int[] UTF16_LE_BYTE_ORDER_MARK = {
-    0xFF, 0xFE, 0xFF, 0xFE,
-  };
-
-  private static final int[] UTF32_BE_BYTE_ORDER_MARK = {
-    0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0xFE, 0xFF
-  };
-
-  private static final int[] UTF32_LE_BYTE_ORDER_MARK = {
-    0xFF, 0xFE, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00
-  };
 
   private static final int MAX_BOM_LENGTH = 8;
 
@@ -144,15 +136,15 @@ public class BOMParser {
   private static ByteOrderMark getBOM(int[] codeBeginning) {
     if (pureAscii(codeBeginning)) {
       return ByteOrderMark.NO_BOM;
-    } else if (containsBOM(codeBeginning, UTF8_BYTE_ORDER_MARK)) {
+    } else if (containsBOM(codeBeginning, ByteOrderMark.UTF8_BOM.sequence)) {
       return ByteOrderMark.UTF8_BOM;
-    } else if (containsBOM(codeBeginning, UTF16_LE_BYTE_ORDER_MARK)) {
+    } else if (containsBOM(codeBeginning, ByteOrderMark.UTF16_LE_BOM.sequence)) {
       return ByteOrderMark.UTF16_LE_BOM;
-    } else if (containsBOM(codeBeginning, UTF16_BE_BYTE_ORDER_MARK)) {
+    } else if (containsBOM(codeBeginning, ByteOrderMark.UTF16_BE_BOM.sequence)) {
       return ByteOrderMark.UTF16_BE_BOM;
-    } else if (containsBOM(codeBeginning, UTF32_LE_BYTE_ORDER_MARK)) {
+    } else if (containsBOM(codeBeginning, ByteOrderMark.UTF32_LE_BOM.sequence)) {
       return ByteOrderMark.UTF32_LE_BOM;
-    } else if (containsBOM(codeBeginning, UTF32_BE_BYTE_ORDER_MARK)) {
+    } else if (containsBOM(codeBeginning, ByteOrderMark.UTF32_BE_BOM.sequence)) {
       return ByteOrderMark.UTF32_BE_BOM;
     } else {
       return ByteOrderMark.UNKNOWN_BOM;
@@ -176,30 +168,6 @@ public class BOMParser {
   }
 
   private static String noAsciiValuesErrorMessage(ByteOrderMark bom) {
-    String encoding;
-    switch (bom) {
-      case NO_BOM:
-        encoding = "Default";
-        break;
-      case UTF16_BE_BOM:
-        encoding = "UTF16 BE";
-        break;
-      case UTF16_LE_BOM:
-        encoding = "UTF16 LE";
-        break;
-      case UTF32_BE_BOM:
-        encoding = "UTF32 BE";
-        break;
-      case UTF32_LE_BOM:
-        encoding = "UTF32 LE";
-        break;
-      case UTF8_BOM:
-        encoding = "UTF8";
-        break;
-      default:
-        encoding = "Unknown BOM";
-        break;
-    }
-    return encoding + " encoded file has non-ascii values";
+    return bom.encoding + " encoded file has non-ascii values";
   }
 }
