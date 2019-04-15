@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.ValueToCExpressionTransformer;
 
 /**
  * Transforms {@link SymbolicExpression}s into {@link CExpression}s.
@@ -104,20 +105,9 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
     } else if (pValue instanceof SymbolicValue) {
       return ((SymbolicValue) pValue).accept(this);
 
-    } else if (pValue instanceof NumericValue) {
-      if (CTypes.isIntegerType(pType)) {
-        BigInteger valueAsBigInt = BigInteger.valueOf(((NumericValue) pValue).longValue());
-
-        return new CIntegerLiteralExpression(DUMMY_LOCATION, pType, valueAsBigInt);
-
-      } else if (pType instanceof CSimpleType
-          && ((CSimpleType) pType).getType().isFloatingPointType()) {
-        double valueAsDouble = ((NumericValue) pValue).doubleValue();
-
-        return doubleToExpression(valueAsDouble, (CSimpleType) pType);
-      }
+    } else {
+      return pValue.accept(new ValueToCExpressionTransformer(pType));
     }
-    throw new AssertionError("Unhandled value type: " + pType);
   }
 
   private CExpression doubleToExpression(double pValue, CSimpleType pType) {
