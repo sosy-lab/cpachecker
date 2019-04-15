@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
@@ -71,7 +70,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.ValueToCExpressionTransformer;
 
@@ -80,7 +78,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.ValueToCExpressionTransformer;
  *
  * @see org.sosy_lab.cpachecker.cpa.value.symbolic.ExpressionTransformer
  */
-public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpression> {
+public class SymbolicExpressionToCExpressionTransformer
+    implements SymbolicValueVisitor<CExpression> {
 
   private static final FileLocation DUMMY_LOCATION = FileLocation.DUMMY;
 

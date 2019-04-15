@@ -33,14 +33,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 
 public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> {
 
-  private final SymbolicExpressionTransformer symbolicTransformer =
-      new SymbolicExpressionTransformer();
+  private final SymbolicExpressionToCExpressionTransformer symbolicTransformer =
+      new SymbolicExpressionToCExpressionTransformer();
 
   private CType type;
 
