@@ -23,22 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -106,30 +100,6 @@ public class SymbolicExpressionToCExpressionTransformer
 
     } else {
       return pValue.accept(new ValueToCExpressionTransformer(pType));
-    }
-  }
-
-  private CExpression doubleToExpression(double pValue, CSimpleType pType) {
-
-    if (Double.isNaN(pValue) || Double.isInfinite(pValue)) {
-      CExpression zero = new CIntegerLiteralExpression(DUMMY_LOCATION, CNumericTypes.INT, BigInteger.valueOf(0));
-      CExpression firstOp;
-
-      if (Double.isNaN(pValue)) {
-        firstOp = new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(0));
-
-      } else if (Double.POSITIVE_INFINITY == pValue) {
-        firstOp = new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(1));
-
-      } else {
-        assert Double.NEGATIVE_INFINITY == pValue;
-        firstOp = new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(-1));
-      }
-
-      return new CBinaryExpression(DUMMY_LOCATION, pType, pType, firstOp, zero, CBinaryExpression.BinaryOperator.DIVIDE);
-
-    } else {
-      return new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(pValue));
     }
   }
 
