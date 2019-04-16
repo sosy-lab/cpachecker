@@ -177,7 +177,6 @@ public class CFloatImpl extends CFloat {
     } else {
       List<String> parts = Splitter.on('.').splitToList(pRep);
       boolean negative = pRep.startsWith("-");
-      CFloat nOne = new CFloatImpl("-1", pType);
 
       CFloat integral = null;
       CFloat fractional = null;
@@ -199,6 +198,7 @@ public class CFloatImpl extends CFloat {
       }
 
       if (negative) {
+        CFloat nOne = new CFloatImpl("-1", pType);
         result = result.multiply(nOne);
       }
 
