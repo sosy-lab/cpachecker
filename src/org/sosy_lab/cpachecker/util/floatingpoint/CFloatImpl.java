@@ -1619,16 +1619,22 @@ public class CFloatImpl extends CFloat {
       }
     } else {
       for (int i = 0; i < -exp; i++) {
-        if (integralArray.length > 1 || integralArray[integralArray.length - 1] > 0) {
-          if (integralArray[integralArray.length - 1] % 2 != 0) {
-            integralArray = copyAllButFirstCell(integralArray);
-          }
-        }
         int last = fracArray[fracArray.length - 1];
         decimalHalf(fracArray);
         if (last % 2 != 0) {
           fracArray = Arrays.copyOf(fracArray, fracArray.length + 1);
           fracArray[fracArray.length - 1] = 5;
+        }
+        assert integralArray.length == 1 && integralArray[0] <= 1
+            : "Exponent <= 0, but integral of mantissa larger than 1 - shouldn't be possible in IEEE 754";
+        if (integralArray[0] == 1) {
+          integralArray = copyAllButFirstCell(integralArray);
+          int[] oneHalf = new int[fracArray.length];
+          oneHalf[0] = 5;
+          int startLength = fracArray.length;
+          fracArray = decimalAdd(fracArray, oneHalf);
+          assert startLength == fracArray.length
+              : "overflow on (frac * 0.5 + 0.5) - shouldn't happen.";
         }
       }
     }
