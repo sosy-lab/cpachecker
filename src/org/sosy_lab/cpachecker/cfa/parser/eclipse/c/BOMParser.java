@@ -28,8 +28,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
@@ -45,8 +45,8 @@ public class BOMParser {
     UTF32_LE_BOM("UTF32 LE", new int[] {0xFF, 0xFE, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00}),
     UNKNOWN_BOM("Unknown BOM", new int[] {});
 
-    private String encoding;
-    private int[] sequence;
+    private final String encoding;
+    private final int[] sequence;
 
     ByteOrderMark(String encoding, int[] sequence) {
       this.encoding = encoding;
@@ -70,7 +70,7 @@ public class BOMParser {
   public static String filterAndDecode(String pFilename) throws IOException, CParserException {
     BufferedReader bufferedReader = null;
     try (InputStream in = MoreFiles.asByteSource(Paths.get(pFilename)).openStream()) {
-      List<Integer> codeBeginning = new LinkedList<>();
+      List<Integer> codeBeginning = new ArrayList<>();
       int c = 0;
       int counter = 0;
       ByteOrderMark bom = ByteOrderMark.NO_BOM;
