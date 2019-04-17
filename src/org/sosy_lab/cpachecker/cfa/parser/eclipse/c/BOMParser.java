@@ -20,6 +20,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import com.google.common.base.Ascii;
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.MoreFiles;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -29,7 +30,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
@@ -37,18 +37,18 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 public class BOMParser {
 
   private enum ByteOrderMark {
-    NO_BOM("Without BOM", new int[] {}),
-    UTF8_BOM("UTF8", new int[] {0xEF, 0xBB, 0xBF}),
-    UTF16_BE_BOM("UTF16 BE", new int[] {0xFE, 0xFF, 0xFE, 0xFF}),
-    UTF16_LE_BOM("UTF16 LE", new int[] {0xFF, 0xFE, 0xFF, 0xFE}),
-    UTF32_BE_BOM("UTF32 BE", new int[] {0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0xFE, 0xFF}),
-    UTF32_LE_BOM("UTF32 LE", new int[] {0xFF, 0xFE, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00}),
-    UNKNOWN_BOM("Unknown BOM", new int[] {});
+    NO_BOM("Without BOM", ImmutableList.of()),
+    UTF8_BOM("UTF8", ImmutableList.of(0xEF, 0xBB, 0xBF)),
+    UTF16_BE_BOM("UTF16 BE", ImmutableList.of(0xFE, 0xFF, 0xFE, 0xFF)),
+    UTF16_LE_BOM("UTF16 LE", ImmutableList.of(0xFF, 0xFE, 0xFF, 0xFE)),
+    UTF32_BE_BOM("UTF32 BE", ImmutableList.of(0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0xFE, 0xFF)),
+    UTF32_LE_BOM("UTF32 LE", ImmutableList.of(0xFF, 0xFE, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00)),
+    UNKNOWN_BOM("Unknown BOM", ImmutableList.of());
 
     private final String encoding;
-    private final int[] sequence;
+    private final ImmutableList<Integer> sequence;
 
-    ByteOrderMark(String encoding, int[] sequence) {
+    ByteOrderMark(String encoding, ImmutableList<Integer> sequence) {
       this.encoding = encoding;
       this.sequence = sequence;
     }
@@ -77,7 +77,7 @@ public class BOMParser {
       while ((c = in.read()) > -1 && counter < MAX_BOM_LENGTH) {
         codeBeginning.add(c);
         counter++;
-        bom = getBOM(toArray(codeBeginning));
+        bom = getBOM(codeBeginning);
         if (bom != ByteOrderMark.NO_BOM && bom != ByteOrderMark.UNKNOWN_BOM) {
           break;
         }
@@ -123,18 +123,8 @@ public class BOMParser {
     }
   }
 
-  private static int[] toArray(List<Integer> code) {
-    int[] result = new int[code.size()];
-    int i = 0;
-    for (int c : code) {
-      result[i] = c;
-      i++;
-    }
-    return result;
-  }
-
-  private static ByteOrderMark getBOM(int[] codeBeginning) {
-    if (pureAscii(codeBeginning)) {
+  private static ByteOrderMark getBOM(List<Integer> codeBeginning) {
+    if (isPureAscii(codeBeginning)) {
       return ByteOrderMark.NO_BOM;
     } else if (containsBOM(codeBeginning, ByteOrderMark.UTF8_BOM.sequence)) {
       return ByteOrderMark.UTF8_BOM;
@@ -151,14 +141,19 @@ public class BOMParser {
     }
   }
 
-  private static boolean containsBOM(int[] codeBeginning, int[] bomBytes) {
-    if (codeBeginning.length < bomBytes.length) {
+  private static boolean containsBOM(List<Integer> codeBeginning, List<Integer> bomBytes) {
+    if (codeBeginning.size() < bomBytes.size()) {
       return false;
     }
-    return Arrays.equals(Arrays.copyOfRange(codeBeginning, 0, bomBytes.length), bomBytes);
+    for (int i = 0; i < bomBytes.size(); i++) {
+      if (!codeBeginning.get(i).equals(bomBytes.get(i))) {
+        return false;
+      }
+    }
+    return true;
   }
 
-  private static boolean pureAscii(int[] code) {
+  private static boolean isPureAscii(List<Integer> code) {
     for (int b : code) {
       if (Ascii.MAX < b) {
         return false;
