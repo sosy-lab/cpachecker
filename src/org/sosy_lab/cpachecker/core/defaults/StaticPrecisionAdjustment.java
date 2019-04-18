@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentTM;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -44,9 +44,9 @@ public class StaticPrecisionAdjustment extends SimplePrecisionAdjustment {
     return Action.CONTINUE;
   }
 
-  private static final PrecisionAdjustment instance = new StaticPrecisionAdjustment();
+  private static final PrecisionAdjustmentTM instance = new StaticPrecisionAdjustment();
 
-  public static PrecisionAdjustment getInstance() {
+  public static PrecisionAdjustmentTM getInstance() {
     return instance;
   }
 }

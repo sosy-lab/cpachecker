@@ -23,16 +23,16 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-
 import com.google.common.base.Function;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractTransition;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentTM;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Base implementation for precision adjustment implementations which fulfill
@@ -44,13 +44,27 @@ import java.util.Optional;
  * By inheriting from this class, implementations give callers the opportunity
  * to directly call {@link #prec(AbstractState, Precision)}, which is faster.
  */
-public abstract class SimplePrecisionAdjustment implements PrecisionAdjustment {
+public abstract class SimplePrecisionAdjustment implements PrecisionAdjustmentTM {
 
   @Override
   public final Optional<PrecisionAdjustmentResult> prec(AbstractState pState, Precision pPrecision,
       UnmodifiableReachedSet pStates,
       Function<AbstractState, AbstractState> projection,
       AbstractState fullState) throws CPAException {
+
+    Action action = prec(pState, pPrecision);
+
+    return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, action));
+  }
+
+  @Override
+  public final Optional<PrecisionAdjustmentResult> prec(
+      AbstractTransition pState,
+      Precision pPrecision,
+      UnmodifiableReachedSet pStates,
+      Function<AbstractTransition, AbstractTransition> projection,
+      AbstractTransition fullState)
+      throws CPAException {
 
     Action action = prec(pState, pPrecision);
 
