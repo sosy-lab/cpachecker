@@ -63,5 +63,6 @@
 	<classpathentry kind="lib" path="lib/java/runtime/batik-xml.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/princess_2.12.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/antlr4-runtime.jar"/>
+	<classpathentry kind="lib" path="/java-smt/javasmt-2.0.0-alpha-158-g48399eb7-dirty.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

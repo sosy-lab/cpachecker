@@ -141,6 +141,7 @@ public class FormulaManagerView {
   private final FunctionFormulaManagerView functionFormulaManager;
   private @Nullable QuantifiedFormulaManagerView quantifiedFormulaManager;
   private @Nullable ArrayFormulaManagerView arrayFormulaManager;
+  private @Nullable SLFormulaManagerView slFormulaManager;
 
   @Option(secure=true, name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -912,6 +913,13 @@ public class FormulaManagerView {
       throw new UnsupportedOperationException("Solver does not support arrays");
     }
     return arrayFormulaManager;
+  }
+
+  public SLFormulaManagerView getSLFormulaManager() {
+    if (slFormulaManager == null) {
+      throw new UnsupportedOperationException("Solver does not support seperation logic.");
+    }
+    return slFormulaManager;
   }
 
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
