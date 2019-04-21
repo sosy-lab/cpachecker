@@ -41,8 +41,19 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
-/** Helper class to build an automaton out of the invariants from a given correctness witness */
-public class WitnessInvariantsAutomaton {
+/**
+ * Building a witness invariants automaton out of the invariants from a given correctness witness
+ */
+public class WitnessInvariantsAutomaton extends Automaton {
+
+  private WitnessInvariantsAutomaton(
+      String pName,
+      Map<String, AutomatonVariable> pVars,
+      List<AutomatonInternalState> pStates,
+      String pInitialStateName)
+      throws InvalidAutomatonException {
+    super(pName, pVars, pStates, pInitialStateName);
+  }
 
   public static Automaton buildWitnessInvariantsAutomaton(
       Set<ExpressionTreeLocationInvariant> invariants,
@@ -68,7 +79,7 @@ public class WitnessInvariantsAutomaton {
         new AutomatonInternalState(initialStateName, initTransitions, false, true, false);
     states.add(initState);
     states.addAll(invStates);
-      return new Automaton(automatonName, vars, states, initialStateName);
+      return new WitnessInvariantsAutomaton(automatonName, vars, states, initialStateName);
     } catch (InvalidAutomatonException | UnrecognizedCodeException e) {
       throw new RuntimeException("The passed invariants prdouce an inconsistent automaton", e);
     }

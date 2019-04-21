@@ -75,5 +75,9 @@ class AutomatonStatistics implements Statistics {
             - automatonSuccessors.getTimesWithValue(1);
     put(out, 0, "Automaton transfers with branching", stateBranchings);
     put(out, 0, automatonSuccessors);
+    if (mCpa.getAutomaton() instanceof WitnessInvariantsAutomaton) {
+      AutomatonInternalState initState = mCpa.getAutomaton().getInitialState();
+      put(out, 0, "Amount of transitions", initState.getTransitions().size());
+    }
   }
 }
