@@ -94,7 +94,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CandidatesFromWitness;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 /**
@@ -639,19 +639,13 @@ public class CoreComponentsFactory {
   private ConfigurableProgramAnalysis buildCPAsWithWitnessInvariantsAutomaton(
       final CFA cfa, final Specification specification)
       throws InvalidConfigurationException, CPAException {
+    WitnessInvariantsExtractor extractor =
+        new WitnessInvariantsExtractor(
+            config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
     ToCExpressionVisitor visitor = new ToCExpressionVisitor(cfa.getMachineModel(), logger);
     CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
-    Automaton automaton =
-        CandidatesFromWitness.buildInvariantsAutomatonFromWitness(
-            config,
-            specification,
-            logger,
-            cfa,
-            shutdownNotifier,
-            correctnessWitnessFile,
-            visitor,
-            builder);
-      List<Automaton> automata = new ArrayList<>(1);
+    List<Automaton> automata = new ArrayList<>(1);
+    Automaton automaton = extractor.buildInvariantsAutomatonFromWitness(visitor, builder);
       automata.add(automaton);
       return cpaFactory.buildCPAs(cfa, specification, automata, aggregatedReachedSets);
   }

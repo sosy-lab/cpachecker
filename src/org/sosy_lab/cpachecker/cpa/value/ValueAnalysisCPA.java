@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentStatistics;
@@ -76,8 +75,8 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecision
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment.SymbolicStatistics;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CandidatesFromWitness;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 import org.sosy_lab.cpachecker.util.statistics.KeyValueStatistics;
@@ -185,11 +184,10 @@ public class ValueAnalysisCPA extends AbstractCPA
       try {
         final Multimap<CFANode, MemoryLocation> candidates = HashMultimap.create();
         final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
-        ReachedSet reachedSet =
-            CandidatesFromWitness.analyzeWitness(
+        WitnessInvariantsExtractor extractor =
+            new WitnessInvariantsExtractor(
                 config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
-        CandidatesFromWitness.extractCandidateVariablesFromReachedSet(
-            shutdownNotifier, candidates, candidateGroupLocations, reachedSet);
+        extractor.extractCandidateVariablesFromReachedSet(candidates, candidateGroupLocations);
         VariableTrackingPrecision initialPrecision =
             VariableTrackingPrecision.createRefineablePrecision(
                 pConfig,

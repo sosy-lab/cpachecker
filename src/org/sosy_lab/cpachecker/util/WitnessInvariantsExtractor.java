@@ -71,13 +71,38 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** Utility class to extract candidates from witness file */
-public class CandidatesFromWitness {
+public class WitnessInvariantsExtractor {
 
-  private static Configuration generateLocalConfiguration(Configuration pConfig)
+  private Configuration config;
+  private Specification specification;
+  private LogManager logger;
+  private CFA cfa;
+  private ShutdownNotifier shutdownNotifier;
+  private Path pathToWitnessFile;
+  private ReachedSet reachedSet;
+
+  public WitnessInvariantsExtractor(
+      Configuration pConfig,
+      Specification pSpecification,
+      LogManager pLogger,
+      CFA pCFA,
+      ShutdownNotifier shutdownNotifier,
+      Path pPathToWitnessFile)
+      throws InvalidConfigurationException, CPAException {
+    this.config = generateLocalConfiguration(pConfig);
+    this.specification = pSpecification;
+    this.logger = pLogger;
+    this.cfa = pCFA;
+    this.shutdownNotifier = shutdownNotifier;
+    this.pathToWitnessFile = pPathToWitnessFile;
+    analyzeWitness();
+  }
+
+  private Configuration generateLocalConfiguration(Configuration pConfig)
       throws InvalidConfigurationException {
     ConfigurationBuilder configBuilder =
         Configuration.builder()
-            .loadFromResource(CandidatesFromWitness.class, "witness-analysis.properties");
+            .loadFromResource(WitnessInvariantsExtractor.class, "witness-analysis.properties");
     List<String> copyOptions =
         Arrays.asList(
             "analysis.machineModel",
@@ -93,51 +118,22 @@ public class CandidatesFromWitness {
     return configBuilder.build();
   }
 
-  public static Automaton buildInvariantsAutomatonFromWitness(
-      Configuration pConfig,
-      Specification pSpecification,
-      LogManager pLogger,
-      CFA pCFA,
-      final ShutdownNotifier shutdownNotifier,
-      Path correctnessWitnessFile,
-      ToCExpressionVisitor visitor,
-      CBinaryExpressionBuilder builder)
-      throws InvalidConfigurationException, CPAException {
-    final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
-    final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
-    ReachedSet reachedSet =
-        analyzeWitness(
-            pConfig, pSpecification, pLogger, pCFA, shutdownNotifier, correctnessWitnessFile);
-    CandidatesFromWitness.extractCandidatesFromReachedSet(
-        shutdownNotifier, candidates, candidateGroupLocations, reachedSet);
-    return WitnessInvariantsAutomaton.buildWitnessInvariantsAutomaton(candidates, visitor, builder);
-  }
-
-  public static ReachedSet analyzeWitness(
-      Configuration pConfig,
-      Specification pSpecification,
-      LogManager pLogger,
-      CFA pCFA,
-      final ShutdownNotifier shutdownNotifier,
-      Path pathToInvariantsAutomatonFile)
-      throws InvalidConfigurationException, CPAException {
-    Configuration config = generateLocalConfiguration(pConfig);
-    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, pLogger);
-    ReachedSet reachedSet = reachedSetFactory.create();
-    CPABuilder builder = new CPABuilder(config, pLogger, shutdownNotifier, reachedSetFactory);
+  private void analyzeWitness() throws InvalidConfigurationException, CPAException {
+    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
+    reachedSet = reachedSetFactory.create();
+    CPABuilder builder = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
     Specification automatonAsSpec =
         Specification.fromFiles(
-            pSpecification.getProperties(),
-            ImmutableList.of(pathToInvariantsAutomatonFile),
-            pCFA,
+            specification.getProperties(),
+            ImmutableList.of(pathToWitnessFile),
+            cfa,
             config,
-            pLogger);
+            logger);
     ConfigurableProgramAnalysis cpa =
-        builder.buildCPAs(pCFA, automatonAsSpec, new AggregatedReachedSets());
-    CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, shutdownNotifier);
-    CFANode rootNode = pCFA.getMainFunction();
+        builder.buildCPAs(cfa, automatonAsSpec, new AggregatedReachedSets());
+    CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
+    CFANode rootNode = cfa.getMainFunction();
     StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
-
     try {
       reachedSet.add(
           cpa.getInitialState(rootNode, partition), cpa.getInitialPrecision(rootNode, partition));
@@ -147,14 +143,58 @@ public class CandidatesFromWitness {
       // but instead of throwing the exception here,
       // let it be thrown by the invariant generator.
     }
-    return reachedSet;
   }
 
-  public static void extractCandidatesFromReachedSet(
-      final ShutdownNotifier pShutdownNotifier,
+  public Automaton buildInvariantsAutomatonFromWitness(
+      ToCExpressionVisitor visitor, CBinaryExpressionBuilder builder) {
+    final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
+    extractInvariantsFromReachedSet(invariants);
+    return WitnessInvariantsAutomaton.buildWitnessInvariantsAutomaton(invariants, visitor, builder);
+  }
+
+  public void extractInvariantsFromReachedSet(
+      final Set<ExpressionTreeLocationInvariant> invariants) {
+    Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
+    Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
+    Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
+    for (AbstractState abstractState : reachedSet) {
+      if (shutdownNotifier.shouldShutdown()) {
+        return;
+      }
+      Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
+      for (AutomatonState automatonState :
+          AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
+        ExpressionTree<AExpression> candidate = automatonState.getCandidateInvariants();
+        String groupId = automatonState.getInternalStateName();
+        if (!candidate.equals(ExpressionTrees.getTrue())) {
+          ExpressionTree<AExpression> previous = expressionTrees.get(groupId);
+          if (previous == null) {
+            previous = ExpressionTrees.getTrue();
+          }
+          expressionTrees.put(groupId, And.of(previous, candidate));
+          for (CFANode location : locations) {
+            ExpressionTreeLocationInvariant invariant =
+                new ExpressionTreeLocationInvariant(
+                    groupId, location, candidate, toCodeVisitorCache);
+            expressionTreeLocationInvariants.add(invariant);
+          }
+        }
+      }
+    }
+    for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant :
+        expressionTreeLocationInvariants) {
+      invariants.add(
+          new ExpressionTreeLocationInvariant(
+              expressionTreeLocationInvariant.getGroupId(),
+              expressionTreeLocationInvariant.getLocation(),
+              expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
+              toCodeVisitorCache));
+    }
+  }
+
+  public void extractCandidatesFromReachedSet(
       final Set<CandidateInvariant> candidates,
-      final Multimap<String, CFANode> candidateGroupLocations,
-      ReachedSet reachedSet) {
+      final Multimap<String, CFANode> candidateGroupLocations) {
     Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
     Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
     Set<CFANode> visited = Sets.newHashSet();
@@ -162,7 +202,7 @@ public class CandidatesFromWitness {
         HashMultimap.create();
     Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
     for (AbstractState abstractState : reachedSet) {
-      if (pShutdownNotifier.shouldShutdown()) {
+      if (shutdownNotifier.shouldShutdown()) {
         return;
       }
       Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
@@ -225,17 +265,15 @@ public class CandidatesFromWitness {
     }
   }
 
-  public static void extractCandidateVariablesFromReachedSet(
-      final ShutdownNotifier pShutdownNotifier,
+  public void extractCandidateVariablesFromReachedSet(
       final Multimap<CFANode, MemoryLocation> candidates,
-      final Multimap<String, CFANode> candidateGroupLocations,
-      ReachedSet reachedSet) {
+      final Multimap<String, CFANode> candidateGroupLocations) {
     Set<CFANode> visited = Sets.newHashSet();
     Multimap<String, MemoryLocation> groupIDToMemoryLocation = HashMultimap.create();
     Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
     // TODO: considering potential Candidates because of FunctionReturnEdges
     for (AbstractState abstractState : reachedSet) {
-      if (pShutdownNotifier.shouldShutdown()) {
+      if (shutdownNotifier.shouldShutdown()) {
         return;
       }
       Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
@@ -261,9 +299,7 @@ public class CandidatesFromWitness {
                 groupId,
                 MemoryLocation.valueOf(
                     callstackState.getCurrentFunction(), variableName.toString()));
-            }
-
-
+          }
         }
       }
     }
@@ -283,14 +319,14 @@ public class CandidatesFromWitness {
     if (expression instanceof Or<?>) {
       Or<AExpression> expressionOr = (Or<AExpression>) expression;
       Iterator<ExpressionTree<AExpression>> operands = expressionOr.iterator();
-      while(operands.hasNext()) {
+      while (operands.hasNext()) {
         ExpressionTree<AExpression> next = operands.next();
         findVariables(next, variableNames);
       }
     } else if (expression instanceof And<?>) {
       And<AExpression> expressionAnd = (And<AExpression>) expression;
       Iterator<ExpressionTree<AExpression>> operands = expressionAnd.iterator();
-      while(operands.hasNext()) {
+      while (operands.hasNext()) {
         ExpressionTree<AExpression> next = operands.next();
         findVariables(next, variableNames);
       }
@@ -302,10 +338,12 @@ public class CandidatesFromWitness {
 
   private static void extractCIdExpressionsfromCExpression(
       CExpression expressionC, Set<CExpression> variableNames) {
-    Iterable<CIdExpression> filteredExpressionsC = CFAUtils.getIdExpressionsOfExpression(expressionC);
+    Iterable<CIdExpression> filteredExpressionsC =
+        CFAUtils.getIdExpressionsOfExpression(expressionC);
     Iterator<CIdExpression> iteratorIdExpressions = filteredExpressionsC.iterator();
     while (iteratorIdExpressions.hasNext()) {
       variableNames.add(iteratorIdExpressions.next());
     }
   }
+
 }

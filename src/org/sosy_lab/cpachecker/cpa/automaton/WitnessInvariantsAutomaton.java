@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -46,7 +45,7 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 public class WitnessInvariantsAutomaton {
 
   public static Automaton buildWitnessInvariantsAutomaton(
-      Set<CandidateInvariant> candidates,
+      Set<ExpressionTreeLocationInvariant> invariants,
       ToCExpressionVisitor visitor,
       CBinaryExpressionBuilder builder) {
     try {
@@ -56,16 +55,14 @@ public class WitnessInvariantsAutomaton {
     List<AutomatonInternalState> states = Lists.newLinkedList();
     List<AutomatonTransition> initTransitions = Lists.newLinkedList();
     List<AutomatonInternalState> invStates = Lists.newLinkedList();
-    for (CandidateInvariant candidate : candidates) {
-      if (candidate instanceof ExpressionTreeLocationInvariant) {
-        ExpressionTreeLocationInvariant inv = (ExpressionTreeLocationInvariant) candidate;
-          AutomatonTransition errorTransition =
-              createTransitionWithCheckLocationAndAssumptionToError(inv, visitor, builder);
-          AutomatonTransition initTransition =
-              createTransitionWithCheckLocationAndAssumptionToInit(inv, visitor, builder);
+      for (ExpressionTreeLocationInvariant invariant : invariants) {
+        AutomatonTransition errorTransition =
+            createTransitionWithCheckLocationAndAssumptionToError(invariant, visitor, builder);
+        AutomatonTransition initTransition =
+            createTransitionWithCheckLocationAndAssumptionToInit(invariant, visitor, builder);
         initTransitions.add(errorTransition);
         initTransitions.add(initTransition);
-      }
+
     }
     AutomatonInternalState initState =
         new AutomatonInternalState(initialStateName, initTransitions, false, true, false);

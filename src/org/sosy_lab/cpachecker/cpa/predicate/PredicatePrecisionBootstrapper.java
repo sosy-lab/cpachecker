@@ -24,10 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -50,16 +48,14 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CandidatesFromWitness;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -166,51 +162,42 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     if (reuseInvariantsFromCorrectnessWitness) {
       witnessStats.invariantGeneration.start();
       try {
-        final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
-        final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
+        final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
         if (correctnessWitnessFile != null) {
-          ReachedSet reachedSet =
-              CandidatesFromWitness.analyzeWitness(
+          WitnessInvariantsExtractor extractor =
+              new WitnessInvariantsExtractor(
                   config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
-          CandidatesFromWitness.extractCandidatesFromReachedSet(
-              shutdownNotifier, candidates, candidateGroupLocations, reachedSet);
+          extractor.extractInvariantsFromReachedSet(invariants);
         }
 
-        for (CandidateInvariant candidate : candidates) {
+        for (ExpressionTreeLocationInvariant invariant : invariants) {
 
           ListMultimap<CFANode, AbstractionPredicate> localPredicates = ArrayListMultimap.create();
 
-          // get atom predicates from candidate
-          // in getPredicatesForAtomsOf splitItpAtoms has to be true
+          // get atom predicates from invariant
+          // splitItpAtoms has to be true
           if (atomPredicatesFromFormula) {
             Collection<AbstractionPredicate> atomPredicates =
                 predicateAbstractionManager.getPredicatesForAtomsOf(
-                    candidate.getFormula(formulaManagerView, pathFormulaManager, null));
-            if (candidate instanceof ExpressionTreeLocationInvariant) {
-              ExpressionTreeLocationInvariant e = (ExpressionTreeLocationInvariant) candidate;
+                    invariant.getFormula(formulaManagerView, pathFormulaManager, null));
               for (AbstractionPredicate atomPredicate : atomPredicates) {
-                localPredicates.put(e.getLocation(), atomPredicate);
+              localPredicates.put(invariant.getLocation(), atomPredicate);
               }
-            }
           }
-          // get predicates from candidate
+          // get predicates from invariant
           else {
             Set<AbstractionPredicate> predicate =
                 Collections.singleton(
                     abstractionManager.makePredicate(
-                        candidate.getFormula(formulaManagerView, pathFormulaManager, null)));
-
-            if (candidate instanceof ExpressionTreeLocationInvariant) {
-              ExpressionTreeLocationInvariant e = (ExpressionTreeLocationInvariant) candidate;
-              localPredicates.put(e.getLocation(), predicate.iterator().next());
-            }
+                        invariant.getFormula(formulaManagerView, pathFormulaManager, null)));
+            localPredicates.put(invariant.getLocation(), predicate.iterator().next());
           }
 
           // add all predicates
           result = result.addLocalPredicates(localPredicates.entries());
           witnessStats.numberOfInitialPredicates += localPredicates.entries().size();
         }
-        witnessStats.numberOfInvariants += candidates.size();
+        witnessStats.numberOfInvariants += invariants.size();
       } catch (CPAException | InterruptedException e) {
         logger.logUserException(
             Level.WARNING, e, "Predicate from correctness witness file could not be computed");
