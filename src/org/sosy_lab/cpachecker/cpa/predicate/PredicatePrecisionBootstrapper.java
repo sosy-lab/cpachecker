@@ -78,7 +78,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   @Option(
       secure = true,
       description =
-          "Provides additional candidate invariants from witness to the initial predicates.")
+          "Provides additional invariants from witness to the initial predicate precision.")
   private Path correctnessWitnessFile = null;
 
   @Option(
@@ -90,7 +90,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   @Option(
       secure = true,
       name = "correctnessWitness.atomPredicatesFromFormula",
-      description = "extract atoms from candidates in witness and create predicates")
+      description = "invariants from witness are added as atom predicates")
   private boolean atomPredicatesFromFormula = false;
 
   private final FormulaManagerView formulaManagerView;
@@ -106,7 +106,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final PredicateAbstractionManager predicateAbstractionManager;
 
   private final KeyValueStatistics statistics = new KeyValueStatistics();
-  final WitnessInvariantsStatistics witnessStats = new WitnessInvariantsStatistics();
+  private final WitnessInvariantsStatistics witnessStats = new WitnessInvariantsStatistics();
 
   public PredicatePrecisionBootstrapper(
       Configuration config,
