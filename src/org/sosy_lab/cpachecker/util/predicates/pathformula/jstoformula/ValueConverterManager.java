@@ -317,11 +317,13 @@ class ValueConverterManager {
    */
   @Nonnull
   FloatingPointFormula stringToNumber(final FloatingPointFormula pStringIdFormula) {
-    // TODO convert non number strings to NaN
     return bfmgr.ifThenElse(
         fmgr.makeEqual(pStringIdFormula, strMgr.getStringFormula("")),
         numMgr.ZERO,
-        fpfmgr.castTo(pStringIdFormula, Types.NUMBER_TYPE));
+        bfmgr.ifThenElse(
+            fpfmgr.greaterThan(pStringIdFormula, fpfmgr.makeNumber(Double.MAX_VALUE, Types.STRING_TYPE)),
+            numMgr.NaN,
+            fpfmgr.castTo(pStringIdFormula, Types.NUMBER_TYPE)));
   }
 
   /**
