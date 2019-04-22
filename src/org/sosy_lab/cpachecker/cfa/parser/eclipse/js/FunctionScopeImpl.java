@@ -118,7 +118,8 @@ class FunctionScopeImpl implements FunctionScope {
     return Optional.ofNullable(localDeclarations.get(pIdentifier));
   }
 
-  private Optional<? extends JSSimpleDeclaration> findParameterDeclaration(
+  @Override
+  public Optional<? extends JSSimpleDeclaration> findParameterDeclaration(
       @Nonnull final String pIdentifier) {
     return functionDeclaration
         .getParameters()

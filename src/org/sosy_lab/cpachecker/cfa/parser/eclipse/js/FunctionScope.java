@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import java.util.Optional;
+import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 
 interface FunctionScope extends Scope {
 
@@ -33,4 +36,6 @@ interface FunctionScope extends Scope {
   default String getNameOfScope() {
     return getFunctionDeclaration().getName();
   }
+
+  Optional<? extends JSSimpleDeclaration> findParameterDeclaration(@Nonnull String pIdentifier);
 }
