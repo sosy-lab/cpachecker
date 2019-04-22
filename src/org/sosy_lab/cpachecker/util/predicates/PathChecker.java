@@ -191,7 +191,7 @@ public class PathChecker {
           preciseInfo = replayedPathResult.getFirst();
           pathWithAssignments = replayedPathResult.getSecond();
         }
-    } catch (SolverException | CPATransferException e) {
+    } catch (IllegalArgumentException | SolverException | CPATransferException e) {
       // path is now suddenly a problem
       logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
       logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
