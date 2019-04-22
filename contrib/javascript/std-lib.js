@@ -7,6 +7,10 @@ function Number(value) {
   return +value;
 }
 
+function Boolean(value) {
+  return !!value;
+}
+
 Number.NaN = NaN;
 Number.POSITIVE_INFINITY = Infinity;
 Number.NEGATIVE_INFINITY = -Infinity;
