@@ -58,6 +58,7 @@ def is_skip_directory(dir):
         'expressions/in',  # TODO in operator
         'expressions/instanceof',  # TODO instanceof operator
         'expressions/template-literal',
+        'literals/regexp',
         'statements/async-function',
         'statements/async-generator',
         'statements/class',
@@ -103,11 +104,16 @@ def is_skip(file_content):
             or '[,' in file_content
             or ',,' in file_content
 
+            or ' instanceof ' in file_content  # TODO instanceof
             or 'Object.keys(' in file_content  # TODO Object.keys
             or 'Object.getOwnPropertyDescriptor(' in file_content
+            or 'Object.defineProperty(' in file_content
             or '.hasOwnProperty(' in file_content
             or '.isPrototypeOf(' in file_content
             or '.setPrototypeOf(' in file_content
+            or '.apply(' in file_content  # Function.prototype.apply
+            or '.bind(' in file_content  # Function.prototype.bind
+            or '.call(' in file_content  # Function.prototype.call
             or 'with(' in file_content
             or 'arguments[' in file_content  # TODO arguments
             or 'arguments.length' in file_content
@@ -115,19 +121,26 @@ def is_skip(file_content):
             or 'Math.' in file_content
             or 'es6id:' in file_content
             or 'features: [default-parameters' in file_content
+            or 'features: [numeric-separator-literal' in file_content
+            or 'flags: [module]' in file_content
+            or 'flags: [noStrict]' in file_content
             or 'assert.throws(' in file_content
             or 'tail-call-optimization' in file_content
             or 'ReferenceError' in file_content
             or 'Symbol' in file_content
             or 'Promise' in file_content
+            or 'RegExp' in file_content
             or 'new Array(' in file_content  # TODO Array
             or 'new Boolean(' in file_content  # TODO Boolean
             or 'new Function(' in file_content  # TODO Function
             or 'Function(' in file_content
-            or 'new Number(' in file_content  # TODO Number
+            or '.constructor.prototype' in file_content
+            or 'new Number' in file_content  # TODO Number
             or 'new String(' in file_content  # TODO String
-            or 'new Object(' in file_content  # TODO Object
+            or 'new Object' in file_content  # TODO Object
             or '.toString' in file_content
+            or 'String.' in file_content
+            or '.charCodeAt(' in file_content
             or 'toString:' in file_content
             or '.valueOf' in file_content)
 
@@ -176,9 +189,36 @@ if not std_lib_file.exists():
     exit(1)
 
 yml_file_names = set()
+
+# commented patterns contain files with unsupported features
 file_patterns = [
-    'test/programs/javascript-test262-benchmark/test/language/statements/*/*.js',
+    # 'test/programs/javascript-test262-benchmark/test/language/arguments-object/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/asi/**/*.js',
+    # 'test/programs/javascript-test262-benchmark/test/language/block-scope/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/comments/**/*.js',
+    # 'test/programs/javascript-test262-benchmark/test/language/computed-property-names/**/*.js',
+    # 'test/programs/javascript-test262-benchmark/test/language/destructuring/**/*.js',
+    # 'test/programs/javascript-test262-benchmark/test/language/directive-prologue/**/*.js',
+    # 'test/programs/javascript-test262-benchmark/test/language/eval-code/**/*.js',
+    # 'test/programs/javascript-test262-benchmark/test/language/export/**/*.js',
     'test/programs/javascript-test262-benchmark/test/language/expressions/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/function-code/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/future-reserved-words/**/*.js',
+    # 'test/programs/javascript-test262-benchmark/test/language/global-code/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/identifier-resolution/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/identifiers/**/*.js',
+    # 'test/programs/javascript-test262-benchmark/test/language/import/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/keywords/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/line-terminators/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/literals/**/*.js',
+    # 'test/programs/javascript-test262-benchmark/test/language/module-code/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/punctuators/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/reserved-words/**/*.js',
+    # 'test/programs/javascript-test262-benchmark/test/language/rest-parameters/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/source-text/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/statements/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/types/**/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/white-space/**/*.js',
 ]
 
 for file_pattern in file_patterns:
@@ -211,6 +251,7 @@ for file_pattern in file_patterns:
             input_files=assertion_files + [relpath(std_lib_file), './' + file.name],
             property_file=relative_path_to_property_file,
             expected_verdict='true')
+        # uncomment to skip creation of negated tests
         # continue
         negated_assertion_files = [relpath(error_lib_file)]
         if file_contains_assertion:

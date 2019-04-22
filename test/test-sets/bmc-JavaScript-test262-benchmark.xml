@@ -22,7 +22,11 @@
         <option name="-bmc-JavaScript"/>
     </rundefinition>
 
+    <!-- TODO update test262 files -->
+
     <tasks>
+        <propertyfile>../config/specification/JavaScriptAssertion.spc</propertyfile>
+
         <!-- MathSAT runs much faster than Z3 in these cases -->
         <option name="-setprop">cpa.loopbound.maxLoopIterations=11</option>
         <option name="-setprop">cpa.predicate.js.maxFieldNameCount=80</option>
@@ -30,12 +34,82 @@
         <include>../programs/javascript-test262-benchmark/test/language/statements/for/12.6.3_2-3-a-ii-14*.yml</include>
         <include>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A1.1_T1*.yml</include>
         <include>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A1.1_T2*.yml</include>
+    </tasks>
 
-        <include>../programs/javascript-test262-benchmark/test/language/expressions/*/*.yml</include>
-        <include>../programs/javascript-test262-benchmark/test/language/expressions/*/*/*.yml</include>
+    <tasks>
+        <!-- MathSAT runs much faster than Z3 in these cases -->
+        <option name="-setprop">cpa.loopbound.maxLoopIterations=11</option>
+        <option name="-setprop">cpa.predicate.js.maxFieldNameCount=80</option>
+
+        <include>../programs/javascript-test262-benchmark/test/language/*/*.yml</include>
+        <include>../programs/javascript-test262-benchmark/test/language/*/*/*.yml</include>
+        <include>../programs/javascript-test262-benchmark/test/language/*/*/*/*.yml</include>
+
+        <!-- TODO nested dynamic function calls should not lead to: Unsupported feature (recursion) -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-28-s.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-28-s_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-31-s.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-31-s_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-33-s.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-33-s_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-34-s.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-34-s_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-35-s.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-35-s_false.yml</exclude>
+
+        <!-- handled by other tasks -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/*/*.yml</exclude>
+
+        <!-- getter/setter not supported yet -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-54-s*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-55-s*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-56-s*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-57-s*.yml</exclude>
+
+        <!-- recursion is not supported yet -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/S10.4A1.1_T2*.yml</exclude>
+
+        <!-- TODO Timeout (caused by special characters in identifiers?) -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/identifiers/start-dollar-sign*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/identifiers/start-underscore*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/identifiers/start-unicode-ltr*.yml</exclude>
+
+        <!-- TODO TIMEOUT whitespace in string comparison -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/line-continuation-double*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/line-continuation-single*.yml</exclude>
+
+        <!-- TODO in operator -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/types/object/S8.6_A2_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/types/object/S8.6_A3_T2*.yml</exclude>
+
+        <!-- TODO unicode character in string causes IllegalArgumentException in Eclipse JsStringScanner -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/line-separator*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/paragraph-separator*.yml</exclude>
+
+        <!-- TODO string.length or string[i] -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/line-terminators/7.3-15*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/line-terminators/7.3-5*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/line-terminators/7.3-6*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/types/string/S8.4_A3*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/types/string/S8.4_A4*.yml</exclude>
+
+        <!-- TODO unicode in identifier -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/identifiers/part-digits-via-escape-hex4*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/identifiers/start-escape-seq*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/identifiers/vals-eng-alpha-lower-via-escape-hex4*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/identifiers/vals-eng-alpha-upper-via-escape-hex4*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/identifiers/vals-rus-alpha-lower-via-escape-hex4*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/identifiers/vals-rus-alpha-upper-via-escape-hex4*.yml</exclude>
 
         <!-- TODO access of this object outside of function -->
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/property-accessors/S11.2.1_A4_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/comments/S7.4_A1_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/comments/S7.4_A2_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/types/object/S8.6.2_A5_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/types/object/S8.6.2_A5_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/types/object/S8.6.2_A5_T3*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/types/object/S8.6.2_A5_T4*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/types/reference/S8.7.2_A3*.yml</exclude>
 
         <!-- TODO out of memory -->
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/S11.13.2_A2.1_T1.3.yml</exclude>
@@ -120,6 +194,7 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than-or-equal/S11.8.3_A4.11*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than-or-equal/S11.8.3_A4.12_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than/S11.8.1_A4.11*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/types/string/S8.4_A5*.yml</exclude>
 
         <!-- implicit call of valueOf -->
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/greater-than/11.8.2-1*.yml</exclude>
@@ -132,6 +207,7 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/equals/S11.9.1_A5.3*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/equals/S11.9.1_A3.2*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/equals/S11.9.1_A5.2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/types/string/S8.4_A8*.yml</exclude>
 
         <!-- TODO timeout (properties set on another object (std-lib.js) might cause this?) -->
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/mod-whitespace.yml</exclude>
@@ -167,6 +243,7 @@
 
         <!-- TODO string concatenation compared with string constant or different concatenation order -->
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/addition/S11.6.1_A4_T9.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/types/string/S8.4_A10.yml</exclude>
 
         <!-- TODO MathSAT returned null -->
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/assignment/S8.12.5_A2_0.0_false.yml</exclude>
@@ -217,7 +294,6 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A12_T4_0.3_false.yml</exclude>
 
         <!-- recursion is not supported yet -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T3*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T2*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T3*.yml</exclude>
@@ -252,9 +328,6 @@
         <!-- TODO function name contains unicode -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T2*.yml</exclude>
-
-        <!-- TODO function arguments variable -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A15_T4*.yml</exclude>
 
         <!-- TODO let scope -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-close*.yml</exclude>
