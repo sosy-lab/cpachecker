@@ -44,13 +44,18 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
   public JSExpression append(
       final JavaScriptCFABuilder pBuilder, final PrefixExpression pPrefixExpression) {
     final JSExpression operand = pBuilder.append(pPrefixExpression.getOperand());
-    if (PrefixExpression.Operator.INCREMENT == pPrefixExpression.getOperator()
+    final boolean isIncrementOperator = Operator.INCREMENT == pPrefixExpression.getOperator();
+    if (isIncrementOperator
         || PrefixExpression.Operator.DECREMENT == pPrefixExpression.getOperator()) {
       final BinaryOperator binaryOperator =
           pPrefixExpression.getOperator() == Operator.INCREMENT
               ? BinaryOperator.PLUS
               : BinaryOperator.MINUS;
       final JSLeftHandSide variableToIncrement = (JSLeftHandSide) operand;
+      final JSExpression leftNumberOperand =
+          isIncrementOperator
+              ? new JSUnaryExpression(FileLocation.DUMMY, variableToIncrement, UnaryOperator.PLUS)
+              : variableToIncrement;
       pBuilder.appendEdge(
           JSStatementEdge.of(
               new JSExpressionAssignmentStatement(
@@ -58,7 +63,7 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
                   variableToIncrement,
                   new JSBinaryExpression(
                       FileLocation.DUMMY,
-                      variableToIncrement,
+                      leftNumberOperand,
                       new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE),
                       binaryOperator))));
       return variableToIncrement;

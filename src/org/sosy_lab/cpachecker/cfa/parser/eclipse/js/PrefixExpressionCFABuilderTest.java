@@ -77,18 +77,7 @@ public class PrefixExpressionCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public void testIncrement() {
-    testOperatorWithSideEffect("++x", BinaryOperator.PLUS);
-  }
-
-  @Test
-  public void testDecrement() {
-    testOperatorWithSideEffect("--x", BinaryOperator.MINUS);
-  }
-
-  // shared code for increment and decrement
-  private void testOperatorWithSideEffect(
-      final String pCode, final BinaryOperator pExpectedOperator) {
-    final PrefixExpression prefixExpression = parseExpression(PrefixExpression.class, pCode);
+    final PrefixExpression prefixExpression = parseExpression(PrefixExpression.class, "++x");
 
     final JSIdExpression variableId =
         new JSIdExpression(FileLocation.DUMMY, "x", mock(JSSimpleDeclaration.class));
@@ -101,7 +90,7 @@ public class PrefixExpressionCFABuilderTest extends CFABuilderTestBase {
     // prefix expression:
     //    ++x
     // expected side effect:
-    //    x = x + 1
+    //    x = (+x) + 1
     // expected result:
     //    x
 
@@ -115,11 +104,47 @@ public class PrefixExpressionCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(incrementStatement.getLeftHandSide()).isEqualTo(variableId);
     final JSBinaryExpression incrementExpression =
         (JSBinaryExpression) incrementStatement.getRightHandSide();
-    Truth.assertThat(incrementExpression.getOperator()).isEqualTo(pExpectedOperator);
-    Truth.assertThat(incrementExpression.getOperand1()).isEqualTo(variableId);
+    Truth.assertThat(incrementExpression.getOperator()).isEqualTo(BinaryOperator.PLUS);
+    Truth.assertThat(incrementExpression.getOperand1())
+        .isEqualTo(new JSUnaryExpression(FileLocation.DUMMY, variableId, UnaryOperator.PLUS));
     Truth.assertThat(incrementExpression.getOperand2())
         .isEqualTo(new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE));
     Truth.assertThat(incrementStatementEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
   }
 
+  @Test
+  public void testDecrement() {
+    final PrefixExpression prefixExpression = parseExpression(PrefixExpression.class, "--x");
+
+    final JSIdExpression variableId =
+        new JSIdExpression(FileLocation.DUMMY, "x", mock(JSSimpleDeclaration.class));
+    builder.setExpressionAppendable(
+        (pBuilder, pExpression) -> {
+          Truth.assertThat(pBuilder).isEqualTo(builder);
+          return variableId;
+        });
+
+    // prefix expression:
+    //    --x
+    // expected side effect:
+    //    x = x - 1
+    // expected result:
+    //    x
+
+    final JSIdExpression result =
+        (JSIdExpression) new PrefixExpressionCFABuilder().append(builder, prefixExpression);
+
+    Truth.assertThat(result).isEqualTo(variableId);
+    Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
+    final JSStatementEdge decrementStatementEdge = (JSStatementEdge) entryNode.getLeavingEdge(0);
+    final JSAssignment decrementStatement = (JSAssignment) decrementStatementEdge.getStatement();
+    Truth.assertThat(decrementStatement.getLeftHandSide()).isEqualTo(variableId);
+    final JSBinaryExpression decrementExpression =
+        (JSBinaryExpression) decrementStatement.getRightHandSide();
+    Truth.assertThat(decrementExpression.getOperator()).isEqualTo(BinaryOperator.MINUS);
+    Truth.assertThat(decrementExpression.getOperand1()).isEqualTo(variableId);
+    Truth.assertThat(decrementExpression.getOperand2())
+        .isEqualTo(new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE));
+    Truth.assertThat(decrementStatementEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
+  }
 }
