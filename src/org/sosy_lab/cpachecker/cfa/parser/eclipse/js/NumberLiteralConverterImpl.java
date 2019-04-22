@@ -35,9 +35,24 @@ public class NumberLiteralConverterImpl implements NumberLiteralConverter {
   @Override
   public JSExpression convert(
       final FileLocationProvider pFileLocationProvider, final NumberLiteral pNumberLiteral) {
-    final String numberToken = pNumberLiteral.getToken();
+    final String numberToken = pNumberLiteral.getToken().toLowerCase();
     final FileLocation fileLocation = pFileLocationProvider.getFileLocation(pNumberLiteral);
-    return numberToken.contains(".") || numberToken.contains("e") || numberToken.contains("E")
+    if (numberToken.contains("0x")) {
+      return new JSIntegerLiteralExpression(
+          fileLocation,
+          new BigInteger(numberToken.substring(2), 16));
+    }
+    if (numberToken.contains("0b")) {
+      return new JSIntegerLiteralExpression(
+          fileLocation,
+          new BigInteger(numberToken.substring(2), 2));
+    }
+    if (numberToken.contains("0o")) {
+      return new JSIntegerLiteralExpression(
+          fileLocation,
+          new BigInteger(numberToken.substring(2), 8));
+    }
+    return numberToken.contains(".") || numberToken.contains("e")
         ? new JSFloatLiteralExpression(fileLocation, new BigDecimal(numberToken))
         : new JSIntegerLiteralExpression(fileLocation, new BigInteger(numberToken));
   }
