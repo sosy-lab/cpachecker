@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
@@ -50,7 +50,7 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
           pPrefixExpression.getOperator() == Operator.INCREMENT
               ? BinaryOperator.PLUS
               : BinaryOperator.MINUS;
-      final JSIdExpression variableToIncrement = (JSIdExpression) operand;
+      final JSLeftHandSide variableToIncrement = (JSLeftHandSide) operand;
       pBuilder.appendEdge(
           JSStatementEdge.of(
               new JSExpressionAssignmentStatement(
