@@ -28,6 +28,7 @@ import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
@@ -41,10 +42,11 @@ class VariableDeclarationFragmentCFABuilder implements VariableDeclarationFragme
       final JavaScriptCFABuilder pBuilder,
       final VariableDeclarationFragment pVariableDeclarationFragment) {
     final String variableIdentifier = pVariableDeclarationFragment.getName().getIdentifier();
+    final boolean hasInitializer = pVariableDeclarationFragment.getInitializer() != null;
     final JSExpression expression =
-        pVariableDeclarationFragment.getInitializer() == null
-          ? new JSUndefinedLiteralExpression(FileLocation.DUMMY)
-          : pBuilder.append(pVariableDeclarationFragment.getInitializer());
+        hasInitializer
+            ? pBuilder.append(pVariableDeclarationFragment.getInitializer())
+            : new JSUndefinedLiteralExpression(FileLocation.DUMMY);
 
     final Optional<? extends JSSimpleDeclaration> hoistedDeclaration =
         pBuilder.getScope().findDeclaration(variableIdentifier);
@@ -60,6 +62,9 @@ class VariableDeclarationFragmentCFABuilder implements VariableDeclarationFragme
     if (hoistedDeclaration.isPresent() && !hoistedDeclaration.equals(outerDeclaration)) {
       // variable declared by a hoisted declaration using 'var' or a function declaration
       final JSSimpleDeclaration d = hoistedDeclaration.get();
+      if (d instanceof JSParameterDeclaration && !hasInitializer) {
+        return null;
+      }
       variableDeclaration =
           new JSVariableDeclaration(
               pBuilder.getFileLocation(pVariableDeclarationFragment),

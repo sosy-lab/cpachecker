@@ -155,17 +155,19 @@ class Hoisting {
     for (final VariableDeclarationFragment variableDeclarationFragment :
         pVariableDeclarationFragments) {
       final String variableIdentifier = variableDeclarationFragment.getName().getIdentifier();
-      // Hoisted function declaration may not be overwritten, since it assigns a value
-      // contrary to a hoisted variable declaration
-      declarationMap.putIfAbsent(
-          variableIdentifier,
-          new JSVariableDeclaration(
-              builder.getFileLocation(variableDeclarationFragment),
-              ScopeConverter.toCFAScope(builder.getScope()),
-              variableIdentifier,
-              variableIdentifier,
-              builder.getScope().qualifiedVariableNameOf(variableIdentifier),
-              null));
+      if (!functionScope.findParameterDeclaration(variableIdentifier).isPresent()) {
+        // Hoisted function declaration may not be overwritten, since it assigns a value
+        // contrary to a hoisted variable declaration
+        declarationMap.putIfAbsent(
+            variableIdentifier,
+            new JSVariableDeclaration(
+                builder.getFileLocation(variableDeclarationFragment),
+                ScopeConverter.toCFAScope(builder.getScope()),
+                variableIdentifier,
+                variableIdentifier,
+                builder.getScope().qualifiedVariableNameOf(variableIdentifier),
+                null));
+      }
     }
   }
 
@@ -195,7 +197,9 @@ class Hoisting {
     final JSFunctionDeclaration jsFunctionDeclaration =
         functionDeclarationCFABuilder.getJSFunctionDeclaration(pBuilder, pFunctionDeclaration);
     functionScope.addDeclaration(jsFunctionDeclaration);
-    declarationMap.put(jsFunctionDeclaration.getOrigName(), jsFunctionDeclaration);
+    if (!functionScope.findParameterDeclaration(jsFunctionDeclaration.getOrigName()).isPresent()) {
+      declarationMap.put(jsFunctionDeclaration.getOrigName(), jsFunctionDeclaration);
+    }
     functionDeclarationCFABuilder.addDeclarationMapping(
         pFunctionDeclaration, jsFunctionDeclaration);
     pBuilder.appendEdge(JSDeclarationEdge.of(jsFunctionDeclaration));
