@@ -175,7 +175,12 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/division/S11.5.2_A4_T1.1_0.7_false.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/division/S11.5.2_A4_T1.1_0.2_false.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/division/S11.5.2_A4_T1.1_0.0_false.yml</exclude>
-
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/addition/S11.6.1_A4_T1_0.2_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/addition/S11.6.1_A4_T1_0.5_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/division/S11.5.2_A4_T1.1_0.5_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/division/S11.5.2_A4_T1.2_0.1_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/multiplication/S11.5.1_A4_T1.1_0.2_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/multiplication/S11.5.1_A4_T1.2_0.2_false.yml</exclude>
 
         <propertyfile>../config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
