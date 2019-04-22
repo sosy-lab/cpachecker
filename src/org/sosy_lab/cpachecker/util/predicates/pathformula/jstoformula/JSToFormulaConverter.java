@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.js.Scope;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
@@ -472,17 +471,6 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
             calledFunctionCtx.scopeMgr.scopeStack(calledScopeVariable),
             afmgr.store(ss, ifmgr.makeNumber(nestingLevel + 1), calledScopeVariable)));
 
-    // TODO manage global object (no variables are assigned to this dummy)
-    final JSIdExpression globalObjectId =
-        new JSIdExpression(
-            FileLocation.DUMMY,
-            new JSVariableDeclaration(
-                FileLocation.DUMMY,
-                Scope.GLOBAL,
-                "globalObject",
-                "globalObject",
-                "globalObject",
-                null));
     final JSExpression thisValue;
     if (functionCallExpression.isConstructorCall()) {
       // TODO implement without creating CFA expressions
@@ -498,7 +486,10 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
                               FileLocation.DUMMY, functionCallExpression.getDeclaration()),
                           "prototype"))));
     } else {
-      thisValue = functionCallExpression.getThisArg().orElse(globalObjectId);
+      thisValue =
+          functionCallExpression
+              .getThisArg()
+              .orElse(new JSUndefinedLiteralExpression(FileLocation.DUMMY));
     }
     // this binding, see https://www.ecma-international.org/ecma-262/5.1/#sec-10.4.3
     result.add(
