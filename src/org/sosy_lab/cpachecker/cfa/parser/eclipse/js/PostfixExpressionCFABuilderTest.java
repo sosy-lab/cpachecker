@@ -71,7 +71,7 @@ public class PostfixExpressionCFABuilderTest extends CFABuilderTestBase {
 
     // expected side effect:
     //    var tmp = +x // enforce conversion to number
-    //    x = x + 1
+    //    x = tmp + 1
     // expected result:
     //    tmp
 
@@ -96,7 +96,7 @@ public class PostfixExpressionCFABuilderTest extends CFABuilderTestBase {
     final JSBinaryExpression incrementExpression =
         (JSBinaryExpression) incrementStatement.getRightHandSide();
     Truth.assertThat(incrementExpression.getOperator()).isEqualTo(pExpectedOperator);
-    Truth.assertThat(incrementExpression.getOperand1()).isEqualTo(variableId);
+    Truth.assertThat(incrementExpression.getOperand1()).isEqualTo(result);
     Truth.assertThat(incrementExpression.getOperand2())
         .isEqualTo(new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE));
     Truth.assertThat(incrementStatementEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);

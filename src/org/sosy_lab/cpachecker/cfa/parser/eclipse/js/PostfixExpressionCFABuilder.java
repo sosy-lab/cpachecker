@@ -51,7 +51,7 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
     //    x++
     // side effect:
     //    var tmp = +x // enforce conversion to number
-    //    x = x + 1
+    //    x = tmp + 1
     // result:
     //    tmp
     final BinaryOperator binaryOperator = getBinaryOperator(pPostfixExpression);
@@ -63,6 +63,8 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
                 FileLocation.DUMMY,
                 new JSUnaryExpression(
                     FileLocation.DUMMY, variableToIncrement, UnaryOperator.PLUS)));
+    final JSIdExpression tmp =
+        new JSIdExpression(FileLocation.DUMMY, oldValueVariableDeclaration);
     pBuilder
         .appendEdge(JSDeclarationEdge.of(oldValueVariableDeclaration))
         .appendEdge(
@@ -72,10 +74,10 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
                     variableToIncrement,
                     new JSBinaryExpression(
                         FileLocation.DUMMY,
-                        variableToIncrement,
+                        tmp,
                         new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE),
                         binaryOperator))));
-    return new JSIdExpression(FileLocation.DUMMY, oldValueVariableDeclaration);
+    return tmp;
   }
 
   private BinaryOperator getBinaryOperator(final PostfixExpression pPostfixExpression) {
