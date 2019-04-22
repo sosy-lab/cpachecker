@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
@@ -54,8 +55,8 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
     // result:
     //    tmp
     final BinaryOperator binaryOperator = getBinaryOperator(pPostfixExpression);
-    final JSIdExpression variableToIncrement =
-        (JSIdExpression) pBuilder.append(pPostfixExpression.getOperand());
+    final JSLeftHandSide variableToIncrement =
+        (JSLeftHandSide) pBuilder.append(pPostfixExpression.getOperand());
     final JSVariableDeclaration oldValueVariableDeclaration =
         pBuilder.declareVariable(
             new JSInitializerExpression(
