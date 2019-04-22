@@ -161,6 +161,21 @@ def create_task_file(yml_file, input_files, property_file, expected_verdict):
 
 project_root_dir = Path(__file__).parent.parent.parent
 
+delete_file_patterns = [
+    'test/programs/javascript-test262-benchmark/test/language/**/*.yml',
+    'test/programs/javascript-test262-benchmark/test/language/**/*.negated',
+]
+delete_error_occurred = False
+for file_pattern in delete_file_patterns:
+    for file in project_root_dir.glob(file_pattern):
+        try:
+            file.unlink()
+        except OSError:
+            eprint("Error while deleting file {}".format(file))
+            delete_error_occurred = True
+if delete_error_occurred:
+    exit(1)
+
 # Specification-Dateien im "config"-Ordner sind aus Sicherheitsgründen in der VerifierCloud
 # verboten. Daher wird als Workaround auf ein anderes Verzeichnis verwiesen:
 property_file = project_root_dir / 'test/config/specification/JavaScriptAssertion.spc'
