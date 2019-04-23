@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -93,6 +94,18 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       description = "invariants from witness are added as atom predicates")
   private boolean atomPredicatesFromFormula = false;
 
+  @Option(
+      secure = true,
+      name = "correctnessWitness.witnessInvariantScope",
+      description = "Where to apply the found invariants to?")
+  private WitnessInvariantScope witnessInvariantScope = WitnessInvariantScope.LOCATION;
+  private static enum WitnessInvariantScope {
+    GLOBAL, // at all locations
+    FUNCTION, // at all locations in the respective function
+    LOCATION, // at all occurrences of the respective location
+    ;
+  }
+
   private final FormulaManagerView formulaManagerView;
   private final AbstractionManager abstractionManager;
 
@@ -106,7 +119,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final PredicateAbstractionManager predicateAbstractionManager;
 
   private final KeyValueStatistics statistics = new KeyValueStatistics();
-  private final WitnessInvariantsStatistics witnessStats = new WitnessInvariantsStatistics();
+
+  private Optional<WitnessInvariantsStatistics> witnessStats = Optional.empty();
 
   public PredicatePrecisionBootstrapper(
       Configuration config,
@@ -160,7 +174,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     }
 
     if (reuseInvariantsFromCorrectnessWitness) {
-      witnessStats.invariantGeneration.start();
+      witnessStats = Optional.of(new WitnessInvariantsStatistics(witnessInvariantScope));
+      witnessStats.get().invariantGeneration.start();
       try {
         final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
         if (correctnessWitnessFile != null) {
@@ -172,7 +187,11 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
         for (ExpressionTreeLocationInvariant invariant : invariants) {
 
-          ListMultimap<CFANode, AbstractionPredicate> localPredicates = ArrayListMultimap.create();
+          ListMultimap<CFANode, AbstractionPredicate> localPredicates =
+              MultimapBuilder.treeKeys().arrayListValues().build();
+          Set<AbstractionPredicate> globalPredicates = Sets.newHashSet();
+          ListMultimap<String, AbstractionPredicate> functionPredicates =
+              MultimapBuilder.treeKeys().arrayListValues().build();
 
           // get atom predicates from invariant
           // splitItpAtoms has to be true
@@ -180,9 +199,11 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
             Collection<AbstractionPredicate> atomPredicates =
                 predicateAbstractionManager.getPredicatesForAtomsOf(
                     invariant.getFormula(formulaManagerView, pathFormulaManager, null));
-              for (AbstractionPredicate atomPredicate : atomPredicates) {
+            for (AbstractionPredicate atomPredicate : atomPredicates) {
               localPredicates.put(invariant.getLocation(), atomPredicate);
-              }
+              globalPredicates.add(atomPredicate);
+              functionPredicates.put(invariant.getLocation().getFunctionName(), atomPredicate);
+            }
           }
           // get predicates from invariant
           else {
@@ -191,18 +212,35 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
                     abstractionManager.makePredicate(
                         invariant.getFormula(formulaManagerView, pathFormulaManager, null)));
             localPredicates.put(invariant.getLocation(), predicate.iterator().next());
+            globalPredicates.add(predicate.iterator().next());
+            functionPredicates.put(
+                invariant.getLocation().getFunctionName(), predicate.iterator().next());
           }
 
-          // add all predicates
-          result = result.addLocalPredicates(localPredicates.entries());
-          witnessStats.numberOfInitialPredicates += localPredicates.entries().size();
+          // add predicates according to the scope
+          switch (witnessInvariantScope) {
+            case FUNCTION:
+              result = result.addFunctionPredicates(functionPredicates.entries());
+              witnessStats.get().numberOfInitialFunctionPredicates +=
+                  localPredicates.entries().size();
+              break;
+            case GLOBAL:
+              result = result.addGlobalPredicates(globalPredicates);
+              witnessStats.get().numberOfInitialGlobalPredicates += globalPredicates.size();
+              break;
+            case LOCATION:
+              result = result.addLocalPredicates(localPredicates.entries());
+              witnessStats.get().numberOfInitialLocalPredicates += localPredicates.entries().size();
+              break;
+            default:
+              break;
+          }
         }
-        witnessStats.numberOfInvariants += invariants.size();
       } catch (CPAException | InterruptedException e) {
         logger.logUserException(
             Level.WARNING, e, "Predicate from correctness witness file could not be computed");
       } finally {
-        witnessStats.invariantGeneration.stop();
+        witnessStats.get().invariantGeneration.stop();
       }
     }
 
@@ -225,23 +263,42 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
-    if (reuseInvariantsFromCorrectnessWitness) {
-      pStatsCollection.add(witnessStats);
+    if (witnessStats.isPresent()) {
+      pStatsCollection.add(witnessStats.get());
     }
   }
 
-  public static class WitnessInvariantsStatistics implements Statistics {
+  private static class WitnessInvariantsStatistics implements Statistics {
 
     final Timer invariantGeneration = new Timer();
     private int numberOfInvariants = 0;
-    private int numberOfInitialPredicates = 0;
+    private int numberOfInitialLocalPredicates = 0;
+    private int numberOfInitialFunctionPredicates = 0;
+    private int numberOfInitialGlobalPredicates = 0;
+    private WitnessInvariantScope witnessInvariantScope;
+
+    private WitnessInvariantsStatistics(WitnessInvariantScope witnessInvariantScope) {
+      this.witnessInvariantScope = witnessInvariantScope;
+    }
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
       writer.put("Time for invariant generation", invariantGeneration);
       writer.put("Number of invariants", numberOfInvariants);
-      writer.put("Number of initial predicates", numberOfInitialPredicates);
+      switch (witnessInvariantScope) {
+        case FUNCTION:
+          writer.put("Number of initial function predicates", numberOfInitialFunctionPredicates);
+          break;
+        case GLOBAL:
+          writer.put("Number of initial global predicates", numberOfInitialGlobalPredicates);
+          break;
+        case LOCATION:
+          writer.put("Number of initial local predicates", numberOfInitialLocalPredicates);
+          break;
+        default:
+          break;
+      }
     }
 
     @Override
