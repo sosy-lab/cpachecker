@@ -64,7 +64,7 @@ public class DomainSpecificAbstraction<T> {
   private final Timer interpolationTimer;
   private final Timer initialVariableExtractionTimer;
   private final Timer feasibilityCheckTimer;
-  private final Timer maximisationTimer;
+  //private final Timer maximisationTimer;
   LogManager logger;
   private HashMap<String, FormulaType> latticeNamesTypes = new HashMap<>();
   protected boolean inequalityInterpolationAbstractions;
@@ -77,7 +77,7 @@ public class DomainSpecificAbstraction<T> {
                                        pRenamingTimer, Timer pBuildingAbstractionsTimer, Timer
                                        pInterpolationTimer, Timer
                                        pInitialVariableExtractionTimer, Timer
-                                       pFeasibilityCheckTimer, Timer pMaximisationTimer, boolean
+                                       pFeasibilityCheckTimer, /*Timer pMaximisationTimer,*/ boolean
                                        pInequalityInterpolationAbstractions) {
     fmgr = pFmgr;
     oldFmgr = oldFmgr0;
@@ -89,7 +89,7 @@ public class DomainSpecificAbstraction<T> {
     interpolationTimer = pInterpolationTimer;
     initialVariableExtractionTimer = pInitialVariableExtractionTimer;
     feasibilityCheckTimer = pFeasibilityCheckTimer;
-    maximisationTimer = pMaximisationTimer;
+    //maximisationTimer = pMaximisationTimer;
     inequalityInterpolationAbstractions = pInequalityInterpolationAbstractions;
   }
 
