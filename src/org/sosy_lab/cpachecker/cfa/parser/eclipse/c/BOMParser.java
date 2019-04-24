@@ -30,6 +30,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
@@ -54,7 +56,12 @@ public class BOMParser {
     }
   }
 
-  private static final int MAX_BOM_LENGTH = 8;
+  private static final int MAX_BOM_LENGTH =
+      Arrays.stream(ByteOrderMark.values())
+          .max(Comparator.comparingInt(bom -> bom.sequence.size()))
+          .get()
+          .sequence
+          .size();
 
   /**
    * Filters the BOM in the {@code pFilename} if present. If a BOM is detected the corresponding
@@ -111,7 +118,7 @@ public class BOMParser {
       while ((data = bufferedReader.read()) != -1) {
         // when we continue to read the data in a BOM file we do not want any no ascii characters
         if (Ascii.MAX < data) {
-          throw new CParserException(noAsciiValuesErrorMessage(bom));
+          throw new CParserException(bom.encoding + " encoded file has non-ascii values");
         }
         sb.append((char) data);
       }
@@ -126,31 +133,19 @@ public class BOMParser {
   private static ByteOrderMark getBOM(List<Integer> codeBeginning) {
     if (isPureAscii(codeBeginning)) {
       return ByteOrderMark.NO_BOM;
-    } else if (containsBOM(codeBeginning, ByteOrderMark.UTF8_BOM.sequence)) {
+    } else if (codeBeginning.equals(ByteOrderMark.UTF8_BOM.sequence)) {
       return ByteOrderMark.UTF8_BOM;
-    } else if (containsBOM(codeBeginning, ByteOrderMark.UTF16_LE_BOM.sequence)) {
+    } else if (codeBeginning.equals(ByteOrderMark.UTF16_LE_BOM.sequence)) {
       return ByteOrderMark.UTF16_LE_BOM;
-    } else if (containsBOM(codeBeginning, ByteOrderMark.UTF16_BE_BOM.sequence)) {
+    } else if (codeBeginning.equals(ByteOrderMark.UTF16_BE_BOM.sequence)) {
       return ByteOrderMark.UTF16_BE_BOM;
-    } else if (containsBOM(codeBeginning, ByteOrderMark.UTF32_LE_BOM.sequence)) {
+    } else if (codeBeginning.equals(ByteOrderMark.UTF32_LE_BOM.sequence)) {
       return ByteOrderMark.UTF32_LE_BOM;
-    } else if (containsBOM(codeBeginning, ByteOrderMark.UTF32_BE_BOM.sequence)) {
+    } else if (codeBeginning.equals(ByteOrderMark.UTF32_BE_BOM.sequence)) {
       return ByteOrderMark.UTF32_BE_BOM;
     } else {
       return ByteOrderMark.UNKNOWN_BOM;
     }
-  }
-
-  private static boolean containsBOM(List<Integer> codeBeginning, List<Integer> bomBytes) {
-    if (codeBeginning.size() < bomBytes.size()) {
-      return false;
-    }
-    for (int i = 0; i < bomBytes.size(); i++) {
-      if (!codeBeginning.get(i).equals(bomBytes.get(i))) {
-        return false;
-      }
-    }
-    return true;
   }
 
   private static boolean isPureAscii(List<Integer> code) {
@@ -162,7 +157,4 @@ public class BOMParser {
     return true;
   }
 
-  private static String noAsciiValuesErrorMessage(ByteOrderMark bom) {
-    return bom.encoding + " encoded file has non-ascii values";
-  }
 }
