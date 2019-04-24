@@ -1772,7 +1772,7 @@ public class DomainSpecificAbstraction<T> {
         buildingLatticeNamesAndLatticeTypesTimer.stop();
       }
 
-     /* for(Formula x : relationAbstraction1Formula){
+      for(Formula x : relationAbstraction1Formula){
         logger.log(Level.INFO, "Relation Abstraction 1: " + x.toString());
       }
 
@@ -1784,7 +1784,7 @@ public class DomainSpecificAbstraction<T> {
         logger.log(Level.INFO, "LatticeName: " + latticeNames[i] + " "
             + "LatticeNameType: " + latticeNamesTypes.get
             (latticeNames[i]));
-      } */
+      }
 
       FirstPartRenamingFct renamer1 = new FirstPartRenamingFct
           (arrayVariablesThatAreNotUsedInBothParts, arrayVariablesThatAreUsedInBothParts);
@@ -1843,93 +1843,112 @@ public class DomainSpecificAbstraction<T> {
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
       String latticenamesH = "";
+      long latticeNamesSize = (long)Math.pow(2, latticeNames.length);
+      int counter;
       buildingAbstractionsTimer.start();
       try {
-        for (int h = 0; h < latticeNames.length;
-             h++) {
-          for (int k = 0; k < relationAbstraction1.length; k++) {
-            if (relationAbstraction1[k] != null && latticeNames[h] != null) {
-              if (relationAbstraction1[k].contains(latticeNames[h] + " = ")
-                  || relationAbstraction1[k].contains(latticeNames[h] + " < ")) {
-                helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
-                    (k));
-                if (latticenamesH.isEmpty()) {
-                  latticenamesH = latticeNames[h];
-                } else {
-                  latticenamesH = latticenamesH + " ," + latticeNames[h];
+        for (counter = 0; counter < latticeNamesSize; counter++) {
+          if (abstractionFeasible){
+            break;
+          }
+          for (int h = 0; h < latticeNames.length;
+               h++) {
+            if ((counter & (1 << h)) > 0) {
+              for (int k = 0; k < relationAbstraction1.length; k++) {
+                if (relationAbstraction1[k] != null && latticeNames[h] != null) {
+                  if (relationAbstraction1[k].contains(latticeNames[h] + " = ")
+                      || relationAbstraction1[k].contains(latticeNames[h] + " < ")) {
+                    helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
+                        (k));
+                    if (latticenamesH.isEmpty()) {
+                      latticenamesH = latticeNames[h];
+                    } else {
+                      latticenamesH = latticenamesH + " ," + latticeNames[h];
+                    }
+
+                  }
                 }
+                if (relationAbstraction2[k] != null && latticeNames[h] != null) {
+                  if (relationAbstraction2[k].contains(latticeNames[h] + " = ")
+                      || relationAbstraction2[k].contains(latticeNames[h] + " < ")) {
+                    helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
+                        (k));
 
+                  }
+                }
               }
-            }
-            if (relationAbstraction2[k] != null && latticeNames[h] != null) {
-              if (relationAbstraction2[k].contains(latticeNames[h] + " = ")
-                  || relationAbstraction2[k].contains(latticeNames[h] + " < ")) {
-                helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
-                    (k));
 
-              }
-            }
-          }
 
-          if (!latticenamesH.isEmpty()) {
-          BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
-          List<BooleanFormula> toCheckFormulaList =
-              Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-          for (BooleanFormula f : changedFomulasRest1) {
-            toCheckFormulaList.add(f);
-          }
-          toCheckFormulaList.add(toCheckFormula);
-          for (BooleanFormula f : changedFomulasRest2) {
-            toCheckFormulaList.add(f);
-          }
-          BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
-          feasibilityCheckTimer.start();
-          try {
-           // logger.log(Level.INFO, "Feasibility Check on " + toCheckFormulaBlocked.toString());
-            abstractionFeasible = prove(toCheckFormulaBlocked, prover);
-          } finally {
-            feasibilityCheckTimer.stop();
-          }
-          if (abstractionFeasible) {
-           // logger.log(Level.INFO, toCheckFormulaBlocked.toString() + " is feasible");
-            List<List<Formula>> frontierListCopy = Lists
-                .newArrayListWithExpectedSize(oldFormulas.size() - 1);
-            for ( List<Formula> s : frontierList) {
-              frontierListCopy.add(s);
-            }
-            isIncomparable = checkComparability(frontierListCopy,
-                latticenamesH, latticeNames);
+              if (!latticenamesH.isEmpty()) {
+                BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
+                List<BooleanFormula> toCheckFormulaList =
+                    Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+                for (BooleanFormula f : changedFomulasRest1) {
+                  toCheckFormulaList.add(f);
+                }
+                toCheckFormulaList.add(toCheckFormula);
+                for (BooleanFormula f : changedFomulasRest2) {
+                  toCheckFormulaList.add(f);
+                }
+                BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
+                feasibilityCheckTimer.start();
+                try {
+                   logger.log(Level.INFO, "Feasibility Check on " + toCheckFormulaBlocked.toString());
+                  abstractionFeasible = prove(toCheckFormulaBlocked, prover);
+                } finally {
+                  feasibilityCheckTimer.stop();
+                }
+                if (abstractionFeasible) {
+                  logger.log(Level.INFO, toCheckFormulaBlocked.toString() + " is feasible");
+                  List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
+                      - 1);
+                  Iterable<String> splitOperator3 = Splitter.on(" ,").split(latticenamesH);
+                  for (String s : splitOperator3) {
+                    for (int i = 0; i < latticeNames.length; i++) {
+                      if (latticeNames[i] != null && s.equals(latticeNames[i])){
+                        formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
+                      }
+                    }
+                  }
+                  List<Formula> newFrontierElem = StringtoIntegerFormulaList(latticenamesH,
+                      formulaTypes);
+                  frontierList.add(newFrontierElem);
+                  break;
+              /* List<List<Formula>> frontierListCopy = Lists
+                    .newArrayListWithExpectedSize(oldFormulas.size() - 1);
+                for (List<Formula> s : frontierList) {
+                  frontierListCopy.add(s);
+                }
+                isIncomparable = checkComparability(frontierListCopy,
+                    latticenamesH, latticeNames);
 
-            if (isIncomparable) {
-            //  logger.log(Level.INFO,  "Incomparable");
-              maximisationTimer.start();
-            //  logger.log(Level.INFO, "Maximisation");
-              try {
-                List<Formula> new_frontier_elem = maximise(firstPartChanged,
-                    scndPartChanged,
-                    relationAbstraction1,
-                    relationAbstraction2, relationAbstraction1Formula,
-                    relationAbstraction2Formula, latticeNames,
-                    latticenamesH,
-                     prover);
-                frontierList.add(new_frontier_elem);
-              //  logger.log(Level.INFO,  "Newly added element into frontier list: " +
-               //     new_frontier_elem.toString());
-              } finally {
-                maximisationTimer.stop();
+                if (isIncomparable) {
+                  maximisationTimer.start();
+                  try {
+                    List<Formula> new_frontier_elem = maximise(firstPartChanged,
+                        scndPartChanged,
+                        relationAbstraction1,
+                        relationAbstraction2, relationAbstraction1Formula,
+                        relationAbstraction2Formula, latticeNames,
+                        latticenamesH,
+                        prover);
+                    frontierList.add(new_frontier_elem);
+                  } finally {
+                    maximisationTimer.stop();
+                  }
+                } */
+                }
               }
             }
           }
         }
-
-    }
   } finally
 
   {
     buildingAbstractionsTimer.stop();
   }
 
-      //logger.log(Level.INFO,  "Frontier List: " + frontierList.toString());
+      logger.log(Level.INFO,  "Frontier List: " + frontierList.toString());
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
       if (frontierList != null && (frontierList.size() >= 1)) {
@@ -1987,10 +2006,10 @@ public class DomainSpecificAbstraction<T> {
 
         List<T> myItpGroupIds = new ArrayList<>(formulas.size());
 
-    /*    logger.log(Level.INFO,  "changedFormulasRest1: " + changedFomulasRest1.toString());
+        logger.log(Level.INFO,  "changedFormulasRest1: " + changedFomulasRest1.toString());
         logger.log(Level.INFO,  "Helper Formula 1: " + helperFormula1.toString());
         logger.log(Level.INFO,  "Helper Formula 2: " + helperFormula2.toString());
-        logger.log(Level.INFO,  "changedFomulasRest2: " + changedFomulasRest2.toString());*/
+        logger.log(Level.INFO,  "changedFomulasRest2: " + changedFomulasRest2.toString());
 
     interpolationTimer.start();
     try {
@@ -2028,7 +2047,7 @@ public class DomainSpecificAbstraction<T> {
 
     }
     if (interpolants != null && !interpolants.isEmpty()) {
-    //  logger.log(Level.INFO,  "Interpolants: " + interpolants.toString());
+      logger.log(Level.INFO,  "Interpolants: " + interpolants.toString());
       return interpolants;
     } else {
       return Collections.emptyList();
