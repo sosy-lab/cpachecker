@@ -99,7 +99,7 @@ public final class InterpolationManager {
   private final Timer interpolantVerificationTimer = new Timer();
   private final Timer dsaAnalysisTimer = new Timer();
   private final Timer feasiblityCheckTimer = new Timer();
-  //private final Timer maximisationTimer = new Timer();
+  private final Timer maximisationTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
   protected final Timer findingCommonVariablesTimer = new Timer();
   protected final Timer buildingLatticeNamesAndLatticeTypesTimer = new Timer();
@@ -151,12 +151,12 @@ public final class InterpolationManager {
               .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + feasiblityCheckTimer
           .getAvgTime() + ")" + "Number of Intervals: " + feasiblityCheckTimer.getNumberOfIntervals());
     }
-  /*  if (maximisationTimer.getNumberOfIntervals() > 0){
+    if (maximisationTimer.getNumberOfIntervals() > 0){
       w1.put("Maximisation: ", maximisationTimer + " (Max: " +
           maximisationTimer
               .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + maximisationTimer
           .getAvgTime() + ")" + "Number of Intervals: " + maximisationTimer.getNumberOfIntervals());
-    } */
+    }
     if (interpolationTimer.getNumberOfIntervals() > 0){
       w1.put("Interpolation: ", interpolationTimer + " (Max: " +
           interpolationTimer
@@ -1114,7 +1114,7 @@ public final class InterpolationManager {
                 interpolationTimer,
                 initialVariableExtractionTimer,
                 feasiblityCheckTimer,
-                /*maximisationTimer,*/
+                maximisationTimer,
                 inequalityInterpolationAbstractions);
         List<BooleanFormula> tocheck =
             Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
