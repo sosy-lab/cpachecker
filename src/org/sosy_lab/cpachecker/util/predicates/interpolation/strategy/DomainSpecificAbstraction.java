@@ -2076,8 +2076,8 @@ public class DomainSpecificAbstraction<T> {
        latticeNames,  String latticenamesH, ProverEnvironment
                                                                prover){
 
-    String[] middleElement = new String[latticeNames.length];
-    int middleElemIndex = 0;
+   // String[] middleElement = new String[latticeNames.length];
+   // int middleElemIndex = 0;
     Boolean isFeasible = true;
     BooleanFormula helperFormula1;
     BooleanFormula helperFormula2;
