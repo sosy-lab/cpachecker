@@ -1839,7 +1839,7 @@ public class DomainSpecificAbstraction<T> {
 
 
       boolean abstractionFeasible = false;
-      boolean isIncomparable = false;
+      //boolean isIncomparable = false;
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
       String latticenamesH = "";
@@ -1879,68 +1879,56 @@ public class DomainSpecificAbstraction<T> {
               }
 
 
-              if (!latticenamesH.isEmpty()) {
-                BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
-                List<BooleanFormula> toCheckFormulaList =
-                    Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-                for (BooleanFormula f : changedFomulasRest1) {
-                  toCheckFormulaList.add(f);
-                }
-                toCheckFormulaList.add(toCheckFormula);
-                for (BooleanFormula f : changedFomulasRest2) {
-                  toCheckFormulaList.add(f);
-                }
-                BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
-                feasibilityCheckTimer.start();
-                try {
-                 //  logger.log(Level.INFO, "Feasibility Check on " + toCheckFormulaBlocked
-                 //     .toString());
-                  abstractionFeasible = prove(toCheckFormulaBlocked, prover);
-                } finally {
-                  feasibilityCheckTimer.stop();
-                }
-                if (abstractionFeasible) {
-                 // logger.log(Level.INFO, toCheckFormulaBlocked.toString() + " is feasible");
-                  List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
-                      - 1);
-                  Iterable<String> splitOperator3 = Splitter.on(" ,").split(latticenamesH);
-                  for (String s : splitOperator3) {
-                    for (int i = 0; i < latticeNames.length; i++) {
-                      if (latticeNames[i] != null && s.equals(latticeNames[i])){
-                        formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
-                      }
-                    }
-                  }
-                  List<Formula> newFrontierElem = StringtoIntegerFormulaList(latticenamesH,
-                      formulaTypes);
-                  frontierList.add(newFrontierElem);
-                  break;
-              /* List<List<Formula>> frontierListCopy = Lists
-                    .newArrayListWithExpectedSize(oldFormulas.size() - 1);
-                for (List<Formula> s : frontierList) {
-                  frontierListCopy.add(s);
-                }
-                isIncomparable = checkComparability(frontierListCopy,
-                    latticenamesH, latticeNames);
+          if (!latticenamesH.isEmpty()) {
+          BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
+          List<BooleanFormula> toCheckFormulaList =
+              Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+          for (BooleanFormula f : changedFomulasRest1) {
+            toCheckFormulaList.add(f);
+          }
+          toCheckFormulaList.add(toCheckFormula);
+          for (BooleanFormula f : changedFomulasRest2) {
+            toCheckFormulaList.add(f);
+          }
+          BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
+          feasibilityCheckTimer.start();
+          try {
+           // logger.log(Level.INFO, "Feasibility Check on " + toCheckFormulaBlocked.toString());
+            abstractionFeasible = prove(toCheckFormulaBlocked, prover);
+          } finally {
+            feasibilityCheckTimer.stop();
+          }
+          if (abstractionFeasible) {
+           // logger.log(Level.INFO, toCheckFormulaBlocked.toString() + " is feasible");
+           // List<List<Formula>> frontierListCopy = Lists
+           //     .newArrayListWithExpectedSize(oldFormulas.size() - 1);
+           /* for ( List<Formula> s : frontierList) {
+              frontierListCopy.add(s);
+            }*/
+            //isIncomparable = checkComparability(frontierListCopy,
+              //  latticenamesH, latticeNames);
 
-                if (isIncomparable) {
-                  maximisationTimer.start();
-                  try {
-                    List<Formula> new_frontier_elem = maximise(firstPartChanged,
-                        scndPartChanged,
-                        relationAbstraction1,
-                        relationAbstraction2, relationAbstraction1Formula,
-                        relationAbstraction2Formula, latticeNames,
-                        latticenamesH,
-                        prover);
-                    frontierList.add(new_frontier_elem);
-                  } finally {
-                    maximisationTimer.stop();
-                  }
-                } */
-                }
+           // if (isIncomparable) {
+            //  logger.log(Level.INFO,  "Incomparable");
+              maximisationTimer.start();
+              logger.log(Level.INFO, "Maximisation");
+              try {
+                List<Formula> new_frontier_elem = maximise(firstPartChanged,
+                    scndPartChanged,
+                    relationAbstraction1,
+                    relationAbstraction2, relationAbstraction1Formula,
+                    relationAbstraction2Formula, latticeNames,
+                    latticenamesH,
+                     prover);
+                frontierList.add(new_frontier_elem);
+
+                logger.log(Level.INFO,  "Newly added element into frontier list: " +
+                    new_frontier_elem.toString());
+                break;
+              } finally {
+                maximisationTimer.stop();
               }
-            }
+           // }
           }
         }
   } finally
@@ -1949,7 +1937,7 @@ public class DomainSpecificAbstraction<T> {
     buildingAbstractionsTimer.stop();
   }
 
-     // logger.log(Level.INFO,  "Frontier List: " + frontierList.toString());
+      logger.log(Level.INFO,  "Frontier List: " + frontierList.toString());
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
       if (frontierList != null && (frontierList.size() >= 1)) {
@@ -2007,10 +1995,10 @@ public class DomainSpecificAbstraction<T> {
 
         List<T> myItpGroupIds = new ArrayList<>(formulas.size());
 
-     /*   logger.log(Level.INFO,  "changedFormulasRest1: " + changedFomulasRest1.toString());
+        logger.log(Level.INFO,  "changedFormulasRest1: " + changedFomulasRest1.toString());
         logger.log(Level.INFO,  "Helper Formula 1: " + helperFormula1.toString());
         logger.log(Level.INFO,  "Helper Formula 2: " + helperFormula2.toString());
-        logger.log(Level.INFO,  "changedFomulasRest2: " + changedFomulasRest2.toString()); */
+        logger.log(Level.INFO,  "changedFomulasRest2: " + changedFomulasRest2.toString());
 
     interpolationTimer.start();
     try {
@@ -2048,7 +2036,7 @@ public class DomainSpecificAbstraction<T> {
 
     }
     if (interpolants != null && !interpolants.isEmpty()) {
-     // logger.log(Level.INFO,  "Interpolants: " + interpolants.toString());
+      logger.log(Level.INFO,  "Interpolants: " + interpolants.toString());
       return interpolants;
     } else {
       return Collections.emptyList();
@@ -2102,13 +2090,130 @@ public class DomainSpecificAbstraction<T> {
             (formulas
                 .size() - 1);
 
-    for (int i = 0; i < latticeNames.length; i++) {
+     helperFormula1 = firstPartChanged;
+     helperFormula2 = scndPartChanged;
+     List<String> middleElem = Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+    Iterable<String> splitOperator = Splitter.on(" ,").split(latticenamesH);
+    List<String> latticeNamesHElements = Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+    List<String> latticeNamesHElementsCopy = Lists.newArrayListWithExpectedSize(formulas.size() -
+        1);
+    for (String s : splitOperator){
+      latticeNamesHElements.add(s);
+    }
+    latticeNamesHElementsCopy = latticeNamesHElements;
+    for (int i = 0; i < latticeNamesHElements.size(); i++){
+      latticeNamesHElementsCopy.remove(i);
+      if (latticeNamesHElementsCopy.isEmpty()){
+        break;
+      }
+      for (String g2 : latticeNamesHElementsCopy){
+        for (int k = 0; k < relationAbstraction1.length; k++) {
+          if (relationAbstraction1[k] != null && !(g2 == null)) {
+            if (relationAbstraction1[k].contains(g2 + " = ")
+                || relationAbstraction1[k].contains(g2 + " < ")) {
+              helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
+                  (k));
+
+
+            }
+          }
+          if (relationAbstraction2[k] != null && !(g2 == null)) {
+            if (relationAbstraction2[k].contains(g2 + " = ")
+                || relationAbstraction2[k].contains(g2 + " < ")) {
+              helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
+                  (k));
+
+
+            }
+          }
+        }
+      }
+      BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
+      List<BooleanFormula> toCheckFormulaList =
+          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+      toCheckFormulaList.add(toCheckFormula);
+      BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
+      isFeasible = prove(toCheckFormulaBlocked, prover);
+      if (!isFeasible){
+        latticeNamesHElementsCopy = latticeNamesHElements;
+      } else {
+        for (int i1 = 0; i1 < latticeNamesHElementsCopy.size(); i1 = i1 + 2){
+          middleElem.add(latticeNamesHElementsCopy.get(i));
+        }
+        for (String h2 : latticeNamesHElementsCopy){
+          for (int k = 0; k < relationAbstraction1.length; k++) {
+            if (relationAbstraction1[k] != null && !(h2 == null)) {
+              if (relationAbstraction1[k].contains(h2 + " = ")
+                  || relationAbstraction1[k].contains(h2 + " < ")) {
+                helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
+                    (k));
+
+
+              }
+            }
+            if (relationAbstraction2[k] != null && !(h2 == null)) {
+              if (relationAbstraction2[k].contains(h2 + " = ")
+                  || relationAbstraction2[k].contains(h2 + " < ")) {
+                helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
+                    (k));
+
+
+              }
+            }
+          }
+        }
+        BooleanFormula toCheckFormula2 = fmgr.makeAnd(helperFormula1, helperFormula2);
+        List<BooleanFormula> toCheckFormulaList2 =
+            Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+        toCheckFormulaList2.add(toCheckFormula2);
+        BlockFormulas toCheckFormulaBlocked2 = new BlockFormulas(toCheckFormulaList2);
+        isFeasible = prove(toCheckFormulaBlocked2, prover);
+        if (!isFeasible) {
+          latticeNamesHElements = latticeNamesHElementsCopy;
+          i = 0;
+        } else {
+          latticeNamesHElements = middleElem;
+          i = 0;
+        }
+      }
+    }
+
+    String maxAbs = "";
+    for (String k : latticeNamesHElements){
+      if (maxAbs.isEmpty()) {
+        maxAbs = k;
+      } else {
+        maxAbs = maxAbs + " ," + k;
+      }
+    }
+
+    List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
+        - 1);
+    Iterable<String> splitOperator2 = Splitter.on(" ,").split(maxAbs);
+    for (String s : splitOperator2) {
+      for (int i = 0; i < latticeNames.length; i++) {
+        if (latticeNames[i] != null && !(s == null) && s.equals(latticeNames[i])){
+          formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
+        }
+      }
+    }
+
+    maximumFeasibleAbstraction = StringtoIntegerFormulaList
+        ( maxAbs, formulaTypes);
+
+    return maximumFeasibleAbstraction;
+
+ /*   for (int i = 0; i < latticeNames.length; i++) {
          if (!latticenamesH.contains
           (latticeNames[i])){
         latticenamesH = latticenamesH + " ," + latticeNames[i];
         helperFormula1 = firstPartChanged;
         helperFormula2 = scndPartChanged;
         Iterable<String> splitOperator = Splitter.on(" ,").split(latticenamesH);
+        List<String> latticeNamesHElements = Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+        for (String s : splitOperator){
+          latticeNamesHElements.add(s);
+        }
         for (String s : splitOperator) {
 
           for (int k = 0; k < relationAbstraction1.length; k++) {
@@ -2242,7 +2347,7 @@ public class DomainSpecificAbstraction<T> {
 
       }
     }
-    return maximumFeasibleAbstraction;
+    return maximumFeasibleAbstraction; */
   }
   @SuppressWarnings({"rawtype", "unchecked"})
   private List<Formula> StringtoIntegerFormulaList(String input, List<FormulaType>
