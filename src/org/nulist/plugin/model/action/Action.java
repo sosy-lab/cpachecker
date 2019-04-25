@@ -8,5 +8,7 @@ package org.nulist.plugin.model.action;
  * @Version 1.0
  **/
 public interface Action {
-
+    public int getTaskID();
+    public String getChannelType();
+    public int ActionType();
 }

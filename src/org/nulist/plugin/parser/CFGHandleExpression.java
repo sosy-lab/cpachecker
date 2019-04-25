@@ -195,8 +195,19 @@ public class CFGHandleExpression {
             {
                     assignedVarDeclaration =  variableDeclarations.get(normalizedVarName.hashCode());
             }
-            else
-            {
+            else if(variable_ast.pretty_print().equals("users") && pExpectedType.toString().contains("nas_user_container_t")){
+
+                if(globalDeclarations.containsKey("users".hashCode())){
+                    assignedVarDeclaration = (CSimpleDeclaration) globalDeclarations.get("users".hashCode());
+                }else{
+                    CVariableDeclaration variableDeclaration = (CVariableDeclaration)
+                            generateVariableDeclaration(variableSymbol, pExpectedType,
+                                    true, null, fileLocation);
+                    CType expressionType = variableDeclaration.getType();
+                    return new CIdExpression(fileLocation, expressionType, "users", variableDeclaration);
+                }
+
+            }else {
                 CVariableDeclaration variableDeclaration = (CVariableDeclaration)
                         generateVariableDeclaration(variableSymbol, pExpectedType,
                                 true, null, fileLocation);
@@ -325,7 +336,11 @@ public class CFGHandleExpression {
                                                             CType cType, boolean isGlobal,
                                                             CInitializer initializer,
                                                             FileLocation fileLocation)throws result{
-        String assignedVar =getNormalizedVariableName(variable,fileLocation.getFileName());
+        String assignedVar;
+        if(isGlobal)
+            assignedVar = variable.get_ast().pretty_print();
+        else
+            assignedVar =getNormalizedVariableName(variable,fileLocation.getFileName());
 
         //if(variable.is_local() || variable.is_local_static())
 
@@ -357,14 +372,13 @@ public class CFGHandleExpression {
             CVariableDeclaration newVarDecl =
                     new CVariableDeclaration(
                             fileLocation,
-                            variable.is_global(),
+                            isGlobal,
                             storageClass,
                             cType,
                             normalizedName,
                             originalName,
                             normalizedName,
                             initializer);
-            variableDeclarations.put(normalizedName.hashCode(),newVarDecl);
             if(isGlobal)
                 globalDeclarations.put(normalizedName.hashCode(),newVarDecl);
             else
@@ -419,6 +433,12 @@ public class CFGHandleExpression {
             return functionDeclaration;
         }catch (result r){
             String functionName = function.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().name();
+            if(functionName.equals("__builtin_bswap32")){
+                functionName = "__bswap_32";
+                if(globalDeclarations.containsKey(functionName.hashCode())){
+                    return (CFunctionDeclaration) globalDeclarations.get(functionName.hashCode());
+                }
+            }
 
             List<CParameterDeclaration> parameters = new ArrayList<>(functionType.getParameters().size());
             if(!functionType.getParameters().isEmpty()){

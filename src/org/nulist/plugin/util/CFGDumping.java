@@ -100,8 +100,14 @@ public class CFGDumping {
                 character =character.replace('"','\'');
                 builder.append("[Char] ").append(character).append("\\l");
             }catch (result r){
-                if(!r.equals(result.getSUCCESS()) && !r.equals(result.getTRUNCATED())){
-                    builder.append("[Char] ").append("<NOCHAR>\\l");
+                try {
+                    String character = p.characters();
+                    character =character.replace('"','\'');
+                    builder.append("[Char] ").append(character).append("\\l");
+                }catch (result r1){
+                    if(!r1.equals(result.getSUCCESS()) && !r1.equals(result.getTRUNCATED())){
+                        builder.append("[Char] ").append("<NOCHAR>\\l");
+                    }
                 }
                 //throw r;
             }
@@ -163,6 +169,51 @@ public class CFGDumping {
                     stringBuilder.append(dump_cfg_edge_dot(p,ces,3));
                 }
             }
+
+            FileWriter fileWriter = new FileWriter(new File(filePath));
+            fileWriter.write(stringBuilder.toString());
+            fileWriter.flush();
+            fileWriter.close();
+
+        }catch (result r){
+            System.out.println("Uncaught exception: "+ r);
+        }catch (IOException e){
+            System.out.println("Failed to write the file into disk with exception: "+e);
+        }
+
+    }
+    public static void dumpSlicePath2Dot(point_set sliceSet, boolean forwardOrback, String name, String path){
+
+        try {
+            point_set points;
+            String filePath = path+name+"-cfg.dot";
+            System.out.println("Dump CFG of "+name);
+            StringBuilder stringBuilder = new StringBuilder();
+
+            stringBuilder.append("digraph ").append(name)
+                    .append(" {\n");
+            stringBuilder.append("label=\"Slice quary point: ").append(name).append("\";\n");
+            stringBuilder.append("style=filled;\n");
+            stringBuilder.append("color=lightgrey;\n");
+
+            //points = proc.points();
+
+            for( point_set_iterator point_it = sliceSet.cbegin();
+                 !point_it.at_end();
+                 point_it.advance() )
+            {
+                point p = point_it.current();
+                stringBuilder.append(dump_vertex_dot(p));
+                cfg_edge_set ces;
+                if(forwardOrback)
+                    ces = p.cfg_successors();//forward slice
+                else
+                    ces = p.cfg_predecessors();//backward slice
+                if(!ces.empty()){
+                    stringBuilder.append(dump_cfg_edge_dot(p,ces,1));
+                }
+            }
+            stringBuilder.append("}\n");
 
             FileWriter fileWriter = new FileWriter(new File(filePath));
             fileWriter.write(stringBuilder.toString());

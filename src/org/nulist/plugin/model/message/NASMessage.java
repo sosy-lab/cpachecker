@@ -1,12 +1,11 @@
 package org.nulist.plugin.model.message;
 
 /**
- * @ClassName RRCMessage
+ * @ClassName NASMessage
  * @Description TODO
  * @Author Yinbo Yu
- * @Date 4/5/19 3:47 PM
+ * @Date 4/12/19 3:51 PM
  * @Version 1.0
  **/
-public interface RRCMessage extends Message {
-
+public class NASMessage implements Message{
 }

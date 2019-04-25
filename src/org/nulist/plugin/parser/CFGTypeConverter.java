@@ -27,16 +27,14 @@ import java.util.Deque;
 import static org.nulist.plugin.parser.CFGAST.*;
 
 public class CFGTypeConverter {
-    private final LogManager logger;
     private final String STRUCT_PREF = "struct __STRUCT__";
     private final String UNION_PREF = "__UNION__";
     private final String ENUM_PREF = "__ENUM__";
     private static final CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
-    private final Map<Integer, CType> typeCache = new HashMap<>();
+    public final Map<Integer, CType> typeCache = new HashMap<>();
     private Map<String, CType> typeMap = new HashMap<>();
 
     public CFGTypeConverter(final LogManager pLogger) {
-        logger = pLogger;
         basicTypeInitialization();
     }
 

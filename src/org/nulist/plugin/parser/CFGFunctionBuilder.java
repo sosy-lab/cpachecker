@@ -35,7 +35,7 @@ import static org.nulist.plugin.util.ClassTool.getUnsignedInt;
 import static org.nulist.plugin.util.ClassTool.printWARNING;
 import static org.nulist.plugin.util.ClassTool.printf;
 import static org.nulist.plugin.util.FileOperations.getLocation;
-import static org.nulist.plugin.util.FileOperations.getQualifiedName;
+import static org.nulist.plugin.model.action.ITTIAbstract.*;
 import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.addEdgeUnconditionallyToCFA;
 
 public class CFGFunctionBuilder  {
@@ -91,14 +91,25 @@ public class CFGFunctionBuilder  {
             return cfaBuilder.systemFunctions.get(functionEntry.get_procedure().name());
     }
 
+    public void setCfa(FunctionEntryNode cfa) {
+        this.cfa = cfa;
+    }
+
+
+    public void setFunctionDeclaration(CFunctionDeclaration functionDeclaration) {
+        this.functionDeclaration = functionDeclaration;
+        if(!functionDeclaration.getParameters().isEmpty()){
+            for(CParameterDeclaration pd:functionDeclaration.getParameters())
+                expressionHandler.variableDeclarations.put(pd.getName().hashCode(),pd);
+        }
+    }
+
     /**
      *@Description function declaration, need to extract its return type and parameters
      *@Param [function, pFileName]
      *@return void
      **/
     public CFunctionDeclaration handleFunctionDeclaration() throws result{
-        String functionName = function.name();
-
         //for struct example: struct test{int a, int b}
         //function example: test function(int c,int d)
         //routine type: test (c,d)
@@ -145,6 +156,7 @@ public class CFGFunctionBuilder  {
         return functionDeclaration;
     }
 
+
     /**
      *@Description function entry node
      *@Param [function, pFileName]
@@ -154,7 +166,6 @@ public class CFGFunctionBuilder  {
 
         assert cfa == null;
 
-        String functionName = function.name();
         //logger.log(Level.FINE, "Creating function: " + functionName);
 
         // Return variable : The return value is written to this
@@ -193,12 +204,56 @@ public class CFGFunctionBuilder  {
         return entry;
     }
 
+    public void emptyFunction() throws result {
+        assert function!=null && function.get_kind().equals(procedure_kind.getUSER_DEFINED());
+
+        CFANode prevNode = cfa;
+        CFANode nextNode = cfa.getExitNode();
+
+        if(hasReturnVariable()){
+            CFANode cfaNode = newCFANode();
+            final BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY,
+                    prevNode, cfaNode, "Function start dummy edge");
+            addToCFA(dummyEdge);
+            FileLocation fileLocation = new FileLocation(fileName,0,1,
+                    (int)function.file_line().get_second()+1,
+                    (int)function.file_line().get_second()+1);
+            CExpression returnExpr = CIntegerLiteralExpression.ZERO;
+            CVariableDeclaration returnVar = (CVariableDeclaration) cfa.getReturnVariable().get();
+            CExpression returnVarExpr = new CIdExpression(fileLocation,
+                    returnVar.getType(),
+                    returnVar.getName(),
+                    returnVar);
+
+            CExpressionAssignmentStatement assignmentStatement =
+                    new CExpressionAssignmentStatement(fileLocation,
+                            (CLeftHandSide) returnVarExpr,
+                            CIntegerLiteralExpression.ZERO);
+
+            CReturnStatement returnStatement = new CReturnStatement(fileLocation,
+                    Optional.of(returnExpr),
+                    Optional.of(assignmentStatement));
+            CReturnStatementEdge returnStatementEdge = new CReturnStatementEdge("return 0;",
+                    returnStatement,
+                    fileLocation,
+                    cfaNode,
+                    cfa.getExitNode());
+
+            addToCFA(returnStatementEdge);
+        }else {
+            BlankEdge emptyEdge = new BlankEdge("", FileLocation.DUMMY,
+                    prevNode, nextNode, "Empty");
+            addToCFA(emptyEdge);
+        }
+        finish();
+    }
+
     /**
      *@Description traverse CFG nodes and edges and transform them into CFA
      *@Param [function, pFileName]
      *@return void
      **/
-    public void visitFunction() throws result {
+    public void visitFunction(boolean finishend) throws result {
         assert function!=null && function.get_kind().equals(procedure_kind.getUSER_DEFINED());
 
         //expressionHandler.setVariableDeclarations(variableDeclarations);
@@ -231,7 +286,9 @@ public class CFGFunctionBuilder  {
                 symbol s = node.declared_symbol();
                 ast symbolAST = s.get_ast(ast_family.getC_UNNORMALIZED());
                 ast normalizedAST = s.get_ast();
-                if(isVLAType(symbolAST.get(ast_ordinal.getBASE_TYPE()).as_ast()) &&
+                if(isITTIUENASTaskProcessFunction(functionName) && normalizedAST.pretty_print().equals("users")){
+
+                }else if(isVLAType(symbolAST.get(ast_ordinal.getBASE_TYPE()).as_ast()) &&
                         normalizedAST.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print().contains("$temp")){
 //                    symbol temp = normalizedAST.get(ast_ordinal.getBASE_TYPE())
 //                            .get(ast_ordinal.getNC_NUM_ELEMENTS_ALOC()).as_symbol();
@@ -265,8 +322,8 @@ public class CFGFunctionBuilder  {
         } else
             //build edges between cfg nodes
             traverseCFGNode(entryNextNode, null);
-
-        finish();
+        if(finishend)
+            finish();
     }
 
     /**
@@ -306,7 +363,7 @@ public class CFGFunctionBuilder  {
             traverseCFGNode(block.first_point(),block);
     }
 
-    private void finish(){
+    public void finish(){
         for(CFANode node:cfaNodes){
             if(node.getNumEnteringEdges()>0 || node.getNumLeavingEdges()>0)
                 cfaBuilder.addNode(functionName, node);
@@ -897,6 +954,27 @@ public class CFGFunctionBuilder  {
 
         CFANode prevNode = cfaNodeMap.get(cfgNode.id());
         CFANode nextNode;
+        point_set actuals_in = cfgNode.actuals_in();
+        point_set actuals_out = cfgNode.actuals_out();
+        point actualoutCFGNode = null, nextCFGNode = null;
+
+        if(cfgNode.toString().endsWith("  printf>")){
+            for(int i=0;i<actuals_in.to_vector().size();i++){
+                String param = actuals_in.to_vector().get(i).get_ast(ast_family.getC_NORMALIZED())
+                        .children().get(0).as_ast().pretty_print();
+                if(param.equals("$param_1")){
+                    nextCFGNode = actuals_in.to_vector().get(i).cfg_targets()
+                            .cbegin().current().get_first();
+                    break;
+                }
+            }
+            assert nextCFGNode !=null;
+            nextNode = handleAllSideEffects(nextCFGNode);
+            BlankEdge blankEdge = new BlankEdge("printf",fileLocation,prevNode,nextNode,"");
+            addToCFA(blankEdge);
+            traverseCFGNode(nextCFGNode, endNode);
+            return;
+        }
 
         ast callAST = cfgNode.get_ast(ast_family.getC_UNNORMALIZED());
         ast operands = callAST.get(ast_ordinal.getUC_OPERANDS()).as_ast();
@@ -907,9 +985,8 @@ public class CFGFunctionBuilder  {
         CExpression funcNameExpr = expressionHandler
                 .getExpressionFromUC(operands.children().get(0).as_ast(),functionType,fileLocation);
         String rawCharacters="";
-        point actualoutCFGNode = null, nextCFGNode = null;
-        point_set actuals_in = cfgNode.actuals_in();
-        point_set actuals_out = cfgNode.actuals_out();
+
+
 
         List<CExpression> params = new ArrayList<>();
         if(operands.children().size()>1){
@@ -1067,6 +1144,8 @@ public class CFGFunctionBuilder  {
         addToCFA(statementEdge);
         traverseCFGNode(nextCFGNode, endNode);
     }
+
+
     /**
      *@Description build edge for label node
      *@Param [labelNode, fileloc]
@@ -1563,7 +1642,7 @@ public class CFGFunctionBuilder  {
         traverseCFGNode(elseCFGNode, endNode);
     }
 
-    private void addToCFA(CFAEdge edge) {
+    public void addToCFA(CFAEdge edge) {
         if(directAddEdge)
             CFACreationUtils.addEdgeToCFA(edge, logger);
         else

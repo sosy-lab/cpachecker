@@ -36,6 +36,7 @@ import static org.nulist.plugin.util.CFGDumping.dumpCFG2Dot;
 import static org.nulist.plugin.util.FileOperations.*;
 import static org.nulist.plugin.util.ClassTool.*;
 import static org.nulist.plugin.FunctionTest.*;
+import static org.nulist.plugin.model.action.ITTIAbstract.*;
 /**
  * @ClassName CFABuilder
  * @Description For a C file
@@ -47,19 +48,19 @@ public class CFABuilder {
     private final LogManager logger;
     private final MachineModel machineModel;
 
-    private final CFGTypeConverter typeConverter;
+    public final CFGTypeConverter typeConverter;
 
 
-    private final List<Path> parsedFiles = new ArrayList<>();
+    public final List<Path> parsedFiles = new ArrayList<>();
 
     // Function name -> Function declaration
-    protected Map<String, CFunctionDeclaration> functionDeclarations;
-    protected NavigableMap<String, FunctionEntryNode> functions;
+    public Map<String, CFunctionDeclaration> functionDeclarations;
+    public NavigableMap<String, FunctionEntryNode> functions;
     protected NavigableMap<String, FunctionEntryNode> systemFunctions;
     protected List<Pair<ADeclaration, String>> globalVariableDeclarations ;
     //protected final Map<Integer, ADeclaration> globalVariableDeclarations = new HashMap<>();
-    protected SortedSetMultimap<String, CFANode> cfaNodes;
-    protected Map<String, CFGFunctionBuilder> cfgFunctionBuilderMap = new HashMap<>();
+    public SortedSetMultimap<String, CFANode> cfaNodes;
+    public Map<String, CFGFunctionBuilder> cfgFunctionBuilderMap = new HashMap<>();
     public CFGHandleExpression expressionHandler;
 
     public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
@@ -90,7 +91,7 @@ public class CFABuilder {
     }
 
 
-    protected void addNode(String funcName, CFANode nd) {
+    public void addNode(String funcName, CFANode nd) {
         cfaNodes.put(funcName, nd);
     }
 
@@ -113,6 +114,8 @@ public class CFABuilder {
                 if((funcName.equals("main") && !isProjectMainFunction(cu.name(),projectName)) ||
                         funcName.equals("cmpint") ||
                         funcName.equals("ASN__STACK_OVERFLOW_CHECK") ||
+                        funcName.startsWith("dump_") ||
+                        funcName.startsWith("memb_") ||
                         functionDeclarations.containsKey(funcName)) //oai has inline functions and asn generated codes have several same functions
                     continue;
 
@@ -148,6 +151,7 @@ public class CFABuilder {
      *@return org.sosy_lab.cpachecker.cfa.ParseResult
      **/
     public void build(compunit cu) throws result {
+
         for (compunit_procedure_iterator proc_it = cu.procedures();
              !proc_it.at_end(); proc_it.advance()) {
             procedure proc = proc_it.current();
@@ -155,15 +159,19 @@ public class CFABuilder {
                 String funcName = proc.name();
                 if(funcName.equals("cmpint") ||
                         funcName.equals("ASN__STACK_OVERFLOW_CHECK") ||
-                        funcName.equals("rrc_control_socket_init") ||
-                        funcName.startsWith("dump_") ||
-                        funcName.startsWith("memb_"))
+                        funcName.equals("rrc_control_socket_init"))
                     continue;
-                System.out.println(funcName);
-                CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
-                //functionTest(cfgFunctionBuilder);
-                if(!cfgFunctionBuilder.isFinished)
-                    cfgFunctionBuilder.visitFunction();
+                if(funcName.startsWith("dump_") || funcName.startsWith("memb_")){
+                    //continue;
+//                    CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
+//                    if(!cfgFunctionBuilder.isFinished)
+//                        cfgFunctionBuilder.emptyFunction();
+                }else if(!isITTITaskProcessFunction(funcName)){
+                    System.out.println(funcName);
+                    CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
+                    if(!cfgFunctionBuilder.isFinished)
+                        cfgFunctionBuilder.visitFunction(true);
+                }
             }
         }
     }
@@ -262,6 +270,35 @@ public class CFABuilder {
     }
 
 
+    /**
+     * @Description //set users as a global variable
+     * @Param []
+     * @return void
+     **/
+    public void insertUSERGlobalVar(){
+        String typename = "nas_user_t";
+        String variableName = "users";
+        CType type = typeConverter.typeCache.getOrDefault(typename.hashCode(),null);
+        if(type==null){
+            printWARNING("There is no type of "+typename);
+            return;
+        }
+
+        CPointerType pointerType = new CPointerType(false,false,type);
+
+        CStorageClass storageClass = CStorageClass.AUTO;
+        CSimpleDeclaration newDecl =
+                new CVariableDeclaration(
+                        FileLocation.DUMMY,
+                        true,
+                        storageClass,
+                        pointerType,
+                        variableName,
+                        variableName,
+                        variableName,
+                        null);
+        expressionHandler.globalDeclarations.put(variableName.hashCode(),(ADeclaration) newDecl);
+    }
 
 
     /**
