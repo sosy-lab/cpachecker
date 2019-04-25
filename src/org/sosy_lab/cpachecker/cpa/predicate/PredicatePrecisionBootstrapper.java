@@ -217,6 +217,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
                 invariant.getLocation().getFunctionName(), predicate.iterator().next());
           }
 
+          witnessStats.get().numberOfInvariants++;
           // add predicates according to the scope
           switch (witnessInvariantScope) {
             case FUNCTION:
