@@ -92,7 +92,7 @@ public class LocationTransferRelation implements TransferRelation {
       } else {
         CFANode node = ((LocationState) element).getLocationNode();
         List<LocationState> result = new ArrayList<>();
-        CFAUtils.successorsOf(node).transform(n -> result.addAll(factory.getState(n)));
+        CFAUtils.successorsOf(node).forEach(n -> result.addAll(factory.getState(n)));
         return result;
       }
     } finally {
