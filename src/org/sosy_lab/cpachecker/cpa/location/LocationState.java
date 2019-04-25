@@ -52,7 +52,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-public class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
+public class LocationState
+    implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
   private static final long serialVersionUID = -801176497691618779L;
 
@@ -79,7 +80,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   }
 
-  private transient CFANode locationNode;
+  protected transient CFANode locationNode;
   private boolean followFunctionCalls;
 
   LocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {

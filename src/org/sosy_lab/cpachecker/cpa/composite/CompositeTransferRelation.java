@@ -51,8 +51,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -94,17 +97,39 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     CompositePrecision compositePrecision = (CompositePrecision)precision;
     Collection<CompositeState> results;
 
-    AbstractStateWithLocations locState = extractStateByType(compositeState, AbstractStateWithLocations.class);
+    AbstractStateWithLocations locState =
+        extractStateByType(compositeState, AbstractStateWithLocations.class);
     results = new ArrayList<>(2);
     if (locState == null) {
       getAbstractSuccessors(compositeState, compositePrecision, results);
     } else {
-      for (CFAEdge edge : locState.getOutgoingEdges()) {
-        getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
+      if (locState instanceof AbstractStateWithEdge) {
+        AbstractEdge edge = ((AbstractStateWithEdge) locState).getAbstractEdge();
+        if (edge instanceof WrapperCFAEdge) {
+          getAbstractSuccessorForEdge(
+              compositeState,
+              compositePrecision,
+              ((WrapperCFAEdge) edge).getCFAEdge(),
+              results);
+        } else {
+          getAbstractSuccessorForAbstractEdge(compositeState, compositePrecision, results);
+        }
+      } else {
+        for (CFAEdge edge : locState.getOutgoingEdges()) {
+          getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
+        }
       }
     }
 
     return results;
+  }
+
+  private void getAbstractSuccessorForAbstractEdge(
+      CompositeState pCompositeState,
+      CompositePrecision pCompositePrecision,
+      Collection<CompositeState> pResults) {
+    throw new UnsupportedOperationException("Abstract edges are not yet suported");
+
   }
 
   private void getAbstractSuccessors(

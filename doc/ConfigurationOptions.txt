@@ -1543,6 +1543,9 @@ cpa.local.conservativefunctions = {}
 # variables, which are always local
 cpa.local.localvariables = Collections.emptySet()
 
+# Use special states with edges
+cpa.location.enableStatesWithEdges = false
+
 # With this option enabled, function calls that occur in the CFA are
 # followed. By disabling this option one can traverse a function without
 # following function calls (in this case FunctionSummaryEdges are used)

@@ -23,12 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -36,29 +43,64 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public class LocationTransferRelation implements TransferRelation {
 
   private final LocationStateFactory factory;
+  private final LocationStatistics stats;
 
-  public LocationTransferRelation(LocationStateFactory pFactory) {
+  public LocationTransferRelation(LocationStateFactory pFactory, LocationStatistics pStats) {
     factory = pFactory;
+    stats = pStats;
   }
 
   @Override
   public Collection<LocationState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge) {
 
-    CFANode node = ((LocationState) element).getLocationNode();
+    try {
+      stats.getSuccessorsForEdgeTimer.start();
+      CFANode node = ((LocationState) element).getLocationNode();
 
-    if (CFAUtils.allLeavingEdges(node).contains(cfaEdge)) {
-      return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+      if (CFAUtils.allLeavingEdges(node).contains(cfaEdge)) {
+
+        stats.createStateTimer.start();
+        Collection<LocationState> result = factory.getState(cfaEdge.getSuccessor());
+        stats.createStateTimer.stop();
+        return result;
+      }
+
+      return Collections.emptySet();
+    } finally {
+
+      stats.getSuccessorsForEdgeTimer.stop();
     }
-
-    return Collections.emptySet();
   }
 
   @Override
   public Collection<LocationState> getAbstractSuccessors(AbstractState element,
       Precision prec) throws CPATransferException {
 
-    CFANode node = ((LocationState) element).getLocationNode();
-    return CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
+    try {
+      stats.getSuccessorsTimer.start();
+      if (element instanceof AbstractStateWithEdge) {
+        AbstractEdge edge = ((AbstractStateWithEdge) element).getAbstractEdge();
+        if (edge instanceof WrapperCFAEdge) {
+          return getAbstractSuccessorsForEdge(element, prec, ((WrapperCFAEdge) edge).getCFAEdge());
+        } else if (edge instanceof EmptyEdge) {
+          return Collections.singleton((LocationState) element);
+        } else {
+          throw new UnsupportedOperationException(
+              edge.getClass() + " edges are not supported in LocationCPA");
+        }
+      } else {
+        CFANode node = ((LocationState) element).getLocationNode();
+        List<LocationState> result = new ArrayList<>();
+        CFAUtils.successorsOf(node).transform(n -> result.addAll(factory.getState(n)));
+        return result;
+      }
+    } finally {
+      stats.getSuccessorsTimer.stop();
+    }
+  }
+
+  Statistics getStatistics() {
+    return stats;
   }
 }

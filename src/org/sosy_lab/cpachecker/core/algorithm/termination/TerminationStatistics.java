@@ -37,6 +37,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
@@ -630,7 +631,8 @@ public class TerminationStatistics implements Statistics {
         if (nonterminatingLoop.getLoopNodes().contains(leave.getSuccessor())) {
           succ = nodeToARGState.get(leave.getSuccessor());
           if (succ == null) {
-            succ = new ARGState(locFac.getState(leave.getSuccessor()), null);
+            succ =
+                new ARGState(Iterables.getOnlyElement(locFac.getState(leave.getSuccessor())), null);
             nodeToARGState.put(leave.getSuccessor(), succ);
             waitlist.push(leave.getSuccessor());
           }
@@ -649,7 +651,8 @@ public class TerminationStatistics implements Statistics {
           waitlistFun = new ArrayDeque<>();
           waitlistFun.push(context);
 
-          succFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
+          succFun =
+              new ARGState(Iterables.getOnlyElement(locFac.getState(leave.getSuccessor())), null);
           contextToARGState.put(context, succFun);
 
           succFun.addParent(pred);
@@ -688,7 +691,10 @@ public class TerminationStatistics implements Statistics {
                 assert (newContext.getSecond() == null);
               }
               if (succFun == null) {
-                succFun = new ARGState(locFac.getState(leaveFun.getSuccessor()), null);
+                succFun =
+                    new ARGState(
+                        Iterables.getOnlyElement(locFac.getState(leaveFun.getSuccessor())),
+                        null);
                 if (leaveFun.getSuccessor() != locContinueLoop) {
                   contextToARGState.put(newContext, succFun);
                   waitlistFun.push(newContext);
