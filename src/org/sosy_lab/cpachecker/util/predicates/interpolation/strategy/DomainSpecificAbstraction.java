@@ -2147,9 +2147,10 @@ public class DomainSpecificAbstraction<T> {
           latticeNamesHElementsCopy.add(v);
         }
       } else {
-        for (int i1 = 0; i1 < latticeNamesHElementsCopy.size(); i1 = i1 + 2) {
-          middleElem.add(latticeNamesHElementsCopy.get(i));
-        }
+          for (int i1 = 0; i1 < latticeNamesHElementsCopy.size(); i1 = i1 + 2) {
+            middleElem.add(latticeNamesHElementsCopy.get(i1));
+          }
+
         if (!middleElem.isEmpty()) {
           for (String h2 : middleElem) {
             for (int k = 0; k < relationAbstraction1.length; k++) {
