@@ -2102,7 +2102,11 @@ public class DomainSpecificAbstraction<T> {
       latticeNamesHElements.add(s);
       latticeNamesHElementsCopy.add(s);
     }
+    int counter = 0;
     for (int i = 0; i < latticeNamesHElements.size(); i++){
+      if (counter > 3){
+        break;
+      }
       middleElem.clear();
       latticeNamesHElementsCopy.remove(i);
       if (latticeNamesHElementsCopy.isEmpty()){
@@ -2150,6 +2154,7 @@ public class DomainSpecificAbstraction<T> {
         for (String v : latticeNamesHElements){
           latticeNamesHElementsCopy.add(v);
         }
+        counter++;
       } else {
         if (latticeNamesHElementsCopy.size() > 2) {
           for (int i1 = 0; i1 < latticeNamesHElementsCopy.size(); i1 = i1 + 2) {
@@ -2204,12 +2209,14 @@ public class DomainSpecificAbstraction<T> {
             latticeNamesHElements.add(v);
           }
           i = 0;
+          counter++;
         } else {
           latticeNamesHElements.clear();
           for (String v : middleElem){
             latticeNamesHElements.add(v);
           }
           i = 0;
+          counter++;
         }
       } else {
           latticeNamesHElements.clear();
@@ -2217,6 +2224,7 @@ public class DomainSpecificAbstraction<T> {
             latticeNamesHElements.add(v);
           }
           i = 0;
+          counter++;
         }
       }
     }
