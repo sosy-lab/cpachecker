@@ -2106,6 +2106,8 @@ public class DomainSpecificAbstraction<T> {
       if (latticeNamesHElementsCopy.isEmpty()){
         break;
       }
+      helperFormula1 = firstPartChanged;
+      helperFormula2 = scndPartChanged;
       for (String g2 : latticeNamesHElementsCopy){
         for (int k = 0; k < relationAbstraction1.length; k++) {
           if (relationAbstraction1[k] != null && !(g2 == null)) {
@@ -2152,6 +2154,8 @@ public class DomainSpecificAbstraction<T> {
           }
 
         if (!middleElem.isEmpty()) {
+            helperFormula1 = firstPartChanged;
+            helperFormula2 = scndPartChanged;
           for (String h2 : middleElem) {
             for (int k = 0; k < relationAbstraction1.length; k++) {
               if (relationAbstraction1[k] != null && !(h2 == null)) {
@@ -2181,7 +2185,7 @@ public class DomainSpecificAbstraction<T> {
         for (BooleanFormula f : changedFormulasRest1) {
           toCheckFormulaList2.add(f);
         }
-        toCheckFormulaList.add(toCheckFormula2);
+        toCheckFormulaList2.add(toCheckFormula2);
         for (BooleanFormula f : changedFormulasRest2) {
           toCheckFormulaList2.add(f);
         }
