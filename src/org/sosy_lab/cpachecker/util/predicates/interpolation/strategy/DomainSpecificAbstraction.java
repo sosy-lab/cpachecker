@@ -2099,8 +2099,8 @@ public class DomainSpecificAbstraction<T> {
         1);
     for (String s : splitOperator){
       latticeNamesHElements.add(s);
+      latticeNamesHElementsCopy.add(s);
     }
-    latticeNamesHElementsCopy = latticeNamesHElements;
     for (int i = 0; i < latticeNamesHElements.size(); i++){
       latticeNamesHElementsCopy.remove(i);
       if (latticeNamesHElementsCopy.isEmpty()){
@@ -2142,9 +2142,12 @@ public class DomainSpecificAbstraction<T> {
       logger.log(Level.INFO, "Feasibility Check on " + toCheckFormulaBlocked.toString());
       isFeasible = prove(toCheckFormulaBlocked, prover);
       if (!isFeasible){
-        latticeNamesHElementsCopy = latticeNamesHElements;
+        latticeNamesHElementsCopy.clear();
+        for (String v : latticeNamesHElements){
+          latticeNamesHElementsCopy.add(v);
+        }
       } else {
-        for (int i1 = 0; i1 < latticeNamesHElementsCopy.size(); i1 = i1 + 2){
+        for (int i1 = 0; i1 < latticeNamesHElementsCopy.size(); i1 = i1 + 2) {
           middleElem.add(latticeNamesHElementsCopy.get(i));
         }
         if (!middleElem.isEmpty()) {
@@ -2170,10 +2173,7 @@ public class DomainSpecificAbstraction<T> {
               }
             }
           }
-        } else {
-          latticeNamesHElements = latticeNamesHElementsCopy;
-          i = 0;
-        }
+
         BooleanFormula toCheckFormula2 = fmgr.makeAnd(helperFormula1, helperFormula2);
         List<BooleanFormula> toCheckFormulaList2 =
             Lists.newArrayListWithExpectedSize(formulas.size() - 1);
@@ -2188,10 +2188,23 @@ public class DomainSpecificAbstraction<T> {
         logger.log(Level.INFO, "Feasibility Check on " + toCheckFormulaBlocked2.toString());
         isFeasible = prove(toCheckFormulaBlocked2, prover);
         if (!isFeasible) {
-          latticeNamesHElements = latticeNamesHElementsCopy;
+          latticeNamesHElements.clear();
+          for (String v : latticeNamesHElementsCopy){
+            latticeNamesHElements.add(v);
+          }
           i = 0;
         } else {
-          latticeNamesHElements = middleElem;
+          latticeNamesHElements.clear();
+          for (String v : middleElem){
+            latticeNamesHElements.add(v);
+          }
+          i = 0;
+        }
+      } else {
+          latticeNamesHElements.clear();
+          for (String v : latticeNamesHElementsCopy){
+            latticeNamesHElements.add(v);
+          }
           i = 0;
         }
       }
