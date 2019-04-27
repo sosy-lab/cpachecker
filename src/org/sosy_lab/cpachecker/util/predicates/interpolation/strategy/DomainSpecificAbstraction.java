@@ -2104,7 +2104,7 @@ public class DomainSpecificAbstraction<T> {
     }
     int counter = 0;
     for (int i = 0; i < latticeNamesHElements.size(); i++){
-      if (counter > 6){
+      if (counter > 5){
         break;
       }
       middleElem.clear();
