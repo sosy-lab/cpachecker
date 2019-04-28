@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -184,7 +183,11 @@ class ASTLiteralConverter {
     }
 
     if (cFloat.isInfinity()) {
-      return new CFloatLiteralExpression(pFileLoc, pType, adjustPrecision(cFloat, pType, pExp));
+      if (cFloat.isNegative()) {
+        return CFloatLiteralExpression.forNegativeInfinity(pFileLoc, pType);
+      } else {
+        return CFloatLiteralExpression.forPositiveInfinity(pFileLoc, pType);
+      }
     }
 
     try {
@@ -194,37 +197,6 @@ class ASTLiteralConverter {
       throw parseContext.parseError(
           String.format("unable to parse floating point literal (%s)", cFloat.toString()), pExp);
     }
-  }
-
-  private BigDecimal adjustPrecision(CFloat pCFloat, CType pType, IASTLiteralExpression pExp) {
-    // TODO: This method is a temporary hack until 'BigDecimal's are replaced by 'CFloat's in
-    // AFloatLiteralExpression class.
-    // This is necessary because CFloats are already able to return "inf" as a value, however, the
-    // BigDecimal object requires a concrete numerical value instead. The code below thus returns a
-    // placeholder value in the meantime.
-
-    BigDecimal APPROX_INFINITY =
-        BigDecimal.valueOf(Double.MAX_VALUE).add(BigDecimal.valueOf(Double.MAX_VALUE));
-
-    CBasicType basicType = ((CSimpleType) pType).getType();
-    switch (basicType) {
-      case FLOAT:
-      case DOUBLE:
-        if (pCFloat.isInfinity()) {
-          if (pCFloat.isNegative()) {
-            return APPROX_INFINITY.negate();
-          } else {
-            return APPROX_INFINITY;
-          }
-        }
-        break;
-      default:
-        // unsupported operation
-        break;
-    }
-
-    throw parseContext.parseError(
-        String.format("unable to parse floating point literal (%s)", pCFloat.toString()), pExp);
   }
 
   @VisibleForTesting

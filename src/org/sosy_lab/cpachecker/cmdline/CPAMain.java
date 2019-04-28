@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -44,6 +47,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -70,6 +74,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LoggingOptions;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -139,6 +144,9 @@ public class CPAMain {
       }
       dumpConfiguration(options, cpaConfig, logManager);
 
+      // generate correct frontend based on file language
+      cpaConfig = detectFrontendLanguageIfNecessary(options, cpaConfig, logManager);
+
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
       limits.start();
 
@@ -198,6 +206,7 @@ public class CPAMain {
 
   private static final String SPECIFICATION_OPTION = "specification";
   private static final String ENTRYFUNCTION_OPTION = "analysis.entryFunction";
+  public static final String APPROACH_NAME_OPTION = "analysis.name";
 
   @Options
   private static class BootstrapOptions {
@@ -236,8 +245,9 @@ public class CPAMain {
     private boolean printUsedOptions = false;
   }
 
+  @VisibleForTesting
   @Options
-  private static class MainOptions {
+  protected static class MainOptions {
     @Option(
       secure = true,
       name = "analysis.programNames",
@@ -245,6 +255,12 @@ public class CPAMain {
       description = "A String, denoting the programs to be analyzed"
     )
     private ImmutableList<String> programs = ImmutableList.of();
+
+    @Option(secure=true,
+        description="Programming language of the input program. If not given explicitly, "
+            + "auto-detection will occur")
+    // keep option name in sync with {@link CFACreator#language}, value might differ
+    private Language language = null;
 
     @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
@@ -311,9 +327,11 @@ public class CPAMain {
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.setOptions(EXTERN_OPTION_DEFAULTS);
     if (configFile != null) {
+      configBuilder.setOption(APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFile));
       configBuilder.loadFromFile(configFile);
     }
     configBuilder.setOptions(cmdLineOptions);
+
     Configuration config = configBuilder.build();
 
     // We want to be able to use options of type "File" with some additional
@@ -348,6 +366,87 @@ public class CPAMain {
     }
 
     return new Config(config, outputDirectory, properties);
+  }
+
+  private static String extractApproachNameFromConfigName(String configFilename) {
+    String filename = Paths.get(configFilename).getFileName().toString();
+    // remove the extension (most likely ".properties")
+    return filename.contains(".") ? filename.substring(0, filename.lastIndexOf(".")) : filename;
+  }
+
+  private static final String LANGUAGE_HINT =
+      String.format(
+          " Please specify a language directly with the option 'language=%s'.",
+          Arrays.toString(Language.values()));
+
+  /**
+   * Determines the frontend language based on the file endings of the given programs, if no
+   * language is given by the user. If a language is detected, it is set in the given {@link
+   * MainOptions} object and a new configuration for that language, based on the given
+   * configuration, is returned.
+   */
+  @VisibleForTesting
+  static Configuration detectFrontendLanguageIfNecessary(
+      MainOptions pOptions, Configuration pConfig, LogManager pLogManager)
+      throws InvalidConfigurationException {
+    if (pOptions.language == null) {
+      // if language was not specified by option, we determine the best matching language
+      Language frontendLanguage;
+      if (areJavaOptionsSet(pConfig)) {
+        frontendLanguage = Language.JAVA;
+      } else {
+        frontendLanguage = detectFrontendLanguageFromFileEndings(pOptions.programs);
+      }
+      Preconditions.checkNotNull(frontendLanguage);
+      ConfigurationBuilder configBuilder = Configuration.builder();
+      configBuilder.copyFrom(pConfig);
+      configBuilder.setOption("language", frontendLanguage.name());
+      pConfig = configBuilder.build();
+      pOptions.language = frontendLanguage;
+      pLogManager.logf(Level.INFO, "Language %s detected and set for analysis", frontendLanguage);
+    }
+    Preconditions.checkNotNull(pOptions.language);
+    return pConfig;
+  }
+
+  @SuppressWarnings("deprecation") // checking the properties directly is more maintainable
+  private static boolean areJavaOptionsSet(Configuration pConfig) {
+    // Make sure to keep this synchronized with EclipseJavaParser
+    return pConfig.hasProperty("java.sourcepath") || pConfig.hasProperty("java.classpath");
+  }
+
+  private static Language detectFrontendLanguageFromFileEndings(ImmutableList<String> pPrograms)
+      throws InvalidConfigurationException {
+    checkArgument(!pPrograms.isEmpty(), "Empty list of programs");
+    Language frontendLanguage = null;
+    for (String program : pPrograms) {
+      Language language;
+      String suffix = program.substring(program.lastIndexOf(".") + 1);
+      switch (suffix) {
+        case "ll":
+        case "bc":
+          language = Language.LLVM;
+          break;
+        case "c":
+        case "i":
+        case "h":
+        default:
+          language = Language.C;
+          break;
+      }
+      Preconditions.checkNotNull(language);
+      if (frontendLanguage == null) { // first iteration
+        frontendLanguage = language;
+      }
+      if (frontendLanguage != language) { // further iterations: check for conflicting endings
+        throw new InvalidConfigurationException(
+            String.format(
+                    "Differing file formats detected: %s and %s files are declared for analysis.",
+                    frontendLanguage, language)
+                + LANGUAGE_HINT);
+      }
+    }
+    return frontendLanguage;
   }
 
   private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =
@@ -581,6 +680,7 @@ public class CPAMain {
           "Validating (violation|correctness) witnesses is not supported if option witness.validation.(violation|correctness).config is not specified.");
     }
     return Configuration.builder()
+        .copyFrom(config)
         .loadFromFile(validationConfigFile)
         .setOptions(overrideOptions)
         .clearOption("witness.validation.file")
@@ -630,6 +730,9 @@ public class CPAMain {
         stream = makePrintStream(mergeStreams(System.out, file)); // ensure that result is printed to System.out
       }
       mResult.printResult(stream);
+
+      // write output files
+      mResult.writeOutputFiles();
 
       if (outputDirectory != null) {
         stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");

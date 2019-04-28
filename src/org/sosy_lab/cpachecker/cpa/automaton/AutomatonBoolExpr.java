@@ -966,28 +966,6 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static interface OnRelevantEdgesBoolExpr extends AutomatonBoolExpr {
-
-    // Marker interface
-
-  }
-
-  static enum MatchPathRelevantEdgesBoolExpr implements OnRelevantEdgesBoolExpr {
-    INSTANCE;
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      return AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge())
-          ? CONST_FALSE
-          : CONST_TRUE;
-    }
-
-    @Override
-    public String toString() {
-      return "MATCH PATH RELEVANT EDGE";
-    }
-  }
-
   static enum MatchSplitDeclaration implements AutomatonBoolExpr {
     INSTANCE;
 
@@ -1506,7 +1484,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return String.format("(%s %s %s)", a, repr, b);
+      return "(" + a + " " + repr + " " + b + ")";
     }
 
     @Override

@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -2176,10 +2177,50 @@ class ASTConverter {
     }
 
     CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name, origName);
+    CSimpleType integerType = getEnumerationType(enumType);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
       enumValue.setEnum(enumType);
+      enumValue.setType(integerType);
     }
     return enumType;
+  }
+
+  /**
+   * Compute a matching integer type for an enumeration. We use SIGNED_INT and switch to larger type
+   * if needed.
+   *
+   * <p>§6.7.2.2 (4) Each enumerated type shall be compatible with char, a signed integer type, or
+   * an unsigned integer type. The choice of type is implementation-defined, but shall be capable of
+   * representing the values of all the members of the enumeration.
+   */
+  private CSimpleType getEnumerationType(final CEnumType enumType) {
+    final List<Long> values = new ArrayList<>();
+    for (CEnumerator enumValue : enumType.getEnumerators()) {
+      if (enumValue.hasValue()) {
+        values.add(enumValue.getValue());
+      } else {
+        // happens when values are constant expressions
+        // that are not simplified and evaluated when parsing the expression.
+      }
+    }
+    Preconditions.checkState(!values.isEmpty());
+    Collections.sort(values);
+    final BigInteger minValue = BigInteger.valueOf(values.get(0));
+    final BigInteger maxValue = BigInteger.valueOf(values.get(values.size() - 1));
+    for (CSimpleType integerType :
+        Lists.newArrayList(
+            // list of types with incrementing size
+            CNumericTypes.SIGNED_INT,
+            CNumericTypes.UNSIGNED_INT,
+            CNumericTypes.SIGNED_LONG_LONG_INT)) {
+      if (minValue.compareTo(machinemodel.getMinimalIntegerValue(integerType)) >= 0
+          && maxValue.compareTo(machinemodel.getMaximalIntegerValue(integerType)) <= 0) {
+        // if all enumeration values are matching into the range, we use it
+        return integerType;
+      }
+    }
+    // if nothing works, use the largest type we have: ULL
+    return CNumericTypes.UNSIGNED_LONG_LONG_INT;
   }
 
   private CEnumerator convert(IASTEnumerationSpecifier.IASTEnumerator e, Long lastValue) {
@@ -2189,6 +2230,12 @@ class ASTConverter {
       value = lastValue + 1;
     } else {
       CExpression v = convertExpressionWithoutSideEffects(e.getValue());
+
+      // for enums we always expect constants and simplify them,
+      // even if 'cfa.simplifyConstExpressions is disabled.
+      // Lets assume that there is never a signed integer overflow or another property violation.
+      v = simplifyExpressionRecursively(v);
+
       boolean negate = false;
       boolean complement = false;
 
@@ -2211,13 +2258,25 @@ class ASTConverter {
           value = ~value;
         }
       } else {
-        // ignoring unsupported enum value
-        // TODO Warning
+        // ignore unsupported enum value and set it to NULL.
+        // TODO bug? constant enums are ignored, if 'cfa.simplifyConstExpressions' is disabled.
+        logger.logf(
+            Level.WARNING,
+            "enum constant '%s = %s' was not simplified and will be ignored in the following.",
+            e.getName(),
+            v.toQualifiedASTString());
       }
     }
 
     String name = convert(e.getName());
-    CEnumerator result = new CEnumerator(getLocation(e), name, scope.createScopedNameOf(name), value);
+    CEnumerator result =
+        new CEnumerator(
+            getLocation(e),
+            name,
+            scope.createScopedNameOf(name),
+            /* dummy integer type, the correct one will be set directly afterwards */
+            CNumericTypes.SIGNED_INT,
+            value);
     scope.registerDeclaration(result);
     return result;
   }

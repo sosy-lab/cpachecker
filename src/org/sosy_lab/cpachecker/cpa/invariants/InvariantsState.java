@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.IsLinearVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.Mod2AbstractionVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Multiply;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PartialEvaluator;
@@ -556,6 +557,23 @@ public class InvariantsState implements AbstractState,
           complement = oddTemplate;
         } else if (assumption.equals(oddTemplate)) {
           complement = evenTemplate;
+        } else {
+          additionalAssumptions.add(assumption.accept(replaceVisitor));
+          if (pValue instanceof Variable) {
+            additionalAssumptions.add(assumption.accept(new ReplaceVisitor<>(pValue, variable)));
+            Mod2AbstractionVisitor.Type t =
+                pValue.accept(
+                    new Mod2AbstractionVisitor(
+                        tools.compoundIntervalManagerFactory,
+                        evaluationVisitor,
+                        environment,
+                        assumptions));
+            if (t == Mod2AbstractionVisitor.Type.EVEN) {
+              additionalAssumptions.add(instantiateModTemplate(variable, 2, 0));
+            } else if (t == Mod2AbstractionVisitor.Type.ODD) {
+              additionalAssumptions.add(instantiateModTemplate(variable, 2, 1));
+            }
+          }
         }
         if (complement != null) {
           if (preservesOrSwitchesMod2(variable, pValue, true)) {
@@ -564,11 +582,17 @@ public class InvariantsState implements AbstractState,
           } else if (preservesOrSwitchesMod2(variable, pValue, false)) {
             additionalAssumptions.add(complement);
             result = result.assume(complement);
+          } else if (pValue instanceof Variable) {
+            Variable<CompoundInterval> assignedVariable = (Variable<CompoundInterval>) pValue;
+            if (definitelyImplies(
+                assumption.accept(new ReplaceVisitor<>(variable, assignedVariable)))) {
+              additionalAssumptions.add(assumption);
+            } else {
+              additionalAssumptions.add(assumption.accept(replaceVisitor));
+            }
           } else {
             additionalAssumptions.add(assumption.accept(replaceVisitor));
           }
-        } else {
-          additionalAssumptions.add(assumption.accept(replaceVisitor));
         }
       }
       result = result.addAssumptions(additionalAssumptions);
@@ -711,6 +735,12 @@ public class InvariantsState implements AbstractState,
     }
 
     NonRecursiveEnvironment resultEnvironment = environment;
+    Set<BooleanFormula<CompoundInterval>> resultAssumptions = new HashSet<>();
+    for (BooleanFormula<CompoundInterval> assumption : assumptions) {
+      if (Collections.disjoint(assumption.accept(COLLECT_VARS_VISITOR), toClear)) {
+        resultAssumptions.add(assumption);
+      }
+    }
 
     Iterator<Variable<CompoundInterval>> toClearIterator = toClear.iterator();
     while (toClearIterator.hasNext()) {
@@ -765,7 +795,7 @@ public class InvariantsState implements AbstractState,
             variableTypes,
             abstractionState,
             resultEnvironment,
-            Collections.emptySet(),
+            resultAssumptions,
             overflowDetected,
             includeTypeInformation,
             overapproximatesUnsupportedFeature);
@@ -1485,6 +1515,28 @@ public class InvariantsState implements AbstractState,
             overflowDetected,
             includeTypeInformation,
             overapproximatesUnsupportedFeature);
+
+    if (pPrecision.shouldUseMod2Template()) {
+      for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> entry : toDo.entrySet()) {
+        MemoryLocation memoryLocation = entry.getKey();
+        NumeralFormula<CompoundInterval> newValueFormula = entry.getValue();
+        TypeInfo typeInfo = entry.getValue().getTypeInfo();
+        Mod2AbstractionVisitor.Type t =
+            newValueFormula.accept(
+                new Mod2AbstractionVisitor(
+                    tools.compoundIntervalManagerFactory,
+                    tools.evaluationVisitor,
+                    environment,
+                    assumptions));
+        Variable<CompoundInterval> variable =
+            InvariantsFormulaManager.INSTANCE.asVariable(typeInfo, memoryLocation);
+        if (t == Mod2AbstractionVisitor.Type.EVEN) {
+          result = result.assume(instantiateModTemplate(variable, 2, 0));
+        } else if (t == Mod2AbstractionVisitor.Type.ODD) {
+          result = result.assume(instantiateModTemplate(variable, 2, 1));
+        }
+      }
+    }
 
     Set<BooleanFormula<CompoundInterval>> additionalAssumptions =
         additionalHints.isEmpty() ? Collections.emptySet() : new HashSet<>();

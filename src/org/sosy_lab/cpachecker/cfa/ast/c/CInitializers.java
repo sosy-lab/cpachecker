@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isAggregateType;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
@@ -108,6 +109,7 @@ public final class CInitializers {
       return ImmutableList.of(assignment);
 
     } else if (init instanceof CInitializerList) {
+
       return handleInitializerList(lhs, (CInitializerList)init,
           decl.getFileLocation(), edge);
 
@@ -146,7 +148,7 @@ public final class CInitializers {
     Deque<Iterator<CExpression>> nextSubobjects = new ArrayDeque<>(2);
 
     { // For starting, we go to the first very subobject of the "current object".
-      // We cannot go to the first suboject at the deepest nesting level
+      // We cannot go to the first subobject at the deepest nesting level
       // as findFirstSubobjectWithType does in case the first initializer value
       // is a nested brace-delimited initializer list.
       currentSubobjects.push(currentObject);
@@ -445,9 +447,9 @@ public final class CInitializers {
           throws UnrecognizedCodeException {
 
     Iterator<CFieldReference> fields =
-        from(structType.getMembers())
+        from(structType.getMembers()).filter(field -> !(field.getName().contains("__anon_type_member") && !isAggregateType(field.getType())))
             .transform(
-                field ->
+                field  ->
                     new CFieldReference(
                         loc, field.getType(), field.getName(), currentSubobject, false))
             .iterator();

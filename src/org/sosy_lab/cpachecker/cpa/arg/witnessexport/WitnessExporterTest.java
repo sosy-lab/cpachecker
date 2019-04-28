@@ -28,13 +28,11 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -170,7 +168,7 @@ public class WitnessExporterTest {
 
     TestResults results = CPATestRunner.run(generationConfig, pFilePath);
     // Trigger statistics so that the witness is written to the file
-    results.getCheckerResult().printStatistics(new PrintStream(ByteStreams.nullOutputStream(), true, "UTF-8"));
+    results.getCheckerResult().writeOutputFiles();
 
     if (isSupposedToBeSafe(pFilePath)) {
       results.assertIsSafe();

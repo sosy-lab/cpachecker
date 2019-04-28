@@ -49,7 +49,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -59,6 +58,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
@@ -100,7 +100,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
@@ -381,7 +380,7 @@ public class AutomatonGraphmlCommon {
       graph.appendChild(
           createDataElement(KeyDef.SOURCECODELANGUAGE, pCfa.getLanguage().toString()));
       graph.appendChild(
-          createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
+          createDataElement(KeyDef.PRODUCER, pVerificationTaskMetaData.getProducerString()));
 
       int nSpecs = 0;
       for (SpecificationProperty property : pVerificationTaskMetaData.getProperties()) {
@@ -548,7 +547,9 @@ public class AutomatonGraphmlCommon {
       if (edge.getSuccessor() instanceof FunctionExitNode) {
         return isEmptyStub(((FunctionExitNode) edge.getSuccessor()).getEntryNode());
       }
-      if (AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
+      if (AutomatonGraphmlCommon.treatAsTrivialAssume(edge)) {
+        return false;
+      } if (AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
         return false;
       }
       return true;
@@ -1122,5 +1123,22 @@ public class AutomatonGraphmlCommon {
         && CFAUtils.enteringEdges(pred)
             .filter(BlankEdge.class)
             .anyMatch(e -> e.getDescription().equals("while"));
+  }
+
+  private static boolean treatAsTrivialAssume(CFAEdge pEdge) {
+    CFANode pred = pEdge.getPredecessor();
+    if (pred.getNumLeavingEdges() != 1) {
+      return false;
+    }
+    if (!(pEdge instanceof BlankEdge)) {
+      return false;
+    }
+    BlankEdge edge = (BlankEdge) pEdge;
+    if (!edge.getDescription().isEmpty()) {
+      return false;
+    }
+    return !edge.getRawStatement().isEmpty()
+        && !treatAsWhileTrue(pEdge)
+        && !isFunctionStartDummyEdge(pEdge);
   }
 }

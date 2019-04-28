@@ -64,8 +64,7 @@ class ProverEnvironmentWithFallback
 
   public ProverEnvironmentWithFallback(Solver pSolver, ProverOptions... pProverOptions) {
     solver = pSolver;
-    proverOptions = EnumSet.noneOf(ProverOptions.class);
-    proverOptions.addAll(Arrays.asList(pProverOptions));
+    proverOptions = EnumSet.copyOf(Arrays.asList(pProverOptions));
     useInterpolation = proverOptions.contains(ProverOptions.GENERATE_UNSAT_CORE);
   }
 

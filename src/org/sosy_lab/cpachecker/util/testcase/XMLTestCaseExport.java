@@ -20,13 +20,13 @@
 package org.sosy_lab.cpachecker.util.testcase;
 
 import com.google.common.base.Preconditions;
+import com.google.common.xml.XmlEscapers;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
@@ -35,7 +35,10 @@ public class XMLTestCaseExport {
   private XMLTestCaseExport() {}
 
   public static void writeXMLMetadata(
-      final Appendable pWriter, final CFA pCfa, final @Nullable SpecificationProperty pProp)
+      final Appendable pWriter,
+      final CFA pCfa,
+      final @Nullable SpecificationProperty pProp,
+      final String producerString)
       throws IOException {
 
     Preconditions.checkArgument(pCfa.getFileNames().size() == 1);
@@ -51,7 +54,7 @@ public class XMLTestCaseExport {
     pWriter.append("</sourcecodelang>\n");
 
     pWriter.append("\t<producer>");
-    pWriter.append("CPAchecker " + CPAchecker.getCPAcheckerVersion());
+    pWriter.append(XmlEscapers.xmlContentEscaper().escape(producerString));
     pWriter.append("</producer>\n");
 
     if (pProp != null) {

@@ -107,6 +107,10 @@ class Benchmark(benchexec.benchexec.BenchExec):
                           default=5,
                           type=int,
                           help="The interval in seconds for polling results from the server (if using the web interface of the VerifierCloud).")
+        vcloud_args.add_argument("--zipResultFiles",
+                          dest="zipResultFiles",
+                          action="store_true",
+                          help="Packs all result files on the worker into a zip file before file transfer (add this flag if a large number of result files is generated).")
 
         return parser
 

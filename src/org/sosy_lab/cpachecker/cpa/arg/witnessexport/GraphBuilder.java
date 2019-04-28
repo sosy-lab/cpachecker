@@ -91,7 +91,10 @@ enum GraphBuilder {
           String prevStateId = sourceStateNodeId;
           CFAEdge edgeToNextState;
 
-          if (allEdgeToNextState.size() == 1) {
+          if (allEdgeToNextState.isEmpty()) {
+            edgeToNextState = null; // TODO no next state, what to do?
+
+          } else if (allEdgeToNextState.size() == 1) {
             edgeToNextState = Iterables.getOnlyElement(allEdgeToNextState);
 
             // this is a dynamic multi edge
@@ -149,7 +152,7 @@ enum GraphBuilder {
               boolean addArtificialSinkEdge = true;
               for (ARGState sibling : s.getChildren()) {
                 if (sibling != child
-                    && s.getEdgeToChild(sibling).equals(siblingEdge)
+                    && siblingEdge.equals(s.getEdgeToChild(sibling))
                     && pIsRelevantEdge.apply(Pair.of(s, sibling))) {
                   addArtificialSinkEdge = false;
                   break;

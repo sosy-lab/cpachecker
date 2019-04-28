@@ -321,7 +321,8 @@ class CmdLineArguments {
 
   static void printHelp(PrintStream out) {
     out.println();
-    out.println("CPAchecker " + CPAchecker.getVersion());
+    out.printf(
+        "CPAchecker %s (%s)%n", CPAchecker.getPlainVersion(), CPAchecker.getJavaInformation());
     out.println();
     out.println("OPTIONS:");
     for (CmdLineArgument cmdLineArg : CMD_LINE_ARGS) {

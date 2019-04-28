@@ -93,6 +93,10 @@ public class NumeralFormulaManagerView
     return manager.lessOrEquals(pNumber1, pNumber2);
   }
 
+  @Override
+  public BooleanFormula distinct(List<ParamFormulaType> pNumbers) {
+    return manager.distinct(pNumbers);
+  }
 
   @Override
   public ResultFormulaType makeNumber(long pI) {

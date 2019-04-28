@@ -122,6 +122,7 @@ public class ConfigurationFileChecks {
           "differential.program",
           // handled by code outside of CPAchecker class
           "output.disable",
+          "report.export",
           "statistics.print",
           "limits.time.cpu",
           "limits.time.cpu::required",
@@ -406,6 +407,8 @@ public class ConfigurationFileChecks {
     final String spec = config.getProperty("specification");
     @SuppressWarnings("deprecation")
     final String cpas = firstNonNull(config.getProperty("CompositeCPA.cpas"), "");
+    @SuppressWarnings("deprecation")
+    final String cpaBelowArgCpa = firstNonNull(config.getProperty("ARGCPA.cpa"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
     final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
@@ -429,6 +432,10 @@ public class ConfigurationFileChecks {
 
     } else if (cpas.contains("cpa.uninitvars.UninitializedVariablesCPA")) {
       assertThat(spec).endsWith("specification/UninitializedVariables.spc");
+    } else if (cpaBelowArgCpa.contains(
+        "cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA")) {
+      assertThat(spec)
+          .isAnyOf("specification/multiPropertyCex.spc", "../specification/default.spc");
     } else if (cpas.contains("cpa.smg.SMGCPA")) {
       if (isSvcompConfig) {
         assertThat(spec).matches(".*specification/sv-comp-memory(cleanup|safety).spc$");

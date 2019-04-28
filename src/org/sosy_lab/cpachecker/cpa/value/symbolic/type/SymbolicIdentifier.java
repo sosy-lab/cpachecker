@@ -205,6 +205,9 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
       final String memLocName = variableName.substring(0, idStart);
       final String identifierIdOnly = variableName.substring(idStart + 1);
+      if (!identifierIdOnly.matches("[0-9]+")) {
+        throw new AssertionError("Unexpected encoding of symbolic identifier: " + identifierIdOnly);
+      }
       final long id = Long.parseLong(identifierIdOnly);
 
       return new SymbolicIdentifier(id, MemoryLocation.valueOf(memLocName));

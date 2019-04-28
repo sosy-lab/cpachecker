@@ -233,7 +233,8 @@ class FunctionCloner implements CFAVisitor {
       }
 
       case ReturnStatementEdge: {
-        assert end instanceof FunctionExitNode;
+        assert end instanceof FunctionExitNode
+            : "Expected FunctionExitNode: " + end + ", " + end.getClass();
         if (edge instanceof CReturnStatementEdge) {
           newEdge = new CReturnStatementEdge(rawStatement, cloneAst(((CReturnStatementEdge) edge).getRawAST().get()),
                   loc, start, (FunctionExitNode) end);
@@ -444,7 +445,12 @@ class FunctionCloner implements CFAVisitor {
 
       } else if (ast instanceof CEnumType.CEnumerator) {
         CEnumType.CEnumerator decl = (CEnumType.CEnumerator) ast;
-        return new CEnumType.CEnumerator(loc, decl.getName(), changeQualifiedName(decl.getQualifiedName()), decl.getValue());
+        return new CEnumType.CEnumerator(
+            loc,
+            decl.getName(),
+            changeQualifiedName(decl.getQualifiedName()),
+            decl.getType(),
+            decl.getValue());
       }
 
     } else if (ast instanceof CStatement) {
@@ -623,8 +629,13 @@ class FunctionCloner implements CFAVisitor {
     public CType visit(CEnumType type) {
       List<CEnumType.CEnumerator> l = new ArrayList<>(type.getEnumerators().size());
       for (CEnumType.CEnumerator e : type.getEnumerators()) {
-        CEnumType.CEnumerator enumType = new CEnumType.CEnumerator(e.getFileLocation(), e.getName(),
-                changeQualifiedName(e.getQualifiedName()), (e.hasValue() ? e.getValue() : null));
+        CEnumType.CEnumerator enumType =
+            new CEnumType.CEnumerator(
+                e.getFileLocation(),
+                e.getName(),
+                changeQualifiedName(e.getQualifiedName()),
+                e.getType(),
+                (e.hasValue() ? e.getValue() : null));
         enumType.setEnum(e.getEnum());
         l.add(enumType);
       }

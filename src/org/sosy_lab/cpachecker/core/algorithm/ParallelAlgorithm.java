@@ -645,7 +645,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsEntry successfullAnalysisStats = null;
       for (StatisticsEntry subStats : allAnalysesStats) {
-        if (isSuccessfulAnalysis(subStats.name)) {
+        if (isSuccessfulAnalysis(subStats)) {
           successfullAnalysisStats = subStats;
         } else {
           writeSubOutputFiles(pResult, subStats);
@@ -665,13 +665,21 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    private boolean isSuccessfulAnalysis(String pAnalysisName) {
-      return successfulAnalysisName != null && successfulAnalysisName.equals(pAnalysisName);
+    private boolean isSuccessfulAnalysis(StatisticsEntry pStatEntry) {
+      return successfulAnalysisName != null && successfulAnalysisName.equals(pStatEntry.name);
     }
 
     private Result determineAnalysisResult(Result pResult, String pActualAnalysisName) {
       if (successfulAnalysisName != null && !successfulAnalysisName.equals(pActualAnalysisName)) {
-        return Result.UNKNOWN;
+        if (pResult == Result.TRUE) {
+          // we need this to let the invariant analysis write a correctness witness if we use
+          // k-induction. TODO: find a better fix for this mess.
+          return Result.UNKNOWN;
+        } else {
+          // Signal that this analysis is not important for the final verdict:
+          // (especially, do NOT generate a correctness witness)
+          return Result.DONE;
+        }
       }
       return pResult;
     }

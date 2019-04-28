@@ -105,14 +105,18 @@ public class Block {
 
   @Override
   public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
     if (!(o instanceof Block)) {
       return false;
     }
     Block other = (Block) o;
-    return nodes.equals(other.nodes)
-        && referencedVariables.equals(other.referencedVariables)
-        && callNodes.equals(other.callNodes)
-        && returnNodes.equals(other.returnNodes);
+    // optimization: first compare the smaller collections like call- or return-nodes
+    return callNodes.equals(other.callNodes)
+        && returnNodes.equals(other.returnNodes)
+        && nodes.equals(other.nodes)
+        && referencedVariables.equals(other.referencedVariables);
   }
 
   @Override

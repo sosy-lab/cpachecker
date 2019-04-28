@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.types;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
@@ -578,7 +579,9 @@ public enum MachineModel {
 
     @Override
     public BigInteger visit(CEnumType pEnumType) throws IllegalArgumentException {
-      return BigInteger.valueOf(model.getSizeofInt());
+      // We assume that all enumerator types are identical, and that there is at least one enum.
+      Preconditions.checkState(!pEnumType.getEnumerators().isEmpty());
+      return model.getSizeof(pEnumType.getEnumerators().get(0).getType());
     }
 
     @Override
@@ -621,7 +624,7 @@ public enum MachineModel {
 
   public BigInteger getSizeof(CType pType) {
     checkArgument(
-        pType instanceof CVoidType || !pType.isIncomplete(),
+        pType.getCanonicalType() instanceof CVoidType || !pType.isIncomplete(),
         "Cannot compute size of incomplete type %s",
         pType);
     return getSizeof(pType, sizeofVisitor);

@@ -30,6 +30,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -37,9 +38,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
 
-public class SingleSuccessorCompactorTransferRelation implements TransferRelation {
+public class SingleSuccessorCompactorTransferRelation
+    extends AbstractSingleWrapperTransferRelation {
 
-  private final TransferRelation delegate;
   @Nullable private final BlockPartitioning partitioning;
   private final StatHist chainSizes;
   private final int maxChainLength;
@@ -49,7 +50,7 @@ public class SingleSuccessorCompactorTransferRelation implements TransferRelatio
       BlockPartitioning pPartitioning,
       StatHist pChainSizes,
       int pMaxChainLength) {
-    delegate = pDelegate;
+    super(pDelegate);
     partitioning = pPartitioning;
     chainSizes = pChainSizes;
     maxChainLength = pMaxChainLength;
@@ -67,7 +68,7 @@ public class SingleSuccessorCompactorTransferRelation implements TransferRelatio
    * includes the first state (given as parameter) until (exclusive) the last states that are
    * returned directly.
    */
-  private Collection<? extends AbstractState> getAbstractSuccessorsWithList(
+  Collection<? extends AbstractState> getAbstractSuccessorsWithList(
       AbstractState state, final Precision precision, final @Nullable List<AbstractState> lst)
       throws CPATransferException, InterruptedException {
 
@@ -81,7 +82,7 @@ public class SingleSuccessorCompactorTransferRelation implements TransferRelatio
       if (lst != null) {
         lst.add(state);
       }
-      states = delegate.getAbstractSuccessors(state, precision);
+      states = transferRelation.getAbstractSuccessors(state, precision);
       state = Iterables.getFirst(states, null);
     } while (canExpandChain(state, states, chainSize));
     chainSizes.insertValue(chainSize);

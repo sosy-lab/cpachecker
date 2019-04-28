@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -69,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cmdline.CPAMain;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -239,7 +241,6 @@ public class CPAchecker {
   private final ShutdownNotifier shutdownNotifier;
   private final CoreComponentsFactory factory;
 
-
   // The content of this String is read from a file that is created by the
   // ant task "init".
   // To change the version, update the property in build.xml.
@@ -260,14 +261,55 @@ public class CPAchecker {
     version = v;
   }
 
-  public static String getVersion() {
-    return getCPAcheckerVersion()
-        + " (" + StandardSystemProperty.JAVA_VM_NAME.value()
-        +  " " + StandardSystemProperty.JAVA_VERSION.value() + ")";
+  /**
+   * This class is responsible for retrieving the name of the approach CPAchecker was configured to
+   * run with from the {@link Configuration}.
+   */
+  @Options
+  private static final class ApproachNameInformation {
+    @Option(
+        secure = true,
+        name = CPAMain.APPROACH_NAME_OPTION,
+        description = "Name of the used analysis, defaults to the name of the used configuration")
+    private String approachName;
+
+    private ApproachNameInformation(Configuration pConfig) throws InvalidConfigurationException {
+      pConfig.inject(this);
+    }
+
+    private String getApproachName() {
+      return approachName;
+    }
   }
 
-  public static String getCPAcheckerVersion() {
+  /**
+   * Returns a string that contains the version of CPAchecker as well as information on which
+   * analysis is executed.
+   */
+  public static String getVersion(Configuration pConfig) {
+    StringJoiner joiner = new StringJoiner(" / ");
+    joiner.add("CPAchecker " + getPlainVersion());
+    try {
+      String analysisName = new ApproachNameInformation(pConfig).getApproachName();
+      if (analysisName != null) {
+        joiner.add(analysisName);
+      }
+    } catch (InvalidConfigurationException e) {
+      // Injecting a non-required "secure" String option without restrictions on allowed values
+      // actually never fails, and avoiding a throws clause simplifies callers of this method.
+      throw new AssertionError(e);
+    }
+    return joiner.toString();
+  }
+
+  public static String getPlainVersion() {
     return version;
+  }
+
+  public static String getJavaInformation() {
+    return StandardSystemProperty.JAVA_VM_NAME.value()
+        + " "
+        + StandardSystemProperty.JAVA_VERSION.value();
   }
 
   public CPAchecker(
@@ -288,7 +330,7 @@ public class CPAchecker {
       List<String> programDenotation, Set<SpecificationProperty> properties) {
     checkArgument(!programDenotation.isEmpty());
 
-    logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
+    logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
     MainCPAStatistics stats = null;
     Algorithm algorithm = null;
