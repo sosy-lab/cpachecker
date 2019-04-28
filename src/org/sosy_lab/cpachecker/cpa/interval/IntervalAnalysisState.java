@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -146,7 +145,7 @@ public class IntervalAnalysisState
     if (!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval)) {
       int referenceCount = getReferenceCount(variableName);
 
-      if (true) {
+      if (pThreshold == -1 || referenceCount < pThreshold) {
         return new IntervalAnalysisState(
             intervals.putAndCopy(variableName, interval),
             referenceCounts.putAndCopy(variableName, referenceCount + 1));
@@ -555,7 +554,9 @@ public class IntervalAnalysisState
       final MemoryLocation pLocation, final IntervalAnalysisInformation pInformation) {
     String location = pLocation.getAsSimpleString();
     final Interval interval = pInformation.getAssignments().get(location);
-    addInterval(location, interval, 10);
+    IntervalAnalysisState newState = addInterval(location, interval, -1);
+    // addInterval does not change the current state
+    intervals = newState.intervals;
   }
 
   @Override
