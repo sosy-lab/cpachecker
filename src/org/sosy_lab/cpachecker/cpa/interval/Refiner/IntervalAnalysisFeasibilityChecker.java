@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,45 +27,22 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision.IntervalAnalysisFullPrecision;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
 public class IntervalAnalysisFeasibilityChecker {
 
-  IntervalAnalysisPrecision precision;
   StrongestPostOperator<IntervalAnalysisState> strongestPostOperator;
-  public IntervalAnalysisFeasibilityChecker(
-      final StrongestPostOperator<IntervalAnalysisState> pStrongestPostOp,
-      final IntervalAnalysisState pInitialState,
-      final Class<? extends ConfigurableProgramAnalysis> pCpaToRefine,
-      final LogManager pLogger,
-      final Configuration pConfig,
-      final CFA pCfa)
-      throws InvalidConfigurationException {
-    precision = new IntervalAnalysisFullPrecision();
-    strongestPostOperator = pStrongestPostOp;
-  }
 
-  public void setPrecision(IntervalAnalysisPrecision pPrecision){
-    precision = pPrecision;
+  public IntervalAnalysisFeasibilityChecker(
+      final StrongestPostOperator<IntervalAnalysisState> pStrongestPostOp) {
+    strongestPostOperator = pStrongestPostOp;
   }
 
   public boolean isFeasible(

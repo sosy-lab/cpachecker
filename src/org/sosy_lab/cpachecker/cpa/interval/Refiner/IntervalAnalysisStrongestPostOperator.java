@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,8 +48,7 @@ public class IntervalAnalysisStrongestPostOperator
 
   private final IntervalAnalysisTransferRelation transfer;
 
-  public IntervalAnalysisStrongestPostOperator(
-      final LogManager pLogger, boolean pSplitIntervals, int pThreshold) {
+  public IntervalAnalysisStrongestPostOperator(final LogManager pLogger, boolean pSplitIntervals) {
     transfer = new IntervalAnalysisTransferRelation(pSplitIntervals, -1, pLogger);
   }
 
@@ -59,7 +58,9 @@ public class IntervalAnalysisStrongestPostOperator
       throws CPAException {
     final Collection<IntervalAnalysisState> successors =
         transfer.getAbstractSuccessorsForEdge(pOrigin, pPrecision, pOperation);
-    if (successors.isEmpty()) return Optional.empty();
+    if (successors.isEmpty()) {
+      return Optional.empty();
+    }
 
     return Optional.of(Iterables.getOnlyElement(successors));
   }
@@ -89,13 +90,17 @@ public class IntervalAnalysisStrongestPostOperator
     assert pPrecision instanceof IntervalAnalysisPrecision;
 
     IntervalAnalysisPrecision precision;
-    if (pPrecision instanceof IntervalAnalysisFullPrecision)
+    if (pPrecision instanceof IntervalAnalysisFullPrecision) {
       precision = (IntervalAnalysisFullPrecision) pPrecision;
-    else precision = (IntervalAnalysisPrecision) pPrecision;
+    } else {
+      precision = (IntervalAnalysisPrecision) pPrecision;
+    }
 
     for (Entry<String, Interval> e : pNext.getConstants()) {
       MemoryLocation memoryLocation = MemoryLocation.valueOf(e.getKey());
-      if (!precision.isTracking(e.getKey())) pNext.forget(memoryLocation);
+      if (!precision.isTracking(e.getKey())) {
+        pNext.forget(memoryLocation);
+      }
     }
 
     return pNext;

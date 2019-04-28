@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,5 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- * This is the refining package for the interval analysis, containing all necessary components
- */
+/** This is the refining package for the interval analysis, containing all necessary components */
 package org.sosy_lab.cpachecker.cpa.interval.Refiner;

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +39,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -53,8 +52,8 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision.IntervalAnalysisFullPrecision;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -71,8 +70,6 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
 
   private LogManager logger;
 
-  private CFA cfa;
-  private Configuration config;
   private static IntervalAnalysisFeasibilityChecker checker;
 
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
@@ -88,34 +85,22 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
     final LogManager logger = intervalAnalysisCpa.getLogger();
     final Configuration config = intervalAnalysisCpa.getConfiguration();
     intervalAnalysisCpa.injectRefinablePrecision();
-    CFA pCfa = intervalAnalysisCpa.getCFA();
 
     final StrongestPostOperator<IntervalAnalysisState> strongestPostOp =
-        new IntervalAnalysisStrongestPostOperator(logger, false, -1);
-    checker =
-        new IntervalAnalysisFeasibilityChecker(
-            strongestPostOp,
-            new IntervalAnalysisState(),
-            IntervalAnalysisCPA.class,
-            logger,
-            config,
-            pCfa);
+        new IntervalAnalysisStrongestPostOperator(logger, false);
+    checker = new IntervalAnalysisFeasibilityChecker(strongestPostOp);
 
-    return new IntervalAnalysisRefiner(strongestPostOp, config, logger, pCfa);
+    return new IntervalAnalysisRefiner(strongestPostOp, config, logger);
   }
 
   IntervalAnalysisRefiner(
       final StrongestPostOperator<IntervalAnalysisState> pStrongestPostOperator,
       final Configuration pConfig,
-      final LogManager pLogger,
-      final CFA pCfa)
+      final LogManager pLogger)
       throws InvalidConfigurationException {
 
     logger = pLogger;
     pConfig.inject(this, IntervalAnalysisRefiner.class);
-
-    config = pConfig;
-    cfa = pCfa;
     strongestPostOperator = pStrongestPostOperator;
   }
 

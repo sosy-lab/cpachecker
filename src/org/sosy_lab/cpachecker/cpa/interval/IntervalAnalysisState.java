@@ -84,8 +84,8 @@ public class IntervalAnalysisState
    * This method acts as constructor, which initializes the intervals, the reference counts and the
    * previous element to the respective objects.
    *
-   * @param intervals the intervals
-   * @param referencesMap the reference counts
+   * @param pIntervals the intervals
+   * @param pReferencesMap the reference counts
    */
   public IntervalAnalysisState(
       PersistentMap<String, Interval> pIntervals, PersistentMap<String, Integer> pReferencesMap) {
@@ -532,17 +532,6 @@ public class IntervalAnalysisState
 
   public Set<Entry<String, Interval>> getConstants() {
     return Collections.unmodifiableSet(intervals.entrySet());
-  }
-
-  public Interval forgetThis(String mem){
-    if(intervals.containsKey(mem)){
-      return intervals.get(mem);
-    }
-    return new Interval((long) 0);
-  }
-
-  public void rememberThis(String mem, Interval pInterval){
-    intervals = intervals.putAndCopy(mem, pInterval);
   }
 
   @Override
