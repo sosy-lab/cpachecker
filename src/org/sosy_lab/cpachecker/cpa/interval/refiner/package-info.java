@@ -22,4 +22,4 @@
  *    http://cpachecker.sosy-lab.org
  */
 /** This is the refining package for the interval analysis, containing all necessary components */
-package org.sosy_lab.cpachecker.cpa.interval.Refiner;
+package org.sosy_lab.cpachecker.cpa.interval.refiner;

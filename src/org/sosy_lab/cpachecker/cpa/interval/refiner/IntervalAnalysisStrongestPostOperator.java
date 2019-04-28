@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.interval.Refiner;
+package org.sosy_lab.cpachecker.cpa.interval.refiner;
 
 import com.google.common.collect.Iterables;
 import java.util.Collection;
