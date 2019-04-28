@@ -27,14 +27,13 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import com.google.common.base.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
+/** just a wrapper around some assignments. */
 public class IntervalAnalysisInformation {
 
   public static final IntervalAnalysisInformation EMPTY = new IntervalAnalysisInformation();
 
-  final PersistentMap<String, Interval> assignments;
+  private final PersistentMap<String, Interval> assignments;
 
   protected IntervalAnalysisInformation(final PersistentMap<String, Interval> pAssignments){
     assignments = pAssignments;
@@ -60,8 +59,12 @@ public class IntervalAnalysisInformation {
   }
 
   @Override
-  public int hashCode(){return Objects.hashCode(assignments);}
+  public int hashCode() {
+    return Objects.hashCode(assignments);
+  }
 
   @Override
-  public String toString(){return "IntervalAnalysisInformation[" + assignments + "]";}
+  public String toString() {
+    return "IntervalAnalysisInformation[" + assignments + "]";
+  }
 }
