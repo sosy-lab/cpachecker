@@ -68,9 +68,8 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
   @Option(description = "intervalAnalysisRefiner")
   StrongestPostOperator<IntervalAnalysisState> strongestPostOperator;
 
-  private LogManager logger;
-
-  private static IntervalAnalysisFeasibilityChecker checker;
+  private final LogManager logger;
+  private final IntervalAnalysisFeasibilityChecker checker;
 
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -88,20 +87,23 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
 
     final StrongestPostOperator<IntervalAnalysisState> strongestPostOp =
         new IntervalAnalysisStrongestPostOperator(logger, false);
-    checker = new IntervalAnalysisFeasibilityChecker(strongestPostOp);
+    final IntervalAnalysisFeasibilityChecker checker =
+        new IntervalAnalysisFeasibilityChecker(strongestPostOp);
 
-    return new IntervalAnalysisRefiner(strongestPostOp, config, logger);
+    return new IntervalAnalysisRefiner(strongestPostOp, config, logger, checker);
   }
 
-  IntervalAnalysisRefiner(
+  private IntervalAnalysisRefiner(
       final StrongestPostOperator<IntervalAnalysisState> pStrongestPostOperator,
       final Configuration pConfig,
-      final LogManager pLogger)
+      final LogManager pLogger,
+      IntervalAnalysisFeasibilityChecker pChecker)
       throws InvalidConfigurationException {
 
     logger = pLogger;
     pConfig.inject(this, IntervalAnalysisRefiner.class);
     strongestPostOperator = pStrongestPostOperator;
+    checker = pChecker;
   }
 
   @Override
@@ -206,7 +208,7 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
         }
       }
     }
-    while(checker.isFeasible(pPath, pPrecision, new HashSet<>())){
+    while (checker.isFeasible(pPath, pPrecision, new HashSet<>())) {
       String maxValue = getMaxStringForValue(wideningBase);
       Interval value = wideningBase.get(maxValue);
       long distance = value.getHigh() - value.getLow();

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.util.Collection;
-import org.matheclipse.basic.Config;
+import java.util.Collections;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision.IntervalAnalysisFullPrecision;
+import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
 @Options(prefix = "cpa.interval")
@@ -100,6 +100,7 @@ public class IntervalAnalysisCPA extends AbstractCPA
 
   private final StateToFormulaWriter writer;
   private final LogManager logger;
+  private final PrecAdjustmentOptions precOptions;
 
   /**
    * This method acts as the constructor of the interval analysis CPA.
@@ -117,6 +118,7 @@ public class IntervalAnalysisCPA extends AbstractCPA
     writer = new StateToFormulaWriter(config, pLogger, shutdownNotifier, cfa);
     logger = pLogger;
     precision = initializePrecision();
+    precOptions = new PrecAdjustmentOptions(pConfig, pCfa);
   }
 
   /* (non-Javadoc)
@@ -154,17 +156,15 @@ public class IntervalAnalysisCPA extends AbstractCPA
 
     // replace the full precision with an empty, refinable precision
     if (!refineablePrecisionSet) {
-      precision = new IntervalAnalysisPrecision();
+      precision = new IntervalAnalysisPrecision(Collections.emptySet());
       refineablePrecisionSet = true;
     }
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition){return precision;}
-
-  public CFA getCFA(){return cfa;}
-
-  public ShutdownNotifier getShutdownNotifier(){return shutdownNotifier;}
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
+    return precision;
+  }
 
   public Configuration getConfiguration() {
     return config;
@@ -180,6 +180,6 @@ public class IntervalAnalysisCPA extends AbstractCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment(){
-    return new IntervalAnalysisPrecisionAdjustment();
+    return new IntervalAnalysisPrecisionAdjustment(precOptions);
   }
 }

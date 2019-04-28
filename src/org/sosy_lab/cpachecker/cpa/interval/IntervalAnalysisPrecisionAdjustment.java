@@ -27,7 +27,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,13 +39,18 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class IntervalAnalysisPrecisionAdjustment implements PrecisionAdjustment {
+
+  private final PrecAdjustmentOptions options;
+
+  public IntervalAnalysisPrecisionAdjustment(PrecAdjustmentOptions pOptions) {
+    options = pOptions;
+  }
 
   @Override
   public Optional<PrecisionAdjustmentResult> prec(
@@ -60,18 +64,20 @@ public class IntervalAnalysisPrecisionAdjustment implements PrecisionAdjustment 
     return prec(
         (IntervalAnalysisState) pState,
         (IntervalAnalysisPrecision) pPrecision,
-        AbstractStates.extractStateByType(fullState, LocationState.class),
-        AbstractStates.extractStateByType(fullState, UniqueAssignmentsInPathConditionState.class));
+        AbstractStates.extractStateByType(fullState, LocationState.class));
   }
 
   private Optional<PrecisionAdjustmentResult> prec(
-      IntervalAnalysisState pState,
-      IntervalAnalysisPrecision pPrecision,
-      LocationState location,
-      UniqueAssignmentsInPathConditionState assignments) {
+      IntervalAnalysisState pState, IntervalAnalysisPrecision pPrecision, LocationState location) {
     IntervalAnalysisState resultState = IntervalAnalysisState.copyOf(pState);
 
-    enforcePrecision(resultState, location, pPrecision);
+    if (options.onlyAtLoop) {
+      if (options.loopHeads != null && options.loopHeads.contains(location.getLocationNode())) {
+        resultState = enforcePrecision(resultState, location, pPrecision);
+      }
+    } else {
+      resultState = enforcePrecision(resultState, location, pPrecision);
+    }
 
     return Optional.of(PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE));
   }
@@ -83,7 +89,7 @@ public class IntervalAnalysisPrecisionAdjustment implements PrecisionAdjustment 
    * @param state the current state
    * @param precision the current precision
    */
-  private void enforcePrecision(
+  private IntervalAnalysisState enforcePrecision(
       IntervalAnalysisState state, LocationState location, IntervalAnalysisPrecision precision) {
     for (Entry<String, Interval> memoryLocation : state.getConstants()) {
       String memString = memoryLocation.getKey();
@@ -91,23 +97,26 @@ public class IntervalAnalysisPrecisionAdjustment implements PrecisionAdjustment 
 
       if (location != null && !precision.isTracking(memString)) {
         state.forget(mem);
-      } else if (!precision.getType().equals("IntervalAnalysisFullPrecison") ){ // precision is tracking that variable
+      } else if (precision.containsVariable(memString)) {
+        // precision is tracking that variable
         Interval stateInterval = state.getInterval(memString);
         if((stateInterval.getHigh() - stateInterval.getLow() < precision.getValue(memString))
             || stateInterval.getHigh() - stateInterval.getLow() == 0){
           long low = stateInterval.getLow();
-          state.removeInterval(memString);
-          state.addInterval(memString, new Interval(low, low).plus(precision.getValue(memString)), 2000);
+          state =
+              state.addInterval(
+                  memString, new Interval(low, low).plus(precision.getValue(memString)), -1);
         }
       }
     }
+    return state;
   }
 
   @Options(prefix = "cpa.interval.abstraction")
   public static class PrecAdjustmentOptions {
 
     @Option(secure = true, description = "restrict abstraction computations to loop heads")
-    private boolean alwaysAtLoop = false;
+    private boolean onlyAtLoop = false;
 
     private final ImmutableSet<CFANode> loopHeads;
 
@@ -115,7 +124,7 @@ public class IntervalAnalysisPrecisionAdjustment implements PrecisionAdjustment 
         throws InvalidConfigurationException {
       config.inject(this);
 
-      if (alwaysAtLoop && pCfa.getAllLoopHeads().isPresent()) {
+      if (onlyAtLoop && pCfa.getAllLoopHeads().isPresent()) {
         loopHeads = pCfa.getAllLoopHeads().get();
       } else {
         loopHeads = null;

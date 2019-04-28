@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
 public class IntervalAnalysisFeasibilityChecker {
 
-  StrongestPostOperator<IntervalAnalysisState> strongestPostOperator;
+  private final StrongestPostOperator<IntervalAnalysisState> strongestPostOperator;
 
   public IntervalAnalysisFeasibilityChecker(
       final StrongestPostOperator<IntervalAnalysisState> pStrongestPostOp) {

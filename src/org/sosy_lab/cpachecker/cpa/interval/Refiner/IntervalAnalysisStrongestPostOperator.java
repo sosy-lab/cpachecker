@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision.IntervalAnalysisFullPrecision;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -86,15 +85,7 @@ public class IntervalAnalysisStrongestPostOperator
       final CFANode pCurrNode,
       final ARGPath pErrorPath,
       final Precision pPrecision) {
-
-    assert pPrecision instanceof IntervalAnalysisPrecision;
-
-    IntervalAnalysisPrecision precision;
-    if (pPrecision instanceof IntervalAnalysisFullPrecision) {
-      precision = (IntervalAnalysisFullPrecision) pPrecision;
-    } else {
-      precision = (IntervalAnalysisPrecision) pPrecision;
-    }
+    IntervalAnalysisPrecision precision = (IntervalAnalysisPrecision) pPrecision;
 
     for (Entry<String, Interval> e : pNext.getConstants()) {
       MemoryLocation memoryLocation = MemoryLocation.valueOf(e.getKey());

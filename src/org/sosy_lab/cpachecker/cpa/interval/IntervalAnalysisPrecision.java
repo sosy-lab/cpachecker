@@ -24,42 +24,35 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class IntervalAnalysisPrecision implements Precision {
 
-
-  Map<String, Long> precision;
-
-  public IntervalAnalysisPrecision() {
-    precision = new HashMap<>();
-  }
+  private final Map<String, Long> precision;
 
   public IntervalAnalysisPrecision(Collection<String> pPrecision) {
     precision = new HashMap<>();
-    addAll(pPrecision);
+    for (String s : pPrecision) {
+      add(s);
+    }
   }
 
   @Override
   public boolean equals(Object o) {
     if (o instanceof IntervalAnalysisPrecision) {
       IntervalAnalysisPrecision x = (IntervalAnalysisPrecision) o;
-      return precision.equals(x.getPrecision());
+      return precision.equals(x.precision);
     }
     return false;
   }
 
-  public Map<String, Long> getPrecision() {
-    return precision;
-  }
-
   public boolean isTracking(String memoryLocation) {
-    return precision.keySet().contains(memoryLocation);
+    return precision.containsKey(memoryLocation);
   }
 
   public int getSize() {
@@ -71,19 +64,11 @@ public class IntervalAnalysisPrecision implements Precision {
   }
 
   public void remove(String x) {
-    if (precision.keySet().contains(x)) {
-      precision.remove(x);
-    }
+    precision.remove(x);
   }
 
   public void add(String s) {
     precision.put(s, Long.MAX_VALUE);
-  }
-
-  public void addAll(Collection<String> add) {
-    for (String s : add) {
-      add(s);
-    }
   }
 
   public long getValue(String memLocation){
@@ -93,14 +78,18 @@ public class IntervalAnalysisPrecision implements Precision {
   public void replace(String memLocation, long size){
     precision.replace(memLocation, size);
   }
+
+  /**
+   * whether this precision explicitly tracks the given variable.
+   *
+   * @see IntervalAnalysisFullPrecision
+   */
   public boolean containsVariable(String variableName) {
-    return precision.keySet().contains(variableName);
+    return isTracking(variableName);
   }
 
-  public String getType(){return "IntervalAnalysisPrecison";};
-
   public void join(IntervalAnalysisPrecision pOther){
-    for(Entry<String, Long> other : pOther.getPrecision().entrySet()){
+    for (Entry<String, Long> other : pOther.precision.entrySet()) {
       if(precision.containsKey(other.getKey())){
         if(other.getValue() < precision.get(other.getKey())){
           precision.replace(other.getKey(), other.getValue());
@@ -122,8 +111,9 @@ public class IntervalAnalysisPrecision implements Precision {
   }
 
   public static class IntervalAnalysisFullPrecision extends IntervalAnalysisPrecision {
+
     public IntervalAnalysisFullPrecision() {
-      super();
+      super(Collections.emptySet());
     }
 
     @Override
@@ -145,9 +135,5 @@ public class IntervalAnalysisPrecision implements Precision {
     public boolean containsVariable(String variableName) {
       return false;
     }
-
-    @Override
-    public String getType(){return "IntervalAnalysisFullPrecison";};
-
   }
 }
