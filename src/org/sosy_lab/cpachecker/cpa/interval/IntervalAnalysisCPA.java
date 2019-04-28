@@ -104,7 +104,7 @@ public class IntervalAnalysisCPA extends AbstractCPA
   /**
    * This method acts as the constructor of the interval analysis CPA.
    *
-   * @param config the configuration of the CPAinterval analysis CPA.
+   * @param pConfig the configuration of the CPAinterval analysis CPA.
    */
   private IntervalAnalysisCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
@@ -166,9 +166,13 @@ public class IntervalAnalysisCPA extends AbstractCPA
 
   public ShutdownNotifier getShutdownNotifier(){return shutdownNotifier;}
 
-  public Configuration getConfiguration(){return config;}
+  public Configuration getConfiguration() {
+    return config;
+  }
 
-  public LogManager getLogger(){return logger;}
+  public LogManager getLogger() {
+    return logger;
+  }
 
   private IntervalAnalysisPrecision initializePrecision () {
     return new IntervalAnalysisFullPrecision();
