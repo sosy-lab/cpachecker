@@ -942,6 +942,13 @@ public class CFGFunctionBuilder  {
         }
     }
 
+    private boolean ignoredFunctionCall(String functionName){
+        return functionName.equals("printf")||
+                functionName.equals("sprintf");
+//        functionName.equals("msc_interface.msc_log_event()")||
+//                functionName.equals("msc_interface.msc_log_message()")||
+    }
+
 
     /**
      *@Description TODO need to add inter-edge of function call
@@ -957,8 +964,8 @@ public class CFGFunctionBuilder  {
         point_set actuals_in = cfgNode.actuals_in();
         point_set actuals_out = cfgNode.actuals_out();
         point actualoutCFGNode = null, nextCFGNode = null;
-
-        if(cfgNode.toString().endsWith("  printf>")){
+        ast noAST = cfgNode.get_ast(ast_family.getC_NORMALIZED());
+        if(ignoredFunctionCall(noAST.pretty_print())){
             for(int i=0;i<actuals_in.to_vector().size();i++){
                 String param = actuals_in.to_vector().get(i).get_ast(ast_family.getC_NORMALIZED())
                         .children().get(0).as_ast().pretty_print();
@@ -985,8 +992,6 @@ public class CFGFunctionBuilder  {
         CExpression funcNameExpr = expressionHandler
                 .getExpressionFromUC(operands.children().get(0).as_ast(),functionType,fileLocation);
         String rawCharacters="";
-
-
 
         List<CExpression> params = new ArrayList<>();
         if(operands.children().size()>1){
@@ -1652,7 +1657,7 @@ public class CFGFunctionBuilder  {
     /**
      * @category helper
      */
-    private CFANode newCFANode() {
+    public CFANode newCFANode() {
         assert cfa != null;
         CFANode nextNode = new CFANode(cfa.getFunctionName());
         cfaNodes.add(nextNode);

@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import static java.util.stream.Collectors.toList;
+import static org.nulist.plugin.parser.CFGParser.ENB;
+import static org.nulist.plugin.parser.CFGParser.MME;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Joiner;
@@ -47,13 +49,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -105,6 +101,55 @@ public class CPAMain {
 
   static final int ERROR_EXIT_CODE = 1;
   public static String systemPath = "";
+  public Configuration cpaConfig = null;
+  public LoggingOptions logOptions;
+  public String outputDirectory = null;
+  public Set<SpecificationProperty> properties = null;
+  public LogManager logManager;
+  public ShutdownManager shutdownManager = ShutdownManager.create();
+  public ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
+  public Map<String, CFGParser> parserMap = new HashMap<>();
+
+
+  public CPAMain(String[] args, String cpacheckerPath){
+    systemPath = cpacheckerPath;
+    Locale.setDefault(Locale.US);
+
+    // initialize various components
+    try {
+      try {
+        Config p = createConfiguration(args);
+        cpaConfig = p.configuration;
+        outputDirectory = p.outputPath;
+        properties = p.properties;
+      } catch (InvalidCmdlineArgumentException e) {
+        throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
+      } catch (IOException e) {
+        throw Output.fatalError("Could not read config file %s", e.getMessage());
+      }
+
+      logOptions = new LoggingOptions(cpaConfig);
+
+    } catch (InvalidConfigurationException e) {
+      throw Output.fatalError("Invalid configuration: %s", e.getMessage());
+    }
+    logManager = BasicLogManager.create(logOptions);
+    cpaConfig.enableLogging(logManager);
+    GlobalInfo.getInstance().storeLogManager(logManager);
+  }
+
+  public void parseProject(project target){
+    CFGParser cfgParser = new CFGParser(logManager,MachineModel.LINUX64);
+    try {
+      cfgParser.parseProject(target);
+      parserMap.put(target.name(),cfgParser);
+    }catch (result r){
+
+    }
+  }
+
+
+
 
   public static void executionTesting(String[] args, String cpacheckerPath, String programPath, project target){
     systemPath = cpacheckerPath;
@@ -153,6 +198,7 @@ public class CPAMain {
       e.printStackTrace();
     }
   }
+
 
   /**
    * @Description The actual main function.

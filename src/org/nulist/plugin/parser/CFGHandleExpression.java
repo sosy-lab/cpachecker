@@ -876,6 +876,11 @@ public class CFGHandleExpression {
                 if(value==null)
                     throw new RuntimeException("Problem in getting value of "+ value_ast.toString());
                 return new CIntegerLiteralExpression(fileLoc,valueType,value);
+            }else if(basicType==CBasicType.CHAR){
+                BigInteger value = getIntegerValue(value_ast);
+                if(value==null)
+                    throw new RuntimeException("Problem in getting value of "+ value_ast.toString());
+                return new CIntegerLiteralExpression(fileLoc,valueType,value);
             }else {
                 throw  new RuntimeException("Unsupported type "+valueType.toString());
             }

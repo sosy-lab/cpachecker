@@ -49,7 +49,7 @@ public class CFABuilder {
     private final MachineModel machineModel;
 
     public final CFGTypeConverter typeConverter;
-
+    public String prokectName ="";
 
     public final List<Path> parsedFiles = new ArrayList<>();
 
@@ -159,21 +159,25 @@ public class CFABuilder {
                 String funcName = proc.name();
                 if(funcName.equals("cmpint") ||
                         funcName.equals("ASN__STACK_OVERFLOW_CHECK") ||
-                        funcName.equals("rrc_control_socket_init"))
-                    continue;
-                if(funcName.startsWith("dump_") || funcName.startsWith("memb_")){
-                    //continue;
-//                    CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
-//                    if(!cfgFunctionBuilder.isFinished)
-//                        cfgFunctionBuilder.emptyFunction();
-                }else if(!isITTITaskProcessFunction(funcName)){
+                        funcName.equals("rrc_control_socket_init") ||
+                        funcName.startsWith("dump_") || funcName.startsWith("memb_")){
+
+                }else if(!functionFilter(funcName)){
                     System.out.println(funcName);
                     CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
+                    if(funcName.equals("mme_app_handle_nas_dl_req"))
+                        System.out.println();
                     if(!cfgFunctionBuilder.isFinished)
                         cfgFunctionBuilder.visitFunction(true);
                 }
             }
         }
+    }
+
+    private boolean functionFilter(String functionName){
+        return isITTITaskProcessFunction(functionName)||
+                functionName.equals("create_tasks_ue")||//start itti tasks in ue
+                functionName.equals("create_tasks");//start itti tasks in enb
     }
 
     /**
