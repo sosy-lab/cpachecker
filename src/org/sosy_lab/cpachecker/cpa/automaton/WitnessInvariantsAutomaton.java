@@ -21,6 +21,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -46,13 +48,39 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
  */
 public class WitnessInvariantsAutomaton extends Automaton {
 
+  private int amountOfInvariantsWithSameLocations = 0;
+
   private WitnessInvariantsAutomaton(
       String pName,
       Map<String, AutomatonVariable> pVars,
       List<AutomatonInternalState> pStates,
-      String pInitialStateName)
+      String pInitialStateName,
+      int amountOfInvariantsWithSameLocations)
       throws InvalidAutomatonException {
     super(pName, pVars, pStates, pInitialStateName);
+    this.amountOfInvariantsWithSameLocations = amountOfInvariantsWithSameLocations;
+  }
+
+  public int getAmountOfInvariantsWithSameLocations() {
+    return this.amountOfInvariantsWithSameLocations;
+  }
+
+  private static int computeAmountOfInvariantsWithSameLocation(Set<ExpressionTreeLocationInvariant> invariants) {
+    List<CFANode> locations = new ArrayList<>();
+    int amountOfInvariantsWithSameLocations = 0;
+    for(ExpressionTreeLocationInvariant inv : invariants) {
+      if (locations.contains(inv.getLocation())) {
+        continue;
+      }
+      for(ExpressionTreeLocationInvariant other : invariants) {
+        if(!inv.equals(other)) {
+          if (inv.getLocation().equals(other.getLocation())) {
+            amountOfInvariantsWithSameLocations++;
+          }
+        }
+      }
+    }
+    return amountOfInvariantsWithSameLocations;
   }
 
   public static Automaton buildWitnessInvariantsAutomaton(
@@ -60,7 +88,9 @@ public class WitnessInvariantsAutomaton extends Automaton {
       ToCExpressionVisitor visitor,
       CBinaryExpressionBuilder builder) {
     try {
-    String automatonName = "WitnessInvariantsAutomaton";
+      int amountOfInvariantsWithSameLocations =
+          computeAmountOfInvariantsWithSameLocation(invariants);
+      String automatonName = "WitnessInvariantsAutomaton";
     String initialStateName = "Init";
     Map<String, AutomatonVariable> vars = Collections.emptyMap();
     List<AutomatonInternalState> states = Lists.newLinkedList();
@@ -73,13 +103,13 @@ public class WitnessInvariantsAutomaton extends Automaton {
             createTransitionWithCheckLocationAndAssumptionToInit(invariant, visitor, builder);
         initTransitions.add(errorTransition);
         initTransitions.add(initTransition);
-
-    }
-    AutomatonInternalState initState =
-        new AutomatonInternalState(initialStateName, initTransitions, false, true, false);
+      }
+      AutomatonInternalState initState =
+          new AutomatonInternalState(initialStateName, initTransitions, false, true, false);
     states.add(initState);
     states.addAll(invStates);
-      return new WitnessInvariantsAutomaton(automatonName, vars, states, initialStateName);
+      return new WitnessInvariantsAutomaton(
+          automatonName, vars, states, initialStateName, amountOfInvariantsWithSameLocations);
     } catch (InvalidAutomatonException | UnrecognizedCodeException e) {
       throw new RuntimeException("The passed invariants prdouce an inconsistent automaton", e);
     }

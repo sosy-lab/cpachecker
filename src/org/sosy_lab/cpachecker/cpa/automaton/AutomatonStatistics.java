@@ -78,6 +78,12 @@ class AutomatonStatistics implements Statistics {
     if (mCpa.getAutomaton() instanceof WitnessInvariantsAutomaton) {
       AutomatonInternalState initState = mCpa.getAutomaton().getInitialState();
       put(out, 0, "Amount of transitions", initState.getTransitions().size());
+      put(
+          out,
+          0,
+          "Amount of invariants with same location",
+          ((WitnessInvariantsAutomaton) mCpa.getAutomaton())
+              .getAmountOfInvariantsWithSameLocations());
     }
   }
 }
