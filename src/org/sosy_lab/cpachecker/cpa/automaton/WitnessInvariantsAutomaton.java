@@ -97,12 +97,15 @@ public class WitnessInvariantsAutomaton extends Automaton {
     List<AutomatonTransition> initTransitions = Lists.newLinkedList();
     List<AutomatonInternalState> invStates = Lists.newLinkedList();
       for (ExpressionTreeLocationInvariant invariant : invariants) {
-        AutomatonTransition errorTransition =
-            createTransitionWithCheckLocationAndAssumptionToError(invariant, visitor, builder);
-        AutomatonTransition initTransition =
-            createTransitionWithCheckLocationAndAssumptionToInit(invariant, visitor, builder);
-        initTransitions.add(errorTransition);
-        initTransitions.add(initTransition);
+        ExpressionTree<?> expr = applyAssumeTruth(invariant.asExpressionTree(), builder);
+          AutomatonTransition errorTransition =
+              createTransitionWithCheckLocationAndAssumptionToError(
+                  expr, invariant.getLocation(), visitor, builder);
+          AutomatonTransition initTransition =
+              createTransitionWithCheckLocationAndAssumptionToInit(
+                  expr, invariant.getLocation(), visitor);
+          initTransitions.add(errorTransition);
+          initTransitions.add(initTransition);
       }
       AutomatonInternalState initState =
           new AutomatonInternalState(initialStateName, initTransitions, false, true, false);
@@ -131,8 +134,8 @@ public class WitnessInvariantsAutomaton extends Automaton {
     }
     if(expr instanceof Or<?>) {
       Set<ExpressionTree<LeafType>> operators = new HashSet<>();
-      Or<?> exprAnd = (Or<?>) expr;
-      Iterator<?> operandsIterator = exprAnd.iterator();
+      Or<?> exprOr = (Or<?>) expr;
+      Iterator<?> operandsIterator = exprOr.iterator();
       while (operandsIterator.hasNext()) {
         ExpressionTree<?> next = (ExpressionTree<?>) operandsIterator.next();
         ExpressionTree<?> applied = applyAssumeTruth(next, builder);
@@ -170,28 +173,25 @@ public class WitnessInvariantsAutomaton extends Automaton {
     return null;
   }
 
-  private static CExpression negateCExpression(
-      CBinaryExpression cBinExpr, CBinaryExpressionBuilder builder)
+  private static CExpression negateCExpression(CExpression cExpr, CBinaryExpressionBuilder builder)
       throws UnrecognizedCodeException {
-    // TODO go recursive into the formula swap all operators and set == 0
-    return builder.negateExpressionAndSimplify(cBinExpr);
+    return builder.negateExpressionAndSimplify(cExpr);
   }
 
   private static <LeafType>
       AutomatonTransition createTransitionWithCheckLocationAndAssumptionToError(
-          ExpressionTreeLocationInvariant inv,
+          ExpressionTree<?> expr,
+          CFANode location,
           DefaultExpressionTreeVisitor<LeafType, CExpression, UnrecognizedCodeException> visitor,
           CBinaryExpressionBuilder builder)
           throws UnrecognizedCodeException {
     AutomatonBoolExpr queryString =
-        new AutomatonBoolExpr.CPAQuery(
-            "location", "nodenumber==" + inv.getLocation().getNodeNumber());
+        new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + location.getNodeNumber());
     StringExpression violatedPropertyDesc = new StringExpression("Invariant not valid");
     List<AutomatonAction> stateActions = Collections.emptyList();
     List<AutomatonBoolExpr> stateAssertions = Collections.emptyList();
     AutomatonInternalState followState = AutomatonInternalState.ERROR;
     List<AExpression> assumptions = Lists.newLinkedList();
-    ExpressionTree<?> expr = applyAssumeTruth(inv.asExpressionTree(), builder);
     CExpression cExpr = convertToCExpression(expr, visitor);
     CBinaryExpression cBinExpr = (CBinaryExpression) cExpr;
     CExpression negCExpr;
@@ -202,21 +202,18 @@ public class WitnessInvariantsAutomaton extends Automaton {
   }
 
   private static AutomatonTransition createTransitionWithCheckLocationAndAssumptionToInit(
-      ExpressionTreeLocationInvariant inv,
-      ToCExpressionVisitor visitor,
-      CBinaryExpressionBuilder builder)
+      ExpressionTree<?> expr, CFANode location, ToCExpressionVisitor visitor)
       throws UnrecognizedCodeException {
     AutomatonBoolExpr queryString =
-        new AutomatonBoolExpr.CPAQuery(
-            "location", "nodenumber==" + inv.getLocation().getNodeNumber());
+        new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + location.getNodeNumber());
     List<AutomatonAction> stateActions = Collections.emptyList();
     List<AutomatonBoolExpr> stateAssertions = Collections.emptyList();
     String followStateName = "Init";
     List<AExpression> assumptions = Lists.newLinkedList();
-    ExpressionTree<?> expr = applyAssumeTruth(inv.asExpressionTree(), builder);
     CExpression cExpr = convertToCExpression(expr, visitor);
     assumptions.add(cExpr);
     return new AutomatonTransition(
         queryString, stateAssertions, assumptions, stateActions, followStateName);
   }
+
 }
