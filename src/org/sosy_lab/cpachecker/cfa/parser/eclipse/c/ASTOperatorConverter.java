@@ -194,8 +194,11 @@ class ASTOperatorConverter {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private static final ImmutableSet<BinaryOperator> BOOLEAN_BINARY_OPERATORS =
       Sets.immutableEnumSet(
+          BinaryOperator.LOGICAL_AND,
+          BinaryOperator.LOGICAL_OR,
           BinaryOperator.EQUALS,
           BinaryOperator.NOT_EQUALS,
           BinaryOperator.GREATER_EQUAL,
