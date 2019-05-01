@@ -220,8 +220,17 @@ public class CFAToCTranslator {
   private String generateCCode() {
     StringBuilder buffer = new StringBuilder();
 
+    boolean isExitDefined = false;
     for (String globalDef : globalDefinitionsList) {
+      if (globalDef.matches(".*\\s+exit\\s*\\(.*")) {
+        isExitDefined = true;
+      }
       buffer.append(globalDef).append("\n");
+    }
+    if (!isExitDefined) {
+      buffer.append(
+          "extern void exit (int __status) __attribute__ ((__nothrow__ , __leaf__))"
+          + " __attribute__ ((__noreturn__));\n");
     }
     buffer.append("\n");
 
