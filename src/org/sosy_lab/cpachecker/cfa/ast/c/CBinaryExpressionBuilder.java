@@ -181,7 +181,7 @@ public class CBinaryExpressionBuilder {
       throws UnrecognizedCodeException {
 
     if (expr instanceof CBinaryExpression) {
-      CBinaryExpression binExpr = (CBinaryExpression) expr;
+      final CBinaryExpression binExpr = (CBinaryExpression) expr;
       BinaryOperator binOp = binExpr.getOperator();
       // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
       if (binExpr.getOperator().isLogicalOperator()) {
@@ -190,20 +190,19 @@ public class CBinaryExpressionBuilder {
       }
       // others can be negated using De Morgan's law:
       if (binOp.equals(BinaryOperator.BINARY_AND) || binOp.equals(BinaryOperator.BINARY_OR)) {
-        CExpression expr1 = binExpr.getOperand1();
-        if (expr1 instanceof CBinaryExpression) {
-          expr1 = negateExpressionAndSimplify(binExpr.getOperand1());
-        }
-        CExpression expr2 = binExpr.getOperand2();
-        if (expr2 instanceof CBinaryExpression) {
-          expr2 = negateExpressionAndSimplify(binExpr.getOperand2());
-        }
+        // use a copy because we do not want to overwrite the CExpresssion parameter
+        CBinaryExpression binExprCopy =
+            buildBinaryExpression(
+                binExpr.getOperand1(), binExpr.getOperand2(), binExpr.getOperator());
+        CExpression expr1 = binExprCopy.getOperand1();
+        expr1 = negateExpressionAndSimplify(expr1);
+        CExpression expr2 = binExprCopy.getOperand2();
+        expr2 = negateExpressionAndSimplify(expr2);
         BinaryOperator negatedOperator =
-            binOp.equals(BinaryOperator.BINARY_AND)
+            binExprCopy.getOperator().equals(BinaryOperator.BINARY_AND)
                 ? BinaryOperator.BINARY_OR
                 : BinaryOperator.BINARY_AND;
-        binExpr = buildBinaryExpression(expr1, expr2, negatedOperator);
-        return binExpr;
+        return buildBinaryExpression(expr1, expr2, negatedOperator);
       }
     }
 
