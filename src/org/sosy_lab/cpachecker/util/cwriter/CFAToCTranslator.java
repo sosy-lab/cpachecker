@@ -195,7 +195,7 @@ public class CFAToCTranslator {
           CFATraversal.dfs()
               .backwards()
               .ignoreEdges(reachableNodes)
-              .collectEdgesReachableFrom(edgeToLabel.getPredecessor()));
+              .collectEdgesReachableFrom(edgeToLabel.getSuccessor()));
     }
 
     getAllSummaryEdges(pCfa).forEach(reachableNodes::add);
