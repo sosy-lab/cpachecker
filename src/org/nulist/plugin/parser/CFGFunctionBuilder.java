@@ -944,7 +944,20 @@ public class CFGFunctionBuilder  {
 
     private boolean ignoredFunctionCall(String functionName){
         return functionName.equals("printf")||
-                functionName.equals("sprintf");
+                functionName.equals("sprintf")||
+                functionName.equals("ctfailcb")||
+                functionName.contains("ctfailcb")||
+                //functionName.contains("flexran_agent")||
+                //functionName.contains("free_struct")||
+                functionName.contains("msc_init")||
+                functionName.contains("trx_set_freq_func")||
+                functionName.contains("trx_read_func")||
+                functionName.equals("_network_api_id.open()")||
+                functionName.equals("_network_api_id.recv()")||
+                functionName.equals("_network_api_id.send()")||
+                functionName.equals("user_api_id->open()")||
+                functionName.equals("user_api_id->send()")||
+                functionName.equals("user_api_id->recv()");
 //        functionName.equals("msc_interface.msc_log_event()")||
 //                functionName.equals("msc_interface.msc_log_message()")||
     }
@@ -965,19 +978,25 @@ public class CFGFunctionBuilder  {
         point_set actuals_out = cfgNode.actuals_out();
         point actualoutCFGNode = null, nextCFGNode = null;
         ast noAST = cfgNode.get_ast(ast_family.getC_NORMALIZED());
+
         if(ignoredFunctionCall(noAST.pretty_print())){
-            for(int i=0;i<actuals_in.to_vector().size();i++){
-                String param = actuals_in.to_vector().get(i).get_ast(ast_family.getC_NORMALIZED())
+            if(actuals_out!=null){
+                nextCFGNode = actuals_out.to_vector().get(0).cfg_targets().cbegin().current().get_first();
+                nextCFGNode = nextCFGNode.cfg_targets().cbegin().current().get_first();
+            }else
+                for(int i=0;i<actuals_in.to_vector().size();i++){
+                    String param = actuals_in.to_vector().get(i).get_ast(ast_family.getC_NORMALIZED())
                         .children().get(0).as_ast().pretty_print();
-                if(param.equals("$param_1")){
-                    nextCFGNode = actuals_in.to_vector().get(i).cfg_targets()
+                    if(param.equals("$param_1")){
+                        nextCFGNode = actuals_in.to_vector().get(i).cfg_targets()
                             .cbegin().current().get_first();
-                    break;
+                        break;
+                    }
                 }
-            }
             assert nextCFGNode !=null;
+
             nextNode = handleAllSideEffects(nextCFGNode);
-            BlankEdge blankEdge = new BlankEdge("printf",fileLocation,prevNode,nextNode,"");
+            BlankEdge blankEdge = new BlankEdge("empty",fileLocation,prevNode,nextNode,"");
             addToCFA(blankEdge);
             traverseCFGNode(nextCFGNode, endNode);
             return;
@@ -991,6 +1010,7 @@ public class CFGFunctionBuilder  {
         CType functionType = typeConverter.getCType(operands.children().get(0).get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
         CExpression funcNameExpr = expressionHandler
                 .getExpressionFromUC(operands.children().get(0).as_ast(),functionType,fileLocation);
+
         String rawCharacters="";
 
         List<CExpression> params = new ArrayList<>();

@@ -57,38 +57,43 @@ public class CSurfPlugin {
             Map<String, CFABuilder> builderMap = new HashMap<>();
 
             printINFO("==================CSURF_PLUGIN_BEGIN==================");
-//            printINFO("==================Parsing UE==================");
-//            project.load(projectPath+UEProjectPath,true);
-//             Main.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
-
-//            printINFO("==================Finish UE==================");
-
-//            printINFO("==================Parsing ENB==================");
-//            project.load(projectPath+ENBProjectPath,true);
-//            project proj = project.current();
-//
+            printINFO("==================Parsing UE==================");
+            project.load(projectPath+UEProjectPath,true);
+            project proj = project.current();
+            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
 //            try {
 //                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
 //                builderMap.put(proj.name(),cfaBuilder);
 //            }catch (result r){
 //                r.printStackTrace();
 //            }
+            printINFO("==================Finish UE==================");
 
-            //CPAMain.executionTesting(arguments, cpacheckPath, projectPath+MMEProjectPath, proj);
-
-            printINFO("==================Finish ENB==================");
-
-            printINFO("==================Parsing MME==================");
-            project.load(projectPath+MMEProjectPath,true);
-            project proj = project.current();
-            CFGParser cfgParserMME = new CFGParser(cpaMain.logManager, MachineModel.LINUX64);
-            try {
-                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
-                builderMap.put(proj.name(),cfaBuilder);
-            }catch (result r){
-                r.printStackTrace();
-            }
-            printINFO("==================Finish MME==================");
+            printINFO("==================Parsing ENB==================");
+            project.load(projectPath+ENBProjectPath,true);
+            proj = project.current();
+            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
+//            try {
+//                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
+//                builderMap.put(proj.name(),cfaBuilder);
+//            }catch (result r){
+//                r.printStackTrace();
+//            }
+//
+//            //CPAMain.executionTesting(arguments, cpacheckPath, projectPath+MMEProjectPath, proj);
+//
+//            printINFO("==================Finish ENB==================");
+//
+//            printINFO("==================Parsing MME==================");
+//            project.load(projectPath+MMEProjectPath,true);
+//            proj = project.current();
+//            try {
+//                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
+//                builderMap.put(proj.name(),cfaBuilder);
+//            }catch (result r){
+//                r.printStackTrace();
+//            }
+//            printINFO("==================Finish MME==================");
             if(builderMap.size()>1)
                 doComposition(builderMap);
             //CPAMain.executeParser(arguments, cpacheckPath, programPath, proj);

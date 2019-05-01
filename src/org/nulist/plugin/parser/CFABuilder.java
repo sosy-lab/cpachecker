@@ -45,11 +45,11 @@ import static org.nulist.plugin.model.action.ITTIAbstract.*;
  * @Version 1.0
  **/
 public class CFABuilder {
-    private final LogManager logger;
-    private final MachineModel machineModel;
+    public final LogManager logger;
+    public final MachineModel machineModel;
 
     public final CFGTypeConverter typeConverter;
-    public String prokectName ="";
+    public String projectName ="";
 
     public final List<Path> parsedFiles = new ArrayList<>();
 
@@ -63,9 +63,10 @@ public class CFABuilder {
     public Map<String, CFGFunctionBuilder> cfgFunctionBuilderMap = new HashMap<>();
     public CFGHandleExpression expressionHandler;
 
-    public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
+    public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel, String projectName) {
         logger = pLogger;
         machineModel = pMachineModel;
+        this.projectName = projectName;
 
         typeConverter = new CFGTypeConverter(logger);
 
@@ -160,24 +161,47 @@ public class CFABuilder {
                 if(funcName.equals("cmpint") ||
                         funcName.equals("ASN__STACK_OVERFLOW_CHECK") ||
                         funcName.equals("rrc_control_socket_init") ||
-                        funcName.startsWith("dump_") || funcName.startsWith("memb_")){
+                        funcName.startsWith("dump_") || funcName.startsWith("memb_")|| funcName.equals("init_UE_stub_single_thread")){
 
-                }else if(!functionFilter(funcName)){
+                }else if(!functionFilter(cu.name(),funcName)){
                     System.out.println(funcName);
                     CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
-                    if(funcName.equals("mme_app_handle_nas_dl_req"))
-                        System.out.println();
-                    if(!cfgFunctionBuilder.isFinished)
-                        cfgFunctionBuilder.visitFunction(true);
+                    if(!cfgFunctionBuilder.isFinished){
+                        if(cu.name().equals(UE) || cu.name().equals(MME)){//for delivering NAS message through channel operations
+                            if(funcName.equals("_emm_as_encode") ||
+                                    funcName.equals("_emm_as_encrypt") ||
+                                    funcName.equals("nas_message_decode") ||
+                                    funcName.equals("nas_message_decrypt")){
+                                cfgFunctionBuilder.visitFunction(false);
+                            }
+                        }if(cu.name().equals(UE) || cu.name().equals(ENB)){//for delivering RRC message through channel operations
+                            if(funcName.equals("") ||
+                                    funcName.equals("uper_encode_to_buffer") ||
+                                    funcName.equals("uper_decode_complete") ||
+                                    funcName.equals("uper_decode")){
+                                cfgFunctionBuilder.visitFunction(false);
+                            }
+                        }else
+                            cfgFunctionBuilder.visitFunction(true);
+                    }
                 }
             }
         }
     }
 
-    private boolean functionFilter(String functionName){
+    private boolean functionFilter(String filename, String functionName){
         return isITTITaskProcessFunction(functionName)||
                 functionName.equals("create_tasks_ue")||//start itti tasks in ue
-                functionName.equals("create_tasks");//start itti tasks in enb
+                functionName.equals("create_tasks")||
+                functionName.equals("mainOld")||
+                functionName.equals("init_UE_threads")||
+                functionName.equals("init_thread")||
+                functionName.equals("init_UE_stub")||
+                functionName.equals("UE_thread_synch")||
+                functionName.equals("UE_thread")||
+                (filename.contains("build/CMakeFiles") && functionName.endsWith("_constraint"))||
+                (filename.contains("openair2/LAYER2/MAC/main_ue.c") && !(functionName.equals("mac_top_init_ue")||functionName.equals("l2_init_ue")))||
+                (filename.contains("openair2/LAYER2/MAC/main.c") && (functionName.equals("init_slice_info")||functionName.equals("rlc_mac_init_global_param")));//start itti tasks in enb
     }
 
     /**

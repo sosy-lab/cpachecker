@@ -20,11 +20,14 @@ public class ITTIAbstract {
     public final static String TASK_PDCP_UE = "TASK_PDCP_UE";//19;//action out to eNB's action in node
     public final static String TASK_NAS_UE = "TASK_NAS_UE";//21;//nas_ue_task
     public final static String TASK_NAS_UE_FUNC = "nas_ue_task";//nas_ue_task
+    public final static String TASK_PDCP = "TASK_PDCP";
+
 
     public final static String TASK_RRC_ENB = "TASK_RRC_ENB";//9;//rrc_enb_task
     public final static String TASK_RRC_ENB_FUNC = "rrc_enb_task";//rrc_enb_task-->rrc_enb_process_itti_msg;
     public final static String TASK_RRC_ENB_FUNC_CALL = "rrc_enb_process_itti_msg";
-    public final static String TASK_S1AP_ENB = "TASK_S1AP_ENB";//11;//s1ap_enb_task, action out to MME's action in node
+    public final static String TASK_S1AP_ENB = "TASK_S1AP_ENB";//11;//s1ap_enb_task, action out
+    public final static String TASK_S1AP = "TASK_S1AP";// to MME's action in node
     public final static String TASK_X2AP = "TASK_X2AP";//12;//x2ap_task: action out to other eNB's action in node
     public final static String TASK_PDCP_ENB = "TASK_PDCP_ENB";//8;//action out to UE's action in node
 
@@ -65,6 +68,7 @@ public class ITTIAbstract {
                 break;
             case TASK_PDCP_ENB:
                 //send out to UE
+
                 break;
             case TASK_S1AP_ENB:
                 //send out to MME

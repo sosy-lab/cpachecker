@@ -2,7 +2,8 @@ package org.nulist.plugin.model;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.grammatech.cs.*;
+import com.grammatech.cs.procedure;
+import com.grammatech.cs.result;
 import org.nulist.plugin.model.action.ITTIAbstract;
 import org.nulist.plugin.model.channel.AbstractChannel;
 import org.nulist.plugin.parser.CFABuilder;
@@ -24,34 +25,23 @@ import java.util.Map;
 
 import static org.nulist.plugin.model.action.ITTIAbstract.itti_send_to_task;
 import static org.nulist.plugin.parser.CFGParser.*;
+import static org.nulist.plugin.parser.CFGParser.UE;
 import static org.nulist.plugin.util.ClassTool.printWARNING;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.createDummyLiteral;
 
 /**
- * @ClassName FunctionGeneration
- * @Description generate function cfa with new content
+ * @ClassName ChannelBuildOperation
+ * @Description TODO
  * @Author Yinbo Yu
- * @Date 4/15/19 11:01 AM
+ * @Date 4/30/19 12:38 PM
  * @Version 1.0
  **/
-public class FunctionGeneration {
+public class ChannelBuildOperation {
+
     public final static String ITTI_ALLOC_NEW_MESSAGE = "itti_alloc_new_message";
     public final static String ITTI_SEND_MSG_TO_TASKS = "itti_send_msg_to_task";
     public final static String CREATE_TASKS_UE = "create_tasks_ue";
     public final static String CREATE_TASKS = "create_tasks";
-
-
-    private final LogManager logger;
-    private final MachineModel machineModel;
-    public CFABuilder cfaBuilder;
-    public String projectName;
-
-    public FunctionGeneration(CFABuilder builder, String projectName, LogManager logger, MachineModel machineModel){
-        cfaBuilder = builder;
-        this.projectName = projectName;
-        this.logger = logger;
-        this.machineModel = machineModel;
-    }
 
 
     /**
@@ -61,7 +51,7 @@ public class FunctionGeneration {
      * @Param [createTasksENB]
      * @return void
      **/
-    public void generatCreateTasksENB(procedure createTasksENB)throws result{
+    public static void generatCreateTasksENB(CFABuilder cfaBuilder, procedure createTasksENB)throws result {
         assert createTasksENB.name().equals(CREATE_TASKS);
         String funcName = CREATE_TASKS;
         CFunctionDeclaration functionDeclaration =
@@ -75,7 +65,7 @@ public class FunctionGeneration {
             return;
         }
 
-        CFGFunctionBuilder cfgFunctionBuilder = new CFGFunctionBuilder(logger,
+        CFGFunctionBuilder cfgFunctionBuilder = new CFGFunctionBuilder(cfaBuilder.logger,
                 cfaBuilder.typeConverter,
                 createTasksENB,
                 CREATE_TASKS, createTasksENB.get_compunit().name(),
@@ -89,7 +79,7 @@ public class FunctionGeneration {
         cfaBuilder.cfgFunctionBuilderMap.put(funcName,cfgFunctionBuilder);
 
         //
-        constructionCreateTasksENB(cfgFunctionBuilder);
+        constructionCreateTasksENB(cfaBuilder, cfgFunctionBuilder);
         cfgFunctionBuilder.finish();
     }
 
@@ -98,7 +88,7 @@ public class FunctionGeneration {
      * @Param [createTasksUE]
      * @return void
      **/
-    public void generateCreateTasksUE(procedure createTasksUE)throws result {
+    public static void generateCreateTasksUE(CFABuilder cfaBuilder, procedure createTasksUE)throws result {
         assert createTasksUE.name().equals(CREATE_TASKS_UE);
         String funcName = CREATE_TASKS_UE;
         CFunctionDeclaration functionDeclaration =
@@ -112,7 +102,7 @@ public class FunctionGeneration {
             return;
         }
 
-        CFGFunctionBuilder cfgFunctionBuilder = new CFGFunctionBuilder(logger,
+        CFGFunctionBuilder cfgFunctionBuilder = new CFGFunctionBuilder(cfaBuilder.logger,
                 cfaBuilder.typeConverter,
                 createTasksUE,
                 CREATE_TASKS_UE, createTasksUE.get_compunit().name(),
@@ -126,12 +116,12 @@ public class FunctionGeneration {
         cfaBuilder.cfgFunctionBuilderMap.put(funcName,cfgFunctionBuilder);
 
         //
-        constructionCreateTasksUE(cfgFunctionBuilder);
+        constructionCreateTasksUE(cfaBuilder, cfgFunctionBuilder);
         cfgFunctionBuilder.finish();
     }
 
 
-    public void generateITTI_ALLOC_NEW_MESSAGE(procedure ittiAllocNewMessage)throws result{
+    public static void generateITTI_ALLOC_NEW_MESSAGE(CFABuilder cfaBuilder,procedure ittiAllocNewMessage)throws result{
         assert ittiAllocNewMessage.name().equals(ITTI_ALLOC_NEW_MESSAGE);
         String funcName = ittiAllocNewMessage.name();
         CFunctionDeclaration functionDeclaration =
@@ -141,7 +131,7 @@ public class FunctionGeneration {
             return;
         }
         if(!cfaBuilder.cfgFunctionBuilderMap.containsKey(funcName)){
-            CFGFunctionBuilder cfgFunctionBuilder = new CFGFunctionBuilder(logger,
+            CFGFunctionBuilder cfgFunctionBuilder = new CFGFunctionBuilder(cfaBuilder.logger,
                     cfaBuilder.typeConverter,
                     ittiAllocNewMessage,
                     funcName, ittiAllocNewMessage.get_compunit().name(),
@@ -168,14 +158,14 @@ public class FunctionGeneration {
      * @Param [itti_send_msg_to_task, itti_send_msg_to_task_abstract]
      * @return void
      **/
-    public void generateITTI_SEND_TO_TASK(procedure itti_send_msg_to_task, procedure itti_send_msg_to_task_abstract)throws result{
+    public static void generateITTI_SEND_TO_TASK(CFABuilder cfaBuilder,procedure itti_send_msg_to_task, procedure itti_send_msg_to_task_abstract)throws result{
         assert itti_send_msg_to_task.name().equals(ITTI_SEND_MSG_TO_TASKS);
         String functionName = ITTI_SEND_MSG_TO_TASKS;
 
         if(!cfaBuilder.cfgFunctionBuilderMap.containsKey(functionName)){
 
             //replace itti_send_msg_to_task_abstract entry by itti_send_msg_to_task
-            CFGFunctionBuilder cfgFunctionBuilder = new CFGFunctionBuilder(logger,
+            CFGFunctionBuilder cfgFunctionBuilder = new CFGFunctionBuilder(cfaBuilder.logger,
                     cfaBuilder.typeConverter,
                     itti_send_msg_to_task_abstract,
                     functionName,itti_send_msg_to_task_abstract.get_compunit().name(),
@@ -189,16 +179,16 @@ public class FunctionGeneration {
 
             cfgFunctionBuilder.visitFunction(false);
 
-            postAssociateFunctions(cfgFunctionBuilder, functionName);
+            postAssociateFunctions(cfaBuilder, cfgFunctionBuilder, functionName);
             //cfgFunctionBuilder.finish();
         }
     }
 
-    public void postAssociateFunctions(CFGFunctionBuilder builder, String functionName){
+    public static void postAssociateFunctions(CFABuilder cfaBuilder, CFGFunctionBuilder builder, String functionName){
         for(CFANode node:builder.cfaNodes){
             if(node.getNumLeavingEdges()>0)
                 for(int i=0;i<node.getNumLeavingEdges();i++){
-                    traverseEdges(builder,node.getLeavingEdge(i), functionName);
+                    traverseEdges(cfaBuilder, builder,node.getLeavingEdge(i), functionName);
                 }
         }
     }
@@ -208,7 +198,7 @@ public class FunctionGeneration {
      * @Param [edge]
      * @return void
      **/
-    private void traverseEdges(CFGFunctionBuilder builder, CFAEdge edge, String functionName){
+    private static void traverseEdges(CFABuilder cfaBuilder, CFGFunctionBuilder builder, CFAEdge edge, String functionName){
         if(edge instanceof CAssumeEdge && ((CAssumeEdge) edge).getTruthAssumption()){
             CExpression conditionExpr = ((CAssumeEdge) edge).getExpression();
             if(conditionExpr instanceof CBinaryExpression){
@@ -218,7 +208,7 @@ public class FunctionGeneration {
                         int taskID = ((CIntegerLiteralExpression)((CBinaryExpression) conditionExpr).getOperand2()).getValue().intValue();
                         CType type = ((CBinaryExpression) conditionExpr).getOperand1().getExpressionType();
                         String taskName = getTaskOrMsgNameByID(type, taskID);
-                        CFunctionDeclaration functionDeclaration = itti_send_to_task(taskName,projectName,cfaBuilder.expressionHandler);
+                        CFunctionDeclaration functionDeclaration = itti_send_to_task(taskName,cfaBuilder.projectName,cfaBuilder.expressionHandler);
                         if(functionDeclaration!=null){
                             CFANode caseNextNode = edge.getSuccessor();
                             CFAEdge breakEdge = caseNextNode.getLeavingEdge(0);
@@ -324,7 +314,7 @@ public class FunctionGeneration {
         }
     }
 
-    private void constructionCreateTasksENB(CFGFunctionBuilder builder){
+    private static void constructionCreateTasksENB(CFABuilder cfaBuilder, CFGFunctionBuilder builder){
         //if (enb_nb > 0) {
         //    eNB_app_Initialize();
         //    rrc_enb_init();
@@ -487,7 +477,7 @@ public class FunctionGeneration {
         builder.addToCFA(returnStatementEdge);
     }
 
-    private void constructionCreateTasksUE(CFGFunctionBuilder builder){
+    private static void constructionCreateTasksUE(CFABuilder cfaBuilder, CFGFunctionBuilder builder){
         //if (ue_nb > 0) {
         //    users = calloc(1, sizeof(*users));
         //    if (users == NULL) abort();
@@ -934,4 +924,6 @@ public class FunctionGeneration {
     public static void buildChannel(AbstractChannel channel){
 
     }
+
+
 }
