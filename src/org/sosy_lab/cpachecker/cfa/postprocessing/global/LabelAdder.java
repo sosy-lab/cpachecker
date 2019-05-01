@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -150,7 +152,10 @@ public class LabelAdder {
   }
 
   private void addLabels(final MutableCFA pCfa, final Collection<CFAEdge> pEdgesToLabel) {
-    for (CFAEdge e : pEdgesToLabel) {
+    // ensure that same labels in same file always mean same location
+    List<CFAEdge> sortedEdges = new ArrayList<>(pEdgesToLabel);
+    sortedEdges.sort(Comparator.comparingInt(e -> e.getPredecessor().getNodeNumber()));
+    for (CFAEdge e : sortedEdges) {
         String labelName = BLOCK_LABEL_NAME + labelsAdded;
         labelsAdded += addLabel(e, labelName, pCfa);
     }
