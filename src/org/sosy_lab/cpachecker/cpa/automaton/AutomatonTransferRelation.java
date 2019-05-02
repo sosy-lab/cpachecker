@@ -121,6 +121,15 @@ class AutomatonTransferRelation implements TransferRelation {
     return Collections.singleton(((AutomatonState) pState).getAutomatonCPA().getTopState());
   }
 
+  @Override
+  public Collection<? extends AbstractState> getAbstractPredecessorsForEdge(
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
+    // just forward to the default successor computation
+    // TODO is there any automaton matching 'edge.getSuccessorNode()' ? Then we must add a
+    // direction.
+    return getAbstractSuccessorsForEdge(pElement, pPrecision, pCfaEdge);
+  }
+
   private Collection<AutomatonState> getAbstractSuccessors0(
       AutomatonState pElement, CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
     totalPostTime.start();
