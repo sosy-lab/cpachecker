@@ -27,12 +27,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 public interface SMGAddressValue extends SMGSymbolicValue {
 
-  @Override
-  public boolean isUnknown();
+  SMGAddress getAddress();
 
-  public SMGAddress getAddress();
+  SMGExplicitValue getOffset();
 
-  public SMGExplicitValue getOffset();
-
-  public SMGObject getObject();
+  SMGObject getObject();
 }

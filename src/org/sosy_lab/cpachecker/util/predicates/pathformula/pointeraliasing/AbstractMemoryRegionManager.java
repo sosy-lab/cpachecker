@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,6 +47,12 @@ abstract class AbstractMemoryRegionManager implements MemoryRegionManager {
       CType pFieldOwnerType, CCompositeTypeMemberDeclaration pMember) {
     return makeMemoryRegion(
         pFieldOwnerType, typeHandler.getSimplifiedType(pMember), pMember.getName());
+  }
+
+  @Override
+  public final String getPointerAccessName(MemoryRegion pRegion) {
+    checkNotNull(pRegion);
+    return pRegion.getName(typeHandler);
   }
 
   @Override

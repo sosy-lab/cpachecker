@@ -28,7 +28,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -44,15 +51,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
 
 public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
 
@@ -135,7 +133,9 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
 
       if (!solver.implies(bfmgr.and(previousInterpolants), interpolants.get(i))) {
         throw new SolverException(
-                String.format("Interpolant %s is not implied by previous part of the path.", interpolants.get(i)));
+            String.format(
+                "Interpolant %s is not implied by previous part of the path %s.",
+                interpolants.get(i), bfmgr.and(previousInterpolants)));
       }
     }
 
@@ -195,18 +195,17 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
 
       Set<String> allowedVariables = Sets.intersection(variablesInA, variablesInB).immutableCopy();
       Set<String> variablesInInterpolant = fmgr.extractVariableNames(interpolants.get(i));
-
-      variablesInInterpolant.removeAll(allowedVariables);
-
-      if (!variablesInInterpolant.isEmpty()) {
-        throw new SolverException(String.format(
-                "Interpolant %s contains forbidden variable(s) %s", interpolants.get(i), variablesInInterpolant));
+      Set<String> additionalVariables = Sets.difference(variablesInInterpolant, allowedVariables);
+      if (!additionalVariables.isEmpty()) {
+        throw new SolverException(
+            String.format(
+                "Interpolant %s contains forbidden variable(s) %s",
+                interpolants.get(i), additionalVariables));
       }
     }
   }
 
-
-  private static enum TreePosition {
+  private enum TreePosition {
     START,    // leaf-node with no children, start of a subtree
     MIDDLE,   // node with exactly one child, middle node in a sequence
     END       // node with several children, end of a subtree
@@ -358,6 +357,12 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
   protected List<BooleanFormula> flattenTreeItps(
           final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
           final List<BooleanFormula> itps) {
+
+    assert itps.size() == formulasWithStatesAndGroupdIds.size() - 1
+        : String.format(
+            "number of interpolants does not match formulas: %d vs %d",
+            itps.size(), formulasWithStatesAndGroupdIds.size());
+
     final List<BooleanFormula> interpolants = new ArrayList<>();
     final Iterator<BooleanFormula> iter = itps.iterator();
     for (int positionOfA = 0; positionOfA < formulasWithStatesAndGroupdIds.size() - 1; positionOfA++) {

@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -33,16 +35,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.llvm_j.LLVMException;
 import org.sosy_lab.llvm_j.TypeRef;
 import org.sosy_lab.llvm_j.TypeRef.TypeKind;
 
@@ -50,7 +54,7 @@ import org.sosy_lab.llvm_j.TypeRef.TypeKind;
 public class LlvmTypeConverter {
 
   private static final String PREFIX_LITERAL_STRUCT = "lit_struc_";
-  private static final String PREFIX_STRUCT_MEMBER = "mem_";
+  private static final String PREFIX_STRUCT_MEMBER = "elem_";
   private static final CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
 
   private static int structCount = 0;
@@ -58,15 +62,16 @@ public class LlvmTypeConverter {
   private final MachineModel machineModel;
   private final LogManager logger;
 
+  private final Map<Integer, CType> typeCache = new HashMap<>();
+
   public LlvmTypeConverter(final MachineModel pMachineModel, final LogManager pLogger) {
     machineModel = pMachineModel;
     logger = pLogger;
   }
 
-  public CType getCType(final TypeRef pLlvmType) throws LLVMException {
+  public CType getCType(final TypeRef pLlvmType) {
     final boolean isConst = false;
     final boolean isVolatile = false;
-
     TypeKind typeKind = pLlvmType.getTypeKind();
     switch (typeKind) {
       case Void:
@@ -81,7 +86,7 @@ public class LlvmTypeConverter {
         return getFloatType(typeKind);
       case Integer:
         int integerWidth = pLlvmType.getIntTypeWidth();
-        return getIntegerType(integerWidth, isConst, isVolatile);
+        return getIntegerType(integerWidth);
 
       case Function:
         return getFunctionType(pLlvmType);
@@ -106,7 +111,14 @@ public class LlvmTypeConverter {
         return new CPointerType(isConst, isVolatile, getCType(pLlvmType.getElementType()));
 
       case Vector:
-        // TODO
+        CIntegerLiteralExpression vectorLength =
+            new CIntegerLiteralExpression(
+                FileLocation.DUMMY,
+                ARRAY_LENGTH_TYPE,
+                BigInteger.valueOf(pLlvmType.getVectorSize()));
+
+        return new CArrayType(
+            isConst, isVolatile, getCType(pLlvmType.getElementType()), vectorLength);
       case Label:
       case Metadata:
       case X86_MMX:
@@ -119,7 +131,7 @@ public class LlvmTypeConverter {
     }
   }
 
-  private CType createStructType(final TypeRef pStructType) throws LLVMException {
+  private CType createStructType(final TypeRef pStructType) {
     final boolean isConst = false;
     final boolean isVolatile = false;
 
@@ -130,11 +142,25 @@ public class LlvmTypeConverter {
     String structName = getStructName(pStructType);
     String origName = structName;
 
+    if (typeCache.containsKey(pStructType.type().hashCode())) {
+      return new CElaboratedType(
+          false,
+          false,
+          ComplexTypeKind.STRUCT,
+          structName,
+          origName,
+          (CComplexType) typeCache.get(pStructType.type().hashCode()));
+    }
+
+    CCompositeType cStructType =
+        new CCompositeType(isConst, isVolatile, ComplexTypeKind.STRUCT, structName, origName);
+    typeCache.put(pStructType.type().hashCode(), cStructType);
+
     List<TypeRef> memberTypes = pStructType.getStructElementTypes();
     List<CCompositeTypeMemberDeclaration> members = new ArrayList<>(memberTypes.size());
 
     for (int i = 0; i < memberTypes.size(); i++) {
-      String memberName = getMemberName(structName, i);
+      String memberName = getMemberName(i);
       TypeRef memType = memberTypes.get(i);
       CType cMemType = getCType(memType);
       CCompositeTypeMemberDeclaration memDecl =
@@ -142,13 +168,15 @@ public class LlvmTypeConverter {
       members.add(memDecl);
     }
 
-    return new CCompositeType(
-        isConst, isVolatile, ComplexTypeKind.STRUCT, members, structName, origName);
+    cStructType.setMembers(members);
+    return cStructType;
   }
 
-  private String getStructName(TypeRef pStructType) throws LLVMException {
+  private String getStructName(TypeRef pStructType) {
     if (pStructType.isStructNamed()) {
-      return pStructType.getStructName();
+      /* . is not a valid character for a name in C (but in LLVM yes),
+       * so replace it by _ */
+      return pStructType.getStructName().replace(".", "_");
 
     } else {
       return getLiteralStructName();
@@ -160,11 +188,11 @@ public class LlvmTypeConverter {
     return PREFIX_LITERAL_STRUCT + structCount;
   }
 
-  private String getMemberName(String pStructName, int pI) {
-    return pStructName + PREFIX_STRUCT_MEMBER + pI;
+  private String getMemberName(int pI) {
+    return PREFIX_STRUCT_MEMBER + pI;
   }
 
-  private CType getFunctionType(TypeRef pFuncType) throws LLVMException {
+  private CType getFunctionType(TypeRef pFuncType) {
     CType returnType = getCType(pFuncType.getReturnType());
 
     int paramNumber = pFuncType.countParamTypes();
@@ -182,54 +210,8 @@ public class LlvmTypeConverter {
     return new CFunctionType(returnType, parameterTypes, takesVarArgs);
   }
 
-  private CType getIntegerType(
-      final int pIntegerWidth, final boolean pIsConst, final boolean pIsVolatile) {
-    final boolean isSigned = true;
-    final boolean isComplex = false;
-    final boolean isImaginary = false;
-    final boolean isUnsigned = false;
-
-    final boolean isLong = false;
-    boolean isShort = false;
-    boolean isLongLong = false;
-
-    CBasicType basicType;
-
-    switch (pIntegerWidth) {
-      case 1:
-        basicType = CBasicType.BOOL;
-        break;
-      case 8:
-        basicType = CBasicType.CHAR;
-        break;
-      case 16:
-        basicType = CBasicType.INT;
-        isShort = true;
-        break;
-      case 32:
-        basicType = CBasicType.INT;
-        // keep everything set to 'false' for default int
-        break;
-      case 64:
-        basicType = CBasicType.INT;
-        // We use long long since it is 8 bytes for both 32 and 64 bit machines
-        isLongLong = true;
-        break;
-      default:
-        throw new AssertionError("Unhandled integer bitwidth " + pIntegerWidth);
-    }
-
-    return new CSimpleType(
-        pIsConst,
-        pIsVolatile,
-        basicType,
-        isLong,
-        isShort,
-        isSigned,
-        isUnsigned,
-        isComplex,
-        isImaginary,
-        isLongLong);
+  private CType getIntegerType(final int pIntegerWidth) {
+    return new CBitFieldType(CNumericTypes.INT, pIntegerWidth);
   }
 
   private CType getFloatType(final TypeKind pType) {

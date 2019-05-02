@@ -61,12 +61,12 @@ public final class JArrayInitializer extends AbstractExpression
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(boolean pQualified) {
 
     StringBuilder astString = new StringBuilder("{");
 
     for (JExpression exp : initializerExpressions) {
-      astString.append(exp.toASTString() + ", " );
+      astString.append(exp.toASTString(pQualified) + ", ");
     }
 
     if (!initializerExpressions.isEmpty()) {

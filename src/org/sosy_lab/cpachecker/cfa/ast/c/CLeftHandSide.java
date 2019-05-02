@@ -28,5 +28,5 @@ import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 
 public interface CLeftHandSide extends CExpression, ALeftHandSide {
 
-  public  <R, X extends Exception> R accept(CLeftHandSideVisitor<R, X> v) throws X;
+  <R, X extends Exception> R accept(CLeftHandSideVisitor<R, X> v) throws X;
 }

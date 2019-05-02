@@ -37,6 +37,7 @@ public abstract class PredicateRefiner implements Refiner {
     return AbstractARGBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
   }
 
+  @SuppressWarnings("resource")
   public static ARGBasedRefiner create0(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     PredicateCPA predicateCpa =

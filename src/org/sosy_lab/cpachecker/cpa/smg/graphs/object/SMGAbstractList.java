@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 
 public abstract class SMGAbstractList<S> extends SMGObject implements SMGAbstractObject {
 
   private final int minimumLength;
   private final S shape;
-  protected final int id = SMGValueFactory.getNewValue(); // just for logging, not for other usage!
+  protected final int id = SMGCPA.getNewValue(); // just for logging, not for other usage!
 
   public SMGAbstractList(
       int pSize, String label, int level, SMGObjectKind kind, S pShape, int pMinLength) {

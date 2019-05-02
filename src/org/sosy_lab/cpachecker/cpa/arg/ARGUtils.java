@@ -30,7 +30,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -38,7 +37,6 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -66,8 +64,10 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -77,15 +77,17 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.GraphUtils;
@@ -196,70 +198,7 @@ public class ARGUtils {
    * @return A path from root to lastElement.
    */
   public static ARGPath getOnePathTo(ARGState pLastElement) {
-    List<ARGState> states = new ArrayList<>(); // reversed order
-    Set<ARGState> seenElements = new HashSet<>();
-
-    // each element of the path consists of the abstract state and the outgoing
-    // edge to its successor
-
-    ARGState currentARGState = pLastElement;
-    states.add(currentARGState);
-    seenElements.add(currentARGState);
-    Deque<ARGState> backTrackPoints = new ArrayDeque<>();
-    Deque<Set<ARGState>> backTrackSeenElements = new ArrayDeque<>();
-    Deque<List<ARGState>> backTrackOptions = new ArrayDeque<>();
-
-    while (!currentARGState.getParents().isEmpty()) {
-      Iterator<ARGState> parents = currentARGState.getParents().iterator();
-
-      ARGState parentElement = parents.next();
-      while (seenElements.contains(parentElement) && parents.hasNext()) {
-        // while seenElements already contained parentElement, try next parent
-        parentElement = parents.next();
-      }
-
-      if (seenElements.contains(parentElement)) {
-        // Backtrack
-        if (backTrackPoints.isEmpty()) {
-          throw new IllegalArgumentException("No ARG path from the target state to a root state.");
-        }
-        ARGState backTrackPoint = backTrackPoints.pop();
-        ListIterator<ARGState> stateIterator = states.listIterator(states.size());
-        while (stateIterator.hasPrevious() && !stateIterator.previous().equals(backTrackPoint)) {
-          stateIterator.remove();
-        }
-        seenElements = backTrackSeenElements.pop();
-        List<ARGState> options = backTrackOptions.pop();
-        for (ARGState parent : backTrackPoint.getParents()) {
-          if (!options.contains(parent)) {
-            seenElements.add(parent);
-          }
-        }
-        currentARGState = backTrackPoint;
-      } else {
-        // Record backtracking options
-        if (parents.hasNext()) {
-          List<ARGState> options = new ArrayList<>(1);
-          while (parents.hasNext()) {
-            ARGState parent = parents.next();
-            if (!seenElements.contains(parent)) {
-              options.add(parent);
-            }
-          }
-          if (!options.isEmpty()) {
-            backTrackPoints.push(currentARGState);
-            backTrackOptions.push(options);
-            backTrackSeenElements.push(new HashSet<>(seenElements));
-          }
-        }
-
-        seenElements.add(parentElement);
-        states.add(parentElement);
-
-        currentARGState = parentElement;
-      }
-    }
-    return new ARGPath(Lists.reverse(states));
+    return getOnePathFromTo((x) -> x.getParents().isEmpty(), pLastElement);
   }
 
   public static Optional<ARGPath> getOnePathTo(
@@ -335,6 +274,70 @@ public class ARGUtils {
     return Optional.of(new ARGPath(Lists.reverse(states)));
   }
 
+  public static ARGPath getOnePathFromTo(final Predicate<ARGState> pIsStart, final ARGState pEnd) {
+    List<ARGState> states = new ArrayList<>(); // reversed order
+    Set<ARGState> seenElements = new HashSet<>();
+
+    // each element of the path consists of the abstract state and the outgoing
+    // edge to its successor
+
+    ARGState currentARGState = pEnd;
+    states.add(currentARGState);
+    seenElements.add(currentARGState);
+    Deque<ARGState> backTrackPoints = new ArrayDeque<>();
+    Deque<List<ARGState>> backTrackOptions = new ArrayDeque<>();
+
+    while (!pIsStart.apply(currentARGState)) {
+      Iterator<ARGState> parents = currentARGState.getParents().iterator();
+
+      ARGState parentElement = parents.next();
+      while (seenElements.contains(parentElement) && parents.hasNext()) {
+        // while seenElements already contained parentElement, try next parent
+        parentElement = parents.next();
+      }
+
+      if (seenElements.contains(parentElement)) {
+        // Backtrack
+        if (backTrackPoints.isEmpty()) {
+          throw new IllegalArgumentException("No ARG path from the target state to a root state.");
+        }
+        ARGState backTrackPoint = backTrackPoints.pop();
+        ListIterator<ARGState> stateIterator = states.listIterator(states.size());
+        while (stateIterator.hasPrevious() && !stateIterator.previous().equals(backTrackPoint)) {
+          stateIterator.remove();
+        }
+        List<ARGState> options = backTrackOptions.pop();
+        for (ARGState parent : backTrackPoint.getParents()) {
+          if (!options.contains(parent)) {
+            seenElements.add(parent);
+          }
+        }
+        currentARGState = backTrackPoint;
+      } else {
+        // Record backtracking options
+        if (parents.hasNext()) {
+          List<ARGState> options = new ArrayList<>(1);
+          while (parents.hasNext()) {
+            ARGState parent = parents.next();
+            if (!seenElements.contains(parent)) {
+              options.add(parent);
+            }
+          }
+          if (!options.isEmpty()) {
+            backTrackPoints.push(currentARGState);
+            backTrackOptions.push(options);
+          }
+        }
+
+        seenElements.add(parentElement);
+        states.add(parentElement);
+
+        currentARGState = parentElement;
+      }
+    }
+    return new ARGPath(Lists.reverse(states));
+  }
+
   /**
    * Create the shortest path in the ARG from root to the given element.
    * If there are several such paths, one is chosen arbitrarily.
@@ -383,7 +386,7 @@ public class ARGUtils {
     Preconditions.checkNotNull(pTracePosition);
     Preconditions.checkNotNull(pPostfixLocation);
 
-    Builder<PathPosition> result = ImmutableList.builder();
+    ImmutableList.Builder<PathPosition> result = ImmutableList.builder();
 
     for (PathPosition p: pTracePosition) {
 
@@ -432,7 +435,7 @@ public class ARGUtils {
       Predicates.compose(CONTAINS_RELEVANT_LOCATION, AbstractStates::extractLocations);
 
   @SuppressWarnings("unchecked")
-  static final Predicate<ARGState> RELEVANT_STATE =
+  public static final Predicate<ARGState> RELEVANT_STATE =
       Predicates.or(
           AbstractStates.IS_TARGET_STATE,
           AT_RELEVANT_LOCATION,
@@ -730,7 +733,7 @@ public class ARGUtils {
     Function<ARGState, String> getLocationName =
         s -> Joiner.on("_OR_").join(AbstractStates.extractLocations(s));
     Function<Integer, Function<ARGState, String>> getStateNameFunction =
-        i -> (s -> "S" + i + "at" + getLocationName.apply(s));
+        i -> s -> "S" + i + "at" + getLocationName.apply(s);
 
     sb.append("CONTROL AUTOMATON " + name + "\n\n");
     String stateName = getStateNameFunction.apply(index).apply(rootState);
@@ -800,7 +803,11 @@ public class ARGUtils {
           List<CFAEdge> allEdges = s.getEdgesToChild(child);
           CFAEdge edge;
 
-          if (allEdges.size() == 1) {
+          if (allEdges.isEmpty()) {
+            // this is a missing edge, e.g., caused by SSCCPA
+            edge = new DummyCFAEdge(extractLocation(s), extractLocation(child));
+
+          } else if (allEdges.size() == 1) {
             edge = Iterables.getOnlyElement(allEdges);
 
             // this is a dynamic multi edge
@@ -1295,16 +1302,18 @@ public class ARGUtils {
       return Optional.empty();
     }
 
+    CFAPathWithAdditionalInfo additionalInfo = CFAPathWithAdditionalInfo.of(path, pCPA);
+
     // We should not claim that the counterexample is precise unless we have one unique path
     Set<ARGState> states = path.getStateSet();
     if (states.stream().allMatch(s -> s.getParents().stream().allMatch(p -> states.contains(p)))) {
       CFAPathWithAssumptions assignments =
           CFAPathWithAssumptions.of(path, pCPA, pAssumptionToEdgeAllocator);
       if (!assignments.isEmpty()) {
-        return Optional.of(CounterexampleInfo.feasiblePrecise(path, assignments));
+        return Optional.of(CounterexampleInfo.feasiblePrecise(path, assignments, additionalInfo));
       }
     }
-    return Optional.of(CounterexampleInfo.feasibleImprecise(path));
+    return Optional.of(CounterexampleInfo.feasibleImprecise(path, additionalInfo));
   }
 
   public static Set<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {

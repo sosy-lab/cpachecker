@@ -32,7 +32,7 @@ public interface PartitioningCheckingHelper {
    * Possibly does more actions like stops checking of other partitions,
    * prohibits start of a partition check.
    */
-  public void abortCheckingPreparation();
+  void abortCheckingPreparation();
 
   /**
    * Returns intermediate size of the certificate. The returned size
@@ -43,6 +43,6 @@ public interface PartitioningCheckingHelper {
    *
    * @return current size of certificate
    */
-  public int getCurrentCertificateSize();
+  int getCurrentCertificateSize();
 
 }

@@ -33,6 +33,7 @@ import org.junit.runners.BlockJUnit4ClassRunner;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 
 @RunWith(value = BlockJUnit4ClassRunner.class)
+@SuppressWarnings("unused")
 public class CBitFieldTypeTest {
 
   private final ClassSanityTester tester = new ClassSanityTester();
@@ -42,17 +43,17 @@ public class CBitFieldTypeTest {
   }
 
   @Test
-  public void testNulls() throws Exception {
+  public void testNulls() {
     tester.testNulls(CBitFieldType.class);
   }
 
   @Test
-  public void testEquals() throws Exception {
+  public void testEquals() {
     tester.testEquals(CBitFieldType.class);
   }
 
   @Test
-  public void testSerializable() throws Exception {
+  public void testSerializable() {
     SerializableTester.reserializeAndAssert(new CBitFieldType(CNumericTypes.INT, 8));
   }
 

@@ -31,7 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -46,26 +47,26 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public abstract class AbstractBAMTransferRelation<EX extends CPAException>
-    implements TransferRelation {
+    extends AbstractSingleWrapperTransferRelation implements TransferRelation {
 
   final BAMDataManager data;
   protected final BlockPartitioning partitioning;
   protected final LogManager logger;
-  protected final TransferRelation wrappedTransfer;
   protected final Reducer wrappedReducer;
-  protected final ShutdownNotifier shutdownNotifier;
+  private final ShutdownNotifier shutdownNotifier;
 
-  protected final boolean useDynamicAdjustment;
+  private final boolean useDynamicAdjustment;
 
   protected AbstractBAMTransferRelation(
       AbstractBAMCPA pBamCPA, ShutdownNotifier pShutdownNotifier) {
+    super(pBamCPA.getWrappedCpa().getTransferRelation());
     logger = pBamCPA.getLogger();
-    wrappedTransfer = pBamCPA.getWrappedCpa().getTransferRelation();
     wrappedReducer = pBamCPA.getReducer();
     data = pBamCPA.getData();
     partitioning = pBamCPA.getBlockPartitioning();
@@ -135,7 +136,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   protected Collection<? extends AbstractState> getWrappedTransferSuccessor(
       final ARGState pState, final Precision pPrecision, final CFANode pNode)
       throws EX, InterruptedException, CPATransferException {
-    return wrappedTransfer.getAbstractSuccessors(pState, pPrecision);
+    return transferRelation.getAbstractSuccessors(pState, pPrecision);
   }
 
   /**
@@ -263,20 +264,21 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
 
   protected boolean isCacheHit(
       ReachedSet cachedReached, Collection<AbstractState> cachedReturnStates) {
-    if (cachedReturnStates != null && !cachedReached.hasWaitingState()) {
-      // cache hit with finished reached-set, return element from cache.
-      return true;
-    }
+    if (cachedReturnStates != null) {
+      if (!cachedReached.hasWaitingState()) {
+        // cache hit with finished reached-set, return element from cache.
+        return true;
+      }
 
-    if (cachedReturnStates != null
-        && cachedReturnStates.size() == 1
-        && cachedReached.getLastState() != null
-        && AbstractStates.isTargetState(cachedReached.getLastState())) {
-      // cache hit with found target state, return element from cache.
-      // TODO we currently expect only one target state per reached-set.
-      assert Iterables.getOnlyElement(cachedReturnStates) == cachedReached.getLastState()
-          : "cache hit only allowed for finished reached-sets or target-states";
-      return true;
+      if (cachedReturnStates.size() == 1
+          && cachedReached.getLastState() != null
+          && AbstractStates.isTargetState(cachedReached.getLastState())) {
+        // cache hit with found target state, return element from cache.
+        // TODO we currently expect only one target state per reached-set.
+        assert Iterables.getOnlyElement(cachedReturnStates) == cachedReached.getLastState()
+            : "cache hit only allowed for finished reached-sets or target-states";
+        return true;
+      }
     }
 
     return false;
@@ -290,7 +292,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
-    return wrappedTransfer.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
+    return transferRelation.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
   }
 
   @Override

@@ -26,14 +26,13 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 
-
 /**
  * Interface for side-effect free expressions.
  */
 @SuppressWarnings("serial") // we cannot set a UID for an interface
 public interface  CExpression  extends CRightHandSide, AExpression {
 
-  public  <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X;
+  <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X;
 
   @Deprecated // Call accept() directly
   @SuppressWarnings("unchecked") // should not be necessary, but javac complains otherwise
@@ -45,7 +44,7 @@ public interface  CExpression  extends CRightHandSide, AExpression {
           X1 extends Exception,
           X2 extends Exception,
           V extends CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2>>
-      R accept_(V pV) throws X1, X2 {
-    return accept((CExpressionVisitor<R1, X1>) pV);
+      R accept_(V pV) throws X1 {
+    return accept(pV);
   }
 }

@@ -44,7 +44,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-
 
 public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
@@ -133,7 +132,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           return status;
         }
 
-        if (from(reached.getDelegate()).anyMatch((IS_TARGET_STATE))) {
+        if (reached.hasViolatedProperties()) {
           logger.log(Level.INFO, "Error found, do not combine ARGs.");
           ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
           return status;
@@ -147,7 +146,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           checkArgument(AbstractStates.extractLocation(usedReached.getFirstState()) != null,
               "Require that all restart configurations consider a location aware state");
 
-          for (AbstractState errorState : from(usedReached).filter((IS_TARGET_STATE))) {
+          for (AbstractState errorState : from(usedReached).filter(IS_TARGET_STATE)) {
             logger.log(Level.INFO, "Error state found in reached set ", usedReached,
                 "but not by last configuration. Error state must be infeasible.");
             logger.log(Level.FINE, "Remove infeasible error state", errorState);
@@ -192,7 +191,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     List<AbstractState> initialStates = initStates.getSecond();
 
     try {
-      pReceivedReachedSet.setDelegate(new ReachedSetFactory(config).create());
+      pReceivedReachedSet.setDelegate(new ReachedSetFactory(config, logger).create());
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Creating reached set which should contain combined ARG fails.");
       return false;

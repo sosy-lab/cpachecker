@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -38,8 +39,8 @@ import org.sosy_lab.cpachecker.util.Triple;
 public class UninitializedVariablesState implements AbstractQueryableState, Serializable {
 
   private static final long serialVersionUID = 5745797034946117366L;
-  private final Collection<String> globalVars;
-  private final Deque<Pair<String, Collection<String>>> localVars;
+  private final List<String> globalVars;
+  private final Deque<Pair<String, List<String>>> localVars;
 
   private final Collection<Triple<Integer, String, String>> warnings;
 
@@ -54,9 +55,10 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
     callFunction(entryFunction);
   }
 
-  public UninitializedVariablesState(Collection<String> globalVars,
-                                       Deque<Pair<String, Collection<String>>> localVars,
-                                       Collection<Triple<Integer, String, String>> warnings) {
+  public UninitializedVariablesState(
+      List<String> globalVars,
+      Deque<Pair<String, List<String>>> localVars,
+      Collection<Triple<Integer, String, String>> warnings) {
     this.globalVars = globalVars;
     this.localVars = localVars;
     this.warnings = warnings;
@@ -90,7 +92,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
     return localVars.peekLast().getSecond();
   }
 
-  public Deque<Pair<String, Collection<String>>> getallLocalVariables() {
+  public Deque<Pair<String, List<String>>> getallLocalVariables() {
     return localVars;
   }
 
@@ -104,7 +106,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   }
 
   public void callFunction(String functionName) {
-    localVars.addLast(Pair.of(functionName, (Collection<String>)new ArrayList<String>()));
+    localVars.addLast(Pair.of(functionName, new ArrayList<String>()));
   }
 
   public void returnFromFunction() {
@@ -140,11 +142,11 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
 
   @Override
   protected UninitializedVariablesState clone() {
-    Deque<Pair<String, Collection<String>>> newLocalVars = new ArrayDeque<>();
+    Deque<Pair<String, List<String>>> newLocalVars = new ArrayDeque<>();
 
-    for (Pair<String, Collection<String>> localContext : localVars) {
-      newLocalVars.addLast(Pair.of(localContext.getFirst(),
-                                   (Collection<String>)new ArrayList<>(localContext.getSecond())));
+    for (Pair<String, List<String>> localContext : localVars) {
+      newLocalVars.addLast(
+          Pair.of(localContext.getFirst(), new ArrayList<>(localContext.getSecond())));
     }
 
     return new UninitializedVariablesState(new ArrayList<>(globalVars), newLocalVars,
@@ -158,7 +160,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
     for (String var : globalVars) {
       sb.append(" " + var + " ");
     }
-    for (Pair<String, Collection<String>> stackframe: localVars) {
+    for (Pair<String, List<String>> stackframe : localVars) {
       sb.append("> <" + stackframe.getFirst() + ":");
       for (String var : stackframe.getSecond()) {
         sb.append(" " + var + " ");

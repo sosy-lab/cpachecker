@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Set;
@@ -45,7 +47,7 @@ class IntEqualCollectingVisitor extends VariablesCollectingVisitor {
 
   public IntEqualCollectingVisitor(CFANode pre, Set<String> pNonIntEqVars) {
     super(pre);
-    nonIntEqVars = pNonIntEqVars;
+    nonIntEqVars = checkNotNull(pNonIntEqVars);
   }
 
   @Override
@@ -111,6 +113,7 @@ class IntEqualCollectingVisitor extends VariablesCollectingVisitor {
 
   @Override
   public Set<String> visit(CIntegerLiteralExpression exp) {
+    checkNotNull(exp);
     return new HashSet<>(0);
   }
 

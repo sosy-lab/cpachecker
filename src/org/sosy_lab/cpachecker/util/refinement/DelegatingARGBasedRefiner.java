@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -104,7 +104,7 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
         // ignore and try the next refiner
         if (i == refiners.size() - 1) {
           logger.logf(
-              Level.FINE,
+              Level.WARNING,
               "refinement %d of %d reported repeated counterexample, "
                   + "exiting refiner and possibly using cex from previous refiner",
               i + 1,

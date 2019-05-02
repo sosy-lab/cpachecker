@@ -31,10 +31,9 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.logging.Level;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,15 +43,15 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
 @Options(prefix="cpa.bam")
@@ -65,23 +64,24 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       + "The value '-1' disables this option.")
   private int maximalDepthForExplicitRecursion = -1;
 
-  private final BAMCPA bamCPA;
+  private final BAMCPA bamCpa;
 
   // flags of the fixpoint-algorithm for recursion
   private boolean recursionSeen = false;
   private boolean resultStatesChanged = false;
   private boolean targetFound = false;
-  final Collection<AbstractState> potentialRecursionUpdateStates = new HashSet<>();
+  private final Collection<AbstractState> potentialRecursionUpdateStates = new HashSet<>();
 
   public BAMTransferRelationWithFixPointForRecursion(
       Configuration pConfig,
-      BAMCPA bamCpa,
-      ProofChecker wrappedChecker,
-      ShutdownNotifier pShutdownNotifier)
+      BAMCPA pBamCpa,
+      ShutdownNotifier pShutdownNotifier,
+      AlgorithmFactory pAlgorithmFactory,
+      BAMPCCManager pBamPccManager)
       throws InvalidConfigurationException {
-    super(pConfig, bamCpa, wrappedChecker, pShutdownNotifier);
+    super(pBamCpa, pShutdownNotifier, pAlgorithmFactory, pBamPccManager);
     pConfig.inject(this);
-    bamCPA = bamCpa;
+    bamCpa = pBamCpa;
   }
 
   @Override
@@ -205,7 +205,6 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
   /** returns a covering level or Null, if no such level is found. */
   private Triple<AbstractState, Precision, Block> getCoveringLevel(
-      final Deque<Triple<AbstractState, Precision, Block>> stack,
       final Triple<AbstractState, Precision, Block> currentLevel)
       throws CPAException, InterruptedException {
 
@@ -214,7 +213,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
       if (level.getThird() == currentLevel.getThird()
           // && level.getSecond().equals(currentLevel.getSecond())
-          && bamCPA
+          && bamCpa
               .getWrappedCpa()
               .isCoveredByRecursiveState(currentLevel.getFirst(), level.getFirst())) {
         // previously reached state contains 'less' information, it is a super-state of the currentState.
@@ -235,8 +234,8 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
    * {x} is covered by {(x or y),z}
    * {(x and y),z} is covered by {x,z}
    */
-  private Collection<AbstractState> getStatesNotCoveredBy(@Nonnull final Collection<AbstractState> baseStates,
-      @Nonnull final Collection<AbstractState> coveringStates)
+  private Collection<AbstractState> getStatesNotCoveredBy(@NonNull final Collection<AbstractState> baseStates,
+      @NonNull final Collection<AbstractState> coveringStates)
       throws CPAException, InterruptedException {
     final Collection<AbstractState> notCoveredStates = new ArrayList<>();
     for (final AbstractState baseState : baseStates) {
@@ -248,14 +247,14 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   }
 
   /** is there any covering-state, that covers the base-state? */
-  private boolean isCoveredByAny(@Nonnull final AbstractState baseState,
-                                 @Nonnull final Collection<AbstractState> coveringStates)
+  private boolean isCoveredByAny(@NonNull final AbstractState baseState,
+                                 @NonNull final Collection<AbstractState> coveringStates)
           throws CPAException, InterruptedException {
     if (coveringStates.contains(baseState)) {
       return true;
     }
     for (final AbstractState coveringState : coveringStates) {
-      if (bamCPA.getAbstractDomain().isLessOrEqual(baseState, coveringState)) {
+      if (bamCpa.getAbstractDomain().isLessOrEqual(baseState, coveringState)) {
         return true;
       }
     }
@@ -326,8 +325,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       throws CPAException, InterruptedException {
 
     final Collection<AbstractState> expandedFunctionReturnStates;
-    final Triple<AbstractState, Precision, Block> coveringLevel =
-        getCoveringLevel(stack, stack.peek());
+    final Triple<AbstractState, Precision, Block> coveringLevel = getCoveringLevel(stack.peek());
     if (coveringLevel != null) {
       // if level is twice in stack, we have endless recursion.
       // with current knowledge we would never abort unrolling the recursion.
@@ -386,11 +384,12 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     // If no changes are found, we have found the fixpoint.
 
     // try to get previously computed states from cache
-    final Pair<ReachedSet, Collection<AbstractState>> pair =
-            //argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
-            data.getCache().get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
-    final ReachedSet reached = pair.getFirst();
-    final Collection<AbstractState> previousResult = pair.getSecond();
+    final BAMCacheEntry entry =
+        // argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
+        data.getCache()
+            .get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
+    final ReachedSet reached = entry.getReachedSet();
+    final Collection<AbstractState> previousResult = entry.getExitStates();
     final Collection<AbstractState> reducedResult;
 
     assert reached != null : "cached entry has no reached set";

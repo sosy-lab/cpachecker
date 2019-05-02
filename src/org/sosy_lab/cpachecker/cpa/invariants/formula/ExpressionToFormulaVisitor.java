@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -85,7 +86,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.MemoryLocationExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -266,16 +266,16 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
 
   private CType getPromotedCType(CType t) {
     t = t.getCanonicalType();
-    if (t instanceof CSimpleType) {
+    if (CTypes.isIntegerType(t)) {
       // Integer types smaller than int are promoted when an operation is performed on them.
-      return machineModel.getPromotedCType((CSimpleType) t);
+      return machineModel.applyIntegerPromotion(t);
     }
     return t;
   }
 
   private NumeralFormula<CompoundInterval> getPointerTargetSizeLiteral(
       final CPointerType pointerType, final CType implicitType) {
-    final int pointerTargetSize = machineModel.getSizeof(pointerType.getType());
+    final BigInteger pointerTargetSize = machineModel.getSizeof(pointerType.getType());
     return asConstant(implicitType, pointerTargetSize);
   }
 
@@ -358,11 +358,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
                     compoundIntervalFormulaManager.subtract(left, right),
                     getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType));
           } else {
-            throw new UnrecognizedCCodeException(
+            throw new UnrecognizedCodeException(
                 "Can't subtract pointers of different types", pCBinaryExpression);
           }
         } else {
-          throw new UnrecognizedCCodeException(
+          throw new UnrecognizedCodeException(
               "Can't subtract a pointer from a non-pointer", pCBinaryExpression);
         }
         break;
@@ -399,7 +399,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
                       left,
                       getPointerTargetSizeLiteral((CPointerType) promRight, calculationType)));
         } else {
-          throw new UnrecognizedCCodeException("Can't add pointers", pCBinaryExpression);
+          throw new UnrecognizedCodeException("Can't add pointers", pCBinaryExpression);
         }
         break;
     case SHIFT_LEFT:
@@ -791,8 +791,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
   private static CExpression makeCastFromArrayToPointer(CExpression pArrayExpression) {
     // array-to-pointer conversion
     CArrayType arrayType = (CArrayType) pArrayExpression.getExpressionType().getCanonicalType();
-    CPointerType pointerType =
-        new CPointerType(arrayType.isConst(), arrayType.isVolatile(), arrayType.getType());
+    CPointerType pointerType = arrayType.asPointerType();
 
     return new CUnaryExpression(
         pArrayExpression.getFileLocation(), pointerType, pArrayExpression, UnaryOperator.AMPER);

@@ -25,51 +25,20 @@ package org.sosy_lab.cpachecker.util;
 
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 
 public class SpecificationProperty {
 
-  public static enum PropertyType {
-    REACHABILITY_LABEL("G ! label(ERROR)"),
-
-    REACHABILITY("G ! call(__VERIFIER_error())"),
-
-    VALID_FREE("G valid-free"),
-
-    VALID_DEREF("G valid-deref"),
-
-    VALID_MEMTRACK("G valid-memtrack"),
-
-    OVERFLOW("G ! overflow"),
-
-    DEADLOCK("G ! deadlock"),
-
-    TERMINATION("F end"),
-    ;
-
-    private final String representation;
-
-    private PropertyType(String pRepresentation) {
-      representation = pRepresentation;
-    }
-
-    @Override
-    public String toString() {
-      return representation;
-    }
-  }
-
   private final String entryFunction;
 
-  private final PropertyType propertyType;
+  private final Property property;
 
   private final Optional<String> internalSpecificationPath;
 
   public SpecificationProperty(
-      String pEntryFunction,
-      PropertyType pPropertyType,
-      Optional<String> pInternalSpecificationPath) {
+      String pEntryFunction, Property pProperty, Optional<String> pInternalSpecificationPath) {
     entryFunction = Objects.requireNonNull(pEntryFunction);
-    propertyType = Objects.requireNonNull(pPropertyType);
+    property = Objects.requireNonNull(pProperty);
     internalSpecificationPath = Objects.requireNonNull(pInternalSpecificationPath);
   }
 
@@ -92,17 +61,20 @@ public class SpecificationProperty {
   }
 
   /**
-   * Gets the type of the property.
+   * Gets the property.
    *
-   * @return the type of the property.
+   * @return the property.
    */
-  public PropertyType getPropertyType() {
-    return propertyType;
+  public Property getProperty() {
+    return property;
   }
 
   @Override
   public String toString() {
-    return String.format(
-        "CHECK( init(%s()), LTL(%s) )", getEntryFunction(), getPropertyType().toString());
+    return (property instanceof CommonCoverageType)
+        ? String.format(
+            "COVER( init(%s()), FQL(%s) )", getEntryFunction(), getProperty().toString())
+        : String.format(
+            "CHECK( init(%s()), LTL(%s) )", getEntryFunction(), getProperty().toString());
   }
 }

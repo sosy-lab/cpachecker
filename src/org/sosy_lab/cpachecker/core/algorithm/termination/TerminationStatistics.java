@@ -70,7 +70,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -103,8 +103,8 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -154,6 +154,10 @@ public class TerminationStatistics implements Statistics {
   private final Timer lassoTime = new Timer();
 
   private final Timer lassoConstructionTime = new Timer();
+
+  private final Timer lassoStemLoopConstructionTime = new Timer();
+
+  private final Timer lassosCreationTime = new Timer();
 
   private final Timer lassoNonTerminationTime = new Timer();
 
@@ -265,6 +269,22 @@ public class TerminationStatistics implements Statistics {
 
   public void lassoConstructionFinished() {
     lassoConstructionTime.stop();
+  }
+
+  public void stemAndLoopConstructionStarted() {
+    lassoStemLoopConstructionTime.start();
+  }
+
+  public void stemAndLoopConstructionFinished() {
+    lassoStemLoopConstructionTime.stop();
+  }
+
+  public void lassosCreationStarted() {
+    lassosCreationTime.start();
+  }
+
+  public void lassosCreationFinished() {
+    lassosCreationTime.stop();
   }
 
   public void nonTerminationAnalysisOfLassoStarted() {
@@ -391,6 +411,24 @@ public class TerminationStatistics implements Statistics {
     pOut.println(
         "    Max time for lasso construction per iteration:  "
             + format(lassoConstructionTime.getMaxTime()));
+    pOut.println(
+        "      Time for stem and loop construction:                     "
+            + lassoStemLoopConstructionTime);
+    pOut.println(
+        "        Avg time for stem and loop construction per iteration:  "
+            + format(lassoStemLoopConstructionTime.getAvgTime()));
+    pOut.println(
+        "        Max time for stem and loop construction per iteration:  "
+            + format(lassoStemLoopConstructionTime.getMaxTime()));
+
+    pOut.println("      Time for lassos creation:                     " + lassosCreationTime);
+    pOut.println(
+        "        Avg time for lassos creation per iteration:  "
+            + format(lassosCreationTime.getAvgTime()));
+    pOut.println(
+        "        Max time for lassos creation per iteration:  "
+            + format(lassosCreationTime.getMaxTime()));
+
     pOut.println("  Total time for non-termination analysis:          " + lassoNonTerminationTime);
     pOut.println(
         "    Avg time for non-termination analysis per lasso:"

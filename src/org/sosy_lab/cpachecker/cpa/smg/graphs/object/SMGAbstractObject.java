@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,9 +27,11 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
 public interface SMGAbstractObject {
 
-  public boolean isAbstract();
-  public boolean matchGenericShape(SMGAbstractObject pOther);
-  public boolean matchSpecificShape(SMGAbstractObject pOther);
-  public SMGObjectKind getKind();
+  boolean isAbstract();
 
+  boolean matchGenericShape(SMGAbstractObject pOther);
+
+  boolean matchSpecificShape(SMGAbstractObject pOther);
+
+  SMGObjectKind getKind();
 }

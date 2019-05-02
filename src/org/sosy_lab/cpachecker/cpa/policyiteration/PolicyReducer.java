@@ -64,13 +64,13 @@ class PolicyReducer implements Reducer {
 
   PolicyReducer(
       PolicyIterationManager pPolicyIterationManager,
-      FormulaManagerView pFmgr,
+      FormulaManagerView pFormulaManager,
       StateFormulaConversionManager pStateFormulaConversionManager,
-      PathFormulaManager pPfmgr) {
+      PathFormulaManager pPathFormulaManager) {
     policyIterationManager = pPolicyIterationManager;
-    fmgr = pFmgr;
+    fmgr = pFormulaManager;
     stateFormulaConversionManager = pStateFormulaConversionManager;
-    pfmgr = pPfmgr;
+    pfmgr = pPathFormulaManager;
     bfmgr = fmgr.getBooleanFormulaManager();
   }
 

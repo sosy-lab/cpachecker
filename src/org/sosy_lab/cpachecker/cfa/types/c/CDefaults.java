@@ -103,7 +103,7 @@ public final class CDefaults {
     // The initializer { } (without any explizit values)
     // is equal to initializing all fields/elements with 0
     // (C standard §6.7.9 (21))
-    return new CInitializerList(fileLoc, ImmutableList.<CInitializer>of());
+    return new CInitializerList(fileLoc, ImmutableList.of());
   }
 
   private static CIntegerLiteralExpression signedIntZero(FileLocation fileLoc) {

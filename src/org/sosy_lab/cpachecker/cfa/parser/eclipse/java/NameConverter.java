@@ -23,17 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
+import com.google.common.base.Joiner;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-
-import com.google.common.base.Joiner;
-
 
 final class NameConverter {
 
@@ -151,7 +148,7 @@ final class NameConverter {
 
   public static String convertDefaultConstructorName(ITypeBinding classBinding) {
     if (classBinding.isAnonymous()) {
-     return convertAnonymousClassConstructorName(classBinding, Collections.<JType>emptyList());
+      return convertAnonymousClassConstructorName(classBinding, Collections.emptyList());
 
     } else {
       return (convertClassOrInterfaceToFullName(classBinding)

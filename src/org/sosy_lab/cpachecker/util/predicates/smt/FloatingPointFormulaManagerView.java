@@ -193,17 +193,30 @@ public class FloatingPointFormulaManagerView
   public BooleanFormula isNaN(FloatingPointFormula pNumber) {
     return manager.isNaN(pNumber);
   }
+
   @Override
   public BooleanFormula isInfinity(FloatingPointFormula pNumber) {
     return manager.isInfinity(pNumber);
   }
+
   @Override
   public BooleanFormula isZero(FloatingPointFormula pNumber) {
     return manager.isZero(pNumber);
   }
+
+  @Override
+  public BooleanFormula isNegative(FloatingPointFormula pNumber) {
+    return manager.isNegative(pNumber);
+  }
+
   @Override
   public BooleanFormula isSubnormal(FloatingPointFormula pNumber) {
     return manager.isSubnormal(pNumber);
+  }
+
+  @Override
+  public BooleanFormula isNormal(FloatingPointFormula pNumber) {
+    return manager.isNormal(pNumber);
   }
 
   @Override

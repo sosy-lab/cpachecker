@@ -32,6 +32,5 @@ package org.sosy_lab.cpachecker.cfa.ast;
  */
 public interface ADeclaration extends ASimpleDeclaration {
 
-
-  public boolean isGlobal();
+  boolean isGlobal();
 }

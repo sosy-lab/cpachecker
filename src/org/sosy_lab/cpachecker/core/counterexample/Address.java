@@ -23,16 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import com.google.common.math.DoubleMath;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.sosy_lab.common.rationals.ExtendedRational;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
-
-import com.google.common.math.DoubleMath;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * The address of a left hand side expression {@link ALeftHandSide}. May be symbolic or concrete.
@@ -225,7 +222,7 @@ public abstract class Address {
 
     @Override
     public String toString() {
-      return "<Concrete address : value " + addressValue.toString() + ">";
+      return "<Concrete address : value " + addressValue + ">";
     }
 
     @Override
@@ -353,7 +350,7 @@ public abstract class Address {
 
     @Override
     public String toString() {
-      return "<Symbolic address :" + symbolicAddress.toString() + ">";
+      return "<Symbolic address :" + symbolicAddress + ">";
     }
 
     @Override

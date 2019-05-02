@@ -36,10 +36,21 @@ public abstract class ALiteralExpression extends AbstractExpression {
 
   public abstract Object getValue();
 
+  @Override
+  public String toParenthesizedASTString(boolean pQualified) {
+    // literal expression never need parentheses, are not qualified
+    return toParenthesizedASTString();
+  }
 
   @Override
   public String toParenthesizedASTString() {
-    // literal expression never need parentheses
+    // literal expression never need parentheses, are not qualified
+    return toASTString();
+  }
+
+  @Override
+  public String toASTString(boolean pQualified) {
+    // literal expression are never qualified
     return toASTString();
   }
 

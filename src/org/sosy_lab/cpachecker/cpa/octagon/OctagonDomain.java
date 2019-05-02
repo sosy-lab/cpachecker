@@ -28,11 +28,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 
 class OctagonDomain implements AbstractDomain {
@@ -53,7 +52,8 @@ class OctagonDomain implements AbstractDomain {
     OctagonState octState1 = (OctagonState) element1;
     OctagonState octState2 = (OctagonState) element2;
 
-    if (covers.containsKey(octState2) && ((HashSet<OctagonState>)(covers.get(octState2))).contains(octState1)) {
+    if (covers.containsKey(octState2)
+        && ((HashSet<OctagonState>) covers.get(octState2)).contains(octState1)) {
       return true;
     }
 

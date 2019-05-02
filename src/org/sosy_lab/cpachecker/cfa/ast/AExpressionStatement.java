@@ -38,8 +38,8 @@ public abstract class AExpressionStatement extends AbstractStatement {
   }
 
   @Override
-  public String toASTString() {
-    return expression.toASTString() + ";";
+  public String toASTString(boolean pQualified) {
+    return expression.toASTString(pQualified) + ";";
   }
 
   public AExpression getExpression() {

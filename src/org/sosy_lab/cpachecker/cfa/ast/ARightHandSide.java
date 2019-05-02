@@ -40,7 +40,7 @@ public interface ARightHandSide extends AAstNode {
    * (because of missing information),
    * then this method can return a ProblemType.
    */
-  public Type getExpressionType();
+  Type getExpressionType();
 
 
 }

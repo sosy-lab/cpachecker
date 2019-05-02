@@ -78,6 +78,10 @@ public abstract class JArrayLengthExpression extends AbstractExpression implemen
       qualifier = pQualifier;
     }
 
+    @Override
+    public String toASTString(boolean pQualified) {
+      return toASTString();
+    }
 
     @Override
     public String toASTString() {
@@ -98,6 +102,11 @@ public abstract class JArrayLengthExpression extends AbstractExpression implemen
     private JTopArrayLengthExpression(FileLocation pFileLocation, JIdExpression pQualifier) {
       super(pFileLocation);
       qualifier = pQualifier;
+    }
+
+    @Override
+    public String toASTString(boolean pQualified) {
+      return toASTString();
     }
 
     @Override

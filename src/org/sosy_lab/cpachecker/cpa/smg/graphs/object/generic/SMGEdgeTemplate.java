@@ -23,14 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic;
 
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGEdgeTemplate {
 
   private final SMGObjectTemplate abstractObject;
-  private final int abstractValue;
+  private final SMGValue abstractValue;
   private final long offset;
 
-  public SMGEdgeTemplate(SMGObjectTemplate pAbstractObject, int pAbstractValue, long pOffset) {
+  public SMGEdgeTemplate(SMGObjectTemplate pAbstractObject, SMGValue pAbstractValue, long pOffset) {
     abstractObject = pAbstractObject;
     abstractValue = pAbstractValue;
     offset = pOffset;
@@ -40,7 +41,7 @@ public class SMGEdgeTemplate {
     return abstractObject;
   }
 
-  public int getAbstractValue() {
+  public SMGValue getAbstractValue() {
     return abstractValue;
   }
 

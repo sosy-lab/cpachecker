@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /** This static analyzer for edges checks whether there exists
  * read- or write-access to global variables or shared memory along edges. */
@@ -224,8 +225,8 @@ public class GlobalAccessChecker {
 
   /** returns whether there might be a read- or write-access to global variables. */
   private static class GlobalAccessVisitor
-      extends DefaultCExpressionVisitor<Boolean, RuntimeException>
-      implements CRightHandSideVisitor<Boolean, RuntimeException> {
+      extends DefaultCExpressionVisitor<Boolean, NoException>
+      implements CRightHandSideVisitor<Boolean, NoException> {
 
     // we can use singleton, because there is no internal storage or state.
     final static GlobalAccessVisitor INSTANCE = new GlobalAccessVisitor();

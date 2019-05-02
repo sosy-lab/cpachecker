@@ -63,7 +63,7 @@ public class AppliedCustomInstructionParserTest {
   private List<CLabelNode> labelNodes;
 
   @Before
-  public void init() throws IOException, ParserException, InterruptedException {
+  public void init() throws ParserException, InterruptedException {
     cfa =
         TestDataTools.makeCFA(
             "extern int test3(int);",
@@ -206,9 +206,9 @@ public class AppliedCustomInstructionParserTest {
     Truth.assertThat(ci.getOutputVariables()).containsExactlyElementsIn(list).inOrder();
   }
 
-  private List<CLabelNode> getLabelNodes(CFA cfa){
+  private List<CLabelNode> getLabelNodes(CFA pCfa) {
     List<CLabelNode> result = new ArrayList<>();
-    for(CFANode n: cfa.getAllNodes()) {
+    for (CFANode n : pCfa.getAllNodes()) {
       if(n instanceof CLabelNode){
         result.add((CLabelNode) n);
       }

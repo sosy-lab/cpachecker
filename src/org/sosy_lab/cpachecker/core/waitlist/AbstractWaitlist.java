@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
@@ -36,7 +36,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
  * Sub-classes may choose their own collection implementation (e.g. a LinkedList
  * or an ArrayDeque) depending on their needs for pop().
  */
-public abstract class AbstractWaitlist<T extends Collection<AbstractState>> implements Waitlist {
+public abstract class AbstractWaitlist<T extends Collection<AbstractState>>
+    implements Waitlist, Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   protected final T waitlist;
 

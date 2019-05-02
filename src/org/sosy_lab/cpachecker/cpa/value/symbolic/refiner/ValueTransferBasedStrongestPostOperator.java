@@ -28,7 +28,6 @@ import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.Optional;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -40,8 +39,12 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsTransferRelation;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
@@ -50,25 +53,23 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-/**
- * Strongest post-operator based on symbolic value analysis.
- */
+/** Strongest post-operator based on symbolic value analysis. */
 public class ValueTransferBasedStrongestPostOperator
-    implements SymbolicStrongestPostOperator {
+    implements SymbolicStrongestPostOperator, StatisticsProvider {
 
   private final ValueAnalysisTransferRelation valueTransfer;
   // used for abstraction
   private final ValueAnalysisStrongestPostOperator valueStrongestPost;
   private final ConstraintsTransferRelation constraintsTransfer;
 
+  private final ConstraintsStatistics constraintsStatistics;
+
   public ValueTransferBasedStrongestPostOperator(
-      final Solver pSolver,
+      final ConstraintsSolver pSolver,
       final LogManager pLogger,
       final Configuration pConfig,
-      final CFA pCfa,
-      final ShutdownNotifier pShutdownNotifier
+      final CFA pCfa
   ) throws InvalidConfigurationException {
 
     valueTransfer =
@@ -77,17 +78,18 @@ public class ValueTransferBasedStrongestPostOperator
             pCfa,
             new ValueAnalysisTransferRelation.ValueTransferOptions(pConfig),
             new SymbolicValueAssigner(pConfig),
-            new ConstraintsStrengthenOperator(pConfig),
+            new ConstraintsStrengthenOperator(pConfig, pLogger),
             null);
 
     valueStrongestPost = new ValueAnalysisStrongestPostOperator(pLogger, pConfig, pCfa);
 
+    // Use name of this strongest post operator to differentiate from ConstraintsCPA
+    constraintsStatistics =
+        new ConstraintsStatistics(ValueTransferBasedStrongestPostOperator.class.getSimpleName());
+
     constraintsTransfer =
-        new ConstraintsTransferRelation(pSolver,
-                                        pCfa.getMachineModel(),
-                                        pLogger,
-                                        pConfig,
-                                        pShutdownNotifier);
+        new ConstraintsTransferRelation(
+            pSolver, constraintsStatistics, pCfa.getMachineModel(), pLogger, pConfig);
   }
 
   @Override
@@ -224,10 +226,11 @@ public class ValueTransferBasedStrongestPostOperator
   ) throws CPATransferException, InterruptedException {
 
     Collection<? extends AbstractState> successors =
-        constraintsTransfer.strengthen(pConstraintsState,
-                                       ImmutableList.<AbstractState>of(pValueState),
-                                       pOperation,
-                                       SingletonPrecision.getInstance());
+        constraintsTransfer.strengthen(
+            pConstraintsState,
+            ImmutableList.of(pValueState),
+            pOperation,
+            SingletonPrecision.getInstance());
 
     if (isContradiction(successors)) {
       return Optional.empty();
@@ -247,5 +250,10 @@ public class ValueTransferBasedStrongestPostOperator
       final ConstraintsState pConstraints) {
 
     return new ForgettingCompositeState(pNextValueState, pConstraints);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(constraintsStatistics);
   }
 }

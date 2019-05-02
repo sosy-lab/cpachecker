@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Preconditions;
@@ -325,7 +324,7 @@ public class PolicyInterpolationRefiner implements Refiner {
     return cache;
   }
 
-  private void forceRestart(ReachedSet reached) {
+  private void forceRestart(ReachedSet reached) throws InterruptedException {
     ARGState firstChild = Iterables
         .getOnlyElement(((ARGState)reached.getFirstState()).getChildren());
 

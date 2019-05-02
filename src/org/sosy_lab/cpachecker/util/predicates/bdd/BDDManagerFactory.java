@@ -29,6 +29,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.SynchronizedRegionManager;
 
 /**
  * Factory for creating a RegionManager for one of the available BDD packages
@@ -51,6 +52,9 @@ public class BDDManagerFactory {
   // documentation of the packages can be found at source of BDDFactory.init()
   private String bddPackage = "JAVA";
 
+  @Option(secure = true, description = "sequentialize all accesses to the BDD library.")
+  private boolean synchronizeLibraryAccess = false;
+
   private final Configuration config;
   private final LogManager logger;
 
@@ -62,10 +66,15 @@ public class BDDManagerFactory {
   }
 
   public RegionManager createRegionManager() throws InvalidConfigurationException {
+    RegionManager rmgr;
     if (bddPackage.equals("SYLVAN")) {
-      return new SylvanBDDRegionManager(config, logger);
+      rmgr = new SylvanBDDRegionManager(config, logger);
     } else {
-      return new JavaBDDRegionManager(bddPackage, config, logger);
+      rmgr = new JavaBDDRegionManager(bddPackage, config, logger);
     }
+    if (synchronizeLibraryAccess) {
+      rmgr = new SynchronizedRegionManager(rmgr);
+    }
+    return rmgr;
   }
 }

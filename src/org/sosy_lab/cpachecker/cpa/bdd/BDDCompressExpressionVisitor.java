@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
@@ -49,15 +51,16 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * In this special case it is possible to store the information in less bits than 32.
  */
 public class BDDCompressExpressionVisitor
-        extends DefaultCExpressionVisitor<Region[], RuntimeException> {
+        extends DefaultCExpressionVisitor<Region[], NoException> {
 
   /** This map contains tuples (int, region[]) for each intEqual-partition. */
-  private static final Map<Partition, Map<BigInteger, Region[]>> INT_REGIONS_MAP = new HashMap<>();
+  private static final Map<Partition, ImmutableMap<BigInteger, Region[]>> INT_REGIONS_MAP =
+      new HashMap<>();
 
   protected final PredicateManager predMgr;
   protected final VariableTrackingPrecision precision;
   private final BitvectorManager bvmgr;
-  private final Map<BigInteger, Region[]> intToRegions;
+  private final ImmutableMap<BigInteger, Region[]> intToRegions;
   protected final int size;
   protected final CFANode location;
 
@@ -77,12 +80,14 @@ public class BDDCompressExpressionVisitor
     this.location = pLocation;
   }
 
-  /** This function creates a mapping of intEqual partitions to a mapping of number to bitvector.
-   * This allows to compress big numbers to a small number of bits in the BDD. */
-  private Map<BigInteger, Region[]> initMappingIntToRegions(final Partition partition) {
+  /**
+   * This function creates a mapping of intEqual partitions to a mapping of number to bitvector.
+   * This allows to compress big numbers to a small number of bits in the BDD.
+   */
+  private ImmutableMap<BigInteger, Region[]> initMappingIntToRegions(final Partition partition) {
 
     if (!INT_REGIONS_MAP.containsKey(partition)) {
-      final Map<BigInteger, Region[]> currentMapping = new HashMap<>();
+      final ImmutableMap.Builder<BigInteger, Region[]> currentMapping = ImmutableMap.builder();
 
       // special handling of One and Zero,
       // because they can appear as result of an equality-check.
@@ -96,7 +101,7 @@ public class BDDCompressExpressionVisitor
         currentMapping.put(num, bvmgr.makeNumber(BigInteger.valueOf(i), size));
         i++;
       }
-      INT_REGIONS_MAP.put(partition, currentMapping);
+      INT_REGIONS_MAP.put(partition, currentMapping.build());
     }
     return INT_REGIONS_MAP.get(partition);
   }

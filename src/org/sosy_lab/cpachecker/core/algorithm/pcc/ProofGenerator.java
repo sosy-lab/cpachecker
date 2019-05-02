@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options
 public class ProofGenerator {
@@ -57,32 +58,43 @@ public class ProofGenerator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   protected Path file = Paths.get("arg.obj");
 
-  private PCCStrategy checkingStrategy;
+  private final PCCStrategy checkingStrategy;
 
   private final LogManager logger;
   private final Timer writingTimer = new Timer();
 
-  private final Statistics proofGeneratorStats = new Statistics() {
+  private final Statistics proofGeneratorStats =
+      new Statistics() {
 
-    @Override
-    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-      pOut.println();
-      pOut.println(getName() + " statistics");
-      pOut.println("------------------------------------");
-      pOut.println("Time for proof writing: " + writingTimer);
+        @Override
+        public void printStatistics(
+            PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+          pOut.println();
+          pOut.println(getName() + " statistics");
+          pOut.println("------------------------------------");
+          pOut.println("Time for proof writing: " + writingTimer);
 
-      if (checkingStrategy != null) {
-        for (Statistics stats : checkingStrategy.getAdditionalProofGenerationStatistics()) {
-          stats.printStatistics(pOut, pResult, pReached);
+          if (checkingStrategy != null) {
+            for (Statistics stats : checkingStrategy.getAdditionalProofGenerationStatistics()) {
+              StatisticsUtils.printStatistics(stats, pOut, logger, pResult, pReached);
+            }
+          }
         }
-      }
-    }
 
-    @Override
-    public String getName() {
-      return "Proof Generation";
-    }
-  };
+        @Override
+        public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+          if (checkingStrategy != null) {
+            for (Statistics stats : checkingStrategy.getAdditionalProofGenerationStatistics()) {
+              StatisticsUtils.writeOutputFiles(stats, logger, pResult, pReached);
+            }
+          }
+        }
+
+        @Override
+        public String getName() {
+          return "Proof Generation";
+        }
+      };
 
   public ProofGenerator(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {

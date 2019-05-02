@@ -2,6 +2,10 @@
 # Script taken from https://github.com/google/google-java-format
 # Changed to use jar file as command.
 
+# DO NOT EDIT LOCALLY!
+# Keep this file synchronized with
+# https://gitlab.com/sosy-lab/software/java-project-template
+
 #
 #===- google-java-format-diff.py - google-java-format Diff Reformatter -----===#
 #

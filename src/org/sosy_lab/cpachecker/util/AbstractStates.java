@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
@@ -132,7 +133,7 @@ public final class AbstractStates {
 
   public static Iterable<CFANode> extractLocations(AbstractState pState) {
     AbstractStateWithLocations e = extractStateByType(pState, AbstractStateWithLocations.class);
-    return e == null ? ImmutableList.<CFANode>of() : e.getLocationNodes();
+    return e == null ? ImmutableList.of() : e.getLocationNodes();
   }
 
   public static FluentIterable<CFANode> extractLocations(Iterable<AbstractState> pStates) {
@@ -173,6 +174,10 @@ public final class AbstractStates {
 
   public static boolean isTargetState(AbstractState as) {
     return (as instanceof Targetable) && ((Targetable)as).isTarget();
+  }
+
+  public static FluentIterable<AbstractState> getTargetStates(final UnmodifiableReachedSet pReachedSet) {
+    return from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE);
   }
 
   public static final Predicate<AbstractState> IS_TARGET_STATE = AbstractStates::isTargetState;

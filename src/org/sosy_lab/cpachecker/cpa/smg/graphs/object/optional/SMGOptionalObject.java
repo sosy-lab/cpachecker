@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectVisitor;
  */
 public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
 
-  private final int id = SMGValueFactory.getNewValue();
+  private final int id = SMGCPA.getNewValue();
 
   public SMGOptionalObject(int pSize) {
     super(pSize, "1/0", SMGObjectKind.OPTIONAL);

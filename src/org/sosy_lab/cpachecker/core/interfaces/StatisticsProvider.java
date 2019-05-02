@@ -39,6 +39,6 @@ public interface StatisticsProvider {
    *
    * @param statsCollection The collection where the statistics are added.
    */
-  public void collectStatistics(Collection<Statistics> statsCollection);
+  void collectStatistics(Collection<Statistics> statsCollection);
 
 }

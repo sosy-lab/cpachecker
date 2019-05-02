@@ -27,16 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.logging.Level.SEVERE;
 
 import com.google.common.collect.Lists;
-
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -44,6 +34,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
 
 class DnfTransformation extends BooleanFormulaTransformationVisitor {
 
@@ -51,7 +49,7 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
 
   private final LogManager logger;
 
-  private ShutdownNotifier shutdownNotifier;
+  private final ShutdownNotifier shutdownNotifier;
 
   private final BooleanFormulaManager fmgr;
 
@@ -101,14 +99,14 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
   }
 
   private boolean isSat(ProverEnvironment pProverEnvironment, BooleanFormula pFormula) {
+    // XXX This method returns false on shutdowns and interrupts, which is probably a bug
     if (shutdownNotifier.shouldShutdown()) {
       return false;
     }
 
-    pProverEnvironment.push(pFormula);
-    boolean isSat;
     try {
-      isSat = !pProverEnvironment.isUnsat();
+      pProverEnvironment.push(pFormula);
+      return !pProverEnvironment.isUnsat();
 
     } catch (SolverException e) {
       logger.logException(SEVERE, e, null);
@@ -120,6 +118,5 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
     } finally {
       pProverEnvironment.pop();
     }
-    return isSat;
   }
 }

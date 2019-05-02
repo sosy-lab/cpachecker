@@ -23,25 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-interface AutomatonExpression {
+interface AutomatonExpression<T> {
 
-  ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
+  ResultValue<T> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
-
-  static class StringExpression implements AutomatonExpression {
+  static class StringExpression implements AutomatonExpression<String> {
     private String toPrint;
+
     public StringExpression(String pString) {
-      super();
       this.toPrint = pString;
     }
+
     @Override
-    public ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
+    public ResultValue<String> eval(AutomatonExpressionArguments pArgs) {
       // replace $rawstatement
       String str = toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
       // replace $line
@@ -60,11 +61,27 @@ interface AutomatonExpression {
         return new ResultValue<>(str);
       }
     }
+
+    @Override
+    public String toString() {
+      return toPrint; // TODO correct?
+    }
+
+    @Override
+    public int hashCode() {
+      return toPrint.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof StringExpression && toPrint.equals(((StringExpression) o).toPrint);
+    }
   }
   /**
-   * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the query-Result.
+   * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the
+   * query-Result.
    */
-  static class CPAQuery implements AutomatonExpression {
+  static class CPAQuery implements AutomatonExpression<String> {
     private final String cpaName;
     private final String queryString;
 
@@ -105,8 +122,21 @@ interface AutomatonExpression {
     public String toString() {
       return "EVAL(" + cpaName + "(\"" + queryString + "\"))";
     }
-  }
 
+    @Override
+    public int hashCode() {
+      return Objects.hash(cpaName, queryString);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o instanceof CPAQuery) {
+        CPAQuery other = (CPAQuery) o;
+        return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
+      }
+      return false;
+    }
+  }
 
   // TODO: lift CPA Query here
 
@@ -133,24 +163,19 @@ interface AutomatonExpression {
       this.failureMessage = pRes.failureMessage;
       this.failureOrigin = pRes.failureOrigin;
     }
+
     boolean canNotEvaluate() {
       return this.canNotEvaluate;
     }
-    /**
-     * @returns null if cannotEvaluate() == false
-     */
+    /** @returns null if cannotEvaluate() == false */
     String getFailureMessage() {
       return failureMessage;
     }
-    /**
-     * @returns null if cannotEvaluate() == false
-     */
+    /** @returns null if cannotEvaluate() == false */
     String getFailureOrigin() {
       return failureOrigin;
     }
-    /**
-     * @returns null if cannotEvaluate() == true
-     */
+    /** @returns null if cannotEvaluate() == true */
     resultType getValue() {
       return value;
     }

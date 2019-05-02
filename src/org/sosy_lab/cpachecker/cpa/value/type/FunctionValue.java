@@ -76,6 +76,11 @@ public class FunctionValue  implements Value, Serializable  {
   }
 
   @Override
+  public <T> T accept(ValueVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
+
+  @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;

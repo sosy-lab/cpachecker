@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -45,7 +47,7 @@ class IntAddCollectingVisitor extends VariablesCollectingVisitor {
 
   public IntAddCollectingVisitor(CFANode pre, Set<String> pNonIntAddVars) {
     super(pre);
-    nonIntAddVars = pNonIntAddVars;
+    nonIntAddVars = checkNotNull(pNonIntAddVars);
   }
 
   @Override
@@ -99,6 +101,7 @@ class IntAddCollectingVisitor extends VariablesCollectingVisitor {
 
   @Override
   public Set<String> visit(CIntegerLiteralExpression exp) {
+    checkNotNull(exp);
     return new HashSet<>(0);
   }
 

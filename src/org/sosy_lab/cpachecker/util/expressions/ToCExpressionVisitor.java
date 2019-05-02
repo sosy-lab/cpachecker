@@ -33,10 +33,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class ToCExpressionVisitor
-    extends CachingVisitor<AExpression, CExpression, UnrecognizedCCodeException> {
+    extends CachingVisitor<AExpression, CExpression, UnrecognizedCodeException> {
 
   private final CBinaryExpressionBuilder builder;
 
@@ -45,7 +45,7 @@ public class ToCExpressionVisitor
   }
 
   @Override
-  protected CExpression cacheMissAnd(And<AExpression> pAnd) throws UnrecognizedCCodeException {
+  protected CExpression cacheMissAnd(And<AExpression> pAnd) throws UnrecognizedCodeException {
 
     List<CExpression> elements = new ArrayList<>();
     for (ExpressionTree<AExpression> element : pAnd) {
@@ -62,7 +62,7 @@ public class ToCExpressionVisitor
   }
 
   @Override
-  protected CExpression cacheMissOr(Or<AExpression> pOr) throws UnrecognizedCCodeException {
+  protected CExpression cacheMissOr(Or<AExpression> pOr) throws UnrecognizedCodeException {
     List<CExpression> elements = new ArrayList<>();
     for (ExpressionTree<AExpression> element : pOr) {
       elements.add(element.accept(this));
@@ -79,7 +79,7 @@ public class ToCExpressionVisitor
 
   @Override
   protected CExpression cacheMissLeaf(LeafExpression<AExpression> pLeafExpression)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     if (pLeafExpression.getExpression() instanceof CExpression) {
       return (CExpression) pLeafExpression.getExpression();
     }
@@ -87,12 +87,12 @@ public class ToCExpressionVisitor
   }
 
   @Override
-  protected CExpression cacheMissTrue() throws UnrecognizedCCodeException {
+  protected CExpression cacheMissTrue() throws UnrecognizedCodeException {
     return CIntegerLiteralExpression.ONE;
   }
 
   @Override
-  protected CExpression cacheMissFalse() throws UnrecognizedCCodeException {
+  protected CExpression cacheMissFalse() throws UnrecognizedCodeException {
     return CIntegerLiteralExpression.ZERO;
   }
 }

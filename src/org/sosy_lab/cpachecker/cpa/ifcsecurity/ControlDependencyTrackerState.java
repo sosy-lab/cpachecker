@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
+import java.io.Serializable;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.BlockGuard;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-
-import java.io.Serializable;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
  * CPA-Abstract-State for tracking the Active Control Dependencies
@@ -97,7 +96,7 @@ public class ControlDependencyTrackerState
         ControlDependencyTrackerState merge=this;
         try {
           merge.guards=this.guards.meet(pOther.guards);
-        } catch (UnsupportedCCodeException e) {
+      } catch (UnsupportedCodeException e) {
           //logger.log(Level.WARNING,e.toString());
         }
         return merge;

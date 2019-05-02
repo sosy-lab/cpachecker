@@ -38,6 +38,6 @@ public interface PartialReachedConstructionAlgorithm {
    * @return a subset of <code>pReached</code>
    * @throws InvalidConfigurationException if abstract state format does not match expectations for construction
    */
-  public AbstractState[] computePartialReachedSet(UnmodifiableReachedSet pReached) throws InvalidConfigurationException;
+  AbstractState[] computePartialReachedSet(UnmodifiableReachedSet pReached) throws InvalidConfigurationException;
 
 }

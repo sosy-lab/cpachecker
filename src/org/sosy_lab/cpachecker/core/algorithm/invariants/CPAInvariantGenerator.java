@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -204,7 +202,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
-    reachedSetFactory = new ReachedSetFactory(invariantConfig);
+    reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
     cfa = pCFA;
     cpa =
         new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)
@@ -325,7 +323,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
         }
       }
 
-      if (!from(taskReached).anyMatch(Predicates.<AbstractState>or(IS_TARGET_STATE, HAS_ASSUMPTIONS))) {
+      if (!taskReached.hasViolatedProperties() && !from(taskReached).anyMatch(HAS_ASSUMPTIONS)) {
         // program is safe (waitlist is empty, algorithm was sound, no target states present)
         logger.log(Level.INFO, SAFE_MESSAGE);
         programIsSafe = true;

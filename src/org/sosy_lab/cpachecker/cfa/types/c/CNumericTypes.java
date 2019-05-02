@@ -38,8 +38,10 @@ public final class CNumericTypes {
   public final static CSimpleType SHORT_INT              = new CSimpleType(false, false, CBasicType.INT,  false, true,  false, false, false, false, false);
   public final static CSimpleType UNSIGNED_SHORT_INT     = new CSimpleType(false, false, CBasicType.INT,  false, true,  false, true,  false, false, false);
   public final static CSimpleType LONG_INT               = new CSimpleType(false, false, CBasicType.INT,  true,  false, false, false, false, false, false);
+  public static final CSimpleType SIGNED_LONG_INT        = new CSimpleType(false, false, CBasicType.INT,  true,  false, true,  false, false, false, false);
   public final static CSimpleType UNSIGNED_LONG_INT      = new CSimpleType(false, false, CBasicType.INT,  true,  false, false, true,  false, false, false);
   public final static CSimpleType LONG_LONG_INT          = new CSimpleType(false, false, CBasicType.INT,  false, false, false, false, false, false, true);
+  public static final CSimpleType SIGNED_LONG_LONG_INT   = new CSimpleType(false, false, CBasicType.INT,  false, false, true,  false, false, false, true);
   public final static CSimpleType UNSIGNED_LONG_LONG_INT = new CSimpleType(false, false, CBasicType.INT,  false, false, false, true,  false, false, true);
 
   public final static CSimpleType FLOAT         = new CSimpleType(false, false, CBasicType.FLOAT, false, false, false, false, false, false, false);

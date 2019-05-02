@@ -28,8 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Objects;
-import javax.annotation.Nullable;
-
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class CElaboratedType implements CComplexType {
 
@@ -162,14 +161,7 @@ public final class CElaboratedType implements CComplexType {
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Objects.hashCode(isConst);
-      result = prime * result + Objects.hashCode(isVolatile);
-      result = prime * result + Objects.hashCode(kind);
-      result = prime * result + Objects.hashCode(name);
-      result = prime * result + Objects.hashCode(realType);
-      hashCache = result;
+      hashCache = Objects.hash(isConst, isVolatile, kind, name, realType);
     }
     return hashCache;
   }

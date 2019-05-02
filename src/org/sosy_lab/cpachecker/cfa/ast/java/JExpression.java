@@ -27,14 +27,13 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
 /**
  * Interface of Side effect free Expressions.
  */
 @SuppressWarnings("serial") // we cannot set a UID for an interface
 public interface JExpression extends JRightHandSide, AExpression {
 
-  public  <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X;
+  <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X;
 
   @Override
   default <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> pV) throws X {
@@ -50,11 +49,10 @@ public interface JExpression extends JRightHandSide, AExpression {
           X1 extends Exception,
           X2 extends Exception,
           V extends CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2>>
-      R accept_(V pV) throws X1, X2 {
-    return accept((JExpressionVisitor<R2, X2>) pV);
+      R accept_(V pV) throws X2 {
+    return accept(pV);
   }
 
   @Override
-  public JType getExpressionType();
-
+  JType getExpressionType();
 }

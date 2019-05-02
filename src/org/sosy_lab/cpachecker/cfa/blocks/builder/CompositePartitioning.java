@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;

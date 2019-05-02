@@ -56,23 +56,24 @@ public class StateFormulaConversionManager {
   private final Solver solver;
 
   public StateFormulaConversionManager(
-      FormulaManagerView pFmgr,
+      FormulaManagerView pFormulaManager,
       TemplateToFormulaConversionManager pTemplateToFormulaConversionManager,
       Configuration pConfiguration,
       CFA pCfa,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      PathFormulaManager pPfmgr,
-      Solver pSolver) throws InvalidConfigurationException {
+      PathFormulaManager pPathFormulaManager,
+      Solver pSolver)
+      throws InvalidConfigurationException {
     pConfiguration.inject(this);
-    fmgr = pFmgr;
-    bfmgr = pFmgr.getBooleanFormulaManager();
+    fmgr = pFormulaManager;
+    bfmgr = pFormulaManager.getBooleanFormulaManager();
     templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
     configuration = pConfiguration;
     cfa = pCfa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    pfmgr = pPfmgr;
+    pfmgr = pPathFormulaManager;
     solver = pSolver;
     dotWriter = new PolicyDotWriter();
   }
@@ -162,20 +163,19 @@ public class StateFormulaConversionManager {
 
   /**
    * @param attachExtraInvariant Whether the extra invariant should be attached.
-   * @return Starting {@code PathFormula} associated with {@code abstractState}.
-   * Does not include the constraints.
+   * @return Starting {@code PathFormula} associated with {@code abstractState}. Does not include
+   *     the constraints.
    */
   PathFormula getPathFormula(
       PolicyAbstractedState abstractState,
-      FormulaManagerView fmgr,
-      boolean attachExtraInvariant
-  ) {
+      FormulaManagerView pFormulaManager,
+      boolean attachExtraInvariant) {
     BooleanFormula extraPredicate;
     if (attachExtraInvariant) {
-      extraPredicate = fmgr.instantiate(abstractState.getExtraInvariant(),
-          abstractState.getSSA());
+      extraPredicate =
+          pFormulaManager.instantiate(abstractState.getExtraInvariant(), abstractState.getSSA());
     } else {
-      extraPredicate = fmgr.getBooleanFormulaManager().makeTrue();
+      extraPredicate = pFormulaManager.getBooleanFormulaManager().makeTrue();
     }
     return new PathFormula(extraPredicate, abstractState.getSSA(),
         abstractState.getPointerTargetSet(), 1);

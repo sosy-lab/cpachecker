@@ -40,9 +40,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
@@ -103,11 +103,11 @@ public class SMGPathInterpolationExporter {
       return;
     }
 
-    Collection<SMGState> states = pFirstInterpolant.reconstructStates();
+    Collection<SMGState> states = pFirstInterpolant.reconstructState();
 
     int counter = 1;
     for (SMGState state : states) {
-      String fileName = "smgInterpolant-1-smg-" + (counter++) + ".dot";
+      String fileName = "smgInterpolant-1-smg-" + counter++ + ".dot";
       Path path = exportPath.getPath(pInterpolationId, fileName);
       String name = "First interpolant";
       SMGUtils.dumpSMGPlot(logger, state, name, path);
@@ -125,13 +125,13 @@ public class SMGPathInterpolationExporter {
       return;
     }
 
-    Collection<SMGState> states = pCurrentInterpolant.reconstructStates();
+    Collection<SMGState> states = pCurrentInterpolant.reconstructState();
 
     int counter = 1;
     for (SMGState state : states) {
-      String fileName = "smgInterpolant-" + pPathIndex + "-smg-" + (counter++) + ".dot";
+      String fileName = "smgInterpolant-" + pPathIndex + "-smg-" + counter++ + ".dot";
       Path path = exportPath.getPath(pInterpolationId, fileName);
-      String location = pIncomingEdge.toString() + " on N" + pCurrentLocation.getNodeNumber();
+      String location = pIncomingEdge + " on N" + pCurrentLocation.getNodeNumber();
       SMGUtils.dumpSMGPlot(logger, state, location, path);
     }
   }

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -103,7 +102,7 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
 
   @Override
   public String toString() {
-    return "SymEx[" + value.toString() + "]";
+    return "SymEx[" + value + "]";
   }
 
   @Override

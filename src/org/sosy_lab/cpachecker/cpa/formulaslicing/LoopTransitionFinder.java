@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
@@ -102,15 +104,17 @@ public class LoopTransitionFinder implements StatisticsProvider {
 
   public LoopTransitionFinder(
       Configuration config,
-      LoopStructure pLoopStructure, PathFormulaManager pPfmgr,
-      FormulaManagerView pFmgr, LogManager pLogger,
+      LoopStructure pLoopStructure,
+      PathFormulaManager pPathFormulaManager,
+      FormulaManagerView pFormulaManager,
+      LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     shutdownNotifier = pShutdownNotifier;
     config.inject(this);
     statistics = new Stats();
-    pfmgr = pPfmgr;
-    fmgr = pFmgr;
+    pfmgr = pPathFormulaManager;
+    fmgr = pFormulaManager;
     logger = pLogger;
     loopStructure = pLoopStructure;
 
@@ -144,7 +148,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
       statistics.LBEencodingTimer.stop();
     }
 
-    if (!timeForLoopGeneration.isEmpty()) {
+    if (limits != null && !timeForLoopGeneration.isEmpty()) {
       limits.cancel();
     }
 
@@ -333,7 +337,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     // successor (row) -> predecessor (column) -> EdgeWrapper (value)
     for (Cell<CFANode, CFANode, EdgeWrapper> cell : out.cellSet()) {
 
-      EdgeWrapper e = cell.getValue();
+      EdgeWrapper e = checkNotNull(cell.getValue());
       CFANode predecessor = e.getPredecessor();
 
       // Do not perform reduction on edges which predecessor is a loop-head.

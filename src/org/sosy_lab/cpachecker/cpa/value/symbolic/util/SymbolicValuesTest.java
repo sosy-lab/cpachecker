@@ -44,8 +44,8 @@ public class SymbolicValuesTest {
   private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
   private final Type defType = CNumericTypes.INT;
 
-  private final SymbolicIdentifier id1 = factory.newIdentifier();
-  private final SymbolicIdentifier id2 = factory.newIdentifier();
+  private final SymbolicIdentifier id1 = factory.newIdentifier(memLoc1);
+  private final SymbolicIdentifier id2 = factory.newIdentifier(memLoc2);
 
   private final SymbolicExpression idExp1 = factory.asConstant(id1,
       defType);

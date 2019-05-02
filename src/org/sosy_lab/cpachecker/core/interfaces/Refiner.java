@@ -44,10 +44,9 @@ public interface Refiner {
    * @return Whether the refinement was successful.
    * @throws CPAException If an error occurred during refinement.
    */
-  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException;
+  boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException;
 
   interface Factory {
-    Refiner create(ConfigurableProgramAnalysis cpa)
-        throws CPAException, InvalidConfigurationException;
+    Refiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException;
   }
 }

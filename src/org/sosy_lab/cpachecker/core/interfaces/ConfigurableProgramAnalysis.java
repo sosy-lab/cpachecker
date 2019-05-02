@@ -35,10 +35,13 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
  * fails that is, it never returns null or throws an exception).
  */
 public interface ConfigurableProgramAnalysis {
-  public AbstractDomain getAbstractDomain();
-  public TransferRelation getTransferRelation();
-  public MergeOperator getMergeOperator();
-  public StopOperator getStopOperator();
+  AbstractDomain getAbstractDomain();
+
+  TransferRelation getTransferRelation();
+
+  MergeOperator getMergeOperator();
+
+  StopOperator getStopOperator();
 
   /**
    * Returns the precision adjustment operator {@link PrecisionAdjustment} that may adjust the
@@ -48,7 +51,8 @@ public interface ConfigurableProgramAnalysis {
     return StaticPrecisionAdjustment.getInstance();
   }
 
-  public AbstractState getInitialState(CFANode node, StateSpacePartition partition) throws InterruptedException;
+  AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+      throws InterruptedException;
 
   /**
    * Returns the initial precision for the initial state.

@@ -44,7 +44,7 @@ public enum PredicateOrderingStrategy {
 
   private final boolean isFrameworkStrategy;
 
-  private PredicateOrderingStrategy(boolean pIsFrameworkStrategy) {
+  PredicateOrderingStrategy(boolean pIsFrameworkStrategy) {
     isFrameworkStrategy = pIsFrameworkStrategy;
   }
 

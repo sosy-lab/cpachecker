@@ -66,9 +66,6 @@ public class CoverageReportStdoutSummary {
       StatisticsUtils.write(pStdOut, 1, 25, "Total conditions", numTotalConditions);
       StatisticsUtils.write(pStdOut, 1, 25, "Condition coverage", String.format("%.3f", conditionCoverage));
     }
-
-    pStdOut.println();
-
   }
 
 }

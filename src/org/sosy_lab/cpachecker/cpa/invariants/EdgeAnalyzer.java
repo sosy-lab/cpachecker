@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
-
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -68,12 +70,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 
 public class EdgeAnalyzer {
@@ -355,7 +354,7 @@ public class EdgeAnalyzer {
 
 
   private static class LHSVisitor
-      extends DefaultCExpressionVisitor<Iterable<ALeftHandSide>, RuntimeException> {
+      extends DefaultCExpressionVisitor<Iterable<ALeftHandSide>, NoException> {
 
     // we have no inner state, so we can use the same instance several times and avoid re-creating it.
     private final static LHSVisitor INSTANCE = new LHSVisitor();
@@ -401,8 +400,8 @@ public class EdgeAnalyzer {
           ExpressionToFormulaVisitor.makeCastFromArrayToPointerIfNecessary(
               operand2, pIastBinaryExpression.getCalculationType());
       return Iterables.concat(
-          operand1.<Iterable<ALeftHandSide>, RuntimeException>accept(this),
-          operand2.<Iterable<ALeftHandSide>, RuntimeException>accept(this));
+          operand1.<Iterable<ALeftHandSide>, NoException>accept(this),
+          operand2.<Iterable<ALeftHandSide>, NoException>accept(this));
     }
 
     @Override

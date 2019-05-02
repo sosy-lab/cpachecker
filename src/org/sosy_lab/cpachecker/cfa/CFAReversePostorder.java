@@ -70,7 +70,7 @@ public class CFAReversePostorder {
     // - the iterator over the current node's successors (this is state hidden in the for-each loop in checkIds())
     // Together, these two items form a "stack frame".
 
-    final Set<CFANode> visited = new HashSet<>();
+    final Set<CFANode> finished = new HashSet<>();
 
     final Deque<CFANode> nodeStack = new ArrayDeque<>();
     @SuppressWarnings("JdkObsolete") // ArrayDeque doesn't work here because we store nulls
@@ -90,7 +90,7 @@ public class CFAReversePostorder {
         // This part of the code corresponds to the code in checkIds()
         // before the for loop.
 
-        if (!visited.add(node)) {
+        if (!finished.add(node)) {
           // already handled, do nothing
 
           // Do a simulated "return".

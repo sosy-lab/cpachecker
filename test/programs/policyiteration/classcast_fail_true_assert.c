@@ -1,4 +1,4 @@
-#include<assert.h>
+void assert(int cond) { if (!cond) { ERROR: return; } }
 
 extern int __undef();
 extern int __undef2();

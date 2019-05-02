@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import java.util.Collection;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.Collection;
 
 public class SMGStopOperator extends StopSepOperator{
   /**
@@ -42,7 +41,7 @@ public class SMGStopOperator extends StopSepOperator{
   @Override
   public boolean stop(AbstractState el, Collection<AbstractState> reached, Precision precision)
       throws CPAException, InterruptedException {
-    if (el instanceof SMGState && !((SMGState)el).isBlockEnded()) {
+    if (el instanceof SMGState && !((UnmodifiableSMGState) el).isBlockEnded()) {
       return false;
     }
     return super.stop(el, reached, precision);

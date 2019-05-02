@@ -36,26 +36,27 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.PointerToMemoryLocation;
 
-
-public class FunctionPointerExpressionValueVisitor extends ExpressionValueVisitor {
+class FunctionPointerExpressionValueVisitor extends ExpressionValueVisitor {
 
   public FunctionPointerExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
       MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
     super(pState, pFunctionName, pMachineModel, pLogger);
   }
 
- @Override
-public MemoryLocation evaluateMemoryLocation(CExpression lValue) throws UnrecognizedCCodeException {
+  @Override
+  public MemoryLocation evaluateMemoryLocation(CExpression lValue)
+      throws UnrecognizedCodeException {
    return lValue.accept(new FunctionPointerMemoryLocationEvaluator(this));
  }
 
- @Override
-public MemoryLocation evaluateRelativeMemLocForStructMember(MemoryLocation pStartLocation,
-     String pMemberName, CCompositeType pStructType) throws UnrecognizedCCodeException {
+  @Override
+  public MemoryLocation evaluateRelativeMemLocForStructMember(
+      MemoryLocation pStartLocation, String pMemberName, CCompositeType pStructType)
+      throws UnrecognizedCodeException {
 
    MemoryLocationEvaluator locationEvaluator = new FunctionPointerMemoryLocationEvaluator(this);
 
@@ -73,8 +74,8 @@ public MemoryLocation evaluateMemLocForArraySlot(
    return locationEvaluator.getArraySlotLocationFromArrayStart(pArrayStartLocation, pSlotNumber, pArrayType);
  }
 
- @Override
- public Value visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+  @Override
+  public Value visit(CUnaryExpression unaryExpression) throws UnrecognizedCodeException {
 
    final UnaryOperator unaryOperator = unaryExpression.getOperator();
    final CExpression unaryOperand = unaryExpression.getOperand();
@@ -92,8 +93,9 @@ public MemoryLocation evaluateMemLocForArraySlot(
      super(pEvv);
    }
 
-   @Override
-   public MemoryLocation visit(CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
+    @Override
+    public MemoryLocation visit(CFieldReference pIastFieldReference)
+        throws UnrecognizedCodeException {
 
      CType expType = pIastFieldReference.getExpressionType();
      if (expType instanceof CPointerType) {

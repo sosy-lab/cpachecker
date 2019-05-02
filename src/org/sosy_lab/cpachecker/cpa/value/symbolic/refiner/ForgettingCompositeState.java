@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
@@ -96,7 +95,7 @@ public class ForgettingCompositeState
 
   @Override
   public Set<MemoryLocation> getTrackedMemoryLocations() {
-    return values.getConstantsMapView().keySet();
+    return values.getTrackedMemoryLocations();
   }
 
   public Set<Constraint> getTrackedConstraints() {

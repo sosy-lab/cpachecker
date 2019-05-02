@@ -145,10 +145,7 @@ public class CBitFieldType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + bitFieldSize;
-    return prime * result + type.hashCode();
+    return bitFieldSize * 31 + type.hashCode();
   }
 
   @Override

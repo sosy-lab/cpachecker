@@ -24,53 +24,57 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
 
 /**
- * This class tracks Pairs of Integers. Implemented as an immutable map.
- * The Multimap is used as Bi-Map, i.e. for each pair (K,V) there exists also a pair (V,K).
+ * This class tracks Pairs of SMGValues. Implemented as an immutable map. The Multimap is used as
+ * Bi-Map, i.e. for each pair (K,V) there exists also a pair (V,K).
  */
 final class NeqRelation {
 
-  private final PersistentMultimap<Integer, Integer> smgValues;
+  private final PersistentMultimap<SMGValue, SMGValue> smgValues;
 
   public NeqRelation() {
     smgValues = PersistentMultimap.of();
   }
 
-  private NeqRelation(PersistentMultimap<Integer, Integer> pMap) {
+  private NeqRelation(PersistentMultimap<SMGValue, SMGValue> pMap) {
     smgValues = pMap;
   }
 
-  public Set<Integer> getNeqsForValue(Integer pV) {
+  public Set<SMGValue> getNeqsForValue(SMGValue pV) {
     return smgValues.get(pV);
   }
 
-  public NeqRelation addRelationAndCopy(Integer pOne, Integer pTwo) {
+  public NeqRelation addRelationAndCopy(SMGValue pOne, SMGValue pTwo) {
     return new NeqRelation(smgValues.putAndCopy(pOne, pTwo).putAndCopy(pTwo, pOne));
   }
 
-  public NeqRelation removeRelationAndCopy(Integer pOne, Integer pTwo) {
+  public NeqRelation removeRelationAndCopy(SMGValue pOne, SMGValue pTwo) {
     return new NeqRelation(smgValues.removeAndCopy(pOne, pTwo).removeAndCopy(pTwo, pOne));
   }
 
-  public boolean neq_exists(Integer pOne, Integer pTwo) {
+  public boolean neq_exists(SMGValue pOne, SMGValue pTwo) {
     return smgValues.get(pOne).contains(pTwo);
   }
 
-  public NeqRelation removeValueAndCopy(Integer pOne) {
-    PersistentMultimap<Integer, Integer> newSet = smgValues.removeAndCopy(pOne);
-    for (Integer pTwo : smgValues.get(pOne)) {
+  public NeqRelation removeValueAndCopy(SMGValue pOne) {
+    PersistentMultimap<SMGValue, SMGValue> newSet = smgValues.removeAndCopy(pOne);
+    for (SMGValue pTwo : smgValues.get(pOne)) {
       newSet = newSet.removeAndCopy(pTwo, pOne);
     }
     return new NeqRelation(newSet);
   }
 
-  /** transform all relations from (A->C) towards (A->B) and delete C */
-  public NeqRelation mergeValuesAndCopy(Integer pB, Integer pC) {
-    NeqRelation result = removeValueAndCopy(pC);
-    for (Integer value : getNeqsForValue(pC)) {
-      result = result.addRelationAndCopy(pB, value);
+  /**
+   * replace an old value with a fresh one,
+   * i.e. transform all relations from (A->OLD) towards (A->FRESH) and delete OLD.
+   */
+  public NeqRelation replaceValueAndCopy(SMGValue fresh, SMGValue old) {
+    NeqRelation result = removeValueAndCopy(old);
+    for (SMGValue value : getNeqsForValue(old)) {
+      result = result.addRelationAndCopy(fresh, value);
     }
     return result;
   }

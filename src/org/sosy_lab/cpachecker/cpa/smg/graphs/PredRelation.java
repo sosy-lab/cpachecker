@@ -23,30 +23,31 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class PredRelation {
   /** The Multimap is used as Bi-Map, i.e. each pair (K,V) is also inserted as pair (V,K). */
-  private final SetMultimap<Pair<Integer, Integer>, SymbolicRelation> smgValuesRelation = HashMultimap.create();
-  private final SetMultimap<Integer, Integer> smgValuesDependency = HashMultimap.create();
-  private final SetMultimap<Integer, ExplicitRelation> smgExplicitValueRelation = HashMultimap.create();
-  private final Map<Integer, Integer> smgValueSizeInBits = new HashMap<>();
+  private final SetMultimap<Pair<SMGValue, SMGValue>, SymbolicRelation> smgValuesRelation =
+      HashMultimap.create();
 
+  private final SetMultimap<SMGValue, SMGValue> smgValuesDependency = HashMultimap.create();
+  private final SetMultimap<SMGValue, ExplicitRelation> smgExplicitValueRelation =
+      HashMultimap.create();
+  private final Map<SMGValue, Integer> smgValueSizeInBits = new HashMap<>();
 
   /** Copy PredRelation */
   public void putAll(PredRelation pPred) {
@@ -59,22 +60,24 @@ public class PredRelation {
   public void addRelation(SMGSymbolicValue pOne, int pCType1,
                           SMGSymbolicValue pTwo, int pCType2,
                           BinaryOperator pOperator) {
-    //TODO: track address values
-    if (!pOne.isUnknown() && !pTwo.isUnknown() &&
-        !(pOne instanceof SMGKnownAddVal) && !(pTwo instanceof SMGKnownAddVal)) {
-      addRelation(pOne.getAsInt(), pTwo.getAsInt(), pOperator);
-      addValueSize(pOne.getAsInt(), pCType1);
-      addValueSize(pTwo.getAsInt(), pCType2);
+    // TODO: track address values
+    if (!pOne.isUnknown()
+        && !pTwo.isUnknown()
+        && !(pOne instanceof SMGKnownAddressValue)
+        && !(pTwo instanceof SMGKnownAddressValue)) {
+      addRelation(pOne, pTwo, pOperator);
+      addValueSize(pOne, pCType1);
+      addValueSize(pTwo, pCType2);
     }
   }
 
-  private void addValueSize(Integer pValue, Integer pCType2) {
+  private void addValueSize(SMGValue pValue, Integer pCType2) {
     if (!smgValueSizeInBits.containsKey(pValue)) {
       smgValueSizeInBits.put(pValue, pCType2);
     }
   }
 
-  public void addRelation(Integer pOne, Integer pTwo, BinaryOperator pOperator) {
+  public void addRelation(SMGValue pOne, SMGValue pTwo, BinaryOperator pOperator) {
     SymbolicRelation relation = new SymbolicRelation(pOne, pTwo, pOperator);
     if (!smgValuesDependency.containsEntry(pOne, pTwo)) {
       smgValuesRelation.put(Pair.of(pOne, pTwo), relation);
@@ -93,20 +96,20 @@ public class PredRelation {
                                   SMGExplicitValue pExplicitValue, Integer pCType2,
                                   BinaryOperator pOp) {
     assert(pCType1.equals(pCType2));
-    addExplicitRelation(pSymbolicValue.getAsInt(), pExplicitValue, pOp);
-    addValueSize(pSymbolicValue.getAsInt(), pCType1);
+    addExplicitRelation(pSymbolicValue, pExplicitValue, pOp);
+    addValueSize(pSymbolicValue, pCType1);
   }
 
-  public void addExplicitRelation(Integer pSymbolicValue, SMGExplicitValue pExplicitValue,
-                                  BinaryOperator pOp) {
+  public void addExplicitRelation(
+      SMGValue pSymbolicValue, SMGExplicitValue pExplicitValue, BinaryOperator pOp) {
     ExplicitRelation relation = new ExplicitRelation(pSymbolicValue, pExplicitValue, pOp);
     if (!smgExplicitValueRelation.containsEntry(pSymbolicValue, relation)) {
       smgExplicitValueRelation.put(pSymbolicValue, relation);
     }
   }
 
-  public void removeValue(Integer pValue) {
-    for (Integer pOposit: smgValuesDependency.removeAll(pValue)) {
+  public void removeValue(SMGValue pValue) {
+    for (SMGValue pOposit : smgValuesDependency.removeAll(pValue)) {
 
       smgValuesDependency.remove(pOposit, pValue);
 
@@ -117,41 +120,41 @@ public class PredRelation {
     smgValueSizeInBits.remove(pValue);
   }
 
-  public void mergeValues(Integer pV1, Integer pV2) {
-    for (Integer relatedValue: smgValuesDependency.removeAll(pV2)) {
-      smgValuesDependency.remove(relatedValue, pV2);
-      smgValuesRelation.removeAll(Pair.of(pV2, relatedValue));
+  /** replace the old value with a fresh value. */
+  public void replace(SMGValue fresh, SMGValue old) {
+    for (SMGValue relatedValue : smgValuesDependency.removeAll(old)) {
+      smgValuesDependency.remove(relatedValue, old);
+      smgValuesRelation.removeAll(Pair.of(old, relatedValue));
         //TODO: modify predicates on merge values
-      smgValuesRelation.removeAll(Pair.of(relatedValue, pV2));
+      smgValuesRelation.removeAll(Pair.of(relatedValue, old));
     }
-    for (ExplicitRelation explicitRelation: smgExplicitValueRelation.removeAll(pV2)) {
-      addExplicitRelation(pV1, explicitRelation.explicitValue, explicitRelation.getOperator());
-      addValueSize(pV1, getSymbolicSize(pV2));
+    for (ExplicitRelation explicitRelation: smgExplicitValueRelation.removeAll(old)) {
+      addExplicitRelation(fresh, explicitRelation.explicitValue, explicitRelation.getOperator());
+      addValueSize(fresh, getSymbolicSize(old));
     }
-    smgValueSizeInBits.remove(pV2);
+    smgValueSizeInBits.remove(old);
   }
 
-
-  public Integer getSymbolicSize(Integer pSymbolic) {
+  public Integer getSymbolicSize(SMGValue pSymbolic) {
     return smgValueSizeInBits.get(pSymbolic);
   }
 
   /** Returns closure list of symbolic values which affects pRelation */
-  public Set<Integer> closureDependencyFor(PredRelation pRelation) {
-    Set<Integer> result = new HashSet<>();
-    Set<Integer> toAdd = new HashSet<>();
-    for (Entry<Integer, Integer> entry : pRelation.smgValuesDependency.entries()) {
-      Integer key = entry.getKey();
-      Integer value = entry.getValue();
-      if (key > value) {
+  public Set<SMGValue> closureDependencyFor(PredRelation pRelation) {
+    Set<SMGValue> toAdd = new HashSet<>();
+    for (Entry<SMGValue, SMGValue> entry : pRelation.smgValuesDependency.entries()) {
+      SMGValue key = entry.getKey();
+      SMGValue value = entry.getValue();
+      if (key.compareTo(value) > 0) {
         toAdd.add(key);
         toAdd.add(value);
       }
     }
+    Set<SMGValue> result = new HashSet<>();
     while (!toAdd.isEmpty()) {
       result.addAll(toAdd);
-      Set<Integer> tempAdd = new HashSet<>();
-      for (Integer symbolic : toAdd) {
+      Set<SMGValue> tempAdd = new HashSet<>();
+      for (SMGValue symbolic : toAdd) {
         tempAdd.addAll(smgValuesDependency.get(symbolic));
       }
       tempAdd.removeAll(result);
@@ -192,7 +195,7 @@ public class PredRelation {
     return smgExplicitValueRelation.values();
   }
 
-  public Set<Entry<Pair<Integer, Integer>, SymbolicRelation>> getValuesRelations() {
+  public Set<Entry<Pair<SMGValue, SMGValue>, SymbolicRelation>> getValuesRelations() {
     return smgValuesRelation.entries();
   }
 
@@ -206,40 +209,24 @@ public class PredRelation {
     if (smgValuesRelation.size() > pPathPredicateRelation.smgValuesDependency.size()) {
       return false;
     }
-    if (!Multimaps.filterEntries(smgValuesDependency, new FilterPredicate<>(pPathPredicateRelation.smgValuesDependency)).isEmpty()) {
+    if (!pPathPredicateRelation.smgValuesDependency.entries().containsAll(smgValuesDependency.entries())) {
       return false;
     }
-    if (!Multimaps.filterEntries(smgExplicitValueRelation, new FilterPredicate<>(pPathPredicateRelation.smgExplicitValueRelation)).isEmpty()) {
+    if (!pPathPredicateRelation.smgExplicitValueRelation.entries().containsAll(smgExplicitValueRelation.entries())) {
       return false;
     }
-    if (!Multimaps.filterEntries(smgValuesRelation, new FilterPredicate<>(pPathPredicateRelation.smgValuesRelation)).isEmpty()) {
+    if (!pPathPredicateRelation.smgValuesRelation.entries().containsAll(smgValuesRelation.entries())) {
       return false;
     }
     return true;
   }
 
-  public static class FilterPredicate<K, V> implements Predicate<Entry<K, V>> {
-    private final Multimap<K, V> filterAgainst;
-
-    public FilterPredicate(Multimap<K, V> filterAgainst) {
-      this.filterAgainst = filterAgainst;
-    }
-
-    @Override
-    public boolean apply(Entry<K, V> arg0) {
-      return !filterAgainst.containsEntry(arg0.getKey(), arg0.getValue());
-    }
-  }
-
   static public class SymbolicRelation {
-    Integer valueOne;
-    Integer valueTwo;
+    final SMGValue valueOne;
+    SMGValue valueTwo;
     BinaryOperator operator;
 
-    public SymbolicRelation(
-        Integer pValueOne,
-        Integer pValueTwo,
-        BinaryOperator pOperator) {
+    public SymbolicRelation(SMGValue pValueOne, SMGValue pValueTwo, BinaryOperator pOperator) {
       valueOne = pValueOne;
       valueTwo = pValueTwo;
       operator = pOperator;
@@ -249,11 +236,11 @@ public class PredRelation {
       return operator;
     }
 
-    public Integer getFirstValue() {
+    public SMGValue getFirstValue() {
       return valueOne;
     }
 
-    public Integer getSecondValue() {
+    public SMGValue getSecondValue() {
       return valueTwo;
     }
 
@@ -267,26 +254,14 @@ public class PredRelation {
       }
 
       SymbolicRelation relation = (SymbolicRelation) pO;
-
-      if (!valueOne.equals(relation.valueOne)) {
-        return false;
-      }
-      if (!valueTwo.equals(relation.valueTwo)) {
-        return false;
-      }
-      if (operator != relation.operator) {
-        return false;
-      }
-
-      return true;
+      return valueOne.equals(relation.valueOne)
+          && valueTwo.equals(relation.valueTwo)
+          && operator == relation.operator;
     }
 
     @Override
     public int hashCode() {
-      int result = valueOne.hashCode();
-      result = 31 * result + valueTwo.hashCode();
-      result = 31 * result + operator.hashCode();
-      return result;
+      return Objects.hash(valueOne, valueTwo, operator);
     }
 
     @Override
@@ -301,14 +276,12 @@ public class PredRelation {
 
 
   static public class ExplicitRelation {
-    Integer symbolicValue;
+    SMGValue symbolicValue;
     SMGExplicitValue explicitValue;
     BinaryOperator operator;
 
     public ExplicitRelation(
-        Integer pSymbolicValue,
-        SMGExplicitValue pExplicitValue,
-        BinaryOperator pOperator) {
+        SMGValue pSymbolicValue, SMGExplicitValue pExplicitValue, BinaryOperator pOperator) {
       symbolicValue = pSymbolicValue;
       explicitValue = pExplicitValue;
       operator = pOperator;
@@ -322,7 +295,7 @@ public class PredRelation {
       return explicitValue;
     }
 
-    public Integer getSymbolicValue() {
+    public SMGValue getSymbolicValue() {
       return symbolicValue;
     }
 
@@ -336,26 +309,14 @@ public class PredRelation {
       }
 
       ExplicitRelation relation = (ExplicitRelation) pO;
-
-      if (!symbolicValue.equals(relation.symbolicValue)) {
-        return false;
-      }
-      if (!explicitValue.equals(relation.explicitValue)) {
-        return false;
-      }
-      if (operator != relation.operator) {
-        return false;
-      }
-
-      return true;
+      return symbolicValue.equals(relation.symbolicValue)
+          && explicitValue.equals(relation.explicitValue)
+          && operator == relation.operator;
     }
 
     @Override
     public int hashCode() {
-      int result = symbolicValue.hashCode();
-      result = 31 * result + explicitValue.hashCode();
-      result = 31 * result + operator.hashCode();
-      return result;
+      return Objects.hash(symbolicValue, explicitValue, operator);
     }
 
     @Override

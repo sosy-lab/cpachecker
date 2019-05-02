@@ -30,7 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
 /**

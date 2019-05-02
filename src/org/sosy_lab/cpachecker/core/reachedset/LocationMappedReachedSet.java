@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collection;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -38,19 +39,22 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  */
 public class LocationMappedReachedSet extends PartitionedReachedSet {
 
+  private static final long serialVersionUID = 1L;
+
   public LocationMappedReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);
   }
 
   @Override
   public Collection<AbstractState> getReached(CFANode location) {
+    checkNotNull(location);
     return getReachedForKey(location);
   }
 
   @Override
   protected Object getPartitionKey(AbstractState pState) {
     CFANode location = AbstractStates.extractLocation(pState);
-    assert location != null : "Location information necessary for LocationMappedReachedSet";
+    checkNotNull(location, "Location information necessary for LocationMappedReachedSet");
     return location;
   }
 

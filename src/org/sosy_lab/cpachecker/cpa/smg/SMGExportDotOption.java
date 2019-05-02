@@ -35,8 +35,8 @@ public class SMGExportDotOption {
   private final SMGExportLevel exportSMG;
 
   private PathTemplate exportSMGFilePattern;
-  private boolean isRefinment;
-  private int refinment_id;
+  private boolean isRefinement;
+  private int refinement_id;
 
   public SMGExportDotOption(PathTemplate pExportSMGFilePattern, SMGExportLevel pExportSMG) {
     exportSMGFilePattern = pExportSMGFilePattern;
@@ -47,13 +47,13 @@ public class SMGExportDotOption {
     return exportSMGFilePattern;
   }
 
-  public void exportSMGSeperatedByRefinments(PathTemplate pExportSMGFilePattern) {
+  public void exportSMGSeperatedByRefinements(PathTemplate pExportSMGFilePattern) {
     exportSMGFilePattern = pExportSMGFilePattern;
-    refinment_id = 0;
+    refinement_id = 0;
   }
 
-  public void nextRefinment() {
-    refinment_id = refinment_id + 1;
+  public void nextRefinement() {
+    refinement_id = refinement_id + 1;
   }
 
   public boolean exportSMG(SMGExportLevel pLevel) {
@@ -63,14 +63,14 @@ public class SMGExportDotOption {
   @Override
   public String toString() {
     return "SMGExportDotOption [exportSMG=" + exportSMG + ", exportSMGFilePattern="
-        + exportSMGFilePattern + ", isRefinment=" + isRefinment + ", refinment_counter="
-        + refinment_id + "]";
+        + exportSMGFilePattern + ", isRefinement=" + isRefinement + ", refinement_counter="
+        + refinement_id + "]";
   }
 
   public Path getOutputFilePath(String pSMGName) {
 
-    if (isRefinment) {
-      return exportSMGFilePattern.getPath(refinment_id, pSMGName);
+    if (isRefinement) {
+      return exportSMGFilePattern.getPath(refinement_id, pSMGName);
     } else {
       return exportSMGFilePattern.getPath(pSMGName);
     }
@@ -84,9 +84,9 @@ public class SMGExportDotOption {
     return NO_EXPORT;
   }
 
-  public void changeToRefinment(PathTemplate pNewPathTemplate) {
+  public void changeToRefinement(PathTemplate pNewPathTemplate) {
     exportSMGFilePattern = pNewPathTemplate;
-    isRefinment = true;
-    refinment_id = 0;
+    isRefinement = true;
+    refinement_id = 0;
   }
 }

@@ -23,15 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
  * Class for maintaining the variable dependencies of control flows
@@ -100,7 +99,7 @@ public class BlockGuard implements Cloneable, Serializable{
      * @param pExpression Expression of the control branch
      * @param pValue Truth value of the expression if the branch is taken
      */
-    public void addDependancy(CFANode pNodeV, CFANode pNodeW, CExpression pExpression, boolean pValue) throws UnsupportedCCodeException{
+    public void addDependancy(CFANode pNodeV, CFANode pNodeW, CExpression pExpression, boolean pValue) throws UnsupportedCodeException{
       VariableDependancy visitor=new VariableDependancy();
       pExpression.accept(visitor);
       SortedSet<Variable> varl=visitor.getResult();
@@ -130,7 +129,7 @@ public class BlockGuard implements Cloneable, Serializable{
      for(int i=size;i>0;i--){
        Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, SortedSet<Variable>>> elem=contextstack.get(i-1);
        CFANode first=elem.first.first;
-       if(!(pDependencies.contains(first))){
+       if(!pDependencies.contains(first)){
          contextstack.remove(i-1);
        }
      }
@@ -205,7 +204,7 @@ public class BlockGuard implements Cloneable, Serializable{
        CFANode from2=bother.contextstack.get(index).first.first;
        CFANode to=contextstack.get(index).first.second;
        CFANode to2=bother.contextstack.get(index).first.second;
-       if(!((from.equals(from2)) && (to.equals(to2)))){
+       if(!(from.equals(from2) && to.equals(to2))){
          value=false;
          break;
        }
@@ -218,7 +217,7 @@ public class BlockGuard implements Cloneable, Serializable{
     * @param pOther the other Blockguard.
     * @return A new BlockGuard that is the intersection of both BlockGuards.
     */
-   public BlockGuard meet(BlockGuard pOther) throws UnsupportedCCodeException{
+   public BlockGuard meet(BlockGuard pOther) throws UnsupportedCodeException{
      BlockGuard result=this.clone();
 
 
@@ -235,7 +234,7 @@ public class BlockGuard implements Cloneable, Serializable{
 //       CFANode othernode=othervalue.first.first;
 //       CFANode othernode2=othervalue.first.second;
 
-       if(!(edge.equals(otheredge))){
+       if(!edge.equals(otheredge)){
          return result;
        }
 
@@ -244,7 +243,7 @@ public class BlockGuard implements Cloneable, Serializable{
        boolean truth=value.second.first.second;
        boolean othertruth=othervalue.second.first.second;
 //       if(expr==null || otherexpr==null){
-         if(expr==null || otherexpr == null || !(expr.equals(otherexpr)) || !(truth==othertruth)){
+         if(expr==null || otherexpr == null || !expr.equals(otherexpr) || !(truth==othertruth)){
            return result;
          }
 //         return result;
@@ -255,7 +254,7 @@ public class BlockGuard implements Cloneable, Serializable{
        SortedSet<Variable> othervariables=othervalue.second.second;
 
 
-       if(!(variables.equals(othervariables))){
+       if(!variables.equals(othervariables)){
          return result;
        }
        result.addDependancy(node, node2, expr, truth);
@@ -332,7 +331,19 @@ public class BlockGuard implements Cloneable, Serializable{
 
     @Override
     public String toString(){
-      return "["+((first==null)?"Null":((first instanceof CExpression)?((CExpression)first).toASTString() :first.toString()))+","+((second==null)?"Null":((second instanceof CExpression)?((CExpression)second).toASTString():(second.toString())))+"]";
+      return "["
+          + ((first == null)
+              ? "Null"
+              : ((first instanceof CExpression)
+                  ? ((CExpression) first).toASTString()
+                  : first.toString()))
+          + ","
+          + ((second == null)
+              ? "Null"
+              : ((second instanceof CExpression)
+                  ? ((CExpression) second).toASTString()
+                  : second.toString()))
+          + "]";
     }
 
     @Override

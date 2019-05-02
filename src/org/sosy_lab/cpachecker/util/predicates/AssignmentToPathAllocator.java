@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.math.IntMath;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -72,14 +71,13 @@ import org.sosy_lab.cpachecker.core.counterexample.FieldReference;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
@@ -105,10 +103,7 @@ public class AssignmentToPathAllocator {
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(
             pLogger, pMachineModel, new FormulaEncodingWithPointerAliasingOptions(pConfig));
-    memoryName =
-        exp ->
-            CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(
-                typeHandler.getSimplifiedType(exp));
+    memoryName = exp -> typeHandler.getPointerAccessNameForType(typeHandler.getSimplifiedType(exp));
   }
 
   /**
@@ -242,7 +237,9 @@ public class AssignmentToPathAllocator {
 
         switch (binExp.getOperator()) {
           case MULTIPLY:
+            // $FALL-THROUGH$
           case MODULO:
+            // $FALL-THROUGH$
           case DIVIDE:
             opString = "_" + opString;
             break;
@@ -619,13 +616,13 @@ public class AssignmentToPathAllocator {
         if (ssaIdx == -2) {
           functionsWithoutSSAIndex.add(term);
         } else {
-          int index = findFirstOccurrenceOfVariableFunction(term, pSsaMaps);
+          int index = findFirstOccurrenceOf(term, pSsaMaps);
           if (index >= 0) {
             assignedTermsPosition.put(index, term);
           }
         }
       } else if (ssaIdx != -2) { // Variable.
-        int index = findFirstOccurrenceOfVariable(term, pSsaMaps);
+        int index = findFirstOccurrenceOf(term, pSsaMaps);
         if (index >= 0) {
           assignedTermsPosition.put(index, term);
         }
@@ -646,106 +643,28 @@ public class AssignmentToPathAllocator {
   }
 
   /**
-   * Search through an (ordered) list of SSAMaps
-   * for the first index where a given variable appears.
-   * @return -1 if the variable with the given SSA-index never occurs, or an index of pSsaMaps
+   * Search through an (unordered) list of SSAMaps for the first index where a given variable
+   * appears. We do not expect that the SSAMaps are ordered in any way, e.g. SSA-indices might be
+   * incrementing and decrementing along the list. This happens for example in case of
+   * counterexample paths through a recursive program.
+   *
+   * @return -1 if the variable with the given SSA-index never occurs, or an index of first pSsaMaps
+   *     where the variable occurs.
    */
-  int findFirstOccurrenceOfVariable(ValueAssignment pVar, List<SSAMap> pSsaMaps) {
-
-    // both indices are inclusive bounds of the range where we still need to look
-    int lower = 0;
-    int upper = pSsaMaps.size() - 1;
-
+  int findFirstOccurrenceOf(ValueAssignment pVar, List<SSAMap> pSsaMaps) {
     int result = -1;
     String canonicalName = getName(pVar);
     int varSSAIdx = getSSAIndex(pVar);
 
-    /*Due to the new way to handle aliases, assignable terms of variables
-    may be replaced with UIFs in the SSAMap. If this is the case, modify upper
-    by looking for the variable in the other maps*/
-    if (pSsaMaps.size() <= 0) {
-      return result;
-    } else {
-
-      while (upper >= 0 &&
-          !pSsaMaps.get(upper).containsVariable(canonicalName)) {
-        upper--;
-      }
-
-      if (upper < 0) {
+    for (SSAMap map : pSsaMaps) {
+      result++;
+      int ssaIndex = map.getIndex(canonicalName);
+      if (ssaIndex == varSSAIdx) {
         return result;
       }
     }
 
-    // do binary search
-    while (true) {
-      if (upper-lower <= 0) {
-
-        if (upper - lower == 0) {
-          int ssaIndex = pSsaMaps.get(upper).getIndex(canonicalName);
-
-          if (ssaIndex == varSSAIdx) {
-            result = upper;
-          }
-        }
-
-        return result;
-      }
-
-      int index = IntMath.mean(lower, upper);
-      int ssaIndex = pSsaMaps.get(index).getIndex(canonicalName);
-
-      if (ssaIndex < varSSAIdx) {
-        lower = index + 1;
-      } else if (ssaIndex > varSSAIdx) {
-        upper = index - 1;
-      } else {
-        // found a matching SSAMap,
-        // but we keep looking whether there is another one with a smaller index
-        assert result == -1 || result > index;
-        result = index;
-        upper = index - 1;
-      }
-    }
-  }
-
-  int findFirstOccurrenceOfVariableFunction(ValueAssignment pTerm, List<SSAMap> pSsaMaps) {
-
-    int lower = 0;
-    int upper = pSsaMaps.size() - 1;
-
-    int result = -1;
-
-    // do binary search
-    while (true) {
-      if (upper-lower <= 0) {
-
-        if (upper - lower == 0) {
-          int ssaIndex = pSsaMaps.get(upper).getIndex(getName(pTerm));
-
-          if (ssaIndex == getSSAIndex(pTerm)) {
-            result = upper;
-          }
-        }
-
-        return result;
-      }
-
-      int index = IntMath.mean(lower, upper);
-      int ssaIndex = pSsaMaps.get(index).getIndex(getName(pTerm));
-
-      if (ssaIndex < getSSAIndex(pTerm)) {
-        lower = index + 1;
-      } else if (ssaIndex > getSSAIndex(pTerm)) {
-        upper = index - 1;
-      } else {
-        // found a matching SSAMap,
-        // but we keep looking whether there is another one with a smaller index
-        assert result == -1 || result > index;
-        result = index;
-        upper = index - 1;
-      }
-    }
+    return result;
   }
 
   private static final class AssignableTermsInPath {

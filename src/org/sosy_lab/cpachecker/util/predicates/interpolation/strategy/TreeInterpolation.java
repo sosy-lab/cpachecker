@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -36,10 +35,10 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
 
@@ -80,8 +79,9 @@ public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
     try (final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment()) {
       final int currentSubtree = startOfSubTree.get(positionOfA);
 
-      // build partition A
+      // build partitions A and B
       final List<T> A = new ArrayList<>();
+      final List<T> B = new ArrayList<>();
       while(!itpStack.isEmpty() && currentSubtree <= itpStack.peekLast().getSecond()) {
         A.add(itpProver.push(itpStack.pollLast().getFirst()));
       }
@@ -93,16 +93,17 @@ public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
 
       // build partition B
       for (Pair<BooleanFormula, Integer> externalChild : itpStack) {
-        itpProver.push(externalChild.getFirst());
+        B.add(itpProver.push(externalChild.getFirst()));
       }
       for (int i = positionOfA + 1; i < formulas.size(); i++) {
-        itpProver.push(formulas.get(i).getFirst());
+        B.add(itpProver.push(formulas.get(i).getFirst()));
       }
 
       final boolean check = itpProver.isUnsat();
       assert check : "asserted formulas should be UNSAT";
 
       // get interpolant via Craig interpolation
+      assert !A.isEmpty() && !B.isEmpty();
       final BooleanFormula interpolant = itpProver.getInterpolant(A);
 
       // update the stack for further computation

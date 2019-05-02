@@ -23,9 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
-import org.sosy_lab.common.ShutdownNotifier;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -39,19 +43,18 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -59,30 +62,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.SolverException;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-/**
- * Transfer relation for Symbolic Execution Analysis.
- */
+/** Transfer relation for Symbolic Execution Analysis. */
 @Options(prefix = "cpa.constraints")
 public class ConstraintsTransferRelation
     extends ForwardingTransferRelation<ConstraintsState, ConstraintsState, SingletonPrecision> {
@@ -98,46 +87,24 @@ public class ConstraintsTransferRelation
 
   private MachineModel machineModel;
 
-  private Solver solver;
-  private FormulaManagerView formulaManager;
-  private CtoFormulaConverter converter;
+  private ConstraintsSolver solver;
   private StateSimplifier simplifier;
 
   public ConstraintsTransferRelation(
-      final Solver pSolver,
+      final ConstraintsSolver pSolver,
+      final ConstraintsStatistics pStats,
       final MachineModel pMachineModel,
       final LogManager pLogger,
-      final Configuration pConfig,
-      final ShutdownNotifier pShutdownNotifier
-  ) throws InvalidConfigurationException {
+      final Configuration pConfig)
+      throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
-    simplifier = new StateSimplifier(pConfig);
-
+    simplifier = new StateSimplifier(pConfig, pStats);
     solver = pSolver;
-    formulaManager = solver.getFormulaManager();
-    initializeCToFormulaConverter(pLogger, pConfig, pShutdownNotifier);
   }
-
-  // Can only be called after machineModel and formulaManager are set
-  private void initializeCToFormulaConverter(LogManager pLogger, Configuration pConfig,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-
-    FormulaEncodingOptions options = new FormulaEncodingOptions(pConfig);
-    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, machineModel);
-
-    converter = new CtoFormulaConverter(options,
-                                        formulaManager,
-                                        machineModel,
-                                        Optional.empty(),
-                                        pLogger,
-                                        pShutdownNotifier,
-                                        typeHandler,
-                                        AnalysisDirection.FORWARD);
-}
 
   @Override
   protected ConstraintsState handleFunctionCallEdge(FunctionCallEdge pCfaEdge, List<? extends AExpression> pArguments,
@@ -173,77 +140,56 @@ public class ConstraintsTransferRelation
   }
 
   @Override
+  protected ConstraintsState handleBlankEdge(BlankEdge cfaEdge) {
+    // FIXME: Find a better way to have consistent symbolic identifier names
+    if (cfaEdge.getDescription().equals("INIT GLOBAL VARS")) {
+      SymbolicValueFactory.reset();
+    }
+    return state;
+  }
+
+  @Override
   protected ConstraintsState handleAssumption(AssumeEdge pCfaEdge, AExpression pExpression, boolean pTruthAssumption) {
     return state;
   }
 
-  private ConstraintsState getNewState(ConstraintsState pOldState,
-      AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption, String pFunctionName)
-      throws SolverException, InterruptedException, UnrecognizedCodeException {
+  private ConstraintsState getNewState(
+      ConstraintsState pOldState,
+      AExpression pExpression,
+      ConstraintFactory pFactory,
+      boolean pTruthAssumption)
+      throws UnrecognizedCodeException, SolverException, InterruptedException {
 
-    // assume edges with integer literals are created by statements like __VERIFIER_assume(0);
-    // We do not have to create constraints out of these, as they are always trivial.
-    if (pExpression instanceof CIntegerLiteralExpression) {
-      BigInteger valueAsInt = ((CIntegerLiteralExpression) pExpression).getValue();
-
-      if (pTruthAssumption == valueAsInt.equals(BigInteger.ONE)) {
-        return pOldState.copyOf();
-      } else {
-        return null;
-      }
-
-    } else {
-      return computeNewStateByCreatingConstraint(pOldState, pExpression, pFactory, pTruthAssumption, pFunctionName);
-    }
+    return computeNewStateByCreatingConstraint(
+        pOldState, pExpression, pFactory, pTruthAssumption);
   }
 
   private ConstraintsState computeNewStateByCreatingConstraint(
       final ConstraintsState pOldState,
       final AExpression pExpression,
       final ConstraintFactory pFactory,
-      final boolean pTruthAssumption,
-      final String pFunctionName
-  ) throws UnrecognizedCodeException, SolverException, InterruptedException {
+      final boolean pTruthAssumption)
+      throws UnrecognizedCodeException, SolverException, InterruptedException {
 
     Optional<Constraint> oNewConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
-    ConstraintsState newState = pOldState.copyOf();
-
-    final IdentifierAssignment definiteAssignment = pOldState.getDefiniteAssignment();
-    FormulaCreator formulaCreator = getFormulaCreator(pFunctionName);
-    newState.initialize(solver, formulaManager, formulaCreator);
 
     if (oNewConstraint.isPresent()) {
+      ConstraintsState newState = pOldState.copyOf();
       final Constraint newConstraint = oNewConstraint.get();
 
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
-      if (isTrivial(newConstraint, definiteAssignment)) {
-        if (solver.isUnsat(formulaCreator.createFormula(newConstraint, newState.getDefiniteAssignment()))) {
+      if (newConstraint.isTrivial()) {
+        if (solver.isUnsat(newConstraint, ImmutableList.of(), functionName)) {
           return null;
         }
-
       } else {
         newState.add(newConstraint);
-
-        if (checkStrategy == CheckStrategy.AT_ASSUME && newState.isUnsat()) {
-          return null;
-
-        } else {
-          return newState;
-        }
-
+        return newState;
       }
     }
 
     return pOldState;
-  }
-
-  private FormulaCreator getFormulaCreator(String pFunctionName) {
-    return new FormulaCreatorUsingCConverter(formulaManager, getConverter(), pFunctionName);
-  }
-
-  private CtoFormulaConverter getConverter() {
-    return converter;
   }
 
   private Optional<Constraint> createConstraint(AExpression pExpression, ConstraintFactory pFactory,
@@ -322,15 +268,6 @@ public class ConstraintsTransferRelation
     return Optional.ofNullable(constraint);
   }
 
-  private boolean isTrivial(
-      final Constraint pConstraint,
-      final IdentifierAssignment pDefiniteAssignment
-  ) {
-    final ConstraintTrivialityChecker checker = new ConstraintTrivialityChecker(pDefiniteAssignment);
-
-    return pConstraint.accept(checker);
-  }
-
   private ConstraintsState simplify(
       final ConstraintsState pState,
       final ValueAnalysisState pValueState
@@ -345,6 +282,8 @@ public class ConstraintsTransferRelation
       final CFAEdge pCfaEdge, Precision pPrecision)
       throws CPATransferException, InterruptedException {
     assert pStateToStrengthen instanceof ConstraintsState;
+
+    super.setInfo(pStateToStrengthen, pPrecision, pCfaEdge);
 
     final ConstraintsState initialStateToStrengthen = (ConstraintsState) pStateToStrengthen;
 
@@ -425,28 +364,26 @@ public class ConstraintsTransferRelation
       ConstraintsState newState;
       try {
 
-        newState = getNewState(pStateToStrengthen,
-            edgeExpression,
-            factory,
-            truthAssumption,
-            pFunctionName);
+        newState = getNewState(pStateToStrengthen, edgeExpression, factory, truthAssumption);
+
+        // newState == null represents the bottom element, so we return an empty collection
+        // (which represents the bottom element for strengthen methods)
+        if (newState != null) {
+          newState = simplify(newState, valueState);
+          if (checkStrategy != CheckStrategy.AT_ASSUME || !solver.isUnsat(newState, functionName)) {
+            newStates.add(newState);
+          }
+
+          if (newState.equals(pStateToStrengthen)) {
+            return Optional.empty();
+          }
+        }
+        return Optional.of(newStates);
 
       } catch (SolverException e) {
         throw new CPATransferException(
             "Error while strengthening ConstraintsState with ValueAnalysisState", e);
       }
-
-      // newState == null represents the bottom element, so we return an empty collection
-      // (which represents the bottom element for strengthen methods)
-      if (newState != null) {
-        newState = simplify(newState, valueState);
-        newStates.add(newState);
-
-        if (newState.equals(pStateToStrengthen)) {
-          return Optional.empty();
-        }
-      }
-      return Optional.of(newStates);
     }
   }
 
@@ -468,9 +405,7 @@ public class ConstraintsTransferRelation
       final AutomatonState automatonState = (AutomatonState) pStrengtheningState;
 
       try {
-        if (automatonState.isTarget()
-            && pStateToStrengthen.isInitialized()
-            && pStateToStrengthen.isUnsat()) {
+        if (automatonState.isTarget() && solver.isUnsat(pStateToStrengthen, functionName)) {
 
           return Optional.<Collection<ConstraintsState>>of(Collections.<ConstraintsState>emptySet());
 

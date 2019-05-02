@@ -7,17 +7,17 @@
 
   <tasks name="BitVectorsOverflows">
     <includesfile>../programs/benchmarks/Overflows-BitVectors.set</includesfile>
-    <propertyfile>../programs/benchmarks/Overflows.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="BusyBoxOverflows">
     <includesfile>../programs/benchmarks/Systems_BusyBox_Overflows.set</includesfile>
-    <propertyfile>../programs/benchmarks/Overflows.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="OtherOverflows">
     <includesfile>../programs/benchmarks/Overflows-Other.set</includesfile>
-    <propertyfile>../programs/benchmarks/Overflows.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
 
   <rundefinition name="sv-comp17-k-induction">

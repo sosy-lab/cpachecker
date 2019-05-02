@@ -27,9 +27,10 @@ import com.google.common.base.Equivalence;
 import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
  * Helper methods for CType instances.
@@ -56,7 +57,7 @@ public final class CTypes {
     return (type instanceof CEnumType)
         // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
         || (type instanceof CBitFieldType)
-        || (type instanceof CSimpleType && !(((CSimpleType) type).isComplex()));
+        || (type instanceof CSimpleType && !((CSimpleType) type).isComplex());
   }
 
   /**
@@ -78,9 +79,12 @@ public final class CTypes {
   public static boolean isArithmeticType(CType type) {
     type = type.getCanonicalType();
     return (type instanceof CEnumType)
-        // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
+        // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer
+        // type"
         || (type instanceof CBitFieldType)
-        || (type instanceof CSimpleType);
+        || (type instanceof CSimpleType)
+        || ((type instanceof CComplexType)
+            && ((CComplexType) type).getKind() == ComplexTypeKind.ENUM);
   }
 
   /**
@@ -422,13 +426,13 @@ public final class CTypes {
     return pType;
   }
 
-  private static enum ForceConstVisitor implements CTypeVisitor<CType, RuntimeException> {
+  private enum ForceConstVisitor implements CTypeVisitor<CType, NoException> {
     FALSE(false),
     TRUE(true);
 
     private final boolean constValue;
 
-    private ForceConstVisitor(boolean pConstValue) {
+    ForceConstVisitor(boolean pConstValue) {
       constValue = pConstValue;
     }
 
@@ -488,19 +492,19 @@ public final class CTypes {
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public CType visit(CBitFieldType pCBitFieldType) {
       return new CBitFieldType(
           pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
     }
   }
 
-  private static enum ForceVolatileVisitor implements CTypeVisitor<CType, RuntimeException> {
+  private enum ForceVolatileVisitor implements CTypeVisitor<CType, NoException> {
     FALSE(false),
     TRUE(true);
 
     private final boolean volatileValue;
 
-    private ForceVolatileVisitor(boolean pVolatileValue) {
+    ForceVolatileVisitor(boolean pVolatileValue) {
       volatileValue = pVolatileValue;
     }
 
@@ -560,7 +564,7 @@ public final class CTypes {
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public CType visit(CBitFieldType pCBitFieldType) {
       return new CBitFieldType(
           pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
     }

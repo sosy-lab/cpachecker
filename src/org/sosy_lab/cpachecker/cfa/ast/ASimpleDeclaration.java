@@ -36,14 +36,29 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public interface ASimpleDeclaration extends AAstNode {
 
-  public String getName();
+  /**
+   * Get the name of this declaration. The name is unique within its context (e.g., function), but
+   * not globally. Use {@link #getQualifiedName()} to get a globally unique name.
+   *
+   * <p>This name is not necessarily identical to the name that appeared in the source code, use
+   * {@link #getOrigName()} to retrieve the latter.
+   */
+  String getName();
 
-  public String getOrigName();
+  /**
+   * Return the name of this declaration as it appeared in the source code. This name should not be
+   * used to identify the declaration inside CPAchecker, but is useful for output to the user or
+   * output files that relate to the source code.
+   */
+  String getOrigName();
 
   Type getType();
 
   /**
-   * Get globally unique name of this declaration, qualified with the function name.
+   * Get a globally unique name of this declaration, i.e., names of local declarations are qualified
+   * with the name of the context (function, class, etc.).
+   *
+   * <p>Client code should not rely on a specific format of the returned name.
    */
-  public String getQualifiedName();
+  String getQualifiedName();
 }

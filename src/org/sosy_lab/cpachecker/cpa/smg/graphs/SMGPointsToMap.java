@@ -29,16 +29,17 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGPointsToMap implements SMGPointsToEdges {
 
-  private final PersistentMap<Integer, SMGEdgePointsTo> map;
+  private final PersistentMap<SMGValue, SMGEdgePointsTo> map;
 
   public SMGPointsToMap() {
     map = PathCopyingPersistentTreeMap.of();
   }
 
-  private SMGPointsToMap(PersistentMap<Integer, SMGEdgePointsTo> pMap) {
+  private SMGPointsToMap(PersistentMap<SMGValue, SMGEdgePointsTo> pMap) {
     map = pMap;
   }
 
@@ -54,7 +55,7 @@ public class SMGPointsToMap implements SMGPointsToEdges {
 
   @Override
   public SMGPointsToMap removeAllEdgesOfObjectAndCopy(SMGObject pObj) {
-    PersistentMap<Integer, SMGEdgePointsTo> tmp = map;
+    PersistentMap<SMGValue, SMGEdgePointsTo> tmp = map;
     for (SMGEdgePointsTo edge : SMGEdgePointsToFilter.targetObjectFilter(pObj).filter(this)) {
       tmp = tmp.removeAndCopy(edge.getValue());
     }
@@ -62,17 +63,17 @@ public class SMGPointsToMap implements SMGPointsToEdges {
   }
 
   @Override
-  public SMGPointsToMap removeEdgeWithValueAndCopy(int pValue) {
+  public SMGPointsToMap removeEdgeWithValueAndCopy(SMGValue pValue) {
     return new SMGPointsToMap(map.removeAndCopy(pValue));
   }
 
   @Override
-  public boolean containsEdgeWithValue(Integer pValue) {
+  public boolean containsEdgeWithValue(SMGValue pValue) {
     return map.containsKey(pValue);
   }
 
   @Override
-  public SMGEdgePointsTo getEdgeWithValue(Integer pValue) {
+  public SMGEdgePointsTo getEdgeWithValue(SMGValue pValue) {
     return map.get(pValue);
   }
 

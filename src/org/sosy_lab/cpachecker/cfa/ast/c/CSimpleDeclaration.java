@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public interface CSimpleDeclaration extends ASimpleDeclaration, CAstNode {
 
   @Override
-  public CType getType();
+  CType getType();
 
-  public  <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> v) throws X;
+  <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> v) throws X;
 }

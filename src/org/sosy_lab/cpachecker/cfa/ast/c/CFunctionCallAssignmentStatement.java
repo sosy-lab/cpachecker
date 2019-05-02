@@ -64,9 +64,11 @@ public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignm
   }
 
   @Override
-  public String toASTString() {
-    return getLeftHandSide().toASTString()
-        + " = " + getRightHandSide().toASTString() + ";";
+  public String toASTString(boolean pQualified) {
+    return getLeftHandSide().toASTString(pQualified)
+        + " = "
+        + getRightHandSide().toASTString(pQualified)
+        + ";";
   }
 
   @Override

@@ -43,12 +43,13 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -65,7 +66,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 public class ARGReachedSet {
 
   private final int refinementNumber;
-  private final ARGCPA cpa;
+  private final ConfigurableProgramAnalysis cpa;
 
   private final ReachedSet mReached;
   private final UnmodifiableReachedSet mUnmodifiableReached;
@@ -81,7 +82,7 @@ public class ARGReachedSet {
     this(pReached, null);
   }
 
-  public ARGReachedSet(ReachedSet pReached, ARGCPA pCpa) {
+  public ARGReachedSet(ReachedSet pReached, ConfigurableProgramAnalysis pCpa) {
     this(pReached, pCpa, -1);
   }
 
@@ -89,7 +90,8 @@ public class ARGReachedSet {
    * This constructor may be used only during an refinement
    * which should be added to the refinement graph .dot file.
    */
-  public ARGReachedSet(ReachedSet pReached, ARGCPA pCpa, int pRefinementNumber) {
+  public ARGReachedSet(
+      ReachedSet pReached, ConfigurableProgramAnalysis pCpa, int pRefinementNumber) {
     mReached = checkNotNull(pReached);
     mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
 
@@ -107,8 +109,9 @@ public class ARGReachedSet {
    * covered by removed elements.
    *
    * @param e The root of the removed subtree, may not be the initial element.
+   * @throws InterruptedException can be thrown in subclass
    */
-  public void removeSubtree(ARGState e) {
+  public void removeSubtree(ARGState e) throws InterruptedException {
     Set<ARGState> toWaitlist = removeSubtree0(e);
 
     for (ARGState ae : toWaitlist) {
@@ -122,7 +125,7 @@ public class ARGReachedSet {
    * States which have become unreachable get properly detached
    */
   public void recalculateReachedSet(ARGState rootState) {
-    removeReachableFrom(Collections.singleton(rootState), ARGState::getChildren, x -> true);
+    removeUnReachableFrom(Collections.singleton(rootState), ARGState::getChildren, x -> true);
   }
 
   /**
@@ -134,12 +137,12 @@ public class ARGReachedSet {
         .filter(AbstractStates.IS_TARGET_STATE)
         .toList();
     if (!targetStates.isEmpty()) {
-      removeReachableFrom(targetStates,
+      removeUnReachableFrom(targetStates,
           ARGState::getParents, x -> x.wasExpanded());
     }
   }
 
-  private void removeReachableFrom(Collection<AbstractState> startStates,
+  private void removeUnReachableFrom(Collection<AbstractState> startStates,
       Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
       Predicate<ARGState> allowedToRemove) {
     Deque<AbstractState> toVisit = new ArrayDeque<>(startStates);
@@ -159,12 +162,13 @@ public class ARGReachedSet {
         toRemove.add((ARGState) inOldReached);
       }
     }
-    mReached.removeAll(toRemove);
     for (ARGState state : toRemove) {
       if (!state.isDestroyed()) {
+        removeCoverageOf(state);
         state.removeFromARG();
       }
     }
+    mReached.removeAll(toRemove);
   }
 
   /**
@@ -344,11 +348,13 @@ public class ARGReachedSet {
   }
 
   private void dumpSubgraph(ARGState e) {
-    if (cpa == null) {
+    if (cpa == null || !(cpa instanceof ARGCPA)) {
       return;
     }
 
-    ARGToDotWriter refinementGraph = cpa.getARGExporter().getRefinementGraphWriter();
+    ARGCPA argCpa = (ARGCPA) cpa;
+
+    ARGToDotWriter refinementGraph = argCpa.getARGExporter().getRefinementGraphWriter();
     if (refinementGraph == null) {
       return;
     }
@@ -376,7 +382,9 @@ public class ARGReachedSet {
       }
 
     } catch (IOException ex) {
-      cpa.getLogger().logUserException(Level.WARNING, ex, "Could not write refinement graph to file");
+      argCpa
+          .getLogger()
+          .logUserException(Level.WARNING, ex, "Could not write refinement graph to file");
     }
 
   }
@@ -384,18 +392,18 @@ public class ARGReachedSet {
   /**
    * Remove a set of elements from the ARG and reached set. There are no sanity checks.
    *
-   * The result will be a set of elements that need to be added to the waitlist
-   * to re-discover the removed elements. These are the parents of the removed
-   * elements which are not removed themselves. The set is sorted based on the
-   * relation defined by {@link ARGState#compareTo(ARGState)}), i.e., oldest-first.
+   * <p>The result will be a set of elements that need to be added to the waitlist to re-discover
+   * the removed elements. These are the parents of the removed elements which are not removed
+   * themselves. The set is sorted based on the relation defined by {@link
+   * ARGState#compareTo(ARGState)}), i.e., oldest-first.
    *
    * @param elements the elements to remove
    * @return the elements to re-add to the waitlist
    */
-  private SortedSet<ARGState> removeSet(Set<ARGState> elements) {
+  private NavigableSet<ARGState> removeSet(Set<ARGState> elements) {
     mReached.removeAll(elements);
 
-    SortedSet<ARGState> toWaitlist = new TreeSet<>();
+    NavigableSet<ARGState> toWaitlist = new TreeSet<>();
     for (ARGState ae : elements) {
       for (ARGState parent : ae.getParents()) {
         if (!elements.contains(parent)) {
@@ -527,23 +535,6 @@ public class ARGReachedSet {
     public ForwardingARGReachedSet(ARGReachedSet pReached) {
       super(pReached.mReached);
       delegate = pReached;
-    }
-
-    @Override
-    public UnmodifiableReachedSet asReachedSet() {
-      return delegate.asReachedSet();
-    }
-
-    @Override
-    public void removeSubtree(ARGState pE) {
-      delegate.removeSubtree(pE);
-    }
-
-    @Override
-    public void removeSubtree(
-        ARGState pE, Precision pP, Predicate<? super Precision> pPrecisionType)
-        throws InterruptedException {
-      delegate.removeSubtree(pE, pP, pPrecisionType);
     }
   }
 

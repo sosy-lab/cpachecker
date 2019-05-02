@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.abe;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-
-import java.util.Objects;
 
 /**
  * Intermediate class in ABE, which simply represents the formula between two
@@ -87,7 +86,7 @@ public class ABEIntermediateState<A extends ABEAbstractedState<A>> implements AB
 
   @Override
   public String toString() {
-    return pathFormula.toString() + "\nLength: " + pathFormula.getLength();
+    return pathFormula + "\nLength: " + pathFormula.getLength();
   }
 
   public PathFormula getPathFormula() {

@@ -59,6 +59,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
     return BAMBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
   }
 
+  @SuppressWarnings("resource")
   public static ARGBasedRefiner create0(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     BAMPredicateCPA predicateCpa =

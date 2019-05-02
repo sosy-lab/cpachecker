@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,12 +27,14 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 public class SMGJoinMapTargetAddressTest {
 
@@ -42,13 +44,13 @@ public class SMGJoinMapTargetAddressTest {
   private SMGNodeMapping mapping2;
 
   final SMGRegion obj1 = new SMGRegion(64, "ze label");
-  final Integer value1 = SMGValueFactory.getNewValue();
+  final SMGValue value1 = SMGKnownSymValue.of();
   final SMGEdgePointsTo edge1 = new SMGEdgePointsTo(value1, obj1, 0);
 
-  final Integer value2 = SMGValueFactory.getNewValue();
+  final SMGValue value2 = SMGKnownSymValue.of();
 
   final SMGObject destObj = new SMGRegion(64, "destination");
-  final Integer destValue = SMGValueFactory.getNewValue();
+  final SMGValue destValue = SMGKnownSymValue.of();
 
   @Before
   public void setUp() {
@@ -60,13 +62,13 @@ public class SMGJoinMapTargetAddressTest {
 
   @Test
   public void mapTargetAddressExistingNull() {
-    SMG origDestSMG = new SMG(destSMG);
+    UnmodifiableSMG origDestSMG = destSMG.copyOf();
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, SMG.NULL_ADDRESS, SMG.NULL_ADDRESS);
+    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, SMGZeroValue.INSTANCE, SMGZeroValue.INSTANCE);
     Assert.assertEquals(origDestSMG, mta.getSMG());
-    Assert.assertEquals(origMapping1, mta.getMapping1());
-    Assert.assertSame(SMG.NULL_ADDRESS, mta.getValue());
+    Assert.assertEquals(origMapping1, mta.mapping1);
+    Assert.assertSame(SMGZeroValue.INSTANCE, mta.getValue());
   }
 
   @Test
@@ -84,11 +86,11 @@ public class SMGJoinMapTargetAddressTest {
     mapping1.map(obj1, destObj);
 
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
-    SMG origDestSMG = new SMG(destSMG);
+    UnmodifiableSMG origDestSMG = destSMG.copyOf();
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, value1, value1);
     Assert.assertEquals(origDestSMG, mta.getSMG());
-    Assert.assertEquals(origMapping1, mta.getMapping1());
+    Assert.assertEquals(origMapping1, mta.mapping1);
     Assert.assertSame(destValue, mta.getValue());
   }
 
@@ -104,12 +106,12 @@ public class SMGJoinMapTargetAddressTest {
 
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
     SMGNodeMapping origMapping2 = new SMGNodeMapping(mapping2);
-    SMG origDestSMG = new SMG(destSMG);
+    UnmodifiableSMG origDestSMG = destSMG.copyOf();
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping2, value1, value2);
     Assert.assertNotEquals(origDestSMG, mta.getSMG());
-    Assert.assertNotEquals(origMapping1, mta.getMapping1());
-    Assert.assertNotEquals(origMapping2, mta.getMapping2());
+    Assert.assertNotEquals(origMapping1, mta.mapping1);
+    Assert.assertNotEquals(origMapping2, mta.mapping2);
 
     Assert.assertFalse(origDestSMG.getValues().contains(mta.getValue()));
 
@@ -117,7 +119,7 @@ public class SMGJoinMapTargetAddressTest {
     Assert.assertSame(destObj, newEdge.getObject());
     Assert.assertEquals(0, newEdge.getOffset());
 
-    Assert.assertSame(mta.getValue(), mta.getMapping1().get(value1));
-    Assert.assertSame(mta.getValue(), mta.getMapping2().get(value2));
+    Assert.assertSame(mta.getValue(), mta.mapping1.get(value1));
+    Assert.assertSame(mta.getValue(), mta.mapping2.get(value2));
   }
 }

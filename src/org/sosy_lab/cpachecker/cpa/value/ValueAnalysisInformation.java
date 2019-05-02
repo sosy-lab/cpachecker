@@ -26,8 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 import com.google.common.base.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -37,27 +36,19 @@ public class ValueAnalysisInformation {
 
   public static final ValueAnalysisInformation EMPTY = new ValueAnalysisInformation();
 
-  private final PersistentMap<MemoryLocation, Value> assignments;
-  private final PersistentMap<MemoryLocation, Type> locationTypes;
+  private final PersistentMap<MemoryLocation, ValueAndType> assignments;
 
   protected ValueAnalysisInformation(
-      final PersistentMap<MemoryLocation, Value> pAssignments,
-      final PersistentMap<MemoryLocation, Type> pLocationTypes) {
+      final PersistentMap<MemoryLocation, ValueAndType> pAssignments) {
     assignments = pAssignments;
-    locationTypes = pLocationTypes;
   }
 
   private ValueAnalysisInformation() {
     assignments = PathCopyingPersistentTreeMap.of();
-    locationTypes = PathCopyingPersistentTreeMap.of();
   }
 
-  public PersistentMap<MemoryLocation, Value> getAssignments() {
+  public PersistentMap<MemoryLocation, ValueAndType> getAssignments() {
     return assignments;
-  }
-
-  public PersistentMap<MemoryLocation, Type> getLocationTypes() {
-    return locationTypes;
   }
 
   @Override
@@ -70,16 +61,16 @@ public class ValueAnalysisInformation {
     }
 
     ValueAnalysisInformation that = (ValueAnalysisInformation) o;
-    return assignments.equals(that.assignments) && locationTypes.equals(that.locationTypes);
+    return assignments.equals(that.assignments);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(assignments, locationTypes);
+    return Objects.hashCode(assignments);
   }
 
   @Override
   public String toString() {
-    return "ValueInformation[" + assignments.toString() + "]";
+    return "ValueInformation[" + assignments + "]";
   }
 }

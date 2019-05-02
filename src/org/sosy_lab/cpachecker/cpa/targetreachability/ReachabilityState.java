@@ -27,9 +27,6 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingStat
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/**
- * TODO: this actually can be an enum.
- */
 public enum ReachabilityState implements AvoidanceReportingState {
 
   RELEVANT_TO_TARGET(true),

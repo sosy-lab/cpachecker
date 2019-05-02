@@ -117,12 +117,17 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
   @Override
   public BAMPredicateReducer getReducer() throws InvalidConfigurationException {
-    return new BAMPredicateReducer(
-        getSolver().getFormulaManager().getBooleanFormulaManager(), this, config);
+    return new BAMPredicateReducer(this, config);
   }
 
   @Override
   public void setPartitioning(BlockPartitioning partitioning) {
     blk.setPartitioning(partitioning);
+  }
+
+  public void clearAllCaches() {
+    getPredicateManager().clear();
+    relevantPredicatesComputer.clear();
+    getPathFormulaManager().clearCaches();
   }
 }

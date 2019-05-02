@@ -116,7 +116,7 @@ public interface RegionCreator {
    * Using this can be more efficient than calling {@link RegionCreator#makeOr(Region, Region)}
    * and {@link RegionCreator#makeAnd(Region, Region)} repeatedly.
    */
-  public static interface RegionBuilder extends AutoCloseable {
+  interface RegionBuilder extends AutoCloseable {
 
     /**
      * Start a new conjunctive clause.
@@ -145,6 +145,6 @@ public interface RegionCreator {
     Region getResult() throws InterruptedException;
 
     @Override
-    public void close();
+    void close();
   }
 }

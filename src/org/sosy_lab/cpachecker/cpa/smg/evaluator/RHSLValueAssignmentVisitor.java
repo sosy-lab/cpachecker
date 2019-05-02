@@ -43,7 +43,7 @@ class RHSLValueAssignmentVisitor extends LValueAssignmentVisitor {
     List<SMGAddressAndState> results = new ArrayList<>();
     for (SMGAddressAndState address : super.visit(pLValue)) {
       if (address.getObject().isUnknown()) {
-        address = SMGAddressAndState.of(address.getSmgState().setUnknownDereference());
+        address = SMGAddressAndState.of(address.getSmgState().withUnknownDereference());
       }
       results.add(address);
     }

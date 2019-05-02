@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.util.statistics;
 
 import java.io.PrintStream;
+import java.util.Optional;
+import java.util.function.Function;
 
 public class StatisticsWriter {
 
@@ -115,6 +117,22 @@ public class StatisticsWriter {
     if (condition) {
       put(name, value);
     }
+    return this;
+  }
+
+  public <T> StatisticsWriter putIfPresent(
+      Optional<T> subject, String name, Function<T, ?> valueProducer) {
+    subject.ifPresent(value -> put(name, valueProducer.apply(value)));
+    return this;
+  }
+
+  public <T> StatisticsWriter putIfPresent(
+      Optional<T> subject, Function<T, ? extends AbstractStatValue> valueProducer) {
+    return putIfPresent(subject.map(valueProducer));
+  }
+
+  public StatisticsWriter putIfPresent(Optional<? extends AbstractStatValue> stat) {
+    stat.ifPresent(this::put);
     return this;
   }
 

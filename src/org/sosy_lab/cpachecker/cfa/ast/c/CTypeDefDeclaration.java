@@ -44,8 +44,8 @@ public final class CTypeDefDeclaration extends CTypeDeclaration {
   }
 
   @Override
-  public String toASTString() {
-    return "typedef " + super.toASTString();
+  public String toASTString(boolean pQualified) {
+    return "typedef " + super.toASTString(pQualified);
   }
 
   @Override

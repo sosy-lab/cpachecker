@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import java.util.List;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 
@@ -81,10 +81,11 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(boolean pQualified) {
 
     StringBuilder astString = new StringBuilder("new ");
-    astString.append(getExpressionType().toASTString(getFunctionNameExpression().toASTString()));
+    astString.append(
+        getExpressionType().toASTString(getFunctionNameExpression().toASTString(pQualified)));
 
     return astString.toString();
   }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,7 +38,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
@@ -48,9 +48,9 @@ public class LocationCPA extends AbstractCPA
 
   private final LocationStateFactory stateFactory;
 
-  public LocationCPA(CFA pCfa, Configuration config) throws InvalidConfigurationException {
-    super("sep", "sep", null /* lazy initialization */);
-    stateFactory = new LocationStateFactory(pCfa, AnalysisDirection.FORWARD, config);
+  private LocationCPA(LocationStateFactory pStateFactory) {
+    super("sep", "sep", new LocationTransferRelation(pStateFactory));
+    stateFactory = pStateFactory;
 
     Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();
     if (cfaInfo.isPresent()) {
@@ -62,20 +62,24 @@ public class LocationCPA extends AbstractCPA
     return new LocationCPAFactory(AnalysisDirection.FORWARD);
   }
 
-  @Override
-  public TransferRelation getTransferRelation() {
-    return new LocationTransferRelation(stateFactory);
+  public static LocationCPA create(CFA pCFA, Configuration pConfig)
+      throws InvalidConfigurationException {
+    return new LocationCPA(new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig));
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public LocationState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return stateFactory.getState(pNode);
   }
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return pSuccessors.equals(
-        getTransferRelation()
-            .getAbstractSuccessorsForEdge(pElement, SingletonPrecision.getInstance(), pCfaEdge));
+    ImmutableSet<? extends AbstractState> successors = ImmutableSet.copyOf(pSuccessors);
+    ImmutableSet<? extends AbstractState> actualSuccessors =
+        ImmutableSet.copyOf(
+            getTransferRelation()
+                .getAbstractSuccessorsForEdge(
+                    pElement, SingletonPrecision.getInstance(), pCfaEdge));
+    return successors.equals(actualSuccessors);
   }
 }

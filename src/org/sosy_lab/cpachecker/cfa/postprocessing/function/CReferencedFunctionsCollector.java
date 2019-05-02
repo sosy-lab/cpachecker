@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
  * Helper class that collects all functions referenced by some CFAEdges,
@@ -112,9 +112,9 @@ class CReferencedFunctionsCollector {
     }
   }
 
-  static class CollectFunctionsVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
-      implements CRightHandSideVisitor<Void, RuntimeException>,
-          CStatementVisitor<Void, RuntimeException>, CInitializerVisitor<Void, RuntimeException> {
+  static class CollectFunctionsVisitor extends DefaultCExpressionVisitor<Void, NoException>
+      implements CRightHandSideVisitor<Void, NoException>,
+          CStatementVisitor<Void, NoException>, CInitializerVisitor<Void, RuntimeException> {
 
     final Set<String> collectedFunctions;
 

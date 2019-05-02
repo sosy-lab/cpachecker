@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
@@ -57,14 +58,18 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(boolean pQualified) {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(getType().toASTString(getName()));
+    if (pQualified) {
+      lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
+    } else {
+      lASTString.append(getType().toASTString(getName()));
+    }
 
     if (initializer != null) {
       lASTString.append(" = ");
-      lASTString.append(initializer.toASTString());
+      lASTString.append(initializer.toASTString(pQualified));
     }
 
     lASTString.append(";");

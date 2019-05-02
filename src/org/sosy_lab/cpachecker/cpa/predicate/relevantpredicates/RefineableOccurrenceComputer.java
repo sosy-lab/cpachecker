@@ -24,15 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableSetMultimap.Builder;
 import com.google.common.collect.Sets;
-
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-
-import java.util.Set;
-
 
 /**
  * Computes set of irrelevant predicates of a block by identifying the variables that do not occur in the block.
@@ -73,7 +69,8 @@ public class RefineableOccurrenceComputer extends OccurrenceComputer implements 
       return this;
     }
 
-    Builder<Block, AbstractionPredicate> builder = ImmutableSetMultimap.builder();
+    ImmutableSetMultimap.Builder<Block, AbstractionPredicate> builder =
+        ImmutableSetMultimap.builder();
     builder.putAll(definitelyRelevantPredicates);
     builder.putAll(block, newPreds);
     return new RefineableOccurrenceComputer(fmgr, builder.build());

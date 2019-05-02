@@ -23,15 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonSetVariable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-
 
 /**
  * Implements an Action with side-effects that has no return value.
@@ -60,14 +64,16 @@ abstract class AutomatonAction {
    * Logs a String when executed.
    */
   static class Print extends AutomatonAction {
-    private List<AutomatonExpression> toPrint;
+    protected final List<AutomatonExpression<?>> toPrint;
 
-    public Print(List<AutomatonExpression> pArgs) { toPrint = pArgs; }
+    public Print(List<AutomatonExpression<?>> pArgs) {
+      toPrint = pArgs;
+    }
 
     @Override
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
       // TODO: every action is computed twice (once here, once in eval)
-      for (AutomatonExpression expr : toPrint) {
+      for (AutomatonExpression<?> expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
         if (res.canNotEvaluate()) {
           return false;
@@ -75,9 +81,11 @@ abstract class AutomatonAction {
       }
       return true;
     }
-    @Override ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       StringBuilder sb = new StringBuilder();
-      for (AutomatonExpression expr : toPrint) {
+      for (AutomatonExpression<?> expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
         if (res.canNotEvaluate()) {
           return res;
@@ -85,11 +93,40 @@ abstract class AutomatonAction {
           sb.append(res.getValue().toString());
         }
       }
-      pArgs.appendToLogMessage(sb.toString());
+      print(pArgs, sb.toString());
       return defaultResultValue;
+    }
+
+    protected void print(AutomatonExpressionArguments pArgs, String s) {
+      pArgs.appendToLogMessage(s);
+    }
+
+    @Override
+    public String toString() {
+      return "PRINT \"" + Joiner.on("\" \"").join(toPrint) + "\"";
     }
   }
 
+  /** Logs a String when executed. Prints each String only once. */
+  static class PrintOnce extends Print {
+    private final Set<String> alreadyPrintedMessages = Sets.newConcurrentHashSet();
+
+    public PrintOnce(List<AutomatonExpression<?>> pArgs) {
+      super(pArgs);
+    }
+
+    @Override
+    protected void print(AutomatonExpressionArguments pArgs, String s) {
+      if (alreadyPrintedMessages.add(s)) {
+        pArgs.appendToLogMessage(s);
+      }
+    }
+
+    @Override
+    public String toString() {
+      return "PRINTONCE \"" + Joiner.on("\" \"").join(toPrint) + "\"";
+    }
+  }
 
   /** Assigns the value of a AutomatonIntExpr to a AutomatonVariable determined by its name.
    */
@@ -104,19 +141,24 @@ abstract class AutomatonAction {
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
       return ! var.eval(pArgs).canNotEvaluate();
     }
-    @Override  ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       ResultValue<Integer> res = var.eval(pArgs);
       if (res.canNotEvaluate()) {
         return res;
       }
       Map<String, AutomatonVariable> vars = pArgs.getAutomatonVariables();
       if (vars.containsKey(varId)) {
-        vars.get(varId).setValue(res.getValue());
+        AutomatonVariable automatonVariable = vars.get(varId);
+        if (automatonVariable instanceof AutomatonIntVariable) {
+          ((AutomatonIntVariable) automatonVariable).setValue(res.getValue());
+        } else {
+          throw new CPATransferException(
+              "Cannot assign integer expression to variable '" + automatonVariable.getName() + "'");
+        }
       } else {
-        AutomatonVariable newVar = new AutomatonVariable("int", varId);
-        newVar.setValue(res.getValue());
-        vars.put(varId, newVar);
-        pArgs.getLogger().log(Level.WARNING, "Defined a Variable " + varId + " that was unknown before (not set in automaton Definition).");
+        throw new CPATransferException("Automaton variable '" + varId + "' does not exist");
       }
       return defaultResultValue;
     }
@@ -124,6 +166,53 @@ abstract class AutomatonAction {
     @Override
     public String toString() {
       return String.format("DO %s=%s", varId, var);
+    }
+  }
+
+  /** Change the value of a AutomatonSetVariable by adding or removing values. */
+  static class SetAssignment extends AutomatonAction {
+    private final String varId;
+    private final boolean action;
+    private final String value;
+
+    public SetAssignment(String pVarId, String pValue, boolean pAction) {
+      this.varId = pVarId;
+      this.action = pAction;
+      this.value = pValue;
+    }
+
+    @Override
+    boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
+      return true;
+    }
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      Map<String, AutomatonVariable> vars = pArgs.getAutomatonVariables();
+      if (vars.containsKey(varId)) {
+        AutomatonVariable automatonVariable = vars.get(varId);
+        if (automatonVariable instanceof AutomatonSetVariable) {
+          String substitutedValue = pArgs.replaceVariables(value);
+          if (action) {
+            ((AutomatonSetVariable<?>) automatonVariable).add(substitutedValue);
+          } else {
+            ((AutomatonSetVariable<?>) automatonVariable).remove(substitutedValue);
+          }
+        } else {
+          throw new CPATransferException(
+              "Automaton variable '"
+                  + automatonVariable.getName()
+                  + "' cannot be used in set modifications");
+        }
+      } else {
+        throw new CPATransferException("Automaton variable '\" + varId + \"' does not exist");
+      }
+      return defaultResultValue;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("DO %s[%s]=%s", varId, value, action);
     }
   }
 
@@ -170,7 +259,7 @@ abstract class AutomatonAction {
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA (Element " + aqe.toString() + ") on Edge " + pArgs.getCfaEdge().getDescription());
+                  + cpaName + " CPA (Element " + aqe + ") on Edge " + pArgs.getCfaEdge().getDescription());
               return defaultResultValue; // try to carry on with the further evaluation
             }
           }

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-public interface LoopIterationReportingState extends AbstractState {
+public interface LoopIterationReportingState extends AbstractState, Partitionable {
 
   int getIteration(Loop pLoop);
 

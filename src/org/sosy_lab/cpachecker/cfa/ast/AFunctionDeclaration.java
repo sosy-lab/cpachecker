@@ -28,15 +28,18 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 
-
 public abstract class AFunctionDeclaration extends AbstractDeclaration {
 
   private static final long serialVersionUID = -4385134795747669972L;
   private final List<AParameterDeclaration> parameters;
 
-  public AFunctionDeclaration(FileLocation pFileLocation, IAFunctionType pType, String pName,
+  public AFunctionDeclaration(
+      FileLocation pFileLocation,
+      IAFunctionType pType,
+      String pName,
+      String pOrigName,
       List<? extends AParameterDeclaration> pParameters) {
-    super(pFileLocation, true, pType, pName, pName);
+    super(pFileLocation, true, pType, pName, pOrigName);
 
     parameters = ImmutableList.copyOf(pParameters);
   }
@@ -57,11 +60,7 @@ public abstract class AFunctionDeclaration extends AbstractDeclaration {
 
   @Override
   public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(parameters);
-    result = prime * result + super.hashCode();
-    return result;
+    return 31 * Objects.hashCode(parameters) + super.hashCode();
   }
 
   @Override

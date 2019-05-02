@@ -6,7 +6,7 @@ The CPAchecker Project uses the following mailing lists:
   https://groups.google.com/forum/#!forum/cpachecker-announce
 
 - CPAchecker-Users@googlegroups.com
-  User discussion, questions, solutions to common problems.
+  User discussion, questions, solutions to common problems, and bug reports.
   Members can post, anyone can join.
   https://groups.google.com/forum/#!forum/cpachecker-users
 

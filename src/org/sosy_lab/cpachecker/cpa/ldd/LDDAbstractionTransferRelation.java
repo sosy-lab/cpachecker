@@ -619,15 +619,17 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
   }
 
   /**
-   * Creates an LDDRegion for an assignment transformed to the given integer linear term and constant-
+   * Creates an LDDRegion for an assignment transformed to the given integer linear term and
+   * constant-
    *
-   * @param variables the integer linear term containing all the variable coefficients of the assignment expression.
+   * @param pVariables the integer linear term containing all the variable coefficients of the
+   *     assignment expression.
    * @param constant the constant part of the assignment expression.
    * @return the LDDRegion created for the assignment.
    */
-  private LDDRegion toConstantAssignmentRegion(Collection<String> variables, int constant) {
-    return this.regionManager.makeConstantAssignment(toIndexCoefficients(variables), this.variables.size(),
-        constant);
+  private LDDRegion toConstantAssignmentRegion(Collection<String> pVariables, int constant) {
+    return this.regionManager.makeConstantAssignment(
+        toIndexCoefficients(pVariables), this.variables.size(), constant);
   }
 
   /**
@@ -661,13 +663,13 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
    * Converts the given collection of variables into a collection of pairs of variable indices
    * and their coefficients, all of which are treated as 1.
    *
-   * @param variables the collection of variable names.
+   * @param pVariables the collection of variable names.
    * @return a collection of pairs of variable indices and their coefficients,
    * all of which are treated as 1.
    */
-  private Collection<Pair<Integer, Integer>> toIndexCoefficients(Collection<String> variables) {
+  private Collection<Pair<Integer, Integer>> toIndexCoefficients(Collection<String> pVariables) {
     Collection<Pair<Integer, Integer>> indexCoeffs = new ArrayList<>();
-    for (String variable : variables) {
+    for (String variable : pVariables) {
       indexCoeffs.add(Pair.of(this.variables.get(variable), 1));
     }
     return indexCoeffs;

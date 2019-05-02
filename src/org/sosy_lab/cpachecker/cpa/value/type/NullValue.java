@@ -97,6 +97,11 @@ public class NullValue implements Value {
   }
 
   @Override
+  public <T> T accept(ValueVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
+
+  @Override
   public boolean equals(Object other) {
 
     // all NullValue objects are equal

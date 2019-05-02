@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import java.io.PrintStream;
@@ -41,6 +40,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.logging.Level;
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
@@ -218,12 +218,12 @@ class JavaBDDRegionManager implements RegionManager {
   public void printStatistics(PrintStream out) {
     try {
       BDDFactory.GCStats stats = factory.getGCStats();
-      int cacheSize = readCacheSize();
+      int currentCacheSize = readCacheSize();
 
       writingStatisticsTo(out)
           .put("Number of BDD nodes", factory.getNodeNum())
           .put("Size of BDD node table", factory.getNodeTableSize())
-          .putIf(cacheSize >= 0, "Size of BDD cache", cacheSize)
+          .putIf(currentCacheSize >= 0, "Size of BDD cache", currentCacheSize)
           .put(cleanupQueueSize)
           .put(cleanupTimer)
           .put(

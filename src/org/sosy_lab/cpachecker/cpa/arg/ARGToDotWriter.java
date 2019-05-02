@@ -23,17 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -46,7 +47,7 @@ public class ARGToDotWriter {
 
   private final Appendable sb;
 
-  ARGToDotWriter(Appendable pSb) throws IOException {
+  public ARGToDotWriter(Appendable pSb) throws IOException {
     sb = pSb;
 
     sb.append("digraph ARG {\n");
@@ -83,8 +84,8 @@ public class ARGToDotWriter {
    * @param label A text to be show in the top left of the graph
    * @throws IOException Writing to sb failed
    */
-  public static void write(Appendable sb,
-      final Set<ARGState> states,String label) throws IOException {
+  public static void write(Appendable sb, final Collection<ARGState> states, String label)
+      throws IOException {
     ARGToDotWriter toDotWriter = new ARGToDotWriter(sb);
     for (ARGState state : states) {
       if (state.isDestroyed()) {
@@ -257,7 +258,7 @@ public class ARGToDotWriter {
     sb.append("}\n");
   }
 
-  void finish() throws IOException {
+  public void finish() throws IOException {
     sb.append("}\n");
   }
 

@@ -26,8 +26,7 @@ package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 import com.google.common.truth.Truth;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
@@ -331,20 +330,17 @@ public class RedundancyRemoverTest {
 
     ValueAnalysisState valState1 = new ValueAnalysisState(machineModel);
     NumericValue val1 = new NumericValue(1L);
-    valState1.assignConstant(MemoryLocation.valueOf("1"), val1, new CSimpleType(
-        false, false, CBasicType.INT, false, false, false, false, false, false, false));
+    valState1.assignConstant(MemoryLocation.valueOf("1"), val1, CNumericTypes.INT);
     //    Truth.assertThat(valueImpl.getAbstractValue(valState1, "1")).isEqualTo(val1); // TODO
 
     ValueAnalysisState valState2 = new ValueAnalysisState(machineModel);
     NumericValue val2 = new NumericValue(7L);
-    valState2.assignConstant(MemoryLocation.valueOf("x"), val2, new CSimpleType(
-        false, false, CBasicType.INT, false, false, false, false, false, false, false));
+    valState2.assignConstant(MemoryLocation.valueOf("x"), val2, CNumericTypes.INT);
     Truth.assertThat(valueImpl.getAbstractValue(valState2, "x")).isEqualTo(val2);
 
     ValueAnalysisState valState3 = new ValueAnalysisState(machineModel);
     Value val3 = Value.UnknownValue.getInstance();
-    valState3.assignConstant(MemoryLocation.valueOf("y"), val3, new CSimpleType(
-        false, false, CBasicType.INT, false, false, false, false, false, false, false));
+    valState3.assignConstant(MemoryLocation.valueOf("y"), val3, CNumericTypes.INT);
     Truth.assertThat(valueImpl.getAbstractValue(valState3, "y")).isEqualTo(val3);
   }
 

@@ -26,9 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 import static com.google.common.truth.Truth.assert_;
 
 import org.junit.Test;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.log.LogManager;
-
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 
 public class ConverterTest {
 
@@ -53,7 +52,7 @@ public class ConverterTest {
   private final LogManagerWithoutDuplicates logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
 
   @Test
-  public void test1() throws Exception {
+  public void test1() {
     Converter converter = new Converter();
     for (String line : LINES) {
       String converted = FormulaParser.convertFormula(converter, line, logger);

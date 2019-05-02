@@ -24,7 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
+import java.math.BigInteger;
+import java.util.Collection;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -45,22 +48,19 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.math.BigInteger;
-import java.util.Collection;
 
 /**
  * Visitor that derives further information from an assume edge
  */
 class AssigningValueVisitor extends ExpressionValueVisitor {
+
+  private ExpressionValueVisitor nonAssigningValueVisitor;
 
   private ValueAnalysisState assignableState;
 
@@ -80,6 +80,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       LogManagerWithoutDuplicates logger,
       ValueTransferOptions options) {
     super(state, functionName, machineModel, logger);
+    this.nonAssigningValueVisitor =
+        new ExpressionValueVisitor(state, functionName, machineModel, logger);
     this.assignableState = assignableState;
     this.booleans = booleanVariables;
     this.truthValue = truthValue;
@@ -97,15 +99,27 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   }
 
   @Override
-  public Value visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CBinaryExpression pE) throws UnrecognizedCodeException {
     BinaryOperator binaryOperator = pE.getOperator();
     CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
     CExpression rVarInBinaryExp = pE.getOperand2();
 
-    Value leftValue = lVarInBinaryExp.accept(this);
-    Value rightValue = rVarInBinaryExp.accept(this);
+    Value leftValue = lVarInBinaryExp.accept(this.nonAssigningValueVisitor);
+    Value rightValue = rVarInBinaryExp.accept(this.nonAssigningValueVisitor);
 
     if (isEqualityAssumption(binaryOperator)) {
+      if (leftValue.isExplicitlyKnown()) {
+        Number lNum = leftValue.asNumericValue().getNumber();
+        if (BigInteger.ONE.equals(lNum)) {
+          rVarInBinaryExp.accept(this);
+        }
+      } else if (rightValue.isExplicitlyKnown()) {
+        Number rNum = rightValue.asNumericValue().getNumber();
+        if (BigInteger.ONE.equals(rNum)) {
+          lVarInBinaryExp.accept(this);
+        }
+      }
+
       if (isEligibleForAssignment(leftValue)
           && rightValue.isExplicitlyKnown()
           && isAssignable(lVarInBinaryExp)) {
@@ -142,12 +156,11 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       }
     }
 
-    return super.visit(pE);
+    return this.nonAssigningValueVisitor.visit(pE);
   }
 
   private boolean isEligibleForAssignment(final Value pValue) {
-    return pValue.isUnknown()
-        || (!pValue.isExplicitlyKnown() && options.isAssignSymbolicAssumptionVars());
+    return pValue.isUnknown() && options.isAssignEqualityAssumptions();
   }
 
   private void assignConcreteValue(
@@ -155,25 +168,9 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       final Value pOldValue,
       final Value pNewValue,
       final CType pValueType)
-      throws UnrecognizedCCodeException {
-    if (pOldValue instanceof SymbolicValue) {
-      SymbolicIdentifier id = null;
-
-      if (pOldValue instanceof SymbolicIdentifier) {
-        id = (SymbolicIdentifier) pOldValue;
-      } else if (pOldValue instanceof ConstantSymbolicExpression) {
-        Value innerVal = ((ConstantSymbolicExpression) pOldValue).getValue();
-
-        if (innerVal instanceof SymbolicValue) {
-          assert innerVal instanceof SymbolicIdentifier;
-          id = (SymbolicIdentifier) innerVal;
-        }
-      }
-
-      if (id != null) {
-        assignableState.assignConstant(id, pNewValue);
-      }
-    }
+      throws UnrecognizedCodeException {
+    checkState(!(pOldValue instanceof SymbolicValue),
+        "Symbolic values should never be replaced by a concrete value");
 
     assignableState.assignConstant(getMemoryLocation(pVarInBinaryExp), pNewValue, pValueType);
   }
@@ -202,8 +199,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
     JExpression rVarInBinaryExp = pE.getOperand2();
 
-    Value leftValueV = lVarInBinaryExp.accept(this);
-    Value rightValueV = rVarInBinaryExp.accept(this);
+    Value leftValueV = lVarInBinaryExp.accept(this.nonAssigningValueVisitor);
+    Value rightValueV = rVarInBinaryExp.accept(this.nonAssigningValueVisitor);
 
     if ((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue)
         || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
@@ -267,7 +264,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     }
   }
 
-  private MemoryLocation getMemoryLocation(CExpression pLValue) throws UnrecognizedCCodeException {
+  private MemoryLocation getMemoryLocation(CExpression pLValue) throws UnrecognizedCodeException {
     ExpressionValueVisitor v = getVisitor();
     assert pLValue instanceof CLeftHandSide;
     return checkNotNull(v.evaluateMemoryLocation(pLValue));
@@ -290,7 +287,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     return false;
   }
 
-  private boolean isAssignable(CExpression expression) throws UnrecognizedCCodeException {
+  private boolean isAssignable(CExpression expression) throws UnrecognizedCodeException {
 
     if (expression instanceof CIdExpression) {
       return true;

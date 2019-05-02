@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -80,10 +82,21 @@ public class ControlAutomatonCPA
       description="export automaton to file")
   private boolean export = false;
 
-  @Option(secure=true, name="dotExportFile",
-      description="file for saving the automaton in DOT format (%s will be replaced with automaton name)")
+  @Option(
+      secure = true,
+      name = "dotExportFile",
+      description =
+          "file for saving the automaton in DOT format (%s will be replaced with automaton name)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate exportFile = PathTemplate.ofFormatString("%s.dot");
+  private PathTemplate dotExportFile = PathTemplate.ofFormatString("%s.dot");
+
+  @Option(
+      secure = true,
+      name = "spcExportFile",
+      description =
+          "file for saving the automaton in spc format (%s will be replaced with automaton name)")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate spcExportFile = PathTemplate.ofFormatString("%s.spc");
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
@@ -139,23 +152,33 @@ public class ControlAutomatonCPA
       throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
-      this.automaton = constructAutomataFromFile(pConfig, pLogger, inputFile, pCFA);
+      this.automaton = constructAutomataFromFile(pConfig, inputFile);
     }
 
     pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
-    if (export && exportFile != null) {
-      try (Writer w =
-          IO.openOutputFile(exportFile.getPath(automaton.getName()), Charset.defaultCharset())) {
-        automaton.writeDotFile(w);
-      } catch (IOException e) {
-        pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+    if (export) {
+      if (dotExportFile != null) {
+        try (Writer w =
+            IO.openOutputFile(
+                dotExportFile.getPath(automaton.getName()), Charset.defaultCharset())) {
+          automaton.writeDotFile(w);
+        } catch (IOException e) {
+          pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+        }
+      }
+      if (spcExportFile != null) {
+        try {
+          IO.writeFile(
+              spcExportFile.getPath(automaton.getName()), Charset.defaultCharset(), automaton);
+        } catch (IOException e) {
+          pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to SPC file");
+        }
       }
     }
   }
 
-  private Automaton constructAutomataFromFile(
-      Configuration pConfig, LogManager logger, Path pFile, CFA cfa)
+  private Automaton constructAutomataFromFile(Configuration pConfig, Path pFile)
       throws InvalidConfigurationException {
 
     Scope scope = cfa.getLanguage() == Language.C
@@ -219,7 +242,7 @@ public class ControlAutomatonCPA
 
   @Override
   public StopOperator getStopOperator() {
-    return new StopSepOperator(getAbstractDomain());
+      return new StopSepOperator(getAbstractDomain());
   }
 
   @Override
@@ -242,11 +265,22 @@ public class ControlAutomatonCPA
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return pSuccessors.equals(getTransferRelation().getAbstractSuccessorsForEdge(
-        pElement, SingletonPrecision.getInstance(), pCfaEdge));
+    ImmutableSet<? extends AbstractState> successors = ImmutableSet.copyOf(pSuccessors);
+    ImmutableSet<? extends AbstractState> actualSuccessors =
+        ImmutableSet.copyOf(
+            getTransferRelation()
+                .getAbstractSuccessorsForEdge(
+                    pElement, SingletonPrecision.getInstance(), pCfaEdge));
+    return successors.equals(actualSuccessors);
   }
 
   boolean isTreatingErrorsAsTargets() {
     return treatErrorsAsTargets;
+  }
+
+  @Override
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
+    return new AutomatonPrecision(automaton);
   }
 }

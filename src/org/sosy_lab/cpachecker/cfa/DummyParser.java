@@ -23,14 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.io.IOException;
 import java.util.List;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * For all languages, where parsing of single or blocks of statements is not yet implemented,
@@ -47,15 +44,13 @@ public class DummyParser implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(String pFilename)
-      throws ParserException, IOException, InterruptedException {
+  public ParseResult parseFile(String pFilename) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public ParseResult parseString(
-      String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
-      throws CParserException {
+      String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope) {
     throw new UnsupportedOperationException();
   }
 
@@ -70,25 +65,23 @@ public class DummyParser implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames)
-      throws CParserException, IOException, InterruptedException {
+  public ParseResult parseFile(List<String> pFilenames) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public ParseResult parseString(
-      List<FileContentToParse> pCode, CSourceOriginMapping pSourceOriginMapping)
-      throws CParserException {
+      List<FileContentToParse> pCode, CSourceOriginMapping pSourceOriginMapping) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode, Scope pScope) throws CParserException {
+  public CAstNode parseSingleStatement(String pCode, Scope pScope) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode, Scope pScope) throws CParserException {
+  public List<CAstNode> parseStatements(String pCode, Scope pScope) {
     throw new UnsupportedOperationException();
   }
 }

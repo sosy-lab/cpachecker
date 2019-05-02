@@ -26,12 +26,11 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 public interface JStatementVisitor<R, X extends Exception> {
 
-  public R visit(JExpressionAssignmentStatement pAExpressionAssignmentStatement) throws X;
+  R visit(JExpressionAssignmentStatement pAExpressionAssignmentStatement) throws X;
 
-  public R visit(JExpressionStatement pAExpressionStatement) throws X;
+  R visit(JExpressionStatement pAExpressionStatement) throws X;
 
-  public R visit(JMethodInvocationAssignmentStatement pAFunctionCallAssignmentStatement)throws X;
+  R visit(JMethodInvocationAssignmentStatement pAFunctionCallAssignmentStatement) throws X;
 
-  public R visit(JMethodInvocationStatement pAFunctionCallStatement) throws X;
-
+  R visit(JMethodInvocationStatement pAFunctionCallStatement) throws X;
 }

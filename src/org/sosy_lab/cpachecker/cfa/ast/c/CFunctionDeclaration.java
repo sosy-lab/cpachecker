@@ -43,7 +43,16 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
   public CFunctionDeclaration(FileLocation pFileLocation,
       CFunctionType pType, String pName,
       List<CParameterDeclaration> parameters) {
-    super(pFileLocation, pType, checkNotNull(pName), parameters);
+    super(pFileLocation, pType, checkNotNull(pName), pName, parameters);
+  }
+
+  public CFunctionDeclaration(
+      FileLocation pFileLocation,
+      CFunctionType pType,
+      String pName,
+      String pOrigName,
+      List<CParameterDeclaration> parameters) {
+    super(pFileLocation, pType, checkNotNull(pName), checkNotNull(pOrigName), parameters);
   }
 
   @Override
@@ -59,9 +68,7 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
 
   @Override
   public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
+    return super.hashCode();
   }
 
   @Override

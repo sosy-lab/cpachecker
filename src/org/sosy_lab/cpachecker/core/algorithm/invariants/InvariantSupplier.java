@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import java.util.Optional;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
 
 public interface InvariantSupplier {
 
@@ -62,7 +61,7 @@ public interface InvariantSupplier {
       @Nullable PathFormula pContext)
       throws InterruptedException;
 
-  static enum TrivialInvariantSupplier implements InvariantSupplier {
+  enum TrivialInvariantSupplier implements InvariantSupplier {
     INSTANCE;
 
     @Override

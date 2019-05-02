@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -39,24 +39,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.ProgramCounterValueAssumeEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.logging.Level;
-
-@Options(prefix="cpa.callstack")
 public class CallstackTransferRelationBackwards extends CallstackTransferRelation {
 
-  public CallstackTransferRelationBackwards(Configuration pConfig, LogManager pLogger)
-      throws InvalidConfigurationException {
-    super(pConfig, pLogger);
+  public CallstackTransferRelationBackwards(CallstackOptions pOptions, LogManager pLogger) {
+    super(pOptions, pLogger);
   }
 
   @Override
@@ -82,10 +75,11 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
         AExpression functionNameExp = ((AFunctionCall)edge.getStatement()).getFunctionCallExpression().getFunctionNameExpression();
         if (functionNameExp instanceof AIdExpression) {
           String functionName = ((AIdExpression)functionNameExp).getName();
-          if (unsupportedFunctions.contains(functionName)) {
-            throw new UnrecognizedCodeException(
-                "Unsupported feature: " + unsupportedFunctions,
-                edge, edge.getStatement());
+              if (options.getUnsupportedFunctions().contains(functionName)) {
+                throw new UnrecognizedCodeException(
+                    "Unsupported feature: " + options.getUnsupportedFunctions(),
+                    edge,
+                    edge.getStatement());
           }
         }
       }
@@ -100,18 +94,11 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
       break;
     }
 
-    case AssumeEdge: {
-      if (pEdge instanceof ProgramCounterValueAssumeEdge) {
-        throw new UnsupportedCCodeException("ProgramCounterValueAssumeEdge not yet supported for the backwards analysis!", pEdge);
-      }
-      break;
-    }
-
     case FunctionReturnEdge: {
       FunctionReturnEdge edge = (FunctionReturnEdge) pEdge;
       CFANode correspondingCallNode = edge.getSummaryEdge().getPredecessor();
         if (hasRecursion(e, nextAnalysisFunction)) {
-          if (skipRecursion) {
+            if (options.skipRecursion()) {
             logger.logOnce(
                 Level.WARNING, "Skipping recursive function call from",
                 prevAnalysisFunction, "to", nextAnalysisFunction);
@@ -119,7 +106,7 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
             return Collections.emptySet();
           } else {
             logger.log(Level.INFO, "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the command line.");
-            throw new UnsupportedCCodeException("recursion", pEdge);
+              throw new UnsupportedCodeException("recursion", pEdge);
           }
 
         } else {
@@ -131,12 +118,14 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
       }
 
     case FunctionCallEdge: {
-        // FIXME: Actually, during backwards analysis you always have wildcard
-        // states, because you never know where you "came from",
-        // and obviously, there is some handling of that situation below,
-        // see "if (nextStackState == null) { ...".
-        if (isWildcardState(e, AnalysisDirection.BACKWARD)) {
-          throw new UnsupportedCCodeException("ARTIFICIAL_PROGRAM_COUNTER not yet supported for the backwards analysis!", pEdge);
+          // FIXME: Actually, during backwards analysis you always have wildcard
+          // states, because you never know where you "came from",
+          // and obviously, there is some handling of that situation below,
+          // see "if (nextStackState == null) { ...".
+          // FIXME: ARTIFICIAL_PROGRAM_COUNTER does not even exist anymore
+          if (isWildcardState(e, AnalysisDirection.BACKWARD)) {
+            throw new UnsupportedCodeException(
+                "ARTIFICIAL_PROGRAM_COUNTER not yet supported for the backwards analysis!", pEdge);
         }
         Collection<CallstackState> result;
 

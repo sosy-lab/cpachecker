@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -176,7 +177,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
     // this map contains all done states with their last important state
     // a state is important, if any outgoing edge is important
-    final Multimap<ARGState, ARGState> s2s = HashMultimap.create(block.size(), 1);
+    final SetMultimap<ARGState, ARGState> s2s = HashMultimap.create(block.size(), 1);
 
     // bfs for parents, visit each state once.
     // we use a list for the next states,
@@ -230,11 +231,14 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     return s2v.get(start);
   }
 
-  /** This function handles all outgoing edges of the current state.
-   * Their important vars are joined and returned. */
-  private Collection<String> handleEdgesForState(ARGState current,
+  /**
+   * This function handles all outgoing edges of the current state. Their important vars are joined
+   * and returned.
+   */
+  private Collection<String> handleEdgesForState(
+      ARGState current,
       Map<ARGState, Collection<String>> s2v,
-      Multimap<ARGState, ARGState> s2s,
+      SetMultimap<ARGState, ARGState> s2s,
       Set<ARGState> block,
       final Multimap<ARGState, ARGState> importantEdges) {
 
@@ -300,8 +304,10 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   }
 
   /** checks, if an assumption has no important edge until the branches join. */
-  private boolean isAssumptionWithSameImpChild(final List<ARGState> usedChildren,
-      final ARGState current, final Multimap<ARGState, ARGState> s2s) {
+  private boolean isAssumptionWithSameImpChild(
+      final List<ARGState> usedChildren,
+      final ARGState current,
+      final SetMultimap<ARGState, ARGState> s2s) {
     if (usedChildren.size() == 2) {
       final ARGState child1 = usedChildren.get(0);
       final ARGState child2 = usedChildren.get(1);

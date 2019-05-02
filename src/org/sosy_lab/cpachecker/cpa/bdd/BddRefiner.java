@@ -56,7 +56,7 @@ public abstract class BddRefiner implements Refiner {
     bddCpa.injectRefinablePrecision();
 
     final StrongestPostOperator<ValueAnalysisState> strongestPostOperator =
-        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.defaultConfiguration(), cfa);
 
     final FeasibilityChecker<ValueAnalysisState> feasibilityChecker =
         new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);

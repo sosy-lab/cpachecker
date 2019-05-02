@@ -57,11 +57,11 @@ public final class JFieldAccess extends JIdExpression {
   }
 
   @Override
-  public String toASTString() {
-    //TODO Change to something simpler.
+  public String toASTString(boolean pQualified) {
+    // TODO Change to something simpler.
     // It seems some CPAs depend on this method for
     // getting variable names, investigate and change
-      return super.toASTString();
+    return super.toASTString(pQualified);
   }
 
   /* (non-Javadoc)

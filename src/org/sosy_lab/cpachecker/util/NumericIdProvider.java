@@ -82,7 +82,7 @@ public class NumericIdProvider {
         }
       }
     }
-    assert !usedIds.contains(id);
+    assert id != null && !usedIds.contains(id);
     mappedIds.put(pId, id);
     usedIds.add(Range.open(id - 1, id + 1));
     return id;

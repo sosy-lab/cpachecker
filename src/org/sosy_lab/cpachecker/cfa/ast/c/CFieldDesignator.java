@@ -44,13 +44,18 @@ public class CFieldDesignator extends CDesignator {
   }
 
   @Override
+  public String toASTString(boolean pQualified) {
+    return toASTString();
+  }
+
+  @Override
   public String toASTString() {
     return "."  + name;
   }
 
   @Override
-  public String toParenthesizedASTString() {
-    return toASTString();
+  public String toParenthesizedASTString(boolean pQualified) {
+    return toASTString(pQualified);
   }
 
   @Override

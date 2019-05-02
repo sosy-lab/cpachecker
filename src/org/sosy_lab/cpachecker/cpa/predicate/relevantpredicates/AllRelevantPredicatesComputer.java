@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-
-import java.util.Collection;
 
 /**
  * This is a dummy computer, that considers all predicates as relevant.
@@ -43,8 +44,12 @@ public class AllRelevantPredicatesComputer implements RelevantPredicatesComputer
   private AllRelevantPredicatesComputer() {}
 
   @Override
-  public Collection<AbstractionPredicate> getRelevantPredicates(
+  public Set<AbstractionPredicate> getRelevantPredicates(
       Block pContext, Collection<AbstractionPredicate> pPredicates) {
-    return pPredicates;
+    return ImmutableSet.copyOf(pPredicates);
+  }
+
+  @Override
+  public void clear() {
   }
 }

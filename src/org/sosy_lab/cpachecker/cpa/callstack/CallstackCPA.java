@@ -23,18 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -45,27 +40,25 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class CallstackCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
-  private final CFA cfa;
+  private final CallstackOptions options;
+  private final LogManager logger;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(CallstackCPA.class);
   }
 
-  public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
-    super("sep", "sep",
-        new DomainInitializer(config).initializeDomain(),
-        new TransferInitializer(config).initializeTransfer(config, pLogger));
-    this.cfa = pCFA;
+  public CallstackCPA(Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
+    super("sep", "sep", null);
+    logger = pLogger;
+    options = new CallstackOptions(config);
   }
 
   @Override
@@ -75,22 +68,6 @@ public class CallstackCPA extends AbstractCPA
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    if (cfa.getLoopStructure().isPresent()) {
-      LoopStructure loopStructure = cfa.getLoopStructure().get();
-      Collection<Loop> artificialLoops = loopStructure.getLoopsForFunction(
-          CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
-
-      if (!artificialLoops.isEmpty()) {
-        Loop singleLoop = Iterables.getOnlyElement(artificialLoops);
-        if (singleLoop.getLoopNodes().contains(pNode)) {
-          return new CallstackState(
-              null,
-              CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME,
-              pNode
-          );
-        }
-      }
-    }
     return new CallstackState(null, pNode.getFunctionName(), pNode);
   }
 
@@ -118,8 +95,8 @@ public class CallstackCPA extends AbstractCPA
 
   @Override
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
-    return (getAbstractDomain().isLessOrEqual(pElement, pOtherElement)) || ((CallstackState) pElement)
-        .sameStateInProofChecking((CallstackState) pOtherElement);
+    return getAbstractDomain().isLessOrEqual(pElement, pOtherElement)
+        || ((CallstackState) pElement).sameStateInProofChecking((CallstackState) pOtherElement);
   }
 
   @Override
@@ -129,46 +106,29 @@ public class CallstackCPA extends AbstractCPA
         .equals(new CallstackStateEqualsWrapper((CallstackState) state2));
   }
 
-  @Options(prefix = "cpa.callstack")
-  private static class DomainInitializer {
-
-    @Option(secure = true, name = "domain", toUppercase = true, values = { "FLAT", "FLATPCC" },
-        description = "which abstract domain to use for callstack cpa, typically FLAT which is faster since it uses only object equivalence")
-    private String domainType = "FLAT";
-
-    public DomainInitializer(Configuration pConfig) throws InvalidConfigurationException {
-      pConfig.inject(this);
-    }
-
-    public AbstractDomain initializeDomain() throws InvalidConfigurationException {
-      switch (domainType) {
+  @Override
+  public AbstractDomain getAbstractDomain() {
+    switch (options.getDomainType()) {
       case "FLAT":
         return new FlatLatticeDomain();
       case "FLATPCC":
         return new CallstackPCCAbstractDomain();
       default:
-        throw new InvalidConfigurationException("Unknown domain type for callstack cpa.");
-      }
+        // InvalidCongifurationException already thrown by ConfigurationOption due to values-field
+        throw new AssertionError("Unknown domain type for callstack cpa.");
     }
   }
 
-  @Options(prefix = "cpa.callstack")
-  private static class TransferInitializer {
-
-    @Option(description="analyse the CFA backwards", secure=true)
-    private boolean traverseBackwards = false;
-
-    public TransferInitializer(Configuration pConfig) throws InvalidConfigurationException {
-      pConfig.inject(this);
-    }
-
-    public TransferRelation initializeTransfer(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
-      if (traverseBackwards) {
-        return new CallstackTransferRelationBackwards(pConfig, pLogger);
-      } else {
-        return new CallstackTransferRelation(pConfig, pLogger);
-      }
+  @Override
+  public CallstackTransferRelation getTransferRelation() {
+    if (options.traverseBackwards()) {
+      return new CallstackTransferRelationBackwards(options, logger);
+    } else {
+      return new CallstackTransferRelation(options, logger);
     }
   }
 
+  public CallstackOptions getOptions() {
+    return options;
+  }
 }

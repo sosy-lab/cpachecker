@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,12 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
+import org.junit.Ignore;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTLiteralConverter.Suffix;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.Triple;
 
 public class ASTConverterTest {
 
@@ -108,6 +118,30 @@ public class ASTConverterTest {
     converter32.parseCharacterLiteral("'\\xGG'", null);
   }
 
+  @Test
+  public final void testInvalidIntegerExpressions() {
+    ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
+    ImmutableList<String> invalidValues =
+        ImmutableList.<String>of(
+            "18446744073709551617u",
+            "36893488147419103232",
+            "36893488147419103232u",
+            "100020003000400050006000700080009000u");
+
+    for (ASTLiteralConverter c : converters) {
+      for (String s : invalidValues) {
+        try {
+          c.parseIntegerLiteral(FileLocation.DUMMY, s, null);
+          fail();
+        } catch (CFAGenerationRuntimeException e) {
+          assertThat(e.getMessage())
+              .contains(
+                  "Integer value is too large to be represented by the highest possible type (unsigned long long int):");
+        }
+      }
+    }
+  }
+
   private String parseIntegerExpression32(String s) {
     return parseIntegerExpression(s, converter32);
   }
@@ -117,8 +151,8 @@ public class ASTConverterTest {
   }
 
   private String parseIntegerExpression(String pExpression, ASTLiteralConverter pConverter) {
-    Suffix suffix = pConverter.determineSuffix(pExpression, null);
-    return pConverter.parseIntegerLiteral(suffix, pExpression.substring(0, pExpression.length() - suffix.getLength()), null).toString();
+    CLiteralExpression exp = pConverter.parseIntegerLiteral(FileLocation.DUMMY, pExpression, null);
+    return ((CIntegerLiteralExpression) exp).getValue().toString();
   }
 
   @Test
@@ -142,28 +176,24 @@ public class ASTConverterTest {
     check("4000000000", "4000000000u");
 
     check("18446744073709551600", "0xfffffffffffffff0u");
-    check("-16",                  "0xfffffffffffffff0");
+    check("18446744073709551600", "0xfffffffffffffff0");
 
-    check( "9223372036854775807", "9223372036854775807");
-    check( "9223372036854775807", "0x7FFFFFFFFFFFFFFF");
-    check("-9223372036854775808", "9223372036854775808");
-    check("-9223372036854775808", "0x8000000000000000");
-    check( "9223372036854775808", "9223372036854775808u");
-    check( "9223372036854775808", "0x8000000000000000u");
+    check("9223372036854775807", "9223372036854775807");
+    check("9223372036854775807", "0x7FFFFFFFFFFFFFFF");
+    check("9223372036854775808", "9223372036854775808");
+    check("9223372036854775808", "0x8000000000000000");
+    check("9223372036854775808", "9223372036854775808u");
+    check("9223372036854775808", "0x8000000000000000u");
     check("18446744073709551615", "18446744073709551615u");
     check("18446744073709551615", "0xFFFFFFFFFFFFFFFFu");
     check("18446711088360718336", "0xffffe20000000000U");
     check("18446604435732824064", "0xffff810000000000U");
 
-    check("-1", "0xFFFFFFFFFFFFFFFF");
-    check("1", "18446744073709551617u");
-    check("0", "36893488147419103232");
-    check("0", "36893488147419103232u");
-    check("5563120682049744680", "100020003000400050006000700080009000u");
+    check("18446744073709551615", "0xFFFFFFFFFFFFFFFF");
   }
 
   private void check(String expected, String input) {
-    // constant integers are always extended to the smllest matching type.
+    // constant integers are always extended to the smallest matching type.
     // thus the result is always identical for L and LL
     for (String postfix : ImmutableList.of("", "l", "ll", "L", "LL", "lL", "Ll")) {
       assertEquals(expected, parseIntegerExpression32(input + postfix));
@@ -171,4 +201,61 @@ public class ASTConverterTest {
     }
   }
 
+  @Test
+  public final void testValidFloatExpressions() {
+    ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
+
+    ImmutableList<Triple<String, String, CType>> input_output =
+        ImmutableList.of(
+            // Triples consist of: input value, expected output, input type for CLiteralExpression
+            Triple.of("0", "0.0", CNumericTypes.DOUBLE),
+            Triple.of("-0", "0.0", CNumericTypes.DOUBLE),
+            Triple.of("0xf", "15.0", CNumericTypes.DOUBLE),
+            Triple.of("5e2f", "500.0", CNumericTypes.FLOAT),
+            Triple.of("5e+2f", "500.0", CNumericTypes.FLOAT),
+            Triple.of("0x5e2f", "24111.0", CNumericTypes.FLOAT),
+            Triple.of("0x5e-2f", "94.0", CNumericTypes.FLOAT),
+            Triple.of(
+                "3.41E+38", "341000000000000000445911848520865808384.0", CNumericTypes.DOUBLE));
+
+    for (ASTLiteralConverter converter : converters) {
+      for (Triple<String, String, CType> triple : input_output) {
+        String inputValue = triple.getFirst();
+        String expectedValue = triple.getSecond();
+        CType inputType = triple.getThird();
+
+        CFloatLiteralExpression literal =
+            (CFloatLiteralExpression)
+                converter.parseFloatLiteral(FileLocation.DUMMY, inputType, inputValue, null);
+
+        assertEquals(expectedValue, literal.getValue().toString());
+        assertTrue(inputType == literal.getExpressionType());
+      }
+    }
+  }
+
+  // Enable this test once BigDecimals are replaced by CFloats in CFloatLiteralExpression-class
+  // (and subsequently, when the ASTLiteralConverter#adjustPrecision() got removed)
+  @Ignore
+  public final void testInvalidFloatExpressions() {
+    ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
+
+    ImmutableList<String> values =
+        ImmutableList.of(
+            "3.41e+38f", "-4.2e+38f", "1.8e+308", "-2.3e+308", "1.2e+4932l", "-1.2e+4932l");
+
+    for (ASTLiteralConverter converter : converters) {
+      for (String value : values) {
+        try {
+          converter.parseFloatLiteral(FileLocation.DUMMY, null, value, null);
+          fail("Failed because of value: " + value);
+        } catch (CFAGenerationRuntimeException e) {
+          assertThat(e.getMessage())
+              .isAnyOf(
+                  "unable to parse floating point literal (inf)",
+                  "unable to parse floating point literal (-inf)");
+        }
+      }
+    }
+  }
 }

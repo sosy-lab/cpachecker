@@ -56,10 +56,11 @@ class LocationCPAFactory extends AbstractCPAFactory {
     checkNotNull(cfa, "CFA instance needed to create LocationCPA");
 
     switch (locationType) {
-    case BACKWARD:
-      return new LocationCPABackwards(cfa, getConfiguration());
-    default:
-      return new LocationCPA(cfa, getConfiguration());
+      case BACKWARD:
+        return LocationCPABackwards.create(cfa, getConfiguration());
+      case FORWARD:
+        return LocationCPA.create(cfa, getConfiguration());
     }
+    throw new AssertionError();
   }
 }

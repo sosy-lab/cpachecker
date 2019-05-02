@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class CFunctionCallStatement extends AFunctionCallStatement implements CStatement, CFunctionCall {
+public class CFunctionCallStatement extends AFunctionCallStatement implements CStatement, CFunctionCall {
 
 
 

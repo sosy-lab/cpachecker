@@ -1,4 +1,7 @@
 <FindBugsFilter>
+    <!-- SpotBugs does not support @org.checkerframework.checker.nullness.qual.Nullable
+         (cf. https://github.com/spotbugs/spotbugs/issues/643) -->
+    <Match><Bug code="NP,RCN"/></Match>
     <Match><And>
         <!-- PackageSanityTest wants @Nullable on equals(Object) parameter,
              SpotBugs does not. -->
@@ -7,6 +10,8 @@
     </And></Match>
     <!-- Error-prone checks this, too, and SpotBugs does not know @CanIgnoreReturnValue. -->
     <Match><Bug pattern="RV_RETURN_VALUE_IGNORED"/></Match>
+    <!-- Exclude AutoValue classes -->
+    <Match><Class name="~.*\.AutoValue_.*"/></Match>
 
     <Match><And>
         <!-- Many constructors read fields that are written via reflection. -->
@@ -24,6 +29,10 @@
           <Bug pattern="SF_SWITCH_FALLTHROUGH"/>
           <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD"/>
         </Or>
+    </Match>
+    <Match>
+        <!-- Ignore Antlr-generated files. -->
+        <Package name="org.sosy_lab.cpachecker.util.ltl.generated"/>
     </Match>
 
     <Match><And>

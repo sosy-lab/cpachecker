@@ -25,46 +25,14 @@ package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class AssumptionStorageDomain implements AbstractDomain {
 
-  private final FormulaManagerView formulaManager;
-  private final BooleanFormulaManagerView bfmgr;
-
-  public AssumptionStorageDomain(
-      FormulaManagerView pFormulaManager) {
-    formulaManager = pFormulaManager;
-    bfmgr = formulaManager.getBooleanFormulaManager();
-  }
+  public AssumptionStorageDomain() {}
 
   @Override
   public AbstractState join(AbstractState pElement1, AbstractState pElement2) {
-
-    AssumptionStorageState storageElement1= (AssumptionStorageState)pElement1;
-    AssumptionStorageState storageElement2 = (AssumptionStorageState)pElement2;
-
-    // create the disjunction of the stop formulas
-    // however, if one of them is true, we would loose the information from the other
-    // so handle these special cases separately
-    BooleanFormula stopFormula1 = storageElement1.getStopFormula();
-    BooleanFormula stopFormula2 = storageElement2.getStopFormula();
-    BooleanFormula newStopFormula;
-    if (bfmgr.isTrue(stopFormula1)) {
-      newStopFormula = stopFormula2;
-    } else if (bfmgr.isTrue(stopFormula2)) {
-      newStopFormula = stopFormula1;
-    } else {
-      newStopFormula = bfmgr.or(stopFormula1, stopFormula2);
-    }
-
-    return new AssumptionStorageState(
-        formulaManager,
-        bfmgr.and(storageElement1.getAssumption(),
-                               storageElement2.getAssumption()),
-        newStopFormula);
+    return ((AssumptionStorageState) pElement1).join((AssumptionStorageState) pElement2);
   }
 
   @Override

@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,6 +47,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -59,14 +61,15 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoWpConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
@@ -96,6 +99,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Which path-formula builder to use."
+              + "Depending on this setting additional terms are added to the path formulas,"
+              + "e.g. SYMBOLICLOCATIONS will add track the program counter symbolically with a special variable %pc")
+  private PathFormulaBuilderVariants pathFormulaBuilderVariant = PathFormulaBuilderVariants.DEFAULT;
+
+  private enum PathFormulaBuilderVariants {
+    DEFAULT,
+    SYMBOLICLOCATIONS
+  }
+
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
@@ -108,6 +124,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final CtoFormulaConverter converter;
+  private final @Nullable CtoWpConverter wpConverter;
+  private final PathFormulaBuilderFactory pfbFactory;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -163,13 +181,47 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
           aliasingTypeHandler, pDirection);
 
+      wpConverter = null;
+
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
-      converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
+      converter =
+          new CtoFormulaConverter(
+              options,
+              fmgr,
+              pMachineModel,
+              pVariableClassification,
+              logger,
+              shutdownNotifier,
+              typeHandler,
+              pDirection);
+
+      wpConverter =
+          new CtoWpConverter(
+              options,
+              fmgr,
+              pMachineModel,
+              pVariableClassification,
+              logger,
+              shutdownNotifier,
+              typeHandler,
+              pDirection);
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
+    }
+
+    switch (pathFormulaBuilderVariant) {
+      case DEFAULT:
+        pfbFactory = new DefaultPathFormulaBuilder.Factory();
+        break;
+      case SYMBOLICLOCATIONS:
+        pfbFactory =
+            new SymbolicLocationPathFormulaBuilder.Factory(
+                new CBinaryExpressionBuilder(pMachineModel, pLogger));
+        break;
+      default:
+        throw new InvalidConfigurationException("Invalid type of path formula builder specified!");
     }
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
@@ -184,8 +236,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return Pair.of(pf, errorConditions);
   }
 
-  private PathFormula makeAnd(PathFormula pOldFormula, final CFAEdge pEdge, ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+  private PathFormula makeAnd(
+      PathFormula pOldFormula, final CFAEdge pEdge, ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
     PathFormula pf = converter.makeAnd(pOldFormula, pEdge, errorConditions);
 
     if (useNondetFlags) {
@@ -258,6 +311,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  @Deprecated
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
     return new PathFormula(oldFormula.getFormula(),
                            m,
@@ -315,6 +369,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PointerTargetSet mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSSA)
+      throws InterruptedException {
+    return converter.mergePointerTargetSets(pPts1, pPts2, pSSA).getResult();
+  }
+
+  @Override
   public PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
     SSAMap ssa = pPathFormula.getSsa();
     BooleanFormula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
@@ -332,22 +392,20 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return pathFormula;
   }
 
-
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
-  public Formula makeFormulaForVariable(
-      PathFormula pContext, String pVarName, CType pType, boolean forcePointerDereference) {
+  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
     return converter.makeFormulaForVariable(
-        pContext.getSsa(),
-        pContext.getPointerTargetSet(),
-        pVarName,
-        pType,
-        forcePointerDereference);
+        pContext.getSsa(), pContext.getPointerTargetSet(), pVarName, pType);
   }
 
-
+  /** {@inheritDoc} */
+  @Override
+  public Formula makeFormulaForUninstantiatedVariable(
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
+    return converter.makeFormulaForUninstantiatedVariable(
+        pVarName, pType, pContextPTS, forcePointerDereference);
+  }
 
   /**
    * Build a formula containing a predicate for all branching situations in the
@@ -363,8 +421,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
-    return buildBranchingFormula(elementsOnPath,
-        Collections.<Pair<ARGState, CFAEdge>, PathFormula> emptyMap());
+    return buildBranchingFormula(elementsOnPath, Collections.emptyMap());
   }
 
   /**
@@ -495,9 +552,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public Formula expressionToFormula(PathFormula pFormula,
-      CIdExpression expr,
-      CFAEdge edge) throws UnrecognizedCCodeException {
+  public void clearCaches() {
+  }
+
+  @Override
+  public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
+      throws UnrecognizedCodeException {
     return converter.buildTermFromPathFormula(pFormula, expr, edge);
   }
 
@@ -532,7 +592,26 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PathFormulaBuilder createNewPathFormulaBuilder() {
+    return pfbFactory.create();
+  }
+
+  @Override
   public void printStatistics(PrintStream out) {
     converter.printStatistics(out);
+  }
+
+  @Override
+  public BooleanFormula buildWeakestPrecondition(
+      final CFAEdge pEdge, final BooleanFormula pPostcond)
+      throws UnrecognizedCFAEdgeException, UnrecognizedCodeException, InterruptedException {
+
+    // TODO: refactor as soon as there is a WP converter with pointer aliasing
+
+    if (wpConverter != null) {
+      return wpConverter.makePreconditionForEdge(pEdge, pPostcond);
+    }
+
+    throw new UnsupportedOperationException();
   }
 }

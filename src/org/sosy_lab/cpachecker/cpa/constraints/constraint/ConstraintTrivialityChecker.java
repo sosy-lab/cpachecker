@@ -58,15 +58,9 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
  */
 public class ConstraintTrivialityChecker implements SymbolicValueVisitor<Boolean> {
 
-  private final IdentifierAssignment definiteAssignment;
-
-  public ConstraintTrivialityChecker(IdentifierAssignment pDefiniteAssignment) {
-    definiteAssignment = pDefiniteAssignment;
-  }
-
   @Override
   public Boolean visit(SymbolicIdentifier pValue) {
-    return definiteAssignment.containsKey(pValue);
+    return false;
   }
 
   @Override

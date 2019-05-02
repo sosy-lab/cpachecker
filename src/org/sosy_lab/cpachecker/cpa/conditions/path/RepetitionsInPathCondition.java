@@ -77,7 +77,7 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
 
   private boolean isInteresting(CFAEdge edge) {
     return (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge)
-        || (edge.getPredecessor().isLoopStart());
+        || edge.getPredecessor().isLoopStart();
   }
 
   @Override

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.pcc.strategy;
 
 import java.nio.file.Path;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;

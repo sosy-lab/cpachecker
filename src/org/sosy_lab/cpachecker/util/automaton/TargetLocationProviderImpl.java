@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.automaton;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -42,11 +42,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransferException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-
-import java.util.logging.Level;
 
 
 public class TargetLocationProviderImpl implements TargetLocationProvider {
@@ -75,7 +74,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
       configurationBuilder.loadFromResource(getClass(), "find-target-locations.properties");
       Configuration configuration = configurationBuilder.build();
 
-      ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration);
+      ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration, logManager);
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
       final ConfigurableProgramAnalysis cpa =
           cpaBuilder.buildCPAs(cfa, specification, new AggregatedReachedSets());
@@ -106,6 +105,13 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
     } catch (InvalidConfigurationException e) {
       // Supplied configuration should not fail.
       throw new AssertionError("Configuration of TargetLocationProviderImpl failed", e);
+
+    } catch (AutomatonTransferException e) {
+      logManager.logUserException(
+          Level.INFO,
+          e,
+          "Unable to find precise set of target locations. Defaulting to selecting all locations as potential target locations.");
+      return allNodes;
 
     } catch (CPAException e) {
       if (!e.toString().toLowerCase().contains("recursion")) {

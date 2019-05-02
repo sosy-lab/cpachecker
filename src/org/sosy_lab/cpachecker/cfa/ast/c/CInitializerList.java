@@ -49,11 +49,12 @@ public class CInitializerList extends AbstractInitializer implements CInitialize
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(boolean pQualified) {
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append("{ ");
-    Joiner.on(", ").appendTo(lASTString, transform(initializerList, CInitializer::toASTString));
+    Joiner.on(", ")
+        .appendTo(lASTString, transform(initializerList, cinit -> cinit.toASTString(pQualified)));
     lASTString.append(" }");
 
     return lASTString.toString();

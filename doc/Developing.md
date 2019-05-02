@@ -16,6 +16,8 @@ There are four possibilities to retrieve the source code:
 
 - Our [Git mirror](https://svn.sosy-lab.org/software/cpachecker.git)
 
+- A Git mirror at [GitLab](https://gitlab.com/sosy-lab/software/cpachecker/)
+
 - A Git mirror at [GitHub](https://github.com/sosy-lab/cpachecker)
 
 Only our `SVN` repository allows committing,
@@ -27,11 +29,13 @@ fails or causes problems.
 For browsing through the code online,
 there are these possibilities:
 
-- https://svn.sosy-lab.org/trac/cpachecker/browser/CPAchecker
-  (with an SVN account)
+- https://gitlab.com/sosy-lab/software/cpachecker/tree/trunk/
 - https://github.com/sosy-lab/cpachecker/tree/trunk/
 
-For bug tracking, we use our [Trac](https://svn.sosy-lab.org/trac/cpachecker/).
+For bug tracking, we use [GitLab](https://gitlab.com/sosy-lab/software/cpachecker/issues).
+The issue tracker is only accessible for CPAchecker developers,
+please click on [Request Access](https://gitlab.com/sosy-lab/software/cpachecker/) after signing in to GitLab
+or [contact us](Mailing.md).
 
 For building the code on the command line, c.f. [`../INSTALL.md`](../INSTALL.md).
 
@@ -42,10 +46,9 @@ commit to the SVN repository (with `git svn dcommit`)
 while still using Git to fetch the commits:
 
 ```
-git clone -n -o mirror https://svn.sosy-lab.org/git/software/cpachecker.git/
+git clone -o mirror https://svn.sosy-lab.org/software/cpachecker.git/
 cd cpachecker
 git svn init --prefix=mirror/ -s https://svn.sosy-lab.org/software/cpachecker
-git checkout -t mirror/trunk
 ```
 
 This also works with GitHub.

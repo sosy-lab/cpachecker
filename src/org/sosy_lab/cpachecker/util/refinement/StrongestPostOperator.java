@@ -24,9 +24,10 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import java.util.Deque;
@@ -91,4 +92,37 @@ public interface StrongestPostOperator<S extends ForgetfulState<?>> {
   S handleFunctionReturn(S next, CFAEdge edge, Deque<S> callstack);
 
   S performAbstraction(S next, CFANode currNode, ARGPath errorPath, Precision precision);
+
+  /**
+   * Performs one complete step from the given state for the given edge and callstack on the
+   * given path.
+   */
+  default Optional<S> step(S state, CFAEdge edge, Precision precision, Deque<S> callstack, ARGPath
+      argPath) throws CPAException, InterruptedException {
+    S next = state;
+    if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+      next = handleFunctionCall(next, edge, callstack);
+    }
+
+    // we leave a function, so rebuild return-state before assigning the return-value.
+    if (!callstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+      next = handleFunctionReturn(next, edge, callstack);
+    }
+
+    Optional<S> successors = getStrongestPost(next, precision, edge);
+
+    // no successors => path is infeasible
+    if (!successors.isPresent()) {
+      return successors;
+
+    } else {
+      // extract singleton successor state
+      next = successors.get();
+
+      // some variables might be blacklisted or tracked by BDDs
+      // so perform abstraction computation here
+      next = performAbstraction(next, edge.getSuccessor(), argPath, precision);
+      return Optional.of(next);
+    }
+  }
 }

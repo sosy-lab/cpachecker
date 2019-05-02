@@ -36,10 +36,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -48,8 +47,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  */
 public abstract class CoverageCollector {
 
-  public static CoverageData fromReachedSet(UnmodifiableReachedSet pReachedSet, CFA cfa) {
-    return new ReachedSetCoverageCollector().collectFromReachedSet(pReachedSet, cfa);
+  public static CoverageData fromReachedSet(Iterable<AbstractState> pReached, CFA cfa) {
+    return new ReachedSetCoverageCollector().collectFromReachedSet(pReached, cfa);
   }
 
   public static CoverageData fromCounterexample(ARGPath pPath) {
@@ -105,7 +104,7 @@ class CounterexampleCoverageCollector {
 
 class ReachedSetCoverageCollector {
 
-  CoverageData collectFromReachedSet(UnmodifiableReachedSet reached, CFA cfa) {
+  CoverageData collectFromReachedSet(Iterable<AbstractState> reached, CFA cfa) {
     CoverageData cov = new CoverageData();
     cov.putCFA(cfa);
 
@@ -129,7 +128,7 @@ class ReachedSetCoverageCollector {
     return cov;
   }
 
-  private void collectCoveredEdges(UnmodifiableReachedSet reached, CoverageData cov) {
+  private void collectCoveredEdges(Iterable<AbstractState> reached, CoverageData cov) {
     Set<CFANode> reachedNodes = from(reached)
         .transform(EXTRACT_LOCATION)
         .filter(notNull())

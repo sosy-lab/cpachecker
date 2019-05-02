@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,13 +28,17 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 
-
 public interface SMGObjectVisitor<T> {
 
-  public T visit(SMGNullObject pObject);
-  public T visit(SMGRegion pObject);
-  public T visit(SMGSingleLinkedList pObject);
-  public T visit(SMGDoublyLinkedList pObject);
-  public T visit(SMGOptionalObject pObject);
-  public T visit(GenericAbstraction pObject);
+  T visit(SMGNullObject pObject);
+
+  T visit(SMGRegion pObject);
+
+  T visit(SMGSingleLinkedList pObject);
+
+  T visit(SMGDoublyLinkedList pObject);
+
+  T visit(SMGOptionalObject pObject);
+
+  T visit(GenericAbstraction pObject);
 }

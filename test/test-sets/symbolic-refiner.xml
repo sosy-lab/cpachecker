@@ -42,7 +42,7 @@
 
 
   <rundefinition name="valueAnalysis-noRefinement">
-    <option name="-valueAnalysis-NoRefiner" />
+    <option name="-valueAnalysis-NoCegar" />
     <option name="-setprop">analysis.checkCounterexamples=false</option>
   </rundefinition>
   <rundefinition name="valueAnalysis-no-cex">

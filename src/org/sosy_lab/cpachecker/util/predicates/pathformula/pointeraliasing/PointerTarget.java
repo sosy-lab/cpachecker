@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import java.io.Serializable;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 @Immutable

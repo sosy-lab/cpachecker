@@ -31,11 +31,11 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -50,11 +50,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
@@ -159,16 +159,16 @@ public class UseDefBasedInterpolator {
    * @return the interpolant for the given variable declaration
    */
   private ValueAnalysisInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
-    Map<MemoryLocation, Value> useDefInterpolant = new HashMap<>();
+    Map<MemoryLocation, ValueAndType> useDefInterpolant = new HashMap<>();
 
     for (ASimpleDeclaration use : uses) {
 
       for (MemoryLocation memoryLocation : obtainMemoryLocationsForType(use)) {
-        useDefInterpolant.put(memoryLocation, UnknownValue.getInstance());
+        useDefInterpolant.put(memoryLocation, new ValueAndType(UnknownValue.getInstance(), null));
       }
     }
 
-    return new ValueAnalysisInterpolant(useDefInterpolant, Collections.<MemoryLocation, Type>emptyMap());
+    return new ValueAnalysisInterpolant(PathCopyingPersistentTreeMap.copyOf(useDefInterpolant));
   }
 
   /**
@@ -201,7 +201,7 @@ public class UseDefBasedInterpolator {
     /**
      * the current offset for which to create the next memory location
      */
-    private int currentOffset = 0;
+    private long currentOffset = 0L;
 
     /**
      * marker to know if traversal went through a complex type
@@ -295,7 +295,7 @@ public class UseDefBasedInterpolator {
       return createSingleMemoryLocation(model.getSizeofVoid());
     }
 
-    private List<MemoryLocation> createSingleMemoryLocation(final int pSize) {
+    private List<MemoryLocation> createSingleMemoryLocation(final long pSize) {
       if (withinComplexType) {
         List<MemoryLocation> memory = Collections.singletonList(MemoryLocation.valueOf(qualifiedName, currentOffset));
 
@@ -308,7 +308,7 @@ public class UseDefBasedInterpolator {
     }
 
     private List<MemoryLocation> createMemoryLocationsForArray(final int pLength, final CType pType) {
-      int sizeOfType = model.getSizeof(pType);
+      long sizeOfType = model.getSizeof(pType).longValueExact();
 
       List<MemoryLocation> memoryLocationsForArray = new ArrayList<>(pLength);
       for (int i = 0; i < pLength; i++) {
@@ -328,13 +328,13 @@ public class UseDefBasedInterpolator {
     }
 
     private List<MemoryLocation> createMemoryLocationsForUnion(final CCompositeType pCompositeType) {
-      return createSingleMemoryLocation(model.getSizeof(pCompositeType));
+      return createSingleMemoryLocation(model.getSizeof(pCompositeType).longValueExact());
     }
 
     @Override
     public List<MemoryLocation> visit(CBitFieldType pCBitFieldType)
         throws IllegalArgumentException {
-      return createSingleMemoryLocation(model.getSizeof(pCBitFieldType));
+      return createSingleMemoryLocation(model.getSizeof(pCBitFieldType).longValueExact());
     }
   }
 }

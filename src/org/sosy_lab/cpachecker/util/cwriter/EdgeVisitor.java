@@ -27,8 +27,7 @@ import java.util.Deque;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-
 public interface EdgeVisitor {
 
-  public void visit(ARGState childElement, CFAEdge edge, Deque<FunctionBody> functionStack);
+  void visit(ARGState childElement, CFAEdge edge, Deque<FunctionBody> functionStack);
 }

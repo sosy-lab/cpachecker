@@ -28,13 +28,11 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -127,8 +125,7 @@ public class WitnessExporterTest {
         "counterexample.export.graphml", pWitnessPath.uncompressedFilePath.toString());
     if (pGenerationConfig.equals(WitnessGenerationConfig.K_INDUCTION)) {
       overrideOptions.put("bmc.invariantsExport", pWitnessPath.uncompressedFilePath.toString());
-      Path origInvGenConfigFile =
-          Paths.get("config/components/invariantGeneration-witness.properties");
+      Path origInvGenConfigFile = Paths.get("test/config/invariantGeneration-witness.properties");
       Path invGenConfigFile =
           origInvGenConfigFile.resolveSibling(
               pWitnessPath.uncompressedFilePath.getFileName() + ".properties");
@@ -171,7 +168,7 @@ public class WitnessExporterTest {
 
     TestResults results = CPATestRunner.run(generationConfig, pFilePath);
     // Trigger statistics so that the witness is written to the file
-    results.getCheckerResult().printStatistics(new PrintStream(ByteStreams.nullOutputStream(), true, "UTF-8"));
+    results.getCheckerResult().writeOutputFiles();
 
     if (isSupposedToBeSafe(pFilePath)) {
       results.assertIsSafe();

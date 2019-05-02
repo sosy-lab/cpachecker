@@ -5,7 +5,7 @@ Supplied Scripts:
           (see README.txt)
 
 Benchmarking Scripts:
-(extension of BenchExec, c.f. https://github.com/dbeyer/benchexec)
+(extension of BenchExec, cf. https://github.com/sosy-lab/benchexec)
 
 - benchmark.py: for benchmarking collections of runs
                 (c.f. doc/Benchmark.txt)

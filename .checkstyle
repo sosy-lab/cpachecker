@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<fileset-config file-format-version="1.2.0" simple-config="false" sync-formatter="false">
+  <local-check-config name="SoSy-Lab" location="build/checkstyle.xml" type="project" description="">
+    <additional-data name="protect-config-file" value="false"/>
+  </local-check-config>
+  <local-check-config name="Test-Code Configuration" location="build/checkstyle.test.xml" type="project" description="">
+    <additional-data name="protect-config-file" value="false"/>
+  </local-check-config>
+  <fileset name="regular" enabled="true" check-config-name="SoSy-Lab" local="true">
+    <file-match-pattern match-pattern=".java$" include-pattern="true"/>
+    <file-match-pattern match-pattern="/test/.*\.java$" include-pattern="false"/>
+    <file-match-pattern match-pattern="Test(Base|Suite|0)?.java$" include-pattern="false"/>
+    <file-match-pattern match-pattern=".apt-generated" include-pattern="false"/>
+  </fileset>
+  <fileset name="Test classes" enabled="true" check-config-name="Test-Code Configuration" local="true">
+    <file-match-pattern match-pattern="Test(Base|Suite|0)?.java$" include-pattern="true"/>
+    <file-match-pattern match-pattern="/test/.*\.java$" include-pattern="true"/>
+    <file-match-pattern match-pattern=".apt-generated" include-pattern="false"/>
+  </fileset>
+</fileset-config>

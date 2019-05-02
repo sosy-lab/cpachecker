@@ -43,7 +43,7 @@ public interface PropertyChecker {
    * @param elemToCheck - abstract state for which property satisfaction will be checked
    * @return true if property is successfully checked on abstract state elemToCheck, false otherwise
    */
-  public boolean satisfiesProperty(AbstractState elemToCheck) throws UnsupportedOperationException;
+  boolean satisfiesProperty(AbstractState elemToCheck) throws UnsupportedOperationException;
 
   /**
    * Checks if a set of abstract states satisfies the represented property.
@@ -51,6 +51,6 @@ public interface PropertyChecker {
    * @param certificate - set of abstract states for which property satisfaction will be checked
    * @return true if property holds for set of abstract states certificate, false otherwise
    */
-  public boolean satisfiesProperty(Collection<AbstractState> certificate);
+  boolean satisfiesProperty(Collection<AbstractState> certificate);
 
 }

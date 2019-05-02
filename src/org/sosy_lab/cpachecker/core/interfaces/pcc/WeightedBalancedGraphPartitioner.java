@@ -42,6 +42,6 @@ public interface WeightedBalancedGraphPartitioner extends BalancedGraphPartition
    * @param wGraph - directed, weighted  graph whose nodes should be partitioned
    * @return the partitioning, each set contains the indices of the nodes which it contains
    */
-  public List<Set<Integer>> computePartitioning(int pNumPartitions, WeightedGraph wGraph)
+  List<Set<Integer>> computePartitioning(int pNumPartitions, WeightedGraph wGraph)
       throws InterruptedException;
 }

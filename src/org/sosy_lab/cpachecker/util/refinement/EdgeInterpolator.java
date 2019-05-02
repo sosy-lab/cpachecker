@@ -24,16 +24,13 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import java.util.Deque;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/**
- * Classes implementing this interface are able to derive interpolants from edges.
- */
-public interface EdgeInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S>> {
+/** Classes implementing this interface are able to derive interpolants from edges. */
+public interface EdgeInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S, I>> {
 
   I deriveInterpolant(
       ARGPath errorPath,

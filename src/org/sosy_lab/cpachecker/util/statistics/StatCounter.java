@@ -52,4 +52,7 @@ public class StatCounter extends AbstractStatValue {
     return String.format("%8d", getValue());
   }
 
+  public void mergeWith(StatCounter other) {
+    counter.add(other.getValue());
+  }
 }

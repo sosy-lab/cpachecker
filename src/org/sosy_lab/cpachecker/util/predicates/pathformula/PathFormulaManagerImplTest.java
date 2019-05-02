@@ -31,8 +31,8 @@ import com.google.common.collect.TreeMultimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
 import java.util.Collections;
+import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import org.junit.Assert;
 import org.junit.Before;
@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -72,8 +71,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
@@ -136,14 +134,14 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
             AnalysisDirection.BACKWARD);
   }
 
-  private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() throws UnrecognizedCCodeException {
+  private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() throws UnrecognizedCodeException {
 
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(
         MachineModel.LINUX32, LogManager.createTestLogManager()
     );
 
     String fName = "main";
-    SortedMap<String, FunctionEntryNode> functions = new TreeMap<>();
+    NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
 
     FunctionEntryNode entryNode = dummyFunction(fName);
 
@@ -253,15 +251,13 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
   private FunctionEntryNode dummyFunction(String name) {
     CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
 
-    FunctionEntryNode main = new CFunctionEntryNode(
-        FileLocation.DUMMY,
-        new CFunctionDeclaration(
-            FileLocation.DUMMY, functionType, name,
-            Collections.<CParameterDeclaration>emptyList()
-        ),
-        new FunctionExitNode(name),
-        com.google.common.base.Optional.absent()
-    );
+    FunctionEntryNode main =
+        new CFunctionEntryNode(
+            FileLocation.DUMMY,
+            new CFunctionDeclaration(
+                FileLocation.DUMMY, functionType, name, Collections.emptyList()),
+            new FunctionExitNode(name),
+            com.google.common.base.Optional.absent());
 
     return main;
   }
@@ -272,7 +268,11 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     CFAEdge a_to_b = data.getFirst();
 
     int customIdx = 1337;
-    PathFormula p = makePathFormulaWithCustomIdx(a_to_b, customIdx);
+    SSAMap ssaMap = SSAMap.emptySSAMap().withDefault(customIdx);
+    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
+    PathFormula emptyWithCustomSSA =
+        pfmgrFwd.makeNewPathFormula(empty, ssaMap, empty.getPointerTargetSet());
+    PathFormula p = pfmgrFwd.makeAnd(emptyWithCustomSSA, a_to_b);
 
     // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
     Assert.assertEquals(customIdx + FreshValueProvider.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
@@ -283,11 +283,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
     CFAEdge a_to_b = data.getFirst();
 
-    PathFormula pf = pfmgrBwd.makeEmptyPathFormula();
-    pf = pfmgrBwd.makeNewPathFormula(pf,
-        pf.getSsa().builder()
-        .setIndex("x", CNumericTypes.INT, 10)
-        .build());
+    PathFormula pf = makePathFormulaWithCustomIndex(pfmgrBwd, "x", CNumericTypes.INT, 10);
 
     pf = pfmgrBwd.makeAnd(pf, a_to_b);
 
@@ -303,11 +299,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
   public void testDeclarationSSABackward() throws Exception {
     createCFA();
 
-    PathFormula pf = pfmgrBwd.makeEmptyPathFormula();
-    pf = pfmgrBwd.makeNewPathFormula(pf,
-        pf.getSsa().builder()
-        .setIndex("x", CNumericTypes.INT, 10)
-        .build());
+    PathFormula pf = makePathFormulaWithCustomIndex(pfmgrBwd, "x", CNumericTypes.INT, 10);
 
     pf = pfmgrBwd.makeAnd(pf, x_decl);
 
@@ -319,11 +311,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
   public void testDeclarationSSAForward() throws Exception {
     createCFA();
 
-    PathFormula pf = pfmgrFwd.makeEmptyPathFormula();
-    pf = pfmgrFwd.makeNewPathFormula(pf,
-        pf.getSsa().builder()
-        .setIndex("x", CNumericTypes.INT, 10)
-        .build());
+    PathFormula pf = makePathFormulaWithCustomIndex(pfmgrFwd, "x", CNumericTypes.INT, 10);
 
     pf = pfmgrFwd.makeAnd(pf, x_decl);
 
@@ -335,11 +323,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
     CFAEdge a_to_b = data.getFirst();
 
-    PathFormula pf = pfmgrFwd.makeEmptyPathFormula();
-    pf = pfmgrFwd.makeNewPathFormula(pf,
-        pf.getSsa().builder()
-        .setIndex("x", CNumericTypes.INT, 10)
-        .build());
+    PathFormula pf = makePathFormulaWithCustomIndex(pfmgrFwd, "x", CNumericTypes.INT, 10);
 
     pf = pfmgrFwd.makeAnd(pf, a_to_b);
 
@@ -351,20 +335,11 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     assertThatFormula(pf.getFormula()).isEquivalentTo(expected);
   }
 
-
-  /**
-   * Creates a {@link PathFormula} with SSA indexing starting
-   * from the specified value.
-   * Useful for more fine-grained control over SSA indexes.
-   */
-  private PathFormula makePathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx)
-      throws CPATransferException, InterruptedException {
-    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
-    PathFormula emptyWithCustomSSA = pfmgrFwd.makeNewPathFormula(
-        empty,
-        SSAMap.emptySSAMap().withDefault(ssaIdx));
-
-    return pfmgrFwd.makeAnd(emptyWithCustomSSA, edge);
+  private PathFormula makePathFormulaWithCustomIndex(
+      PathFormulaManager pPfmgr, String pVar, CType pType, int pIndex) {
+    SSAMap ssaMap = SSAMap.emptySSAMap().builder().setIndex(pVar, pType, pIndex).build();
+    PathFormula empty = pPfmgr.makeEmptyPathFormula();
+    return pPfmgr.makeNewPathFormula(empty, ssaMap, empty.getPointerTargetSet());
   }
 
   @Test

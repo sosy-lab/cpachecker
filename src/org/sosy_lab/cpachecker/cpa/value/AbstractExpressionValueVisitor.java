@@ -23,17 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -89,6 +91,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -112,7 +115,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
@@ -132,10 +136,10 @@ import org.sosy_lab.cpachecker.util.BuiltinFunctions;
  * to get values stored in the memory of a program.
  */
 public abstract class AbstractExpressionValueVisitor
-    extends DefaultCExpressionVisitor<Value, UnrecognizedCCodeException>
-    implements CRightHandSideVisitor<Value, UnrecognizedCCodeException>,
-    JRightHandSideVisitor<Value, RuntimeException>,
-    JExpressionVisitor<Value, RuntimeException> {
+    extends DefaultCExpressionVisitor<Value, UnrecognizedCodeException>
+    implements CRightHandSideVisitor<Value, UnrecognizedCodeException>,
+        JRightHandSideVisitor<Value, NoException>,
+        JExpressionVisitor<Value, NoException> {
 
   /** length of type LONG in Java (in bit). */
   private final static int SIZE_OF_JAVA_LONG = 64;
@@ -184,7 +188,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(final CBinaryExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(final CBinaryExpression pE) throws UnrecognizedCodeException {
     final Value lVal = pE.getOperand1().accept(this);
     if (lVal.isUnknown()) {
       return Value.UnknownValue.getInstance();
@@ -197,7 +201,9 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
-   * This method calculates the exact result for a binary operation.
+   * This method calculates the exact result for a binary operation. If the value can not be
+   * determined, we return an {@link UnknownValue}. If an arithmetic exception happens (e.g.,
+   * division by zero), we log a warning and also return {@link UnknownValue}.
    *
    * @param lVal evaluated first operand of binaryExpr
    * @param rVal evaluated second operand of binaryExpr
@@ -480,6 +486,10 @@ public abstract class AbstractExpressionValueVisitor
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel, final LogManager logger) {
 
+    checkArgument(calculationType.getCanonicalType() instanceof CSimpleType
+            && !((CSimpleType) calculationType.getCanonicalType()).isLong(),
+        "Value analysis can't compute long double values in a precise manner");
+
     switch (op) {
     case PLUS:
       return l + r;
@@ -563,6 +573,7 @@ public abstract class AbstractExpressionValueVisitor
       return Value.UnknownValue.getInstance();
     }
 
+    try {
     switch (type.getType()) {
       case INT: {
         // Both l and r must be of the same type, which in this case is INT, so we can cast to long.
@@ -572,10 +583,16 @@ public abstract class AbstractExpressionValueVisitor
         return new NumericValue(result);
       }
       case DOUBLE: {
-        double lVal = lNum.doubleValue();
-        double rVal = rNum.doubleValue();
-        double result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
-        return new NumericValue(result);
+        if (type.isLong()) {
+          return arithmeticOperationForLongDouble(lNum, rNum, op, calculationType, machineModel,
+              logger);
+        } else {
+          double lVal = lNum.doubleValue();
+          double rVal = rNum.doubleValue();
+          double result =
+              arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+          return new NumericValue(result);
+        }
       }
       case FLOAT: {
         float lVal = lNum.floatValue();
@@ -588,6 +605,26 @@ public abstract class AbstractExpressionValueVisitor
         return Value.UnknownValue.getInstance();
       }
     }
+    } catch (ArithmeticException ae) { // log warning and ignore expression
+      logger.logf(
+          Level.WARNING,
+          "expression causes arithmetic exception (%s): %s %s %s",
+          ae.getMessage(),
+          lNum.bigDecimalValue(),
+          op.getOperator(),
+          rNum.bigDecimalValue());
+      return Value.UnknownValue.getInstance();
+    }
+  }
+
+  @SuppressWarnings("unused")
+  private static Value arithmeticOperationForLongDouble(
+      NumericValue pLNum,
+      NumericValue pRNum,
+      BinaryOperator pOp,
+      CType pCalculationType, MachineModel pMachineModel, LogManager pLogger) {
+    // TODO: cf. https://gitlab.com/sosy-lab/software/cpachecker/issues/507
+    return Value.UnknownValue.getInstance();
   }
 
   private static Value booleanOperation(final NumericValue l, final NumericValue r,
@@ -676,27 +713,28 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(CCastExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CCastExpression pE) throws UnrecognizedCodeException {
     return castCValue(pE.getOperand().accept(this), pE.getExpressionType(), machineModel,
         logger, pE.getFileLocation());
   }
 
   @Override
-  public Value visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CComplexCastExpression pE) throws UnrecognizedCodeException {
     // evaluation of complex numbers is not supported by now
     return Value.UnknownValue.getInstance();
   }
 
   @Override
-  public Value visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+  public Value visit(CFunctionCallExpression pIastFunctionCallExpression)
+      throws UnrecognizedCodeException {
     CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
 
     // We only handle builtin functions
     if (functionNameExp instanceof CIdExpression) {
-      String functionName = ((CIdExpression) functionNameExp).getName();
+      String calledFunctionName = ((CIdExpression) functionNameExp).getName();
 
-      if (BuiltinFunctions.isBuiltinFunction(functionName)) {
-        CType functionType = BuiltinFunctions.getFunctionType(functionName);
+      if (BuiltinFunctions.isBuiltinFunction(calledFunctionName)) {
+        CType functionType = BuiltinFunctions.getFunctionType(calledFunctionName);
 
         if (isUnspecifiedType(functionType)) {
           // unsupported formula
@@ -712,7 +750,7 @@ public abstract class AbstractExpressionValueVisitor
           parameterValues.add(newValue);
         }
 
-        if (BuiltinFloatFunctions.matchesAbsolute(functionName)) {
+        if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
           assert parameterValues.size() == 1;
 
           final CType parameterType = parameterExpressions.get(0).getExpressionType();
@@ -730,43 +768,43 @@ public abstract class AbstractExpressionValueVisitor
             return new NumericValue(absoluteValue);
           }
 
-        } else if (BuiltinFloatFunctions.matchesHugeVal(functionName)
-            || BuiltinFloatFunctions.matchesInfinity(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesHugeVal(calledFunctionName)
+            || BuiltinFloatFunctions.matchesInfinity(calledFunctionName)) {
 
           assert parameterValues.isEmpty();
-          if (BuiltinFloatFunctions.matchesHugeValFloat(functionName)
-              || BuiltinFloatFunctions.matchesInfinityFloat(functionName)) {
+          if (BuiltinFloatFunctions.matchesHugeValFloat(calledFunctionName)
+              || BuiltinFloatFunctions.matchesInfinityFloat(calledFunctionName)) {
 
             return new NumericValue(Float.POSITIVE_INFINITY);
 
           } else {
-            assert BuiltinFloatFunctions.matchesInfinityDouble(functionName)
-                || BuiltinFloatFunctions.matchesInfinityLongDouble(functionName)
-                || BuiltinFloatFunctions.matchesHugeValDouble(functionName)
-                || BuiltinFloatFunctions.matchesHugeValLongDouble(functionName)
-                : " Unhandled builtin function for infinity: " + functionName;
+            assert BuiltinFloatFunctions.matchesInfinityDouble(calledFunctionName)
+                || BuiltinFloatFunctions.matchesInfinityLongDouble(calledFunctionName)
+                || BuiltinFloatFunctions.matchesHugeValDouble(calledFunctionName)
+                || BuiltinFloatFunctions.matchesHugeValLongDouble(calledFunctionName)
+                : " Unhandled builtin function for infinity: " + calledFunctionName;
 
             return new NumericValue(Double.POSITIVE_INFINITY);
           }
 
-        } else if (BuiltinFloatFunctions.matchesNaN(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesNaN(calledFunctionName)) {
           assert parameterValues.isEmpty() || parameterValues.size() == 1;
 
-          if (BuiltinFloatFunctions.matchesNaNFloat(functionName)) {
+          if (BuiltinFloatFunctions.matchesNaNFloat(calledFunctionName)) {
             return new NumericValue(Float.NaN);
           } else {
-            assert BuiltinFloatFunctions.matchesNaNDouble(functionName)
-                || BuiltinFloatFunctions.matchesNaNLongDouble(functionName)
-                : "Unhandled builtin function for NaN: " + functionName;
+            assert BuiltinFloatFunctions.matchesNaNDouble(calledFunctionName)
+                || BuiltinFloatFunctions.matchesNaNLongDouble(calledFunctionName)
+                : "Unhandled builtin function for NaN: " + calledFunctionName;
 
             return new NumericValue(Double.NaN);
           }
-        } else if (BuiltinFloatFunctions.matchesIsNaN(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIsNaN(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
               case FLOAT:
                 return Float.isNaN(numericValue.floatValue()) ? new NumericValue(1) : new NumericValue(0);
@@ -777,12 +815,12 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesIsInfinity(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIsInfinity(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
               case FLOAT:
                 return Float.isInfinite(numericValue.floatValue()) ? new NumericValue(1) : new NumericValue(0);
@@ -793,12 +831,12 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFinite(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFinite(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
               case FLOAT:
                 return Float.isInfinite(numericValue.floatValue()) ? new NumericValue(0) : new NumericValue(1);
@@ -809,7 +847,7 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFloor(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFloor(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value parameter = parameterValues.get(0);
 
@@ -817,7 +855,7 @@ public abstract class AbstractExpressionValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return new NumericValue(((BigDecimal) number).setScale(0, BigDecimal.ROUND_FLOOR));
+                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.FLOOR));
               } else if (number instanceof Float) {
                 return new NumericValue(Math.floor(number.floatValue()));
               } else if (number instanceof Double) {
@@ -827,7 +865,7 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesCeil(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesCeil(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value parameter = parameterValues.get(0);
 
@@ -835,7 +873,7 @@ public abstract class AbstractExpressionValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return new NumericValue(((BigDecimal) number).setScale(0, BigDecimal.ROUND_CEILING));
+                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.CEILING));
               } else if (number instanceof Float) {
                 return new NumericValue(Math.ceil(number.floatValue()));
               } else if (number instanceof Double) {
@@ -845,17 +883,16 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesRound(functionName)
-            || BuiltinFloatFunctions.matchesLround(functionName)
-            || BuiltinFloatFunctions.matchesLlround(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesRound(calledFunctionName)
+            || BuiltinFloatFunctions.matchesLround(calledFunctionName)
+            || BuiltinFloatFunctions.matchesLlround(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value parameter = parameterValues.get(0);
             if (parameter.isExplicitlyKnown()) {
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return new NumericValue(
-                    ((BigDecimal) number).setScale(0, BigDecimal.ROUND_HALF_UP));
+                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.HALF_UP));
               } else if (number instanceof Float) {
                 float f = number.floatValue();
                 if (0 == f || Float.isInfinite(f)) {
@@ -873,14 +910,14 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesTrunc(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesTrunc(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value parameter = parameterValues.get(0);
             if (parameter.isExplicitlyKnown()) {
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return new NumericValue(((BigDecimal) number).setScale(0, BigDecimal.ROUND_DOWN));
+                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.DOWN));
               } else if (number instanceof Float) {
                 float f = number.floatValue();
                 if (0 == f || Float.isInfinite(f) || Float.isNaN(f)) {
@@ -889,7 +926,7 @@ public abstract class AbstractExpressionValueVisitor
                 }
                 return new NumericValue(
                     BigDecimal.valueOf(number.floatValue())
-                        .setScale(0, BigDecimal.ROUND_DOWN)
+                        .setScale(0, RoundingMode.DOWN)
                         .floatValue());
               } else if (number instanceof Double) {
                 double d = number.doubleValue();
@@ -899,14 +936,14 @@ public abstract class AbstractExpressionValueVisitor
                 }
                 return new NumericValue(
                     BigDecimal.valueOf(number.doubleValue())
-                        .setScale(0, BigDecimal.ROUND_DOWN)
+                        .setScale(0, RoundingMode.DOWN)
                         .doubleValue());
               } else if (number instanceof NumericValue.NegativeNaN) {
                 return parameter;
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFdim(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFdim(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value operand1 = parameterValues.get(0);
             Value operand2 = parameterValues.get(1);
@@ -918,13 +955,13 @@ public abstract class AbstractExpressionValueVisitor
               Number op1 = operand1.asNumericValue().getNumber();
               Number op2 = operand2.asNumericValue().getNumber();
 
-              Value result = fdim(op1, op2, functionName);
+              Value result = fdim(op1, op2, calledFunctionName);
               if (!Value.UnknownValue.getInstance().equals(result)) {
                 return result;
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFmax(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFmax(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value operand1 = parameterValues.get(0);
             Value operand2 = parameterValues.get(1);
@@ -939,7 +976,7 @@ public abstract class AbstractExpressionValueVisitor
               return fmax(op1, op2);
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFmin(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFmin(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value operand1 = parameterValues.get(0);
             Value operand2 = parameterValues.get(1);
@@ -954,7 +991,7 @@ public abstract class AbstractExpressionValueVisitor
               return fmin(op1, op2);
             }
           }
-        } else if (BuiltinFloatFunctions.matchesSignbit(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value parameter = parameterValues.get(0);
 
@@ -967,7 +1004,7 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesCopysign(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesCopysign(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value target = parameterValues.get(0);
             Value source = parameterValues.get(1);
@@ -986,13 +1023,13 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFloatClassify(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFloatClassify(calledFunctionName)) {
 
           if (parameterValues.size() == 1) {
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
               case FLOAT: {
                 float v = numericValue.floatValue();
@@ -1031,13 +1068,13 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesModf(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesModf(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
               CSimpleType paramType =
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
                 case FLOAT:
                   {
@@ -1056,14 +1093,14 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFremainder(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFremainder(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value numer = parameterValues.get(0);
             Value denom = parameterValues.get(1);
             if (numer.isExplicitlyKnown() && denom.isExplicitlyKnown()) {
               NumericValue numerValue = numer.asNumericValue();
               NumericValue denomValue = denom.asNumericValue();
-              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName).getType()) {
+              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName).getType()) {
                 case FLOAT:
                   {
                     float num = numerValue.floatValue();
@@ -1090,14 +1127,14 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFmod(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesFmod(calledFunctionName)) {
           if (parameterValues.size() == 2) {
             Value numer = parameterValues.get(0);
             Value denom = parameterValues.get(1);
             if (numer.isExplicitlyKnown() && denom.isExplicitlyKnown()) {
               NumericValue numerValue = numer.asNumericValue();
               NumericValue denomValue = denom.asNumericValue();
-              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName).getType()) {
+              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName).getType()) {
                 case FLOAT:
                   {
                     float num = numerValue.floatValue();
@@ -1134,7 +1171,7 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesIsgreater(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIsgreater(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
           Value op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
@@ -1142,7 +1179,7 @@ public abstract class AbstractExpressionValueVisitor
             double num2 = op2.asNumericValue().doubleValue();
             return new NumericValue(num1 > num2 ? 1 : 0);
           }
-        } else if (BuiltinFloatFunctions.matchesIsgreaterequal(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIsgreaterequal(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
           Value op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
@@ -1150,7 +1187,7 @@ public abstract class AbstractExpressionValueVisitor
             double num2 = op2.asNumericValue().doubleValue();
             return new NumericValue(num1 >= num2 ? 1 : 0);
           }
-        } else if (BuiltinFloatFunctions.matchesIsless(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIsless(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
           Value op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
@@ -1158,7 +1195,7 @@ public abstract class AbstractExpressionValueVisitor
             double num2 = op2.asNumericValue().doubleValue();
             return new NumericValue(num1 < num2 ? 1 : 0);
           }
-        } else if (BuiltinFloatFunctions.matchesIslessequal(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIslessequal(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
           Value op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
@@ -1166,7 +1203,7 @@ public abstract class AbstractExpressionValueVisitor
             double num2 = op2.asNumericValue().doubleValue();
             return new NumericValue(num1 <= num2 ? 1 : 0);
           }
-        } else if (BuiltinFloatFunctions.matchesIslessgreater(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIslessgreater(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
           Value op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
@@ -1174,7 +1211,7 @@ public abstract class AbstractExpressionValueVisitor
             double num2 = op2.asNumericValue().doubleValue();
             return new NumericValue(num1 > num2 || num1 < num2 ? 1 : 0);
           }
-        } else if (BuiltinFloatFunctions.matchesIsunordered(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesIsunordered(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
           Value op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
@@ -1340,27 +1377,27 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(CCharLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CCharLiteralExpression pE) throws UnrecognizedCodeException {
     return new NumericValue((long) pE.getCharacter());
   }
 
   @Override
-  public Value visit(CFloatLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CFloatLiteralExpression pE) throws UnrecognizedCodeException {
     return new NumericValue(pE.getValue());
   }
 
   @Override
-  public Value visit(CIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CIntegerLiteralExpression pE) throws UnrecognizedCodeException {
     return new NumericValue(pE.getValue());
   }
 
   @Override
-  public Value visit(CImaginaryLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CImaginaryLiteralExpression pE) throws UnrecognizedCodeException {
     return pE.getValue().accept(this);
   }
 
   @Override
-  public Value visit(CStringLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CStringLiteralExpression pE) throws UnrecognizedCodeException {
     return Value.UnknownValue.getInstance();
   }
 
@@ -1371,7 +1408,7 @@ public abstract class AbstractExpressionValueVisitor
 
     switch (idOperator) {
     case SIZEOF:
-      int size = machineModel.getSizeof(innerType);
+        BigInteger size = machineModel.getSizeof(innerType);
       return new NumericValue(size);
 
     default: // TODO support more operators
@@ -1380,7 +1417,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(CIdExpression idExp) throws UnrecognizedCCodeException {
+  public Value visit(CIdExpression idExp) throws UnrecognizedCodeException {
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
       if (enumerator.hasValue()) {
@@ -1395,7 +1432,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+  public Value visit(CUnaryExpression unaryExpression) throws UnrecognizedCodeException {
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
@@ -1432,7 +1469,7 @@ public abstract class AbstractExpressionValueVisitor
       return numericValue.negate();
 
     case TILDE:
-      return new NumericValue(~(numericValue).longValue());
+        return new NumericValue(~numericValue.longValue());
 
     default:
       throw new AssertionError("unknown operator: " + unaryOperator);
@@ -1455,18 +1492,17 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
+  public Value visit(CPointerExpression pointerExpression) throws UnrecognizedCodeException {
     return evaluateCPointerExpression(pointerExpression);
   }
 
   @Override
-  public Value visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
+  public Value visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCodeException {
     return evaluateCFieldReference(fieldReferenceExpression);
   }
 
   @Override
-  public Value visit(CArraySubscriptExpression pE)
-      throws UnrecognizedCCodeException {
+  public Value visit(CArraySubscriptExpression pE) throws UnrecognizedCodeException {
     return evaluateCArraySubscriptExpression(pE);
   }
 
@@ -1793,8 +1829,9 @@ public abstract class AbstractExpressionValueVisitor
         return new NumericValue(lVal % rVal);
 
       default:
-        throw new AssertionError("Unsupported binary operation " + pBinaryOperator.toString() + " on double values");
-      }
+              throw new AssertionError(
+                  "Unsupported binary operation " + pBinaryOperator + " on double values");
+          }
     }
 
     case EQUALS:
@@ -2148,18 +2185,18 @@ public abstract class AbstractExpressionValueVisitor
   /* abstract methods */
 
   protected abstract Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
-      throws UnrecognizedCCodeException;
+      throws UnrecognizedCodeException;
 
   protected abstract Value evaluateCIdExpression(CIdExpression pCIdExpression)
-      throws UnrecognizedCCodeException;
+      throws UnrecognizedCodeException;
 
   protected abstract Value evaluateJIdExpression(JIdExpression varName);
 
   protected abstract Value evaluateCFieldReference(CFieldReference pLValue)
-      throws UnrecognizedCCodeException;
+      throws UnrecognizedCodeException;
 
   protected abstract Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
-      throws UnrecognizedCCodeException;
+      throws UnrecognizedCodeException;
 
   /* additional methods */
 
@@ -2185,7 +2222,7 @@ public abstract class AbstractExpressionValueVisitor
    * @return if evaluation successful, then value, else null
    */
   public Value evaluate(final CExpression pExp, final CType pTargetType)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     return castCValue(pExp.accept(this), pTargetType, machineModel, logger,
         pExp.getFileLocation());
   }
@@ -2200,7 +2237,7 @@ public abstract class AbstractExpressionValueVisitor
    * @return if evaluation successful, then value, else null
    */
   public Value evaluate(final CRightHandSide pExp, final CType pTargetType)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     return castCValue(pExp.accept(this), pTargetType, machineModel, logger,
         pExp.getFileLocation());
   }
@@ -2235,7 +2272,7 @@ public abstract class AbstractExpressionValueVisitor
    * @param fileLocation the location of the corresponding code in the source file
    * @return the casted Value
    */
-  public static Value castCValue(@Nonnull final Value value, final CType targetType,
+  public static Value castCValue(@NonNull final Value value, final CType targetType,
       final MachineModel machineModel, final LogManagerWithoutDuplicates logger,
       final FileLocation fileLocation) {
 
@@ -2250,123 +2287,167 @@ public abstract class AbstractExpressionValueVisitor
     }
     NumericValue numericValue = (NumericValue) value;
 
-    final CType type = targetType.getCanonicalType();
+    CType type = targetType.getCanonicalType();
+    final int size;
     if (type instanceof CSimpleType) {
       final CSimpleType st = (CSimpleType) type;
-
-      switch (st.getType()) {
-
-      case INT:
-      case CHAR: {
-        final int size = machineModel.getSizeofInBits(st);
-        final long longValue = numericValue.longValue();
-        final boolean targetIsSigned = machineModel.isSigned(st);
-
-        if (size < SIZE_OF_JAVA_LONG) {
-          // we can handle this with java-type "long" as normal number
-
-          final long maxValue = 1L << size; // 2^size
-          long result = longValue % maxValue; // shrink to number of bits
-
-          if (targetIsSigned) {
-            // signed value must be put in interval [-(maxValue/2), (maxValue/2)-1]
-            if (result > (maxValue / 2) - 1) {
-              result -= maxValue;
-            } else if (result < -(maxValue / 2)) {
-              result += maxValue;
-            }
-          } else {
-            // unsigned value must be put in interval [0, maxValue-1]
-            if (result < 0) {
-              // value is negative, so adding maxValue makes it positive
-              result += maxValue;
-            }
-          }
-
-          return new NumericValue(result);
-
-        } else if (size == SIZE_OF_JAVA_LONG) {
-          // we can handle this with java-type "long", because the bitwise representation is correct.
-          // but for unsigned long we need BigInteger
-          if (!targetIsSigned && longValue < 0) {
-            return new NumericValue(BigInteger.valueOf(longValue).andNot(BigInteger.valueOf(-1).shiftLeft(size)));
-          }
-          return new NumericValue(longValue);
-
-        } else {
-          // java-type "long" is too small for really big types like 'int128',
-          // however we do currently not support such types.
-          // so we do nothing here and trust the analysis, that handles it later
-          // TODO should we handle it as BigInteger?
-          logger.logfOnce(Level.INFO,
-              "%s: value %s of c-type '%s' is too big for java-type 'long'.",
-              fileLocation,
-              value, targetType);
-
-          return value;
-        }
-      }
-
-      case FLOAT: {
-        // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
-        // TODO: check for overflow(source larger than the highest number we can store in target etc.)
-
-        // casting to FLOAT, if value is INT or DOUBLE. This is sound, if we would also do this cast in C.
-        float floatValue = numericValue.floatValue();
-        Value result;
-
-        final int bitPerByte = machineModel.getSizeofCharInBits();
-        final int numBytes = machineModel.getSizeof(st);
-        final int size = bitPerByte * numBytes;
-
-        if (NumericValue.NegativeNaN.VALUE.equals(numericValue.getNumber())) {
-          result = numericValue;
-        } else if (size == SIZE_OF_JAVA_FLOAT) {
-          // 32 bit means Java float
-          result = new NumericValue(floatValue);
-        } else if (size == SIZE_OF_JAVA_DOUBLE) {
-          // 64 bit means Java double
-          result = new NumericValue(floatValue);
-        } else {
-          throw new AssertionError("Trying to cast to unsupported floating point type: " + st);
-        }
-
-        return result;
-      }
-      case DOUBLE: {
-        // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
-        // TODO: check for overflow(source larger than the highest number we can store in target etc.)
-
-        // casting to DOUBLE, if value is INT or FLOAT. This is sound, if we would also do this cast in C.
-        double doubleValue = numericValue.doubleValue();
-        Value result;
-
-        final int bitPerByte = machineModel.getSizeofCharInBits();
-        final int numBytes = machineModel.getSizeof(st);
-        final int size = bitPerByte * numBytes;
-
-        if (NumericValue.NegativeNaN.VALUE.equals(numericValue.getNumber())) {
-          result = numericValue;
-        } else if (size == SIZE_OF_JAVA_FLOAT) {
-          // 32 bit means Java float
-          result = new NumericValue((float) doubleValue);
-        } else if (size == SIZE_OF_JAVA_DOUBLE) {
-          // 64 bit means Java double
-          result = new NumericValue(doubleValue);
-        } else {
-          throw new AssertionError("Trying to cast to unsupported floating point type: " + st);
-        }
-
-        return result;
-      }
-
-      default:
-        return value; // currently we do not handle floats, doubles or voids
-      }
+      size = machineModel.getSizeofInBits(st);
+    } else if (type instanceof CBitFieldType) {
+      size = ((CBitFieldType) type).getBitFieldSize();
+      type = ((CBitFieldType) type).getType();
 
     } else {
-      return value; // pointer like (void)*, (struct s)*, ...
+      return value;
     }
+
+    return castNumeric(numericValue, type, machineModel, size);
+  }
+
+  private static Value castNumeric(
+      @NonNull final NumericValue numericValue,
+      final CType type,
+      final MachineModel machineModel,
+      final int size) {
+
+    if (!(type instanceof CSimpleType)) {
+      return numericValue;
+    }
+
+    final CSimpleType st = (CSimpleType) type;
+
+    switch (st.getType()) {
+      case BOOL:
+        return convertToBool(numericValue);
+
+      case INT:
+      case CHAR:
+        {
+          if (isNan(numericValue)) {
+            // result of conversion of NaN to integer is undefined
+            return UnknownValue.getInstance();
+
+          } else if ((numericValue.getNumber() instanceof Float
+                  || numericValue.getNumber() instanceof Double)
+              && Math.abs(numericValue.doubleValue() - numericValue.longValue()) >= 1) {
+            // if number is a float and float can not be exactly represented as integer, the
+            // result of the conversion of float to integer is undefined
+            return UnknownValue.getInstance();
+        }
+
+          final BigInteger valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
+          final boolean targetIsSigned = machineModel.isSigned(st);
+
+          final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
+          BigInteger result = valueToCastAsInt.remainder(maxValue); // shrink to number of bits
+
+          BigInteger signedUpperBound;
+          BigInteger signedLowerBound;
+          if (targetIsSigned) {
+            // signed value must be put in interval [-(maxValue/2), (maxValue/2)-1]
+            // upper bound maxValue / 2 - 1
+            signedUpperBound = maxValue.divide(BigInteger.valueOf(2)).subtract(BigInteger.ONE);
+            // lower bound -maxValue / 2
+            signedLowerBound = maxValue.divide(BigInteger.valueOf(2)).negate();
+          } else {
+            signedUpperBound = maxValue.subtract(BigInteger.ONE);
+            signedLowerBound = BigInteger.ZERO;
+          }
+
+          if (isGreaterThan(result, signedUpperBound)) {
+            // if result overflows, let it 'roll around' and add overflow to lower bound
+            result = result.subtract(maxValue);
+          } else if (isLessThan(result, signedLowerBound)) {
+            result = result.add(maxValue);
+          }
+
+          if (size < SIZE_OF_JAVA_LONG || (size == SIZE_OF_JAVA_LONG && targetIsSigned)) {
+            // transform result to a long and fail if it doesn't fit
+            return new NumericValue(result.longValueExact());
+
+          } else {
+            return new NumericValue(result);
+        }
+        }
+
+      case FLOAT:
+      case DOUBLE:
+        {
+          // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
+          // TODO: check for overflow(source larger than the highest number we can store in target
+          // etc.)
+
+          // casting to DOUBLE, if value is INT or FLOAT. This is sound, if we would also do this
+          // cast in C.
+          Value result;
+
+          final int bitPerByte = machineModel.getSizeofCharInBits();
+
+          if (isNan(numericValue) || isInfinity(numericValue)) {
+            result = numericValue;
+          } else if (size == SIZE_OF_JAVA_FLOAT) {
+            // 32 bit means Java float
+            result = new NumericValue(numericValue.floatValue());
+          } else if (size == SIZE_OF_JAVA_DOUBLE) {
+            // 64 bit means Java double
+            result = new NumericValue(numericValue.doubleValue());
+
+          } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
+
+            if (numericValue.bigDecimalValue().doubleValue() == numericValue.doubleValue()) {
+              result = new NumericValue(numericValue.doubleValue());
+            } else if (numericValue.bigDecimalValue().floatValue() == numericValue.floatValue()) {
+              result = new NumericValue(numericValue.floatValue());
+            } else {
+              result = UnknownValue.getInstance();
+            }
+          } else {
+            throw new AssertionError("Unhandled floating point type: " + type);
+          }
+        return result;
+        }
+
+      default:
+        throw new AssertionError("Unhandled type: " + type);
+    }
+  }
+
+  private static Value convertToBool(final NumericValue pValue) {
+    Number n = pValue.getNumber();
+    if (isBooleanFalseRepresentation(n)) {
+      return new NumericValue(0);
+    } else {
+      return new NumericValue(1);
+    }
+  }
+
+  private static boolean isBooleanFalseRepresentation(final Number n) {
+    return ((n instanceof Float || n instanceof Double) && 0 == n.doubleValue())
+        || (n instanceof BigInteger && BigInteger.ZERO.equals(n))
+        || (n instanceof BigDecimal && ((BigDecimal) n).compareTo(BigDecimal.ZERO) == 0)
+        || 0 == n.longValue();
+  }
+
+  private static boolean isNan(NumericValue pValue) {
+    Number n = pValue.getNumber();
+    return n.equals(Float.NaN) || n.equals(Double.NaN) || NegativeNaN.VALUE.equals(n);
+  }
+
+  private static boolean isInfinity(NumericValue pValue) {
+    Number n = pValue.getNumber();
+    return n.equals(Double.POSITIVE_INFINITY)
+        || n.equals(Double.NEGATIVE_INFINITY)
+        || n.equals(Float.POSITIVE_INFINITY)
+        || n.equals(Float.NEGATIVE_INFINITY);
+  }
+
+  /** Returns whether first integer is greater than second integer */
+  private static boolean isGreaterThan(BigInteger i1, BigInteger i2) {
+    return i1.compareTo(i2) > 0;
+  }
+
+  /** Returns whether first integer is less than second integer */
+  private static boolean isLessThan(BigInteger i1, BigInteger i2) {
+    return i1.compareTo(i2) < 0;
   }
 
   private static Value castIfSymbolic(Value pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
@@ -2399,7 +2480,7 @@ public abstract class AbstractExpressionValueVisitor
    * @return the cast value, if a cast from the source to the target type is possible. Otherwise,
    *         the given value will be returned without a change
    */
-  public static Value castJValue(@Nonnull final Value value, JType sourceType,
+  public static Value castJValue(@NonNull final Value value, JType sourceType,
       JType targetType, final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
@@ -2428,8 +2509,8 @@ public abstract class AbstractExpressionValueVisitor
         return createValue(doubleValue, st.getType());
 
       } else {
-        throw new AssertionError("Cast from " + sourceType.toString() + " to "
-            + targetType.toString() + " not possible.");
+        throw new AssertionError(
+            "Cast from " + sourceType + " to " + targetType + " not possible.");
       }
     } else {
       return value; // TODO handle casts between object types

@@ -38,8 +38,8 @@ public abstract class AInitializerExpression extends AbstractInitializer {
   }
 
   @Override
-  public String toASTString() {
-    return expression.toASTString();
+  public String toASTString(boolean pQualified) {
+    return expression.toASTString(pQualified);
   }
 
   public AExpression getExpression() {

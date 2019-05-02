@@ -50,9 +50,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -69,8 +69,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  * @param <S> the state type to create interpolants for
  * @param <I> the type of the interpolants created by this class
  */
-@Options(prefix="cpa.value.refinement")
-public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S>>
+@Options(prefix = "cpa.value.refinement")
+public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S, I>>
     implements PathInterpolator<I> {
 
   @Option(secure=true, description="whether or not to perform path slicing before interpolation")
@@ -102,6 +102,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   private final FeasibilityChecker<S> checker;
   private final GenericPrefixProvider<S> prefixProvider;
   private final InterpolantManager<S, I> interpolantManager;
+  private final PrefixSelector selector;
 
   public GenericPathInterpolator(
       final EdgeInterpolator<S, I> pEdgeInterpolator,
@@ -124,6 +125,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     interpolantManager = pInterpolantManager;
 
     prefixProvider = pPrefixProvider;
+    selector = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
   }
 
   @Override
@@ -172,7 +174,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       totalPrefixes.setNextValue(infeasilbePrefixes.size());
 
       prefixSelectionTime.start();
-      PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
       pErrorPath = selector.selectSlicedPrefix(prefixPreference, infeasilbePrefixes).getPath();
       logger.logf(Level.FINER, "Sliced prefix selected:\n %s", pErrorPath);
       prefixSelectionTime.stop();
@@ -269,10 +270,14 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       return pErrorPathPrefix;
     }
 
-    Set<ARGState> useDefStates = new UseDefRelation(pErrorPathPrefix,
-        cfa.getVarClassification().isPresent()
-          ? cfa.getVarClassification().get().getIntBoolVars()
-          : Collections.<String>emptySet(), false).getUseDefStates();
+    Set<ARGState> useDefStates =
+        new UseDefRelation(
+                pErrorPathPrefix,
+                cfa.getVarClassification().isPresent()
+                    ? cfa.getVarClassification().get().getIntBoolVars()
+                    : Collections.emptySet(),
+                false)
+            .getUseDefStates();
 
     ArrayDeque<Pair<FunctionCallEdge, Boolean>> functionCalls = new ArrayDeque<>();
     ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(pErrorPathPrefix.getInnerEdges());
@@ -312,8 +317,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
           boolean isAbstractEdgeFunctionCall =
               abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.FunctionCallEdge;
 
-          functionCalls.push(
-              (Pair.of((FunctionCallEdge) originalEdge, isAbstractEdgeFunctionCall)));
+          functionCalls.push(Pair.of((FunctionCallEdge) originalEdge, isAbstractEdgeFunctionCall));
         }
 
         // when returning from a function, ...
@@ -344,10 +348,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
     ARGPath slicedErrorPathPrefix = new ARGPath(pErrorPathPrefix.asStatesList(), abstractEdges);
 
-    return (isFeasible(slicedErrorPathPrefix))
-        ? pErrorPathPrefix
-        : slicedErrorPathPrefix;
-
+    return isFeasible(slicedErrorPathPrefix) ? pErrorPathPrefix : slicedErrorPathPrefix;
   }
 
   @Override

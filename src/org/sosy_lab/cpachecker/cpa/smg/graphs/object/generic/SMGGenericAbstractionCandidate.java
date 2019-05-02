@@ -27,9 +27,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 
 public interface SMGGenericAbstractionCandidate {
 
-  public int getScore();
+  int getScore();
 
-  public SMG execute(SMG pSMG);
+  SMG execute(SMG pSMG);
 
-  public boolean isUnknown();
+  boolean isUnknown();
 }

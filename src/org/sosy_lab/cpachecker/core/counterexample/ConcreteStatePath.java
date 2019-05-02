@@ -24,14 +24,11 @@
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.collect.ImmutableList;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
-
 import java.util.Iterator;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 
 /**
  * This class is used as a path of {@link CFAEdge} cfa edges
@@ -118,7 +115,7 @@ public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> 
 
     @Override
     public String toString() {
-      return "[" + getCfaEdge().toString() + " " + concreteState.toString() + "]";
+      return "[" + getCfaEdge() + " " + concreteState + "]";
     }
   }
 

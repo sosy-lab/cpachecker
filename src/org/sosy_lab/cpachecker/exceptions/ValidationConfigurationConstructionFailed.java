@@ -28,4 +28,9 @@ public class ValidationConfigurationConstructionFailed extends Exception {
 
   private static final long serialVersionUID = -381269425082457805L;
 
+  public ValidationConfigurationConstructionFailed() {}
+
+  public ValidationConfigurationConstructionFailed(Throwable cause) {
+    super(cause);
+  }
 }

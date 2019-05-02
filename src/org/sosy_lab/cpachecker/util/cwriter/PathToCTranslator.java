@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import java.util.Set;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 public class PathToCTranslator extends PathTranslator {
 

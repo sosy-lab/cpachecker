@@ -85,7 +85,7 @@ public interface Waitlist extends Iterable<AbstractState> {
   /**
    * Simple factory interface for waitlist implementations.
    */
-  public static interface WaitlistFactory {
+  interface WaitlistFactory {
 
     /**
      * Create a fresh new empty instance of a waitlist.
@@ -101,7 +101,7 @@ public interface Waitlist extends Iterable<AbstractState> {
    * Instances of this enum can also be used as a factory for implementations
    * of the respective strategy.
    */
-  public enum TraversalMethod implements WaitlistFactory {
+  enum TraversalMethod implements WaitlistFactory {
     DFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
     BFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
     RAND    { @Override public Waitlist createWaitlistInstance() { return new RandomWaitlist();     } },

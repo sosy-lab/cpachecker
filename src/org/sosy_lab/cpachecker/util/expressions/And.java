@@ -23,15 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
-import java.util.Collections;
-import java.util.Iterator;
-
-import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.Iterator;
 
 public class And<LeafType> extends AbstractExpressionTree<LeafType>
     implements Iterable<ExpressionTree<LeafType>> {
@@ -84,27 +81,22 @@ public class And<LeafType> extends AbstractExpressionTree<LeafType>
 
   public static <LeafType> ExpressionTree<LeafType> of(
       Iterable<ExpressionTree<LeafType>> pOperands) {
-    // If one of the operands is false, return false
-    if (Iterables.contains(pOperands, ExpressionTrees.getFalse())) {
-      return ExpressionTrees.getFalse();
-    }
     // Filter out trivial operands and flatten the hierarchy
-    ImmutableSet<ExpressionTree<LeafType>> operands =
-        FluentIterable.from(pOperands)
-            .filter(Predicates.not(Predicates.equalTo(ExpressionTrees.<LeafType>getTrue())))
-            .transformAndConcat(
-                new Function<ExpressionTree<LeafType>, Iterable<ExpressionTree<LeafType>>>() {
+    ImmutableSet.Builder<ExpressionTree<LeafType>> builder = ImmutableSet.builder();
+    for (ExpressionTree<LeafType> operand : pOperands) {
+      if (ExpressionTrees.getFalse().equals(operand)) {
+        // If one of the operands is false, return false
+        return ExpressionTrees.getFalse();
+      } else if (!ExpressionTrees.getTrue().equals(operand)) {
+        if (operand instanceof And) {
+          builder.addAll(((And<LeafType>) operand).operands);
+        } else {
+          builder.add(operand);
+        }
+      }
+    }
+    ImmutableSet<ExpressionTree<LeafType>> operands = builder.build();
 
-                  @Override
-                  public Iterable<ExpressionTree<LeafType>> apply(
-                      ExpressionTree<LeafType> pOperand) {
-                    if (pOperand instanceof And) {
-                      return (And<LeafType>) pOperand;
-                    }
-                    return Collections.singleton(pOperand);
-                  }
-                })
-            .toSet();
     // If there are no operands, return the neutral element
     if (operands.isEmpty()) {
       return ExpressionTrees.getTrue();

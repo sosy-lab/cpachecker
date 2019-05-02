@@ -23,28 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic;
 
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class GenericAbstractionCandidate implements SMGGenericAbstractionCandidate {
 
   private final MachineModel machineModel;
   private final Set<SMGObject> objectsToBeRemoved;
-  private final Map<Integer, Integer> abstractToConcretePointerMap;
-  private final Map<Integer, List<MaterlisationStep>> materlisationStep;
+  private final Map<SMGValue, SMGValue> abstractToConcretePointerMap;
+  private final Map<SMGValue, List<MaterlisationStep>> materlisationStep;
   private final int score;
 
-  private GenericAbstractionCandidate(MachineModel pMachineModel, Set<SMGObject> pObjectsToBeRemoved,
-      Map<Integer, Integer> pAbstractToConcretePointerMap,
-      Map<Integer, List<MaterlisationStep>> pMaterlisationStep,
+  private GenericAbstractionCandidate(
+      MachineModel pMachineModel,
+      Set<SMGObject> pObjectsToBeRemoved,
+      Map<SMGValue, SMGValue> pAbstractToConcretePointerMap,
+      Map<SMGValue, List<MaterlisationStep>> pMaterlisationStep,
       int pScore) {
     machineModel = pMachineModel;
     objectsToBeRemoved = pObjectsToBeRemoved;
@@ -57,13 +59,16 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
     return objectsToBeRemoved;
   }
 
-  public Map<Integer, Integer> getAbstractToConcretePointerMap() {
+  public Map<SMGValue, SMGValue> getAbstractToConcretePointerMap() {
     return abstractToConcretePointerMap;
   }
 
-  public static GenericAbstractionCandidate valueOf(MachineModel pMachineModel, Set<SMGObject> pObjectsToBeRemoved,
-      Map<Integer, Integer> pAbstractToConcretePointerMap,
-      Map<Integer, List<MaterlisationStep>> pMaterlisationStep, int pScore) {
+  public static GenericAbstractionCandidate valueOf(
+      MachineModel pMachineModel,
+      Set<SMGObject> pObjectsToBeRemoved,
+      Map<SMGValue, SMGValue> pAbstractToConcretePointerMap,
+      Map<SMGValue, List<MaterlisationStep>> pMaterlisationStep,
+      int pScore) {
     return new GenericAbstractionCandidate(pMachineModel, pObjectsToBeRemoved, pAbstractToConcretePointerMap,
         pMaterlisationStep, pScore);
   }
@@ -85,7 +90,7 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
     Set<SMGEdgeHasValue> pointsFromThisAbstraction = new HashSet<>();
 
     int c = 0;
-    for (Integer pointer : abstractToConcretePointerMap.values()) {
+    for (SMGValue pointer : abstractToConcretePointerMap.values()) {
       assert pSMG.isPointer(pointer);
 
       SMGEdgePointsTo pointerEdge = pSMG.getPointer(pointer);

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -34,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -44,9 +44,10 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /**
  * Class for transforming {@link AExpression}s to {@link SymbolicExpression}s.
  *
- * <p>For each transformation, a new object has to be created. Otherwise, the resulting expressions might not reflect the
- * programs correct concrete states.</p>
+ * <p>For each transformation, a new object has to be created. Otherwise, the resulting expressions
+ * might not reflect the correct concrete states of the program.
  *
+ * @see SymbolicExpressionToCExpressionTransformer
  */
 public class ExpressionTransformer {
 

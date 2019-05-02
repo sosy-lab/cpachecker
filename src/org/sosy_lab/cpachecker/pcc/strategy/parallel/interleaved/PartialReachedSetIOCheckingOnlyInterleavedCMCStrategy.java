@@ -35,7 +35,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -114,8 +114,14 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
 
       Thread readingThread =
           new Thread(
-              new ProofPartReader(automatonAvailable, partitionsAvailable, checkResult, ioHelpers, cpas, roots,
-                  new ReachedSetFactory(config)));
+              new ProofPartReader(
+                  automatonAvailable,
+                  partitionsAvailable,
+                  checkResult,
+                  ioHelpers,
+                  cpas,
+                  roots,
+                  new ReachedSetFactory(config, logger)));
       try {
         readingThread.start();
 

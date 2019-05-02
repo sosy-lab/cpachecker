@@ -1,10 +1,9 @@
-#include <assert.h>
-#include <stdbool.h>
+void assert(int cond) { if (!cond) { ERROR: return; } }
 
 int main() {
   int i = 0;
 
-  while (true) {
+  while (1) {
     if (i >=0 && i <= 5) {
       i -= 1;
     } else if (i <= -1) {

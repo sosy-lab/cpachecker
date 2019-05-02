@@ -33,18 +33,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-
-import org.sosy_lab.common.io.IO;
-import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
@@ -59,13 +47,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * This class represents an interpolation tree, i.e. a set of states connected through a successor-predecessor-relation.
- * The tree is built from traversing backwards from error states. It can be used to retrieve paths from the root of the
- * tree to error states, in a way, that only path not yet excluded by previous path interpolation need to be interpolated.
+ * This class represents an interpolation tree, i.e. a set of states connected through a
+ * successor-predecessor-relation. The tree is built from traversing backwards from error states. It
+ * can be used to retrieve paths from the root of the tree to error states, in a way, that only path
+ * not yet excluded by previous path interpolation need to be interpolated.
  */
-public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>> {
+public class InterpolationTree<S extends AbstractState, I extends Interpolant<S, I>> {
   /**
    * the logger in use
    */
@@ -232,7 +231,16 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
 
         sb.append("itp is " + interpolants.get(current.getKey()));
 
-        result.append(current.getKey().getStateId() + " [label=\"" + (current.getKey().getStateId() + " / " + AbstractStates.extractLocation(current.getKey())) + " has itp " + (sb.toString()) + "\"]" + "\n");
+        result.append(
+            current.getKey().getStateId()
+                + " [label=\""
+                + (current.getKey().getStateId()
+                    + " / "
+                    + AbstractStates.extractLocation(current.getKey()))
+                + " has itp "
+                + sb.toString()
+                + "\"]"
+                + "\n");
         result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
 
       } else {
@@ -328,11 +336,11 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
    * to the root, it collects the highest state that has a non-trivial interpolant associated.
    * With non-lazy abstraction, the root of the interpolation tree is used as refinement root.
    *
-   * @param strategy whether to perform lazy abstraction or not
+   * @param pStrategy whether to perform lazy abstraction or not
    * @return the set of refinement roots
    */
-  public Collection<ARGState> obtainRefinementRoots(GenericRefiner.RestartStrategy strategy) {
-    if (strategy == GenericRefiner.RestartStrategy.ROOT) {
+  public Collection<ARGState> obtainRefinementRoots(GenericRefiner.RestartStrategy pStrategy) {
+    if (pStrategy == GenericRefiner.RestartStrategy.ROOT) {
       assert successorRelation.get(root).size() == 1 : "ARG root has more than one successor";
       return new HashSet<>(Collections.singleton(successorRelation.get(root).iterator().next()));
     }
@@ -353,7 +361,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
       if (stateHasNonTrivialInterpolant(currentState)) {
         refinementRoots.add(currentState);
 
-        if (strategy == GenericRefiner.RestartStrategy.COMMON && refinementRoots.size() > 2) {
+        if (pStrategy == GenericRefiner.RestartStrategy.COMMON && refinementRoots.size() > 2) {
           assert commonRoot != null: "common root not yet set";
           return new HashSet<>(Collections.singleton(commonRoot));
         }
@@ -484,7 +492,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     return predecessorRelation.get(pState);
   }
 
-  private interface InterpolationStrategy<I extends Interpolant<?>> {
+  private interface InterpolationStrategy<I extends Interpolant<?, ?>> {
 
     ARGPath getNextPathForInterpolation();
 
@@ -541,13 +549,13 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     /**
      * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
      */
-    private boolean isValidInterpolationRoot(ARGState root) {
-      return !stateHasFalseInterpolant(root);
+    private boolean isValidInterpolationRoot(ARGState pRoot) {
+      return !stateHasFalseInterpolant(pRoot);
     }
 
     @Override
-    public I getInitialInterpolantForRoot(ARGState root) {
-      I initialInterpolant = interpolants.get(root);
+    public I getInitialInterpolantForRoot(ARGState pRoot) {
+      I initialInterpolant = interpolants.get(pRoot);
 
       if (initialInterpolant == null) {
         initialInterpolant = interpolantManager.createInitialInterpolant();
@@ -605,7 +613,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     }
 
     @Override
-    public I getInitialInterpolantForRoot(ARGState root) {
+    public I getInitialInterpolantForRoot(ARGState pRoot) {
       return interpolantManager.createInitialInterpolant();
     }
 

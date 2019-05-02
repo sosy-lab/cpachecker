@@ -32,12 +32,21 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 public class SMGDoublyLinkedListCandidate extends SMGListCandidate<SMGDoublyLinkedListShape> {
 
+  private SMGObject lastObject;
   private final CType pfoType;
   private final CType nfoType;
 
-  public SMGDoublyLinkedListCandidate(SMGObject pObject, long pHfo, long pPfo, long pNfo,
-      CType pPfoType, CType nNfoType, MachineModel pModel) {
-    super(pObject, pModel, new SMGDoublyLinkedListShape(pHfo, pPfo, pNfo));
+  public SMGDoublyLinkedListCandidate(
+      SMGObject pStartObject,
+      SMGObject pLastObject,
+      long pHfo,
+      long pPfo,
+      long pNfo,
+      CType pPfoType,
+      CType nNfoType,
+      MachineModel pModel) {
+    super(pStartObject, pModel, new SMGDoublyLinkedListShape(pHfo, pPfo, pNfo));
+    lastObject = pLastObject;
     pfoType = pPfoType;
     nfoType = nNfoType;
   }
@@ -50,14 +59,30 @@ public class SMGDoublyLinkedListCandidate extends SMGListCandidate<SMGDoublyLink
 
   @Override
   public String toString() {
-    return "SMGDoublyLinkedListCandidate [startObject=" + getStartObject()
-        + ", hfo=" + getShape().getHfo() + ", pfo=" + getShape().getPfo()
-        + ", nfo=" + getShape().getNfo() + "]";
+    return "SMGDoublyLinkedListCandidate [startObject="
+        + getStartObject()
+        + ", lastObject="
+        + getLastObject()
+        + ", hfo="
+        + getShape().getHfo()
+        + ", pfo="
+        + getShape().getPfo()
+        + ", nfo="
+        + getShape().getNfo()
+        + "]";
   }
 
   @Override
   public int hashCode() {
     return super.hashCode() * 13 + Objects.hash(pfoType, nfoType);
+  }
+
+  public SMGObject getLastObject() {
+    return lastObject;
+  }
+
+  public void updateLastObject(SMGObject pLastObject) {
+    lastObject = pLastObject;
   }
 
   @Override
@@ -67,6 +92,7 @@ public class SMGDoublyLinkedListCandidate extends SMGListCandidate<SMGDoublyLink
     }
     SMGDoublyLinkedListCandidate other = (SMGDoublyLinkedListCandidate) o;
     return super.equals(other)
+        && Objects.equals(lastObject, other.getLastObject())
         && Objects.equals(pfoType, other.pfoType)
         && Objects.equals(nfoType, other.nfoType);
   }

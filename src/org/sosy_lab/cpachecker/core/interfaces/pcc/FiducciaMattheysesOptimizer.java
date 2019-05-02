@@ -37,7 +37,7 @@ public interface FiducciaMattheysesOptimizer {
    * @param wGraph the graph node belongs to
    * @return its gain with respect to the chosen move
    */
-  public int computeGain(int node, int toPartition, int[] nodeToPartition, WeightedGraph wGraph);
+  int computeGain(int node, int toPartition, int[] nodeToPartition, WeightedGraph wGraph);
 
   /**
    * Compute a node's internal degree, i.e. an integer describing its connectivity into its own partition
@@ -46,7 +46,7 @@ public interface FiducciaMattheysesOptimizer {
    * @param wGraph the graph on which this stuff is computed
    * @return the node's internal degree
    */
-  public int computeInternalDegree(int node, int[] nodeToPartition, WeightedGraph wGraph);
+  int computeInternalDegree(int node, int[] nodeToPartition, WeightedGraph wGraph);
 
   /**
    * Compute a nodes extends degree, i.e the integer which describes the connectivity into the external partition.
@@ -56,6 +56,7 @@ public interface FiducciaMattheysesOptimizer {
    * @param wGraph the graph on which this stuff is computed
    * @return the node's external degree
    */
-  public int computeExternalDegree(int node, int toPartition, int[] nodeToPartition,
+  int computeExternalDegree(
+      int node, int toPartition, int[] nodeToPartition,
       WeightedGraph wGraph);
 }

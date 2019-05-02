@@ -31,9 +31,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
  */
 public interface CParser extends Parser {
 
-  public static class FileToParse {
+  class FileToParse {
     private final String fileName;
 
     public FileToParse(String pFileName) {
@@ -59,7 +59,7 @@ public interface CParser extends Parser {
     }
   }
 
-  public static class FileContentToParse extends FileToParse {
+  class FileContentToParse extends FileToParse {
     private final String fileContent;
 
     public FileContentToParse(String pFileName, String pFileContent) {
@@ -164,17 +164,15 @@ public interface CParser extends Parser {
    */
   List<CAstNode> parseStatements(String code, Scope scope) throws CParserException;
 
-  /**
-   * Enum for clients of this class to choose the C dialect the parser uses.
-   */
-  public static enum Dialect {
+  /** Enum for clients of this class to choose the C dialect the parser uses. */
+  enum Dialect {
     C99,
     GNUC,
     ;
   }
 
   @Options(prefix = "parser")
-  public abstract static class ParserOptions {
+  abstract class ParserOptions {
 
     @Option(secure=true, description="C dialect for parser")
     private Dialect dialect = Dialect.GNUC;
@@ -186,12 +184,8 @@ public interface CParser extends Parser {
     }
   }
 
-  /**
-   * Factory that tries to create a parser based on available libraries
-   * (e.g. Eclipse CDT).
-   */
-  public static class Factory {
-
+  /** Factory that tries to create a parser based on available libraries (e.g. Eclipse CDT). */
+  class Factory {
 
     public static ParserOptions getOptions(Configuration config) throws InvalidConfigurationException {
       ParserOptions result = new EclipseCParserOptions();

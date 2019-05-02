@@ -26,24 +26,19 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import java.util.Collection;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 
 public class FunctionPointerCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
+    implements ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
@@ -63,36 +58,7 @@ public class FunctionPointerCPA extends AbstractCPA
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    Collection<? extends AbstractState> computedSuccessors =
-        getTransferRelation()
-            .getAbstractSuccessorsForEdge(pState, SingletonPrecision.getInstance(), pCfaEdge);
-    if (pSuccessors.size() != computedSuccessors.size()) {
-      return false; }
-    boolean found;
-    try {
-      for (AbstractState e1 : pSuccessors) {
-        found = false;
-        for (AbstractState e2 : computedSuccessors) {
-
-          if (isCoveredBy(e2, e1)) {
-            found = true;
-            break;
-          }
-
-        }
-        if (!found) {
-          return false; }
-      }
-    } catch (CPAException e) {
-      throw new CPATransferException("Cannot compare abstract successors", e);
-    }
-    return true;
-  }
-
-  @Override
-  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-    return getAbstractDomain().isLessOrEqual(pState, pOtherState);
+  public Reducer getReducer() {
+    return new FunctionPointerReducer();
   }
 }

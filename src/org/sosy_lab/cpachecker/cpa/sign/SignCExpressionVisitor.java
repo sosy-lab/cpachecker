@@ -25,7 +25,11 @@ package org.sosy_lab.cpachecker.cpa.sign;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -47,14 +51,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class SignCExpressionVisitor
   extends DefaultCExpressionVisitor<SIGN, UnrecognizedCodeException>
@@ -127,7 +124,8 @@ public class SignCExpressionVisitor
     return result;
   }
 
-  private SIGN evaluateExpression(SIGN pLeft, CBinaryExpression pExp, SIGN pRight) throws UnsupportedCCodeException {
+  private SIGN evaluateExpression(SIGN pLeft, CBinaryExpression pExp, SIGN pRight)
+      throws UnsupportedCodeException {
     SIGN result = SIGN.EMPTY;
     switch (pExp.getOperator()) {
     case PLUS:
@@ -163,9 +161,18 @@ public class SignCExpressionVisitor
     case EQUALS:
       result = evaluateEqualOperator(pLeft, pRight);
       break;
-    default:
-      throw new UnsupportedCCodeException(
-          "Not supported", edgeOfExpr);
+      case NOT_EQUALS:
+        result = evaluateUnequalOperator(pLeft, pRight);
+        break;
+      case SHIFT_LEFT:
+        result = evaluateLeftShiftOperator(pLeft, pRight);
+        break;
+      case SHIFT_RIGHT:
+        result = evaluateRightShiftOperator(pLeft, pRight);
+        break;
+
+      default:
+        throw new UnsupportedCodeException("Not supported", edgeOfExpr);
     }
     return result;
   }
@@ -216,9 +223,7 @@ public class SignCExpressionVisitor
       }
       return result;
     default:
-      throw new UnsupportedCCodeException(
-          "Not supported", edgeOfExpr,
-          pIastUnaryExpression);
+        throw new UnsupportedCodeException("Not supported", edgeOfExpr, pIastUnaryExpression);
     }
   }
 
@@ -445,6 +450,48 @@ public class SignCExpressionVisitor
     }
     if(pLeft==SIGN.ZERO && pRight == SIGN.ZERO) {
       return SIGN.PLUSMINUS;
+    }
+    return SIGN.ALL;
+  }
+
+  private SIGN evaluateUnequalOperator(SIGN pLeft, SIGN pRight) {
+    if (pLeft == SIGN.EMPTY || pRight == SIGN.EMPTY) {
+      return SIGN.EMPTY;
+    }
+
+    if (pLeft == SIGN.PLUS) {
+      if (pRight == SIGN.ZERO || pRight == SIGN.MINUS) {
+        return SIGN.PLUSMINUS;
+      }
+    } else if (pLeft == SIGN.ZERO) {
+      if (pRight == SIGN.PLUS || pRight == SIGN.MINUS) {
+        return SIGN.PLUSMINUS;
+      }
+    } else if (pLeft == SIGN.MINUS) {
+      if (pRight == SIGN.ZERO || pRight == SIGN.PLUS) {
+        return SIGN.PLUSMINUS;
+      }
+    }
+
+    return SIGN.ALL;
+  }
+
+  private SIGN evaluateRightShiftOperator(SIGN pLeft, SIGN pRight) {
+    if (pRight == SIGN.ZERO) {
+      return pLeft;
+    }
+    if (pRight == SIGN.PLUS) {
+      if (pLeft == SIGN.PLUS) {
+        return SIGN.PLUS0;
+      }
+      return pLeft;
+    }
+    return SIGN.ALL;
+  }
+
+  private SIGN evaluateLeftShiftOperator(SIGN pLeft, SIGN pRight) {
+    if (pRight == SIGN.ZERO) {
+      return pLeft;
     }
     return SIGN.ALL;
   }

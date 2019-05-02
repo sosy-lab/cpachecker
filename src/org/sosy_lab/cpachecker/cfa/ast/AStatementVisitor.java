@@ -26,12 +26,11 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public interface AStatementVisitor<R, X extends Exception> {
 
-  public R visit(AExpressionAssignmentStatement pAExpressionAssignmentStatement) throws X;
+  R visit(AExpressionAssignmentStatement pAExpressionAssignmentStatement) throws X;
 
-  public R visit(AExpressionStatement pAExpressionStatement) throws X;
+  R visit(AExpressionStatement pAExpressionStatement) throws X;
 
-  public R visit(AFunctionCallAssignmentStatement pAFunctionCallAssignmentStatement)throws X;
+  R visit(AFunctionCallAssignmentStatement pAFunctionCallAssignmentStatement) throws X;
 
-  public R visit(AFunctionCallStatement pAFunctionCallStatement) throws X;
-
+  R visit(AFunctionCallStatement pAFunctionCallStatement) throws X;
 }

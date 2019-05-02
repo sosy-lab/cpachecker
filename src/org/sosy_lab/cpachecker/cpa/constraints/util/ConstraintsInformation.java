@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.util;
 
 import java.util.Collections;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 
 /**
  * Information about {@link Constraint}s needed for symbolic interpolation.
@@ -35,26 +33,18 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 public class ConstraintsInformation {
 
   public static final ConstraintsInformation EMPTY =
-      new ConstraintsInformation(Collections.<Constraint>emptySet(),
-                                 new IdentifierAssignment());
+      new ConstraintsInformation(Collections.<Constraint>emptySet());
 
   private final Set<Constraint> constraints;
-  private final IdentifierAssignment definiteValueAssignments;
 
   public ConstraintsInformation(
-      final Set<Constraint> pConstraints,
-      final IdentifierAssignment pDefiniteSymIdAssignments
+      final Set<Constraint> pConstraints
   ) {
     constraints = pConstraints;
-    definiteValueAssignments = pDefiniteSymIdAssignments;
   }
 
   public Set<Constraint> getConstraints() {
     return constraints;
-  }
-
-  public IdentifierAssignment getAssignments() {
-    return definiteValueAssignments;
   }
 
   @Override

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
@@ -56,17 +55,15 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-
 
 public class CustomInstructionApplications {
 
@@ -141,7 +138,7 @@ public class CustomInstructionApplications {
   }
 
   public ImmutableSet<CFANode> getStartAndEndLocationsOfCIApplications() {
-    Builder<CFANode> result = ImmutableSet.builder();
+    ImmutableSet.Builder<CFANode> result = ImmutableSet.builder();
 
     for (AppliedCustomInstruction aci : cis.values()) {
       result.addAll(aci.getStartAndEndNodes());
@@ -152,7 +149,7 @@ public class CustomInstructionApplications {
   @Options(prefix = "custominstructions")
   public static abstract class CustomInstructionApplicationBuilder {
 
-    public static enum CIDescriptionType {MANUAL, OPERATOR}
+    public enum CIDescriptionType {MANUAL, OPERATOR}
 
     @Option(
         secure = true,
@@ -175,7 +172,7 @@ public class CustomInstructionApplications {
 
     public abstract CustomInstructionApplications identifyCIApplications()
         throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException,
-        UnrecognizedCCodeException;
+            UnrecognizedCodeException;
 
     public static CustomInstructionApplicationBuilder getBuilder(CIDescriptionType type,
         Configuration pConfig, LogManager pLogger, ShutdownNotifier pSdNotifier, CFA pCfa)
@@ -241,10 +238,11 @@ public class CustomInstructionApplications {
     }
 
     private CustomInstructionApplications findSimpleCustomInstructionApplications()
-        throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, UnrecognizedCCodeException {
+        throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException,
+            UnrecognizedCodeException {
       // build simple custom instruction, is of the form r= x pOp y;
-     // create variable expressions
-      CType type = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+      // create variable expressions
+      CType type = CNumericTypes.INT;
       CIdExpression r, x, y;
       r = new CIdExpression(FileLocation.DUMMY, new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO,
               type, "r", "r", "r", null));
@@ -304,11 +302,17 @@ public class CustomInstructionApplications {
     }
 
     @Override
-    public CustomInstructionApplications identifyCIApplications() throws UnrecognizedCCodeException,
-        AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
+    public CustomInstructionApplications identifyCIApplications()
+        throws UnrecognizedCodeException, AppliedCustomInstructionParsingFailedException,
+            IOException, InterruptedException {
       CustomInstructionApplications cia = findSimpleCustomInstructionApplications();
-      logger.log(Level.INFO, "Found ", cia.getMapping().size(), " applications of binary operatior",
-          binaryOperatorForSimpleCustomInstruction, " in code.");
+      logger.log(
+          Level.INFO,
+          "Found ",
+          cia.getMapping().size(),
+          " applications of binary operator",
+          binaryOperatorForSimpleCustomInstruction,
+          " in code.");
       return cia;
     }
   }

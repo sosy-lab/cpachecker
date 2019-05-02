@@ -1,4 +1,4 @@
-#include<assert.h>
+void assert(int cond) { if (!cond) { ERROR: return; } }
 extern _Bool __VERIFIER_nondet_bool();
 
 int main() {

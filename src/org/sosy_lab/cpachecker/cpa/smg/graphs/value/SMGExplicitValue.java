@@ -23,23 +23,31 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
 
+import java.math.BigInteger;
+
 public interface SMGExplicitValue extends SMGValue {
 
-  public SMGExplicitValue negate();
+  BigInteger getValue();
 
-  public SMGExplicitValue xor(SMGExplicitValue pRVal);
+  int getAsInt();
 
-  public SMGExplicitValue or(SMGExplicitValue pRVal);
+  long getAsLong();
 
-  public SMGExplicitValue and(SMGExplicitValue pRVal);
+  SMGExplicitValue negate();
 
-  public SMGExplicitValue shiftLeft(SMGExplicitValue pRVal);
+  SMGExplicitValue xor(SMGExplicitValue pRVal);
 
-  public SMGExplicitValue multiply(SMGExplicitValue pRVal);
+  SMGExplicitValue or(SMGExplicitValue pRVal);
 
-  public SMGExplicitValue divide(SMGExplicitValue pRVal);
+  SMGExplicitValue and(SMGExplicitValue pRVal);
 
-  public SMGExplicitValue subtract(SMGExplicitValue pRVal);
+  SMGExplicitValue shiftLeft(SMGExplicitValue pRVal);
 
-  public SMGExplicitValue add(SMGExplicitValue pRVal);
+  SMGExplicitValue multiply(SMGExplicitValue pRVal);
+
+  SMGExplicitValue divide(SMGExplicitValue pRVal);
+
+  SMGExplicitValue subtract(SMGExplicitValue pRVal);
+
+  SMGExplicitValue add(SMGExplicitValue pRVal);
 }

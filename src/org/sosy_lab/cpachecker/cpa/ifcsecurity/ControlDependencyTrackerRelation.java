@@ -23,6 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -45,15 +51,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
-
-
 
 /**
  * CPA-Transfer-Relation for tracking the Active Control Dependencies
@@ -142,12 +139,11 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
     assert pState instanceof ControlDependencyTrackerState;
 
-
-    ControlDependencyTrackerState state=(ControlDependencyTrackerState)pState;
+    ControlDependencyTrackerState trackerState = (ControlDependencyTrackerState) pState;
 
     //Remove Unneeded Control Dependencies
     CFANode currentNode=pCfaEdge.getSuccessor();
-    state.getGuards().changeContextStack(currentNode,rcd.get(currentNode));
+    trackerState.getGuards().changeContextStack(currentNode, rcd.get(currentNode));
 
     //Assume-Edges
     //DependencyTrackerCPA strengthens the information contained in Variables of a control branch
@@ -155,26 +151,20 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
       for(AbstractState astate: pOtherStates){
         if(astate instanceof DependencyTrackerState){
           DependencyTrackerState ostate=(DependencyTrackerState) astate;
-          Map<Variable, SortedSet<Variable>> dependancies = ostate.getDependencies();
+          Map<Variable, SortedSet<Variable>> dependencies = ostate.getDependencies();
           SortedSet<Variable> newmap=new TreeSet<>();
-          for(Variable var: state.getGuards().getTopVariables()){
-            if(dependancies.containsKey(var)){
-                for(Variable dvar:dependancies.get(var)){
-                   newmap.add(dvar);
-                }
-              }
-            else{
-                newmap.add(var);
+          for (Variable var : trackerState.getGuards().getTopVariables()) {
+            if (dependencies.containsKey(var)) {
+              newmap.addAll(dependencies.get(var));
+            } else {
+              newmap.add(var);
             }
           }
-          state.getGuards().changeTopVariables(newmap);
+          trackerState.getGuards().changeTopVariables(newmap);
         }
-
       }
     }
 
     return Collections.singleton(pState);
   }
-
-
 }

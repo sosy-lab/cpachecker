@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,10 @@ import java.math.BigInteger;
 
 public abstract class SMGKnownValue {
 
-  /** A symbolic value representing an explicit value. */
+  /**
+   * A symbolic value representing an explicit value. Depending on the sub-class, this value either
+   * represents a direct explicit numeral value or a unique symbolic identifier.
+   */
   private final BigInteger value;
 
   SMGKnownValue(BigInteger pValue) {
@@ -47,25 +50,13 @@ public abstract class SMGKnownValue {
     return value.hashCode();
   }
 
-  public final BigInteger getValue() {
+  protected BigInteger getValue() {
     return value;
-  }
-
-  public final int getAsInt() {
-    return value.intValue();
-  }
-
-  public final long getAsLong() {
-    return value.longValue();
   }
 
   @Override
   public String toString() {
     return value.toString();
-  }
-
-  public boolean isUnknown() {
-    return false;
   }
 }
 

@@ -59,8 +59,8 @@ public final class JReferencedMethodInvocationExpression extends JMethodInvocati
   }
 
   @Override
-  public String toASTString() {
-    return qualifier.toASTString() + "_" + super.toASTString();
+  public String toASTString(boolean pQualifier) {
+    return qualifier.toASTString(pQualifier) + "_" + super.toASTString(pQualifier);
   }
 
   /* (non-Javadoc)

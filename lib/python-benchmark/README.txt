@@ -11,3 +11,6 @@ in the style of a requirements.txt file for pip
 Do not forget to check in all files under lib/python-benchmark/.
 We currently distribute these libraries in the repository
 because downloading them requires "pip3", which many users do not have installed.
+
+Please also update the path to the BenchExec library in
+.pydevproject in the root of the project.

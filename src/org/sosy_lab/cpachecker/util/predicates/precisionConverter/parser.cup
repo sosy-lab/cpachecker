@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 
+import com.google.common.io.CharSource;
+import com.google.common.collect.ImmutableList;
+
 import java.io.Reader;
 import java.util.LinkedList;
 import java.util.List;
@@ -41,8 +44,6 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
 import org.sosy_lab.java_smt.api.FormulaType;
-
-import com.google.common.io.CharSource;
 
 parser code {:
   private LogManager logger;
@@ -137,7 +138,7 @@ assert ::= LPAR ASSERT term:f RPAR
 	{: RESULT = "(assert " + f.getFirst() + ")"; :};
 
 funtype ::= LPAR types:lst RPAR type:t 
-	{: RESULT = new Type<String>(t, lst); :};
+	{: RESULT = new Type<String>(t, ImmutableList.copyOf(lst)); :};
 types ::= type:t types:lst {: lst.add(0,t); RESULT = lst; :}
         | /* empty */ {: RESULT = new LinkedList<String>(); :};
 type ::= symbol:n {: RESULT = n; :}

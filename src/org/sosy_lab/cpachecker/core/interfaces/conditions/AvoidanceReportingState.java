@@ -38,7 +38,7 @@ public interface AvoidanceReportingState extends AbstractState {
    * Returns true if an invariant must be added so as to avoid
    * the given state in the future.
    */
-  public boolean mustDumpAssumptionForAvoidance();
+  boolean mustDumpAssumptionForAvoidance();
 
   /**
    * If {@link #mustDumpAssumptionForAvoidance()} returned true, this method
@@ -47,6 +47,6 @@ public interface AvoidanceReportingState extends AbstractState {
    * If {@link #mustDumpAssumptionForAvoidance()} returned false, this method
    * SHOULD return TRUE.
    */
-  public BooleanFormula getReasonFormula(FormulaManagerView mgr);
+  BooleanFormula getReasonFormula(FormulaManagerView mgr);
 
 }

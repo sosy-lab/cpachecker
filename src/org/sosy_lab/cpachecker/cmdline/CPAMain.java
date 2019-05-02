@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -45,6 +47,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -53,7 +56,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.matheclipse.core.util.WriterOutputStream;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
@@ -71,6 +74,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LoggingOptions;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -78,17 +82,19 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
+import org.sosy_lab.cpachecker.util.Property;
+import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
+import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 public class CPAMain {
 
-  static final PrintStream ERROR_OUTPUT = System.err;
   static final int ERROR_EXIT_CODE = 1;
 
   @SuppressWarnings("resource") // We don't close LogManager
@@ -109,19 +115,15 @@ public class CPAMain {
         outputDirectory = p.outputPath;
         properties = p.properties;
       } catch (InvalidCmdlineArgumentException e) {
-        ERROR_OUTPUT.println("Could not process command line arguments: " + e.getMessage());
-        System.exit(ERROR_EXIT_CODE);
+        throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
       } catch (IOException e) {
-        ERROR_OUTPUT.println("Could not read config file " + e.getMessage());
-        System.exit(ERROR_EXIT_CODE);
+        throw Output.fatalError("Could not read config file %s", e.getMessage());
       }
 
       logOptions = new LoggingOptions(cpaConfig);
 
     } catch (InvalidConfigurationException e) {
-      ERROR_OUTPUT.println("Invalid configuration: " + e.getMessage());
-      System.exit(ERROR_EXIT_CODE);
-      return;
+      throw Output.fatalError("Invalid configuration: %s", e.getMessage());
     }
     final LogManager logManager = BasicLogManager.create(logOptions);
     cpaConfig.enableLogging(logManager);
@@ -141,6 +143,9 @@ public class CPAMain {
         throw new InvalidConfigurationException("Please specify a program to analyze on the command line.");
       }
       dumpConfiguration(options, cpaConfig, logManager);
+
+      // generate correct frontend based on file language
+      cpaConfig = detectFrontendLanguageIfNecessary(options, cpaConfig, logManager);
 
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
       limits.start();
@@ -201,6 +206,7 @@ public class CPAMain {
 
   private static final String SPECIFICATION_OPTION = "specification";
   private static final String ENTRYFUNCTION_OPTION = "analysis.entryFunction";
+  public static final String APPROACH_NAME_OPTION = "analysis.name";
 
   @Options
   private static class BootstrapOptions {
@@ -209,6 +215,15 @@ public class CPAMain {
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memsafetyConfig = null;
+
+    @Option(
+        secure = true,
+        name = "memorycleanup.config",
+        description =
+            "When checking for memory cleanup properties, "
+                + "use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path memcleanupConfig = null;
 
     @Option(secure=true, name="overflow.config",
         description="When checking for the overflow property, "
@@ -230,8 +245,9 @@ public class CPAMain {
     private boolean printUsedOptions = false;
   }
 
+  @VisibleForTesting
   @Options
-  private static class MainOptions {
+  protected static class MainOptions {
     @Option(
       secure = true,
       name = "analysis.programNames",
@@ -239,6 +255,12 @@ public class CPAMain {
       description = "A String, denoting the programs to be analyzed"
     )
     private ImmutableList<String> programs = ImmutableList.of();
+
+    @Option(secure=true,
+        description="Programming language of the input program. If not given explicitly, "
+            + "auto-detection will occur")
+    // keep option name in sync with {@link CFACreator#language}, value might differ
+    private Language language = null;
 
     @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
@@ -272,9 +294,11 @@ public class CPAMain {
     }
   }
 
-  private static final ImmutableSet<PropertyType> MEMSAFETY_PROPERTY_TYPES =
+  private static final ImmutableSet<? extends Property> MEMSAFETY_PROPERTY_TYPES =
       Sets.immutableEnumSet(
-          PropertyType.VALID_DEREF, PropertyType.VALID_FREE, PropertyType.VALID_MEMTRACK);
+          CommonPropertyType.VALID_DEREF,
+          CommonPropertyType.VALID_FREE,
+          CommonPropertyType.VALID_MEMTRACK);
 
   /**
    * Parse the command line, read the configuration file, and setup the program-wide base paths.
@@ -303,9 +327,11 @@ public class CPAMain {
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.setOptions(EXTERN_OPTION_DEFAULTS);
     if (configFile != null) {
+      configBuilder.setOption(APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFile));
       configBuilder.loadFromFile(configFile);
     }
     configBuilder.setOptions(cmdLineOptions);
+
     Configuration config = configBuilder.build();
 
     // We want to be able to use options of type "File" with some additional
@@ -342,52 +368,149 @@ public class CPAMain {
     return new Config(config, outputDirectory, properties);
   }
 
+  private static String extractApproachNameFromConfigName(String configFilename) {
+    String filename = Paths.get(configFilename).getFileName().toString();
+    // remove the extension (most likely ".properties")
+    return filename.contains(".") ? filename.substring(0, filename.lastIndexOf(".")) : filename;
+  }
+
+  private static final String LANGUAGE_HINT =
+      String.format(
+          " Please specify a language directly with the option 'language=%s'.",
+          Arrays.toString(Language.values()));
+
+  /**
+   * Determines the frontend language based on the file endings of the given programs, if no
+   * language is given by the user. If a language is detected, it is set in the given {@link
+   * MainOptions} object and a new configuration for that language, based on the given
+   * configuration, is returned.
+   */
+  @VisibleForTesting
+  static Configuration detectFrontendLanguageIfNecessary(
+      MainOptions pOptions, Configuration pConfig, LogManager pLogManager)
+      throws InvalidConfigurationException {
+    if (pOptions.language == null) {
+      // if language was not specified by option, we determine the best matching language
+      Language frontendLanguage;
+      if (areJavaOptionsSet(pConfig)) {
+        frontendLanguage = Language.JAVA;
+      } else {
+        frontendLanguage = detectFrontendLanguageFromFileEndings(pOptions.programs);
+      }
+      Preconditions.checkNotNull(frontendLanguage);
+      ConfigurationBuilder configBuilder = Configuration.builder();
+      configBuilder.copyFrom(pConfig);
+      configBuilder.setOption("language", frontendLanguage.name());
+      pConfig = configBuilder.build();
+      pOptions.language = frontendLanguage;
+      pLogManager.logf(Level.INFO, "Language %s detected and set for analysis", frontendLanguage);
+    }
+    Preconditions.checkNotNull(pOptions.language);
+    return pConfig;
+  }
+
+  @SuppressWarnings("deprecation") // checking the properties directly is more maintainable
+  private static boolean areJavaOptionsSet(Configuration pConfig) {
+    // Make sure to keep this synchronized with EclipseJavaParser
+    return pConfig.hasProperty("java.sourcepath") || pConfig.hasProperty("java.classpath");
+  }
+
+  private static Language detectFrontendLanguageFromFileEndings(ImmutableList<String> pPrograms)
+      throws InvalidConfigurationException {
+    checkArgument(!pPrograms.isEmpty(), "Empty list of programs");
+    Language frontendLanguage = null;
+    for (String program : pPrograms) {
+      Language language;
+      String suffix = program.substring(program.lastIndexOf(".") + 1);
+      switch (suffix) {
+        case "ll":
+        case "bc":
+          language = Language.LLVM;
+          break;
+        case "c":
+        case "i":
+        case "h":
+        default:
+          language = Language.C;
+          break;
+      }
+      Preconditions.checkNotNull(language);
+      if (frontendLanguage == null) { // first iteration
+        frontendLanguage = language;
+      }
+      if (frontendLanguage != language) { // further iterations: check for conflicting endings
+        throw new InvalidConfigurationException(
+            String.format(
+                    "Differing file formats detected: %s and %s files are declared for analysis.",
+                    frontendLanguage, language)
+                + LANGUAGE_HINT);
+      }
+    }
+    return frontendLanguage;
+  }
+
+  private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =
+      ImmutableMap.<Property, TestTargetType>builder()
+          .put(CommonCoverageType.COVERAGE_BRANCH, TestTargetType.ASSUME)
+          .put(CommonCoverageType.COVERAGE_CONDITION, TestTargetType.ASSUME)
+          .put(CommonCoverageType.COVERAGE_ERROR, TestTargetType.ERROR_CALL)
+          .put(CommonCoverageType.COVERAGE_STATEMENT, TestTargetType.STATEMENT)
+          .build();
+
   private static Configuration handlePropertyOptions(
       Configuration config,
       BootstrapOptions options,
       Map<String, String> cmdLineOptions,
-      Set<SpecificationProperty> properties)
+      Set<SpecificationProperty> pProperties)
       throws InvalidConfigurationException, IOException {
-    Set<PropertyType> propertyTypes =
-        Sets.immutableEnumSet(
-            Collections2.transform(properties, SpecificationProperty::getPropertyType));
+    Set<Property> properties =
+        pProperties.stream().map(p -> p.getProperty()).collect(ImmutableSet.toImmutableSet());
 
-    Path alternateConfigFile = null;
+    final Path alternateConfigFile;
 
-    if (!Collections.disjoint(propertyTypes, MEMSAFETY_PROPERTY_TYPES)) {
-      if (!MEMSAFETY_PROPERTY_TYPES.containsAll(propertyTypes)) {
+    if (!Collections.disjoint(properties, MEMSAFETY_PROPERTY_TYPES)) {
+      if (!MEMSAFETY_PROPERTY_TYPES.containsAll(properties)) {
         // Memsafety property cannot be checked with others in combination
         throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + propertyTypes);
+            "Unsupported combination of properties: " + properties);
       }
-      if (options.memsafetyConfig == null) {
-        throw new InvalidConfigurationException("Verifying memory safety is not supported if option memorysafety.config is not specified.");
+      alternateConfigFile = check(options.memsafetyConfig, "memory safety", "memorysafety.config");
+    } else if (properties.contains(CommonPropertyType.VALID_MEMCLEANUP)) {
+      if (properties.size() != 1) {
+        // MemCleanup property cannot be checked with others in combination
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + properties);
       }
-      alternateConfigFile = options.memsafetyConfig;
-    }
-    if (propertyTypes.contains(PropertyType.OVERFLOW)) {
-      if (propertyTypes.size() != 1) {
+      alternateConfigFile = check(options.memcleanupConfig, "memory cleanup", "memorycleanup.config");
+    } else if (properties.contains(CommonPropertyType.OVERFLOW)) {
+      if (properties.size() != 1) {
         // Overflow property cannot be checked with others in combination
         throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + propertyTypes);
+            "Unsupported combination of properties: " + properties);
       }
-      if (options.overflowConfig == null) {
-
-        throw new InvalidConfigurationException("Verifying overflows is not supported if option overflow.config is not specified.");
-      }
-      alternateConfigFile = options.overflowConfig;
-    }
-    if (propertyTypes.contains(PropertyType.TERMINATION)) {
+      alternateConfigFile = check(options.overflowConfig, "overflows", "overflow.config");
+    } else if (properties.contains(CommonPropertyType.TERMINATION)) {
       // Termination property cannot be checked with others in combination
-      if (propertyTypes.size() != 1) {
+      if (properties.size() != 1) {
         throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + propertyTypes);
+            "Unsupported combination of properties: " + properties);
       }
-      if (options.terminationConfig == null) {
+      alternateConfigFile = check(options.terminationConfig, "termination", "termination.config");
+    } else if (properties.contains(CommonCoverageType.COVERAGE_ERROR)
+        || properties.contains(CommonCoverageType.COVERAGE_BRANCH)
+        || properties.contains(CommonCoverageType.COVERAGE_CONDITION)
+        || properties.contains(CommonCoverageType.COVERAGE_STATEMENT)) {
+      // coverage criterion cannot be checked with other properties in combination
+      if (properties.size() != 1) {
         throw new InvalidConfigurationException(
-            "Verifying termination is not supported if option termination.config is not specified.");
+            "Unsupported combination of properties: " + properties);
       }
-      alternateConfigFile = options.terminationConfig;
+      return Configuration.builder()
+          .copyFrom(config)
+          .setOption("testcase.targets.type", TARGET_TYPES.get(properties.iterator().next()).name())
+          .build();
+    } else {
+      alternateConfigFile = null;
     }
 
     if (alternateConfigFile != null) {
@@ -395,6 +518,7 @@ public class CPAMain {
           .loadFromFile(alternateConfigFile)
           .setOptions(cmdLineOptions)
           .clearOption("memorysafety.config")
+          .clearOption("memorycleanup.config")
           .clearOption("overflow.config")
           .clearOption("termination.config")
           .clearOption("output.disable")
@@ -406,16 +530,28 @@ public class CPAMain {
     return config;
   }
 
-  private static final ImmutableMap<PropertyType, String> SPECIFICATION_FILES =
-      ImmutableMap.<PropertyType, String>builder()
-          .put(PropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
-          .put(PropertyType.REACHABILITY, "sv-comp-reachability")
-          .put(PropertyType.VALID_FREE, "sv-comp-memorysafety")
-          .put(PropertyType.VALID_DEREF, "sv-comp-memorysafety")
-          .put(PropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
-          .put(PropertyType.OVERFLOW, "sv-comp-overflow")
-          .put(PropertyType.DEADLOCK, "deadlock")
-          //.put(PropertyType.TERMINATION, "none needed")
+  private static Path check(Path config, String verificationTarget, String optionName)
+      throws InvalidConfigurationException {
+    if (config == null) {
+      throw new InvalidConfigurationException(
+          String.format(
+              "Verifying %s is not supported if option %s is not specified.",
+              verificationTarget, optionName));
+    }
+    return config;
+  }
+
+  private static final ImmutableMap<Property, String> SPECIFICATION_FILES =
+      ImmutableMap.<Property, String>builder()
+          .put(CommonPropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
+          .put(CommonPropertyType.REACHABILITY, "sv-comp-reachability")
+          .put(CommonPropertyType.VALID_FREE, "sv-comp-memorysafety")
+          .put(CommonPropertyType.VALID_DEREF, "sv-comp-memorysafety")
+          .put(CommonPropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
+          .put(CommonPropertyType.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
+          .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
+          .put(CommonPropertyType.DEADLOCK, "deadlock")
+          // .put(CommonPropertyType.TERMINATION, "none needed")
           .build();
 
   private static Set<SpecificationProperty> handlePropertyFile(Map<String, String> cmdLineOptions)
@@ -544,6 +680,7 @@ public class CPAMain {
           "Validating (violation|correctness) witnesses is not supported if option witness.validation.(violation|correctness).config is not specified.");
     }
     return Configuration.builder()
+        .copyFrom(config)
         .loadFromFile(validationConfigFile)
         .setOptions(overrideOptions)
         .clearOption("witness.validation.file")
@@ -593,6 +730,9 @@ public class CPAMain {
         stream = makePrintStream(mergeStreams(System.out, file)); // ensure that result is printed to System.out
       }
       mResult.printResult(stream);
+
+      // write output files
+      mResult.writeOutputFiles();
 
       if (outputDirectory != null) {
         stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");

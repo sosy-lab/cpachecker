@@ -23,27 +23,30 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
-
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 /**
  * Interface representing an unmodifiable reached set
  */
 public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
 
-  public Collection<AbstractState> asCollection();
+  Collection<AbstractState> asCollection();
 
   @Override
-  public Iterator<AbstractState> iterator();
+  Iterator<AbstractState> iterator();
 
-  public Collection<Precision> getPrecisions();
+  Collection<Precision> getPrecisions();
 
   /**
    * Returns a subset of the reached set, which contains at least all abstract
@@ -60,7 +63,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    * @param state An abstract state for whose location the abstract states should be retrieved.
    * @return A subset of the reached set.
    */
-  public Collection<AbstractState> getReached(AbstractState state)
+  Collection<AbstractState> getReached(AbstractState state)
     throws UnsupportedOperationException;
 
   /**
@@ -78,26 +81,28 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    * @param location A location
    * @return A subset of the reached set.
    */
-  public Collection<AbstractState> getReached(CFANode location);
+  Collection<AbstractState> getReached(CFANode location);
 
   /**
    * Returns the first state that was added to the reached set.
+   * May be null if the state gets removed from the reached set.
+   *
    * @throws IllegalStateException If the reached set is empty.
    */
-  public AbstractState getFirstState();
+  @Nullable AbstractState getFirstState();
 
   /**
    * Returns the last state that was added to the reached set.
    * May be null if it is unknown, which state was added last.
    */
-  public @Nullable AbstractState getLastState();
+  @Nullable AbstractState getLastState();
 
-  public boolean hasWaitingState();
+  boolean hasWaitingState();
 
   /**
    * An unmodifiable view of the waitlist as an Collection.
    */
-  public Collection<AbstractState> getWaitlist();
+  Collection<AbstractState> getWaitlist();
 
   /**
    * Returns the precision for a state.
@@ -105,17 +110,35 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    * @return The precision for the state.
    * @throws IllegalArgumentException If the state is not in the reached set.
    */
-  public Precision getPrecision(AbstractState state)
+  Precision getPrecision(AbstractState state)
     throws UnsupportedOperationException;
 
   /**
    * Iterate over all (state, precision) pairs in the reached set and apply an action for them.
    */
-  public void forEach(BiConsumer<? super AbstractState, ? super Precision> action);
+  void forEach(BiConsumer<? super AbstractState, ? super Precision> action);
 
-  public boolean contains(AbstractState state);
+  boolean contains(AbstractState state);
 
-  public boolean isEmpty();
+  boolean isEmpty();
 
-  public int size();
+  int size();
+
+  /**
+   * Violation of some properties is determined by reached set itself, not by a single state. The
+   * example is race condition: it is required to have a couple of special states
+   *
+   * @return Is any property violated
+   */
+  default boolean hasViolatedProperties() {
+    return from(asCollection()).anyMatch(IS_TARGET_STATE);
+  }
+
+  default Collection<Property> getViolatedProperties() {
+    return from(asCollection())
+        .filter(IS_TARGET_STATE)
+        .filter(Targetable.class)
+        .transformAndConcat(Targetable::getViolatedProperties)
+        .toSet();
+  }
 }

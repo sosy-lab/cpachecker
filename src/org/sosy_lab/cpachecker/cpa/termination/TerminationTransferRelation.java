@@ -63,13 +63,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationLoopInformation;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class TerminationTransferRelation implements TransferRelation {
+public class TerminationTransferRelation extends AbstractSingleWrapperTransferRelation {
 
   /*
    *  Inserted nodes and edges:                  .  int x',y',z', ..., pc';
@@ -121,7 +122,6 @@ public class TerminationTransferRelation implements TransferRelation {
 
   private Set<CFAEdge> createdCfaEdges = Sets.newLinkedHashSet();
 
-  private final TransferRelation transferRelation;
   private final TerminationLoopInformation terminationInformation;
   private final LogManager logger;
 
@@ -129,7 +129,7 @@ public class TerminationTransferRelation implements TransferRelation {
       TransferRelation pTransferRelation,
       TerminationLoopInformation terminationInformation,
       LogManager pLogger) {
-    transferRelation = checkNotNull(pTransferRelation);
+    super(pTransferRelation);
     this.terminationInformation = checkNotNull(terminationInformation);
     logger = checkNotNull(pLogger);
   }

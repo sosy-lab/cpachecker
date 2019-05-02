@@ -49,11 +49,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
+public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
 
   private final PathFormulaManager pfmgr;
 
-  BAMBlockFormulaStrategy(PathFormulaManager pPfmgr) {
+  public BAMBlockFormulaStrategy(PathFormulaManager pPfmgr) {
     pfmgr = pPfmgr;
   }
 
@@ -125,6 +125,7 @@ final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
           prevCallState = callStacks.get(callState);
           parentFormula =
               rebuildStateAfterFunctionCall(
+                  pfmgr,
                   parentFormula,
                   finishedFormulas.get(callState),
                   (FunctionExitNode) extractLocation(parentElement));
@@ -214,13 +215,15 @@ final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
   }
 
   /* rebuild indices from outer scope */
-  private PathFormula rebuildStateAfterFunctionCall(
+  @SuppressWarnings("deprecation") // TODO: seems buggy because it ignores PointerTargetSet
+  public static PathFormula rebuildStateAfterFunctionCall(
+      final PathFormulaManager pPfmgr,
       final PathFormula parentFormula,
       final PathFormula rootFormula,
       final FunctionExitNode functionExitNode) {
     final SSAMap newSSA =
         BAMPredicateReducer.updateIndices(
             rootFormula.getSsa(), parentFormula.getSsa(), functionExitNode);
-    return pfmgr.makeNewPathFormula(parentFormula, newSSA);
+    return pPfmgr.makeNewPathFormula(parentFormula, newSSA);
   }
 }

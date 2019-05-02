@@ -77,7 +77,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     return (BinaryOperator) super.getOperator();
   }
 
-  public static enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
+  public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
     MULTIPLY      ("*"),
     DIVIDE        ("/"),
     MODULO        ("%"),
@@ -105,7 +105,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
 
     private final String op;
 
-    private BinaryOperator(String pOp) {
+    BinaryOperator(String pOp) {
       op = pOp;
     }
 

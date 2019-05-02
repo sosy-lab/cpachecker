@@ -27,9 +27,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -38,13 +36,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  */
 public class BlockPartitioning {
   private final Block mainBlock;
-  private final Map<CFANode, Block> callNodeToBlock;
+  private final ImmutableMap<CFANode, Block> callNodeToBlock;
   private final ImmutableMultimap<CFANode, Block> returnNodeToBlock;
   private final ImmutableSet<Block> blocks;
 
   public BlockPartitioning(Collection<Block> subtrees, CFANode mainFunction) {
     final ImmutableMap.Builder<CFANode, Block> callNodeToSubtree = ImmutableMap.builder();
-    final ImmutableMultimap.Builder<CFANode, Block> returnNodeToBlock = ImmutableMultimap.builder();
+    final ImmutableMultimap.Builder<CFANode, Block> returnNodeToSubtree =
+        ImmutableMultimap.builder();
 
     for (Block subtree : subtrees) {
       for (CFANode callNode : subtree.getCallNodes()) {
@@ -52,19 +51,19 @@ public class BlockPartitioning {
       }
 
       for (CFANode returnNode : subtree.getReturnNodes()) {
-        returnNodeToBlock.put(returnNode, subtree);
+        returnNodeToSubtree.put(returnNode, subtree);
       }
     }
 
     this.callNodeToBlock = callNodeToSubtree.build();
-    this.returnNodeToBlock = returnNodeToBlock.build();
+    this.returnNodeToBlock = returnNodeToSubtree.build();
     this.blocks = ImmutableSet.copyOf(subtrees);
     this.mainBlock = callNodeToBlock.get(mainFunction);
   }
 
   /**
    * @param node the node to be checked
-   * @return true, if there is a <code>Block</code> such that <code>node</node> is a callnode of the subtree.
+   * @return true, if there is a <code>Block</code> such that <code>node</code> is a callnode of the subtree.
    */
   public boolean isCallNode(CFANode node) {
     return callNodeToBlock.containsKey(node);
@@ -85,12 +84,6 @@ public class BlockPartitioning {
 
   public boolean isReturnNode(CFANode node) {
     return returnNodeToBlock.containsKey(node);
-  }
-
-  @Deprecated
-  // reason for deprecation: there can be several blocks for the same return-node
-  public Block getBlockForReturnNode(CFANode pCurrentNode) {
-    return Iterables.getFirst(returnNodeToBlock.get(pCurrentNode), null);
   }
 
   public ImmutableCollection<Block> getBlocksForReturnNode(CFANode pCurrentNode) {

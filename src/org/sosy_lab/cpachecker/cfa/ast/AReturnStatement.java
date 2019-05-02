@@ -36,7 +36,7 @@ public interface AReturnStatement extends AAstNode {
    * The return value, if present
    * (i.e., the "exp" in "return exp;").
    */
-  public Optional<? extends AExpression> getReturnValue();
+  Optional<? extends AExpression> getReturnValue();
 
   /**
    * If this statement has a return value,
@@ -46,5 +46,5 @@ public interface AReturnStatement extends AAstNode {
    * This special variable is the same as the one returned by
    * {@link FunctionEntryNode#getReturnVariable()}.
    */
-  public Optional<? extends AAssignment> asAssignment();
+  Optional<? extends AAssignment> asAssignment();
 }

@@ -44,10 +44,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCacheAggressiveImpl;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -185,8 +187,9 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
   }
 
   /** just remove a state and its subtree from the given reachedSet. */
-  static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement) {
-    if (BAMTransferRelation.isHeadOfMainFunction(extractLocation(argElement))) {
+  static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement)
+      throws InterruptedException {
+    if (AbstractBAMTransferRelation.isHeadOfMainFunction(extractLocation(argElement))) {
       assert ((ARGState)reachedSet.asReachedSet().getFirstState()).getChildren().contains(
           reachedSet.asReachedSet().getLastState());
       reachedSet.removeSubtree((ARGState)reachedSet.asReachedSet().getLastState());
@@ -233,7 +236,11 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
 
     AbstractState reducedRootState = wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
     Precision reducedRootPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
-    bamCache.remove(reducedRootState, reducedRootPrecision, rootSubtree);
+    BAMCacheEntry entry = bamCache.get(reducedRootState, reducedRootPrecision, rootSubtree);
+    if (entry != null) {
+      // TODO do we need this check? Maybe there is a bug, if the entry is not available?
+      entry.deleteInfo();
+    }
 
     ARGReachedSet argReachedSet = new ARGReachedSet(reachedSet);
     if (pNewPrecisions.isEmpty()) {
@@ -241,15 +248,18 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
       removeSubtree(argReachedSet, removeElement);
 
     } else {
-      final Pair<Precision, Predicate<? super Precision>> newPrecision = getUpdatedPrecision(
-          reachedSet.getPrecision(removeElement), rootSubtree, pNewPrecisions, pPrecisionTypes);
+      final Pair<Precision, Predicate<? super Precision>> newPrecision =
+          getUpdatedPrecision(
+              reachedSet.getPrecision(removeElement), pNewPrecisions, pPrecisionTypes);
       if (removeElement.getParents().contains(reachedSet.getFirstState())) {
         // after removing the state, only the root-state (and maybe other branches
         // starting at root) would remain, with a new precision for root.
         // instead of modifying the existing reached-set,
         // we create a new reached-set with a new root with the new precision.
         logger.log(Level.FINER, "creating reached-set with new precision");
-        data.createAndRegisterNewReachedSet(reducedRootState, newPrecision.getFirst(), rootSubtree);
+        Precision reducedPrecision =
+            wrappedReducer.getVariableReducedPrecision(newPrecision.getFirst(), rootSubtree);
+        data.createAndRegisterNewReachedSet(reducedRootState, reducedPrecision, rootSubtree);
       } else {
         argReachedSet.removeSubtree(removeElement, newPrecision.getFirst(), newPrecision.getSecond());
       }
@@ -258,25 +268,16 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
     removeCachedSubtreeTimer.stop();
   }
 
-  /**
-   * This method builds the updated precision for the refinement.
-   * Normally, a list of sub-precisions would be used and the reached-set updates it in its own.
-   * For BAM we build the correct 'complete' precision, because we have to reduce it for the current block.
-   * Thus instead of a list, we only have one top-level precision-object that wraps other updated precisions.
-   */
+  /** This method builds the updated precision for the refinement. */
   private Pair<Precision, Predicate<? super Precision>> getUpdatedPrecision(
-      Precision removePrecision, final Block context,
-      final List<Precision> precisions, final List<Predicate<? super Precision>> precisionTypes) {
+      Precision removePrecision,
+      final List<Precision> precisions,
+      final List<Predicate<? super Precision>> precisionTypes) {
     assert precisions.size() == precisionTypes.size() && !precisions.isEmpty();
-
     for (int i = 0; i < precisions.size(); i++) {
       removePrecision = Precisions.replaceByType(removePrecision, precisions.get(i), precisionTypes.get(i));
     }
-
-    final Precision reducedPrecision = wrappedReducer.getVariableReducedPrecision(removePrecision, context);
-
-    return Pair.of(
-        reducedPrecision, Predicates.instanceOf(reducedPrecision.getClass()));
+    return Pair.of(removePrecision, Predicates.instanceOf(removePrecision.getClass()));
   }
 
   /**
@@ -365,7 +366,7 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
     }
 
     // now only the initial elements should be on the stacks
-    assert Iterables.getOnlyElement(needsNewPrecisionEntries) == false;
+    assert !Iterables.getOnlyElement(needsNewPrecisionEntries);
     assert rootStates.getLast() == pPath.getFirstState();
   }
 

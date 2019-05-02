@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 
 /**
@@ -79,11 +79,7 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(parameters);
-    result = prime * result + super.hashCode();
-    return result;
+    return Objects.hashCode(parameters) * 31 + super.hashCode();
   }
 
   /**

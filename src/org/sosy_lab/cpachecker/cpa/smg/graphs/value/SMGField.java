@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class SMGField {
 
   private static final SMGField UNKNOWN =
-      new SMGField(SMGUnknownValue.getInstance(), new CProblemType("unknown"));
+      new SMGField(SMGUnknownValue.INSTANCE, new CProblemType("unknown"));
 
   /** the offset of this field relative to the memory this field belongs to. */
   private final SMGExplicitValue offset;

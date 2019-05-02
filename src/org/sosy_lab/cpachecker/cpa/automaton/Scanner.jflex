@@ -130,6 +130,8 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> ":"                 { return symbol(":", AutomatonSym.COLON); }
 <YYINITIAL> "("                 { return symbol("(", AutomatonSym.OPEN_BRACKETS); }
 <YYINITIAL> ")"                 { return symbol(")", AutomatonSym.CLOSE_BRACKETS); }
+<YYINITIAL> "<"                 { return symbol("<", AutomatonSym.OPEN_ANGLE_BRACKETS); }
+<YYINITIAL> ">"                 { return symbol(">", AutomatonSym.CLOSE_ANGLE_BRACKETS); }
 <YYINITIAL> "->"                { return symbol("->", AutomatonSym.ARROW); }
 <YYINITIAL> "AUTOMATON"         { return symbol("AUTOMATON", AutomatonSym.AUTOMATON); }
 <YYINITIAL> "END"               { return symbol("LABEL", AutomatonSym.END); }
@@ -157,6 +159,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "TRUE"              { return symbol("TRUE", AutomatonSym.TRUE); }
 <YYINITIAL> "FALSE"             { return symbol("FALSE", AutomatonSym.FALSE); }
 <YYINITIAL> "PRINT"             { return symbol("PRINT", AutomatonSym.PRINT); }
+<YYINITIAL> "PRINTONCE"         { return symbol("PRINTONCE", AutomatonSym.PRINTONCE); }
 <YYINITIAL> "USEFIRST"          { return symbol("USEFIRST", AutomatonSym.USEFIRST); }
 <YYINITIAL> "USEALL"            { return symbol("USEALL", AutomatonSym.USEALL); }
 <YYINITIAL> "TARGET"            { return symbol("TARGET", AutomatonSym.TARGET); }

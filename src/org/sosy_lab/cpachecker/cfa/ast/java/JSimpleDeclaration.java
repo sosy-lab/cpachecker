@@ -37,6 +37,5 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public interface JSimpleDeclaration extends ASimpleDeclaration, JAstNode {
 
   @Override
-  public JType getType();
-
+  JType getType();
 }

@@ -11,7 +11,7 @@
 
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/loops/matrix_false-unreach-call_true-termination.i</exclude> <!-- flapping timeout / error -->

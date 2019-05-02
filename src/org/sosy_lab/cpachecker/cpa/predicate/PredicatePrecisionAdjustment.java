@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -46,19 +45,11 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
-
-  // statistics
-  final Timer totalPrecTime = new Timer();
-  final Timer computingAbstractionTime = new Timer();
-
-  int numAbstractions = 0;
-  int numTargetAbstractions = 0;
-  int numAbstractionsFalse = 0;
-  int maxBlockSize = 0;
 
   private final LogManager logger;
   private final BlockOperator blk;
@@ -66,8 +57,11 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView fmgr;
 
-  private PredicateCPAInvariantsManager invariants;
+  private final PredicateCPAInvariantsManager invariants;
   private final PredicateProvider predicateProvider;
+  private final PredicateStatistics statistics;
+  private final TimerWrapper totalPrecTime;
+  private final TimerWrapper computingAbstractionTime;
 
   public PredicatePrecisionAdjustment(
       LogManager pLogger,
@@ -76,7 +70,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       BlockOperator pBlk,
       PredicateAbstractionManager pPredAbsManager,
       PredicateCPAInvariantsManager pInvariantSupplier,
-      PredicateProvider pPredicateProvider) {
+      PredicateProvider pPredicateProvider,
+      PredicateStatistics pPredicateStatistics) {
 
     logger = pLogger;
     fmgr = pFmgr;
@@ -86,6 +81,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     invariants = pInvariantSupplier;
     predicateProvider = pPredicateProvider;
+    statistics = pPredicateStatistics;
+    totalPrecTime = statistics.totalPrecTime.getNewTimer();
+    computingAbstractionTime = statistics.computingAbstractionTime.getNewTimer();
   }
 
   @Override
@@ -126,7 +124,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       return true;
     }
     if (AbstractStates.isTargetState(fullState)) {
-      numTargetAbstractions++;
+      statistics.numTargetAbstractions.setNextValue(1);
       return true;
     }
     return false;
@@ -149,10 +147,10 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     Optional<CallstackStateEqualsWrapper> callstackWrapper =
         AbstractStates.extractOptionalCallstackWraper(fullState);
 
-    numAbstractions++;
+    statistics.numAbstractions.setNextValue(1);
     logger.log(Level.FINEST, "Computing abstraction at instance", newLocInstance, "of node", loc, "in path.");
 
-    maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
+    statistics.blockSize.setNextValue(pathFormula.getLength());
 
     // update/get invariants and add them, the need to be instantiated
     // (we do only update global invariants (computed by a parallelalgorithm) here
@@ -193,7 +191,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     // if the abstraction is false, return bottom (represented by empty set)
     if (newAbstractionFormula.isFalse()) {
-      numAbstractionsFalse++;
+      statistics.numAbstractionsFalse.setNextValue(1);
       logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
       return Optional.empty();
     }

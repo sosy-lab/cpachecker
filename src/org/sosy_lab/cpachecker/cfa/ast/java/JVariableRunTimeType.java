@@ -58,8 +58,12 @@ public final class JVariableRunTimeType extends AbstractExpression
   }
 
   @Override
-  public String toASTString() {
-    return getReferencedVariable().getName() + "_getClass()";
+  public String toASTString(boolean pQualified) {
+    if(pQualified) {
+      return getReferencedVariable().toASTString(pQualified) + "_getClass()";
+    } else {
+      return getReferencedVariable().getName() + "_getClass()";
+    }
   }
 
   public JIdExpression getReferencedVariable() {

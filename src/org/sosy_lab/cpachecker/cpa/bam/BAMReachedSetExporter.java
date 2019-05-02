@@ -39,7 +39,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix = "cpa.bam")
@@ -107,8 +108,8 @@ class BAMReachedSetExporter implements Statistics {
 
     if (superArgFile != null) {
 
-      final Set<UnmodifiableReachedSet> allReachedSets = new HashSet<>();
-      allReachedSets.addAll(bamcpa.getData().getCache().getAllCachedReachedStates());
+      final Set<UnmodifiableReachedSet> allReachedSets =
+          new HashSet<>(bamcpa.getData().getCache().getAllCachedReachedStates());
       allReachedSets.add(mainReachedSet);
 
       final Set<ARGState> rootStates = new HashSet<>();

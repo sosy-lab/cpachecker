@@ -69,8 +69,8 @@ public class FormulaSlicingManager implements StatisticsProvider {
 
   FormulaSlicingManager(
       Configuration config,
-      CachingPathFormulaManager pPfmgr,
-      FormulaManagerView pFmgr,
+      CachingPathFormulaManager pPathFormulaManager,
+      FormulaManagerView pFormulaManager,
       CFA pCfa,
       InductiveWeakeningManager pInductiveWeakeningManager,
       RCNFManager pRcnfManager,
@@ -79,13 +79,13 @@ public class FormulaSlicingManager implements StatisticsProvider {
       throws InvalidConfigurationException {
     logger = pLogger;
     config.inject(this);
-    fmgr = pFmgr;
-    pfmgr = pPfmgr;
+    fmgr = pFormulaManager;
+    pfmgr = pPathFormulaManager;
     inductiveWeakeningManager = pInductiveWeakeningManager;
     solver = pSolver;
-    bfmgr = pFmgr.getBooleanFormulaManager();
+    bfmgr = pFormulaManager.getBooleanFormulaManager();
     rcnfManager = pRcnfManager;
-    statistics = new FormulaSlicingStatistics(pPfmgr, pSolver);
+    statistics = new FormulaSlicingStatistics(pPathFormulaManager, pSolver);
     Preconditions.checkState(pCfa.getLiveVariables().isPresent() &&
       pCfa.getLoopStructure().isPresent());
     liveVariables = pCfa.getLiveVariables().get();
@@ -204,21 +204,23 @@ public class FormulaSlicingManager implements StatisticsProvider {
 
     Set<BooleanFormula> finalLemmas = new HashSet<>();
     for (BooleanFormula lemma : lemmas) {
-      if (filterByLiveness
-          && Sets.intersection(
-                  ImmutableSet.copyOf(
-                      liveVariables
-                          .getLiveVariablesForNode(node)
-                          .transform(ASimpleDeclaration::getQualifiedName)
-                          .filter(s -> s != null)),
-                  fmgr.extractFunctionNames(fmgr.uninstantiate(lemma)))
-              .isEmpty()) {
-
+      if (filterByLiveness && !containsLiveVariables(lemma, node)) {
         continue;
       }
       finalLemmas.add(fmgr.uninstantiate(lemma));
     }
     return finalLemmas;
+  }
+
+  private boolean containsLiveVariables(BooleanFormula lemma, CFANode node) {
+    Set<String> functionNames = fmgr.extractFunctionNames(fmgr.uninstantiate(lemma));
+    for (ASimpleDeclaration variable : liveVariables.getLiveVariablesForNode(node)) {
+      String name = variable.getQualifiedName();
+      if (name != null && functionNames.contains(name)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private final Map<Pair<SlicingIntermediateState, SlicingAbstractedState>,

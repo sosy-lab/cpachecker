@@ -1246,9 +1246,14 @@ private void handleTernaryExpression(ConditionalExpression condExp,
             fileLocation, prevNode, lastNode);
         addToCFA(edge);
       } else if (exp instanceof JMethodInvocationExpression) {
-        edge = new JStatementEdge(condExp.toString(),
-            (new JMethodInvocationStatement(astCreator.getFileLocation(condExp), (JMethodInvocationExpression) exp)),
-            fileLocation, prevNode, lastNode);
+        edge =
+            new JStatementEdge(
+                condExp.toString(),
+                new JMethodInvocationStatement(
+                    astCreator.getFileLocation(condExp), (JMethodInvocationExpression) exp),
+                fileLocation,
+                prevNode,
+                lastNode);
         addToCFA(edge);
       } else {
         CFANode middle = new CFANode(cfa.getFunctionName());
@@ -1373,7 +1378,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     }
   }
 
-  private static enum CONDITION {
+  private enum CONDITION {
     NORMAL,
     ALWAYS_FALSE,
     ALWAYS_TRUE
@@ -1691,7 +1696,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         .convertExpressionWithoutSideEffects(statement.getExpression());
 
     // TODO rawSignature ok in that way?
-    String rawSignature = "switch (" + statement.getExpression().toString() + ")";
+    String rawSignature = "switch (" + statement.getExpression() + ")";
     String description = "switch (" + switchExpression.toASTString() + ")";
 
     BlankEdge firstSwitchEdge = new BlankEdge(rawSignature, fileloc,

@@ -28,11 +28,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Queues;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -73,17 +75,17 @@ public class WitnessExporter {
 
   private static final String FUNCTION_DELIMITER = "::";
 
-  private final WitnessOptions options;
+  protected final WitnessOptions options;
 
-  private final CFA cfa;
+  protected final CFA cfa;
   private final FormulaManagerView fmgr;
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  private final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
-  private final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
+  protected final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
+  protected final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
-  private final VerificationTaskMetaData verificationTaskMetaData;
+  protected final VerificationTaskMetaData verificationTaskMetaData;
 
   public WitnessExporter(
       final Configuration pConfig,
@@ -127,7 +129,7 @@ public class WitnessExporter {
         pIsRelevantEdge,
         Predicates.alwaysFalse(),
         Optional.empty(),
-        Optional.of(pCounterExample),
+        Optional.ofNullable(pCounterExample),
         GraphBuilder.ARG_PATH);
   }
 
@@ -192,14 +194,15 @@ public class WitnessExporter {
                   extractPredicateAnalysisAbstractionStateInvariants(
                       functionName, state, stateInvariant);
 
+              Set<ExpressionTree<Object>> approximations = new LinkedHashSet<>();
+              approximations.add(stateInvariant);
               for (ExpressionTreeReportingState etrs :
                   AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
-                stateInvariant =
-                    factory.and(
-                        stateInvariant,
-                        etrs.getFormulaApproximation(
-                            cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
+                approximations.add(
+                    etrs.getFormulaApproximation(
+                        cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
               }
+              stateInvariant = factory.and(approximations);
               stateInvariants.add(stateInvariant);
             }
             ExpressionTree<Object> invariant = factory.or(stateInvariants);
@@ -241,12 +244,19 @@ public class WitnessExporter {
                     "Witnessexport was interrupted for generation of Proofwitness", e);
               }
               if (invString != null) {
-                stateInvariant = factory.and(stateInvariant, LeafExpression.of((Object) invString));
+                if (invString.equals("0")) {
+                  return ExpressionTrees.getFalse();
+                }
+                if (!invString.equals("1")) {
+                  stateInvariant =
+                      factory.and(stateInvariant, LeafExpression.of((Object) invString));
+                }
               }
             }
             return stateInvariant;
           }
 
+          @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
           private ExpressionTree<Object> extractValueAnalysisInvariants(
               CFAEdge pEdge, ARGState state, ExpressionTree<Object> stateInvariant) {
             ValueAnalysisState valueAnalysisState =
@@ -307,7 +317,7 @@ public class WitnessExporter {
         GraphBuilder.CFA_FULL);
   }
 
-  private String getInitialFileName(ARGState pRootState) {
+  protected String getInitialFileName(ARGState pRootState) {
     Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
     Set<CFANode> visited = new HashSet<>();
     while (!worklist.isEmpty()) {

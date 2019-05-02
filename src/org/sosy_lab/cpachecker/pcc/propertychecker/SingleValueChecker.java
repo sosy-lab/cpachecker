@@ -24,15 +24,14 @@
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Checks if a certain variable has a specific value at a specific location marked by a label in the program.
@@ -58,10 +57,12 @@ public class SingleValueChecker extends PerElementPropertyChecker {
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
     if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(labelLocVarVal)) {
       Value value =
-          AbstractStates.extractStateByType(pElemToCheck, ValueAnalysisState.class).getConstantsMapView()
-              .get(varValRep);
-      if (value == null || !value.isExplicitlyKnown() ||
-          !(value.equals(varValBigInt) || value.equals(varValLong))) { return false; }
+          AbstractStates.extractStateByType(pElemToCheck, ValueAnalysisState.class)
+              .getValueAndTypeFor(varValRep)
+              .getValue();
+      if (!value.isExplicitlyKnown() || !(value.equals(varValBigInt) || value.equals(varValLong))) {
+        return false;
+      }
     }
     return true;
   }

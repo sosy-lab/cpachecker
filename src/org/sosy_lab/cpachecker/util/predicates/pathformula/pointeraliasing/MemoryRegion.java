@@ -38,11 +38,10 @@ public interface MemoryRegion {
    */
   CType getType();
   /**
-   * The function returns identifier of the region used
-   * for the name of uninterpreted functions. Usually,
-   * the name contains a string representation of the type as substring.
+   * The function returns identifier of the region used for the name of uninterpreted functions.
+   * Usually, the name contains a string representation of the type as substring.
    *
    * @return identifier of the region
    */
-  String getName();
+  String getName(TypeHandlerWithPointerAliasing typeHandler);
 }

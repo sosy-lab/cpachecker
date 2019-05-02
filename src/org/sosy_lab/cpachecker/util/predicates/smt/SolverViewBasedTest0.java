@@ -44,7 +44,7 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
 
   @Override
   protected ConfigurationBuilder createTestConfigBuilder() {
-    ConfigurationBuilder config = super.createTestConfigBuilder();
+    ConfigurationBuilder newConfig = super.createTestConfigBuilder();
 
     // Automatically choose theories that are supported by the solver.
     // With unsupported theories, test would just fail.
@@ -52,18 +52,18 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
     // but maybe testing a set of several theories is not bad after all.
     switch (solverToUse()) {
       case SMTINTERPOL:
-        config.setOption("cpa.predicate.encodeBitvectorAs", "INTEGER");
-        config.setOption("cpa.predicate.encodeFloatAs", "RATIONAL");
+        newConfig.setOption("cpa.predicate.encodeBitvectorAs", "INTEGER");
+        newConfig.setOption("cpa.predicate.encodeFloatAs", "RATIONAL");
         break;
       case PRINCESS:
-        config.setOption("cpa.predicate.encodeBitvectorAs", "INTEGER");
-        config.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
+        newConfig.setOption("cpa.predicate.encodeBitvectorAs", "INTEGER");
+        newConfig.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
         break;
       default:
-        config.setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR");
-        config.setOption("cpa.predicate.encodeFloatAs", "FLOAT");
+        newConfig.setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR");
+        newConfig.setOption("cpa.predicate.encodeFloatAs", "FLOAT");
     }
-    return config;
+    return newConfig;
   }
 
   @Before

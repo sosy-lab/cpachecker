@@ -36,7 +36,7 @@ public enum SMGTargetSpecifier {
 
   private final String name;
 
-  private SMGTargetSpecifier(String pName) {
+  SMGTargetSpecifier(String pName) {
     name = pName;
   }
 

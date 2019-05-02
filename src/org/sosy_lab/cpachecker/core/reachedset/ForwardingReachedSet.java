@@ -25,17 +25,19 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.util.Pair;
-
+import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 
 /**
  * Implementation of ReachedSet that forwards all calls to another instance.
@@ -182,8 +184,24 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
+    checkNotNull(statsCollection);
     if (delegate instanceof StatisticsProvider) {
       ((StatisticsProvider) delegate).collectStatistics(statsCollection);
     }
+  }
+
+  @Override
+  public boolean hasViolatedProperties() {
+    return delegate.hasViolatedProperties();
+  }
+
+  @Override
+  public Collection<Property> getViolatedProperties() {
+    return delegate.getViolatedProperties();
+  }
+
+  @Override
+  public ImmutableMap<String, ? extends AbstractStatValue> getStatistics() {
+    return delegate.getStatistics();
   }
 }

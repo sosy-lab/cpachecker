@@ -47,12 +47,11 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
-
 @Options(prefix="cwriter.withLoops")
 public class LoopCollectingEdgeVisitor implements EdgeVisitor {
 
   enum LoopDetectionStrategy {
-    ALL_LOOPS, ONLY_LAST_LOOP;
+    ALL_LOOPS, ONLY_LAST_LOOP
   }
 
   @Option(toUppercase=true,

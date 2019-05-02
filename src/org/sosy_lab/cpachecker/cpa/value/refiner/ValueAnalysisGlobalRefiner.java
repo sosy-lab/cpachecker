@@ -32,8 +32,10 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingPathExtractor;
@@ -54,11 +56,14 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
       description = "whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
   private boolean useTopDownInterpolationStrategy = true;
 
-  public static ValueAnalysisGlobalRefiner create(final ConfigurableProgramAnalysis pCpa)
+  public static Refiner create(final ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    return AbstractARGBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
+  }
+
+  public static ARGBasedRefiner create0(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    final ARGCPA argCpa =
-        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, ValueAnalysisGlobalRefiner.class);
     final ValueAnalysisCPA valueAnalysisCpa =
         CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, ValueAnalysisGlobalRefiner.class);
 
@@ -69,13 +74,12 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
     final CFA cfa = valueAnalysisCpa.getCFA();
 
     final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
-        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.defaultConfiguration(), cfa);
 
     final ValueAnalysisFeasibilityChecker checker =
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
     return new ValueAnalysisGlobalRefiner(
-        argCpa,
         checker,
         strongestPostOp,
         new ValueAnalysisPrefixProvider(
@@ -88,7 +92,6 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
   }
 
   ValueAnalysisGlobalRefiner(
-      final ARGCPA pArgCpa,
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
@@ -98,8 +101,7 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa
   ) throws InvalidConfigurationException {
 
-    super(pArgCpa,
-        pFeasibilityChecker,
+    super(pFeasibilityChecker,
         pStrongestPostOperator,
         new SortingPathExtractor(pPrefixProvider,
             pPrefixSelector,

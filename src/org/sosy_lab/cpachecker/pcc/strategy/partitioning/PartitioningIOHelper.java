@@ -33,7 +33,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -271,6 +271,13 @@ public class PartitioningIOHelper {
       if(currentGraphStatistics!= null) {
         pOut.println("\nStatistics for partial reached set directed graph used in proof construction");
         currentGraphStatistics.printStatistics(pOut, pResult, pReached);
+      }
+    }
+
+    @Override
+    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+      if (currentGraphStatistics != null) {
+        currentGraphStatistics.writeOutputFiles(pResult, pReached);
       }
     }
 

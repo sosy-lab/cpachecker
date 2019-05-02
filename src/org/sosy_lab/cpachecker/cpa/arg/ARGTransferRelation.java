@@ -23,24 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class ARGTransferRelation implements TransferRelation {
-
-  private final TransferRelation transferRelation;
+public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
 
   public ARGTransferRelation(TransferRelation tr) {
-    transferRelation = tr;
+    super(tr);
   }
 
   @Override
@@ -77,7 +78,7 @@ public class ARGTransferRelation implements TransferRelation {
       } else {
         successors = transferRelation.getAbstractPredecessors(wrappedState, pPrecision);
       }
-    } catch (UnsupportedCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       // setting parent of this unsupported code part
       e.setParentState(element);
       throw e;
@@ -106,12 +107,21 @@ public class ARGTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractPredecessorsForEdge(
-      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
-
-    throw new UnsupportedOperationException(
-        "ARGCPA needs to be used as the outer-most CPA,"
-        + " thus it does not support returning predecessors for a single edge.");
+  @Nullable
+  public <T extends TransferRelation> T retrieveWrappedTransferRelation(Class<T> pType) {
+    if (pType.isAssignableFrom(getClass())) {
+      return pType.cast(this);
+    } else if (pType.isAssignableFrom(transferRelation.getClass())) {
+      return pType.cast(transferRelation);
+    } else if (transferRelation instanceof WrapperTransferRelation) {
+      return ((WrapperTransferRelation) transferRelation).retrieveWrappedTransferRelation(pType);
+    } else {
+      return null;
+    }
   }
 
+  @Override
+  public Iterable<TransferRelation> getWrappedTransferRelations() {
+    return ImmutableList.of(transferRelation);
+  }
 }

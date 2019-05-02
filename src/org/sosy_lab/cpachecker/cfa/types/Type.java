@@ -28,7 +28,6 @@ import java.io.Serializable;
 
 public interface Type extends Serializable {
 
-
   /**
    * Return a string representation of a variable declaration with a given name
    * and this type.
@@ -40,6 +39,5 @@ public interface Type extends Serializable {
    * @param declarator The name of the variable to declare.
    * @return A string representation of this type.
    */
-  public  String toASTString(String declarator);
-
+  String toASTString(String declarator);
 }

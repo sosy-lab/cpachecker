@@ -31,17 +31,16 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 
 public interface CFAEdge extends Serializable {
 
-  public CFAEdgeType getEdgeType();
+  CFAEdgeType getEdgeType();
 
-  public CFANode getPredecessor();
+  CFANode getPredecessor();
 
-  public CFANode getSuccessor();
+  CFANode getSuccessor();
 
-  public Optional<? extends AAstNode> getRawAST();
+  Optional<? extends AAstNode> getRawAST();
+  int getLineNumber();
 
-  public int getLineNumber();
-
-  public FileLocation getFileLocation();
+  FileLocation getFileLocation();
 
   /**
    * Returns the part of the original input file from which this edge was
@@ -52,13 +51,13 @@ public interface CFAEdge extends Serializable {
    * was done after parsing and thus may show different C code than the result
    * of {@link #getCode()}.
    */
-  public String getRawStatement();
+  String getRawStatement();
 
   /**
    * Returns a string representation of the code attached to this edge.
    * If there is no such representation, the method returns the empty string.
    */
-  public String getCode();
+  String getCode();
 
   /**
    * Returns a representation of this edge which is meant to be shown to the
@@ -66,12 +65,12 @@ public interface CFAEdge extends Serializable {
    * (i.e., no meta-information like line number and predecessor/successor) and
    * thus usually be similar to the output of {@link #getCode()}.
    */
-  public String getDescription();
+  String getDescription();
 
   /**
    * Returns a full representation of this edge (including as many information
    * as possible) which is meant to be shown to the user.
    */
   @Override
-  public String toString();
+  String toString();
 }

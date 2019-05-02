@@ -114,20 +114,20 @@ public class CounterexampleCheckAlgorithm
     case CBMC:
       checker = new CBMCChecker(config, logger, cfa);
       break;
-      case CPACHECKER:
-        AssumptionToEdgeAllocator assumptionToEdgeAllocator =
-            AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
-        checker =
-            new CounterexampleCPAChecker(
-                config,
-                pSpecification,
-                logger,
-                pShutdownNotifier,
-                cfa,
-                s ->
-                    ARGUtils.tryGetOrCreateCounterexampleInformation(
-                        s, pCpa, assumptionToEdgeAllocator));
-        break;
+    case CPACHECKER:
+      AssumptionToEdgeAllocator assumptionToEdgeAllocator =
+          AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
+      checker =
+          new CounterexampleCPAchecker(
+              config,
+              pSpecification,
+              logger,
+              pShutdownNotifier,
+              cfa,
+              s ->
+                  ARGUtils.tryGetOrCreateCounterexampleInformation(
+                      s, pCpa, assumptionToEdgeAllocator));
+      break;
     case CONCRETE_EXECUTION:
       checker = new ConcretePathExecutionChecker(config, logger, cfa);
       break;
@@ -226,14 +226,12 @@ public class CounterexampleCheckAlgorithm
   /**
    * check whether there is a feasible counterexample in the reachedset.
    *
-   * @param checker executes a precise counterexample-check
+   * @param pChecker executes a precise counterexample-check
    * @param errorState where the counterexample ends
    * @param reached all reached states of the analysis, some of the states are part of the CEX path
    */
   protected boolean checkErrorPaths(
-      CounterexampleChecker checker,
-      ARGState errorState,
-      ReachedSet reached)
+      CounterexampleChecker pChecker, ARGState errorState, ReachedSet reached)
       throws CPAException, InterruptedException {
 
     ARGState rootState = (ARGState) reached.getFirstState();
@@ -244,7 +242,7 @@ public class CounterexampleCheckAlgorithm
       statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
     }
 
-    return checker.checkCounterexample(rootState, errorState, statesOnErrorPath);
+    return pChecker.checkCounterexample(rootState, errorState, statesOnErrorPath);
   }
 
   @Override
@@ -253,6 +251,9 @@ public class CounterexampleCheckAlgorithm
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(this);
+    if (checker instanceof StatisticsProvider) {
+      ((StatisticsProvider) checker).collectStatistics(pStatsCollection);
+    }
   }
 
   @Override
@@ -262,9 +263,6 @@ public class CounterexampleCheckAlgorithm
     if (checkTime.getNumberOfIntervals() > 0) {
       out.println("Number of infeasible paths:         " + numberOfInfeasiblePaths + " (" + toPercent(numberOfInfeasiblePaths, checkTime.getNumberOfIntervals()) +")" );
       out.println("Time for counterexample checks:     " + checkTime);
-      if (checker instanceof Statistics) {
-        ((Statistics)checker).printStatistics(out, pResult, pReached);
-      }
     }
   }
 

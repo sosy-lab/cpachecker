@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -45,7 +47,7 @@ public class IntOverflowCollectingVisitor extends VariablesCollectingVisitor {
 
   public IntOverflowCollectingVisitor(CFANode pre, Set<String> pIntOverflowVars) {
     super(pre);
-    intOverflowsVars = pIntOverflowVars;
+    intOverflowsVars = checkNotNull(pIntOverflowVars);
   }
 
   @Override
@@ -97,6 +99,7 @@ public class IntOverflowCollectingVisitor extends VariablesCollectingVisitor {
 
   @Override
   public Set<String> visit(CIntegerLiteralExpression exp) {
+    checkNotNull(exp);
     return new HashSet<>(0);
   }
 

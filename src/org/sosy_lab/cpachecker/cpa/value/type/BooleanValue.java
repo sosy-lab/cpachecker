@@ -177,6 +177,11 @@ public class BooleanValue implements Value {
     throw new AssertionError("This method is not implemented");
   }
 
+  @Override
+  public <T> T accept(ValueVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
+
   /**
    * Returns whether the given object and this object are equal.
    *

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,7 +38,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -49,10 +48,13 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class CLangSMGTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
-  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
+  private static final CFunctionDeclaration functionDeclaration =
+      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.of());
   private CLangStackFrame sf;
 
   static private final LogManager logger = LogManager.createTestLogManager();
@@ -80,11 +82,11 @@ public class CLangSMGTest {
     SMGRegion obj1 = new SMGRegion(64, "obj1");
     SMGRegion obj2 = new SMGRegion(64, "obj2");
 
-    Integer val1 = Integer.valueOf(1);
-    Integer val2 = Integer.valueOf(2);
+    SMGValue val1 = SMGKnownExpValue.valueOf(1);
+    SMGValue val2 = SMGKnownExpValue.valueOf(2);
 
     SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(CNumericTypes.UNSIGNED_LONG_INT, 0, obj2, val2.intValue());
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(CNumericTypes.UNSIGNED_LONG_INT, 0, obj2, val2);
 
     smg.addValue(val1);
     smg.addValue(val2);
@@ -96,7 +98,7 @@ public class CLangSMGTest {
 
     // Copy constructor
 
-    CLangSMG smg_copy = new CLangSMG(smg);
+    UnmodifiableCLangSMG smg_copy = smg.copyOf();
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg_copy));
 
     assertThat(smg_copy.getStackFrames()).hasSize(0);
@@ -308,15 +310,6 @@ public class CLangSMGTest {
   }
 
   @Test
-  public void CLangSMGmemoryLeaksTest() {
-    CLangSMG smg = getNewCLangSMG64();
-
-    Assert.assertFalse(smg.hasMemoryLeaks());
-    smg.setMemoryLeak();
-    Assert.assertTrue(smg.hasMemoryLeaks());
-  }
-
-  @Test
   public void consistencyViolationDisjunctnessTest() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj = new SMGRegion(64, "label");
@@ -372,7 +365,7 @@ public class CLangSMGTest {
 
     smg = getNewCLangSMG64();
     SMGObject null_object = smg.getHeapObjects().iterator().next();
-    Integer some_value = Integer.valueOf(5);
+    SMGValue some_value = SMGKnownExpValue.valueOf(5);
     CType type = mock(CType.class);
     when(type.getCanonicalType()).thenReturn(type);
     SMGEdgeHasValue edge = new SMGEdgeHasValue(type, 0, null_object, some_value);

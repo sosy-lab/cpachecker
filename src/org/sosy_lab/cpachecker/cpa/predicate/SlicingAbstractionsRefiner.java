@@ -37,10 +37,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -71,21 +71,14 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
       throw new InvalidConfigurationException(SlicingAbstractionsRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    RefinementStrategy strategy = new SlicingAbstractionsStrategy(
-        predicateCpa.getConfiguration(),
-        predicateCpa.getSolver(),
-        predicateCpa.getPredicateManager(),
-        predicateCpa.getPathFormulaManager());
+    RefinementStrategy strategy =
+        new SlicingAbstractionsStrategy(predicateCpa, predicateCpa.getConfiguration());
 
     PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(pCpa);
     ARGBasedRefiner refiner =  factory.create(strategy);
     return new SlicingAbstractionsRefiner(refiner, argCpa);
   }
 
-  /*
-   * (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.Refiner#performRefinement(org.sosy_lab.cpachecker.core.reachedset.ReachedSet)
-   */
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     CounterexampleInfo counterexample = null;

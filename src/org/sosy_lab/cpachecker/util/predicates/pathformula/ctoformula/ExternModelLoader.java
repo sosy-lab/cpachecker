@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import com.google.common.base.Splitter;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -87,23 +88,23 @@ public class ExternModelLoader {
           // c 8 LOGO_SGI_CLUT224_m
           // c 80255$ _X31351_m
           // starting with id1
-          String[] parts = line.split(" ");
-          int varID = Integer.parseInt(parts[1].replace("$", ""));
+          List<String> parts = Splitter.on(' ').splitToList(line);
+          int varID = Integer.parseInt(parts.get(1).replace("$", ""));
           assert predicates.size() == varID : "messed up the dimacs parsing!";
-          predicates.add(parts[2]);
+          predicates.add(parts.get(2));
         } else if (line.startsWith("p ")) {
-          //p cnf 80258 388816
+          // p cnf 80258 388816
           // 80258 vars
           // 388816 cnf constraints
-          String[] parts = line.split(" ");
+          List<String> parts = Splitter.on(' ').splitToList(line);
           // +1 because of the dummy var
-          assert predicates.size()==Integer.parseInt(parts[2])+1: "did not get all dimcas variables?";
+          assert predicates.size() == Integer.parseInt(parts.get(2)) + 1
+              : "did not get all dimcas variables?";
         } else if (line.trim().length()>0) {
           //-17552 -11882 1489 48905 0
           // constraints
           BooleanFormula constraint = bfmgr.makeFalse();
-          String[] parts = line.split(" ");
-          for (String elementStr : parts) {
+          for (String elementStr : Splitter.on(' ').split(line)) {
             if (!elementStr.equals("0") && !elementStr.isEmpty()) {
               int elem = Integer.parseInt(elementStr);
               String predName = "";

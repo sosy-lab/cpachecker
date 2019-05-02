@@ -33,50 +33,57 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CFloatLiteralExpression extends AFloatLiteralExpression implements CLiteralExpression {
 
   private static final long serialVersionUID = 5021145411123854111L;
-  private static final BigDecimal APPROX_INFINITY = BigDecimal.valueOf(Double.MAX_VALUE).add(BigDecimal.valueOf(Double.MAX_VALUE));
 
-  public CFloatLiteralExpression(FileLocation pFileLocation,
-                                    CType pType,
-                                    BigDecimal pValue) {
-    super(pFileLocation, pType, adjustPrecision(pValue, pType));
+  public CFloatLiteralExpression(FileLocation pFileLocation, CType pType, BigDecimal pValue) {
+    super(pFileLocation, pType, pValue);
   }
 
-  private static BigDecimal adjustPrecision(BigDecimal pValue, CType pType) {
-    BigDecimal value = pValue;
-    if (pType instanceof CSimpleType) {
-      CBasicType basicType = ((CSimpleType) pType).getType();
-      switch (basicType) {
-        case FLOAT:
-          float fValue = pValue.floatValue();
-          if (Float.isNaN(fValue)) {
-            return value;
-          }
-          if (Float.isInfinite(fValue)) {
-            if (fValue < 0) {
-              return APPROX_INFINITY.negate();
-            }
-            return APPROX_INFINITY;
-          }
-          value = BigDecimal.valueOf(fValue);
-          break;
-        case DOUBLE:
-          double dValue = pValue.doubleValue();
-          if (Double.isNaN(dValue)) {
-            return value;
-          }
-          if (Double.isInfinite(dValue)) {
-            if (dValue < 0) {
-              return APPROX_INFINITY.negate();
-            }
-            return APPROX_INFINITY;
-          }
-          value = BigDecimal.valueOf(dValue);
-          break;
-        default:
-          break;
-      }
+  /**
+   * Returns a <code>CFloatLiteralExpression</code> for positive infinity.
+   */
+  public static CFloatLiteralExpression forPositiveInfinity(FileLocation pFileLocation, CType pType)
+      throws NumberFormatException {
+    // TODO: This method is a temporary hack until 'BigDecimal's are fully replaced by 'CFloat's in
+    // AFloatLiteralExpression class.
+
+    return new CFloatLiteralExpression(pFileLocation, pType, getInfinityApprox(false, pType));
+  }
+
+  /**
+   * Returns a <code>CFloatLiteralExpression</code> for negative infinity.
+   */
+  public static CFloatLiteralExpression forNegativeInfinity(FileLocation pFileLocation, CType pType)
+      throws NumberFormatException {
+    // TODO: This method is a temporary hack until 'BigDecimal's are fully replaced by 'CFloat's in
+    // AFloatLiteralExpression class.
+
+    return new CFloatLiteralExpression(pFileLocation, pType, getInfinityApprox(true, pType));
+  }
+
+  private static BigDecimal getInfinityApprox(boolean pIsNegative, CType pType) {
+    // TODO: This method is a temporary hack until 'BigDecimal's are replaced by 'CFloat's in
+    // AFloatLiteralExpression class.
+    // This is necessary because CFloats are already able to return "inf" as a value, however, the
+    // BigDecimal object requires a concrete numerical value instead. The code below thus returns a
+    // placeholder value in the meantime.
+    BigDecimal APPROX_INFINITY =
+        BigDecimal.valueOf(Double.MAX_VALUE).add(BigDecimal.valueOf(Double.MAX_VALUE));
+
+    CBasicType basicType = ((CSimpleType) pType).getType();
+    switch (basicType) {
+      case FLOAT:
+      case DOUBLE:
+        if (pIsNegative) {
+          return APPROX_INFINITY.negate();
+        } else {
+          return APPROX_INFINITY;
+        }
+      default:
+        // unsupported operation
+        break;
     }
-    return value;
+
+    throw new NumberFormatException(String.format("Invalid type for float infinity: %s", pType));
   }
 
   @Override
@@ -101,9 +108,7 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression imple
 
   @Override
   public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
+    return super.hashCode();
   }
 
   @Override

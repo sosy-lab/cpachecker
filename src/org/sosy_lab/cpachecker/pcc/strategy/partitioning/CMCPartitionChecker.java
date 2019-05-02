@@ -25,7 +25,16 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -40,18 +49,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-
 
 public class CMCPartitionChecker {
 
@@ -98,17 +95,22 @@ public class CMCPartitionChecker {
     initPrec = cpa.getInitialPrecision(main, StateSpacePartition.getDefaultPartition());
   }
 
-  public void checkPartition(final AbstractState[] partitionNodes, final AbstractState[] externalNodes,
-      final int[][] partitionEdgesAdjacencyList, final int maxProofSize) throws InterruptedException {
-    prepareCoverageInspectionOfExternalNodes(partitionNodes, externalNodes);
+  public void checkPartition(
+      final AbstractState[] pPartitionNodes,
+      final AbstractState[] pExternalNodes,
+      final int[][] partitionEdgesAdjacencyList,
+      final int maxProofSize)
+      throws InterruptedException {
+    prepareCoverageInspectionOfExternalNodes(pPartitionNodes, pExternalNodes);
 
     AbstractState current;
-    Multimap<CFANode, AbstractState> statesPerLocation = computeMappingStatesToLocation(partitionNodes, externalNodes);
+    Multimap<CFANode, AbstractState> statesPerLocation =
+        computeMappingStatesToLocation(pPartitionNodes, pExternalNodes);
 
     try {
       int[] successorEdges;
 
-      for (int i = 0; i < partitionNodes.length; i++) {
+      for (int i = 0; i < pPartitionNodes.length; i++) {
         shutdown.shutdownIfNecessary();
         if (!checkResult.get()) { return; }
         if (moreThanMaxSizeInspected(maxProofSize)) {
@@ -118,7 +120,7 @@ public class CMCPartitionChecker {
           return;
         }
 
-        current = partitionNodes[i];
+        current = pPartitionNodes[i];
         inspectedStates.add(current);
 
         // check successors
@@ -137,8 +139,11 @@ public class CMCPartitionChecker {
             incompleteStates.add(toARGState.get(current));
 
           } else {
-            checkSuccessorsInRecomputedARG(transfer.getAbstractSuccessors(current, initPrec),
-                getARGSuccessors(successorEdges, partitionNodes, externalNodes), maxProofSize, toARGState.get(current));
+            checkSuccessorsInRecomputedARG(
+                transfer.getAbstractSuccessors(current, initPrec),
+                getARGSuccessors(successorEdges, pPartitionNodes, pExternalNodes),
+                maxProofSize,
+                toARGState.get(current));
           }
         }
       }

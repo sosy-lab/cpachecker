@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractListCandidateSequenceBlock;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 
@@ -37,7 +37,7 @@ public class SMGDoublyLinkedListCandidateSequenceBlock
   }
 
   @Override
-  public boolean isBlocked(SMGAbstractionCandidate pCandidate, CLangSMG smg) {
+  public boolean isBlocked(SMGAbstractionCandidate pCandidate, UnmodifiableCLangSMG smg) {
     return pCandidate instanceof SMGDoublyLinkedListCandidateSequence && super.isBlocked(pCandidate, smg);
   }
 

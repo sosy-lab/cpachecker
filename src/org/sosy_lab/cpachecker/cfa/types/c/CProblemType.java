@@ -26,8 +26,7 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
-import javax.annotation.Nullable;
-
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * This type is used when the parser could not determine the correct type.
@@ -74,10 +73,7 @@ public final class CProblemType implements CType {
 
   @Override
   public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Objects.hashCode(typeName);
-      return result;
+    return typeName.hashCode();
   }
 
   /**

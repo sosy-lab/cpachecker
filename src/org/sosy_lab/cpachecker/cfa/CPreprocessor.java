@@ -163,7 +163,7 @@ public class CPreprocessor {
 
     @Override
     @SuppressWarnings("JdkObsolete") // buffer is accessed from several threads
-    protected void handleOutput(String pLine) throws IOException {
+    protected void handleOutput(String pLine) {
       if (buffer == null) {
         buffer = new StringBuffer();
       }
@@ -172,6 +172,6 @@ public class CPreprocessor {
     }
 
     @Override
-    protected void handleExitCode(int pCode) throws IOException { }
+    protected void handleExitCode(int pCode) {}
   }
 }

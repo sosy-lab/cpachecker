@@ -25,13 +25,11 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
+import javax.annotation.concurrent.Immutable;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
  * Represents the result to a call to
@@ -95,10 +93,9 @@ public class PrecisionAdjustmentResult {
       return false;
     }
     PrecisionAdjustmentResult other = (PrecisionAdjustmentResult) obj;
-    return (abstractState.equals(other.abstractState))
-        && (precision.equals(other.precision))
-        && (action.equals(other.action))
-        ;
+    return abstractState.equals(other.abstractState)
+        && precision.equals(other.precision)
+        && action.equals(other.action);
   }
 
   public PrecisionAdjustmentResult withAbstractState(AbstractState newAbstractState) {

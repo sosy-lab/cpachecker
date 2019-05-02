@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /*
  * Requires preprocessing with cil to get proper result because preprocessing guarantees that
@@ -78,7 +79,7 @@ public class ReachingDefCPA extends AbstractCPA implements ProofCheckerCPA {
   private ReachingDefCPA(LogManager logger, Configuration config, ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
     super(
         DelegateAbstractDomain.getInstance(),
-        new ReachingDefTransferRelation(logger, shutdownNotifier));
+        new ReachingDefTransferRelation(logger, shutdownNotifier, config));
     config.inject(this);
     this.logger = logger;
   }
@@ -115,7 +116,8 @@ public class ReachingDefCPA extends AbstractCPA implements ProofCheckerCPA {
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     logger.log(Level.FINE, "Start extracting all declared variables in program.",
         "Distinguish between local and global variables.");
-    Pair<Set<String>, Map<FunctionEntryNode, Set<String>>> result = ReachingDefUtils.getAllVariables(pNode);
+    Pair<Set<MemoryLocation>, Map<FunctionEntryNode, Set<MemoryLocation>>> result =
+        ReachingDefUtils.getAllVariables(pNode);
     logger.log(Level.FINE, "Extracted all declared variables.", "Create initial state.");
     ((ReachingDefTransferRelation) getTransferRelation())
         .provideLocalVariablesOfFunctions(result.getSecond());

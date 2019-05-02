@@ -33,13 +33,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
  * Like toASTString, but with original names.
  *
  * NOT necessarily equivalent to specific parts of the original code file.
  */
-enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String, RuntimeException> {
+enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String, NoException> {
 
   INSTANCE;
 
@@ -95,9 +96,7 @@ enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String, Runtim
             lASTString,
             transform(
                 pFunctionCallExpression.getParameterExpressions(),
-                pInput ->
-                    pInput.<String, RuntimeException>accept(
-                        CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
+                pInput -> pInput.accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
     lASTString.append(")");
 
     return lASTString.toString();

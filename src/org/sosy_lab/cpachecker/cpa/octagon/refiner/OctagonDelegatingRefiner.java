@@ -57,7 +57,7 @@ public abstract class OctagonDelegatingRefiner implements Refiner {
     final ShutdownNotifier shutdownNotifier = octagonCPA.getShutdownNotifier();
 
     final StrongestPostOperator<ValueAnalysisState> valuePostOp =
-        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.defaultConfiguration(), cfa);
 
     final FeasibilityChecker<ValueAnalysisState> valueChecker =
         new ValueAnalysisFeasibilityChecker(valuePostOp, logger, cfa, config);

@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
-
 public interface ExpressionTreeSupplier {
 
   /**
@@ -40,7 +39,7 @@ public interface ExpressionTreeSupplier {
    */
   ExpressionTree<Object> getInvariantFor(CFANode node);
 
-  static enum TrivialInvariantSupplier implements ExpressionTreeSupplier {
+  enum TrivialInvariantSupplier implements ExpressionTreeSupplier {
     INSTANCE;
 
     @Override

@@ -55,9 +55,9 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   private Path precisionFile = null;
 
   private LongAdder iterations = new LongAdder();
-  private StatCounter assumptions = new StatCounter("Number of Assumptions");
+  private StatCounter assumptions = new StatCounter("Number of assumptions");
   private StatCounter deterministicAssumptions =
-      new StatCounter("Number of deterministic Assumptions");
+      new StatCounter("Number of deterministic assumptions");
   private final ValueAnalysisCPA cpa;
 
   public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa, Configuration config) throws InvalidConfigurationException {
@@ -73,8 +73,9 @@ public class ValueAnalysisCPAStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatInt numberOfVariables       = new StatInt(StatKind.COUNT, "Number of variables");
-    StatInt numberOfGlobalVariables = new StatInt(StatKind.COUNT, "Number of global variables");
+    StatInt numberOfVariables = new StatInt(StatKind.AVG, "Number of variables per state");
+    StatInt numberOfGlobalVariables =
+        new StatInt(StatKind.AVG, "Number of global variables per state");
 
     for (AbstractState currentAbstractState : reached) {
       ValueAnalysisState currentState = AbstractStates.extractStateByType(currentAbstractState, ValueAnalysisState.class);

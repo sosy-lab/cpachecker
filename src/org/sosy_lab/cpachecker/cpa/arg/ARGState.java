@@ -38,8 +38,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -161,12 +161,12 @@ public class ARGState extends AbstractSingleWrapperState
       }
     }
 
-
     // check for dummy location
     AbstractStateWithDummyLocation stateWithDummyLocation =
         AbstractStates.extractStateByType(pChild, AbstractStateWithDummyLocation.class);
-    if (stateWithDummyLocation != null && stateWithDummyLocation.isDummyLocation()) {
-
+    if (currentLocs != null
+        && stateWithDummyLocation != null
+        && stateWithDummyLocation.isDummyLocation()) {
       for (CFAEdge enteringEdge : stateWithDummyLocation.getEnteringEdges()) {
         for (CFANode currentLocation : currentLocs.getLocationNodes()) {
           if (enteringEdge.getPredecessor().equals(currentLocation)) {
@@ -220,7 +220,7 @@ public class ARGState extends AbstractSingleWrapperState
 
   // coverage
 
-  public void setCovered(@Nonnull ARGState pCoveredBy) {
+  public void setCovered(@NonNull ARGState pCoveredBy) {
     checkState(!isCovered(), "Cannot cover already covered element %s", this);
     checkNotNull(pCoveredBy);
     checkArgument(pCoveredBy.mayCover, "Trying to cover with non-covering element %s", pCoveredBy);
@@ -315,6 +315,13 @@ public class ARGState extends AbstractSingleWrapperState
     checkArgument(!pCounterexample.isSpurious());
     // With BAM, the targetState and the last state of the path
     // may actually be not identical.
+    checkArgument(pCounterexample.getTargetState().isTarget());
+    counterexample = pCounterexample;
+  }
+
+  public void replaceCounterexampleInformation(CounterexampleInfo pCounterexample) {
+    checkArgument(isTarget());
+    checkArgument(!pCounterexample.isSpurious());
     checkArgument(pCounterexample.getTargetState().isTarget());
     counterexample = pCounterexample;
   }
@@ -540,18 +547,10 @@ public class ARGState extends AbstractSingleWrapperState
   public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates){
     AbstractState wrappedState = this.getWrappedState();
     AbstractState newWrappedState = null;
-    for (AbstractState state : pReplacementStates) {
-      if (state.getClass().isInstance(wrappedState)) {
-        newWrappedState = state;
-        break;
-      }
-    }
-    if (newWrappedState == null) {
-      if (wrappedState instanceof Splitable) {
+    if (wrappedState instanceof Splitable) {
         newWrappedState = ((Splitable)wrappedState).forkWithReplacements(pReplacementStates);
-      } else {
+    } else {
         newWrappedState = wrappedState;
-      }
     }
 
     ARGState newState = new ARGState(newWrappedState,null);

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -79,15 +79,5 @@ public class SMGJoinSubSMGsTest {
   @Test
   public void testGetDestSMG() {
     Assert.assertNotNull(jssDefined.getDestSMG());
-  }
-
-  @Test
-  public void testGetMapping1() {
-    Assert.assertNotNull(jssDefined.getMapping1());
-  }
-
-  @Test
-  public void testGetMapping2() {
-    Assert.assertNotNull(jssDefined.getMapping2());
   }
 }

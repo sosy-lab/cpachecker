@@ -34,12 +34,12 @@ public interface Graphable {
    * that is suitable to be printed inside a label of a node in a DOT graph.
    * @return A non-null but possibly empty string.
    */
-  public String toDOTLabel();
+  String toDOTLabel();
 
   /**
    * Return whether this object is somehow special as opposed
    * to other objects of the same type,
    * and should be highlighted in the output.
    */
-  public boolean shouldBeHighlighted();
+  boolean shouldBeHighlighted();
 }

@@ -34,7 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -455,7 +454,7 @@ class DynamicBindingCreator {
     final JMethodDeclaration decl = cfaBuilder.getScope().lookupMethod(functionName.toASTString());
 
     CFANode nextPrevNode = prevNode;
-    SortedMap<String, FunctionEntryNode> cfas = cfaBuilder.getCFAs();
+    Map<String, FunctionEntryNode> cfas = cfaBuilder.getCFAs();
     String declarationName = decl.getName();
 
     if (!decl.isAbstract() && cfas.containsKey(declarationName)) {

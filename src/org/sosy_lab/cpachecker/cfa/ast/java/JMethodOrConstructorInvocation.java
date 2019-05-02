@@ -34,5 +34,5 @@ public interface JMethodOrConstructorInvocation extends AFunctionCall, JStatemen
   //TODO Investigate interface and the classes it implements, seems wrong
 
   @Override
-  public JMethodInvocationExpression getFunctionCallExpression();
+  JMethodInvocationExpression getFunctionCallExpression();
 }

@@ -64,21 +64,21 @@ public interface CPAFactory {
    * should do nothing.
    * @return this
    */
-  public CPAFactory setLogger(LogManager logger);
+  CPAFactory setLogger(LogManager logger);
 
   /**
    * Provides a configuration object to the CPA. If it does not need it, this
    * method should do nothing.
    * @return this
    */
-  public CPAFactory setConfiguration(Configuration configuration);
+  CPAFactory setConfiguration(Configuration configuration);
 
   /**
    * Provides a ShutdownNotifier instance to the CPA. If it does not need it, this
    * method should do nothing.
    * @return this
    */
-  public CPAFactory setShutdownNotifier(ShutdownNotifier shutdownNotifier);
+  CPAFactory setShutdownNotifier(ShutdownNotifier shutdownNotifier);
 
   /**
    * Provides exactly one child to the CPA. If the CPA does not support wrapping
@@ -89,7 +89,7 @@ public interface CPAFactory {
    * @return this
    * @throws UnsupportedOperationException if this is no wrapper CPA
    */
-  public CPAFactory setChild(ConfigurableProgramAnalysis child) throws UnsupportedOperationException;
+  CPAFactory setChild(ConfigurableProgramAnalysis child) throws UnsupportedOperationException;
 
   /**
    * Provides at least one child to the CPA. If the CPA does not support wrapping
@@ -98,7 +98,7 @@ public interface CPAFactory {
    * @return this
    * @throws UnsupportedOperationException if this is no wrapper CPA
    */
-  public CPAFactory setChildren(List<ConfigurableProgramAnalysis> children) throws UnsupportedOperationException;
+  CPAFactory setChildren(List<ConfigurableProgramAnalysis> children) throws UnsupportedOperationException;
 
   /**
    * Provides an object of arbitrary type to the CPA.
@@ -108,7 +108,7 @@ public interface CPAFactory {
    * @return this
    * @throws UnsupportedOperationException if this factory does not support storing objects of this type
    */
-  public <T> CPAFactory set(T object, Class<T> cls) throws UnsupportedOperationException;
+  <T> CPAFactory set(T object, Class<T> cls) throws UnsupportedOperationException;
 
   /**
    * Returns a new instance of the CPA belonging to this CPAFactory, using the
@@ -119,5 +119,5 @@ public interface CPAFactory {
    * @return a new ConfigurableProgramAnalysis instance
    * @exception CPAException If the CPA cannot be instantiated.
    */
-  public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException, CPAException;
+  ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException, CPAException;
 }

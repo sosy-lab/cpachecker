@@ -60,11 +60,7 @@ public abstract class AbstractDeclaration extends AbstractSimpleDeclaration impl
    */
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + (isGlobal ? 1231 : 1237);
-    result = prime * result + super.hashCode();
-    return result;
+    return (isGlobal ? 1231 : 1237) + super.hashCode();
   }
 
   /* (non-Javadoc)

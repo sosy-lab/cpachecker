@@ -34,7 +34,7 @@ import com.google.common.collect.FluentIterable;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -112,8 +112,8 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   }
 
   private ThreadingState withThreadIdsForWitness(
-      PersistentMap<String, Integer> threadIdsForWitness) {
-    return new ThreadingState(threads, locks, activeThread, threadIdsForWitness);
+      PersistentMap<String, Integer> pThreadIdsForWitness) {
+    return new ThreadingState(threads, locks, activeThread, pThreadIdsForWitness);
   }
 
   public ThreadingState addThreadAndCopy(String id, int num, AbstractState stack, AbstractState loc) {

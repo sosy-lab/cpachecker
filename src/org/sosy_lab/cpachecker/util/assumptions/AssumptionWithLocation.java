@@ -25,21 +25,19 @@ package org.sosy_lab.cpachecker.util.assumptions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Collections2;
 
 /**
  * Representation of an assumption of the form \land_i. pc = l_i ==> \phi_i
@@ -82,7 +80,7 @@ public class AssumptionWithLocation implements Appender {
       entry -> {
         int nodeId = entry.getKey().getNodeNumber();
         BooleanFormula assumption = entry.getValue();
-        return "pc = " + nodeId + "\t =====>  " + assumption.toString();
+        return "pc = " + nodeId + "\t =====>  " + assumption;
       };
 
   public void add(CFANode node, BooleanFormula assumption) {

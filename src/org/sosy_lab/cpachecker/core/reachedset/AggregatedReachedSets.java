@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -43,7 +43,7 @@ public class AggregatedReachedSets {
   }
 
   public AggregatedReachedSets(Set<UnmodifiableReachedSet> pReachedSets) {
-    reachedSets = pReachedSets;
+    reachedSets = checkNotNull(pReachedSets);
   }
 
   public Set<UnmodifiableReachedSet> snapShot() {

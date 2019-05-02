@@ -62,7 +62,7 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
   }
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     requireArrays();
     requireQuantifiers();
     requireRationals();

@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Verify.verify;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -52,10 +53,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-
-
 public class ProgramDeclarations {
 
   private final Map<String, CSimpleDeclaration> globalVars;
@@ -71,7 +68,7 @@ public class ProgramDeclarations {
     types = new HashMap<>();
     elaboratedTypes = new HashMap<>();
     typedefs = new HashMap<>();
-    origNamesToQualifiedNames = HashMultimap.<String, String>create();
+    origNamesToQualifiedNames = HashMultimap.create();
   }
 
   /**
@@ -481,10 +478,12 @@ public class ProgramDeclarations {
   private static boolean areEqualFunctionTypes(CFunctionType type1, CFunctionType type2, Map<Pair<CType, CType>, Boolean> foundTypes) {
 
     // check the function names but only if there is one
-    boolean areEqual = (type1 instanceof CFunctionTypeWithNames
-                         && type2 instanceof CFunctionTypeWithNames
-                         && !((CFunctionTypeWithNames)type1).getName().equals(((CFunctionTypeWithNames)type2).getName()))
-                       || !(type1 instanceof CFunctionTypeWithNames && type2 instanceof CFunctionTypeWithNames);
+    boolean areEqual =
+        (type1 instanceof CFunctionTypeWithNames
+                && type2 instanceof CFunctionTypeWithNames
+                && !type1.getName().equals(type2.getName()))
+            || !(type1 instanceof CFunctionTypeWithNames
+                && type2 instanceof CFunctionTypeWithNames);
 
     // we only need to check the members if the return type is equal
     areEqual = areEqual && areEqualTypes(type1.getReturnType().getCanonicalType(), type2.getReturnType().getCanonicalType(), foundTypes);

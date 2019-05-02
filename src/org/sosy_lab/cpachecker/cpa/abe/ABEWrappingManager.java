@@ -98,16 +98,17 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
 
   public ABEWrappingManager(
       ABEManager<A, P> pAbstractABEStatePABEManager,
-      PathFormulaManager pPfmgr,
-      FormulaManagerView pFmgr,
+      PathFormulaManager pPathFormulaManager,
+      FormulaManagerView pFormulaManager,
       CFA pCfa,
       LogManager pLogger,
       Solver pSolver,
-      Configuration pConfiguration) throws InvalidConfigurationException {
+      Configuration pConfiguration)
+      throws InvalidConfigurationException {
     pConfiguration.inject(this, ABEWrappingManager.class);
     clientManager = pAbstractABEStatePABEManager;
-    pfmgr = pPfmgr;
-    fmgr = pFmgr;
+    pfmgr = pPathFormulaManager;
+    fmgr = pFormulaManager;
     cfa = pCfa;
     logger = pLogger;
     solver = pSolver;

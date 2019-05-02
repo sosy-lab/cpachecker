@@ -79,12 +79,10 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
 
   @Override
   public int hashCode() {
-    int prime = 31;
-    int result = 7;
     if (getDeclaration() != null) {
-      result = prime * result + Objects.hash(getDeclaration().getQualifiedName());
+      return Objects.hash(getDeclaration().getQualifiedName());
     }
-    return prime * result;
+    return 0;
   }
 
   @Override

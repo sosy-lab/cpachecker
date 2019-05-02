@@ -23,17 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-
+import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
-
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 /**
  * Computes set of irrelevant predicates of a block by identifying the variables that a auxiliary to the block.
@@ -49,11 +48,13 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
     // compute relevant variables
     Deque<ReferencedVariable> waitlist = new ArrayDeque<>();
 
+    Set<String> allPredicates = getAllPredicates(pPredicates);
     for (ReferencedVariable var : pContext.getReferencedVariables()) {
       if (var.occursInCondition()) {
         // var is important for branching
         waitlist.add(var);
-      } else if (!var.getInfluencingVariables().isEmpty() && occursInPredicate(var, pPredicates)) {
+      } else if (!var.getInfluencingVariables().isEmpty()
+          && allPredicates.contains(var.getName())) {
         // var is important, because it is assigned in current block.
         waitlist.add(var);
       }
@@ -73,27 +74,18 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
     return relevantVars;
   }
 
-  private boolean occursInPredicate(ReferencedVariable pVar, Collection<AbstractionPredicate> pPredicates) {
+  private Set<String> getAllPredicates(Collection<AbstractionPredicate> pPredicates) {
+    final Set<String> allPredicates = new HashSet<>();
     for (AbstractionPredicate predicate : pPredicates) {
-      if (predicate.getSymbolicAtom().toString().contains(pVar.getName())) {
-        return true;
-      }
+      allPredicates.addAll(fmgr.extractFunctionNames(predicate.getSymbolicAtom()));
     }
-    return false;
+    return allPredicates;
   }
 
   @Override
   protected boolean isRelevant(Collection<String> relevantVariables, AbstractionPredicate predicate) {
-    String predicateString = predicate.getSymbolicAtom().toString();
-
-    for (String var : relevantVariables) {
-      if (predicateString.contains(var)) {
-        //var occurs in the predicate, so better trace it
-        //TODO: contains is a quite rough approximation; for example "foo <= 5" also contains "f", although the variable f does in fact not occur in the predicate.
-        return true;
-      }
-    }
-    return false;
+    Set<String> variables = fmgr.extractFunctionNames(predicate.getSymbolicAtom());
+    return Iterables.any(relevantVariables, variables::contains);
   }
 
   @Override

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="checkstyle" basedir="."
+        xmlns:cs="antlib:com.puppycrawl.tools.checkstyle.ant">
+
+    <!-- Targets for running Checkstyle. -->
+
+    <!-- DO NOT EDIT LOCALLY!
+         Keep this file synchronized with
+         https://gitlab.com/sosy-lab/software/java-project-template
+    -->
+
+    <property name="checkstyle.output" value="xml"/>
+
+    <target name="run-checkstyle" depends="resolve-dependencies">
+        <path id="checkstyle.lib.path">
+            <fileset dir="${ivy.lib.dir}/checkstyle" includes="*.jar"/>
+        </path>
+        <property name="config_loc" value="build"/>
+        <taskdef resource="com/puppycrawl/tools/checkstyle/ant/checkstyle-ant-task.properties" uri="antlib:com.puppycrawl.tools.checkstyle.ant" classpathref="checkstyle.lib.path"/>
+
+        <cs:checkstyle config="build/checkstyle.xml" classpathref="checkstyle.lib.path">
+            <fileset dir="${source.dir}" includes="**/*.java" excludes="**/test/*.java **/*Test.java **/*Test0.java **/*TestBase.java **/*TestSuite.java"/>
+            <formatter type="${checkstyle.output}" toFile="Checkstyle.xml"/>
+        </cs:checkstyle>
+
+        <cs:checkstyle config="build/checkstyle.test.xml" classpathref="checkstyle.lib.path">
+            <fileset dir="${source.dir}" includes="**/test/*.java **/*Test.java **/*Test0.java **/*TestBase.java **/*TestSuite.java"/>
+            <formatter type="${checkstyle.output}" toFile="Checkstyle.Test.xml"/>
+        </cs:checkstyle>
+    </target>
+
+    <target name="checkstyle-report">
+        <xslt in="Checkstyle.xml" out="Checkstyle.html" style="build/checkstyle.xsl"/>
+        <xslt in="Checkstyle.Test.xml" out="Checkstyle.Test.html" style="build/checkstyle.xsl"/>
+    </target>
+
+    <target name="checkstyle" depends="run-checkstyle, checkstyle-report" description="Run CheckStyle on source code" />
+</project>

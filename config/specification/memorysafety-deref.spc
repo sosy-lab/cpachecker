@@ -1,6 +1,7 @@
-// This automaton contains the specification of the
-// category MemorySafety of the
-// Competition on Software Verification.
+// This automaton contains the specification of the category MemorySafety
+// of the Competition on Software Verification.
+// It queries the SMGCPA for information about invalid derefencing of pointers.
+
 CONTROL AUTOMATON SMGCPADEREF
 
 INITIAL STATE Init;

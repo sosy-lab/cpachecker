@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,13 +26,13 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.io.PrintStream;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
-class AutomatonStatistics extends AbstractStatistics {
+class AutomatonStatistics implements Statistics {
 
   private final ControlAutomatonCPA mCpa;
 
@@ -69,9 +69,10 @@ class AutomatonStatistics extends AbstractStatistics {
       put(out, 0, totalStrengthenTime);
     }
 
-    long stateBranchings = automatonSuccessors.getValueCount()
-        - automatonSuccessors.getTimesWithValue(0)
-        - automatonSuccessors.getTimesWithValue(1);
+    long stateBranchings =
+        automatonSuccessors.getValueCount()
+            - automatonSuccessors.getTimesWithValue(0)
+            - automatonSuccessors.getTimesWithValue(1);
     put(out, 0, "Automaton transfers with branching", stateBranchings);
     put(out, 0, automatonSuccessors);
   }

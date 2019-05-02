@@ -36,17 +36,16 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -56,7 +55,7 @@ public class TranslatorTest {
 
   private final MachineModel machineModel = MachineModel.LINUX32;
   private String[] varNames = {"var1", "var2", "var3", "fun::var1", "fun::varB", "fun::varC"};
-  private CSimpleType integervariable = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+  private CSimpleType integervariable = CNumericTypes.INT;
   private SSAMap ssaTest;
 
   @Before
@@ -70,19 +69,25 @@ public class TranslatorTest {
 
   @Test
   public void testValueTranslator() {
-    PersistentMap<MemoryLocation, Value> constantsMap = PathCopyingPersistentTreeMap.of();
-    PersistentMap<MemoryLocation, Type> locToTypeMap = PathCopyingPersistentTreeMap.of();
+    PersistentMap<MemoryLocation, ValueAndType> constantsMap = PathCopyingPersistentTreeMap.of();
 
-    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("var1"), new NumericValue(3));
-    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("var3"), NullValue.getInstance());
-    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("fun::var1"), new NumericValue(1.5));
-    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("fun::varC"), new NumericValue(-5));
+    constantsMap =
+        constantsMap.putAndCopy(
+            MemoryLocation.valueOf("var1"), new ValueAndType(new NumericValue(3), null));
+    constantsMap =
+        constantsMap.putAndCopy(
+            MemoryLocation.valueOf("var3"), new ValueAndType(NullValue.getInstance(), null));
+    constantsMap =
+        constantsMap.putAndCopy(
+            MemoryLocation.valueOf("fun::var1"), new ValueAndType(new NumericValue(1.5), null));
+    constantsMap =
+        constantsMap.putAndCopy(
+            MemoryLocation.valueOf("fun::varC"), new ValueAndType(new NumericValue(-5), null));
 
     Truth.assertThat(constantsMap).hasSize(4);
 
-    ValueAnalysisState vStateTest =
-        new ValueAnalysisState(Optional.of(machineModel), constantsMap, locToTypeMap);
-    Truth.assertThat(vStateTest.getConstantsMapView()).isNotEmpty();
+    ValueAnalysisState vStateTest = new ValueAnalysisState(Optional.of(machineModel), constantsMap);
+    Truth.assertThat(vStateTest.getConstants()).isNotEmpty();
     ValueRequirementsTranslator vReqTransTest =
         new ValueRequirementsTranslator(LogManager.createTestLogManager());
 
@@ -94,7 +99,9 @@ public class TranslatorTest {
     List<String> listOfIndependentRequirements = vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest, null);
     Truth.assertThat(listOfIndependentRequirements).containsExactly("(= var1@1 3)", "(= |fun::varC| -5)");
 
-    listOfIndependentRequirements = vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest, Collections.<String>emptyList());
+    listOfIndependentRequirements =
+        vReqTransTest.getListOfIndependentRequirements(
+            vStateTest, ssaTest, Collections.emptyList());
     Truth.assertThat(listOfIndependentRequirements).isEmpty();
 
     Collection<String> requiredVars = new ArrayList<>();
@@ -122,7 +129,9 @@ public class TranslatorTest {
     Truth.assertThat(varsInReq).containsExactlyElementsIn(Arrays.asList(varNames));
 
     // Test method getListOfIndependentRequirements()
-    List<String> listOfIndepententReq = sReqTransTest.getListOfIndependentRequirements(sStateTest, ssaTest, Collections.<String>emptyList());
+    List<String> listOfIndepententReq =
+        sReqTransTest.getListOfIndependentRequirements(
+            sStateTest, ssaTest, Collections.emptyList());
     Truth.assertThat(listOfIndepententReq).isEmpty();
 
     listOfIndepententReq = sReqTransTest.getListOfIndependentRequirements(sStateTest, ssaTest, null);
@@ -179,7 +188,9 @@ public class TranslatorTest {
     content.add("(and (>= |fun::varC| -15) (<= |fun::varC| -3))");
     Truth.assertThat(listOfIndependentRequirements).containsExactlyElementsIn(content);
 
-    listOfIndependentRequirements = iReqTransTest.getListOfIndependentRequirements(iStateTest, ssaTest, Collections.<String>emptyList());
+    listOfIndependentRequirements =
+        iReqTransTest.getListOfIndependentRequirements(
+            iStateTest, ssaTest, Collections.emptyList());
     Truth.assertThat(listOfIndependentRequirements).isEmpty();
 
     Collection<String> requiredVars = new ArrayList<>();
@@ -196,7 +207,7 @@ public class TranslatorTest {
     // Test method writeVarDefinition()
     List<String> varDefinition =
         CartesianRequirementsTranslator.writeVarDefinition(
-            Arrays.asList(varNames), ssaTest, Collections.<String>emptyList());
+            Arrays.asList(varNames), ssaTest, Collections.emptyList());
     Truth.assertThat(varDefinition).isEmpty();
 
     varDefinition =
@@ -220,7 +231,8 @@ public class TranslatorTest {
     Truth.assertThat(varDefinition).containsExactlyElementsIn(content2);
 
     // Test method convertToFormula()
-    Pair<List<String>, String> convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, Collections.<String>emptyList());
+    Pair<List<String>, String> convertedToFormula =
+        iReqTransTest.convertToFormula(iStateTest, ssaTest, Collections.emptyList());
     Truth.assertThat(convertedToFormula.getFirst()).isEmpty();
     String s = "(define-fun req () Bool true)";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
