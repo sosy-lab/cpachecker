@@ -446,6 +446,8 @@ public class ConfigurationFileChecks {
       }
     } else if (basePath.toString().startsWith("ldv")) {
       assertThat(spec).endsWith("specification/sv-comp-errorlabel.spc");
+    } else if (basePath.toString().contains("backward")) {
+      assertThat(spec).endsWith("specification/MainEntry.spc");
     } else if (isSvcompConfig) {
       if (basePath.toString().matches(".*svcomp1[234].*")) {
         assertThat(spec).endsWith("specification/sv-comp-errorlabel.spc");
