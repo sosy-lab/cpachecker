@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -275,8 +276,16 @@ public class CoreComponentsFactory {
       secure = true,
       name = "validateCorrectnessWitness",
       description =
-          "validate correctness witness by building an automaton out of the invariants of the witness")
-  private boolean validateCorrectnessWitness = false;
+          "validate correctness witness by building an automaton as additional specification")
+  private CorrectnessWitnessValidation correctnessWitnessValidation =
+      CorrectnessWitnessValidation.NONE;
+
+  private static enum CorrectnessWitnessValidation {
+    NONE, // no validation
+    WITNESSAUTOMATON, // use witness with invariants assumptions
+    INVARIANTSAUTOMATON, // use invariant location automaton
+    ;
+  }
 
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   @Option(secure = true, description = "correctness witness file to validate")
@@ -602,7 +611,8 @@ public class CoreComponentsFactory {
       specification = pSpecification;
     }
 
-    if (validateCorrectnessWitness && correctnessWitnessFile != null) {
+    if (correctnessWitnessValidation != CorrectnessWitnessValidation.NONE
+        && correctnessWitnessFile != null) {
       return buildCPAsWithWitnessInvariantsAutomaton(cfa, specification);
     }
 
@@ -639,14 +649,33 @@ public class CoreComponentsFactory {
   private ConfigurableProgramAnalysis buildCPAsWithWitnessInvariantsAutomaton(
       final CFA cfa, final Specification specification)
       throws InvalidConfigurationException, CPAException {
-    WitnessInvariantsExtractor extractor =
-        new WitnessInvariantsExtractor(
-            config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
-    ToCExpressionVisitor visitor = new ToCExpressionVisitor(cfa.getMachineModel(), logger);
-    CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
     List<Automaton> automata = new ArrayList<>(1);
-    Automaton automaton = extractor.buildInvariantsAutomatonFromWitness(visitor, builder);
-      automata.add(automaton);
-      return cpaFactory.buildCPAs(cfa, specification, automata, aggregatedReachedSets);
+    switch (correctnessWitnessValidation) {
+      case WITNESSAUTOMATON:
+        Specification automatonAsSpec =
+            Specification.fromFiles(
+                specification.getProperties(),
+                ImmutableList.of(correctnessWitnessFile),
+                cfa,
+                config,
+                logger);
+        automata.add(automatonAsSpec.getSpecificationAutomata().get(0));
+        break;
+      case INVARIANTSAUTOMATON:
+        WitnessInvariantsExtractor extractor =
+            new WitnessInvariantsExtractor(
+                config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
+        ToCExpressionVisitor visitor = new ToCExpressionVisitor(cfa.getMachineModel(), logger);
+        CBinaryExpressionBuilder builder =
+            new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
+        Automaton automaton = extractor.buildInvariantsAutomatonFromWitness(visitor, builder);
+        automata.add(automaton);
+        break;
+      case NONE:
+        break;
+      default:
+        break;
+    }
+    return cpaFactory.buildCPAs(cfa, specification, automata, aggregatedReachedSets);
   }
 }

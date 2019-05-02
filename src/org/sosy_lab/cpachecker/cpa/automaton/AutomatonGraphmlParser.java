@@ -67,12 +67,12 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -86,13 +86,17 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.cpa.automaton.GraphMLTransition.GraphMLThread;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
 import org.sosy_lab.cpachecker.util.Property;
@@ -107,6 +111,7 @@ import org.sosy_lab.cpachecker.util.expressions.DefaultExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -147,6 +152,9 @@ public class AutomatonGraphmlParser {
   @Option(secure=true, description="Consider assumptions that are provided with the path automaton?")
   private boolean considerAssumptions = true;
 
+  @Option(secure = true, description = "use invariants from correctness witness as assumptions")
+  private boolean useWitnessInvariantsAsAssumptions = false;
+
   @Option(
     secure = true,
     description = "Represent sink states by bottom state instead of break state"
@@ -186,6 +194,8 @@ public class AutomatonGraphmlParser {
   private final CFA cfa;
   private final ParserTools parserTools;
 
+  private final Map<GraphMLState, ExpressionTree<AExpression>> stateInvariantsMap;
+
   public AutomatonGraphmlParser(Configuration pConfig, LogManager pLogger, CFA pCFA, Scope pScope)
       throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -196,6 +206,7 @@ public class AutomatonGraphmlParser {
     this.config = pConfig;
     this.parserTools =
         ParserTools.create(ExpressionTrees.newCachingFactory(), cfa.getMachineModel(), logger);
+    this.stateInvariantsMap = Maps.newHashMap();
   }
 
   /**
@@ -294,16 +305,18 @@ public class AutomatonGraphmlParser {
   }
 
   /**
-   * Creates an {@link AutomatonInternalState} from the given {@link GraphMLState},
-   * adds the corresponding stutter transitions to the GraphML-parser state,
-   * and adds a self-transition to violation states.
+   * Creates an {@link AutomatonInternalState} from the given {@link GraphMLState}, adds the
+   * corresponding stutter transitions to the GraphML-parser state, and adds a self-transition to
+   * violation states.
    *
    * @param pGraphMLParserState the current GraphML-parser state.
    * @param pState the GraphML state to be converted into an automaton state.
    * @return an {@link AutomatonInternalState} corresponding to the given GraphML state.
+   * @throws WitnessParseException if invariant cannot be parsed.
    */
   private AutomatonInternalState createAutomatonState(
-      AutomatonGraphmlParserState pGraphMLParserState, GraphMLState pState) {
+      AutomatonGraphmlParserState pGraphMLParserState, GraphMLState pState)
+      throws WitnessParseException {
     List<AutomatonTransition> transitions = pGraphMLParserState.getStateTransitions(pState);
 
     // If the transition conditions do not apply, none of the above transitions is taken,
@@ -312,17 +325,36 @@ public class AutomatonGraphmlParser {
     if (stutterCondition == null) {
       stutterCondition = AutomatonBoolExpr.TRUE;
     }
+
     // Wait in the source state until the witness checker catches up with the witness
-    transitions.add(
-        createAutomatonTransition(
+
+    if (useWitnessInvariantsAsAssumptions
+        && pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
+        && stateInvariantsMap.containsKey(pState)) {
+      // Create two stutter transitions for states with an invariant as precondition
+      ExpressionTree<AExpression> invariant = stateInvariantsMap.get(pState);
+      try {
+        createAutomatonInvariantsTransitions(
+            transitions,
             stutterCondition,
-            Collections.<AutomatonBoolExpr>emptyList(),
-            Collections.emptyList(),
-            ExpressionTrees.<AExpression>getTrue(),
             Collections.<AutomatonAction>emptyList(),
-            pState,
-            pState.isViolationState(),
-            stopNotBreakAtSinkStates));
+            invariant,
+            pState);
+      } catch (UnrecognizedCodeException e) {
+        throw new WitnessParseException("Unable to parse invariant to CExpression");
+      }
+    } else {
+      transitions.add(
+          createAutomatonTransition(
+              stutterCondition,
+              Collections.<AutomatonBoolExpr>emptyList(),
+              Collections.emptyList(),
+              ExpressionTrees.<AExpression>getTrue(),
+              Collections.<AutomatonAction>emptyList(),
+              pState,
+              pState.isViolationState(),
+              stopNotBreakAtSinkStates));
+    }
 
     if (pState.isViolationState()) {
       AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
@@ -574,6 +606,38 @@ public class AutomatonGraphmlParser {
       stutterCondition = and(stutterCondition, additionalStutterCondition);
     }
     pGraphMLParserState.getStutterConditions().put(pTransition.getSource(), stutterCondition);
+
+    if (useWitnessInvariantsAsAssumptions
+        && pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS) {
+      // Rejecting the witness as soon as the invariants for the same target state differ
+      for (GraphMLState targetState : stateInvariantsMap.keySet()) {
+        if (targetState.equals(pTransition.getTarget())) {
+          ExpressionTree<AExpression> invariantAtTargetState = stateInvariantsMap.get(targetState);
+          if (invariantAtTargetState != null
+              && !invariantAtTargetState.equals(candidateInvariants)) {
+            throw new WitnessParseException("Entering same witness state with unequal invariants");
+          }
+        }
+      }
+      if (!candidateInvariants.equals(ExpressionTrees.getTrue())) {
+        // we create two automata transitions from this witness transition:
+        // one leads to the error state assuming the negated invariant
+        // the other one leads to the actually state assuming the invariant
+        // after that we can return
+        try {
+          createAutomatonInvariantsTransitions(
+              transitions,
+              transitionCondition,
+              actions,
+              candidateInvariants,
+              pTransition.getTarget());
+          stateInvariantsMap.put(pTransition.getTarget(), candidateInvariants);
+          return;
+        } catch (UnrecognizedCodeException e) {
+          throw new WitnessParseException("Unable to parse invariants to CExpressions");
+        }
+      }
+    }
 
     // If the triggers match, there must be one successor state that moves the automaton
     // forwards
@@ -1689,6 +1753,46 @@ public class AutomatonGraphmlParser {
         pAssertions,
         pActions,
         pSinkAsBottomNotBreak ? AutomatonInternalState.BOTTOM : AutomatonInternalState.BREAK);
+  }
+
+  private static AutomatonTransition createAutomatonInvariantErrorTransition(
+      AutomatonBoolExpr pTriggers, List<AExpression> pAssumptions) {
+    StringExpression violatedPropertyDesc = new StringExpression("Invariant not valid");
+    AutomatonInternalState followErrorState = AutomatonInternalState.ERROR;
+    return new AutomatonTransition(
+        pTriggers,
+        Collections.<AutomatonBoolExpr>emptyList(),
+        pAssumptions,
+        Collections.<AutomatonAction>emptyList(),
+        followErrorState,
+        violatedPropertyDesc);
+  }
+
+  private void createAutomatonInvariantsTransitions(
+      List<AutomatonTransition> pTransitions,
+      AutomatonBoolExpr pTransitionCondition,
+      List<AutomatonAction> pActions,
+      ExpressionTree<AExpression> pInvariant,
+      GraphMLState pTargetState)
+      throws UnrecognizedCodeException {
+    CExpression cExpr = pInvariant.accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
+    CExpression negCExpr =
+        (new CBinaryExpressionBuilder(cfa.getMachineModel(), logger))
+            .negateExpressionAndSimplify(cExpr);
+    List<AExpression> assumptionWithNegCExpr = Collections.singletonList(negCExpr);
+    pTransitions.add(
+        createAutomatonInvariantErrorTransition(pTransitionCondition, assumptionWithNegCExpr));
+    List<AExpression> assumptionWithCExpr = Collections.singletonList(cExpr);
+    pTransitions.add(
+        createAutomatonTransition(
+            pTransitionCondition,
+            Collections.<AutomatonBoolExpr>emptyList(),
+            assumptionWithCExpr,
+            pInvariant,
+            pActions,
+            pTargetState,
+            pTargetState.isViolationState(),
+            stopNotBreakAtSinkStates));
   }
 
   private static class ViolationCopyingAutomatonTransition extends AutomatonTransition {
