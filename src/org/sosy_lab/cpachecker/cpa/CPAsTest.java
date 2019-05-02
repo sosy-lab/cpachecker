@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.abe.ABECPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayCPA;
+import org.sosy_lab.cpachecker.cpa.backward.BackwardCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
@@ -107,6 +108,7 @@ public class CPAsTest {
     cpas.remove(ARGCPA.class);
     cpas.remove(BAMCPA.class);
     cpas.remove(BAMCPAWithBreakOnMissingBlock.class);
+    cpas.remove(BackwardCPA.class);
     cpas.remove(CacheCPA.class);
     cpas.remove(UsageCPA.class);
     cpas.remove(CompositeCPA.class);
