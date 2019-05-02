@@ -1,7 +1,7 @@
 package org.nulist.plugin.parser;
 
 import com.grammatech.cs.*;
-import org.nulist.plugin.model.FunctionGeneration;
+import org.nulist.plugin.model.ChannelBuildOperation;
 import org.nulist.plugin.model.ITTIModelAbstract;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 
-import static org.nulist.plugin.model.FunctionGeneration.*;
+import static org.nulist.plugin.model.ChannelBuildOperation.*;
 import static org.nulist.plugin.model.action.ITTIAbstract.extendSuffix;
 
 /**
@@ -101,28 +101,50 @@ public class CFGParser implements Parser{
 
         //third step: abstract functions
         //insert nas_user_container_t *users as the global variable
-        FunctionGeneration functionGenerator =
-                new FunctionGeneration(cfaBuilder,projectName,logger,MachineModel.LINUX64);
+
         if(projectName.equals(UE)){
             procedure createTasksUE = project.find_procedure(CREATE_TASKS_UE);
             if(createTasksUE!=null)
-                functionGenerator.generateCreateTasksUE(createTasksUE);
+                ChannelBuildOperation.generateCreateTasksUE(cfaBuilder,createTasksUE);
         }
 
         if(projectName.equals(ENB)){
             procedure createTasksUE = project.find_procedure(CREATE_TASKS);
             if(createTasksUE!=null)
-                functionGenerator.generatCreateTasksENB(createTasksUE);
+                ChannelBuildOperation.generatCreateTasksENB(cfaBuilder,createTasksUE);
         }
 
         procedure proc = project.find_procedure(ITTI_ALLOC_NEW_MESSAGE);
         if(proc!=null)
-            functionGenerator.generateITTI_ALLOC_NEW_MESSAGE(proc);
+            ChannelBuildOperation.generateITTI_ALLOC_NEW_MESSAGE(cfaBuilder,proc);
         proc = project.find_procedure(ITTI_SEND_MSG_TO_TASKS);
         procedure proc1 = project.find_procedure(ITTI_SEND_MSG_TO_TASKS+extendSuffix);
         if(proc!=null)
-            functionGenerator.generateITTI_SEND_TO_TASK(proc, proc1);
+            ChannelBuildOperation.generateITTI_SEND_TO_TASK(cfaBuilder,proc, proc1);
 
+
+//        FunctionGeneration functionGenerator =
+//                new FunctionGeneration(cfaBuilder,projectName,logger,MachineModel.LINUX64);
+//        if(projectName.equals(UE)){
+//            procedure createTasksUE = project.find_procedure(CREATE_TASKS_UE);
+//            if(createTasksUE!=null)
+//                functionGenerator.generateCreateTasksUE(createTasksUE);
+//        }
+//
+//        if(projectName.equals(ENB)){
+//            procedure createTasksUE = project.find_procedure(CREATE_TASKS);
+//            if(createTasksUE!=null)
+//                functionGenerator.generatCreateTasksENB(createTasksUE);
+//        }
+//
+//        procedure proc = project.find_procedure(ITTI_ALLOC_NEW_MESSAGE);
+//        if(proc!=null)
+//            functionGenerator.generateITTI_ALLOC_NEW_MESSAGE(proc);
+//        proc = project.find_procedure(ITTI_SEND_MSG_TO_TASKS);
+//        procedure proc1 = project.find_procedure(ITTI_SEND_MSG_TO_TASKS+extendSuffix);
+//        if(proc!=null)
+//            functionGenerator.generateITTI_SEND_TO_TASK(proc, proc1);
+//
 
         //elimination unrelated initializations
         if(cuMap.containsKey("lte-uesoftmodem")){

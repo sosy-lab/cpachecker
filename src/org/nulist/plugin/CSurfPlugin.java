@@ -19,7 +19,7 @@ import java.lang.*;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.nulist.plugin.model.FunctionGeneration.*;
+import static org.nulist.plugin.model.ChannelBuildOperation.doComposition;
 import static org.nulist.plugin.parser.CFGParser.ENB;
 import static org.nulist.plugin.parser.CFGParser.MME;
 import static org.nulist.plugin.util.CFGDumping.dumpCFG2Dot;

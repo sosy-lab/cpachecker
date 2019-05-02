@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static org.nulist.plugin.model.action.ITTIAbstract.isITTITaskForDeliver;
 import static org.nulist.plugin.model.action.ITTIAbstract.itti_send_to_task;
 import static org.nulist.plugin.parser.CFGParser.*;
 import static org.nulist.plugin.parser.CFGParser.UE;
@@ -210,36 +211,46 @@ public class ChannelBuildOperation {
                         String taskName = getTaskOrMsgNameByID(type, taskID);
                         CFunctionDeclaration functionDeclaration = itti_send_to_task(taskName,cfaBuilder.projectName,cfaBuilder.expressionHandler);
                         if(functionDeclaration!=null){
-                            CFANode caseNextNode = edge.getSuccessor();
-                            CFAEdge breakEdge = caseNextNode.getLeavingEdge(0);
-                            CFANode cfaNode = new CFANode(functionName);
-                            caseNextNode.removeLeavingEdge(breakEdge);
-                            CFANode breakNode = breakEdge.getSuccessor();
-                            breakNode.removeEnteringEdge(breakEdge);
+                            routingTask(cfaBuilder,builder,functionDeclaration,edge,functionName);
+                        }else if(isITTITaskForDeliver(taskName)){
 
-                            CParameterDeclaration input = builder.functionDeclaration.getParameters().get(2);
-                            List<CExpression> params = new ArrayList<>();
-                            FileLocation fileLocation = breakEdge.getFileLocation();
-                            CExpression param = builder.expressionHandler.getAssignedIdExpression(input.asVariableDeclaration(),input.getType(),fileLocation);
-                            params.add(param);
-                            CExpression functionCallExpr = new CIdExpression(fileLocation,functionDeclaration.getType(), functionDeclaration.getName(), functionDeclaration);
-
-                            CFunctionCallExpression expression = new CFunctionCallExpression(fileLocation,functionDeclaration.getType(), functionCallExpr, params, functionDeclaration);
-
-                            CFunctionCallStatement cFunctionCallStatement = new CFunctionCallStatement(fileLocation, expression);
-                            String rawCharacters = functionDeclaration.getName()+"("+param.toString()+");";
-                            CStatementEdge statementEdge = new CStatementEdge(rawCharacters,cFunctionCallStatement,
-                                    fileLocation, caseNextNode, cfaNode);
-                            builder.addToCFA(statementEdge);
-                            BlankEdge blankEdge = new BlankEdge(breakEdge.getRawStatement(),breakEdge.getFileLocation(),cfaNode,breakNode,breakEdge.getDescription());
-                            builder.addToCFA(blankEdge);
-                            cfaBuilder.addNode(functionName,cfaNode);
                         }
                     }
                 }
 
             }
         }
+    }
+
+    public static void inlineChannelOperation(CFABuilder cfaBuilder, CFGFunctionBuilder funcBuilder){
+
+    }
+
+    private static void routingTask(CFABuilder cfaBuilder, CFGFunctionBuilder builder, CFunctionDeclaration functionDeclaration, CFAEdge caseEdge,  String functionName){
+        CFANode caseNextNode = caseEdge.getSuccessor();
+        CFAEdge breakEdge = caseNextNode.getLeavingEdge(0);
+        CFANode cfaNode = new CFANode(functionName);
+        caseNextNode.removeLeavingEdge(breakEdge);
+        CFANode breakNode = breakEdge.getSuccessor();
+        breakNode.removeEnteringEdge(breakEdge);
+
+        CParameterDeclaration input = builder.functionDeclaration.getParameters().get(2);
+        List<CExpression> params = new ArrayList<>();
+        FileLocation fileLocation = breakEdge.getFileLocation();
+        CExpression param = builder.expressionHandler.getAssignedIdExpression(input.asVariableDeclaration(),input.getType(),fileLocation);
+        params.add(param);
+        CExpression functionCallExpr = new CIdExpression(fileLocation,functionDeclaration.getType(), functionDeclaration.getName(), functionDeclaration);
+
+        CFunctionCallExpression expression = new CFunctionCallExpression(fileLocation,functionDeclaration.getType(), functionCallExpr, params, functionDeclaration);
+
+        CFunctionCallStatement cFunctionCallStatement = new CFunctionCallStatement(fileLocation, expression);
+        String rawCharacters = functionDeclaration.getName()+"("+param.toString()+");";
+        CStatementEdge statementEdge = new CStatementEdge(rawCharacters,cFunctionCallStatement,
+                fileLocation, caseNextNode, cfaNode);
+        builder.addToCFA(statementEdge);
+        BlankEdge blankEdge = new BlankEdge(breakEdge.getRawStatement(),breakEdge.getFileLocation(),cfaNode,breakNode,breakEdge.getDescription());
+        builder.addToCFA(blankEdge);
+        cfaBuilder.addNode(functionName,cfaNode);
     }
 
     public static String getTaskOrMsgNameByID(CType type, int id){
@@ -695,6 +706,7 @@ public class ChannelBuildOperation {
      * @return void
      **/
     public static void buildSecureChannelBetweeneNBandMME(CFABuilder enbBuilder, CFABuilder mmeBuilder){
+
         CFGFunctionBuilder enbITTIFunctionBuilder = enbBuilder.cfgFunctionBuilderMap.get(ITTI_SEND_MSG_TO_TASKS);
         CFGFunctionBuilder mmeITTIFunctionBuilder = mmeBuilder.cfgFunctionBuilderMap.get(ITTI_SEND_MSG_TO_TASKS);
         if(enbITTIFunctionBuilder!=null && mmeITTIFunctionBuilder!=null){
@@ -713,6 +725,9 @@ public class ChannelBuildOperation {
     }
 
     public static void buildInsecureChannelBetweenUEandENB(CFABuilder ueBuilder, CFABuilder eNBBuilder){
+        //Step 1: push message to channel message cache
+        pushNASMsgToChannel(ueBuilder);
+
         CFGFunctionBuilder ueITTIFunctionBuilder = ueBuilder.cfgFunctionBuilderMap.get(ITTI_SEND_MSG_TO_TASKS);
         CFGFunctionBuilder eNBITTIFunctionBuilder = eNBBuilder.cfgFunctionBuilderMap.get(ITTI_SEND_MSG_TO_TASKS);
         if(ueITTIFunctionBuilder!=null && eNBITTIFunctionBuilder!=null){
@@ -758,6 +773,68 @@ public class ChannelBuildOperation {
 //                value);; //messageID,
 
         }
+    }
+
+
+    public static void pushNASMsgToChannel(CFABuilder ueBuilder){
+        CFGFunctionBuilder encodeBuilder = ueBuilder.cfgFunctionBuilderMap.get("nas_message_encode");
+
+        CVariableDeclaration nas_msg = encodeBuilder.functionDeclaration.getParameters().get(1).asVariableDeclaration();//pointer
+        CFunctionDeclaration pushPlainNASEMMMsgIntoCache = ueBuilder.functionDeclarations.get("pushPlainNASEMMMsgIntoCache");
+        CType nas_message_t = ueBuilder.typeConverter.typeCache.get("nas_message_t".hashCode());
+        pushMSGtoCache(encodeBuilder,pushPlainNASEMMMsgIntoCache,nas_msg,nas_message_t);
+
+        CFGFunctionBuilder esmEncodeBuilder = ueBuilder.cfgFunctionBuilderMap.get("esm_msg_encode");
+        CVariableDeclaration esm_msg = encodeBuilder.functionDeclaration.getParameters().get(0).asVariableDeclaration();//pointer
+        CFunctionDeclaration pushPlainNASESMMsgIntoCache = ueBuilder.functionDeclarations.get("pushPlainNASESMMsgIntoCache");
+        CType ESM_msg = ueBuilder.typeConverter.typeCache.get("ESM_msg".hashCode());
+        pushMSGtoCache(esmEncodeBuilder,pushPlainNASESMMsgIntoCache,esm_msg,ESM_msg);
+
+    }
+
+    private static void pushMSGtoCache(CFGFunctionBuilder functionBuilder,
+                                       CFunctionDeclaration functionDeclaration,
+                                       CVariableDeclaration message,
+                                       CType msgType){
+        FileLocation fileLocation = FileLocation.DUMMY;
+
+        CIdExpression idExpression = (CIdExpression) functionBuilder.expressionHandler.getAssignedIdExpression(
+                message,message.getType(),fileLocation);
+
+        CPointerExpression cPointerExpression = new CPointerExpression(fileLocation,msgType, idExpression);
+
+
+        List<CExpression> params = new ArrayList<>();
+        params.add(cPointerExpression);
+        CExpression functionNameExpr = new CIdExpression(fileLocation,
+                functionDeclaration.getType(),
+                functionDeclaration.getName(),
+                functionDeclaration);
+
+        CFunctionCallExpression expression = new CFunctionCallExpression(fileLocation,
+                functionDeclaration.getType(),
+                functionNameExpr,
+                params,
+                functionDeclaration);
+        CFunctionCallStatement callStatement = new CFunctionCallStatement(fileLocation, expression);
+
+        String rawCharacters = callStatement.toString();
+
+        CFANode startNode = functionBuilder.cfa;
+        CFAEdge edge = startNode.getLeavingEdge(0);
+        CFANode nextNode = edge.getSuccessor();
+
+        startNode.removeLeavingEdge(edge);
+        nextNode.removeLeavingEdge(edge);
+        CFANode newNode = functionBuilder.newCFANode();
+        BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY,
+                startNode, newNode, "Function start dummy edge");
+        functionBuilder.addToCFA(dummyEdge);
+        CStatementEdge statementEdge = new CStatementEdge(rawCharacters,callStatement,
+                fileLocation, newNode, nextNode);
+        functionBuilder.addToCFA(statementEdge);
+
+        functionBuilder.finish();
     }
 
     // call s1ap_eNB_itti_send_nas_downlink_ind in eNB

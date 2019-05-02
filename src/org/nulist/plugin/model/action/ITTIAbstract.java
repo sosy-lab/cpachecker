@@ -21,6 +21,8 @@ public class ITTIAbstract {
     public final static String TASK_NAS_UE = "TASK_NAS_UE";//21;//nas_ue_task
     public final static String TASK_NAS_UE_FUNC = "nas_ue_task";//nas_ue_task
     public final static String TASK_PDCP = "TASK_PDCP";
+    public final static String TASK_MAC_UE = "TASK_MAC_UE";
+    public final static String TASK_PHY_UE = "TASK_PHY_UE";
 
 
     public final static String TASK_RRC_ENB = "TASK_RRC_ENB";//9;//rrc_enb_task
@@ -30,6 +32,8 @@ public class ITTIAbstract {
     public final static String TASK_S1AP = "TASK_S1AP";// to MME's action in node
     public final static String TASK_X2AP = "TASK_X2AP";//12;//x2ap_task: action out to other eNB's action in node
     public final static String TASK_PDCP_ENB = "TASK_PDCP_ENB";//8;//action out to UE's action in node
+    public final static String TASK_MAC_ENB = "TASK_MAC_ENB";
+
 
     public final static String TASK_NAS_MME = "TASK_NAS_MME";//106;//
     public final static String TASK_NAS_MME_FUNC = "nas_intertask_interface";//
@@ -103,6 +107,13 @@ public class ITTIAbstract {
                 name.equals(TASK_MME_APP_FUNC);
     }
 
+    public static boolean isITTITaskForDeliver(String name){
+        return name.equals(TASK_PDCP_ENB)||
+                name.equals(TASK_PDCP_UE)||
+                name.equals(TASK_MAC_UE)||
+                name.equals(TASK_PHY_UE)||
+                name.equals(TASK_S1AP);
+    }
 
     public static boolean isITTIUENASTaskProcessFunction(String name){
         return name.equals(TASK_NAS_UE_FUNC+extendSuffix) ||

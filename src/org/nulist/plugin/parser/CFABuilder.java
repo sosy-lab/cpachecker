@@ -168,8 +168,8 @@ public class CFABuilder {
                     CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
                     if(!cfgFunctionBuilder.isFinished){
                         if(cu.name().equals(UE) || cu.name().equals(MME)){//for delivering NAS message through channel operations
-                            if(funcName.equals("_emm_as_encode") ||
-                                    funcName.equals("_emm_as_encrypt") ||
+                            if(funcName.equals("nas_message_encode") ||//EMM message
+                                    funcName.equals("esm_msg_encode") ||//ESM message
                                     funcName.equals("nas_message_decode") ||
                                     funcName.equals("nas_message_decrypt")){
                                 cfgFunctionBuilder.visitFunction(false);
