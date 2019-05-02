@@ -606,17 +606,25 @@ public class CFAToCTranslator {
       return ((CLabelNode) pNode).getLabel();
     } else {
       CompoundStatement targetBlock = createdStatements.get(pNode).get(0).getSurroundingBlock();
-      com.google.common.base.Optional<CFANode> maybeBlankPredecessor = CFAUtils.allEnteringEdges(pNode)
-          .filter(x -> !pEdgesToIgnore.contains(x))
-          .filter(x -> x.getEdgeType() == CFAEdgeType.BlankEdge)
-          .transform(x -> x.getPredecessor())
-          .filter(createdStatements::containsKey)
-          .filter(x -> createdStatements.get(x).get(0).getSurroundingBlock().equals(targetBlock))
-          .first();
-      if (maybeBlankPredecessor.isPresent()) {
-        return getLabel(maybeBlankPredecessor.get(), pEdgesToIgnore, pExistingLabels);
+      if (pNode.getNumLeavingEdges() == 1
+          && pNode.getLeavingEdge(0).getEdgeType() == CFAEdgeType.BlankEdge
+          && pNode.getLeavingEdge(0).getSuccessor() instanceof CLabelNode) {
+        return ((CLabelNode) pNode.getLeavingEdge(0).getSuccessor()).getLabel();
       } else {
-        return createdStatements.get(pNode).get(0).getLabel(pExistingLabels);
+        com.google.common.base.Optional<CFANode> maybeBlankPredecessor =
+            CFAUtils.allEnteringEdges(pNode)
+                .filter(x -> !pEdgesToIgnore.contains(x))
+                .filter(x -> x.getEdgeType() == CFAEdgeType.BlankEdge)
+                .transform(x -> x.getPredecessor())
+                .filter(createdStatements::containsKey)
+                .filter(
+                    x -> createdStatements.get(x).get(0).getSurroundingBlock().equals(targetBlock))
+                .first();
+        if (maybeBlankPredecessor.isPresent()) {
+          return getLabel(maybeBlankPredecessor.get(), pEdgesToIgnore, pExistingLabels);
+        } else {
+          return createdStatements.get(pNode).get(0).getLabel(pExistingLabels);
+        }
       }
     }
   }
