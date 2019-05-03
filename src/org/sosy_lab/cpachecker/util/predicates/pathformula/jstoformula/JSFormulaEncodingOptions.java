@@ -55,7 +55,7 @@ public class JSFormulaEncodingOptions {
   int maxPrototypeChainLength = 5;
 
   /**
-   * Count of string constants ist restricted to a limit to avoid quantifier in object encoding.
+   * Count of string constants is restricted to a limit to avoid quantifier in object encoding.
    * Note that some string constants (like the empty sting or field names) are implicitly present in
    * all programs and are counted, too. Each string constant is mapped to an integer (field-ID).
    * Object fields are encoded as an array that maps field-ID to field variable. A special field
