@@ -37,6 +37,16 @@
     </tasks>
 
     <tasks>
+        <propertyfile>../config/specification/JavaScriptAssertion.spc</propertyfile>
+
+        <!-- MathSAT runs much faster than Z3 in these cases -->
+        <option name="-setprop">cpa.loopbound.maxLoopIterations=11</option>
+        <option name="-setprop">cpa.predicate.js.maxFieldNameCount=1000</option>
+
+        <includesfile>bmc-JavaScript-test262-benchmark_large-shift-expression-files.set</includesfile>
+    </tasks>
+
+    <tasks>
         <!-- MathSAT runs much faster than Z3 in these cases -->
         <option name="-setprop">cpa.loopbound.maxLoopIterations=11</option>
         <option name="-setprop">cpa.predicate.js.maxFieldNameCount=80</option>
@@ -44,6 +54,8 @@
         <include>../programs/javascript-test262-benchmark/test/language/*/*.yml</include>
         <include>../programs/javascript-test262-benchmark/test/language/*/*/*.yml</include>
         <include>../programs/javascript-test262-benchmark/test/language/*/*/*/*.yml</include>
+
+        <excludesfile>bmc-JavaScript-test262-benchmark_large-shift-expression-files.set</excludesfile>
 
         <!-- TODO nested dynamic function calls should not lead to: Unsupported feature (recursion) -->
         <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-28-s.yml</exclude>
@@ -56,9 +68,19 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-34-s_false.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-35-s.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-35-s_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/function/params-trailing-comma-multiple*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/function/params-trailing-comma-single*.yml</exclude>
 
         <!-- handled by other tasks -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/*/*.yml</exclude>
+
+        <!-- TODO function expression identifier captured -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/function/scope-name-var-close*.yml</exclude>
+
+        <!-- lead to timeout if float semantic is used (handled by other tasks) -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/call/scope-var-close*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/call/scope-var-open*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/typeof/string*.yml</exclude>
 
         <!-- getter/setter not supported yet -->
         <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-54-s*.yml</exclude>
@@ -85,6 +107,16 @@
         <!-- TODO unicode character in string causes IllegalArgumentException in Eclipse JsStringScanner -->
         <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/line-separator*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/paragraph-separator*.yml</exclude>
+
+        <!-- TODO unicode character in string lead to unknown -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/S7.8.4_A2.1_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/S7.8.4_A2.1_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/S7.8.4_A2.2_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/S7.8.4_A2.2_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/S7.8.4_A6.1_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/S7.8.4_A6.1_T3*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/S7.8.4_A7.1_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/S7.8.4_A7.1_T3*.yml</exclude>
 
         <!-- TODO string.length or string[i] -->
         <exclude>../programs/javascript-test262-benchmark/test/language/line-terminators/7.3-15*.yml</exclude>
@@ -274,6 +306,15 @@
 
         <include>../programs/javascript-test262-benchmark/test/language/statements/*/*.yml</include>
 
+        <!-- lead to timeout if float semantic is used -->
+        <include>../programs/javascript-test262-benchmark/test/language/expressions/call/scope-var-close*.yml</include>
+        <include>../programs/javascript-test262-benchmark/test/language/expressions/call/scope-var-open*.yml</include>
+        <include>../programs/javascript-test262-benchmark/test/language/expressions/typeof/string*.yml</include>
+
+        <!-- TODO nested dynamic function calls should not lead to: Unsupported feature (recursion) -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/params-trailing-comma-multiple*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/params-trailing-comma-single*.yml</exclude>
+
         <!-- requires float semantic, since NaN is used => see other tasks tags (different configuration) -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A1.1_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A1.1_T2*.yml</exclude>
@@ -310,6 +351,14 @@
 
         <!-- TODO string concat -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A12.1_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A12_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A11_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A12_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A11.1_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A12.1_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A11.1_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A11_T2*.yml</exclude>
 
         <!-- TODO Timeout -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/return/12.9-1*.yml</exclude>

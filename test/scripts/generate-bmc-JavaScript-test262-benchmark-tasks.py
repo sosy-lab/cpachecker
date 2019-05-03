@@ -1,8 +1,38 @@
+import json
 import os
 import re
 import sys
 import textwrap
 from pathlib import Path
+
+import esprima
+import yaml
+from esprima.tokenizer import BufferEntry
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
+
+def parse_yaml_string(ys):
+    fd = StringIO(ys)
+    dct = yaml.safe_load(fd)
+    return dct
+
+
+def get_meta_data(file, file_content):
+    meta_data_match = re.search(r'/\*---(.+?)---\*/', file_content, re.DOTALL)
+    if meta_data_match is None:
+        eprint('meta data not found in file {}'.format(file))
+        return {'flags': [], 'features': []}
+    meta_data = parse_yaml_string(meta_data_match.group(1))
+    if 'flags' not in meta_data:
+        meta_data['flags'] = []
+    if 'features' not in meta_data:
+        meta_data['features'] = []
+    return meta_data
+
 
 class bcolors:
     HEADER = '\033[95m'
@@ -14,19 +44,36 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+
 def eprint(*args, **kwargs):
     print(bcolors.WARNING, *args, bcolors.ENDC, file=sys.stderr, **kwargs)
 
-def contains_eval(file_content):
-    return 'eval(' in file_content
+
+class Token:
+    def __init__(self, buffer_entry: BufferEntry):
+        self.bufferEntry = buffer_entry
+
+    def __eq__(self, other):
+        return (self.bufferEntry.type == other.bufferEntry.type and
+                self.bufferEntry.value == other.bufferEntry.value and
+                self.bufferEntry.regex == other.bufferEntry.regex and
+                self.bufferEntry.range == other.bufferEntry.range and
+                self.bufferEntry.loc == other.bufferEntry.loc)
+
+    def __str__(self):
+        return str(self.bufferEntry)
+
+    def __repr__(self):
+        return str(self.bufferEntry)
 
 
-def contains_syntax_error(file_content):
-    return 'type: SyntaxError' in file_content
+def tokenize(program):
+    return list(map(Token, esprima.tokenize(program)))
 
 
-def contains_try_statement(file_content):
-    return 'try' in file_content
+def contains_subsequence(subsequence, sequence):
+    l = len(subsequence)
+    return any(subsequence == sequence[i:i + l] for i in range(len(sequence) - l + 1))
 
 
 def contains_for_in_statement(file_content):
@@ -58,6 +105,7 @@ def is_skip_directory(dir):
         'expressions/in',  # TODO in operator
         'expressions/instanceof',  # TODO instanceof operator
         'expressions/template-literal',
+        'expressions/tagged-template',
         'literals/regexp',
         'statements/async-function',
         'statements/async-generator',
@@ -79,70 +127,224 @@ def contains_assertion(file_content):
     return any(s in file_content for s in assertion_sub_strings)
 
 
-def is_skip(file_content):
+class UnsupportedFeatureVisitor(esprima.NodeVisitor):
+    def __init__(self):
+        self.has_unsupported_feature = False
+        self.found_unsupported_features = set()
+        self.node_types = set()
+
+    def visit_Object(self, obj):
+        # print(obj.type)
+        self.node_types.add(obj.type)
+        unsupported_node_types = [
+            'ArrayPattern',
+            'ArrowFunctionExpression',
+            'AssignmentPattern',
+            'AwaitExpression',
+            'ClassDeclaration',
+            'ForInStatement',
+            'ForOfStatement',
+            'Import',
+            'ObjectPattern',
+            'RestElement',
+            'SpreadElement',
+            'Super',
+            'TemplateLiteral',
+            'ThrowStatement',
+            'TryStatement',
+            'WithStatement',
+            'YieldExpression',
+        ]
+        if obj.type in unsupported_node_types:
+            self.found_unsupported_features.add(obj.type)
+            self.has_unsupported_feature = True
+        if obj.type == 'BinaryExpression' and obj.operator in ['in', 'instanceof']:
+            self.found_unsupported_features.add(obj.operator + ' operator')
+            self.has_unsupported_feature = True
+        if obj.type == 'CallExpression' and obj.callee.type == 'Identifier':
+            unsupported_callee_names = [
+                # 'Array',
+                # 'Boolean',
+                # 'Date',
+                'Function',
+                # 'Number',
+                # 'Object',
+                # 'String',
+            ]
+            if obj.callee.name in unsupported_callee_names:
+                self.found_unsupported_features.add('call of ' + obj.callee.name)
+                self.has_unsupported_feature = True
+        if (obj.type in ['FunctionDeclaration', 'FunctionExpression']
+                and (obj.generator or obj.isAsync)):
+            self.found_unsupported_features.add(obj.type)
+            self.has_unsupported_feature = True
+        # property names that indicate unsupported feature
+        unsupported_identifiers = [
+            'arguments',
+            'eval',
+            'Math',
+            'Promise',
+            'RegExp',
+            'ReferenceError',
+            'Symbol',
+        ]
+        if obj.type == 'Identifier' and obj.name in unsupported_identifiers:
+            self.found_unsupported_features.add(obj.name)
+            self.has_unsupported_feature = True
+        if obj.type == 'MemberExpression' and obj.property.type == 'Identifier':
+            if (obj.property.name == 'keys'
+                    and obj.object.type == 'Identifier'
+                    and obj.object.name == 'Object'):
+                self.found_unsupported_features.add(obj.property.name)
+                self.has_unsupported_feature = True
+            # property names that indicate unsupported feature
+            unsupported_property_names = [
+                'apply',
+                'bind',
+                'call',
+                'charCodeAt',
+                'constructor',
+                'defineProperty',
+                'fromCharCode',
+                'getOwnPropertyDescriptor',
+                'hasOwnProperty',
+                'isPrototypeOf',
+                'setPrototypeOf',
+                'throws',
+                'toString',
+                'valueOf',
+            ]
+            if obj.property.name in unsupported_property_names:
+                self.found_unsupported_features.add(obj.property.name)
+                self.has_unsupported_feature = True
+        if obj.type == 'NewExpression' and obj.callee.type == 'Identifier':
+            unsupported_callee_names = [
+                'Array',
+                'Boolean',
+                'Date',
+                'Function',
+                'Number',
+                'Object',
+                'String',
+            ]
+            if obj.callee.name in unsupported_callee_names:
+                self.found_unsupported_features.add('new ' + obj.callee.name)
+                self.has_unsupported_feature = True
+        if obj.type == 'Property':
+            if obj.kind in ['get', 'set']:
+                self.found_unsupported_features.add(obj.kind)
+                self.has_unsupported_feature = True
+            if obj.method:
+                self.found_unsupported_features.add('method property')
+                self.has_unsupported_feature = True
+            if obj.key.type == 'Identifier' and obj.key.name in ['toString', 'valueOf']:
+                self.found_unsupported_features.add(obj.key.name)
+                self.has_unsupported_feature = True
+        if obj.type == 'UnaryExpression' and obj.operator == 'delete':
+            self.found_unsupported_features.add('delete operator')
+            self.has_unsupported_feature = True
+        if obj.type == 'VariableDeclaration' and obj.kind in ['const', 'let']:
+            self.found_unsupported_features.add(obj.kind)
+            self.has_unsupported_feature = True
+        return super().visit_Object(obj)
+
+
+def is_skip(file, file_content):
     """
     Return if file should be skipped (contains unsupported features)
     :type file_content: str
     """
-    return (contains_eval(file_content)
-            or contains_syntax_error(file_content)
-            or contains_try_statement(file_content)
-            or contains_for_in_statement(file_content)
-            or contains_with_statement(file_content)
-            or 'delete ' in file_content  # TODO delete expression
-            or 'delete(' in file_content  # TODO delete expression
-            or '= eval;' in file_content  # code evaluation is not supported yet
-            or 'function *' in file_content  # generators not supported yet
-            or 'function*' in file_content  # generators not supported yet
-            or '=>' in file_content  # arrow functions are not supported yet
-            # TODO filters files without spread operator
-            or '...' in file_content  # spread operator is not supported yet
-
-            # TODO elided array elements are not parsed correctly by Eclipse parser
-            # https://bugs.eclipse.org/bugs/show_bug.cgi?id=544733
-            or ',]' in file_content
-            or '[,' in file_content
-            or ',,' in file_content
-
-            or ' instanceof ' in file_content  # TODO instanceof
-            or 'Object.keys(' in file_content  # TODO Object.keys
-            or 'Object.getOwnPropertyDescriptor(' in file_content
-            or 'Object.defineProperty(' in file_content
-            or '.hasOwnProperty(' in file_content
-            or '.isPrototypeOf(' in file_content
-            or '.setPrototypeOf(' in file_content
-            or '.apply(' in file_content  # Function.prototype.apply
-            or '.bind(' in file_content  # Function.prototype.bind
-            or '.call(' in file_content  # Function.prototype.call
-            or 'with(' in file_content
-            or 'arguments[' in file_content  # TODO arguments
-            or 'arguments.length' in file_content
-            or 'return arguments;' in file_content
-            or 'Math.' in file_content
-            or 'es6id:' in file_content
-            or 'features: [default-parameters' in file_content
-            or 'features: [numeric-separator-literal' in file_content
-            or 'flags: [module]' in file_content
-            or 'flags: [noStrict]' in file_content
-            or 'assert.throws(' in file_content
-            or 'tail-call-optimization' in file_content
-            or 'ReferenceError' in file_content
-            or 'Symbol' in file_content
-            or 'Promise' in file_content
-            or 'RegExp' in file_content
-            or 'new Array(' in file_content  # TODO Array
-            or 'new Boolean(' in file_content  # TODO Boolean
-            or 'new Function(' in file_content  # TODO Function
-            or 'Function(' in file_content
-            or '.constructor.prototype' in file_content
-            or 'new Number' in file_content  # TODO Number
-            or 'new String(' in file_content  # TODO String
-            or 'new Object' in file_content  # TODO Object
-            or '.toString' in file_content
-            or 'String.' in file_content
-            or '.charCodeAt(' in file_content
-            or 'toString:' in file_content
-            or '.valueOf' in file_content)
+    if 'String.prototype.replace' in file_content:
+        return True
+    # TODO includes in meta data
+    meta_data = get_meta_data(file, file_content)
+    if 'es6id' in meta_data:
+        return True
+    unsupported_flags = [
+        'async',
+        'generators',
+        'module',
+        'noStrict',
+    ]
+    if any(f in meta_data['flags'] for f in unsupported_flags):
+        return True
+    unsupported_features = [
+        'BigInt',
+        'Map',
+        'Proxy',
+        'Reflect',
+        'Reflect.construct',
+        'Set',
+        'Symbol',
+        'Symbol.asyncIterator',
+        'Symbol.hasInstance',
+        'Symbol.iterator',
+        'Symbol.toPrimitive',
+        'Symbol.toStringTag',
+        'Symbol.unscopables',
+        'TypedArray',
+        'arrow-function',
+        'async-functions',
+        'async-iteration',
+        'caller',
+        'class',
+        'class-fields-private',
+        'class-fields-public',
+        'class-methods-private',
+        'class-static-fields-private',
+        'class-static-fields-public',
+        'class-static-methods-private',
+        'computed-property-names',
+        'const',
+        'cross-realm',
+        'default-parameters',
+        'destructuring-assignment',
+        'destructuring-binding',
+        'dynamic-import',
+        'export-star-as-namespace-from-module',
+        'for-of',
+        'generators',
+        'import.meta',
+        'json-superset',
+        'let',
+        'new.target',
+        'numeric-separator-literal',
+        'object-rest',
+        'object-spread',
+        'optional-catch-binding',
+        'regexp-named-groups',
+        'super',
+        'tail-call-optimization',
+        'template',
+        'u180e'
+    ]
+    if any(f in meta_data['features'] for f in unsupported_features):
+        return True
+    if 'negative' in meta_data:
+        assert 'type' in meta_data['negative'], \
+            'negative.type does not exist in meta data of {}\n{}'.format(file, json.dumps(meta_data, indent=4, sort_keys=False))
+        if 'SyntaxError' in meta_data['negative']['type']:
+            return True
+    try:
+        v = UnsupportedFeatureVisitor()
+        ast = esprima.parse(file_content, delegate=v)
+        # print(json.dumps(ast, indent=4, sort_keys=False))
+        # print(ast)
+        # print('')
+        v.visit(ast)
+        if v.has_unsupported_feature:
+            # print('has unsupported features {}\n\t{}'.format(file, v.found_unsupported_features))
+            return True
+    except (esprima.error_handler.Error, RecursionError):
+        eprint('could not parse {} due to {}'.format(file, sys.exc_info()[0]))
+    try:
+        tokens = tokenize(file_content)
+    except (esprima.error_handler.Error, RecursionError):
+        eprint('could not tokenize file {} due to {}'.format(file, sys.exc_info()[0]))
+        tokens = list()
+    # TODO elided array elements are not parsed correctly by Eclipse parser
+    # https://bugs.eclipse.org/bugs/show_bug.cgi?id=544733
+    return any(contains_subsequence(tokenize(c), tokens) for c in [',]', '[,', ',,'])
 
 
 def create_task_file(yml_file, input_files, property_file, expected_verdict):
@@ -240,7 +442,7 @@ for file_pattern in file_patterns:
     for file in project_root_dir.glob(file_pattern):
         relpath = lambda f: os.path.relpath(str(f), str(file.parent))
         file_content = file.read_text()
-        if is_skip_directory(file.parent) or is_skip(file_content) or 'bigint' in file.stem:
+        if is_skip_directory(file.parent) or 'bigint' in file.stem or is_skip(file, file_content):
             print('SKIP {}'.format(file))
             continue
         file_contains_error_assertion_call = '$ERROR(' in file_content
