@@ -1,6 +1,5 @@
 import json
 import os
-import re
 import sys
 import textwrap
 from pathlib import Path
@@ -8,7 +7,7 @@ from pathlib import Path
 import esprima
 
 from lib.metadata import get_meta_data
-from lib.paths import get_project_root_dir
+from lib.paths import get_project_root_dir, get_test262_supported_features_files
 from lib.print import eprint
 from lib.skip import UnsupportedFeatureVisitor
 from lib.tokenize import tokenize
@@ -216,106 +215,74 @@ if not std_lib_file.exists():
 
 yml_file_names = set()
 
-# commented patterns contain files with unsupported features
-file_patterns = [
-    # 'test/programs/javascript-test262-benchmark/test/language/arguments-object/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/asi/**/*.js',
-    # 'test/programs/javascript-test262-benchmark/test/language/block-scope/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/comments/**/*.js',
-    # 'test/programs/javascript-test262-benchmark/test/language/computed-property-names/**/*.js',
-    # 'test/programs/javascript-test262-benchmark/test/language/destructuring/**/*.js',
-    # 'test/programs/javascript-test262-benchmark/test/language/directive-prologue/**/*.js',
-    # 'test/programs/javascript-test262-benchmark/test/language/eval-code/**/*.js',
-    # 'test/programs/javascript-test262-benchmark/test/language/export/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/expressions/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/function-code/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/future-reserved-words/**/*.js',
-    # 'test/programs/javascript-test262-benchmark/test/language/global-code/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/identifier-resolution/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/identifiers/**/*.js',
-    # 'test/programs/javascript-test262-benchmark/test/language/import/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/keywords/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/line-terminators/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/literals/**/*.js',
-    # 'test/programs/javascript-test262-benchmark/test/language/module-code/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/punctuators/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/reserved-words/**/*.js',
-    # 'test/programs/javascript-test262-benchmark/test/language/rest-parameters/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/source-text/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/statements/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/types/**/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/white-space/**/*.js',
-]
-
-for file_pattern in file_patterns:
-    for file in project_root_dir.glob(file_pattern):
-        relpath = lambda f: os.path.relpath(str(f), str(file.parent))
-        file_content = file.read_text()
-        if is_skip_directory(file.parent) or 'bigint' in file.stem or is_skip(file, file_content):
-            print('SKIP {}'.format(file))
-            continue
-        file_contains_error_assertion_call = '$ERROR(' in file_content
-        file_contains_assertion = contains_assertion(file_content)
-        if not(file_contains_error_assertion_call or file_contains_assertion):
-            eprint('file contains no assertion {}'.format(file))
-            continue
-        else:
-            print('GENERATE TASK FOR {}'.format(file))
-        relative_path_to_property_file = relpath(property_file)
-        yml_file_name = file.stem + '.yml'
-        i = 0
-        while yml_file_name in yml_file_names:
-            yml_file_name = '{}_{}.yml'.format(file.stem, i)
-            i = i + 1
-        yml_file_names.add(yml_file_name)
-        yml_file = file.parent / yml_file_name
-        assertion_files = [relpath(error_lib_file)]
-        if file_contains_assertion:
-            assertion_files.append(relpath(assert_lib_file))
-        create_task_file(
-            yml_file=yml_file,
-            input_files=assertion_files + [relpath(std_lib_file), './' + file.name],
-            property_file=relative_path_to_property_file,
-            expected_verdict='true')
-        # uncomment to skip creation of negated tests
-        # continue
-        negated_assertion_files = [relpath(error_lib_file)]
-        if file_contains_assertion:
-            negated_assertion_files.append(relpath(assert_lib_negated_file))
-        # negated test
-        if file_contains_error_assertion_call:
-            # create negated task for each error case
-            error_cases = re.finditer(r'(\sif\s*\()(.*?)(\)\s*{?\s*\$ERROR\()', file_content)
-            for errorCaseIndex, m in enumerate(error_cases):
-                # negate condition of if-statement directly before call of $ERROR
-                file_content_negated = ''.join([
-                    file_content[0:m.start()],
-                    m.group(1),
-                    '!(',
-                    m.group(2),
-                    ')',
-                    m.group(3),
-                    file_content[m.end():],
-                ])
-                error_case_file = file.parent / ('%s.js.%d.negated' % (file.stem, errorCaseIndex))
-                print('GENERATE NEGATED JS  {}'.format(error_case_file))
-                error_case_file.write_text(file_content_negated)
-                yml_file_name = '{}_{}.{}_false.yml'.format(error_case_file.stem, i, errorCaseIndex)
-                yml_file = \
-                    error_case_file.parent / yml_file_name.replace('.js.%d' % errorCaseIndex, '')
-                print('GENERATE NEGATED YML {}'.format(yml_file))
-                create_task_file(
-                    yml_file=yml_file,
-                    input_files=negated_assertion_files + [relpath(std_lib_file), './' + error_case_file.name],
-                    property_file=relative_path_to_property_file,
-                    expected_verdict='false')
-        else:
-            yml_file_name = \
-                '{}_false.yml'.format(file.stem) if i == 0 else '{}_{}_false.yml'.format(file.stem,
-                                                                                         i)
-            yml_file = file.parent / yml_file_name.replace('.js', '')
+for file in get_test262_supported_features_files():
+    relpath = lambda f: os.path.relpath(str(f), str(file.parent))
+    file_content = file.read_text()
+    if is_skip_directory(file.parent) or 'bigint' in file.stem or is_skip(file, file_content):
+        print('SKIP {}'.format(file))
+        continue
+    file_contains_error_assertion_call = '$ERROR(' in file_content
+    file_contains_assertion = contains_assertion(file_content)
+    if not(file_contains_error_assertion_call or file_contains_assertion):
+        eprint('file contains no assertion {}'.format(file))
+        continue
+    else:
+        print('GENERATE TASK FOR {}'.format(file))
+    relative_path_to_property_file = relpath(property_file)
+    yml_file_name = file.stem + '.yml'
+    i = 0
+    while yml_file_name in yml_file_names:
+        yml_file_name = '{}_{}.yml'.format(file.stem, i)
+        i = i + 1
+    yml_file_names.add(yml_file_name)
+    yml_file = file.parent / yml_file_name
+    assertion_files = [relpath(error_lib_file)]
+    if file_contains_assertion:
+        assertion_files.append(relpath(assert_lib_file))
+    create_task_file(
+        yml_file=yml_file,
+        input_files=assertion_files + [relpath(std_lib_file), './' + file.name],
+        property_file=relative_path_to_property_file,
+        expected_verdict='true')
+    # uncomment to skip creation of negated tests
+    continue
+    negated_assertion_files = [relpath(error_lib_file)]
+    if file_contains_assertion:
+        negated_assertion_files.append(relpath(assert_lib_negated_file))
+    # negated test
+    if file_contains_error_assertion_call:
+        # create negated task for each error case
+        error_cases = re.finditer(r'(\sif\s*\()(.*?)(\)\s*{?\s*\$ERROR\()', file_content)
+        for errorCaseIndex, m in enumerate(error_cases):
+            # negate condition of if-statement directly before call of $ERROR
+            file_content_negated = ''.join([
+                file_content[0:m.start()],
+                m.group(1),
+                '!(',
+                m.group(2),
+                ')',
+                m.group(3),
+                file_content[m.end():],
+            ])
+            error_case_file = file.parent / ('%s.js.%d.negated' % (file.stem, errorCaseIndex))
+            print('GENERATE NEGATED JS  {}'.format(error_case_file))
+            error_case_file.write_text(file_content_negated)
+            yml_file_name = '{}_{}.{}_false.yml'.format(error_case_file.stem, i, errorCaseIndex)
+            yml_file = \
+                error_case_file.parent / yml_file_name.replace('.js.%d' % errorCaseIndex, '')
+            print('GENERATE NEGATED YML {}'.format(yml_file))
             create_task_file(
                 yml_file=yml_file,
-                input_files=negated_assertion_files + [relpath(std_lib_file), './' + file.name],
+                input_files=negated_assertion_files + [relpath(std_lib_file), './' + error_case_file.name],
                 property_file=relative_path_to_property_file,
                 expected_verdict='false')
+    else:
+        yml_file_name = \
+            '{}_false.yml'.format(file.stem) if i == 0 else '{}_{}_false.yml'.format(file.stem,
+                                                                                     i)
+        yml_file = file.parent / yml_file_name.replace('.js', '')
+        create_task_file(
+            yml_file=yml_file,
+            input_files=negated_assertion_files + [relpath(std_lib_file), './' + file.name],
+            property_file=relative_path_to_property_file,
+            expected_verdict='false')
