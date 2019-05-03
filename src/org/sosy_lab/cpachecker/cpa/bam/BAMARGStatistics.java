@@ -175,7 +175,7 @@ public class BAMARGStatistics extends ARGStatistics {
       if (pResult.equals(Result.FALSE) && !targetStates.isEmpty()) {
         // fallback: if there is a missing block and we have a target state,
         // maybe at least a direct counterexample path can be exported
-        logger.log(Level.INFO, ERROR_PREFIX + "(fallback to counterexample traces)");
+        logger.log(Level.INFO, ERROR_PREFIX, "(fallback to counterexample traces)");
         return createReachedSetView(pReached, targetStates);
       }
 
