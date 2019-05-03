@@ -54,6 +54,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BAMARGStatistics extends ARGStatistics {
 
+  private static final String ERROR_PREFIX =
+      "some output or statistics might be missing, could not compute full reached set graph";
+
   private final AbstractBAMCPA bamCpa;
 
   public BAMARGStatistics(
@@ -82,10 +85,7 @@ public class BAMARGStatistics extends ARGStatistics {
 
     if (frontierStates.isEmpty()) {
       if (pResult.equals(Result.FALSE)) {
-        logger.log(
-            Level.INFO,
-            "some output or statistics might be missing, "
-                + "could not compute full reached set graph (no frontier states)");
+        logger.log(Level.INFO, ERROR_PREFIX, "(no frontier states)");
         // invalid ARG, ignore output.
       } else if (pResult.equals(Result.TRUE)) {
         // In case of TRUE verdict we do not need a target to print super statistics
@@ -112,10 +112,7 @@ public class BAMARGStatistics extends ARGStatistics {
 
     if (frontierStates.isEmpty()) {
       if (pResult.equals(Result.FALSE)) {
-        logger.log(
-            Level.INFO,
-            "some output or statistics might be missing, "
-                + "could not compute full reached set graph (no frontier states)");
+        logger.log(Level.INFO, ERROR_PREFIX, "(no frontier states)");
         // invalid ARG, ignore output.
       } else if (pResult.equals(Result.TRUE)) {
         // In case of TRUE verdict we do not need a target to print super statistics
@@ -151,10 +148,11 @@ public class BAMARGStatistics extends ARGStatistics {
       rootAndTargetsOfSubgraph =
           cexSubgraphComputer.computeCounterexampleSubgraph(frontierStates, pMainReachedSet);
     } catch (MissingBlockException e) {
-      String message =
-          "some output or statistics might be missing, could not compute full reached set graph "
-              + String.format("(%s)", logger.wouldBeLogged(Level.FINE) ? e : "missing block");
-      logger.log(Level.INFO, message);
+      logger.log(
+          Level.INFO,
+          ERROR_PREFIX,
+          String.format(
+              "(%s)", logger.wouldBeLogged(Level.FINE) ? e.getMessage() : "missing block"));
       return null; // invalid ARG, ignore output.
 
     } catch (InterruptedException e) {

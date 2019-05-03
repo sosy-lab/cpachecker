@@ -344,7 +344,9 @@ public class BAMSubgraphComputer {
     private final AbstractState exitState;
 
     public MissingBlockException(AbstractState pInitialState, AbstractState pExitState) {
-      super("missing block");
+      super(String.format(
+          "missing block for non-reduced initial state %n%s and expanded exit state %n%s",
+          pInitialState, pExitState));
       initialState = Preconditions.checkNotNull(pInitialState);
       exitState = Preconditions.checkNotNull(pExitState);
     }
@@ -355,13 +357,6 @@ public class BAMSubgraphComputer {
 
     AbstractState getExitState() {
       return exitState;
-    }
-
-    @Override
-    public String toString() {
-      return String.format(
-          "missing block for non-reduced initial state %n%s and expanded exit state %n%s",
-          initialState, exitState);
     }
   }
 }
