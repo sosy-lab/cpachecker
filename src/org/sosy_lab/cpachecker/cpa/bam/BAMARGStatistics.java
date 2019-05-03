@@ -84,8 +84,8 @@ public class BAMARGStatistics extends ARGStatistics {
       if (pResult.equals(Result.FALSE)) {
         logger.log(
             Level.INFO,
-            "could not compute full reached set graph (missing block), "
-                + "some output or statistics might be missing");
+            "some output or statistics might be missing, "
+                + "could not compute full reached set graph (no frontier states)");
         // invalid ARG, ignore output.
       } else if (pResult.equals(Result.TRUE)) {
         // In case of TRUE verdict we do not need a target to print super statistics
@@ -114,8 +114,8 @@ public class BAMARGStatistics extends ARGStatistics {
       if (pResult.equals(Result.FALSE)) {
         logger.log(
             Level.INFO,
-            "could not compute full reached set graph (missing block), "
-                + "some output or statistics might be missing");
+            "some output or statistics might be missing, "
+                + "could not compute full reached set graph (no frontier states)");
         // invalid ARG, ignore output.
       } else if (pResult.equals(Result.TRUE)) {
         // In case of TRUE verdict we do not need a target to print super statistics
@@ -151,10 +151,10 @@ public class BAMARGStatistics extends ARGStatistics {
       rootAndTargetsOfSubgraph =
           cexSubgraphComputer.computeCounterexampleSubgraph(frontierStates, pMainReachedSet);
     } catch (MissingBlockException e) {
-      logger.log(
-          Level.INFO,
-          "could not compute full reached set graph (missing block), "
-              + "some output or statistics might be missing");
+      String message =
+          "some output or statistics might be missing, could not compute full reached set graph "
+              + String.format("(%s)", logger.wouldBeLogged(Level.FINE) ? e : "missing block");
+      logger.log(Level.INFO, message);
       return null; // invalid ARG, ignore output.
 
     } catch (InterruptedException e) {
