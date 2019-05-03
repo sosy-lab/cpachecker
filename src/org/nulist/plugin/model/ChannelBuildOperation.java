@@ -44,7 +44,8 @@ public class ChannelBuildOperation {
     public final static String CREATE_TASKS_UE = "create_tasks_ue";
     public final static String CREATE_TASKS = "create_tasks";
 
-
+    public final static String ue_channel_msg_cache = "UE_channel_message_cache";
+    public final static String cn_channel_msg_cache = "CN_channel_message_cache";
     /**
      * @Description //initializer rrc
      * eNB_app_Initialize
@@ -684,11 +685,20 @@ public class ChannelBuildOperation {
 
 
     public static void doComposition(Map<String, CFABuilder> builderMap){
+        //Step 1: push message to channel message cache
+
+
+        if(builderMap.containsKey(UE) && builderMap.containsKey(MME) && builderMap.containsKey(ENB)){
+
+        }
+
+
         if(builderMap.containsKey(ENB) && builderMap.containsKey(MME))
             buildSecureChannelBetweeneNBandMME(builderMap.get(ENB),builderMap.get(MME));
         if(builderMap.containsKey(ENB) && builderMap.containsKey(UE))
             buildSecureChannelBetweeneNBandMME(builderMap.get(UE),builderMap.get(ENB));
     }
+
 
     /**
      * @Description //build the secure channel with S1AP protocol
@@ -725,8 +735,7 @@ public class ChannelBuildOperation {
     }
 
     public static void buildInsecureChannelBetweenUEandENB(CFABuilder ueBuilder, CFABuilder eNBBuilder){
-        //Step 1: push message to channel message cache
-        pushNASMsgToChannel(ueBuilder);
+
 
         CFGFunctionBuilder ueITTIFunctionBuilder = ueBuilder.cfgFunctionBuilderMap.get(ITTI_SEND_MSG_TO_TASKS);
         CFGFunctionBuilder eNBITTIFunctionBuilder = eNBBuilder.cfgFunctionBuilderMap.get(ITTI_SEND_MSG_TO_TASKS);
@@ -775,37 +784,146 @@ public class ChannelBuildOperation {
         }
     }
 
+    //transform and deliver channel message from one side to another side
+    private static void channelMessageDeliver(){
 
-    public static void pushNASMsgToChannel(CFABuilder ueBuilder){
-        CFGFunctionBuilder encodeBuilder = ueBuilder.cfgFunctionBuilderMap.get("nas_message_encode");
+    }
+
+    private static void pullNASMsgFromChannel(CFABuilder builder, CFABuilder ueBuilder){
+        CFGFunctionBuilder encodeBuilder = builder.cfgFunctionBuilderMap.get("nas_message_decode");
+
+        CVariableDeclaration nas_msg = encodeBuilder.functionDeclaration.getParameters().get(0).asVariableDeclaration();//pointer
+        CFunctionDeclaration pullPlainNASEMMMsgIntoCache = ueBuilder.functionDeclarations.get("pullPlainNASEMMMsgIntoCache");
+        pullMSGtoCache(encodeBuilder,pullPlainNASEMMMsgIntoCache,nas_msg, builder.projectName);
+
+        CFGFunctionBuilder esmEncodeBuilder = builder.cfgFunctionBuilderMap.get("esm_msg_decode");
+        CVariableDeclaration esm_msg = encodeBuilder.functionDeclaration.getParameters().get(0).asVariableDeclaration();//pointer
+        CFunctionDeclaration pullPlainNASESMMsgIntoCache = builder.functionDeclarations.get("pullPlainNASESMMsgIntoCache");
+        pullMSGtoCache(esmEncodeBuilder,pullPlainNASESMMsgIntoCache,esm_msg, builder.projectName);
+    }
+
+
+    private static void pushNASMsgToChannel(CFABuilder builder, CFABuilder ueBuilder){
+        CFGFunctionBuilder encodeBuilder = builder.cfgFunctionBuilderMap.get("nas_message_encode");
 
         CVariableDeclaration nas_msg = encodeBuilder.functionDeclaration.getParameters().get(1).asVariableDeclaration();//pointer
         CFunctionDeclaration pushPlainNASEMMMsgIntoCache = ueBuilder.functionDeclarations.get("pushPlainNASEMMMsgIntoCache");
-        CType nas_message_t = ueBuilder.typeConverter.typeCache.get("nas_message_t".hashCode());
-        pushMSGtoCache(encodeBuilder,pushPlainNASEMMMsgIntoCache,nas_msg,nas_message_t);
 
-        CFGFunctionBuilder esmEncodeBuilder = ueBuilder.cfgFunctionBuilderMap.get("esm_msg_encode");
+        pushMSGtoCache(encodeBuilder,pushPlainNASEMMMsgIntoCache,nas_msg, builder.projectName);
+
+        CFGFunctionBuilder esmEncodeBuilder = builder.cfgFunctionBuilderMap.get("esm_msg_encode");
         CVariableDeclaration esm_msg = encodeBuilder.functionDeclaration.getParameters().get(0).asVariableDeclaration();//pointer
         CFunctionDeclaration pushPlainNASESMMsgIntoCache = ueBuilder.functionDeclarations.get("pushPlainNASESMMsgIntoCache");
-        CType ESM_msg = ueBuilder.typeConverter.typeCache.get("ESM_msg".hashCode());
-        pushMSGtoCache(esmEncodeBuilder,pushPlainNASESMMsgIntoCache,esm_msg,ESM_msg);
+        pushMSGtoCache(esmEncodeBuilder,pushPlainNASESMMsgIntoCache,esm_msg,builder.projectName);
 
+    }
+
+
+
+    private static void pullMSGtoCache(CFGFunctionBuilder functionBuilder,
+                                       CFunctionDeclaration functionDeclaration,
+                                       CVariableDeclaration message,
+                                       String projectName){
+        FileLocation fileLocation = FileLocation.DUMMY;
+
+
+        CFANode startNode = functionBuilder.cfa;
+        CFAEdge edge = startNode.getLeavingEdge(0);
+        CFANode nextNode = edge.getSuccessor();
+
+        startNode.removeLeavingEdge(edge);
+        nextNode.removeLeavingEdge(edge);
+        CFANode decNode = functionBuilder.newCFANode();
+        BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY,
+                startNode, decNode, "Function start dummy edge");
+        functionBuilder.addToCFA(dummyEdge);
+
+        CExpression functionNameExpr = new CIdExpression(fileLocation,
+                functionDeclaration.getType(),
+                functionDeclaration.getName(),
+                functionDeclaration);
+
+        CFunctionCallExpression expression = new CFunctionCallExpression(fileLocation,
+                functionDeclaration.getType(),
+                functionNameExpr,
+                new ArrayList<>(),
+                functionDeclaration);
+
+
+        CInitializer initializer = new CInitializerExpression(fileLocation, (CExpression) expression);
+
+        CType msgType = functionDeclaration.getType().getReturnType();
+
+        CVariableDeclaration tempMsg = new CVariableDeclaration(fileLocation,
+                false,
+                CStorageClass.AUTO,
+                msgType,
+                "tempMsg",
+                "tempMsg",
+                "tempMsg",
+                initializer);
+        String rawCharacters = tempMsg.toASTString();
+
+        CFANode assignNode = functionBuilder.newCFANode();
+        CDeclarationEdge declarationEdge = new CDeclarationEdge(rawCharacters,
+                fileLocation,decNode,assignNode,tempMsg);
+        functionBuilder.addToCFA(declarationEdge);
+
+        CIdExpression idExpression = new CIdExpression(fileLocation,tempMsg);
+
+        CUnaryExpression unaryExpression = new CUnaryExpression(fileLocation,
+                new CPointerType(false,false,tempMsg.getType()),
+                idExpression,
+                CUnaryExpression.UnaryOperator.AMPER);
+        CIdExpression msgIDExpr = new CIdExpression(fileLocation,message);
+        CExpressionAssignmentStatement assignmentStatement;
+        if(projectName.equals(MME)){
+            CCastExpression castExpression = new CCastExpression(fileLocation, message.getType(), unaryExpression);
+            assignmentStatement = new CExpressionAssignmentStatement(fileLocation,
+                    msgIDExpr,
+                    castExpression);
+        }else
+            assignmentStatement = new CExpressionAssignmentStatement(fileLocation,
+                    msgIDExpr,
+                    unaryExpression);
+
+
+        CStatementEdge statementEdge = new CStatementEdge(
+                assignmentStatement.toString(),
+                assignmentStatement,
+                fileLocation,
+                assignNode,
+                nextNode);
+        functionBuilder.addToCFA(statementEdge);
+
+
+
+
+        functionBuilder.finish();
     }
 
     private static void pushMSGtoCache(CFGFunctionBuilder functionBuilder,
                                        CFunctionDeclaration functionDeclaration,
                                        CVariableDeclaration message,
-                                       CType msgType){
+                                       String projectName){
         FileLocation fileLocation = FileLocation.DUMMY;
 
         CIdExpression idExpression = (CIdExpression) functionBuilder.expressionHandler.getAssignedIdExpression(
                 message,message.getType(),fileLocation);
 
-        CPointerExpression cPointerExpression = new CPointerExpression(fileLocation,msgType, idExpression);
+        CExpression paramExpr;
 
+        CType paramType = functionDeclaration.getType().getParameters().get(0);
+        if(projectName.equals(MME)){
+            CType orignalType = ((CPointerType)message.getType()).getType();
+            CPointerExpression cPointerExpression = new CPointerExpression(fileLocation,orignalType, idExpression);
+            paramExpr = new CCastExpression(fileLocation,paramType, cPointerExpression);
+        }else
+            paramExpr = new CPointerExpression(fileLocation,paramType, idExpression);
 
         List<CExpression> params = new ArrayList<>();
-        params.add(cPointerExpression);
+        params.add(paramExpr);
+
         CExpression functionNameExpr = new CIdExpression(fileLocation,
                 functionDeclaration.getType(),
                 functionDeclaration.getName(),

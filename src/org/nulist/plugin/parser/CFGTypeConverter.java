@@ -25,6 +25,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 import static org.nulist.plugin.parser.CFGAST.*;
+import static org.nulist.plugin.parser.CFGParser.*;
 
 public class CFGTypeConverter {
     private final String STRUCT_PREF = "struct __STRUCT__";

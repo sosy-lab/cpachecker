@@ -78,18 +78,11 @@ public class CFGParser implements Parser{
         System.out.println("Fisrt Traverse complete!");
 
         //second step: traverse for building intra and inter CFA
-        Map<String,compunit> cuMap = new HashMap<String,compunit>();
 
         for(project_compunits_iterator cu_it = project.compunits();
             !cu_it.at_end(); cu_it.advance() )
         {
             compunit cu = cu_it.current();
-            // only focus on user-defined c files
-            if(cu.name().endsWith("intertask_interface.cpp"))
-                cuMap.put("intertask_interface",cu);
-            else if(cu.name().endsWith("lte-uesoftmodem.c")){
-                cuMap.put("lte-uesoftmodem",cu);
-            }
 
             if(filter(cu.name(),projectName))
             {
@@ -122,40 +115,6 @@ public class CFGParser implements Parser{
         if(proc!=null)
             ChannelBuildOperation.generateITTI_SEND_TO_TASK(cfaBuilder,proc, proc1);
 
-
-//        FunctionGeneration functionGenerator =
-//                new FunctionGeneration(cfaBuilder,projectName,logger,MachineModel.LINUX64);
-//        if(projectName.equals(UE)){
-//            procedure createTasksUE = project.find_procedure(CREATE_TASKS_UE);
-//            if(createTasksUE!=null)
-//                functionGenerator.generateCreateTasksUE(createTasksUE);
-//        }
-//
-//        if(projectName.equals(ENB)){
-//            procedure createTasksUE = project.find_procedure(CREATE_TASKS);
-//            if(createTasksUE!=null)
-//                functionGenerator.generatCreateTasksENB(createTasksUE);
-//        }
-//
-//        procedure proc = project.find_procedure(ITTI_ALLOC_NEW_MESSAGE);
-//        if(proc!=null)
-//            functionGenerator.generateITTI_ALLOC_NEW_MESSAGE(proc);
-//        proc = project.find_procedure(ITTI_SEND_MSG_TO_TASKS);
-//        procedure proc1 = project.find_procedure(ITTI_SEND_MSG_TO_TASKS+extendSuffix);
-//        if(proc!=null)
-//            functionGenerator.generateITTI_SEND_TO_TASK(proc, proc1);
-//
-
-        //elimination unrelated initializations
-        if(cuMap.containsKey("lte-uesoftmodem")){
-            compunit cu = cuMap.get("lte-uesoftmodem");
-            //split nas_ue_task as nas_ue_users_initialize and nas_ue_task
-        }
-//        //abstract itti multiple-thread tasks
-//        if(cuMap.containsKey("intertask_interface")){
-//            ITTIModelAbstract modelAbstracter = new ITTIModelAbstract(cfaBuilder,projectName, cuMap.get("intertask_interface"),logger,MachineModel.LINUX64);
-//            modelAbstracter.buildITTI_SEND_MSG_TO_TASK();
-//        }
         parseTimer.stop();
         return cfaBuilder;
     }
@@ -201,6 +160,7 @@ public class CFGParser implements Parser{
                 ((name.contains("openair2/LAYER2/MAC/config_ue.c")||name.contains("openair2/LAYER2/MAC/main_ue.c")) &&  projectName.equals(UE)) || //
                 name.contains("openair2/COMMON") ||
                 (name.contains("openair2/ENB_APP") && !name.contains("flexran") && !name.contains("NB_IoT")  && projectName.equals(ENB)) ||
+                name.contains("common/utils/channel") ||
                 name.endsWith("common/utils/ocp_itti/intertask_interface.h") ||
                 name.contains("openair2/LAYER2/PDCP_v10.1.0/pdcp.c") ||
                 (name.contains("targets/RT/USER/lte-ue.c") && projectName.equals(UE)) ||

@@ -99,7 +99,8 @@ public class CFABuilder {
     public void basicBuild(compunit cu, String projectName)throws result{
 
         String pFileName = cu.normalized_name();
-        //System.out.println(cu.name());
+        if(pFileName.contains("channel_message"))
+         System.out.println(cu.name());
         // Iterate over all procedures in the compilation unit
         // procedure = function
 
@@ -166,12 +167,16 @@ public class CFABuilder {
                 }else if(!functionFilter(cu.name(),funcName)){
                     System.out.println(funcName);
                     CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
+                    if(funcName.equals("pushPlainNASEMMMsgIntoCache"))
+                        System.out.println();
+
                     if(!cfgFunctionBuilder.isFinished){
                         if(cu.name().equals(UE) || cu.name().equals(MME)){//for delivering NAS message through channel operations
                             if(funcName.equals("nas_message_encode") ||//EMM message
                                     funcName.equals("esm_msg_encode") ||//ESM message
                                     funcName.equals("nas_message_decode") ||
-                                    funcName.equals("nas_message_decrypt")){
+                                    funcName.equals("nas_message_decrypt") ||
+                                    funcName.equals("_emm_as_send")){
                                 cfgFunctionBuilder.visitFunction(false);
                             }
                         }if(cu.name().equals(UE) || cu.name().equals(ENB)){//for delivering RRC message through channel operations
