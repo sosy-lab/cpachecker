@@ -58,7 +58,7 @@ class VariableDeclarationFragmentCFABuilder implements VariableDeclarationFragme
 
     final JSVariableDeclaration variableDeclaration;
     // check if found declaration is hoisted declaration and not another (shadowed) declaration
-    // outside of the function (scope
+    // outside of the function scope
     if (hoistedDeclaration.isPresent() && !hoistedDeclaration.equals(outerDeclaration)) {
       // variable declared by a hoisted declaration using 'var' or a function declaration
       final JSSimpleDeclaration d = hoistedDeclaration.get();
