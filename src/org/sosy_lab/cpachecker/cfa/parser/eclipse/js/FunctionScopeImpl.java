@@ -91,6 +91,9 @@ class FunctionScopeImpl implements FunctionScope {
   @Override
   public Optional<? extends JSSimpleDeclaration> findDeclaration(
       @Nonnull final String pIdentifier) {
+    if (functionDeclaration.isRealOriginalName(pIdentifier)) {
+      return Optional.of(functionDeclaration);
+    }
     if (pIdentifier.equals("this")) {
       return Optional.of(functionDeclaration.getThisVariableDeclaration());
     }

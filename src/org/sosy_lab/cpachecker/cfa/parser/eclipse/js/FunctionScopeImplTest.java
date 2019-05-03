@@ -100,7 +100,8 @@ public class FunctionScopeImplTest {
             name,
             originalName,
             name,
-            parameters);
+            parameters,
+            Optional.empty());
     functionScope = new FunctionScopeImpl(parentScope, functionDeclaration, null);
   }
 

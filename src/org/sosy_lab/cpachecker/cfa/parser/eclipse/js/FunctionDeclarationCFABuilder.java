@@ -81,7 +81,8 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
         functionName,
         originalFunctionName,
         functionQualifiedName,
-        parameters);
+        parameters,
+        java.util.Optional.of(getRealOriginalName(pFunctionDeclaration)));
   }
 
   private JSVariableDeclaration createReturnVariableDeclaration(
@@ -196,8 +197,7 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
   }
 
   public static String getFunctionName(final FunctionDeclaration node) {
-    final String originalName =
-        node.getMethodName() == null ? "" : ((SimpleName) node.getMethodName()).getIdentifier();
+    final String originalName = getRealOriginalName(node);
     // Declarations of function expressions get a prefix added to their name.
     // Thereby, they do not override functions that are declared in the scope with the same name;
     // like in:
@@ -206,5 +206,9 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
     return node.getParent() instanceof FunctionExpression
         ? "CPAchecker_FunctionExpression_" + originalName + "_" + node.hashCode()
         : originalName;
+  }
+
+  private static String getRealOriginalName(final FunctionDeclaration node) {
+    return node.getMethodName() == null ? "" : ((SimpleName) node.getMethodName()).getIdentifier();
   }
 }

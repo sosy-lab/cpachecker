@@ -73,8 +73,6 @@
 
         <!-- handled by other tasks -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/*/*.yml</exclude>
-
-        <!-- TODO function expression identifier captured -->
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/function/scope-name-var-close*.yml</exclude>
 
         <!-- lead to timeout if float semantic is used (handled by other tasks) -->
@@ -310,6 +308,7 @@
         <include>../programs/javascript-test262-benchmark/test/language/expressions/call/scope-var-close*.yml</include>
         <include>../programs/javascript-test262-benchmark/test/language/expressions/call/scope-var-open*.yml</include>
         <include>../programs/javascript-test262-benchmark/test/language/expressions/typeof/string*.yml</include>
+        <include>../programs/javascript-test262-benchmark/test/language/expressions/function/scope-name-var-close*.yml</include>
 
         <!-- TODO nested dynamic function calls should not lead to: Unsupported feature (recursion) -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/params-trailing-comma-multiple*.yml</exclude>

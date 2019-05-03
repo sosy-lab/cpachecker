@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.js;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
+import java.util.Optional;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -41,15 +42,24 @@ public class JSFunctionDeclaration extends AFunctionDeclaration implements JSDec
   private static final long serialVersionUID = -6049361884111627710L;
   private final Scope scope;
   private final String qualifiedName;
+  /**
+   * The real original name in the source code. It is used to resolve identifiers in the body of
+   * this function declaration that refer to this function. {@link #getOrigName()} does not return
+   * the real original name of the function, since function expressions with the same name would
+   * lead to naming collision.
+   */
+  private final Optional<String> realOriginalName;
+
   private final JSVariableDeclaration thisVariableDeclaration;
 
   public JSFunctionDeclaration(
       FileLocation pFileLocation,
-      final org.sosy_lab.cpachecker.cfa.ast.js.Scope pScope,
+      final Scope pScope,
       String pName,
       @Nonnull final String pOrigName,
       @Nonnull final String pQualifiedName,
-      List<JSParameterDeclaration> parameters) {
+      List<JSParameterDeclaration> parameters,
+      final Optional<String> pRealOriginalName) {
     super(
         pFileLocation,
         JSFunctionType.instance,
@@ -58,6 +68,7 @@ public class JSFunctionDeclaration extends AFunctionDeclaration implements JSDec
         parameters);
     scope = pScope;
     qualifiedName = checkNotNull(pQualifiedName);
+    realOriginalName = pRealOriginalName;
     thisVariableDeclaration =
         new JSVariableDeclaration(
             FileLocation.DUMMY, scope, "this", "this", qualifiedName + "::this", null);
@@ -123,5 +134,9 @@ public class JSFunctionDeclaration extends AFunctionDeclaration implements JSDec
   @Override
   public <R, X extends Exception> R accept(JSAstNodeVisitor<R, X> pV) throws X {
     return pV.visit(this);
+  }
+
+  public boolean isRealOriginalName(final String pIdentifier) {
+    return (realOriginalName.isPresent() && realOriginalName.get().equals(pIdentifier));
   }
 }

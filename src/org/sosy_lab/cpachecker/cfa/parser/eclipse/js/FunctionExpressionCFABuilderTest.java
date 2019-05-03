@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.truth.Truth;
 import java.util.Collections;
+import java.util.Optional;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.FunctionExpression;
 import org.eclipse.wst.jsdt.core.dom.ParenthesizedExpression;
@@ -48,7 +49,13 @@ public class FunctionExpressionCFABuilderTest extends CFABuilderTestBase {
 
     final JSFunctionDeclaration jsFunctionDeclaration =
         new JSFunctionDeclaration(
-            FileLocation.DUMMY, Scope.GLOBAL, "", "", "", Collections.emptyList());
+            FileLocation.DUMMY,
+            Scope.GLOBAL,
+            "",
+            "",
+            "",
+            Collections.emptyList(),
+            Optional.empty());
 
     final FunctionDeclarationAppendable functionDeclarationAppendable =
         mock(FunctionDeclarationAppendable.class);

@@ -56,7 +56,8 @@ class FileCFABuilder implements JavaScriptUnitAppendable {
             functionName,
             functionName,
             functionName,
-            Collections.emptyList());
+            Collections.emptyList(),
+            java.util.Optional.empty());
     exitNode = new FunctionExitNode(functionName);
     final JSFunctionEntryNode entryNode =
         new JSFunctionEntryNode(

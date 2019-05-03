@@ -97,7 +97,8 @@ public class UnknownFunctionCallerDeclarationBuilder implements FunctionDeclarat
             functionName,
             originalFunctionName,
             functionQualifiedName,
-            parameters);
+            parameters,
+            java.util.Optional.empty());
     // TODO has parameter scope to be set?
     final JSVariableDeclaration returnVariableDeclaration =
         new JSVariableDeclaration(
