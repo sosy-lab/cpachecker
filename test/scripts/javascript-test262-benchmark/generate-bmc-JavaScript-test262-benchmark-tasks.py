@@ -23,8 +23,8 @@ def create_task_file(yml_file, input_files, property_file, expected_verdict):
 project_root_dir = get_project_root_dir()
 
 delete_file_patterns = [
-    'test/programs/javascript-test262-benchmark/test/language/**/*.yml',
-    'test/programs/javascript-test262-benchmark/test/language/**/*.negated',
+    'test/programs/javascript-test262-benchmark/test262/test/language/**/*.yml',
+    'test/programs/javascript-test262-benchmark/test262/test/language/**/*.negated',
 ]
 delete_error_occurred = False
 for file_pattern in delete_file_patterns:

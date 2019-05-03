@@ -51,7 +51,7 @@ def main():
     subsequence = tokenize('...')
     # print(str(subsequence))
     # for file in project_root_dir.glob('test/programs/javascript/tmp.js'):
-    # for file in project_root_dir.glob('test/programs/javascript-test262-benchmark/test/language/types/string/S8.4_A7.2.js'):
+    # for file in project_root_dir.glob('test/programs/javascript-test262-benchmark/test262/test/language/types/string/S8.4_A7.2.js'):
     files_to_skip = [
     ]
     exception_counter = 0

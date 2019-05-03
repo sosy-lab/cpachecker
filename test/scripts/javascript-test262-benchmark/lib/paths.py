@@ -8,7 +8,7 @@ def get_project_root_dir():
 
 
 def get_test262_test_dir():
-    return get_project_root_dir() / 'test/programs/javascript-test262-benchmark/test/'
+    return get_project_root_dir() / 'test/programs/javascript-test262-benchmark/test262/test/'
 
 
 def get_test262_supported_features_file_patterns():
