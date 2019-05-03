@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
@@ -94,7 +95,8 @@ public class BAMARGStatistics extends ARGStatistics {
       return;
     }
 
-    final UnmodifiableReachedSet bamReachedSetView = createReachedSetView(pReached, frontierStates);
+    final UnmodifiableReachedSet bamReachedSetView =
+        createReachedSetViewWithoutExceptions(pReached, frontierStates, pResult);
     if (bamReachedSetView == null) {
       return;
     } else {
@@ -121,7 +123,8 @@ public class BAMARGStatistics extends ARGStatistics {
       return;
     }
 
-    final UnmodifiableReachedSet bamReachedSetView = createReachedSetView(pReached, frontierStates);
+    final UnmodifiableReachedSet bamReachedSetView =
+        createReachedSetViewWithoutExceptions(pReached, frontierStates, pResult);
     if (bamReachedSetView == null) {
       return;
     } else {
@@ -129,24 +132,16 @@ public class BAMARGStatistics extends ARGStatistics {
     }
   }
 
-  private @Nullable UnmodifiableReachedSet createReachedSetView(
-      UnmodifiableReachedSet pReached, final Collection<ARGState> frontierStates) {
-    // create pseudo-reached-set for export.
-    // it will be sufficient for exporting a CEX (error-path, error-witness, harness)
-
-    // assertion disabled, because it happens with BAM-parallel (reason unknown).
-    // assert targets.contains(pReached.getLastState()) : String.format(
-    //   "Last state %s of reachedset with root %s is not in target states %s",
-    //   pReached.getLastState(), pReached.getFirstState(), targets);
-    ARGReachedSet pMainReachedSet =
-        new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
-    assert pMainReachedSet.asReachedSet().asCollection().containsAll(frontierStates);
-    final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa, false);
-
-    Pair<BackwardARGState, Collection<BackwardARGState>> rootAndTargetsOfSubgraph = null;
+  /**
+   * Create a view on all reached states that looks like a real complete reached-set.
+   *
+   * <p>This method catches all internal exceptions and return <code>Null</code> if needed.
+   */
+  private @Nullable UnmodifiableReachedSet createReachedSetViewWithoutExceptions(
+      UnmodifiableReachedSet pReached, final Collection<ARGState> frontierStates, Result pResult) {
     try {
-      rootAndTargetsOfSubgraph =
-          cexSubgraphComputer.computeCounterexampleSubgraph(frontierStates, pMainReachedSet);
+      return createReachedSetViewWithFallback(pReached, frontierStates, pResult);
+
     } catch (MissingBlockException e) {
       logger.log(
           Level.INFO,
@@ -159,6 +154,51 @@ public class BAMARGStatistics extends ARGStatistics {
       logger.log(Level.WARNING, "could not compute full reached set graph:", e);
       return null; // invalid ARG, ignore output
     }
+  }
+
+  /**
+   * Create a view on all reached states that looks like a real complete reached-set.
+   *
+   * <p>If a block is missing in the cache, we fall back to at least trying to provide a view on all
+   * error-paths, because the underlying analysis might be based on a full counterexample anyway.
+   */
+  private @Nullable UnmodifiableReachedSet createReachedSetViewWithFallback(
+      UnmodifiableReachedSet pReached, final Collection<ARGState> frontierStates, Result pResult)
+      throws MissingBlockException, InterruptedException {
+    try { // initially try to export the whole reached-set
+      return createReachedSetView(pReached, frontierStates);
+
+    } catch (MissingBlockException e) {
+      final Collection<ARGState> targetStates =
+          Collections2.filter(frontierStates, AbstractStates.IS_TARGET_STATE);
+
+      if (pResult.equals(Result.FALSE) && !targetStates.isEmpty()) {
+        // fallback: if there is a missing block and we have a target state,
+        // maybe at least a direct counterexample path can be exported
+        logger.log(Level.INFO, ERROR_PREFIX + "(fallback to counterexample traces)");
+        return createReachedSetView(pReached, targetStates);
+      }
+
+      throw e; // fallback failed, re-throw the exception
+    }
+  }
+
+  private @Nullable UnmodifiableReachedSet createReachedSetView(
+      UnmodifiableReachedSet pReached, final Collection<ARGState> frontierStates)
+      throws MissingBlockException, InterruptedException {
+    // create pseudo-reached-set for export.
+    // it will be sufficient for exporting a CEX (error-path, error-witness, harness)
+
+    // assertion disabled, because it happens with BAM-parallel (reason unknown).
+    // assert targets.contains(pReached.getLastState()) : String.format(
+    //   "Last state %s of reachedset with root %s is not in target states %s",
+    //   pReached.getLastState(), pReached.getFirstState(), targets);
+    ARGReachedSet pMainReachedSet =
+        new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
+    assert pMainReachedSet.asReachedSet().asCollection().containsAll(frontierStates);
+    final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa, false);
+    final Pair<BackwardARGState, Collection<BackwardARGState>> rootAndTargetsOfSubgraph =
+        cexSubgraphComputer.computeCounterexampleSubgraph(frontierStates, pMainReachedSet);
 
     ARGPath path = ARGUtils.getRandomPath(rootAndTargetsOfSubgraph.getFirst());
     StatTimer dummyTimer = new StatTimer("dummy");
