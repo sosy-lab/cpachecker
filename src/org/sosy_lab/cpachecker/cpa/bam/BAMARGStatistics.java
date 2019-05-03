@@ -141,7 +141,7 @@ public class BAMARGStatistics extends ARGStatistics {
     ARGReachedSet pMainReachedSet =
         new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
     assert pMainReachedSet.asReachedSet().asCollection().containsAll(frontierStates);
-    final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
+    final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa, false);
 
     Pair<BackwardARGState, Collection<BackwardARGState>> rootAndTargetsOfSubgraph = null;
     try {

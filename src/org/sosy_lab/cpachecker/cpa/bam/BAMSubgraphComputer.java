@@ -61,13 +61,15 @@ public class BAMSubgraphComputer {
   protected final BAMDataManager data;
   private final LogManager logger;
   private final boolean useCopyOnWriteRefinement;
+  private final boolean cleanupOnMissingBlock;
 
-  BAMSubgraphComputer(AbstractBAMCPA bamCpa) {
+  BAMSubgraphComputer(AbstractBAMCPA bamCpa, boolean pCleanupOnMissingBlock) {
     this.partitioning = bamCpa.getBlockPartitioning();
     this.reducer = bamCpa.getReducer();
     this.data = bamCpa.getData();
     this.logger = bamCpa.getLogger();
     useCopyOnWriteRefinement = bamCpa.useCopyOnWriteRefinement();
+    cleanupOnMissingBlock = pCleanupOnMissingBlock;
   }
 
   /**
@@ -170,7 +172,9 @@ public class BAMSubgraphComputer {
         } catch (MissingBlockException e) {
           assert !useCopyOnWriteRefinement
               : "CopyOnWrite-refinement should never cause missing blocks: " + e;
-          ARGInPlaceSubtreeRemover.removeSubtree(reachedSet, currentState);
+          if (cleanupOnMissingBlock) {
+            ARGInPlaceSubtreeRemover.removeSubtree(reachedSet, currentState);
+          }
           throw e;
         }
 
