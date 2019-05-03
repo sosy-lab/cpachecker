@@ -91,9 +91,6 @@ class FunctionScopeImpl implements FunctionScope {
   @Override
   public Optional<? extends JSSimpleDeclaration> findDeclaration(
       @Nonnull final String pIdentifier) {
-    if (functionDeclaration.isRealOriginalName(pIdentifier)) {
-      return Optional.of(functionDeclaration);
-    }
     if (pIdentifier.equals("this")) {
       return Optional.of(functionDeclaration.getThisVariableDeclaration());
     }
@@ -106,6 +103,11 @@ class FunctionScopeImpl implements FunctionScope {
         findParameterDeclaration(pIdentifier);
     if (parameterDeclaration.isPresent()) {
       return parameterDeclaration;
+    }
+    // Local variables and parameters may hide function name.
+    // Hence, they have to be checked before (see checks above).
+    if (functionDeclaration.isRealOriginalName(pIdentifier)) {
+      return Optional.of(functionDeclaration);
     }
     return parentScope.findDeclaration(pIdentifier);
   }
