@@ -1,51 +1,13 @@
 import json
-import re
 import sys
 
 import esprima
-import yaml
-from esprima.tokenizer import BufferEntry
 
+from lib.metadata import get_meta_data
 from lib.paths import get_project_root_dir
+from lib.print import eprint
 from lib.skip import UnsupportedFeatureVisitor
-
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
-
-
-def parse_yaml_string(ys):
-    fd = StringIO(ys)
-    dct = yaml.safe_load(fd)
-    return dct
-
-
-def get_meta_data(file, file_content):
-    meta_data_match = re.search(r'/\*---(.+?)---\*/', file_content, re.DOTALL)
-    if meta_data_match is None:
-        # eprint('meta data not found in file {}'.format(file))
-        return {'flags': [], 'features': []}
-    meta_data = parse_yaml_string(meta_data_match.group(1))
-    if 'flags' not in meta_data:
-        meta_data['flags'] = []
-    if 'features' not in meta_data:
-        meta_data['features'] = []
-    return meta_data
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-
-def eprint(*args, **kwargs):
-    print(bcolors.WARNING, *args, bcolors.ENDC, file=sys.stderr, **kwargs)
+from lib.tokenize import tokenize
 
 
 def contains_assertion(file_content):
@@ -55,33 +17,6 @@ def contains_assertion(file_content):
         'assert.',
     ]
     return any(s in file_content for s in assertion_sub_strings)
-
-
-class Token:
-    def __init__(self, bufferEntry: BufferEntry):
-        self.bufferEntry = bufferEntry
-
-    def __eq__(self, other):
-        return (self.bufferEntry.type == other.bufferEntry.type and
-                self.bufferEntry.value == other.bufferEntry.value and
-                self.bufferEntry.regex == other.bufferEntry.regex and
-                self.bufferEntry.range == other.bufferEntry.range and
-                self.bufferEntry.loc == other.bufferEntry.loc)
-
-    def __str__(self):
-        return str(self.bufferEntry)
-
-    def __repr__(self):
-        return str(self.bufferEntry)
-
-
-def tokenize(program):
-    return list(map(Token, esprima.tokenize(program)))
-
-
-def contains_subsequence(subsequence: BufferEntry, sequence: BufferEntry):
-    l = len(subsequence)
-    return any(subsequence == sequence[i:i + l] for i in range(len(sequence) - l + 1))
 
 
 def has_unsupported_meta_data(file, file_content):
