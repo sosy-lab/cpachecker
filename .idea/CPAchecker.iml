@@ -15,6 +15,7 @@
       <excludeFolder url="file://$MODULE_DIR$/test/programs/benchmarks" />
       <excludeFolder url="file://$MODULE_DIR$/test/programs/ldv-benchmarks" />
       <excludeFolder url="file://$MODULE_DIR$/test/results" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scripts/javascript-test262-benchmark/venv" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

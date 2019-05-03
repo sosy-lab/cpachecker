@@ -6,82 +6,12 @@ import textwrap
 from pathlib import Path
 
 import esprima
-import yaml
-from esprima.tokenizer import BufferEntry
 
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
-
-
-def parse_yaml_string(ys):
-    fd = StringIO(ys)
-    dct = yaml.safe_load(fd)
-    return dct
-
-
-def get_meta_data(file, file_content):
-    meta_data_match = re.search(r'/\*---(.+?)---\*/', file_content, re.DOTALL)
-    if meta_data_match is None:
-        eprint('meta data not found in file {}'.format(file))
-        return {'flags': [], 'features': []}
-    meta_data = parse_yaml_string(meta_data_match.group(1))
-    if 'flags' not in meta_data:
-        meta_data['flags'] = []
-    if 'features' not in meta_data:
-        meta_data['features'] = []
-    return meta_data
-
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-
-def eprint(*args, **kwargs):
-    print(bcolors.WARNING, *args, bcolors.ENDC, file=sys.stderr, **kwargs)
-
-
-class Token:
-    def __init__(self, buffer_entry: BufferEntry):
-        self.bufferEntry = buffer_entry
-
-    def __eq__(self, other):
-        return (self.bufferEntry.type == other.bufferEntry.type and
-                self.bufferEntry.value == other.bufferEntry.value and
-                self.bufferEntry.regex == other.bufferEntry.regex and
-                self.bufferEntry.range == other.bufferEntry.range and
-                self.bufferEntry.loc == other.bufferEntry.loc)
-
-    def __str__(self):
-        return str(self.bufferEntry)
-
-    def __repr__(self):
-        return str(self.bufferEntry)
-
-
-def tokenize(program):
-    return list(map(Token, esprima.tokenize(program)))
-
-
-def contains_subsequence(subsequence, sequence):
-    l = len(subsequence)
-    return any(subsequence == sequence[i:i + l] for i in range(len(sequence) - l + 1))
-
-
-def contains_for_in_statement(file_content):
-    return re.search('\\s+for\\s*\\([^)]+in', file_content)
-
-
-def contains_with_statement(file_content):
-    return re.search('\\s+with\\s*\\([^)]+\\)\\s*{', file_content)
+from lib.metadata import get_meta_data
+from lib.paths import get_project_root_dir
+from lib.print import eprint
+from lib.tokenize import tokenize
+from lib.util import contains_subsequence
 
 
 def is_skip_directory(dir):
@@ -361,7 +291,7 @@ def create_task_file(yml_file, input_files, property_file, expected_verdict):
                     property_file=property_file))
 
 
-project_root_dir = Path(__file__).parent.parent.parent
+project_root_dir = get_project_root_dir()
 
 delete_file_patterns = [
     'test/programs/javascript-test262-benchmark/test/language/**/*.yml',

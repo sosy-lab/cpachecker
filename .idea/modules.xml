@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/CPAchecker.iml" filepath="$PROJECT_DIR$/.idea/CPAchecker.iml" />
+      <module fileurl="file://$PROJECT_DIR$/test/scripts/javascript-test262-benchmark/javascript-test262-benchmark.iml" filepath="$PROJECT_DIR$/test/scripts/javascript-test262-benchmark/javascript-test262-benchmark.iml" />
     </modules>
   </component>
 </project>

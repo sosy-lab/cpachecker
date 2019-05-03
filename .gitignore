@@ -72,3 +72,5 @@ test/programs/javascript-test262-benchmark/*
 !test/programs/javascript-test262-benchmark/CPAchecker-test262-error.js
 !test/programs/javascript-test262-benchmark/CPAchecker-test262-assert.js
 !test/programs/javascript-test262-benchmark/CPAchecker-test262-assert-negated.js
+/test/scripts/javascript-test262-benchmark/venv/
+/test/scripts/javascript-test262-benchmark/javascript-test262-benchmark.iml

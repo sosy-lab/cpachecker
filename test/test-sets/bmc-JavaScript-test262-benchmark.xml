@@ -9,7 +9,7 @@
             git checkout af984c01f6f89d46bc0789af70c599c88c033d0b
             rm -rf test/programs/javascript-test262-benchmark/.git
             rm -rf test/programs/javascript-test262-benchmark/.gitignore
-            python3 test/scripts/generate-javascript-test262-benchmark-task-definition-files.py
+            python3 test/scripts/javascript-test262-benchmark/generate-bmc-JavaScript-test262-benchmark-tasks.py
         Run this benchmark:
             scripts/benchmark.py test/test-sets/bmc-JavaScript-test262-benchmark.xml
     -->
@@ -54,6 +54,9 @@
         <include>../programs/javascript-test262-benchmark/test/language/*/*.yml</include>
         <include>../programs/javascript-test262-benchmark/test/language/*/*/*.yml</include>
         <include>../programs/javascript-test262-benchmark/test/language/*/*/*/*.yml</include>
+        <include>../programs/javascript-test262-benchmark/test/language/*/*/*/*/*.yml</include>
+        <include>../programs/javascript-test262-benchmark/test/language/*/*/*/*/*/*.yml</include>
+        <include>../programs/javascript-test262-benchmark/test/language/*/*/*/*/*/*/*.yml</include>
 
         <excludesfile>bmc-JavaScript-test262-benchmark_large-shift-expression-files.set</excludesfile>
 
@@ -80,12 +83,6 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/call/scope-var-open*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/typeof/string*.yml</exclude>
 
-        <!-- getter/setter not supported yet -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-54-s*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-55-s*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-56-s*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/function-code/10.4.3-1-57-s*.yml</exclude>
-
         <!-- recursion is not supported yet -->
         <exclude>../programs/javascript-test262-benchmark/test/language/function-code/S10.4A1.1_T2*.yml</exclude>
 
@@ -97,14 +94,6 @@
         <!-- TODO TIMEOUT whitespace in string comparison -->
         <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/line-continuation-double*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/line-continuation-single*.yml</exclude>
-
-        <!-- TODO in operator -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/types/object/S8.6_A2_T2*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/types/object/S8.6_A3_T2*.yml</exclude>
-
-        <!-- TODO unicode character in string causes IllegalArgumentException in Eclipse JsStringScanner -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/line-separator*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/paragraph-separator*.yml</exclude>
 
         <!-- TODO unicode character in string lead to unknown -->
         <exclude>../programs/javascript-test262-benchmark/test/language/literals/string/S7.8.4_A2.1_T1*.yml</exclude>
@@ -132,7 +121,6 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/identifiers/vals-rus-alpha-upper-via-escape-hex4*.yml</exclude>
 
         <!-- TODO access of this object outside of function -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/property-accessors/S11.2.1_A4_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/comments/S7.4_A1_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/comments/S7.4_A2_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/types/object/S8.6.2_A5_T1*.yml</exclude>
@@ -204,9 +192,6 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.8_false.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.9_false.yml</exclude>
 
-        <!-- generators are not supported yet -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/object/method-definition/gen-yield-identifier-non-strict*.yml</exclude>
-
         <!-- string comparison not supported yet -->
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/greater-than-or-equal/S11.8.4_A4.10*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/greater-than-or-equal/S11.8.4_A4.11*.yml</exclude>
@@ -225,10 +210,6 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than-or-equal/S11.8.3_A4.12_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than/S11.8.1_A4.11*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/types/string/S8.4_A5*.yml</exclude>
-
-        <!-- implicit call of valueOf -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/greater-than/11.8.2-1*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than-or-equal/11.8.3-1*.yml</exclude>
 
         <!-- TODO non strict equal -->
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/does-not-equals/S11.9.2_A5.2*.yml</exclude>
@@ -376,9 +357,6 @@
         <!-- TODO function name contains unicode -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T2*.yml</exclude>
-
-        <!-- TODO let scope -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-close*.yml</exclude>
 
         <!-- TODO global object assignment -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/variable/S12.2_A11*.yml</exclude>
