@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.WitnessInvariantsAutomaton;
+import org.sosy_lab.cpachecker.cpa.automaton.WitnessLocationInvariantsAutomaton;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -150,6 +151,14 @@ public class WitnessInvariantsExtractor {
     final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
     extractInvariantsFromReachedSet(invariants);
     return WitnessInvariantsAutomaton.buildWitnessInvariantsAutomaton(invariants, visitor, builder);
+  }
+
+  public Automaton buildLocationInvariantsAutomatonFromWitness() {
+    WitnessLocationInvariantsAutomaton automaton =
+        new WitnessLocationInvariantsAutomaton(cfa, logger);
+    final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
+    extractInvariantsFromReachedSet(invariants);
+    return automaton.buildWitnessLocationInvariantsAutomaton(invariants);
   }
 
   public void extractInvariantsFromReachedSet(

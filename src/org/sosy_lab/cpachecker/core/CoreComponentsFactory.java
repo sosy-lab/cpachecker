@@ -282,9 +282,9 @@ public class CoreComponentsFactory {
 
   private static enum CorrectnessWitnessValidation {
     NONE, // no validation
-    WITNESSAUTOMATON, // use witness with invariants assumptions
-    INVARIANTSAUTOMATON, // use invariant location automaton
-    ;
+    WITNESSAUTOMATON, // use witness automaton with invariants assumptions
+    INVARIANTSAUTOMATON, // use invariant automaton
+    LOCATIONINVARIANTSAUTOMATON; // use CFA nodes based invariant automaton
   }
 
   @FileOption(Type.OPTIONAL_INPUT_FILE)
@@ -662,6 +662,7 @@ public class CoreComponentsFactory {
         automata.add(automatonAsSpec.getSpecificationAutomata().get(0));
         break;
       case INVARIANTSAUTOMATON:
+        {
         WitnessInvariantsExtractor extractor =
             new WitnessInvariantsExtractor(
                 config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
@@ -671,8 +672,16 @@ public class CoreComponentsFactory {
         Automaton automaton = extractor.buildInvariantsAutomatonFromWitness(visitor, builder);
         automata.add(automaton);
         break;
-      case NONE:
+        }
+      case LOCATIONINVARIANTSAUTOMATON:
+        {
+          WitnessInvariantsExtractor extractor =
+              new WitnessInvariantsExtractor(
+                  config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
+          Automaton automaton = extractor.buildLocationInvariantsAutomatonFromWitness();
+          automata.add(automaton);
         break;
+        }
       default:
         break;
     }
