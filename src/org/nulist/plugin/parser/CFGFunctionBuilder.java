@@ -256,6 +256,8 @@ public class CFGFunctionBuilder  {
     public void visitFunction(boolean finishend) throws result {
         assert function!=null && function.get_kind().equals(procedure_kind.getUSER_DEFINED());
 
+        if(functionName.equals("nas_itti_dl_data_req"))
+            System.out.println();
         //expressionHandler.setVariableDeclarations(variableDeclarations);
         //first visit: build nodes before traversing CFGs
         List<point> declSet = new ArrayList<>();
@@ -1432,7 +1434,7 @@ public class CFGFunctionBuilder  {
         if(cfgEdgeVector.size()>1){
             for(int i=0;i<cfgEdgeVector.size()-1;i++){
                 CExpression conditionExpr = handleSwitchCase(cfgEdgeVector.get(i).get_first(), endNode, switchExpr);
-                String conditionString = conditionExpr.toASTString();
+                String conditionString = conditionExpr.toString();
                 CFANode case1 = cfaNodeMap.get(cfgEdgeVector.get(i).get_first().id());
                 CFANode case2 = cfaNodeMap.get(cfgEdgeVector.get(i+1).get_first().id());
                 FileLocation fileLoc = getLocation(cfgEdgeVector.get(i).get_first(),fileName);

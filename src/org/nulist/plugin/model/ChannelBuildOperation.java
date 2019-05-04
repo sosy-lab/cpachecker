@@ -6,6 +6,7 @@ import com.grammatech.cs.procedure;
 import com.grammatech.cs.result;
 import org.nulist.plugin.model.action.ITTIAbstract;
 import org.nulist.plugin.model.channel.AbstractChannel;
+import org.nulist.plugin.model.channel.ChannelConstructer;
 import org.nulist.plugin.parser.CFABuilder;
 import org.nulist.plugin.parser.CFGFunctionBuilder;
 import org.sosy_lab.common.log.LogManager;
@@ -689,6 +690,7 @@ public class ChannelBuildOperation {
 
 
         if(builderMap.containsKey(UE) && builderMap.containsKey(MME) && builderMap.containsKey(ENB)){
+            CFABuilder channelBuilder =  ChannelConstructer.constructionMessageChannel(builderMap);
 
         }
 

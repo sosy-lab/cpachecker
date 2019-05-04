@@ -60,7 +60,7 @@ public class CSurfPlugin {
             printINFO("==================Parsing UE==================");
             project.load(projectPath+UEProjectPath,true);
             project proj = project.current();
-            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
+//            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
 //            try {
 //                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
 //                builderMap.put(proj.name(),cfaBuilder);
@@ -72,7 +72,7 @@ public class CSurfPlugin {
             printINFO("==================Parsing ENB==================");
             project.load(projectPath+ENBProjectPath,true);
             proj = project.current();
-            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
+//            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
 //            try {
 //                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
 //                builderMap.put(proj.name(),cfaBuilder);
@@ -85,8 +85,9 @@ public class CSurfPlugin {
 //            printINFO("==================Finish ENB==================");
 //
 //            printINFO("==================Parsing MME==================");
-//            project.load(projectPath+MMEProjectPath,true);
-//            proj = project.current();
+            project.load(projectPath+MMEProjectPath,true);
+            proj = project.current();
+            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
 //            try {
 //                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
 //                builderMap.put(proj.name(),cfaBuilder);
