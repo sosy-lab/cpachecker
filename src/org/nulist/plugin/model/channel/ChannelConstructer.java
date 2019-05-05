@@ -22,6 +22,7 @@ import java.util.Map;
 import static org.nulist.plugin.model.ChannelBuildOperation.*;
 import static org.nulist.plugin.parser.CFGParser.*;
 import static org.nulist.plugin.parser.CFGParser.MME;
+import static org.nulist.plugin.parser.CFGTypeConverter.VoidPointer;
 
 /**
  * @ClassName ChannelConstructer
@@ -344,13 +345,9 @@ public class ChannelConstructer {
                 functionBuilder.cfa, cfaNode, "Function start dummy edge");
         functionBuilder.addToCFA(dummyEdge);
 
-
-
         CIdExpression messageIDExpression = new CIdExpression(fileLocation, channelMsgCache);
-        CType voidpointer = new CPointerType(false,false, CVoidType.VOID);
-        CCastExpression castExpression = new CCastExpression(fileLocation,
-                voidpointer,
-                CIntegerLiteralExpression.ZERO);
+
+
 //
 //        CBinaryExpression conditionExp = functionBuilder.expressionHandler.buildBinaryExpression(
 //                messageIDExpression,
@@ -363,60 +360,7 @@ public class ChannelConstructer {
         CFANode falseNode = functionBuilder.newCFANode();
         createTrueFalseEdge(functionBuilder,cfaNode,trueNode,falseNode, exprString,conditionExp);
 
-        CVariableDeclaration tempVar = new CVariableDeclaration(fileLocation,
-                false,
-                CStorageClass.AUTO,
-                voidpointer,
-                "temp1",
-                "temp1",
-                "temp1",
-                null);
-        CFANode decNode = functionBuilder.newCFANode();
-
-        CDeclarationEdge declarationEdge = new CDeclarationEdge("Void *temp1;",fileLocation,trueNode,decNode,tempVar);
-        functionBuilder.addToCFA(declarationEdge);
-
-        CFunctionDeclaration malloc = builder.functionDeclarations.get("malloc");
-        CIdExpression mallocID = new CIdExpression(fileLocation, malloc);
-        List<CExpression> pParameters = new ArrayList<>();
-        CType paramType = malloc.getType().getParameters().get(0);
-        int size = builder.projectName.equals(UE)?1238:2310;
-        pParameters.add(new CIntegerLiteralExpression(fileLocation,paramType, BigInteger.valueOf(size)));//TODO in mme nas_message_t = 1784
-        CFunctionCallExpression functionCallExpression = new CFunctionCallExpression(
-                fileLocation,
-                voidpointer,
-                mallocID,
-                pParameters,
-                malloc);
-        CIdExpression tempVarId = new CIdExpression(fileLocation, tempVar);
-
-        CFunctionCallAssignmentStatement assignmentStatement = new CFunctionCallAssignmentStatement(
-                fileLocation,
-                tempVarId,
-                functionCallExpression);
-        CFANode mallocNode = functionBuilder.newCFANode();
-        CStatementEdge statementEdge = new CStatementEdge(
-                "temp1=malloc(100);",
-                assignmentStatement,
-                fileLocation,
-                decNode,
-                mallocNode);
-        functionBuilder.addToCFA(statementEdge);
-
-        CCastExpression castExpression1 = new CCastExpression(fileLocation,channelMsgCache.getType(),tempVarId);
-        CExpressionAssignmentStatement assignment = new CExpressionAssignmentStatement(
-                fileLocation,
-                messageIDExpression,
-                castExpression1);
-
-        CStatementEdge statementEdge1 = new CStatementEdge(
-                channelMsgCache.getName()+"=("+channelMsgCache.getType().toString()+")temp1",
-                assignment,
-                fileLocation,
-                mallocNode,
-                falseNode);
-
-        functionBuilder.addToCFA(statementEdge1);
+        initMsgCache(functionBuilder, builder, messageIDExpression, trueNode, falseNode, "tempVar1");
 
         //channelMSGCache->rrc_message.pcch_msg = msg;
         CFANode msgAssignNode = functionBuilder.newCFANode();
@@ -436,131 +380,6 @@ public class ChannelConstructer {
                 falseNode,
                 msgAssignNode);
         functionBuilder.addToCFA(msgStatementEdge);
-//        if(functionName.contains("PlainNASEMM")){
-//            //channelMSGCache->nas_message.nas_message.plain.emm = msg;
-//            exprString = channelMsgCache.getName()+"->nas_message.nas_message.plain.emm";
-//            CExpression emm = expressionParser(functionBuilder, exprString);
-////            CType nas_channel_message_t = builder.typeConverter.typeCache.get("nas_channel_message_t".hashCode());
-////
-////            CFieldReference fieldReference = new CFieldReference(fileLocation,
-////                    nas_channel_message_t,
-////                    "nas_message",
-////                    messageIDExpression,
-////                    true);
-////
-////            CType nas_message_t = builder.typeConverter.typeCache.get("nas_message_t".hashCode());
-////            CFieldReference fieldReference1 = new CFieldReference(fileLocation,
-////                    nas_message_t,
-////                    "nas_message",
-////                    fieldReference,
-////                    false);
-////
-////            CType nas_message_plain_t = builder.typeConverter.typeCache.get("nas_message_plain_t".hashCode());
-////            CFieldReference plain = new CFieldReference(fileLocation,
-////                    nas_message_plain_t,
-////                    "plain",
-////                    fieldReference1,
-////                    false);
-////            CType EMM_msg = builder.typeConverter.typeCache.get("EMM_msg".hashCode());
-////            CFieldReference emm = new CFieldReference(fileLocation,
-////                    EMM_msg,
-////                    "emm",
-////                    plain,
-////                    false);
-//
-//            CIdExpression paramMSGID = new CIdExpression(fileLocation,paramDeclaration);
-//            CExpressionAssignmentStatement msgAssign = new CExpressionAssignmentStatement(
-//                    fileLocation,
-//                    (CLeftHandSide) emm,
-//                    paramMSGID);
-//
-//            CStatementEdge msgStatementEdge = new CStatementEdge(
-//                    msgAssign.toString(),
-//                    msgAssign,
-//                    fileLocation,
-//                    falseNode,
-//                    msgAssignNode);
-//            functionBuilder.addToCFA(msgStatementEdge);
-//        }else if(functionName.contains("PlainNASESM")){
-//            //channelMSGCache->nas_message.nas_message.plain.esm = msg;
-////            CType nas_channel_message_t = builder.typeConverter.typeCache.get("nas_channel_message_t".hashCode());
-////
-////            CFieldReference fieldReference = new CFieldReference(fileLocation,
-////                    nas_channel_message_t,
-////                    "nas_message",
-////                    messageIDExpression,
-////                    true);
-////
-////            CType nas_message_t = builder.typeConverter.typeCache.get("nas_message_t".hashCode());
-////            CFieldReference fieldReference1 = new CFieldReference(fileLocation,
-////                    nas_message_t,
-////                    "nas_message",
-////                    fieldReference,
-////                    false);
-////
-////            CType nas_message_plain_t = builder.typeConverter.typeCache.get("nas_message_plain_t".hashCode());
-////            CFieldReference plain = new CFieldReference(fileLocation,
-////                    nas_message_plain_t,
-////                    "plain",
-////                    fieldReference1,
-////                    false);
-////            CType ESM_msg = builder.typeConverter.typeCache.get("ESM_msg".hashCode());
-////            CFieldReference esm = new CFieldReference(fileLocation,
-////                    ESM_msg,
-////                    "esm",
-////                    plain,
-////                    false);
-//
-//            exprString = channelMsgCache.getName()+"->nas_message.nas_message.plain.esm";
-//            CExpression esm = expressionParser(functionBuilder, exprString);
-//
-//            CIdExpression paramMSGID = new CIdExpression(fileLocation,paramDeclaration);
-//            CExpressionAssignmentStatement msgAssign = new CExpressionAssignmentStatement(
-//                    fileLocation,
-//                    (CLeftHandSide) esm,
-//                    paramMSGID);
-//
-//            CStatementEdge msgStatementEdge = new CStatementEdge(
-//                    msgAssign.toString(),
-//                    msgAssign,
-//                    fileLocation,
-//                    falseNode,
-//                    msgAssignNode);
-//            functionBuilder.addToCFA(msgStatementEdge);
-//        }else if(functionName.contains("PlainAS")){
-//            //channelMSGCache->nas_message.as_message = msg;
-////            CType nas_channel_message_t = builder.typeConverter.typeCache.get("nas_channel_message_t".hashCode());
-////
-////            CFieldReference fieldReference = new CFieldReference(fileLocation,
-////                    nas_channel_message_t,
-////                    "nas_message",
-////                    messageIDExpression,
-////                    true);
-////
-////            CFieldReference fieldReference1 = new CFieldReference(fileLocation,
-////                    messageType,
-////                    "as_message",
-////                    fieldReference,
-////                    false);
-//
-//            expressionString = channelMsgCache.getName()+"->nas_message.as_message";
-//            CExpression asmessage = expressionParser(functionBuilder, expressionString);
-//
-//            CIdExpression paramMSGID = new CIdExpression(fileLocation,paramDeclaration);
-//            CExpressionAssignmentStatement msgAssign = new CExpressionAssignmentStatement(
-//                    fileLocation,
-//                    (CLeftHandSide) asmessage,
-//                    paramMSGID);
-//
-//            CStatementEdge msgStatementEdge = new CStatementEdge(
-//                    msgAssign.toString(),
-//                    msgAssign,
-//                    fileLocation,
-//                    falseNode,
-//                    msgAssignNode);
-//            functionBuilder.addToCFA(msgStatementEdge);
-//        }
-
         BlankEdge blankEdge = new BlankEdge("",fileLocation,msgAssignNode,functionExit,"");
 
         functionBuilder.addToCFA(blankEdge);
@@ -650,147 +469,6 @@ public class ChannelConstructer {
 
         functionBuilder.addToCFA(returnStatementEdge);
 
-
-//        if(functionName.contains("PlainNASEMM")){
-//            //channelMSGCache->nas_message.nas_message.plain.emm = msg;
-//            String expressionString = channelMsgCache.getName()+"->nas_message.nas_message.plain.emm";
-//            CExpression emm = expressionParser(functionBuilder, expressionString);
-//
-////            CType nas_channel_message_t = builder.typeConverter.typeCache.get("nas_channel_message_t".hashCode());
-////
-////            CFieldReference fieldReference = new CFieldReference(fileLocation,
-////                    nas_channel_message_t,
-////                    "nas_message",
-////                    messageIDExpression,
-////                    true);
-////
-////            CType nas_message_t = builder.typeConverter.typeCache.get("nas_message_t".hashCode());
-////            CFieldReference fieldReference1 = new CFieldReference(fileLocation,
-////                    nas_message_t,
-////                    "nas_message",
-////                    fieldReference,
-////                    false);
-////
-////            CType nas_message_plain_t = builder.typeConverter.typeCache.get("nas_message_plain_t".hashCode());
-////            CFieldReference plain = new CFieldReference(fileLocation,
-////                    nas_message_plain_t,
-////                    "plain",
-////                    fieldReference1,
-////                    false);
-////            CType EMM_msg = builder.typeConverter.typeCache.get("EMM_msg".hashCode());
-////            CFieldReference emm = new CFieldReference(fileLocation,
-////                    EMM_msg,
-////                    "emm",
-////                    plain,
-////                    false);
-//
-//
-//            CExpressionAssignmentStatement msgAssign = new CExpressionAssignmentStatement(
-//                    fileLocation,
-//                    returnVarIdExpr,
-//                    emm);
-//            CReturnStatement returnStatement = new CReturnStatement(
-//                    fileLocation,
-//                    Optional.of(returnVarIdExpr),
-//                    Optional.of(msgAssign));
-//
-//
-//            CReturnStatementEdge returnStatementEdge = new CReturnStatementEdge(
-//                    "return "+emm.toString()+";",
-//                    returnStatement,
-//                    fileLocation,
-//                    decNode,
-//                    functionExit);
-//
-//            functionBuilder.addToCFA(returnStatementEdge);
-//        }else if(functionName.contains("PlainNASESM")){
-//            //channelMSGCache->nas_message.nas_message.plain.esm = msg;
-//            String expressionString = channelMsgCache.getName()+"->nas_message.nas_message.plain.esm";
-//            CExpression esm = expressionParser(functionBuilder, expressionString);
-////            CType nas_channel_message_t = builder.typeConverter.typeCache.get("nas_channel_message_t".hashCode());
-////
-////            CFieldReference fieldReference = new CFieldReference(fileLocation,
-////                    nas_channel_message_t,
-////                    "nas_message",
-////                    messageIDExpression,
-////                    true);
-////
-////            CType nas_message_t = builder.typeConverter.typeCache.get("nas_message_t".hashCode());
-////            CFieldReference fieldReference1 = new CFieldReference(fileLocation,
-////                    nas_message_t,
-////                    "nas_message",
-////                    fieldReference,
-////                    false);
-////
-////            CType nas_message_plain_t = builder.typeConverter.typeCache.get("nas_message_plain_t".hashCode());
-////            CFieldReference plain = new CFieldReference(fileLocation,
-////                    nas_message_plain_t,
-////                    "plain",
-////                    fieldReference1,
-////                    false);
-////            CType ESM_msg = builder.typeConverter.typeCache.get("ESM_msg".hashCode());
-////            CFieldReference esm = new CFieldReference(fileLocation,
-////                    ESM_msg,
-////                    "esm",
-////                    plain,
-////                    false);
-//
-//            CExpressionAssignmentStatement msgAssign = new CExpressionAssignmentStatement(
-//                    fileLocation,
-//                    returnVarIdExpr,
-//                    esm);
-//            CReturnStatement returnStatement = new CReturnStatement(
-//                    fileLocation,
-//                    Optional.of(returnVarIdExpr),
-//                    Optional.of(msgAssign));
-//
-//
-//            CReturnStatementEdge returnStatementEdge = new CReturnStatementEdge(
-//                    "return "+esm.toString()+";",
-//                    returnStatement,
-//                    fileLocation,
-//                    decNode,
-//                    functionExit);
-//
-//            functionBuilder.addToCFA(returnStatementEdge);
-//        }else if(functionName.contains("PlainAS")){
-//            //channelMSGCache->nas_message.as_message ;
-//            String expressionString = channelMsgCache.getName()+"->nas_message.as_message";
-//            CExpression asmessage = expressionParser(functionBuilder, expressionString);
-//
-////            CType nas_channel_message_t = builder.typeConverter.typeCache.get("nas_channel_message_t".hashCode());
-////
-////            CFieldReference fieldReference = new CFieldReference(fileLocation,
-////                    nas_channel_message_t,
-////                    "nas_message",
-////                    messageIDExpression,
-////                    true);
-////
-////            CFieldReference fieldReference1 = new CFieldReference(fileLocation,
-////                    messageType,
-////                    "as_message",
-////                    fieldReference,
-////                    false);
-//            CExpressionAssignmentStatement msgAssign = new CExpressionAssignmentStatement(
-//                    fileLocation,
-//                    returnVarIdExpr,
-//                    asmessage);
-//            CReturnStatement returnStatement = new CReturnStatement(
-//                    fileLocation,
-//                    Optional.of(returnVarIdExpr),
-//                    Optional.of(msgAssign));
-//
-//
-//            CReturnStatementEdge returnStatementEdge = new CReturnStatementEdge(
-//                    "return "+expressionString+";",
-//                    returnStatement,
-//                    fileLocation,
-//                    decNode,
-//                    functionExit);
-//
-//            functionBuilder.addToCFA(returnStatementEdge);
-//        }
-
         functionBuilder.finish();
 
     }
@@ -855,49 +533,136 @@ public class ChannelConstructer {
         functionBuilder.expressionHandler.variableDeclarations.put(sourceCache.getName().hashCode(),sourceCache);
         functionBuilder.expressionHandler.variableDeclarations.put(targetCache.getName().hashCode(),targetCache);
 
-        CType voidpointer = new CPointerType(false,false, CVoidType.VOID);
-        CCastExpression castExpression = new CCastExpression(fileLocation,
-                voidpointer,
-                CIntegerLiteralExpression.ZERO);
 
+        //init targetCache
+
+        CFANode msgInitNode = functionBuilder.newCFANode();
+        initMsgCache(functionBuilder,sourceBuilder, targetCacheIDExpr, cfaNode,msgInitNode,"tempVar1");
+
+        //check if source cache message is null
         String expressionString = sourceCache.getName()+"!=NULL";
         CFANode trueNodeS = functionBuilder.newCFANode();
         CFANode falseNodeS = functionBuilder.newCFANode();
         CBinaryExpression cacheMSGNull = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
-        createTrueFalseEdge(functionBuilder,cfaNode, trueNodeS, falseNodeS, expressionString, cacheMSGNull);
+        createTrueFalseEdge(functionBuilder,msgInitNode, trueNodeS, falseNodeS, expressionString, cacheMSGNull);
 
         String rawSignature = "switch(messageID)";
         CFANode firstSwitchNode = functionBuilder.newCFANode();
         functionBuilder.addToCFA(new BlankEdge(rawSignature, fileLocation, trueNodeS, firstSwitchNode, rawSignature));
 
-        expressionString = "messageID==18";//RRC_MAC_CCCH_DATA_REQ = 18
+        expressionString = "messageID==34";//"RRC_DCCH_DATA_REQ = 34"
         CBinaryExpression msgID1 = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
+        CFANode trueNodeM1 = functionBuilder.newCFANode();
+        CFANode falseNodeM1 = functionBuilder.newCFANode();
+        createTrueFalseEdge(functionBuilder,trueNodeS, trueNodeM1, falseNodeM1, expressionString, msgID1);
 
+        CFANode rrcTranNode = functionBuilder.newCFANode();
+        rrcSubMessageTranslation(functionBuilder,sourceCache, targetCache,"ul_dcch_msg",trueNodeM1,rrcTranNode);
+        CFANode nasTranNode = functionBuilder.newCFANode();
+        ulNASMessageTranslation(functionBuilder,sourceCache, targetCache,rrcTranNode,nasTranNode);
+        CFANode endCase1 = functionBuilder.newCFANode();
+        functionBuilder.addToCFA(new BlankEdge("break;",fileLocation,endCase1,falseNodeS,"break;"));
 
+        expressionString = "messageID==18";//RRC_MAC_CCCH_DATA_REQ = 18-no nas message
+        CBinaryExpression msgID2 = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
+        CFANode trueNodeM2 = functionBuilder.newCFANode();
+        CFANode falseNodeM2 = functionBuilder.newCFANode();
+        createTrueFalseEdge(functionBuilder,falseNodeM1, trueNodeM2, falseNodeM2, expressionString, msgID2);
+        CFANode endCase2 = functionBuilder.newCFANode();
+        rrcSubMessageTranslation(functionBuilder,sourceCache, targetCache,"ul_ccch_msg",trueNodeM2,endCase2);
+        functionBuilder.addToCFA(new BlankEdge("break;",fileLocation,endCase2,falseNodeS,"break"));
 
+        CFANode defaultNode = functionBuilder.newCFANode();
+        functionBuilder.addToCFA(new BlankEdge("default",fileLocation,falseNodeM2,defaultNode,"default"));
+        functionBuilder.addToCFA(new BlankEdge("break;",fileLocation,defaultNode,falseNodeS,"break"));
+
+        CFANode returnNode = functionBuilder.newCFANode();
+        initMsgCache(functionBuilder, sourceBuilder, sourceCacheIDExpr, falseNodeS,returnNode, "tempVar2");
+        functionBuilder.addToCFA(new BlankEdge("return;",fileLocation, returnNode, functionExit,""));
+        functionBuilder.finish();
+    }
+
+    private static void ulNASMessageTranslation(CFGFunctionBuilder functionBuilder,
+                                                 CVariableDeclaration sourceCache,
+                                                 CVariableDeclaration targetCache,
+                                                 CFANode startNode,
+                                                 CFANode endNode){
         //if sourceCache->nas_message!=null
-        expressionString =sourceCache.getName()+"->nas_message!=NULL";
+        FileLocation fileLocation = FileLocation.DUMMY;
+        String expressionString =sourceCache.getName()+"->nas_message!=NULL";
         CBinaryExpression conditionExp = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
         CFANode trueNode = functionBuilder.newCFANode();
-        CFANode falseNode = functionBuilder.newCFANode();
-        createTrueFalseEdge(functionBuilder,cfaNode,trueNode,falseNode, expressionString,conditionExp);
+        createTrueFalseEdge(functionBuilder,startNode,trueNode,endNode, expressionString,conditionExp);
 
-        expressionString =sourceCache.getName()+"->nas_message.as_message.msgID";
+        expressionString =sourceCache.getName()+"->nas_message.msgID";
         CExpression asMSG = expressionParser(functionBuilder,expressionString);
 
+        String rawSignature = "switch("+expressionString+")";
+        CFANode firstSwitchNode = functionBuilder.newCFANode();
+        functionBuilder.addToCFA(new BlankEdge(rawSignature, fileLocation, trueNode, firstSwitchNode, rawSignature));
+
+        String caseString = expressionString+"==47";//NAS_KENB_REFRESH_REQ = 47, no as message
+        CBinaryExpression msgID1 = (CBinaryExpression) expressionParser(functionBuilder, caseString);
+        CFANode trueNodeM1 = functionBuilder.newCFANode();
+        CFANode falseNodeM1 = functionBuilder.newCFANode();
+        createTrueFalseEdge(functionBuilder,firstSwitchNode, trueNodeM1, falseNodeM1, caseString, msgID1);
+        CFANode endCase1 = functionBuilder.newCFANode();
+        nasSubMessageTranslation(functionBuilder,sourceCache,targetCache,47,trueNodeM1,endCase1);
+        functionBuilder.addToCFA(new BlankEdge("break;",fileLocation,endCase1,endNode,"break;"));
+
+        caseString = expressionString+"==48";//NAS_CELL_SELECTION_REQ = 48, as msg id = AS_CELL_INFO_REQ
+        CBinaryExpression msgID2 = (CBinaryExpression) expressionParser(functionBuilder, caseString);
+        CFANode trueNodeM2 = functionBuilder.newCFANode();
+        CFANode falseNodeM2 = functionBuilder.newCFANode();
+        createTrueFalseEdge(functionBuilder,falseNodeM1, trueNodeM2, falseNodeM2, caseString, msgID2);
+        CFANode endCase2 = functionBuilder.newCFANode();
+        nasSubMessageTranslation(functionBuilder,sourceCache,targetCache,48,trueNodeM2,endCase2);
+        functionBuilder.addToCFA(new BlankEdge("break;",fileLocation,endCase2,endNode,"break;"));
+
+        caseString = expressionString+"==49";//NAS_CONN_ESTABLI_REQ = 49, as msg id = AS_NAS_ESTABLISH_REQ
+        CBinaryExpression msgID3 = (CBinaryExpression) expressionParser(functionBuilder, caseString);
+        CFANode trueNodeM3 = functionBuilder.newCFANode();
+        CFANode falseNodeM3 = functionBuilder.newCFANode();
+        createTrueFalseEdge(functionBuilder,falseNodeM2, trueNodeM3, falseNodeM3, caseString, msgID3);
+        CFANode endCase3 = functionBuilder.newCFANode();
+        nasSubMessageTranslation(functionBuilder,sourceCache,targetCache,49,trueNodeM3,endCase3);
+        functionBuilder.addToCFA(new BlankEdge("break;",fileLocation,endCase3,endNode,"break;"));
+
+        caseString = expressionString+"==50";//NAS_UPLINK_DATA_REQ = 50, as msg id = AS_UL_INFO_TRANSFER_REQ
+        CBinaryExpression msgID4 = (CBinaryExpression) expressionParser(functionBuilder, caseString);
+        CFANode trueNodeM4 = functionBuilder.newCFANode();
+        CFANode falseNodeM4 = functionBuilder.newCFANode();
+        createTrueFalseEdge(functionBuilder,falseNodeM3, trueNodeM4, falseNodeM4, caseString, msgID4);
+        CFANode endCase4 = functionBuilder.newCFANode();
+        nasSubMessageTranslation(functionBuilder,sourceCache,targetCache,50,trueNodeM4,endCase4);
+        functionBuilder.addToCFA(new BlankEdge("break;",fileLocation,endCase4,endNode,"break;"));
+
+        CFANode defaultNode = functionBuilder.newCFANode();
+        functionBuilder.addToCFA(new BlankEdge("default",fileLocation,falseNodeM4,defaultNode,"default"));
+        functionBuilder.addToCFA(new BlankEdge("break;",fileLocation,defaultNode,endNode,"break"));
+
+    }
+
+    public static void nasSubMessageTranslation(CFGFunctionBuilder functionBuilder,
+                                                CVariableDeclaration sourceCache,
+                                                CVariableDeclaration targetCache,
+                                                int msgID,
+                                                CFANode startNode,
+                                                CFANode endNode){
 
 
 
 
-        expressionString =sourceCache.getName()+"->nas_message.nas_message!=NULL";
-        conditionExp = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
+        String expressionString =sourceCache.getName()+"->nas_message.nas_message!=NULL";
+        CExpression conditionExp = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
         CFANode trueNode1 = functionBuilder.newCFANode();
-        createTrueFalseEdge(functionBuilder,trueNode,trueNode1,falseNode, expressionString,conditionExp);
+        createTrueFalseEdge(functionBuilder,startNode,trueNode1,endNode, expressionString,conditionExp);
+
 
         expressionString =sourceCache.getName()+"->nas_message.nas_message.plain!=NULL";
         conditionExp = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
         CFANode trueNode2 = functionBuilder.newCFANode();
-        createTrueFalseEdge(functionBuilder,trueNode1,trueNode2,falseNode, expressionString,conditionExp);
+        createTrueFalseEdge(functionBuilder,trueNode1,trueNode2,endNode, expressionString,conditionExp);
 
         expressionString =sourceCache.getName()+"->nas_message.nas_message.plain.emm!=NULL";
         conditionExp = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
@@ -908,8 +673,158 @@ public class ChannelConstructer {
         expressionString =sourceCache.getName()+"->nas_message.nas_message.plain.esm!=NULL";
         conditionExp = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
         CFANode trueNode21 = functionBuilder.newCFANode();
-        createTrueFalseEdge(functionBuilder,falseNode20,trueNode21,falseNode, expressionString,conditionExp);
+        createTrueFalseEdge(functionBuilder,falseNode20,trueNode21,endNode, expressionString,conditionExp);
+    }
 
+    //need to change msg id and message type
+    //req(NAS->AS)--> ind(AS->NAS)
+    //rsp(NAS->AS) --> cnf(AS->NAS)
+    public static void ulASSubMessageTranslation(CFGFunctionBuilder functionBuilder,
+                                                CVariableDeclaration sourceCache,
+                                                CVariableDeclaration targetCache,
+                                                int msgID,
+                                                CFANode startNode,
+                                                CFANode endNode){
+        FileLocation fileLocation = FileLocation.DUMMY;
+        String expressionString =sourceCache.getName()+"->nas_message.as_message!=NULL";
+        CExpression conditionExp = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
+        CFANode trueNode1 = functionBuilder.newCFANode();
+        createTrueFalseEdge(functionBuilder,startNode,trueNode1,endNode, expressionString,conditionExp);
+
+        String sourceASItemName="";
+        String targetASItemName="";
+        int targetASMsgID = 0;
+
+        if(msgID==48){
+            sourceASItemName = "cell_info_req";
+            targetASItemName = "cell_info_ind";
+            targetASMsgID = 1026;//AS_CELL_INFO_IND=1026
+        }else if(msgID==49){
+            sourceASItemName = "nas_establish_req";
+            targetASItemName = "nas_establish_ind";
+            targetASMsgID = 1028;//AS_NAS_ESTABLISH_IND=1028
+        }else if(msgID==50){
+            sourceASItemName = "ul_info_transfer_req";
+            targetASItemName = "ul_info_transfer_ind";
+            targetASMsgID = 1030;//AS_UL_INFO_TRANSFER_IND=1030
+        }
+
+        expressionString = targetCache.getName()+"->nas_message.as_message.msgID="+targetASMsgID;
+        CBinaryExpression binaryExpression = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
+        CExpressionAssignmentStatement assignmentStatement = new CExpressionAssignmentStatement(fileLocation,
+                (CLeftHandSide) binaryExpression.getOperand1(),
+                binaryExpression.getOperand2());
+        CFANode msgIDAssignNode = functionBuilder.newCFANode();
+        CStatementEdge statementEdge = new CStatementEdge(expressionString,
+                assignmentStatement,
+                fileLocation,
+                trueNode1, msgIDAssignNode);
+        functionBuilder.addToCFA(statementEdge);
+
+
+
+    }
+
+    public static void rrcSubMessageTranslation(CFGFunctionBuilder functionBuilder,
+                                                CVariableDeclaration sourceCache,
+                                                CVariableDeclaration targetCache,
+                                                String messageName,
+                                                CFANode startNode,
+                                                CFANode endNode){
+
+        FileLocation fileLocation = FileLocation.DUMMY;
+        String expressionString = sourceCache.getName()+"->rrc_message!=NULL";
+        CBinaryExpression rrcmsg = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
+        CFANode trueNodeR1 = functionBuilder.newCFANode();
+        createTrueFalseEdge(functionBuilder,startNode, trueNodeR1, endNode, expressionString, rrcmsg);
+
+        expressionString = sourceCache.getName()+"->rrc_message.message!=NULL";
+        CBinaryExpression rrcmsgMSG = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
+        CFANode trueNodeR11 = functionBuilder.newCFANode();
+        createTrueFalseEdge(functionBuilder,trueNodeR1, trueNodeR11, endNode, expressionString, rrcmsgMSG);
+
+        expressionString = sourceCache.getName()+"->rrc_message.message."+messageName+"!=NULL";
+        CBinaryExpression rrcmsgulccchMSG = (CBinaryExpression) expressionParser(functionBuilder, expressionString);
+        CFANode trueNodeR111 = functionBuilder.newCFANode();
+        createTrueFalseEdge(functionBuilder,trueNodeR11, trueNodeR111, endNode, expressionString, rrcmsgulccchMSG);
+
+        //targetCache->rrc_message.message.ul_ccch_msg = ()sourceCache->rrc_message.message.ul_ccch_msg
+
+        String rawString = expressionString.replace("!=NULL","");
+        CExpression ulccchMSG = rrcmsgulccchMSG.getOperand1();
+        expressionString = targetCache.getName()+"->rrc_message.message."+messageName;
+
+        CExpression targetULCCCHMSG = expressionParser(functionBuilder,expressionString);
+        CCastExpression rrcmsgCast = new CCastExpression(fileLocation,targetULCCCHMSG.getExpressionType(),ulccchMSG);
+        CExpressionAssignmentStatement ulccchMSGtranslation = new CExpressionAssignmentStatement(fileLocation,
+                (CLeftHandSide) targetULCCCHMSG,
+                rrcmsgCast);
+        rawString = expressionString+" = ("+targetULCCCHMSG.getExpressionType().toString()+")"+rawString;
+        CStatementEdge ulccchMSGtranslationEdge = new CStatementEdge(rawString,
+                ulccchMSGtranslation,
+                fileLocation,
+                trueNodeR111,
+                endNode);
+        functionBuilder.addToCFA(ulccchMSGtranslationEdge);
+    }
+
+    public static void initMsgCache(CFGFunctionBuilder functionBuilder, CFABuilder builder, CIdExpression msgCache, CFANode startNode, CFANode endNode, String tempVarName){
+        FileLocation fileLocation = FileLocation.DUMMY;
+        CVariableDeclaration tempVar = new CVariableDeclaration(fileLocation,
+                false,
+                CStorageClass.AUTO,
+                VoidPointer,
+                tempVarName,
+                tempVarName,
+                tempVarName,
+                null);
+        CFANode decNode = functionBuilder.newCFANode();
+
+        CDeclarationEdge declarationEdge = new CDeclarationEdge("Void *"+tempVarName+";",fileLocation,startNode,decNode,tempVar);
+        functionBuilder.addToCFA(declarationEdge);
+
+        CFunctionDeclaration malloc = builder.functionDeclarations.get("malloc");
+        CIdExpression mallocID = new CIdExpression(fileLocation, malloc);
+        List<CExpression> pParameters = new ArrayList<>();
+        CType paramType = malloc.getType().getParameters().get(0);
+        int size = msgCache.getName().startsWith("UE")?1238:2310;
+        pParameters.add(new CIntegerLiteralExpression(fileLocation,paramType, BigInteger.valueOf(size)));//TODO in mme nas_message_t = 1784
+        CFunctionCallExpression functionCallExpression = new CFunctionCallExpression(
+                fileLocation,
+                VoidPointer,
+                mallocID,
+                pParameters,
+                malloc);
+        CIdExpression tempVarId = new CIdExpression(fileLocation, tempVar);
+
+        CFunctionCallAssignmentStatement assignmentStatement = new CFunctionCallAssignmentStatement(
+                fileLocation,
+                tempVarId,
+                functionCallExpression);
+        CFANode mallocNode = functionBuilder.newCFANode();
+        CStatementEdge statementEdge = new CStatementEdge(
+                tempVarName+" = malloc("+size+");",
+                assignmentStatement,
+                fileLocation,
+                decNode,
+                mallocNode);
+        functionBuilder.addToCFA(statementEdge);
+
+        CCastExpression castExpression1 = new CCastExpression(fileLocation,msgCache.getExpressionType(),tempVarId);
+        CExpressionAssignmentStatement assignment = new CExpressionAssignmentStatement(
+                fileLocation,
+                msgCache,
+                castExpression1);
+
+
+        CStatementEdge targetCacheInit = new CStatementEdge(
+                msgCache.getName()+"=("+msgCache.getExpressionType().toString()+")"+tempVarName,
+                assignment,
+                fileLocation,
+                mallocNode,
+                endNode);
+
+        functionBuilder.addToCFA(targetCacheInit);
     }
 
     public static void createTrueFalseEdge(CFGFunctionBuilder builder, CFANode rootNode, CFANode trueNode, CFANode falseNode, String conditionExpr, CExpression expression){
@@ -996,8 +911,13 @@ public class ChannelConstructer {
                 }
             }
         }else {
-            CVariableDeclaration variableDeclaration = (CVariableDeclaration)
-                    functionBuilder.expressionHandler.variableDeclarations.get(exprElements[0].hashCode());
+            CVariableDeclaration variableDeclaration;
+            if(functionBuilder.expressionHandler.globalDeclarations.containsKey(exprElements[0].hashCode()))
+                variableDeclaration = (CVariableDeclaration)
+                    functionBuilder.expressionHandler.globalDeclarations.get(exprElements[0].hashCode());
+            else
+                variableDeclaration = (CVariableDeclaration)
+                        functionBuilder.expressionHandler.variableDeclarations.get(exprElements[0].hashCode());
             CExpression expression = new CIdExpression(fileLocation,variableDeclaration);
             for(int i=1;i<exprElements.length;i+=2){
                 CCompositeType cCompositeType = (CCompositeType) getRealCompositeType(expression.getExpressionType());

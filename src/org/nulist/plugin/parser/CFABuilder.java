@@ -167,11 +167,11 @@ public class CFABuilder {
                 }else if(!functionFilter(cu.name(),funcName)){
                     System.out.println(funcName);
                     CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
-                    if(funcName.equals("pushPlainNASEMMMsgIntoCache"))
+                    if(funcName.equals("_emm_as_send"))
                         System.out.println();
 
                     if(!cfgFunctionBuilder.isFinished){
-                        if(cu.name().equals(UE) || cu.name().equals(MME)){//for delivering NAS message through channel operations
+                        if(projectName.equals(UE) || projectName.equals(MME)){//for delivering NAS message through channel operations
                             if(funcName.equals("nas_message_encode") ||//EMM message
                                     funcName.equals("esm_msg_encode") ||//ESM message
                                     funcName.equals("nas_message_decode") ||
@@ -179,7 +179,7 @@ public class CFABuilder {
                                     funcName.equals("_emm_as_send")){
                                 cfgFunctionBuilder.visitFunction(false);
                             }
-                        }if(cu.name().equals(UE) || cu.name().equals(ENB)){//for delivering RRC message through channel operations
+                        }if(projectName.equals(UE) || projectName.equals(ENB)){//for delivering RRC message through channel operations
                             if(funcName.equals("") ||
                                     funcName.equals("uper_encode_to_buffer") ||
                                     funcName.equals("uper_decode_complete") ||

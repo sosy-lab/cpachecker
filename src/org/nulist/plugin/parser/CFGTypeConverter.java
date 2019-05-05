@@ -34,6 +34,7 @@ public class CFGTypeConverter {
     private static final CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
     public final Map<Integer, CType> typeCache = new HashMap<>();
     private Map<String, CType> typeMap = new HashMap<>();
+    public static final CType VoidPointer = new CPointerType(false,false, CVoidType.VOID);
 
     public CFGTypeConverter(final LogManager pLogger) {
         basicTypeInitialization();
