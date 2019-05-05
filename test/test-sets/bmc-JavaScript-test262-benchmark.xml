@@ -76,11 +76,11 @@
 
         <!-- handled by other tasks -->
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/statements/*/*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/function/scope-name-var-close*.yml</exclude>
 
         <!-- lead to timeout if float semantic is used (handled by other tasks) -->
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/call/scope-var-close*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/call/scope-var-open*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/function/scope-name-var-close*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/typeof/string*.yml</exclude>
 
         <!-- recursion is not supported yet -->
