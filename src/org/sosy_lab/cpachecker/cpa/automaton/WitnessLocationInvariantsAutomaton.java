@@ -42,27 +42,28 @@ public class WitnessLocationInvariantsAutomaton {
 
   private static final String WITNESS_AUTOMATON_NAME = "WitnessLocationInvariantsAutomaton";
 
-  private LogManager logger;
-  private CFA cfa;
+  private final LogManager logger;
+  private final CFA cfa;
 
   public WitnessLocationInvariantsAutomaton(CFA cfa, LogManager logger) {
     this.cfa = cfa;
     this.logger = logger;
   }
 
-  private static Set<CFANode> extractCFANodes(Set<ExpressionTreeLocationInvariant> invariants) {
-    return invariants
+  private static Set<CFANode> extractCFANodes(
+      final Set<ExpressionTreeLocationInvariant> pInvariants) {
+    return pInvariants
         .stream()
         .map(ExpressionTreeLocationInvariant::getLocation)
         .collect(Collectors.toSet());
   }
 
   private static ExpressionTreeLocationInvariant getInvariantByLocation(
-      Set<ExpressionTreeLocationInvariant> invariants, CFANode location) {
+      final Set<ExpressionTreeLocationInvariant> pInvariants, final CFANode pLocation) {
     Set<ExpressionTreeLocationInvariant> filteredInvariants =
-        invariants
+        pInvariants
             .stream()
-            .filter(inv -> inv.getLocation().equals(location))
+            .filter(inv -> inv.getLocation().equals(pLocation))
             .collect(Collectors.toSet());
     assert filteredInvariants.size() == 1;
     return filteredInvariants.iterator().next();
@@ -70,31 +71,34 @@ public class WitnessLocationInvariantsAutomaton {
 
   @SuppressWarnings("unchecked")
   public Automaton buildWitnessLocationInvariantsAutomaton(
-      Set<ExpressionTreeLocationInvariant> invariants) {
+      final Set<ExpressionTreeLocationInvariant> pInvariants) {
     try {
       String automatonName = WITNESS_AUTOMATON_NAME;
       String initialStateName = createStateName(cfa.getMainFunction());
       List<AutomatonInternalState> states = Lists.newLinkedList();
-      Set<CFANode> invariantCFANodes = extractCFANodes(invariants);
+      Set<CFANode> invariantCFANodes = extractCFANodes(pInvariants);
       for (CFANode node : cfa.getAllNodes()) {
-        if (node.getNumLeavingEdges() > 0 && node.getLeavingEdge(0) != null) {
-          CFAEdge leavingEdge = node.getLeavingEdge(0);
+        if (node.getNumLeavingEdges() > 0) {
           List<AutomatonTransition> transitions = Lists.newLinkedList();
-          CFANode successor = leavingEdge.getSuccessor();
-          boolean successorIsBottom = false;
-          if (successor.getNumLeavingEdges() == 0) {
-            successorIsBottom = true;
-          }
-          if (invariantCFANodes.contains(successor)) {
-            ExpressionTreeLocationInvariant invariant =
-                getInvariantByLocation(invariants, successor);
-            ExpressionTree<AExpression> inv = invariant.getExpressionTree();
-            createLocationInvariantsTransitions(
-                transitions, node, successor, inv, successorIsBottom);
-          } else {
-            transitions.add(
-                createAutomatonTransition(
-                    node, Collections.<AExpression>emptyList(), successor, successorIsBottom));
+          for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+            CFAEdge leavingEdge = node.getLeavingEdge(i);
+            CFANode successor = leavingEdge.getSuccessor();
+            boolean successorIsBottom = false;
+            if (successor.getNumLeavingEdges() == 0) {
+              successorIsBottom = true;
+            }
+            if (invariantCFANodes.contains(successor)) {
+              ExpressionTreeLocationInvariant invariant =
+                  getInvariantByLocation(pInvariants, successor);
+              ExpressionTree<AExpression> inv = invariant.getExpressionTree();
+              createLocationInvariantsTransitions(transitions, successor, inv, successorIsBottom);
+            } else {
+              transitions.add(
+                  createAutomatonTransition(
+                      successor,
+                      Collections.<AExpression>emptyList(),
+                      successorIsBottom));
+            }
           }
           AutomatonInternalState state =
               new AutomatonInternalState(createStateName(node), transitions, false, true, false);
@@ -112,11 +116,10 @@ public class WitnessLocationInvariantsAutomaton {
   }
 
   private void createLocationInvariantsTransitions(
-      List<AutomatonTransition> pTransitions,
-      CFANode pOrigin,
-      CFANode pTarget,
-      ExpressionTree<AExpression> pInvariant,
-      boolean successorIsBottom)
+      final List<AutomatonTransition> pTransitions,
+      final CFANode pSuccessor,
+      final ExpressionTree<AExpression> pInvariant,
+      final boolean pSuccessorIsBottom)
       throws UnrecognizedCodeException {
     CExpression cExpr = pInvariant.accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
     if (pInvariant instanceof LeafExpression<?>) {
@@ -131,47 +134,49 @@ public class WitnessLocationInvariantsAutomaton {
         (new CBinaryExpressionBuilder(cfa.getMachineModel(), logger))
             .negateExpressionAndSimplify(cExpr);
     List<AExpression> assumptionWithNegCExpr = Collections.singletonList(negCExpr);
-    pTransitions.add(createAutomatonInvariantErrorTransition(pOrigin, assumptionWithNegCExpr));
+    pTransitions.add(createAutomatonInvariantErrorTransition(pSuccessor, assumptionWithNegCExpr));
     List<AExpression> assumptionWithCExpr = Collections.singletonList(cExpr);
     pTransitions.add(
-        createAutomatonTransition(pOrigin, assumptionWithCExpr, pTarget, successorIsBottom));
+        createAutomatonTransition(pSuccessor, assumptionWithCExpr, pSuccessorIsBottom));
   }
 
-  private AutomatonTransition createAutomatonTransition(
-      CFANode origin, List<AExpression> assumptions, CFANode target, boolean successorIsBottom) {
-    if (successorIsBottom) {
+  private static AutomatonTransition createAutomatonTransition(
+      final CFANode pSuccessor,
+      final List<AExpression> pAssumptions,
+      final boolean pSuccessorIsBottom) {
+    if (pSuccessorIsBottom) {
       return new AutomatonTransition(
-          createQueryString(origin),
+          createQueryLocationString(pSuccessor),
           Collections.<AutomatonBoolExpr>emptyList(),
-          assumptions,
+          pAssumptions,
           Collections.<AutomatonAction>emptyList(),
           AutomatonInternalState.BOTTOM);
     } else {
       return new AutomatonTransition(
-          createQueryString(origin),
+          createQueryLocationString(pSuccessor),
           Collections.<AutomatonBoolExpr>emptyList(),
-          assumptions,
+          pAssumptions,
           Collections.<AutomatonAction>emptyList(),
-          createStateName(target));
+          createStateName(pSuccessor));
     }
   }
 
-  private AutomatonTransition createAutomatonInvariantErrorTransition(
-      CFANode origin, List<AExpression> assumptions) {
+  private static AutomatonTransition createAutomatonInvariantErrorTransition(
+      final CFANode pSuccessor, final List<AExpression> pAssumptions) {
     return new AutomatonTransition(
-        createQueryString(origin),
+        createQueryLocationString(pSuccessor),
         Collections.<AutomatonBoolExpr>emptyList(),
-        assumptions,
+        pAssumptions,
         Collections.<AutomatonAction>emptyList(),
         AutomatonInternalState.ERROR,
         new StringExpression("Invariant not valid"));
   }
 
-  private static AutomatonBoolExpr createQueryString(CFANode origin) {
-    return new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + origin.getNodeNumber());
+  private static AutomatonBoolExpr createQueryLocationString(final CFANode pNode) {
+    return new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + pNode.getNodeNumber());
   }
 
-  private static String createStateName(CFANode node) {
-    return "S" + node.getNodeNumber();
+  private static String createStateName(CFANode pNode) {
+    return "S" + pNode.getNodeNumber();
   }
 }
