@@ -7,7 +7,7 @@
         Download and generate task definition files:
             git clone https://github.com/tc39/test262 test/programs/javascript-test262-benchmark/test262
             cd test/programs/javascript-test262-benchmark/test262
-            git checkout af984c01f6f89d46bc0789af70c599c88c033d0b
+            git checkout d47749e84daeea28b6fa7cefd69e7f2836dbbf37
             rm -rf .git
             rm -rf .gitignore
             cd -
@@ -23,8 +23,6 @@
     <rundefinition>
         <option name="-bmc-JavaScript"/>
     </rundefinition>
-
-    <!-- TODO update test262 files -->
 
     <tasks>
         <propertyfile>../config/specification/JavaScriptAssertion.spc</propertyfile>
@@ -276,6 +274,21 @@
     </tasks>
 
     <tasks>
+        <option name="-setprop">cpa.loopbound.maxLoopIterations=2</option>
+        <option name="-setprop">cpa.predicate.js.maxFieldNameCount=30</option>
+        <!-- approximation of floats as rational runs faster and is sufficient precise -->
+        <option name="-setprop">cpa.predicate.encodeFloatAs=rational</option>
+        <!-- TODO this option should be removed as soon as NaN and float interpolation can be used together -->
+        <option name="-setprop">cpa.predicate.js.useNaN=false</option>
+        <propertyfile>../config/specification/JavaScriptAssertion.spc</propertyfile>
+
+        <include>../programs/javascript-test262-benchmark/test262/test/language/statements/break/line-terminators*.yml</include>
+
+        <!-- TODO TIMEOUT -->
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/statements/continue/line-terminators*.yml</exclude>
+    </tasks>
+
+    <tasks>
         <option name="-setprop">solver.solver=z3</option>
         <option name="-setprop">cpa.loopbound.maxLoopIterations=11</option>
         <option name="-setprop">cpa.predicate.js.maxFieldNameCount=30</option>
@@ -287,11 +300,15 @@
 
         <include>../programs/javascript-test262-benchmark/test262/test/language/statements/*/*.yml</include>
 
-        <!-- lead to timeout if float semantic is used -->
+        <!-- would lead to timeout if float semantic is used -->
         <include>../programs/javascript-test262-benchmark/test262/test/language/expressions/call/scope-var-close*.yml</include>
         <include>../programs/javascript-test262-benchmark/test262/test/language/expressions/call/scope-var-open*.yml</include>
         <include>../programs/javascript-test262-benchmark/test262/test/language/expressions/typeof/string*.yml</include>
         <include>../programs/javascript-test262-benchmark/test262/test/language/expressions/function/scope-name-var-close*.yml</include>
+
+        <!-- handled by other tasks -->
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/statements/break/line-terminators*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/statements/continue/line-terminators*.yml</exclude>
 
         <!-- TODO nested dynamic function calls should not lead to: Unsupported feature (recursion) -->
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/statements/function/params-trailing-comma-multiple*.yml</exclude>
