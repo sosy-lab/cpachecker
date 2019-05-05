@@ -1,4 +1,5 @@
 import os
+import re
 import textwrap
 
 from lib.paths import get_project_root_dir, get_test262_supported_features_files
@@ -96,7 +97,7 @@ for file in get_test262_supported_features_files():
         property_file=relative_path_to_property_file,
         expected_verdict='true')
     # uncomment to skip creation of negated tests
-    continue
+    # continue
     negated_assertion_files = [relpath(error_lib_file)]
     if file_contains_assertion:
         negated_assertion_files.append(relpath(assert_lib_negated_file))
