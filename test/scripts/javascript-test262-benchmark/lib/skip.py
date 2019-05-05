@@ -266,6 +266,10 @@ def is_skip(file, file_content):
             return True
     except (esprima.error_handler.Error, RecursionError):
         eprint('could not parse {} due to {}'.format(file, sys.exc_info()[0]))
+    if 'negative' in meta_data:
+        eprint(file)
+        eprint('\tunknown negative: {}'.format(meta_data['negative']))
+        exit(1)
     try:
         tokens = tokenize(file_content)
     except (esprima.error_handler.Error, RecursionError):
