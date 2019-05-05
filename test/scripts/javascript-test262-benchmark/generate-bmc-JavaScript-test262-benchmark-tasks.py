@@ -2,6 +2,7 @@ import os
 import re
 import textwrap
 
+from lib.metadata import get_meta_data
 from lib.paths import get_project_root_dir, get_test262_supported_features_files
 from lib.print import eprint
 from lib.skip import is_skip_directory, contains_assertion, is_skip
@@ -91,6 +92,11 @@ for file in get_test262_supported_features_files():
     assertion_files = [relpath(error_lib_file)]
     if file_contains_assertion:
         assertion_files.append(relpath(assert_lib_file))
+    # TODO include files specified in metadata
+    meta_data = get_meta_data(file, file_content)
+    if 'includes' in meta_data:
+        eprint('\nfound includes in file: {}\n\t{}'.format(file, meta_data['includes']))
+        exit(1)
     create_task_file(
         yml_file=yml_file,
         input_files=assertion_files + [relpath(std_lib_file), './' + file.name],
