@@ -123,6 +123,10 @@
         <!-- TODO access of this object outside of function -->
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/comments/S7.4_A1_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/comments/S7.4_A2_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/this/11.1.1-1gs*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/function-code/10.4.3-1-21-s*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/function-code/10.4.3-1-23-s*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/function-code/10.4.3-1-25-s*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/types/object/S8.6.2_A5_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/types/object/S8.6.2_A5_T2*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/types/object/S8.6.2_A5_T3*.yml</exclude>
