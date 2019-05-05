@@ -28,6 +28,8 @@ import static org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge.assume;
 import java.util.List;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.ForStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -49,7 +51,10 @@ class ForStatementCFABuilder implements ForStatementAppendable {
     final CFANode loopStartNode = loopBuilder.getExitNode();
     loopStartNode.setLoopStart();
     loopScope.setLoopStartNode(loopStartNode);
-    final JSExpression condition = loopBuilder.append(pNode.getExpression());
+    final JSExpression condition =
+        pNode.getExpression() != null
+            ? loopBuilder.append(pNode.getExpression())
+            : new JSBooleanLiteralExpression(FileLocation.DUMMY, true);
     final JavaScriptCFABuilder loopEdgeBuilder = loopBuilder.copy();
     loopEdgeBuilder.appendEdge(assume(condition, true)).append(pNode.getBody());
     loopEdgeBuilder.appendEdge(continueNode, DummyEdge.withDescription("run for loop updaters"));
