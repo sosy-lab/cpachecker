@@ -1,4 +1,3 @@
-import json
 import sys
 
 import esprima
@@ -250,10 +249,10 @@ def is_skip(file, file_content):
         return True
     if 'negative' in meta_data:
         assert 'type' in meta_data['negative'], \
-            'negative.type does not exist in meta data of {}\n{}'.format(file, json.dumps(meta_data,
-                                                                                          indent=4,
-                                                                                          sort_keys=False))
-        if 'SyntaxError' in meta_data['negative']['type']:
+            'negative.type does not exist in meta data of {}\n{}'.format(file, meta_data)
+        assert 'phase' in meta_data['negative'], \
+            'negative.phase does not exist in meta data of {}\n{}'.format(file, meta_data)
+        if 'parse' in meta_data['negative']['phase']:
             return True
     try:
         v = UnsupportedFeatureVisitor()
