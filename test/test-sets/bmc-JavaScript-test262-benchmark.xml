@@ -214,38 +214,38 @@
         <!-- TODO non strict equal -->
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/does-not-equals/S11.9.2_A5.2*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/does-not-equals/S11.9.2_A5.3*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/equals/S11.9.1_A3.3*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/equals/S11.9.1_A5.3*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/equals/S11.9.1_A3.2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/equals/S11.9.1_A3.3*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/equals/S11.9.1_A5.2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/equals/S11.9.1_A5.3*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/types/string/S8.4_A8*.yml</exclude>
 
         <!-- TODO timeout (properties set on another object (std-lib.js) might cause this?) -->
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/mod-whitespace.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/mod-whitespace_false.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/or-whitespace.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/or-whitespace_false.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/add-whitespace.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/add-whitespace_false.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/mult-whitespace.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/mult-whitespace_false.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/lshift-whitespace.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/lshift-whitespace_false.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/div-whitespace.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/div-whitespace_false.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/urshift-whitespace.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/urshift-whitespace_false.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/srshift-whitespace.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/srshift-whitespace_false.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/xor-whitespace.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/xor-whitespace_false.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/and-whitespace.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/and-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/div-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/div-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/lshift-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/lshift-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/mod-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/mod-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/mult-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/mult-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/or-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/or-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/srshift-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/srshift-whitespace_false.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/sub-whitespace.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/sub-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/urshift-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/urshift-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/xor-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/compound-assignment/xor-whitespace_false.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/division/S11.5.2_A4_T1.2_0.7_false.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/postfix-decrement/whitespace_3_false.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/postfix-decrement/whitespace_2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/postfix-decrement/whitespace_3_false.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/postfix-increment/whitespace_1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/postfix-increment/whitespace_2_false.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test262/test/language/expressions/prefix-decrement/whitespace_0*.yml</exclude>
