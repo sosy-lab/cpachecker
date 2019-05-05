@@ -172,6 +172,7 @@ def contains_assertion(file_content):
     assertion_sub_strings = [
         'assert(',
         'assert.sameValue(',
+        'assert.notSameValue(',
     ]
     return any(s in file_content for s in assertion_sub_strings)
 
