@@ -22,4 +22,6 @@ package org.sosy_lab.cpachecker.core.interfaces;
 public interface AbstractStateWithEdge extends AbstractState {
 
   public AbstractEdge getAbstractEdge();
+
+  public boolean hasEmptyEffect();
 }

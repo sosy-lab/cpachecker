@@ -24,6 +24,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -34,6 +35,8 @@ public class ThreadModularStatistics implements Statistics {
   StatTimer allApplyActions = new StatTimer("Total time for environment calculation");
   StatTimer applyOperator = new StatTimer("Total time for apply operations");
   StatTimer projectOperator = new StatTimer("Total time for project operations");
+  StatCounter applyCounter = new StatCounter("Number of apply operations");
+  StatCounter relevantApplyCounter = new StatCounter("Number of relevant apply operations");
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
@@ -44,7 +47,9 @@ public class ThreadModularStatistics implements Statistics {
         .put(allApplyActions)
         .beginLevel()
         .put(applyOperator)
-        .put(projectOperator);
+        .put(projectOperator)
+        .put(applyCounter)
+        .put(relevantApplyCounter);
   }
 
   @Override

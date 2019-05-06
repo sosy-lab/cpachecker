@@ -209,4 +209,8 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     return Objects.equals(removedSet, pOther.removedSet)
         && pOther.threadSet.containsAll(threadSet);
   }
+
+  public boolean hasEmptyEffect() {
+    return true;
+  }
 }

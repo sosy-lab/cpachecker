@@ -22,6 +22,7 @@ package org.sosy_lab.cpachecker.cpa.location;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 
@@ -90,5 +91,20 @@ public class LocationStateWithEdge extends LocationState implements AbstractStat
 
   public LocationStateWithEdge updateEdge(AbstractEdge pEdge) {
     return new LocationStateWithEdge(locationNode, this.followFunctionCalls, pEdge);
+  }
+
+  @Override
+  public Object getPartitionKey() {
+    if (edge == EmptyEdge.getInstance()) {
+      // Transition in environment
+      return edge;
+    } else {
+      return super.getPartitionKey();
+    }
+  }
+
+  @Override
+  public boolean hasEmptyEffect() {
+    return true;
   }
 }

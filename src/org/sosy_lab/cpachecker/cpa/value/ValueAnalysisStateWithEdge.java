@@ -21,6 +21,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.Map;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -108,6 +109,13 @@ public class ValueAnalysisStateWithEdge extends ValueAnalysisState implements Ab
 
   public boolean hasEqualStates(Object obj) {
     return super.equals(obj);
+  }
+
+  @Override
+  public boolean hasEmptyEffect() {
+    return ((edge instanceof ValueAbstractEdge)
+        && ((ValueAbstractEdge) edge).getDifference().getAssignments().isEmpty())
+        || edge == EmptyEdge.getInstance();
   }
 
 }

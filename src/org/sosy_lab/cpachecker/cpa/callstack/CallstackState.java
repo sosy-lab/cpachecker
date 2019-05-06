@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -59,7 +58,7 @@ public class CallstackState
   protected final @Nullable CallstackState previousState;
   protected final String currentFunction;
   protected transient CFANode callerNode;
-  private final int depth;
+  protected final int depth;
 
   public CallstackState(
       @Nullable CallstackState pPreviousElement,
@@ -155,29 +154,6 @@ public class CallstackState
     in.defaultReadObject();
     int nodeNumber = in.readInt();
     callerNode = GlobalInfo.getInstance().getCFAInfo().get().getNodeByNodeNumber(nodeNumber);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(currentFunction, callerNode, depth);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CallstackState other = (CallstackState) obj;
-    CallstackStateEqualsWrapper thisWraper = new CallstackStateEqualsWrapper(this);
-    CallstackStateEqualsWrapper otherWraper = new CallstackStateEqualsWrapper(other);
-
-    return thisWraper.equals(otherWraper);
   }
 
 }

@@ -1674,7 +1674,8 @@ public class ValueAnalysisTransferRelation
     if (edge == EmptyEdge.getInstance()) {
       return Collections.singleton(pState);
     } else {
-      ValueAnalysisState result = ValueAnalysisState.copyOf((ValueAnalysisState) pState);
+      // Cannot use copyOf as it creates ValueAnalysisState with edge
+      ValueAnalysisState result = new ValueAnalysisState((ValueAnalysisState) pState);
       ValueAnalysisInformation diff = ((ValueAbstractEdge) edge).getDifference();
 
       Map<MemoryLocation, ValueAndType> values = diff.getAssignments();

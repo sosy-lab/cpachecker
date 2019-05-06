@@ -25,12 +25,18 @@ import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ThreadModularTransferRelation implements TransferRelation {
 
@@ -64,42 +70,67 @@ public class ThreadModularTransferRelation implements TransferRelation {
 
     stats.totalTransfer.start();
     List<AbstractState> transitions = new ArrayList<>();
+    boolean transitionInThread;
+    AbstractStateWithLocations loc =
+        AbstractStates.extractStateByType(pState, AbstractStateWithLocations.class);
+    if (loc instanceof AbstractStateWithEdge) {
+      AbstractEdge edge = ((AbstractStateWithEdge) loc).getAbstractEdge();
+      if (edge instanceof WrapperCFAEdge) {
+        // Transition in thread
+        transitionInThread = true;
+        transitions.add(pState);
+      } else if (edge == EmptyEdge.getInstance()) {
+        // Projection
+        transitionInThread = false;
+      } else {
+        throw new UnsupportedOperationException("Unrecognized abstract edge: " + edge.getClass());
+      }
+    } else {
+      throw new UnsupportedOperationException(
+          "ThreadModularCPA requires location states with edges");
+    }
 
     stats.allApplyActions.start();
     shutdownNotifier.shutdownIfNecessary();
     for (AbstractState state : pReached) {
+      AbstractState newState;
       stats.applyOperator.start();
-      AbstractState newState = applyOperator.apply(state, pState);
-      stats.applyOperator.stop();
-
-      if (newState != null) {
-        transitions.add(newState);
+      if (transitionInThread) {
+        newState = applyOperator.apply(pState, state);
+      } else {
+        newState = applyOperator.apply(state, pState);
       }
-      stats.applyOperator.start();
-      newState = applyOperator.apply(pState, state);
+      stats.applyCounter.inc();
       stats.applyOperator.stop();
       if (newState != null) {
+        stats.relevantApplyCounter.inc();
         transitions.add(newState);
       }
     }
     stats.allApplyActions.stop();
 
-    stats.wrappedTransfer.start();
-    Collection<? extends AbstractState> successors =
-        wrappedTransfer.getAbstractSuccessors(pState, pReached, pPrecision);
-    stats.wrappedTransfer.stop();
-
+    // TODO Get precision from ReachedSet!!
     List<AbstractState> result = new ArrayList<>();
-    result.addAll(successors);
+    for (AbstractState transition : transitions) {
 
-    stats.projectOperator.start();
-    for (AbstractState child : successors) {
-      AbstractState projection = applyOperator.project(pState, child);
-      if (projection != null) {
-        result.add(projection);
+      stats.wrappedTransfer.start();
+      Collection<? extends AbstractState> successors =
+          wrappedTransfer.getAbstractSuccessors(transition, pReached, pPrecision);
+      stats.wrappedTransfer.stop();
+
+      result.addAll(successors);
+
+      stats.projectOperator.start();
+      for (AbstractState child : successors) {
+        AbstractState projection = applyOperator.project(transition, child);
+        if (projection != null) {
+          result.add(projection);
+        }
       }
+      stats.projectOperator.stop();
+
     }
-    stats.projectOperator.stop();
+
     stats.totalTransfer.stop();
     return result;
   }
