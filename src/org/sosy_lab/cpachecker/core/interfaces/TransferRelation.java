@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -55,6 +56,14 @@ public interface TransferRelation {
       AbstractState state,
       Precision precision)
           throws CPATransferException, InterruptedException;
+
+  default Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState state,
+      @SuppressWarnings("unused") UnmodifiableReachedSet reached,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    return getAbstractSuccessors(state, precision);
+  }
 
   /**
    * Get all successors of the current abstract state for a given single CFA edge.

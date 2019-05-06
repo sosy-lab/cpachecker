@@ -42,8 +42,10 @@ import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -61,7 +63,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class CompositeCPA implements StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class CompositeCPA implements StatisticsProvider, WrapperCPA,
+    ConfigurableProgramAnalysisWithBAM, ProofChecker, ConfigurableProgramAnalysisTM {
 
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
@@ -353,5 +356,18 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
     }
 
     return true;
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() throws InvalidConfigurationException {
+    ImmutableList.Builder<ApplyOperator> wrappedOperators = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      Preconditions.checkState(
+          cpa instanceof ConfigurableProgramAnalysisTM,
+          "wrapped CPA does not support Thread modular approach: "
+              + cpa.getClass().getCanonicalName());
+      wrappedOperators.add(((ConfigurableProgramAnalysisTM) cpa).getApplyOperator());
+    }
+    return new CompositeApplyOperator(wrappedOperators.build());
   }
 }

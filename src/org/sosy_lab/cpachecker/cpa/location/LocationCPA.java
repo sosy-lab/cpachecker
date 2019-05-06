@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -47,7 +48,8 @@ import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 public class LocationCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA, StatisticsProvider {
+    implements ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA, StatisticsProvider,
+    ConfigurableProgramAnalysisTM {
 
   private final LocationStateFactory stateFactory;
 
