@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Collection;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -40,7 +39,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public abstract class SingleEdgeTransferRelation implements TransferRelation {
 
   @Override
-  public final Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision)
+  public Collection<? extends AbstractState>
+      getAbstractSuccessors(AbstractState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
 
     throw new UnsupportedOperationException(

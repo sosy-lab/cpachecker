@@ -81,7 +81,7 @@ public class LocationState
   }
 
   protected transient CFANode locationNode;
-  private boolean followFunctionCalls;
+  protected boolean followFunctionCalls;
 
   LocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {
     locationNode = pLocationNode;

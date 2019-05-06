@@ -21,8 +21,14 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
+import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class CompositeApplyOperator implements ApplyOperator {
 
@@ -47,7 +53,14 @@ public class CompositeApplyOperator implements ApplyOperator {
     for (ApplyOperator applyOp : applyOperators) {
       AbstractState absState1 = iter1.next();
       AbstractState absState2 = iter2.next();
-      AbstractState appliedState = applyOp.apply(absState1, absState2);
+      AbstractState appliedState;
+
+      appliedState = applyOp.apply(absState1, absState2);
+
+      if (appliedState == null) {
+        // Not compatible
+        return null;
+      }
 
       if (appliedState != absState1) {
         identicalStates = false;
@@ -62,4 +75,55 @@ public class CompositeApplyOperator implements ApplyOperator {
     }
   }
 
+  @Override
+  public AbstractState project(AbstractState pParent, AbstractState pChild) {
+    AbstractStateWithLocations loc =
+        AbstractStates.extractStateByType(pParent, AbstractStateWithLocations.class);
+    if (loc instanceof AbstractStateWithEdge) {
+      AbstractEdge edge = ((AbstractStateWithEdge) loc).getAbstractEdge();
+      if (edge instanceof WrapperCFAEdge) {
+        return project(pParent, pChild, edge);
+      }
+    }
+    // Means its already a projection
+    return null;
+  }
+
+  @Override
+  public AbstractState project(AbstractState pParent, AbstractState pChild, AbstractEdge pEdge) {
+    CompositeState parent = (CompositeState) pParent;
+    CompositeState child = (CompositeState) pChild;
+
+    assert (parent.getNumberOfStates() == child.getNumberOfStates());
+
+    ImmutableList.Builder<AbstractState> appliedStates = ImmutableList.builder();
+    Iterator<AbstractState> iter1 = parent.getWrappedStates().iterator();
+    Iterator<AbstractState> iter2 = child.getWrappedStates().iterator();
+
+    boolean notEmptyEdge = false;
+    for (ApplyOperator applyOp : applyOperators) {
+      AbstractState absState1 = iter1.next();
+      AbstractState absState2 = iter2.next();
+      AbstractState appliedState;
+
+      if (pEdge == null) {
+        appliedState = applyOp.project(absState1, absState2);
+      } else {
+        appliedState = applyOp.project(absState1, absState2, pEdge);
+      }
+
+      if (appliedState instanceof AbstractStateWithEdge) {
+        if (((AbstractStateWithEdge) appliedState).getAbstractEdge() != EmptyEdge.getInstance()) {
+          notEmptyEdge = true;
+        }
+      }
+      appliedStates.add(appliedState);
+    }
+
+    if (notEmptyEdge) {
+      return new CompositeState(appliedStates.build());
+    } else {
+      return null;
+    }
+  }
 }

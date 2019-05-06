@@ -84,7 +84,8 @@ public class LocationTransferRelation implements TransferRelation {
         if (edge instanceof WrapperCFAEdge) {
           return getAbstractSuccessorsForEdge(element, prec, ((WrapperCFAEdge) edge).getCFAEdge());
         } else if (edge instanceof EmptyEdge) {
-          return Collections.singleton((LocationState) element);
+          // Again return all next edges
+          return factory.getState(((LocationState) element).locationNode);
         } else {
           throw new UnsupportedOperationException(
               edge.getClass() + " edges are not supported in LocationCPA");

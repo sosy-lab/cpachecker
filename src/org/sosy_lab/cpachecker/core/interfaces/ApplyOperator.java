@@ -20,5 +20,10 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 public interface ApplyOperator {
+
   public AbstractState apply(AbstractState pState1, AbstractState pState2);
+
+  public AbstractState project(AbstractState pParent, AbstractState pChild);
+
+  public AbstractState project(AbstractState pParent, AbstractState pChild, AbstractEdge pEdge);
 }

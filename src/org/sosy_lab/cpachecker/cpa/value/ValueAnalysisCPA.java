@@ -52,7 +52,9 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -82,7 +84,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM,
         StatisticsProvider,
         ProofCheckerCPA,
-        ConfigurableProgramAnalysisWithConcreteCex {
+    ConfigurableProgramAnalysisWithConcreteCex, ConfigurableProgramAnalysisTM {
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValueAnalysisCPA")
@@ -313,5 +315,10 @@ public class ValueAnalysisCPA extends AbstractCPA
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
     return errorPathAllocator.allocateAssignmentsToPath(pPath);
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() throws InvalidConfigurationException {
+    return new ValueAnalysisApplyOperator();
   }
 }

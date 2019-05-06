@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -76,7 +77,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 public class ControlAutomatonCPA
     implements StatisticsProvider,
         ConfigurableProgramAnalysisWithBAM,
-        ProofCheckerCPA {
+    ProofCheckerCPA, ConfigurableProgramAnalysisTM {
 
   @Option(secure=true, name="dotExport",
       description="export automaton to file")

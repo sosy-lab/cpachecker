@@ -127,9 +127,44 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
   private void getAbstractSuccessorForAbstractEdge(
       CompositeState pCompositeState,
       CompositePrecision pCompositePrecision,
-      Collection<CompositeState> pResults) {
-    throw new UnsupportedOperationException("Abstract edges are not yet suported");
+      Collection<CompositeState> pResults)
+      throws CPATransferException, InterruptedException {
+    int resultCount = 1;
+    List<AbstractState> componentElements = pCompositeState.getWrappedStates();
+    checkArgument(
+        componentElements.size() == size,
+        "State with wrong number of component states given");
+    List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<>(size);
 
+    // first, call all the post operators
+    for (int i = 0; i < size; i++) {
+      TransferRelation lCurrentTransfer = transferRelations.get(i);
+      AbstractState lCurrentElement = componentElements.get(i);
+      Precision lCurrentPrecision = pCompositePrecision.get(i);
+
+      Collection<? extends AbstractState> componentSuccessors;
+      if (lCurrentElement instanceof AbstractStateWithEdge) {
+        componentSuccessors =
+            lCurrentTransfer.getAbstractSuccessors(lCurrentElement, lCurrentPrecision);
+      } else {
+        // Means inner CPA does not change its state by transfer
+        componentSuccessors = Collections.singleton(lCurrentElement);
+      }
+      resultCount *= componentSuccessors.size();
+
+      if (resultCount == 0) {
+        // shortcut
+        break;
+      }
+
+      allComponentsSuccessors.add(componentSuccessors);
+    }
+
+    for (List<AbstractState> successor : createCartesianProduct(
+        allComponentsSuccessors,
+        resultCount)) {
+      pResults.add(new CompositeState(successor));
+    }
   }
 
   private void getAbstractSuccessors(

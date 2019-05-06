@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -108,8 +109,10 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -1659,5 +1662,35 @@ public class ValueAnalysisTransferRelation
 
   private ExpressionValueVisitor getVisitor() {
     return getVisitor(state, functionName);
+  }
+
+  @Override
+  public Collection<? extends AbstractState>
+      getAbstractSuccessors(AbstractState pState, Precision pPrecision)
+          throws CPATransferException, InterruptedException {
+    assert pState instanceof ValueAnalysisStateWithEdge;
+    AbstractEdge edge = ((ValueAnalysisStateWithEdge) pState).getAbstractEdge();
+
+    if (edge == EmptyEdge.getInstance()) {
+      return Collections.singleton(pState);
+    } else {
+      ValueAnalysisState result = ValueAnalysisState.copyOf((ValueAnalysisState) pState);
+      ValueAnalysisInformation diff = ((ValueAbstractEdge) edge).getDifference();
+
+      Map<MemoryLocation, ValueAndType> values = diff.getAssignments();
+      for (MemoryLocation mem : values.keySet()) {
+        ValueAndType val = values.get(mem);
+        if (val.getValue() != UnknownValue.getInstance()) {
+          result.assignConstant(mem, val.getValue(), val.getType());
+        } else {
+          result.forget(mem);
+        }
+      }
+      if (result.equals(pState)) {
+        return Collections.emptySet();
+      } else {
+        return Collections.singleton(result);
+      }
+    }
   }
 }

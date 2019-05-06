@@ -23,12 +23,18 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class ThreadModularCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {
+
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(ThreadModularCPA.class);
+  }
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
@@ -47,7 +53,7 @@ public class ThreadModularCPA extends AbstractSingleWrapperCPA implements Statis
       throw new InvalidConfigurationException(
           "ThreadModularCPA needs CPAs that are capable for thread-modular approach");
     }
-    // pConfig.inject(this, AbstractBAMCPA.class);
+    // pConfig.inject(this, ThreadModularCPA.class);
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;

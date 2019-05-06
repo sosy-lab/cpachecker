@@ -33,6 +33,7 @@ public class ThreadModularStatistics implements Statistics {
   StatTimer wrappedTransfer = new StatTimer("Total time for wrapped transfer");
   StatTimer allApplyActions = new StatTimer("Total time for environment calculation");
   StatTimer applyOperator = new StatTimer("Total time for apply operations");
+  StatTimer projectOperator = new StatTimer("Total time for project operations");
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
@@ -42,7 +43,8 @@ public class ThreadModularStatistics implements Statistics {
         .put(wrappedTransfer)
         .put(allApplyActions)
         .beginLevel()
-        .put(applyOperator);
+        .put(applyOperator)
+        .put(projectOperator);
   }
 
   @Override

@@ -63,35 +63,43 @@ public class ThreadModularTransferRelation implements TransferRelation {
           throws CPATransferException, InterruptedException {
 
     stats.totalTransfer.start();
-    stats.wrappedTransfer.start();
-
-    Collection<? extends AbstractState> successors =
-        wrappedTransfer.getAbstractSuccessors(pState, pReached, pPrecision);
-
-    stats.wrappedTransfer.stop();
-    List<AbstractState> result = new ArrayList<>();
-    result.addAll(successors);
+    List<AbstractState> transitions = new ArrayList<>();
 
     stats.allApplyActions.start();
     shutdownNotifier.shutdownIfNecessary();
-    for (AbstractState suc : successors) {
-      for (AbstractState state : pReached) {
-        stats.applyOperator.start();
-        AbstractState newState = applyOperator.apply(state, suc);
-        stats.applyOperator.stop();
+    for (AbstractState state : pReached) {
+      stats.applyOperator.start();
+      AbstractState newState = applyOperator.apply(state, pState);
+      stats.applyOperator.stop();
 
-        if (newState != null) {
-          result.add(newState);
-        }
-        stats.applyOperator.start();
-        newState = applyOperator.apply(suc, state);
-        stats.applyOperator.stop();
-        if (newState != null) {
-          result.add(newState);
-        }
+      if (newState != null) {
+        transitions.add(newState);
+      }
+      stats.applyOperator.start();
+      newState = applyOperator.apply(pState, state);
+      stats.applyOperator.stop();
+      if (newState != null) {
+        transitions.add(newState);
       }
     }
     stats.allApplyActions.stop();
+
+    stats.wrappedTransfer.start();
+    Collection<? extends AbstractState> successors =
+        wrappedTransfer.getAbstractSuccessors(pState, pReached, pPrecision);
+    stats.wrappedTransfer.stop();
+
+    List<AbstractState> result = new ArrayList<>();
+    result.addAll(successors);
+
+    stats.projectOperator.start();
+    for (AbstractState child : successors) {
+      AbstractState projection = applyOperator.project(pState, child);
+      if (projection != null) {
+        result.add(projection);
+      }
+    }
+    stats.projectOperator.stop();
     stats.totalTransfer.stop();
     return result;
   }
