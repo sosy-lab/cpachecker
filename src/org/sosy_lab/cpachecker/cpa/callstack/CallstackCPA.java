@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
@@ -131,5 +132,10 @@ public class CallstackCPA extends AbstractCPA
 
   public CallstackOptions getOptions() {
     return options;
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() throws InvalidConfigurationException {
+    return new CallstackApplyOperator();
   }
 }
