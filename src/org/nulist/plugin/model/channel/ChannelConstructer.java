@@ -60,14 +60,11 @@ public class ChannelConstructer {
         return channelBuilder;
     }
 
-
-
     public static void buildChannelMessageType(CFABuilder channelBuilder, Map<String, CFABuilder> builderMap){
         CFABuilder ueBuilder = builderMap.get(UE);
         CType nas = buildNASChannelMessageType(channelBuilder, ueBuilder);
         CType rrc = buildRRCChannelMessageType(channelBuilder, ueBuilder);
         buildChannelMessageType(channelBuilder,nas,rrc,"ue");
-
 
         CFABuilder enbBuilder = builderMap.get(ENB);
         CFABuilder mmeBuilder = builderMap.get(MME);
@@ -934,7 +931,7 @@ public class ChannelConstructer {
         }
     }
 
-    private static String[] splitStringExpression(String expression){
+    public static String[] splitStringExpression(String expression){
         List<String> elements = new ArrayList<>();
         char[] chars = expression.toCharArray();
         StringBuilder builder = new StringBuilder();
