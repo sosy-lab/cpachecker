@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.blocks;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -106,7 +107,7 @@ public class BlockToDotWriter {
         Comparator.<Block>comparingInt((block) -> block.getNodes().size()).reversed());
 
     // build hierarchy, worst case runtime O(n^2), iff mainBlock contains all other blocks 'directly'.
-    final Multimap<Block, Block> hierarchy = HashMultimap.create();
+    final Multimap<Block, Block> hierarchy = LinkedHashMultimap.create();
     while (!sortedBlocks.isEmpty()) {
       // get smallest block and then the smallest outer block, that contains it
       Block currentBlock = sortedBlocks.remove(sortedBlocks.size() - 1); // get smallest block,

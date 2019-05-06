@@ -27,7 +27,6 @@ import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersist
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -36,6 +35,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -76,7 +76,7 @@ public class PredicateAbstractionsWriter {
 
     // in this set, we collect the string representing each predicate
     // (potentially making use of the above definitions)
-    Map<ARGState, String> stateToAssert = Maps.newHashMap();
+    Map<ARGState, String> stateToAssert = new LinkedHashMap<>();
 
     // Get list of all abstraction states in the set reached
     Deque<ARGState> worklist = Queues.newArrayDeque();
