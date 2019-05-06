@@ -852,7 +852,7 @@ public class ChannelConstructer {
         builder.addToCFA(falseEdge21);
     }
 
-    private static CExpression expressionParser(CFGFunctionBuilder functionBuilder, String expressionString){
+    public static CExpression expressionParser(CFGFunctionBuilder functionBuilder, String expressionString){
         //==, !=, =
         String left, right;
         CBinaryExpression.BinaryOperator operator = CBinaryExpression.BinaryOperator.EQUALS;
@@ -896,7 +896,7 @@ public class ChannelConstructer {
         throw new RuntimeException(memeber+" does not belong to the type: " +type.toString());
     }
 
-    private static CExpression expressionParser(CFGFunctionBuilder functionBuilder, String[] exprElements){
+    public static CExpression expressionParser(CFGFunctionBuilder functionBuilder, String[] exprElements){
         FileLocation fileLocation = FileLocation.DUMMY;
         if(exprElements.length==1){
             if(exprElements[0].equals("NULL")){
