@@ -43,20 +43,20 @@ import static org.nulist.plugin.parser.CFGParser.*;
 public class ChannelBuilder {
 
     public Map<String, CFABuilder> builderMap;
-    public  AntlrCFunctionParserDriver driver;
     public CFABuilder channelBuilder;
+    private String filename="";
 
-    public ChannelBuilder (Map<String, CFABuilder> builderMap, AntlrCFunctionParserDriver driver){
+    public ChannelBuilder (Map<String, CFABuilder> builderMap, String buildName){
         this.builderMap = builderMap;
-        this.driver = driver;
+        channelBuilder=new CFABuilder(null, MachineModel.LINUX64,buildName);
     }
 
-    public CFABuilder parseBuildFile(AntlrCFunctionParserDriver driver,String buildName){
+    public void parseBuildFile(AntlrCFunctionParserDriver driver){
 
-        channelBuilder=new CFABuilder(null, MachineModel.LINUX64,buildName);
         buildChannelMessageType();
 
         AstNode top = driver.builderStack.peek().getItem();
+        filename = driver.filename;
         Map<Integer, List<AstNode>> globalNodes = globalStatementMap(top);
 
         globalNodes.forEach(((integer, astNodes) -> {
@@ -71,8 +71,6 @@ public class ChannelBuilder {
                     break;
             }
         }));
-
-        return channelBuilder;
     }
 
     public void buildChannelMessageType(){
@@ -236,7 +234,7 @@ public class ChannelBuilder {
         CFGFunctionBuilder functionBuilder = new CFGFunctionBuilder(null,
                 channelBuilder.typeConverter, null,
                 functionName,
-                driver.filename,
+                filename,
                 channelBuilder);
 
         CType returnType = getType(astNodes.get(0).getEscapedCodeStr());
@@ -283,8 +281,7 @@ public class ChannelBuilder {
 
         Optional<CVariableDeclaration> returnVar = Optional.absent();
         AstNode compoundNode = astNodes.get(astNodes.size()-1);
-        if(compoundNode.getChild(compoundNode.getChildCount()-1).getTypeAsString().equals("ReturnStatement") &&
-            !returnType.equals(CVoidType.VOID)){
+        if(!returnType.equals(CVoidType.VOID)){
             CVariableDeclaration variableDeclaration = new CVariableDeclaration(
                     FileLocation.DUMMY,
                     false,
@@ -294,6 +291,8 @@ public class ChannelBuilder {
                     "returnVar",
                     "returnVar",
                     null);
+            functionBuilder.expressionHandler.variableDeclarations.put(variableDeclaration.getName().hashCode(),
+                    variableDeclaration);
             returnVar = Optional.of(variableDeclaration);
         }
 
@@ -309,7 +308,7 @@ public class ChannelBuilder {
         channelBuilder.expressionHandler.globalDeclarations.put(functionName.hashCode(), functionDeclaration);
         channelBuilder.functions.put(functionName,entry);
 
-        functionVisitor(functionBuilder, astNodes.get(astNodes.size()-1));
+        functionVisitor(functionBuilder, compoundNode);
     }
 
     public void functionVisitor(CFGFunctionBuilder functionBuilder, AstNode node){
@@ -318,10 +317,33 @@ public class ChannelBuilder {
         BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY,
                 functionBuilder.cfa, cfaNode, "Function start dummy edge");
         functionBuilder.addToCFA(dummyEdge);
+        CFANode lastNode;
+        if(functionBuilder.cfa.getReturnVariable().isPresent()){
+            CVariableDeclaration variableDeclaration= (CVariableDeclaration) functionBuilder.cfa.getReturnVariable().get();
+            CFANode decNode = functionBuilder.newCFANode();
+            CDeclarationEdge declarationEdge = new CDeclarationEdge(
+                    functionBuilder.functionDeclaration.getType().getReturnType().toString()+" returnVar;",
+                    FileLocation.DUMMY,
+                    cfaNode,
+                    decNode,
+                    variableDeclaration);
+            functionBuilder.addToCFA(declarationEdge);
+            lastNode = treeVisitor(functionBuilder,node, decNode,functionBuilder.cfa.getExitNode());
+        }else
+            lastNode = treeVisitor(functionBuilder,node, cfaNode,functionBuilder.cfa.getExitNode());
 
-        treeVisitor(functionBuilder,node, cfaNode,functionBuilder.cfa.getExitNode());
+        if(!functionBuilder.cfa.getReturnVariable().isPresent() &&functionBuilder.cfa.getExitNode().getNumEnteringEdges()==0){
+
+            functionBuilder.addToCFA(new BlankEdge("return;",
+                    FileLocation.DUMMY,
+                    lastNode,
+                    functionBuilder.cfa.getExitNode(),
+            ""));
+        }
+
+        functionBuilder.finish();
     }
-    public void treeVisitor(CFGFunctionBuilder functionBuilder, AstNode node, CFANode startNode1, CFANode endNode1){
+    public CFANode treeVisitor(CFGFunctionBuilder functionBuilder, AstNode node, CFANode startNode1, CFANode endNode1){
         Iterator<AstNode> iterator = node.getChildIterator();
         CFANode startNode , endNode= startNode1;
 
@@ -358,9 +380,9 @@ public class ChannelBuilder {
                     break;
                     default:
                         throw new RuntimeException("Unsupport statement:"+ astNode.getTypeAsString());
-
             }
         }
+        return endNode;
     }
 
     public void returnStatement(CFGFunctionBuilder functionBuilder, AstNode astNode, CFANode startNode, CFANode endNode){
@@ -434,6 +456,8 @@ public class ChannelBuilder {
                         type,
                         operand1,
                         unaryOperator);
+            case "CallExpression":
+                return (CExpression) handleCallExpression(functionBuilder, expressionNode);
             case "Identifier":
             case "Constant":
                 return getExpressionFromString(functionBuilder,expressionNode.getEscapedCodeStr());
@@ -441,6 +465,26 @@ public class ChannelBuilder {
                     throw new RuntimeException("Unsupport expression node: "+ expressionNode.getTypeAsString());
 
         }
+    }
+
+    private CFunctionCallExpression handleCallExpression(CFGFunctionBuilder functionBuilder,AstNode expressionNode){
+        AstNode callee = expressionNode.getChild(0);
+        List<CExpression> paramLists = new ArrayList<>();
+        if(expressionNode.getChildCount()>1){
+            AstNode agrumentList = expressionNode.getChild(1);
+            for(int i=0;i<agrumentList.getChildCount();i++){
+                CExpression expression = getExpression(functionBuilder,agrumentList.getChild(i));
+                paramLists.add(expression);
+            }
+        }
+        FileLocation fileLocation = getFileLocation(expressionNode.getLocation());
+        CFunctionDeclaration functionDeclaration = getFunctionDelcaration(callee.getEscapedCodeStr());
+        CExpression functionName = new CIdExpression(fileLocation,functionDeclaration);
+        return new CFunctionCallExpression(fileLocation,
+                functionDeclaration.getType().getReturnType(),
+                functionName,
+                paramLists,
+                functionDeclaration);
     }
 
     private CExpression getExpressionFromString(CFGFunctionBuilder functionBuilder, String expressionString){
@@ -457,6 +501,22 @@ public class ChannelBuilder {
             case "__alignof__":return CUnaryExpression.UnaryOperator.ALIGNOF;
             default:throw new RuntimeException("Not a unary operator: " + operatorCode);
         }
+    }
+
+    private CFunctionDeclaration getFunctionDelcaration(String functionName){
+        CFunctionDeclaration functionDeclaration;
+        if(functionName.startsWith("UE_"))
+            functionDeclaration= builderMap.get(UE).functionDeclarations.get(functionName.replace("UE_",""));
+        else if(functionName.startsWith("ENB_"))
+            functionDeclaration= builderMap.get(ENB).functionDeclarations.get(functionName.replace("ENB_",""));
+        else if(functionName.startsWith("MME_"))
+            functionDeclaration= builderMap.get(MME).functionDeclarations.get(functionName.replace("MME_",""));
+        else
+            functionDeclaration= channelBuilder.functionDeclarations.get(functionName);
+        if(functionDeclaration==null)
+            throw new RuntimeException("No such function:"+functionName);
+        else
+            return functionDeclaration;
     }
 
     private CBinaryExpression.BinaryOperator getBinaryOperator(String operatorCode){
@@ -488,10 +548,16 @@ public class ChannelBuilder {
         if(expressionNode.getTypeAsString().equals("AssignmentExpression")){
             CExpression operand1 = getExpression(functionBuilder,expressionNode.getChild(0));
             CExpression operand2 = getExpression(functionBuilder,expressionNode.getChild(1));
-            statement = new CExpressionAssignmentStatement(
+            if(operand2 instanceof CFunctionCallExpression)
+                statement = new CFunctionCallAssignmentStatement(
                     fileLocation,
                     (CLeftHandSide) operand1,
-                    operand2);
+                        (CFunctionCallExpression) operand2);
+            else
+                statement = new CExpressionAssignmentStatement(
+                        fileLocation,
+                        (CLeftHandSide) operand1,
+                        operand2);
         }else if(expressionNode.getTypeAsString().equals("PostIncDecOperationExpression")){
             AstNode identifier = expressionNode.getChild(0);
             AstNode operation = expressionNode.getChild(1);
@@ -711,7 +777,7 @@ public class ChannelBuilder {
     }
 
     private FileLocation getFileLocation(CodeLocation location){
-        return new FileLocation(driver.filename, 0,1,location.startLine,location.endLine);
+        return new FileLocation(filename, 0,1,location.startLine,location.endLine);
     }
 
     public CDeclaration declarationParser(CFGFunctionBuilder functionBuilder, FileLocation fileLocation, boolean isGlobal, String declarationString){

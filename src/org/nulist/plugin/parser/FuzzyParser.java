@@ -34,13 +34,14 @@ public class FuzzyParser implements Parser {
 
     private LogManager logger=null;
     private MachineModel machineModel;
-    public Map<String, CFABuilder> lteBuilders;
+    public ChannelBuilder channelBuilder;
+    public final static String channel = "Channel";
 
 
-    public FuzzyParser(final LogManager pLogger, final MachineModel pMachineModel, Map<String, CFABuilder> builderMap){
+    public FuzzyParser(final LogManager pLogger, final MachineModel pMachineModel, Map<String, CFABuilder> lteBuilders){
         logger = pLogger ;
         machineModel = pMachineModel;
-        lteBuilders = builderMap;
+        channelBuilder = new ChannelBuilder(lteBuilders, channel);
     }
 
     @Override
@@ -54,17 +55,8 @@ public class FuzzyParser implements Parser {
     }
 
     @Override
-    public ParseResult parseFile(String filename) throws ParserException, IOException, InterruptedException {
-        File file = new File(filename);
+    public ParseResult parseFile(String filename) throws ParserException {
 
-        CharStream inputStream = CharStreams.fromPath(file.toPath());
-        AntlrCFunctionParserDriver driver = new AntlrCFunctionParserDriver();
-        Lexer lexer = driver.createLexer(inputStream);
-        TokenSubStream functionTokens = new TokenSubStream(lexer);
-        driver.parseAndWalkTokenStream(functionTokens);
-
-
-        ChannelBuilder channelBuilder = new ChannelBuilder(lteBuilders,driver);
 
         return null;
     }
@@ -74,6 +66,21 @@ public class FuzzyParser implements Parser {
         return null;
     }
 
+    public void parseChannelModel(String filename){
+        File file = new File(filename);
+        try {
+            CharStream inputStream = CharStreams.fromPath(file.toPath());
+            AntlrCFunctionParserDriver driver = new AntlrCFunctionParserDriver();
+            Lexer lexer = driver.createLexer(inputStream);
+            TokenSubStream functionTokens = new TokenSubStream(lexer);
+            driver.parseAndWalkTokenStream(functionTokens);
+            channelBuilder.parseBuildFile(driver);
+        }catch (IOException e){
+            throw new RuntimeException(e);
+        }
+    }
 
-
+    public CFABuilder getChannelBuilder() {
+        return channelBuilder.channelBuilder;
+    }
 }

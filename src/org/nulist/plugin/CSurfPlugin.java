@@ -5,6 +5,7 @@ import org.nulist.plugin.model.action.ITTIAbstract;
 import org.nulist.plugin.parser.CFABuilder;
 import org.nulist.plugin.parser.CFGFunctionBuilder;
 import org.nulist.plugin.parser.CFGParser;
+import org.nulist.plugin.parser.FuzzyParser;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -20,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.nulist.plugin.model.ChannelBuildOperation.doComposition;
+import static org.nulist.plugin.parser.FuzzyParser.channel;
 import static org.nulist.plugin.parser.CFGParser.ENB;
 import static org.nulist.plugin.parser.CFGParser.MME;
 import static org.nulist.plugin.util.CFGDumping.dumpCFG2Dot;
@@ -61,24 +63,24 @@ public class CSurfPlugin {
             project.load(projectPath+UEProjectPath,true);
             project proj = project.current();
 //            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
-//            try {
-//                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
-//                builderMap.put(proj.name(),cfaBuilder);
-//            }catch (result r){
-//                r.printStackTrace();
-//            }
+            try {
+                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
+                builderMap.put(proj.name(),cfaBuilder);
+            }catch (result r){
+                r.printStackTrace();
+            }
             printINFO("==================Finish UE==================");
 
             printINFO("==================Parsing ENB==================");
             project.load(projectPath+ENBProjectPath,true);
             proj = project.current();
 //            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
-//            try {
-//                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
-//                builderMap.put(proj.name(),cfaBuilder);
-//            }catch (result r){
-//                r.printStackTrace();
-//            }
+            try {
+                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
+                builderMap.put(proj.name(),cfaBuilder);
+            }catch (result r){
+                r.printStackTrace();
+            }
 //
 //            //CPAMain.executionTesting(arguments, cpacheckPath, projectPath+MMEProjectPath, proj);
 //
@@ -87,14 +89,19 @@ public class CSurfPlugin {
 //            printINFO("==================Parsing MME==================");
             project.load(projectPath+MMEProjectPath,true);
             proj = project.current();
-            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
-//            try {
-//                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
-//                builderMap.put(proj.name(),cfaBuilder);
-//            }catch (result r){
-//                r.printStackTrace();
-//            }
+//            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
+            try {
+                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
+                builderMap.put(proj.name(),cfaBuilder);
+            }catch (result r){
+                r.printStackTrace();
+            }
 //            printINFO("==================Finish MME==================");
+
+            FuzzyParser fuzzyParser = new FuzzyParser(cpaMain.logManager, MachineModel.LINUX64, builderMap);
+            String channelModelFile ="";
+            fuzzyParser.parseChannelModel(channelModelFile);
+            builderMap.put(channel,fuzzyParser.getChannelBuilder());
             if(builderMap.size()>1)
                 doComposition(builderMap);
             //CPAMain.executeParser(arguments, cpacheckPath, programPath, proj);
