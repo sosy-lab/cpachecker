@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
