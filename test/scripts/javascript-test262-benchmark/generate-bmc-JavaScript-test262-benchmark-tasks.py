@@ -78,7 +78,6 @@ for file in get_test262_supported_features_files():
     file_contains_assertion = contains_assertion(file_content)
     if not(file_contains_error_assertion_call or file_contains_assertion):
         eprint('file contains no assertion {}'.format(file))
-        continue
     else:
         print('GENERATE TASK FOR {}'.format(file))
     relative_path_to_property_file = relpath(property_file)
@@ -134,7 +133,7 @@ for file in get_test262_supported_features_files():
                 input_files=negated_assertion_files + [relpath(std_lib_file), './' + error_case_file.name],
                 property_file=relative_path_to_property_file,
                 expected_verdict='false')
-    else:
+    elif file_contains_assertion:
         yml_file_name = \
             '{}_false.yml'.format(file.stem) if i == 0 else '{}_{}_false.yml'.format(file.stem,
                                                                                      i)
