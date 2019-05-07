@@ -7,6 +7,7 @@ function Number(value) {
   return +value;
 }
 
+// constructor call not supported yet
 function Boolean(value) {
   return !!value;
 }
