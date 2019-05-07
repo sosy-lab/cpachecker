@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import textwrap
 
 from lib.metadata import get_meta_data
@@ -21,6 +22,9 @@ def create_task_file(yml_file, input_files, property_file, expected_verdict):
                     input_files_formatted=input_files_formatted,
                     property_file=property_file))
 
+
+positive_task_creation_enabled = '-positives' in sys.argv
+negative_task_creation_enabled = '-negatives' in sys.argv
 
 project_root_dir = get_project_root_dir()
 
@@ -96,13 +100,15 @@ for file in get_test262_supported_features_files():
     if 'includes' in meta_data:
         eprint('\nfound includes in file: {}\n\t{}'.format(file, meta_data['includes']))
         exit(1)
-    create_task_file(
-        yml_file=yml_file,
-        input_files=assertion_files + [relpath(std_lib_file), './' + file.name],
-        property_file=relative_path_to_property_file,
-        expected_verdict='true')
+    if positive_task_creation_enabled:
+        create_task_file(
+            yml_file=yml_file,
+            input_files=assertion_files + [relpath(std_lib_file), './' + file.name],
+            property_file=relative_path_to_property_file,
+            expected_verdict='true')
     # uncomment to skip creation of negated tests
-    # continue
+    if not negative_task_creation_enabled:
+        continue
     negated_assertion_files = [relpath(error_lib_file)]
     if file_contains_assertion:
         negated_assertion_files.append(relpath(assert_lib_negated_file))
