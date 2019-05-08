@@ -90,8 +90,9 @@ public class WitnessLocationInvariantsAutomaton {
             if (invariantCFANodes.contains(successor)) {
               ExpressionTreeLocationInvariant invariant =
                   getInvariantByLocation(pInvariants, successor);
-              ExpressionTree<AExpression> inv = invariant.getExpressionTree();
-              createLocationInvariantsTransitions(transitions, successor, inv, successorIsBottom);
+              ExpressionTree<?> inv = invariant.asExpressionTree();
+              ExpressionTree<AExpression> invA = (ExpressionTree<AExpression>) inv;
+              createLocationInvariantsTransitions(transitions, successor, invA, successorIsBottom);
             } else {
               transitions.add(
                   createAutomatonTransition(

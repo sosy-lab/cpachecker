@@ -122,10 +122,6 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
     return groupId;
   }
 
-  public ExpressionTree<AExpression> getExpressionTree() {
-    return expressionTree;
-  }
-
   @Override
   public int hashCode() {
     return Objects.hash(groupId, location, expressionTree, System.identityHashCode(visitorCache));
