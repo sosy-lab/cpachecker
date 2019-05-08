@@ -129,7 +129,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       AbstractionManager abstractionManager,
       FormulaManagerView formulaManagerView,
       Specification specification,
-      ShutdownNotifier shutDownNotifier,
+      ShutdownNotifier shutdownNotifier,
       PathFormulaManager pathFormulaManager,
       PredicateAbstractionManager predicateAbstractionManager)
       throws InvalidConfigurationException {
@@ -141,7 +141,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     this.formulaManagerView = formulaManagerView;
 
     this.specification = specification;
-    this.shutdownNotifier = shutDownNotifier;
+    this.shutdownNotifier = shutdownNotifier;
     this.pathFormulaManager = pathFormulaManager;
     this.predicateAbstractionManager = predicateAbstractionManager;
 

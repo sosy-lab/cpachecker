@@ -1780,12 +1780,12 @@ public class AutomatonGraphmlParser {
       // we must swap the c expression when assume truth is false
       if (!((LeafExpression<?>) pInvariant).assumeTruth()) {
         cExpr =
-            (new CBinaryExpressionBuilder(cfa.getMachineModel(), logger))
+            new CBinaryExpressionBuilder(cfa.getMachineModel(), logger)
                 .negateExpressionAndSimplify(cExpr);
       }
     }
     CExpression negCExpr =
-        (new CBinaryExpressionBuilder(cfa.getMachineModel(), logger))
+        new CBinaryExpressionBuilder(cfa.getMachineModel(), logger)
             .negateExpressionAndSimplify(cExpr);
     List<AExpression> assumptionWithNegCExpr = Collections.singletonList(negCExpr);
     pTransitions.add(

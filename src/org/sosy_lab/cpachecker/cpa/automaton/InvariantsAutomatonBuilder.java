@@ -50,20 +50,20 @@ public class InvariantsAutomatonBuilder {
   private final LogManager logger;
   private final CFA cfa;
 
-  public InvariantsAutomatonBuilder(CFA cfa, LogManager logger) {
-    this.cfa = cfa;
-    this.logger = logger;
+  public InvariantsAutomatonBuilder(CFA pCfa, LogManager pLogger) {
+    this.cfa = pCfa;
+    this.logger = pLogger;
   }
 
   @SuppressWarnings("unchecked")
   public Automaton buildWitnessInvariantsAutomaton(
-      Set<ExpressionTreeLocationInvariant> invariants) {
+      Set<ExpressionTreeLocationInvariant> pInvariants) {
     try {
       String automatonName = WITNESS_AUTOMATON_NAME;
       String initialStateName = INITIAL_STATE_NAME;
     List<AutomatonInternalState> states = Lists.newLinkedList();
     List<AutomatonTransition> initTransitions = Lists.newLinkedList();
-      for (ExpressionTreeLocationInvariant invariant : invariants) {
+      for (ExpressionTreeLocationInvariant invariant : pInvariants) {
         ExpressionTree<?> inv = invariant.asExpressionTree();
         ExpressionTree<AExpression> invA = (ExpressionTree<AExpression>) inv;
         CExpression cExpr = invA.accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
@@ -71,12 +71,12 @@ public class InvariantsAutomatonBuilder {
           // we must swap the c expression when assume truth is false
           if (!((LeafExpression<?>) invA).assumeTruth()) {
             cExpr =
-                (new CBinaryExpressionBuilder(cfa.getMachineModel(), logger))
+                new CBinaryExpressionBuilder(cfa.getMachineModel(), logger)
                     .negateExpressionAndSimplify(cExpr);
           }
         }
         CExpression negCExpr =
-            (new CBinaryExpressionBuilder(cfa.getMachineModel(), logger))
+            new CBinaryExpressionBuilder(cfa.getMachineModel(), logger)
                 .negateExpressionAndSimplify(cExpr);
         List<AExpression> assumptionWithCExpr = Collections.singletonList(cExpr);
         List<AExpression> assumptionWithNegCExpr = Collections.singletonList(negCExpr);
@@ -98,9 +98,9 @@ public class InvariantsAutomatonBuilder {
   }
 
   private AutomatonTransition createTransitionWithCheckLocationAndAssumptionToError(
-      CFANode location, final List<AExpression> pAssumptions) {
+      CFANode pLocation, final List<AExpression> pAssumptions) {
     return new AutomatonTransition(
-        createQueryLocationString(location),
+        createQueryLocationString(pLocation),
         Collections.<AutomatonBoolExpr>emptyList(),
         pAssumptions,
         Collections.<AutomatonAction>emptyList(),
@@ -109,9 +109,9 @@ public class InvariantsAutomatonBuilder {
   }
 
   private static AutomatonTransition createTransitionWithCheckLocationAndAssumptionToInit(
-      CFANode location, final List<AExpression> pAssumptions){
+      CFANode pLocation, final List<AExpression> pAssumptions) {
     return new AutomatonTransition(
-        createQueryLocationString(location),
+        createQueryLocationString(pLocation),
         Collections.<AutomatonBoolExpr>emptyList(),
         pAssumptions,
         Collections.<AutomatonAction>emptyList(),

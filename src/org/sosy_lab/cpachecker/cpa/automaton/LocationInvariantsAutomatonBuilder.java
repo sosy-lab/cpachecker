@@ -53,9 +53,9 @@ public class LocationInvariantsAutomatonBuilder {
   private final LogManager logger;
   private final CFA cfa;
 
-  public LocationInvariantsAutomatonBuilder(CFA cfa, LogManager logger) {
-    this.cfa = cfa;
-    this.logger = logger;
+  public LocationInvariantsAutomatonBuilder(CFA pCfa, LogManager pLogger) {
+    this.cfa = pCfa;
+    this.logger = pLogger;
   }
 
   private static Set<CFANode> extractCFANodes(
@@ -135,12 +135,12 @@ public class LocationInvariantsAutomatonBuilder {
       // we must swap the c expression when assume truth is false
       if (!((LeafExpression<?>) pInvariant).assumeTruth()) {
         cExpr =
-            (new CBinaryExpressionBuilder(cfa.getMachineModel(), logger))
+            new CBinaryExpressionBuilder(cfa.getMachineModel(), logger)
                 .negateExpressionAndSimplify(cExpr);
       }
     }
     CExpression negCExpr =
-        (new CBinaryExpressionBuilder(cfa.getMachineModel(), logger))
+        new CBinaryExpressionBuilder(cfa.getMachineModel(), logger)
             .negateExpressionAndSimplify(cExpr);
     List<AExpression> assumptionWithNegCExpr = Collections.singletonList(negCExpr);
     pTransitions.add(createAutomatonInvariantErrorTransition(pSuccessor, assumptionWithNegCExpr));

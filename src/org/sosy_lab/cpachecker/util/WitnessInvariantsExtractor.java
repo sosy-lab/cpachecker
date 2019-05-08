@@ -85,14 +85,14 @@ public class WitnessInvariantsExtractor {
       Specification pSpecification,
       LogManager pLogger,
       CFA pCFA,
-      ShutdownNotifier shutdownNotifier,
+      ShutdownNotifier pShutdownNotifier,
       Path pPathToWitnessFile)
       throws InvalidConfigurationException, CPAException {
     this.config = generateLocalConfiguration(pConfig);
     this.specification = pSpecification;
     this.logger = pLogger;
     this.cfa = pCFA;
-    this.shutdownNotifier = shutdownNotifier;
+    this.shutdownNotifier = pShutdownNotifier;
     this.pathToWitnessFile = pPathToWitnessFile;
     analyzeWitness();
   }
@@ -160,7 +160,7 @@ public class WitnessInvariantsExtractor {
   }
 
   public void extractInvariantsFromReachedSet(
-      final Set<ExpressionTreeLocationInvariant> invariants) {
+      final Set<ExpressionTreeLocationInvariant> pInvariants) {
     Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
     Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
     Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
@@ -190,7 +190,7 @@ public class WitnessInvariantsExtractor {
     }
     for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant :
         expressionTreeLocationInvariants) {
-      invariants.add(
+      pInvariants.add(
           new ExpressionTreeLocationInvariant(
               expressionTreeLocationInvariant.getGroupId(),
               expressionTreeLocationInvariant.getLocation(),
@@ -200,8 +200,8 @@ public class WitnessInvariantsExtractor {
   }
 
   public void extractCandidatesFromReachedSet(
-      final Set<CandidateInvariant> candidates,
-      final Multimap<String, CFANode> candidateGroupLocations) {
+      final Set<CandidateInvariant> pCandidates,
+      final Multimap<String, CFANode> pCandidateGroupLocations) {
     Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
     Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
     Set<CFANode> visited = Sets.newHashSet();
@@ -218,7 +218,7 @@ public class WitnessInvariantsExtractor {
           AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
         ExpressionTree<AExpression> candidate = automatonState.getCandidateInvariants();
         String groupId = automatonState.getInternalStateName();
-        candidateGroupLocations.putAll(groupId, locations);
+        pCandidateGroupLocations.putAll(groupId, locations);
         if (!candidate.equals(ExpressionTrees.getTrue())) {
           ExpressionTree<AExpression> previous = expressionTrees.get(groupId);
           if (previous == null) {
@@ -236,7 +236,7 @@ public class WitnessInvariantsExtractor {
             for (FunctionReturnEdge returnEdge :
                 CFAUtils.leavingEdges(location).filter(FunctionReturnEdge.class)) {
               CFANode successor = returnEdge.getSuccessor();
-              if (!candidateGroupLocations.containsEntry(groupId, successor)
+              if (!pCandidateGroupLocations.containsEntry(groupId, successor)
                   && !visited.contains(successor)) {
                 potentialAdditionalCandidates.put(
                     successor,
@@ -252,7 +252,7 @@ public class WitnessInvariantsExtractor {
         potentialAdditionalCandidates.asMap().entrySet()) {
       if (!visited.contains(potentialCandidates.getKey())) {
         for (ExpressionTreeLocationInvariant candidateInvariant : potentialCandidates.getValue()) {
-          candidateGroupLocations.put(
+          pCandidateGroupLocations.put(
               candidateInvariant.getGroupId(), potentialCandidates.getKey());
           expressionTreeLocationInvariants.add(candidateInvariant);
         }
@@ -261,8 +261,8 @@ public class WitnessInvariantsExtractor {
     for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant :
         expressionTreeLocationInvariants) {
       for (CFANode location :
-          candidateGroupLocations.get(expressionTreeLocationInvariant.getGroupId())) {
-        candidates.add(
+          pCandidateGroupLocations.get(expressionTreeLocationInvariant.getGroupId())) {
+        pCandidates.add(
             new ExpressionTreeLocationInvariant(
                 expressionTreeLocationInvariant.getGroupId(),
                 location,
