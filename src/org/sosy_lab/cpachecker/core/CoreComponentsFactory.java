@@ -43,7 +43,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
@@ -96,7 +95,6 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
-import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -666,10 +664,7 @@ public class CoreComponentsFactory {
         WitnessInvariantsExtractor extractor =
             new WitnessInvariantsExtractor(
                 config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
-        ToCExpressionVisitor visitor = new ToCExpressionVisitor(cfa.getMachineModel(), logger);
-        CBinaryExpressionBuilder builder =
-            new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
-        Automaton automaton = extractor.buildInvariantsAutomatonFromWitness(visitor, builder);
+          Automaton automaton = extractor.buildInvariantsAutomatonFromWitness();
         automata.add(automaton);
         break;
         }

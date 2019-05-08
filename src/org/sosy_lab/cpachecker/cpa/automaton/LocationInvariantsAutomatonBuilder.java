@@ -38,14 +38,22 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
-public class WitnessLocationInvariantsAutomaton {
+/**
+ * Builds a location invariant automaton out of the invariants from a correctness witness. The
+ * structure of the automaton follows the structure of the CFA: States and transitions of the
+ * automaton are built corresponding to the nodes and edges of the CFA. For each entering CFANode
+ * that matches with the invariant location two transitions and successor states are built: One
+ * transition with the invariant assumption that goes to the next CFA based state and another
+ * transition with the negated invariant assumption that goes to the Error state.
+ */
+public class LocationInvariantsAutomatonBuilder {
 
-  private static final String WITNESS_AUTOMATON_NAME = "WitnessLocationInvariantsAutomaton";
+  private static final String WITNESS_AUTOMATON_NAME = "LocationInvariantsAutomaton";
 
   private final LogManager logger;
   private final CFA cfa;
 
-  public WitnessLocationInvariantsAutomaton(CFA cfa, LogManager logger) {
+  public LocationInvariantsAutomatonBuilder(CFA cfa, LogManager logger) {
     this.cfa = cfa;
     this.logger = logger;
   }

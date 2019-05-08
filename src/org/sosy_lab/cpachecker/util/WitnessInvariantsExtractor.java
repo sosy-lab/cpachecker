@@ -40,7 +40,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -59,8 +58,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.automaton.WitnessInvariantsAutomaton;
-import org.sosy_lab.cpachecker.cpa.automaton.WitnessLocationInvariantsAutomaton;
+import org.sosy_lab.cpachecker.cpa.automaton.InvariantsAutomatonBuilder;
+import org.sosy_lab.cpachecker.cpa.automaton.LocationInvariantsAutomatonBuilder;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -68,7 +67,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
-import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** Utility class to extract candidates from witness file */
@@ -146,19 +144,19 @@ public class WitnessInvariantsExtractor {
     }
   }
 
-  public Automaton buildInvariantsAutomatonFromWitness(
-      ToCExpressionVisitor visitor, CBinaryExpressionBuilder builder) {
+  public Automaton buildInvariantsAutomatonFromWitness() {
+    InvariantsAutomatonBuilder automatonBuilder = new InvariantsAutomatonBuilder(cfa, logger);
     final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
     extractInvariantsFromReachedSet(invariants);
-    return WitnessInvariantsAutomaton.buildWitnessInvariantsAutomaton(invariants, visitor, builder);
+    return automatonBuilder.buildWitnessInvariantsAutomaton(invariants);
   }
 
   public Automaton buildLocationInvariantsAutomatonFromWitness() {
-    WitnessLocationInvariantsAutomaton automaton =
-        new WitnessLocationInvariantsAutomaton(cfa, logger);
+    LocationInvariantsAutomatonBuilder automatonBuilder =
+        new LocationInvariantsAutomatonBuilder(cfa, logger);
     final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
     extractInvariantsFromReachedSet(invariants);
-    return automaton.buildWitnessLocationInvariantsAutomaton(invariants);
+    return automatonBuilder.buildWitnessLocationInvariantsAutomaton(invariants);
   }
 
   public void extractInvariantsFromReachedSet(
