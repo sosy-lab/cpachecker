@@ -124,6 +124,7 @@ void dlNASEMMMessageTranslation(){
     uint8_t msgType = CN_channel_message_cache->nas_message.nas_message.plain.emm.header.message_type;
     switch(msgType){
         case 66://ATTACH_ACCEPT
+
         case 68://ATTACH_REJECT
         case 69://DETACH_REQUEST, network-sided detach request
         case 70://DETACH_ACCEPT, ue-sided detach request
