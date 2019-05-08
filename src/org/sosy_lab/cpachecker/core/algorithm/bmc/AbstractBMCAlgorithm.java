@@ -346,9 +346,7 @@ abstract class AbstractBMCAlgorithm
     AlgorithmStatus status;
 
     try (ProverEnvironmentWithFallback prover =
-            new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS);
-        @SuppressWarnings("resource")
-            KInductionProver kInductionProver = createInductionProver()) {
+        new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS)) {
       invariantGeneratorHeadStart.waitForInvariantGenerator();
 
       do {
@@ -416,8 +414,11 @@ abstract class AbstractBMCAlgorithm
                 ctiBlockingClauses.clear();
               }
             }
+            try (@SuppressWarnings("resource")
+                KInductionProver kInductionProver = createInductionProver()) {
             sound =
                 checkStepCase(reachedSet, candidateGenerator, kInductionProver, ctiBlockingClauses);
+            }
           }
           if (invariantGenerator.isProgramSafe()
               || (sound && !candidateGenerator.produceMoreCandidates())) {
@@ -784,20 +785,19 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
-  protected @Nullable KInductionProver createInductionProver() {
-    return induction
-        ? new KInductionProver(
-            cfa,
-            logger,
-            stepCaseAlgorithm,
-            stepCaseCPA,
-            invariantGenerator,
-            stats,
-            reachedSetFactory,
-            shutdownNotifier,
-            getLoopHeads(),
-            usePropertyDirection)
-        : null;
+  protected KInductionProver createInductionProver() {
+    assert induction;
+    return new KInductionProver(
+        cfa,
+        logger,
+        stepCaseAlgorithm,
+        stepCaseCPA,
+        invariantGenerator,
+        stats,
+        reachedSetFactory,
+        shutdownNotifier,
+        getLoopHeads(),
+        usePropertyDirection);
   }
 
   /**
