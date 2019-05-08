@@ -137,7 +137,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
                                        "benchmark" : benchmark.name,
                                        "timestamp" : benchmark.instance,
                                        "runSet" : runSet.real_name or "",
-                                       "generator": "benchmark.webcliebt_benchexec.py"})
+                                       "generator": "benchmark.webclient_benchexec.py"})
 
     executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
     submission_futures = {}
