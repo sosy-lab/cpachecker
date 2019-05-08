@@ -761,7 +761,7 @@ public class ARGToAutomatonConverter {
 
   private static Iterable<ARGState> getLeaves(ARGState pRoot, boolean targetsOnly) {
     FluentIterable<ARGState> leaves =
-        from(pRoot.getSubgraph()).filter(s -> s.getChildren().size() == 0);
+        from(pRoot.getSubgraph()).filter(s -> (s.getChildren().size() == 0) && !s.isCovered());
     return targetsOnly ? leaves.filter(ARGState::isTarget) : leaves;
   }
 
