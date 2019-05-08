@@ -408,4 +408,8 @@ class AutomatonTransition {
   public ExpressionTree<AExpression> getCandidateInvariants() {
     return candidateInvariants;
   }
+
+  public boolean isTransitionWithAssumptions() {
+    return assumptions.size() > 0;
+  }
 }
