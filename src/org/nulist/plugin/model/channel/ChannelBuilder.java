@@ -458,6 +458,16 @@ public class ChannelBuilder {
                         unaryOperator);
             case "CallExpression":
                 return (CExpression) handleCallExpression(functionBuilder, expressionNode);
+            case "SizeofExpression":
+                String SizeofOperandStr = expressionNode.getChild(1).getEscapedCodeStr();
+                CType sizeofType = getType(SizeofOperandStr);
+                if(sizeofType!=null){
+                    return new CIntegerLiteralExpression(fileLocation,
+                            CNumericTypes.INT,
+                            MachineModel.LINUX64.getSizeof(sizeofType));
+                }else {
+                    throw new RuntimeException("Unsupport sizeof expression: "+expressionNode.getEscapedCodeStr());
+                }
             case "Identifier":
             case "Constant":
                 return getExpressionFromString(functionBuilder,expressionNode.getEscapedCodeStr());
@@ -781,19 +791,19 @@ public class ChannelBuilder {
     }
 
     public CDeclaration declarationParser(CFGFunctionBuilder functionBuilder, FileLocation fileLocation, boolean isGlobal, String declarationString){
-        String typeString = declarationString.split(" ")[0].trim();
+        String typeString = (declarationString.split(" ")[0]).trim();
         CType type = getType(typeString);
 
         declarationString = declarationString.replace(typeString+" ","");
         if(declarationString.startsWith("*")){
             type = new CPointerType(false,false,type);
-            declarationString.replace("*","").trim();
+            declarationString = declarationString.replace("*","").trim();
         }
         String varName;
         CInitializer initializer = null;
         if(declarationString.contains("=")){
-            varName = declarationString.split("=")[0].trim();
-            String initializerString = declarationString.split("=")[1].trim();
+            varName = (declarationString.split("=")[0]).trim();
+            String initializerString = (declarationString.split("=")[1]).trim();
             CExpression expression = getExpressionFromString(functionBuilder, initializerString);
             initializer = new CInitializerExpression(fileLocation,expression);
         }

@@ -256,8 +256,6 @@ public class CFGFunctionBuilder  {
     public void visitFunction(boolean finishend) throws result {
         assert function!=null && function.get_kind().equals(procedure_kind.getUSER_DEFINED());
 
-        if(functionName.equals("nas_itti_dl_data_req"))
-            System.out.println();
         //expressionHandler.setVariableDeclarations(variableDeclarations);
         //first visit: build nodes before traversing CFGs
         List<point> declSet = new ArrayList<>();

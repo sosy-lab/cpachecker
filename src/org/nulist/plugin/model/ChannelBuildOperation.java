@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static org.nulist.plugin.model.MsgTranslationGenerator.generateNASmessageTranslation;
 import static org.nulist.plugin.model.action.ITTIAbstract.isITTITaskForDeliver;
 import static org.nulist.plugin.model.action.ITTIAbstract.itti_send_to_task;
 import static org.nulist.plugin.parser.CFGParser.*;
@@ -688,6 +689,9 @@ public class ChannelBuildOperation {
     public static void doComposition(Map<String, CFABuilder> builderMap){
         //Step 1: push message to channel message cache
 
+        if(builderMap.containsKey(UE) && builderMap.containsKey(MME)){
+            generateNASmessageTranslation(builderMap.get(UE),builderMap.get(MME));
+        }
 
         if(builderMap.containsKey(UE) && builderMap.containsKey(MME) && builderMap.containsKey(ENB)){
             CFABuilder channelBuilder =  ChannelConstructer.constructionMessageChannel(builderMap);
@@ -700,6 +704,7 @@ public class ChannelBuildOperation {
         if(builderMap.containsKey(ENB) && builderMap.containsKey(UE))
             buildSecureChannelBetweeneNBandMME(builderMap.get(UE),builderMap.get(ENB));
     }
+
 
 
     /**

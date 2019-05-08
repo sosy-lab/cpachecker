@@ -43,7 +43,7 @@ public class ChannelConstructer {
     public final static String cnPushNASMSGIDIntoCache = "cnPushNASMSGIDIntoCache";
     public final static String cnPullPlainNASEMMMsgFromCache = "cnPullPlainNASEMMMsgFromCache";
     public final static String cnPullPlainNASESMMsgFromCache = "cnPullPlainNASESMMsgFromCache";
-    public final static String cnPushPlainNASEMMMsgIntoCache = "mmepushPlainNASEMMMsgIntoCache";
+    public final static String cnPushPlainNASEMMMsgIntoCache = "cnPushPlainNASEMMMsgIntoCache";
     public final static String cnPushPlainNASESMMsgIntoCache = "cnPushPlainNASESMMsgIntoCache";
     public final static String cnPullPlainASMsgFromCache = "cnPullPlainASMsgFromCache";
     public final static String cnPushPlainASMsgIntoCache = "cnPushPlainASMsgIntoCache";
@@ -873,11 +873,9 @@ public class ChannelConstructer {
         return functionBuilder.expressionHandler.buildBinaryExpression(lefthand,righthand,operator,CNumericTypes.BOOL);
     }
 
-    private static CType getRealCompositeType(CType type){
+    public static CType getRealCompositeType(CType type){
         if(type instanceof CTypedefType)
             return getRealCompositeType(((CTypedefType) type).getRealType());
-        if(type instanceof CPointerType)
-            return getRealCompositeType(((CPointerType) type).getType());
         if(type instanceof CElaboratedType)
             return getRealCompositeType(((CElaboratedType) type).getRealType());
         if(type instanceof CCompositeType)

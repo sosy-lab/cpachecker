@@ -72,15 +72,15 @@ public class CSurfPlugin {
             printINFO("==================Finish UE==================");
 
             printINFO("==================Parsing ENB==================");
-            project.load(projectPath+ENBProjectPath,true);
-            proj = project.current();
-//            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
-            try {
-                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
-                builderMap.put(proj.name(),cfaBuilder);
-            }catch (result r){
-                r.printStackTrace();
-            }
+//            project.load(projectPath+ENBProjectPath,true);
+//            proj = project.current();
+////            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
+//            try {
+//                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
+//                builderMap.put(proj.name(),cfaBuilder);
+//            }catch (result r){
+//                r.printStackTrace();
+//            }
 //
 //            //CPAMain.executionTesting(arguments, cpacheckPath, projectPath+MMEProjectPath, proj);
 //
@@ -98,10 +98,10 @@ public class CSurfPlugin {
             }
 //            printINFO("==================Finish MME==================");
 
-            FuzzyParser fuzzyParser = new FuzzyParser(cpaMain.logManager, MachineModel.LINUX64, builderMap);
-            String channelModelFile ="";
-            fuzzyParser.parseChannelModel(channelModelFile);
-            builderMap.put(channel,fuzzyParser.getChannelBuilder());
+//            FuzzyParser fuzzyParser = new FuzzyParser(cpaMain.logManager, MachineModel.LINUX64, builderMap);
+//            String channelModelFile ="";
+//            fuzzyParser.parseChannelModel(channelModelFile);
+//            builderMap.put(channel,fuzzyParser.getChannelBuilder());
             if(builderMap.size()>1)
                 doComposition(builderMap);
             //CPAMain.executeParser(arguments, cpacheckPath, programPath, proj);
