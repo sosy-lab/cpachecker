@@ -198,7 +198,6 @@ void translate_UL_ATTACH_REQUEST(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.msnetworkfeaturesupport.spare_bits=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.msnetworkfeaturesupport.spare_bits;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.msnetworkfeaturesupport.extended_periodic_timers=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.msnetworkfeaturesupport.extended_periodic_timers;
 }
-
 void translate_DL_ATTACH_ACCEPT(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.protocoldiscriminator=(ProtocolDiscriminator)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.protocoldiscriminator;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.securityheadertype=(SecurityHeaderType)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.securityheadertype;
@@ -414,7 +413,6 @@ void translate_UL_ATTACH_COMPLETE(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_complete.messagetype=(message_type_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_complete.messagetype;
 //		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_complete.esmmessagecontainer=(EsmMessageContainer)(EsmMessageContainer)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_complete.esmmessagecontainer;//Not composite Type
 }
-
 void translate_DL_ATTACH_REJECT(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_reject.protocoldiscriminator=(ProtocolDiscriminator)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_reject.protocoldiscriminator;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_reject.securityheadertype=(SecurityHeaderType)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_reject.securityheadertype;
@@ -762,7 +760,6 @@ void translate_UL_TRACKING_AREA_UPDATE_REQUEST(){
         CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.msnetworkfeaturesupport.spare_bits=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.msnetworkfeaturesupport.spare_bits;
         CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.msnetworkfeaturesupport.extended_periodic_timers=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.msnetworkfeaturesupport.extended_periodic_timers;
 }
-
 void translate_DL_TRACKING_AREA_UPDATE_ACCEPT(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.protocoldiscriminator=(ProtocolDiscriminator)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.protocoldiscriminator;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.securityheadertype=(SecurityHeaderType)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.securityheadertype;
@@ -1103,7 +1100,6 @@ void translate_DL_SERVICE_REJECT(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.service_reject.t3442value.unit=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.service_reject.t3442value.unit;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.service_reject.t3442value.timervalue=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.service_reject.t3442value.timervalue;
 }
-
 void translate_DL_GUTI_REALLOCATION_COMMAND(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.protocoldiscriminator=(ProtocolDiscriminator)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.protocoldiscriminator;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.securityheadertype=(SecurityHeaderType)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.securityheadertype;
@@ -1172,7 +1168,6 @@ void translate_UL_GUTI_REALLOCATION_COMPLETE(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_complete.securityheadertype=(security_header_type_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_complete.securityheadertype;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_complete.messagetype=(message_type_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_complete.messagetype;
 }
-
 void translate_DL_AUTHENTICATION_REQUEST(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_request.protocoldiscriminator=(ProtocolDiscriminator)CN_channel_message_cache->nas_message.nas_message.plain.emm.authentication_request.protocoldiscriminator;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_request.securityheadertype=(SecurityHeaderType)CN_channel_message_cache->nas_message.nas_message.plain.emm.authentication_request.securityheadertype;
@@ -1193,7 +1188,6 @@ void translate_UL_AUTHENTICATION_RESPONSE(){
         		CN_channel_message_cache->nas_message.nas_message.plain.emm.authentication_response.authenticationresponseparameter->data=(unsigned char *)UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_response.authenticationresponseparameter.res.value;
 		}
 }
-
 void translate_DL_AUTHENTICATION_REJECT(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_reject.protocoldiscriminator=(ProtocolDiscriminator)CN_channel_message_cache->nas_message.nas_message.plain.emm.authentication_reject.protocoldiscriminator;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_reject.securityheadertype=(SecurityHeaderType)CN_channel_message_cache->nas_message.nas_message.plain.emm.authentication_reject.securityheadertype;
@@ -1210,8 +1204,6 @@ void translate_UL_AUTHENTICATION_FAILURE(){
             CN_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.authenticationresponseparameter->data=(unsigned char *)UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.authenticationresponseparameter.res.value;
 		}
 }
-
-
 void translate_DL_IDENTITY_REQUEST(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.identity_request.protocoldiscriminator=(ProtocolDiscriminator)CN_channel_message_cache->nas_message.nas_message.plain.emm.identity_request.protocoldiscriminator;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.identity_request.securityheadertype=(SecurityHeaderType)CN_channel_message_cache->nas_message.nas_message.plain.emm.identity_request.securityheadertype;
@@ -1304,8 +1296,6 @@ void translate_UL_IDENTITY_RESPONSE(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.identity_response.mobileidentity.no_id.digit4=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.identity_response.mobileidentity.no_id.digit4;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.identity_response.mobileidentity.no_id.digit5=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.identity_response.mobileidentity.no_id.digit5;
 }
-
-
 void translate_DL_SECURITY_MODE_COMMAND(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.security_mode_command.protocoldiscriminator=(ProtocolDiscriminator)CN_channel_message_cache->nas_message.nas_message.plain.emm.security_mode_command.protocoldiscriminator;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.security_mode_command.securityheadertype=(SecurityHeaderType)CN_channel_message_cache->nas_message.nas_message.plain.emm.security_mode_command.securityheadertype;
@@ -1419,7 +1409,6 @@ void translate_UL_SECURITY_MODE_REJECT(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.security_mode_reject.messagetype=(message_type_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.security_mode_reject.messagetype;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.security_mode_reject.emmcause=(emm_cause_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.security_mode_reject.emmcause;
 }
-
 void translate_UL_EMM_STATUS(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.emm_status.protocoldiscriminator=(eps_protocol_discriminator_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.emm_status.protocoldiscriminator;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.emm_status.securityheadertype=(security_header_type_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.emm_status.securityheadertype;
@@ -1488,7 +1477,6 @@ void translate_DL_EMM_INFORMATION(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.emm_information.universaltimeandlocaltimezone.timezone=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.emm_information.universaltimeandlocaltimezone.timezone;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.emm_information.networkdaylightsavingtime=(DaylightSavingTime)CN_channel_message_cache->nas_message.nas_message.plain.emm.emm_information.networkdaylightsavingtime;
 }
-
 void translate_DL_DOWNLINK_NAS_TRANSPORT(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.downlink_nas_transport.protocoldiscriminator=(ProtocolDiscriminator)CN_channel_message_cache->nas_message.nas_message.plain.emm.downlink_nas_transport.protocoldiscriminator;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.downlink_nas_transport.securityheadertype=(SecurityHeaderType)CN_channel_message_cache->nas_message.nas_message.plain.emm.downlink_nas_transport.securityheadertype;
@@ -1501,7 +1489,6 @@ void translate_UL_UPLINK_NAS_TRANSPORT(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.uplink_nas_transport.messagetype=(message_type_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.uplink_nas_transport.messagetype;
 		//CN_channel_message_cache->nas_message.nas_message.plain.emm.uplink_nas_transport.nasmessagecontainer=(NasMessageContainer)(NasMessageContainer)UE_channel_message_cache->nas_message.nas_message.plain.emm.uplink_nas_transport.nasmessagecontainer;//Not composite Type
 }
-
 void translate_DL_CS_SERVICE_NOTIFICATION(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.cs_service_notification.protocoldiscriminator=(ProtocolDiscriminator)CN_channel_message_cache->nas_message.nas_message.plain.emm.cs_service_notification.protocoldiscriminator;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.cs_service_notification.securityheadertype=(SecurityHeaderType)CN_channel_message_cache->nas_message.nas_message.plain.emm.cs_service_notification.securityheadertype;

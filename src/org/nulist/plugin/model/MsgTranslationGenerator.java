@@ -25,10 +25,43 @@ public class MsgTranslationGenerator {
 
     private static String message = "ATTACH_REQUEST_msg,ATTACH_ACCEPT_msg,ATTACH_COMPLETE_msg,ATTACH_REJECT_msg,DETACH_REQUEST_msg,DETACH_ACCEPT_msg,TRACKING_AREA_UPDATE_REQUEST_msg,TRACKING_AREA_UPDATE_ACCEPT_msg,TRACKING_AREA_UPDATE_COMPLETE_msg,TRACKING_AREA_UPDATE_REJECT_msg,EXTENDED_SERVICE_REQUEST_msg,SERVICE_REQUEST_msg,SERVICE_REJECT_msg,GUTI_REALLOCATION_COMMAND_msg,GUTI_REALLOCATION_COMPLETE_msg,AUTHENTICATION_REQUEST_msg,AUTHENTICATION_RESPONSE_msg,AUTHENTICATION_REJECT_msg,AUTHENTICATION_FAILURE_msg,IDENTITY_REQUEST_msg,IDENTITY_RESPONSE_msg,SECURITY_MODE_COMMAND_msg,SECURITY_MODE_COMPLETE_msg,SECURITY_MODE_REJECT_msg,EMM_STATUS_msg,EMM_INFORMATION_msg,DOWNLINK_NAS_TRANSPORT_msg,UPLINK_NAS_TRANSPORT_msg,CS_SERVICE_NOTIFICATION_msg";
 
-    public static void generateNASmessageTranslation(CFABuilder ueBuilder, CFABuilder mmeBuilder){
+    private static String esmMessage = "ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_msg,ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_msg,ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REJECT_msg,ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST_msg,ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT_msg,ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REJECT_msg,MODIFY_EPS_BEARER_CONTEXT_REQUEST_msg,MODIFY_EPS_BEARER_CONTEXT_ACCEPT_msg,MODIFY_EPS_BEARER_CONTEXT_REJECT_msg,DEACTIVATE_EPS_BEARER_CONTEXT_REQUEST_msg,DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT_msg,PDN_CONNECTIVITY_REQUEST_msg,PDN_CONNECTIVITY_REJECT_msg,PDN_DISCONNECT_REQUEST_msg,PDN_DISCONNECT_REJECT_msg,BEARER_RESOURCE_ALLOCATION_REQUEST_msg,BEARER_RESOURCE_ALLOCATION_REJECT_msg,BEARER_RESOURCE_MODIFICATION_REQUEST_msg,BEARER_RESOURCE_MODIFICATION_REJECT_msg,ESM_INFORMATION_REQUEST_msg,ESM_INFORMATION_RESPONSE_msg,ESM_STATUS_msg";
+
+
+    public static void generateESMNASmessageTranslation(CFABuilder ueBuilder, CFABuilder mmeBuilder){
+        String[] nasmessages = esmMessage.replace(" ","").split(",");
+        try {
+            FileWriter fileWriter = new FileWriter(new File("ESMMessageTranslation.c"));
+            for(String nasmsg:nasmessages){
+                CType ueType = ueBuilder.typeConverter.typeCache.get(nasmsg.toLowerCase().hashCode());
+                CType mmeType = mmeBuilder.typeConverter.typeCache.get(nasmsg.toLowerCase().hashCode());
+                if(mmeType==null){
+                    printWARNING("no type of "+ nasmsg.toLowerCase()+ " in mme CFABuilder");
+                }else if(ueType == null)
+                    printWARNING("no type of "+ nasmsg.toLowerCase()+ " in ue CFABuilder");
+                else{
+                    String messageName=nasmsg.replace("_msg","");
+                    generateTranslationFunction(ueType,mmeType,messageName,true,"esm",fileWriter);
+                    generateTranslationFunction(ueType,mmeType,messageName,false,"esm",fileWriter);
+                }
+            }
+            CType ueType = ueBuilder.typeConverter.typeCache.get("emm_msg_header_t".hashCode());
+            CType mmeType = mmeBuilder.typeConverter.typeCache.get("emm_msg_header_t".hashCode());
+            generateTranslationFunction(ueType,mmeType,"Header",true,"esm",fileWriter);
+            fileWriter.flush();
+            generateTranslationFunction(ueType,mmeType,"Header",false,"esm",fileWriter);
+            fileWriter.flush();
+
+            fileWriter.close();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public static void generateEMMNASmessageTranslation(CFABuilder ueBuilder, CFABuilder mmeBuilder){
         String[] nasmessages = message.replace(" ","").split(",");
         try {
-            FileWriter fileWriter = new FileWriter(new File("messageTranslation.c"));
+            FileWriter fileWriter = new FileWriter(new File("EMMMessageTranslation.c"));
             for(String nasmsg:nasmessages){
                 CType ueType = ueBuilder.typeConverter.typeCache.get(nasmsg.toLowerCase().hashCode());
                 CType mmeType = mmeBuilder.typeConverter.typeCache.get(nasmsg.toLowerCase().hashCode());
@@ -38,31 +71,29 @@ public class MsgTranslationGenerator {
                     printWARNING("no type of "+ nasmsg+ " in ue CFABuilder");
                 else{
                     String messageName=nasmsg.replace("_msg","");
-                    generateTranslationFunction(ueType,mmeType,messageName,true,fileWriter);
-                    generateTranslationFunction(ueType,mmeType,messageName,false,fileWriter);
+                    generateTranslationFunction(ueType,mmeType,messageName,true,"emm",fileWriter);
+                    generateTranslationFunction(ueType,mmeType,messageName,false,"emm",fileWriter);
                 }
             }
             CType ueType = ueBuilder.typeConverter.typeCache.get("emm_msg_header_t".hashCode());
             CType mmeType = mmeBuilder.typeConverter.typeCache.get("emm_msg_header_t".hashCode());
-            generateTranslationFunction(ueType,mmeType,"Header",true,fileWriter);
+            generateTranslationFunction(ueType,mmeType,"Header",true,"emm",fileWriter);
             fileWriter.flush();
-            generateTranslationFunction(ueType,mmeType,"Header",false,fileWriter);
+            generateTranslationFunction(ueType,mmeType,"Header",false,"emm",fileWriter);
             fileWriter.flush();
 
             fileWriter.close();
         }catch (Exception e){
             e.printStackTrace();
         }
-
-
     }
 
-    public static void generateTranslationFunction(CType ueType, CType mmeType, String messagename, boolean direction, FileWriter writer)throws IOException {
+    public static void generateTranslationFunction(CType ueType, CType mmeType,  String messagename,boolean direction, String nasType,FileWriter writer)throws IOException {
         String functionName = "translate_"+(direction?"UL":"DL")+"_"+messagename;
         writer.write("void "+functionName+"(){\n");
 
-        String targetMSG= "\t\t"+(direction?cn_channel_msg_cache:ue_channel_msg_cache)+"->nas_message.nas_message.plain.emm";
-        String sourceMSG= (direction?ue_channel_msg_cache:cn_channel_msg_cache)+"->nas_message.nas_message.plain.emm";
+        String targetMSG= "\t\t"+(direction?cn_channel_msg_cache:ue_channel_msg_cache)+"->nas_message.nas_message.plain."+nasType;
+        String sourceMSG= (direction?ue_channel_msg_cache:cn_channel_msg_cache)+"->nas_message.nas_message.plain."+nasType;
 
         CCompositeType ueCompositeType = (CCompositeType) getRealCompositeType(ueType);
         CCompositeType mmeCompositeType = (CCompositeType)getRealCompositeType(mmeType);
@@ -84,11 +115,19 @@ public class MsgTranslationGenerator {
             fileWriter.write(left+"=("+leftType.toString().trim()+")"+right+";\n");
         }else if(leftType instanceof CArrayType){
             CType lType = ((CArrayType) leftType).getType();
-            CType rType = ((CArrayType) rightType).getType();
+            CType rType =null;
+            if(rightType instanceof CArrayType){
+                rType = ((CArrayType) rightType).getType();
+            }
+
             int length = ((CIntegerLiteralExpression)((CArrayType) leftType).getLength()).getValue().intValue();
             for(int j=0;j<length;j++){
-                translationEachItem(lType,left,rType,right,"["+j+"]",fileWriter);
+                if(rType!=null)
+                    translationEachItem(lType,left,rType,right,"["+j+"]",fileWriter);
+                else
+                    fileWriter.write(left+"["+j+"]=("+leftType.toString().trim()+")"+right+";//Arrary Type check it\n");
             }
+
         }else if(leftType instanceof CPointerType){
             left=rightPrefix+"->"+membername.replace(".","");
             right=leftPrefix+"->"+membername.replace(".","");
