@@ -83,6 +83,10 @@ class AutomatonStatistics implements Statistics {
         statesWithAssumptionTransitions++;
       }
     }
-    put(out, 0, "Number of states with assumption transitions", statesWithAssumptionTransitions);
+    put(
+        out,
+        0,
+        mCpa.getAutomaton().getName() + " Number of states with assumption transitions",
+        statesWithAssumptionTransitions);
   }
 }
