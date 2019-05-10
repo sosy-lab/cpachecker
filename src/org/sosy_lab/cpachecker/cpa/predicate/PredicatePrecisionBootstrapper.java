@@ -230,6 +230,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
             default:
               break;
           }
+          witnessStats.get().numberOfLocationInvariants++;
         }
       } catch (CPAException | InterruptedException e) {
         logger.logUserException(
@@ -264,18 +265,24 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
   private static class WitnessInvariantsStatistics implements Statistics {
 
-    private int numberOfInitialLocalPredicates = 0;
-    private int numberOfInitialFunctionPredicates = 0;
-    private int numberOfInitialGlobalPredicates = 0;
     private WitnessInvariantScope witnessInvariantScope;
+    private int numberOfLocationInvariants;
+    private int numberOfInitialLocalPredicates;
+    private int numberOfInitialFunctionPredicates;
+    private int numberOfInitialGlobalPredicates;
 
     private WitnessInvariantsStatistics(WitnessInvariantScope pWitnessInvariantScope) {
       this.witnessInvariantScope = pWitnessInvariantScope;
+      numberOfLocationInvariants = 0;
+      numberOfInitialLocalPredicates = 0;
+      numberOfInitialFunctionPredicates = 0;
+      numberOfInitialGlobalPredicates = 0;
     }
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+      writer.put("Number of location invariants", numberOfLocationInvariants);
       switch (witnessInvariantScope) {
         case FUNCTION:
           writer.put("Number of initial function predicates", numberOfInitialFunctionPredicates);
