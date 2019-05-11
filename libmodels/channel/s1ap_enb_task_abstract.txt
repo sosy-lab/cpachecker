@@ -1,0 +1,37 @@
+
+//TODO: replace s1ap_eNB_itti_send_sctp_data_req with s1ap_mme_itti_s1ap_initial_ue_message in s1ap_eNB_handle_nas_first_req of s1ap_eNB_nas_procedure.c
+//TODO: replace s1ap_eNB_itti_send_sctp_data_req with s1ap_mme_itti_nas_uplink_ind in s1ap_eNB_nas_uplink of s1ap_eNB_nas_procedure.c
+//TODO: replace s1ap_eNB_itti_send_sctp_data_req with s1ap_mme_itti_nas_non_delivery_ind in s1ap_eNB_nas_non_delivery_ind of s1ap_eNB_nas_procedure.c
+
+//void s1ap_eNB_S1AP_NAS_FIRST_REQ(tac_t tac, uint16_t enb_id, uint8_t cell_id){//instance_p->tac,instance_p->eNB_id, 0, // Cell ID
+//
+////    CN_channel_message_cache->nas_message.msgID = 27; //NAS_INITIAL_UE_MESSAGE
+////    //first: translate nas_establish_req_t to nas_establish_ind_t (AS message)
+////    CN_channel_message_cache->nas_message.as_message.msgID = 27;
+////    CN_channel_message_cache->nas_message.as_message.msg.nas_establish_ind.ue_id =message->ittiMsg.s1ap_nas_first_req.ue_initial_id;
+////    CN_channel_message_cache->nas_message.as_message.msg.nas_establish_ind.tai.plmn = (plmn_t)UE_channel_message_cache->nas_message.as_message.msg.nas_establish_req.plmnID;
+////    CN_channel_message_cache->nas_message.as_message.msg.nas_establish_ind.tai.tac = tac;
+////    CN_channel_message_cache->nas_message.as_message.msg.nas_establish_ind.ecgi.plmn = (plmn_t)UE_channel_message_cache->nas_message.as_message.msg.nas_establish_req.plmnID;
+////    CN_channel_message_cache->nas_message.as_message.msg.nas_establish_ind.ecgi.cell_identity.enb_id = enb_id;//
+////    CN_channel_message_cache->nas_message.as_message.msg.nas_establish_ind.ecgi.cell_identity.cell_id = cell_id;//
+////    CN_channel_message_cache->nas_message.as_message.msg.nas_establish_ind.s_tmsi.mme_code = (mme_code_t)UE_channel_message_cache->nas_message.as_message.msg.nas_establish_req.s_tmsi.MMEcode;
+////    CN_channel_message_cache->nas_message.as_message.msg.nas_establish_ind.s_tmsi.m_tmsi = (tmsi_t)UE_channel_message_cache->nas_message.as_message.msg.nas_establish_req.s_tmsi.m_tmsi;
+////    CN_channel_message_cache->nas_message.as_message.msg.nas_establish_ind.as_cause = (as_cause_t)UE_channel_message_cache->nas_message.as_message.msg.nas_establish_req.as_cause;
+//
+//    s1ap_mme_itti_s1ap_initial_ue_message();
+//    //nas_mme_NAS_INITIAL_UE_MESSAGE(CN_channel_message_cache->nas_message.as_message.msg.nas_establish_ind);
+//}
+
+
+
+//void s1ap_eNB_S1AP_UPLINK_NAS(uint16_t ue_id, tac_t tac, uint16_t enb_id, uint8_t cell_id, plmn_t plmn){//ue_context_p->ue_initial_id, s1ap_eNB_instance_p->eNB_id,0,
+//
+//    tac_t tai =  {0};
+//    ecgi cgi = {.plmn={0},.cell_identity={0}};
+//    tai.plmn = plmn;
+//    tai.tac =tac
+//    cgi.plmn = plmn;
+//    cgi.cell_identity.enb_id=enb_id;
+//    cgi.cell_identity.cell_id=cell_id;
+//    nas_mme_NAS_UPLINK_DATA_IND(ue_id, tai, cgi);
+//}

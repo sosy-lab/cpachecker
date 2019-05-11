@@ -51,7 +51,7 @@ public class CSurfPlugin {
             projectPath = args[1];
             arguments = args[2].split(" ");
         }
-
+        String projPath = System.getProperty("user.dir");
         //perform parser execution
         try{
             CPAMain cpaMain = new CPAMain(arguments, cpacheckPath);
@@ -62,49 +62,50 @@ public class CSurfPlugin {
             printINFO("==================Parsing UE==================");
             project.load(projectPath+UEProjectPath,true);
             project proj = project.current();
-            CPAMain.executeParser(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
-//            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
-//            try {
-//                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
-//                builderMap.put(proj.name(),cfaBuilder);
-//            }catch (result r){
-//                r.printStackTrace();
-//            }
+//            CPAMain.executeParser(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
+            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
+            try {
+                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
+                builderMap.put(proj.name(),cfaBuilder);
+            }catch (result r){
+                r.printStackTrace();
+            }
             printINFO("==================Finish UE==================");
 
             printINFO("==================Parsing ENB==================");
-//            project.load(projectPath+ENBProjectPath,true);
-//            proj = project.current();
-////            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
-//            try {
-//                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
-//                builderMap.put(proj.name(),cfaBuilder);
-//            }catch (result r){
-//                r.printStackTrace();
-//            }
-//
-//            //CPAMain.executionTesting(arguments, cpacheckPath, projectPath+MMEProjectPath, proj);
-//
-//            printINFO("==================Finish ENB==================");
-//
-//            printINFO("==================Parsing MME==================");
-//            project.load(projectPath+MMEProjectPath,true);
-//            proj = project.current();
-////            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
-//            try {
-//                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
-//                builderMap.put(proj.name(),cfaBuilder);
-//            }catch (result r){
-//                r.printStackTrace();
-//            }
-//            printINFO("==================Finish MME==================");
+            project.load(projectPath+ENBProjectPath,true);
+            proj = project.current();
+//            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
+            try {
+                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
+                builderMap.put(proj.name(),cfaBuilder);
+            }catch (result r){
+                r.printStackTrace();
+            }
 
-//            FuzzyParser fuzzyParser = new FuzzyParser(cpaMain.logManager, MachineModel.LINUX64, builderMap);
-//            String channelModelFile ="";
-//            fuzzyParser.parseChannelModel(channelModelFile);
-//            builderMap.put(channel,fuzzyParser.getChannelBuilder());
-//            if(builderMap.size()>1)
-//                doComposition(builderMap);
+            //CPAMain.executionTesting(arguments, cpacheckPath, projectPath+MMEProjectPath, proj);
+
+            printINFO("==================Finish ENB==================");
+
+            printINFO("==================Parsing MME==================");
+            project.load(projectPath+MMEProjectPath,true);
+            proj = project.current();
+//            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
+            try {
+                CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
+                builderMap.put(proj.name(),cfaBuilder);
+            }catch (result r){
+                r.printStackTrace();
+            }
+            printINFO("==================Finish MME==================");
+
+            FuzzyParser fuzzyParser = new FuzzyParser(cpaMain.logManager, MachineModel.LINUX64, builderMap);
+
+            String channelModelFile =projPath+"/libmodels/channel";
+            fuzzyParser.parseChannelModel(channelModelFile);
+            builderMap.put(channel,fuzzyParser.getChannelBuilder());
+            if(builderMap.size()>1)
+                doComposition(builderMap);
 
 
             project.unload();

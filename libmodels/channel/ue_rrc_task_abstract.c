@@ -15,11 +15,12 @@ void rrc_ue_task_RRC_MAC_IN_SYNC_IND(uint8_t enb_index){
     UE_rrc_inst[ue_mod_id].Info[enb_index].N310_cnt ++;
 }
 
-void rrc_ue_task_RRC_MAC_BCCH_DATA_IND(uint8_t enb_index, long rsrq, double rsrp){
+void rrc_ue_task_RRC_MAC_BCCH_DATA_IND(uint8_t enb_index,uint32_t frame,  long rsrq, double rsrp){
+    DLBCCHRRCMessageDeliver();
     ctxt->module_id = ue_mod_id;
     ctxt->enb_flag  = false;
     ctxt->rnti      = NOT_A_RNTI;
-    ctxt->frame     = 0;
+    ctxt->frame     = frame;
     ctxt->subframe  = 0;
     ctxt->eNB_index  = enb_index;
     ctxt->instance  = ue_mod_id+1;
@@ -38,14 +39,13 @@ void rrc_ue_task_RRC_MAC_CCCH_DATA_CNF(uint8_t enb_index){
     UE_rrc_inst[ue_mod_id].Srb0[enb_index].Tx_buffer.payload_size = 0;
 }
 
-void rrc_ue_task_RRC_MAC_CCCH_DATA_IND(uint8_t enb_index,rnti_t rnti){
+void rrc_ue_task_RRC_MAC_CCCH_DATA_IND(uint8_t enb_index,uint32_t frame, rnti_t rnti){
+    DLCCCHRRCMessageDeliver();
     srb_info_p = &UE_rrc_inst[ue_mod_id].Srb0[enb_index];
-
-    //      PROTOCOL_CTXT_SET_BY_INSTANCE(&ctxt, instance, false, RRC_MAC_CCCH_DATA_IND (msg_p).rnti, RRC_MAC_CCCH_DATA_IND (msg_p).frame, 0);
     ctxt->module_id = ue_mod_id;
     ctxt->enb_flag  = false;
     ctxt->rnti      = rnti;
-    ctxt->frame     = 0;
+    ctxt->frame     = frame;
     ctxt->subframe  = 0;
     ctxt->eNB_index  = enb_index;
     ctxt->instance  = instance;
@@ -56,11 +56,12 @@ void rrc_ue_task_RRC_MAC_CCCH_DATA_IND(uint8_t enb_index,rnti_t rnti){
 }
 
 
-void rrc_ue_task_RRC_MAC_MCCH_DATA_IND(uint8_t enb_index,rnti_t rnti){
+void rrc_ue_task_RRC_MAC_MCCH_DATA_IND(uint8_t enb_index, uint32_t frame, uint8_t mbsfn_sync_area){
+    DLMCCHRRCMessageDeliver();
     ctxt->module_id = ue_mod_id;
     ctxt->enb_flag  = false;
     ctxt->rnti      = M_RNTI;
-    ctxt->frame     = 0;
+    ctxt->frame     = frame;
     ctxt->subframe  = 0;
     ctxt->eNB_index  = enb_index;
     ctxt->instance  = instance;
@@ -70,15 +71,16 @@ void rrc_ue_task_RRC_MAC_MCCH_DATA_IND(uint8_t enb_index,rnti_t rnti){
       enb_index,
       NULL,
       0,
-      NULL);
+      mbsfn_sync_area);
 }
 
 
-void rrc_ue_task_RRC_DCCH_DATA_IND(uint8_t enb_index,rnti_t rnti){
+void rrc_ue_task_RRC_DCCH_DATA_IND(uint8_t enb_index,uint8_t ue_mod_id, rnti_t rnti, uint32_t frame){
+    DLDCCHRRCMessageDeliver();
     ctxt->module_id = ue_mod_id;
     ctxt->enb_flag  = false;
     ctxt->rnti      = rnti;
-    ctxt->frame     = 0;
+    ctxt->frame     = frame;
     ctxt->subframe  = 0;
     ctxt->eNB_index  = enb_index;
     ctxt->instance  = instance;
@@ -170,7 +172,6 @@ void rrc_ue_task_NAS_UPLINK_DATA_REQ(){
 
     // check if SRB2 is created, if yes request data_req on DCCH1 (SRB2)
     //RRC_DCCH_DATA_REQ
-    MessagesIds messageID = 34;
-    ULMessageDeliver(messageID);
+    DLDCCHRRCMessageDeliver();
 }
 

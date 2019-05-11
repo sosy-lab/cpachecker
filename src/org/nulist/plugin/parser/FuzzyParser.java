@@ -68,17 +68,36 @@ public class FuzzyParser implements Parser {
 
     public void parseChannelModel(String filename){
         File file = new File(filename);
+
         try {
-            CharStream inputStream = CharStreams.fromPath(file.toPath());
-            AntlrCFunctionParserDriver driver = new AntlrCFunctionParserDriver();
-            Lexer lexer = driver.createLexer(inputStream);
-            TokenSubStream functionTokens = new TokenSubStream(lexer);
-            driver.parseAndWalkTokenStream(functionTokens);
-            channelBuilder.parseBuildFile(driver);
+            if(file.isDirectory()){
+                File[] files = file.listFiles();
+                for(File f:files){
+                    if(f.getName().endsWith(".c")){
+                        CharStream inputStream = CharStreams.fromPath(f.toPath());
+                        AntlrCFunctionParserDriver driver = new AntlrCFunctionParserDriver();
+                        Lexer lexer = driver.createLexer(inputStream);
+                        TokenSubStream functionTokens = new TokenSubStream(lexer);
+                        driver.parseAndWalkTokenStream(functionTokens);
+                        channelBuilder.putDriver(driver);
+                    }
+                }
+                channelBuilder.parseFile();
+            }else {
+                CharStream inputStream = CharStreams.fromPath(file.toPath());
+                AntlrCFunctionParserDriver driver = new AntlrCFunctionParserDriver();
+                Lexer lexer = driver.createLexer(inputStream);
+                TokenSubStream functionTokens = new TokenSubStream(lexer);
+                driver.parseAndWalkTokenStream(functionTokens);
+                channelBuilder.parseBuildFile(driver);
+            }
+
         }catch (IOException e){
             throw new RuntimeException(e);
         }
     }
+
+
 
     public CFABuilder getChannelBuilder() {
         return channelBuilder.channelBuilder;

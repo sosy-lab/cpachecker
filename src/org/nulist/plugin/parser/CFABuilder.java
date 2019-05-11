@@ -169,24 +169,52 @@ public class CFABuilder {
                     CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
 //                    if(funcName.equals("rrc_ue_task_abstract"))
 //                        System.out.println();
-
                     if(!cfgFunctionBuilder.isFinished){
-                        if((projectName.equals(UE) || projectName.equals(MME)) && (funcName.equals("nas_message_encode") ||//EMM message
-                                funcName.equals("esm_msg_encode") ||//ESM message
-                                funcName.equals("nas_message_decode") ||
-                                funcName.equals("nas_message_decrypt") ||
-                                funcName.equals("_emm_as_send"))){//for delivering NAS message through channel operations
-                            cfgFunctionBuilder.visitFunction(false);
-                        }if((projectName.equals(UE) || projectName.equals(ENB))&&
-                                (funcName.equals("uper_encode_to_buffer") ||
-                                        funcName.equals("uper_decode_complete") ||
-                                        funcName.equals("uper_decode"))){//for delivering RRC message through channel operations
-                            cfgFunctionBuilder.visitFunction(false);
-                        }else
-                            cfgFunctionBuilder.visitFunction(true);
+                        cfgFunctionBuilder.visitFunction(!finishFunctionBuild(funcName));
+//                        if(finishFunctionBuild(funcName))
+//                        if((projectName.equals(UE) || projectName.equals(MME)) && (funcName.equals("nas_message_encode") ||//EMM message
+//                                funcName.equals("esm_msg_encode") ||//ESM message
+//                                funcName.equals("nas_message_decode") ||
+//                                funcName.equals("nas_message_decrypt") ||
+//                                funcName.equals("_emm_as_send"))){//for delivering NAS message through channel operations
+//                            cfgFunctionBuilder.visitFunction(false);
+//                        }if((projectName.equals(UE) || projectName.equals(ENB))&&
+//                                (funcName.equals("uper_encode_to_buffer") ||
+//                                        funcName.equals("uper_decode_complete") ||
+//                                        funcName.equals("uper_decode"))){//for delivering RRC message through channel operations
+//                            cfgFunctionBuilder.visitFunction(false);
+//                        }else
+
                     }
                 }
             }
+        }
+    }
+
+    private boolean finishFunctionBuild(String functionName){
+        if(projectName.equals(UE)){
+            return functionName.equals("nas_message_encode") ||//EMM message
+                    functionName.equals("esm_msg_encode") ||//ESM message
+                    functionName.equals("nas_message_decode") ||
+                    functionName.equals("nas_message_decrypt") ||
+                    functionName.equals("_emm_as_send")||
+                    functionName.equals("uper_encode_to_buffer") ||
+                    functionName.equals("uper_decode_complete") ||
+                    functionName.equals("uper_decode");
+        }else if(projectName.equals(MME)){
+            return functionName.equals("nas_message_encode") ||//EMM message
+                    functionName.equals("esm_msg_encode") ||//ESM message
+                    functionName.equals("nas_message_decode") ||
+                    functionName.equals("nas_message_decrypt") ||
+                    functionName.equals("_emm_as_send") ||
+                    functionName.equals("s1ap_generate_downlink_nas_transport");
+        }else {//eNB
+            return functionName.equals("uper_encode_to_buffer") ||
+                    functionName.equals("uper_decode_complete") ||
+                    functionName.equals("uper_decode") ||
+                    functionName.equals("s1ap_eNB_handle_nas_first_req")||
+                    functionName.equals("s1ap_eNB_nas_uplink")||
+                    functionName.equals("s1ap_eNB_nas_non_delivery_ind");
         }
     }
 

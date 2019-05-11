@@ -8,7 +8,7 @@ void nas_ue_INITIALIZE_MESSAGE(nas_user_t *user){
 
 
 
-void nas_ue_NAS_CELL_SELECTION_CNF(nas_user_t *user, nas_error_code_t errCode, unint16_t tac, unint32_t cellID, Byte_t rat, long rsrq, double rsrp){
+void nas_ue_NAS_CELL_SELECTION_CNF(nas_user_t *user, nas_error_code_t errCode, uint16_t tac, uint32_t cellID, Byte_t rat, long rsrq, double rsrp){
     int cell_found = errCode==1;//1:AS_SUCCESS
     nas_proc_cell_info (user, cell_found, tac,
                                   cellID, rat,

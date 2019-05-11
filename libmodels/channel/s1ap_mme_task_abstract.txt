@@ -1,0 +1,4 @@
+//TODO: replace s1ap_mme_itti_send_sctp_request with s1ap_eNB_itti_send_nas_downlink_ind in s1ap_generate_downlink_nas_transport of s1ap_mme_nas_procedure.c
+
+
+

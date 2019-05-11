@@ -1,4 +1,3 @@
-
 void nas_mme_NAS_INITIAL_UE_MESSAGE(nas_establish_ind_t nas_est_ind_p){
     nas_proc_establish_ind (nas_est_ind_p->ue_id,
                   nas_est_ind_p->tai,
@@ -60,7 +59,6 @@ void nas_mme_NAS_IMPLICIT_DETACH_UE_IND(int ue_id, uint8_t emm_cause, uint8_t de
 void nas_mme_S1AP_DEREGISTER_UE_REQ(int mme_ue_s1ap_id){
     nas_proc_deregister_ue(mme_ue_s1ap_id);
 }
-
 
 void nas_mme_S6A_AUTH_INFO_ANS(){
     nas_proc_authentication_info_answer(NULL);

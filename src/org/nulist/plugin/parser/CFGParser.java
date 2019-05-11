@@ -110,10 +110,10 @@ public class CFGParser implements Parser{
         procedure proc = project.find_procedure(ITTI_ALLOC_NEW_MESSAGE);
         if(proc!=null)
             ChannelBuildOperation.generateITTI_ALLOC_NEW_MESSAGE(cfaBuilder,proc);
-        proc = project.find_procedure(ITTI_SEND_MSG_TO_TASKS);
-        procedure proc1 = project.find_procedure(ITTI_SEND_MSG_TO_TASKS+extendSuffix);
-        if(proc!=null)
-            ChannelBuildOperation.generateITTI_SEND_TO_TASK(cfaBuilder,proc, proc1);
+//        proc = project.find_procedure(ITTI_SEND_MSG_TO_TASKS);
+//        procedure proc1 = project.find_procedure(ITTI_SEND_MSG_TO_TASKS+extendSuffix);
+//        if(proc!=null)
+//            ChannelBuildOperation.generateITTI_SEND_TO_TASK(cfaBuilder,proc, proc1);
 
         parseTimer.stop();
         return cfaBuilder;
