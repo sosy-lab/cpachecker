@@ -902,7 +902,12 @@ public class ChannelConstructer {
                     int caseID = Integer.valueOf(exprElements[0]);
                     return new CIntegerLiteralExpression(fileLocation, CNumericTypes.UNSIGNED_INT, BigInteger.valueOf(caseID));
                 }catch (Exception e){
-                    throw new RuntimeException(e);
+                    CVariableDeclaration variableDeclaration =
+                            (CVariableDeclaration)functionBuilder.expressionHandler.variableDeclarations.get(exprElements[0].hashCode());
+                    if(variableDeclaration!=null)
+                        return new CIdExpression(fileLocation,variableDeclaration);
+                    else
+                        throw new RuntimeException("No such variable: "+ exprElements[0]);
                 }
             }
         }else {
@@ -917,13 +922,21 @@ public class ChannelConstructer {
             for(int i=1;i<exprElements.length;i+=2){
                 CCompositeType cCompositeType = (CCompositeType) getRealCompositeType(expression.getExpressionType());
                 String memberName = exprElements[i+1];
-                CType memberType = getMemberType(cCompositeType, memberName);
-                boolean ispointerder = exprElements[i].equals("->");
-                expression = new CFieldReference(fileLocation,
-                        memberType,
-                        memberName,
-                        expression,
-                        ispointerder);
+                if(exprElements[i].equals("[") && exprElements[i+2].equals("]")){
+                    CExpression indexExpr = expressionParser(functionBuilder,memberName);
+                    expression = new CArraySubscriptExpression(fileLocation,
+                            ((CArrayType)expression.getExpressionType()).getType(),
+                            expression,
+                            indexExpr);
+                }else {
+                    CType memberType = getMemberType(cCompositeType, memberName);
+                    boolean ispointerder = exprElements[i].equals("->");
+                    expression = new CFieldReference(fileLocation,
+                            memberType,
+                            memberName,
+                            expression,
+                            ispointerder);
+                }
             }
             return expression;
         }
@@ -943,11 +956,25 @@ public class ChannelConstructer {
                 elements.add(builder.toString());
                 elements.add(".");
                 builder = new StringBuilder();
+            }else if(chars[i]=='['){
+                elements.add(builder.toString());
+                elements.add("[");
+                i++;
+                builder = new StringBuilder();
+                for(;i<chars.length;i++){
+                    if(chars[i]!=']')
+                        builder.append(chars[i]);
+                    else{
+                        elements.add(builder.toString());
+                        elements.add("]");
+                    }
+                }
             }else
                 builder.append(chars[i]);
         }
         elements.add(builder.toString());
         return elements.toArray(new String[elements.size()]);
     }
+
 
 }

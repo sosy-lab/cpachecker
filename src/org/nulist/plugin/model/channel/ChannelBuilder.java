@@ -21,6 +21,7 @@ import io.shiftleft.fuzzyc2cpg.ast.statements.jump.ContinueStatement;
 import io.shiftleft.fuzzyc2cpg.ast.statements.jump.ReturnStatement;
 import io.shiftleft.fuzzyc2cpg.parser.TokenSubStream;
 import io.shiftleft.fuzzyc2cpg.parser.functions.AntlrCFunctionParserDriver;
+import jdk.nashorn.internal.runtime.arrays.ArrayIndex;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.Lexer;
@@ -39,6 +40,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.*;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import java.math.BigInteger;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import static org.nulist.plugin.model.ChannelBuildOperation.*;
@@ -57,31 +60,68 @@ public class ChannelBuilder {
     public Map<String, CFABuilder> builderMap;
     public CFABuilder channelBuilder;
     private String filename="";
-    private List<AntlrCFunctionParserDriver> driverList = new ArrayList<>();
+    private String project="";
+    private Map<String, AntlrCFunctionParserDriver> driverList = new HashMap<>();
 
     public ChannelBuilder (Map<String, CFABuilder> builderMap, String buildName){
         this.builderMap = builderMap;
         channelBuilder=new CFABuilder(null, MachineModel.LINUX64,buildName);
     }
 
-    public void putDriver(AntlrCFunctionParserDriver driver){
-        driverList.add(driver);
+    public void putDriver(String filePath, AntlrCFunctionParserDriver driver){
+        channelBuilder.addParsedFile(Paths.get(filePath));
+        String fileName = filePath.replace(".c","");
+        fileName = filename.split("/")[filename.split("/").length-1];
+        driverList.put(fileName,driver);
     }
 
     public void parseFile(){
         if(!driverList.isEmpty()){
-            driverList.forEach(driver -> {
-                parseBuildFile(driver);
-            });
+            buildChannelMessageType();
+            //channel related models
+            if(driverList.containsKey("EMMMessageTranslation")){
+                this.project=Channel;
+                parseBuildFile("EMMMessageTranslation",driverList.get("EMMMessageTranslation"));
+            }
+            if(driverList.containsKey("ESMMessageTranslation")){
+                this.project=Channel;
+                parseBuildFile("ESMMessageTranslation",driverList.get("ESMMessageTranslation"));
+            }
+            if(driverList.containsKey("cnside_message_channel")){
+                this.project=Channel;
+                parseBuildFile("cnside_message_channel",driverList.get("cnside_message_channel"));
+            }
+            if(driverList.containsKey("ueside_message_channel")){
+                this.project=Channel;
+                parseBuildFile("ueside_message_channel",driverList.get("ueside_message_channel"));
+            }
+            if(driverList.containsKey("channel_operation")){
+                this.project=Channel;
+                parseBuildFile("channel_operation",driverList.get("channel_operation"));
+            }
+
+
+            //composition related models
+            if(driverList.containsKey("enb_rrc_task_abstract")){
+                this.project=ENB;
+                parseBuildFile("enb_rrc_task_abstract",driverList.get("enb_rrc_task_abstract"));
+            }
+            if(driverList.containsKey("ue_rrc_task_abstract")){
+                this.project=UE;
+                parseBuildFile("ue_rrc_task_abstract",driverList.get("ue_rrc_task_abstract"));
+            }
+            if(driverList.containsKey("itti_task_abstract")){
+                this.project=Channel;
+                parseBuildFile("itti_task_abstract",driverList.get("itti_task_abstract"));
+            }
+
         }
     }
 
-    public void parseBuildFile(AntlrCFunctionParserDriver driver){
-
-        buildChannelMessageType();
-
+    public void parseBuildFile(String filename, AntlrCFunctionParserDriver driver){
         AstNode top = driver.builderStack.peek().getItem();
-        filename = driver.filename;
+        this.filename = filename;
+
         Map<Integer, List<AstNode>> globalNodes = globalStatementMap(top);
 
         globalNodes.forEach(((integer, astNodes) -> {
@@ -99,6 +139,8 @@ public class ChannelBuilder {
             }
         }));
     }
+
+
 
     public void buildChannelMessageType(){
         CFABuilder ueBuilder = builderMap.get(UE);
@@ -264,7 +306,8 @@ public class ChannelBuilder {
                 filename,
                 channelBuilder);
 
-        CType returnType = getType(astNodes.get(0).getEscapedCodeStr());
+        String returnTypeName = astNodes.get(0).getEscapedCodeStr();
+        CType returnType = getType(getProjectForType(functionName,1),returnTypeName);
         List<CType> paramTypes = new ArrayList<>();
         List<CParameterDeclaration> parameterDeclarations = new ArrayList<>();
         boolean isTakeArgs = false;
@@ -286,7 +329,7 @@ public class ChannelBuilder {
                     param = astNodes.get(i).getEscapedCodeStr();
                     i++;
                 }
-                CType type = getType(typename);
+                CType type = getType(getProjectForType(functionName,2),typename);
                 paramTypes.add(type);
 
                 CParameterDeclaration parameterDeclaration = new CParameterDeclaration(fileLocation,type,param);
@@ -513,7 +556,7 @@ public class ChannelBuilder {
             return (CExpression) handleCallExpression(functionBuilder, expressionNode);
         }else if(expressionNode instanceof SizeofExpression){
             String SizeofOperandStr = expressionNode.getChild(1).getEscapedCodeStr();
-            CType sizeofType = getType(SizeofOperandStr);
+            CType sizeofType = getType(getProjectForType(functionBuilder.functionName,3),SizeofOperandStr);
             if(sizeofType!=null){
                 return new CIntegerLiteralExpression(fileLocation,
                         CNumericTypes.INT,
@@ -521,8 +564,6 @@ public class ChannelBuilder {
             }else {
                 throw new RuntimeException("Unsupport sizeof expression: "+expressionNode.getEscapedCodeStr());
             }
-        }else if(expressionNode instanceof Identifier || expressionNode instanceof Constant){
-            return getExpressionFromString(functionBuilder,expressionNode.getEscapedCodeStr());
         }else if(expressionNode instanceof EqualityExpression){
             CBinaryExpression.BinaryOperator operator = getBinaryOperator(expressionNode.getOperator());
             CExpression operand1 = getExpression(functionBuilder,(Expression)expressionNode.getChild(0));
@@ -532,7 +573,37 @@ public class ChannelBuilder {
                     operand2,
                     operator,
                     CNumericTypes.BOOL);
-        }else {
+        }else if(expressionNode instanceof CastExpression){
+            Expression castExpression = ((CastExpression) expressionNode).getCastExpression();
+            Expression castTarget = ((CastExpression) expressionNode).getCastTarget();
+            String castType = castTarget.getEscapedCodeStr();
+            CExpression cExpression = getExpression(functionBuilder,castExpression);
+            CType type;
+            if(castType.endsWith("*")){
+                type =getType(getProjectForType(functionBuilder.functionName,4),castType.replace("*","").trim());
+                type = new CPointerType(false,false,type);
+            }else
+                type = getType(getProjectForType(functionBuilder.functionName,4),castType);
+            return new CCastExpression(fileLocation, type, cExpression);
+        }else if(expressionNode instanceof Identifier ||
+                expressionNode instanceof Constant ||
+                expressionNode instanceof PtrMemberAccess||
+                expressionNode instanceof MemberAccess ||
+                expressionNode instanceof ArrayIndexing){
+            return getExpressionFromString(functionBuilder,expressionNode.getEscapedCodeStr());
+        }
+//        else if(expressionNode instanceof PtrMemberAccess){
+//            Expression mainObj = (Expression) expressionNode.getChild(0);
+//            Expression identifier = (Expression) expressionNode.getChild(1);
+//
+//            return new CFieldReference()
+//        }else if(expressionNode instanceof MemberAccess){
+//
+//        }else if(expressionNode instanceof ArrayIndexing){
+//
+//        }
+
+        else {
             throw new RuntimeException("Unsupport expression node: "+ expressionNode.getTypeAsString());
         }
     }
@@ -703,7 +774,6 @@ public class ChannelBuilder {
                     lastnode = functionBuilder.newCFANode();
                 }else {
                     //String caseString = "case "+labelName;//node.getEscapedCodeStr().replace(":","").replace("case","").trim();
-
                     int value;
                     try{
                         value = Integer.valueOf(labelName);;
@@ -837,21 +907,20 @@ public class ChannelBuilder {
         }
     }
 
-    public CType getType(String typename){
-        if(channelBuilder.typeConverter.typeCache.containsKey(typename.hashCode()))
+    public CType getType(String projectName, String typename){
+
+        if(builderMap.containsKey(projectName)){
+            return builderMap.get(projectName).typeConverter.typeCache.get(typename.hashCode());
+        }else if(channelBuilder.typeConverter.typeCache.containsKey(typename.hashCode()))
             return channelBuilder.typeConverter.typeCache.get(typename.hashCode());
-        else {
-            for(CFABuilder cfaBuilder: builderMap.values()){
-                if(cfaBuilder.typeConverter.typeCache.containsKey(typename.hashCode()))
-                    return cfaBuilder.typeConverter.typeCache.get(typename.hashCode());
-            }
-            throw new RuntimeException("No existing type "+typename);
-        }
+
+        throw new RuntimeException("No existing type "+typename);
     }
 
     public CDeclaration parseVariableDeclaration(CFGFunctionBuilder functionBuilder, boolean isGlobal, IdentifierDecl node){
         String variableName = node.getName().getEscapedCodeStr();
-        CType type = getType(node.getType().completeType);
+
+        CType type = getType(getProjectForType("",0), node.getType().completeType);
         FileLocation fileLocation = getFileLocation(node.getLocation());
         CInitializer initializer = null;
         if(node.getAssignment()!=null){
@@ -893,6 +962,64 @@ public class ChannelBuilder {
 
     private FileLocation getFileLocation(CodeLocation location){
         return new FileLocation(filename, 0,1,location.startLine,location.endLine);
+    }
+
+    //locationType: global variable: 0, function return type: 1, function paramtype:2, variable del: 3, cast type: 4
+    private String getProjectForType(String functionName, int locationType){
+        if(filename.endsWith("side_message_channel")){
+            if(functionName.equals("ueChannelMessageInit")||
+                    functionName.equals("cnChannelMessageInit")||
+                    locationType==0)
+                return Channel;
+            else if(functionName.startsWith("ue"))
+                return UE;
+            else if(functionName.contains("AS"))
+                return MME;
+            else
+                return ENB;
+        }else if(filename.endsWith("channel_operation")){
+            if(functionName.contains("RRC")){
+                if(functionName.startsWith("DL")){
+                    return UE;
+                }else
+                    return ENB;
+            }else if(functionName.equals("DLNASEMMMessageTranslation")){
+                return MME;
+            }else if(functionName.equals("ULNASEMMMessageTranslation"))
+                return UE;
+            else if(functionName.equals("DLNASMessageDeliver")){
+                if(locationType==2)
+                    return MME;
+                else
+                    return UE;
+            }else if(functionName.equals("ULNASMessageDeliver"))
+                if(locationType==2)
+                    return UE;
+                else
+                    return MME;
+        }else if(filename.equals("EMMMessageTranslation")||filename.equals("ESMMessageTranslation")){
+            if(locationType==4)
+                return functionName.contains("UL")?MME:UE;
+            else if(locationType == 3)
+                return functionName.contains("UL")?UE:MME;
+            else
+                throw new RuntimeException();
+        }else if(filename.endsWith("rrc_task_abstract")){
+            return functionName.startsWith("enb")?ENB:UE;
+        }else if(filename.equals("itti_task_abstract")){
+            switch (locationType){
+                case 1:
+                case 2:
+                    return functionName.endsWith("ue")?UE:(functionName.endsWith("eNB")?ENB:MME);
+                case 3:
+                case 4:
+                    return functionName.endsWith("ue")?ENB:(functionName.endsWith("eNB")?UE:MME);
+            }
+
+        }
+
+        return "";
+
     }
 
 }

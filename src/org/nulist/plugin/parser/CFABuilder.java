@@ -96,6 +96,10 @@ public class CFABuilder {
         cfaNodes.put(funcName, nd);
     }
 
+    public void addParsedFile(Path filePath){
+        parsedFiles.add(filePath);
+    }
+
     public void basicBuild(compunit cu, String projectName)throws result{
 
         String pFileName = cu.normalized_name();

@@ -32,6 +32,7 @@ public class CFGParser implements Parser{
     public final static String ENB = "OAI-ENB";
     public final static String MME = "OAI-MME";
     public final static String UE = "OAI-UE";
+    public final static String Channel = "Channel";
 
     private final Timer parseTimer = new Timer();
     private final Timer cfaCreationTimer = new Timer();

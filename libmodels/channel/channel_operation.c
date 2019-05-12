@@ -3,55 +3,6 @@
 //rsp(NAS->AS) --> cnf(AS->NAS)
 //this function is used to translate message between UE and CN and deliver to eNB
 
-
-void ULDCCHRRCMessageDeliver(){
-    if(UE_channel_message_cache!=NULL){
-        CN_channel_message_cache->rrc_message.message.msgID = 35;//RRC_DCCH_DATA_IND
-        CN_channel_message_cache->rrc_message.message.ul_dcch_msg = (LTE_UL_DCCH_Message_t)UE_channel_message_cache->rrc_message.message.ul_dcch_msg;
-        ulNASEMMMessageTranslation();
-    }
-}
-
-void ULCCCHRRCMessageDeliver(){
-    if(UE_channel_message_cache!=NULL){
-        CN_channel_message_cache->rrc_message.message.msgID = 20;//RRC_MAC_CCCH_DATA_IND
-        CN_channel_message_cache->rrc_message.message.ul_ccch_msg = (LTE_UL_CCCH_Message_t)UE_channel_message_cache->rrc_message.message.ul_ccch_msg;
-
-    }
-}
-
-void DLDCCHRRCMessageDeliver(){
-    if(CN_channel_message_cache!=NULL){
-        UE_channel_message_cache->rrc_message.message.msgID = 35;//RRC_DCCH_DATA_IND
-        UE_channel_message_cache->rrc_message.message.dl_dcch_msg = (LTE_DL_DCCH_Message_t)CN_channel_message_cache->rrc_message.message.dl_dcch_msg;
-        dlNASEMMMessageTranslation();
-    }
-}
-
-void DLCCCHRRCMessageDeliver(){
-    if(CN_channel_message_cache!=NULL){
-        UE_channel_message_cache->rrc_message.message.msgID = 20;//RRC_MAC_CCCH_DATA_IND
-        UE_channel_message_cache->rrc_message.message.dl_ccch_msg = (LTE_DL_CCCH_Message_t)CN_channel_message_cache->rrc_message.message.dl_ccch_msg;
-
-    }
-}
-
-void DLMCCHRRCMessageDeliver(){
-    if(CN_channel_message_cache!=NULL){
-        UE_channel_message_cache->rrc_message.message.msgID = 22;//RRC_MAC_MCCH_DATA_IND
-        UE_channel_message_cache->rrc_message.message.dl_ccch_msg = (LTE_DL_CCCH_Message_t)CN_channel_message_cache->rrc_message.message.dl_ccch_msg;
-
-    }
-}
-
-void DLBCCHRRCMessageDeliver(){
-    if(CN_channel_message_cache!=NULL){
-        UE_channel_message_cache->rrc_message.message.msgID = 17;//RRC_MAC_BCCH_DATA_IND
-        UE_channel_message_cache->rrc_message.message.bcch_bch_msg = (LTE_BCCH_BCH_Message_t)CN_channel_message_cache->rrc_message.message.bcch_bch_msg;
-    }
-}
-
-
 void ULNASMessageDeliver(MessagesIds messageID){
     switch(messageID){
         case 47://NAS_KENB_REFRESH_REQ = 47, no as message
@@ -108,7 +59,7 @@ void DLNASMessageDeliver(MessagesIds messageID){
     }
 }
 
-void ulNASEMMMessageTranslation(){
+void ULNASEMMMessageTranslation(){
     uint8_t msgType = UE_channel_message_cache->nas_message.nas_message.plain.emm.header.message_type;
     translate_UL_Header();
     switch(msgType){
@@ -148,7 +99,7 @@ void ulNASEMMMessageTranslation(){
     }
 }
 
-void dlNASEMMMessageTranslation(){
+void DLNASEMMMessageTranslation(){
     uint8_t msgType = CN_channel_message_cache->nas_message.nas_message.plain.emm.header.message_type;
     translate_DL_Header();
     switch(msgType){
@@ -192,17 +143,62 @@ void dlNASEMMMessageTranslation(){
     }
 }
 
-
-asn_dec_rval_t uper_decode(const asn_codec_ctx_t *opt_codec_ctx,
-            const asn_TYPE_descriptor_t *td, void **sptr, const void *buffer,
-            size_t size, int skip_bits, int unused_bits) {
-
-
+void ULDCCHRRCMessageDeliver(){
+    if(UE_channel_message_cache!=NULL){
+        CN_channel_message_cache->rrc_message.message.msgID = 35;//RRC_DCCH_DATA_IND
+        CN_channel_message_cache->rrc_message.message.ul_dcch_msg = (LTE_UL_DCCH_Message_t)UE_channel_message_cache->rrc_message.message.ul_dcch_msg;NASEMMMessageTranslation();
+    }
 }
 
-asn_enc_rval_t
-uper_encode_to_buffer(const asn_TYPE_descriptor_t *td,
-                      const asn_per_constraints_t *constraints,
-                      const void *sptr, void *buffer, size_t buffer_size) {
-
+void ULCCCHRRCMessageDeliver(){
+    if(UE_channel_message_cache!=NULL){
+        CN_channel_message_cache->rrc_message.message.msgID = 20;//RRC_MAC_CCCH_DATA_IND
+        CN_channel_message_cache->rrc_message.message.ul_ccch_msg = (LTE_UL_CCCH_Message_t)UE_channel_message_cache->rrc_message.message.ul_ccch_msg;
+    }
 }
+
+void DLDCCHRRCMessageDeliver(){
+    if(CN_channel_message_cache!=NULL){
+        UE_channel_message_cache->rrc_message.message.msgID = 35;//RRC_DCCH_DATA_IND
+        UE_channel_message_cache->rrc_message.message.dl_dcch_msg = (LTE_DL_DCCH_Message_t)CN_channel_message_cache->rrc_message.message.dl_dcch_msg;
+        DLNASEMMMessageTranslation();
+    }
+}
+
+void DLCCCHRRCMessageDeliver(){
+    if(CN_channel_message_cache!=NULL){
+        UE_channel_message_cache->rrc_message.message.msgID = 20;//RRC_MAC_CCCH_DATA_IND
+        UE_channel_message_cache->rrc_message.message.dl_ccch_msg = (LTE_DL_CCCH_Message_t)CN_channel_message_cache->rrc_message.message.dl_ccch_msg;
+    }
+}
+
+void DLMCCHRRCMessageDeliver(){
+    if(CN_channel_message_cache!=NULL){
+        UE_channel_message_cache->rrc_message.message.msgID = 22;//RRC_MAC_MCCH_DATA_IND
+        UE_channel_message_cache->rrc_message.message.dl_ccch_msg = (LTE_DL_CCCH_Message_t)CN_channel_message_cache->rrc_message.message.dl_ccch_msg;
+
+    }
+}
+
+void DLBCCHRRCMessageDeliver(){
+    if(CN_channel_message_cache!=NULL){
+        UE_channel_message_cache->rrc_message.message.msgID = 17;//RRC_MAC_BCCH_DATA_IND
+        UE_channel_message_cache->rrc_message.message.bcch_bch_msg = (LTE_BCCH_BCH_Message_t)CN_channel_message_cache->rrc_message.message.bcch_bch_msg;
+    }
+}
+
+
+
+//
+//asn_dec_rval_t uper_decode(const asn_codec_ctx_t *opt_codec_ctx,
+//            const asn_TYPE_descriptor_t *td, void **sptr, const void *buffer,
+//            size_t size, int skip_bits, int unused_bits) {
+//
+//
+//}
+//
+//asn_enc_rval_t uper_encode_to_buffer(const asn_TYPE_descriptor_t *td,
+//                      const asn_per_constraints_t *constraints,
+//                      const void *sptr, void *buffer, size_t buffer_size) {
+//
+//}

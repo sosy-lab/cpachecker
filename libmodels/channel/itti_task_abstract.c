@@ -24,10 +24,10 @@ int itti_send_msg_to_task_ue(task_id_t destination_task_id, instance_t instance,
         case TASK_MAC_UE:
         if(message->ittiMsgHeader.originTaskId==TASK_RRC_UE &&
           message->ittiMsgHeader.messageId==RRC_MAC_CCCH_DATA_REQ){
-          uint32_t frame = message->ittiMsg.rrc_mac_ccch_data_req.frame;
-          uint8_t eNB_index = message->ittiMsg.rrc_mac_ccch_data_req.enb_index;
-          uint8_t ue_mod_id = instance;
-          rnti_t rnti = UE_rrc_inst[ue_mod_id].Info[eNB_index].rnti;
+          uint32_t frame = (uint32_t)message->ittiMsg.rrc_mac_ccch_data_req.frame;
+          uint8_t eNB_index = (uint8_t)message->ittiMsg.rrc_mac_ccch_data_req.enb_index;
+          uint8_t ue_mod_id = (uint8_t)instance;
+          rnti_t rnti = (rnti_t)UE_rrc_inst[ue_mod_id].Info[eNB_index].rnti;
           rrc_enb_task_RRC_MAC_CCCH_DATA_IND(rnti,frame,instance);
         }
         break;
@@ -37,10 +37,10 @@ int itti_send_msg_to_task_ue(task_id_t destination_task_id, instance_t instance,
         case TASK_PDCP_UE:
         if(message->ittiMsgHeader.originTaskId==TASK_RRC_UE &&
           message->ittiMsgHeader.messageId==RRC_DCCH_DATA_REQ){
-          uint32_t frame = message_p->ittiMsg.rrc_dcch_data_req.frame;
-          rnti_t rnti = message_p->ittiMsg.rrc_dcch_data_req.rnti;
-          uint8_t eNB_index = message_p->ittiMsg.rrc_dcch_data_req.eNB_index;
-          uint8_t module_id = message_p->ittiMsg.rrc_dcch_data_req.module_id;
+          uint32_t frame = (uint32_t)message_p->ittiMsg.rrc_dcch_data_req.frame;
+          rnti_t rnti = (rnti_t)message_p->ittiMsg.rrc_dcch_data_req.rnti;
+          uint8_t eNB_index = (uint8_t)message_p->ittiMsg.rrc_dcch_data_req.eNB_index;
+          uint8_t module_id = (uint8_t)message_p->ittiMsg.rrc_dcch_data_req.module_id;
           rrc_enb_task_RRC_DCCH_DATA_IND(module_id, rnti, frame, instance);
         }
         break;
@@ -130,10 +130,10 @@ int itti_send_msg_to_task_eNB(task_id_t destination_task_id, instance_t instance
         case TASK_PDCP_ENB:
             if(message->ittiMsgHeader.originTaskId==TASK_RRC_ENB){
               if(message->ittiMsgHeader.messageId==RRC_DCCH_DATA_REQ){
-                uint32_t frame = RRC_DCCH_DATA_REQ (message).frame;
-                uint8_t mod_id = RRC_DCCH_DATA_REQ (message).module_id;
-                rnti_t rnti = RRC_DCCH_DATA_REQ (message).rnti;
-                uint8_t eNB_index = RRC_DCCH_DATA_REQ (message).eNB_index;
+                uint32_t frame = (uint32_t)RRC_DCCH_DATA_REQ (message).frame;
+                uint8_t mod_id = (uint8_t)RRC_DCCH_DATA_REQ (message).module_id;
+                rnti_t rnti = (rnti_t)RRC_DCCH_DATA_REQ (message).rnti;
+                uint8_t eNB_index = (uint8_t)RRC_DCCH_DATA_REQ (message).eNB_index;
                 rrc_ue_task_RRC_MAC_CCCH_DATA_IND(enb_index, frame, rnti);
               }
             }

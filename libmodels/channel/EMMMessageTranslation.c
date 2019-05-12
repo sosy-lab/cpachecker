@@ -948,28 +948,28 @@ void translate_DL_TRACKING_AREA_UPDATE_ACCEPT(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.equivalentplmns.mncdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.equivalentplmns.plmn[0].mnc_digit1;//No corresponding Type
 
 		emergency_number_list_t *e = &CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist;
-        		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.num_emergency_elements=0;
-        		int i=0;
-        		while(e && i<2){
-                    UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.emergency_number_information[i].lengthofemergency = (uint8_t)e->lengthofemergencynumberinformation;
-                    UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.emergency_number_information[i].emergencyservicecategoryvalue = (uint8_t)e->lengthofemergencynumberinformation;
-                    for(int j=0;j<6;j++){
-                        if (e->number_digit[j] < 10) {
-                            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.emergency_number_information[i].bcd_digits[j] = e->number_digit[j] ;
-                        } else {
-                                break;
-                        }
-                        if (e->number_digit[j] < 10) {
-                            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.emergency_number_information[i].bcd_digits[j] |= (e->number_digit[i] << 4);
-                        } else {
-                            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.emergency_number_information[i].bcd_digits[j] |= 0xF0;
-                            break;
-                        }
-                    }
-                    i++;
-        		    UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.num_emergency_elements+=1;
-        		    e = e->next;
-        		}
+        UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.num_emergency_elements=0;
+        int i=0;
+        while(e && i<2){
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.emergency_number_information[i].lengthofemergency = (uint8_t)e->lengthofemergencynumberinformation;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.emergency_number_information[i].emergencyservicecategoryvalue = (uint8_t)e->lengthofemergencynumberinformation;
+            for(int j=0;j<6;j++){
+                if (e->number_digit[j] < 10) {
+                    UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.emergency_number_information[i].bcd_digits[j] = e->number_digit[j] ;
+                } else {
+                        break;
+                }
+                if (e->number_digit[j] < 10) {
+                    UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.emergency_number_information[i].bcd_digits[j] |= (e->number_digit[i] << 4);
+                } else {
+                    UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.emergency_number_information[i].bcd_digits[j] |= 0xF0;
+                    break;
+                }
+            }
+            i++;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.num_emergency_elements+=1;
+            e = e->next;
+        }
 
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.epsnetworkfeaturesupport=(EpsNetworkFeatureSupport)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.epsnetworkfeaturesupport;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.additionalupdateresult=(AdditionalUpdateResult)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.additionalupdateresult;
@@ -1059,7 +1059,11 @@ void translate_UL_EXTENDED_SERVICE_REQUEST(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.f=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.digit1;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.oddeven=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.oddeven;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.typeofidentity=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.typeofidentity;
-		CN_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.tmsi=((uint8_t )[4LL])UE_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.digit2;//No corresponding Type
+		CN_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.tmsi[0]=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.digit1;//No corresponding Type
+		CN_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.tmsi[1]=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.digit2;//No corresponding Type
+        CN_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.tmsi[2]=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.digit3;//No corresponding Type
+        CN_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.tmsi[3]=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmsi.digit4;//No corresponding Type
+
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmgi.spare=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmgi.spare;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmgi.mbmssessionidindication=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmgi.mbmssessionidindication;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmgi.mccmncindication=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.extended_service_request.mtmsi.tmgi.mccmncindication;

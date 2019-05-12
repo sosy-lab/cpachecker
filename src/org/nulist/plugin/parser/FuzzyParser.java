@@ -79,7 +79,7 @@ public class FuzzyParser implements Parser {
                         Lexer lexer = driver.createLexer(inputStream);
                         TokenSubStream functionTokens = new TokenSubStream(lexer);
                         driver.parseAndWalkTokenStream(functionTokens);
-                        channelBuilder.putDriver(driver);
+                        channelBuilder.putDriver(f.getPath(),driver);
                     }
                 }
                 channelBuilder.parseFile();
@@ -89,7 +89,8 @@ public class FuzzyParser implements Parser {
                 Lexer lexer = driver.createLexer(inputStream);
                 TokenSubStream functionTokens = new TokenSubStream(lexer);
                 driver.parseAndWalkTokenStream(functionTokens);
-                channelBuilder.parseBuildFile(driver);
+                filename = filename.replace(".c","").split("/")[filename.split("/").length-1];
+                channelBuilder.parseBuildFile(filename,driver);
             }
 
         }catch (IOException e){
