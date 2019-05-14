@@ -50,6 +50,7 @@ import java.util.*;
 import static org.nulist.plugin.model.ChannelBuildOperation.*;
 import static org.nulist.plugin.model.channel.ChannelConstructer.*;
 import static org.nulist.plugin.parser.CFGParser.*;
+import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.removeEdgeFromNodes;
 
 /**
  * @ClassName ChannelBuilder
@@ -65,6 +66,8 @@ public class ChannelBuilder {
     private String filename="";
     private String project="";
     private Map<String, AntlrCFunctionParserDriver> driverList = new HashMap<>();
+    private FileLocation fileLocation = null;
+    private boolean useSingeFilelocation = false;
 
     public ChannelBuilder (Map<String, CFABuilder> builderMap, String buildName){
         this.builderMap = builderMap;
@@ -127,8 +130,84 @@ public class ChannelBuilder {
                 parseBuildFile("itti_task_abstract",driverList.get("itti_task_abstract"));
                 System.out.println("Parse "+ "itti_task_abstract");
             }
-
+            if(driverList.containsKey("s1ap_enb_task_abstract")){
+                this.project=MME;
+                useSingeFilelocation = true;
+                parseInsert2Function("s1ap_enb_task_abstract",driverList.get("s1ap_enb_task_abstract"));
+                System.out.println("Parse "+ "s1ap_enb_task_abstract");
+            }
+            if(driverList.containsKey("s1ap_mme_task_abstract")){
+                this.project=ENB;
+                useSingeFilelocation = true;
+                parseInsert2Function("s1ap_mme_task_abstract",driverList.get("s1ap_mme_task_abstract"));
+                System.out.println("Parse "+ "s1ap_mme_task_abstract");
+            }
+            useSingeFilelocation = false;
         }
+    }
+
+    public void parseInsert2Function(String filename, AntlrCFunctionParserDriver driver){
+        AstNode top = driver.builderStack.peek().getItem();
+        this.filename = filename;
+
+        Map<Integer, List<AstNode>> globalNodes = globalStatementMap(top);
+
+        globalNodes.forEach(((integer, astNodes) -> {
+            AstNode astNode = astNodes.get(1);
+            if(astNode.getEscapedCodeStr().equals("s1ap_eNB_handle_nas_first_req")){
+                CFGFunctionBuilder functionBuilder = builderMap.get(ENB).cfgFunctionBuilderMap.get("s1ap_eNB_handle_nas_first_req");
+                insert2Function((CompoundStatement)astNodes.get(astNodes.size()-1),functionBuilder);
+            }else if(astNode.getEscapedCodeStr().equals("s1ap_eNB_nas_uplink")){
+                CFGFunctionBuilder functionBuilder = builderMap.get(ENB).cfgFunctionBuilderMap.get("s1ap_eNB_nas_uplink");
+                insert2Function((CompoundStatement)astNodes.get(astNodes.size()-1),functionBuilder);
+            }else if(astNode.getEscapedCodeStr().equals("s1ap_eNB_nas_non_delivery_ind")){
+                CFGFunctionBuilder functionBuilder = builderMap.get(ENB).cfgFunctionBuilderMap.get("s1ap_eNB_nas_non_delivery_ind");
+                insert2Function((CompoundStatement)astNodes.get(astNodes.size()-1),functionBuilder);
+            }else if(astNode.getEscapedCodeStr().equals("s1ap_generate_downlink_nas_transport")){
+                CFGFunctionBuilder functionBuilder = builderMap.get(MME).cfgFunctionBuilderMap.get("s1ap_generate_downlink_nas_transport");
+                insert2Function((CompoundStatement)astNodes.get(astNodes.size()-1),functionBuilder);
+            }
+        }));
+    }
+
+    public void insert2Function(CompoundStatement astNode, CFGFunctionBuilder functionBuilder){
+        CFAEdge targetEdge = findIttiSendSctpDataReq(functionBuilder);
+        this.fileLocation = targetEdge.getFileLocation();
+        CFANode prevNode = targetEdge.getPredecessor();
+        CFANode nextNode = targetEdge.getSuccessor();
+        removeEdgeFromNodes(targetEdge);
+        treeVisitor(functionBuilder,astNode,prevNode,nextNode);
+        functionBuilder.finish();
+    }
+
+    private CFAEdge findIttiSendSctpDataReq(CFGFunctionBuilder functionBuilder){
+        String name = functionBuilder.cfaBuilder.projectName.equals(ENB)?"s1ap_eNB_itti_send_sctp_data_req":"s1ap_mme_itti_send_sctp_request";
+
+        CFAEdge edge = backTraceEdge(functionBuilder.cfa.getExitNode(),name);
+        if(edge==null)
+            throw new RuntimeException("No such function: "+name+" is called in that location "+functionBuilder.functionName);
+        return edge;
+    }
+
+    private CFAEdge backTraceEdge(FunctionExitNode node, String targetFunctionName){
+        if(node.getNumEnteringEdges()!=0){
+            for(int i=0;i<node.getNumEnteringEdges();i++){
+                CFAEdge edge = node.getEnteringEdge(i);
+                if(edge instanceof CReturnStatementEdge && ((CReturnStatementEdge) edge).getExpression().get() instanceof CIntegerLiteralExpression){
+                    int returnValue = ((CIntegerLiteralExpression) ((CReturnStatementEdge) edge).getExpression().get()).getValue().intValue();
+                    if(returnValue==0){
+                        CFANode node1 = edge.getPredecessor();
+                        CFAEdge edge1 = node1.getEnteringEdge(0);
+                        if(edge1 instanceof CStatementEdge && ((CStatementEdge) edge1).getStatement() instanceof CFunctionCallStatement){
+                            if(((CFunctionCallStatement) ((CStatementEdge) edge1).getStatement()).
+                                    getFunctionCallExpression().getDeclaration().getName().equals(targetFunctionName))
+                                return edge1;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     public void parseBuildFile(String filename, AntlrCFunctionParserDriver driver){
@@ -748,7 +827,12 @@ public class ChannelBuilder {
             else
                 variableDel = (CSimpleDeclaration) builderMap.get(MME).expressionHandler.globalDeclarations.get(variableName.hashCode());
         }
-
+        if(variableDel == null && filename.startsWith("s1ap")){
+            for(CSimpleDeclaration simpleDeclaration: functionBuilder.expressionHandler.variableDeclarations.values()){
+                if(simpleDeclaration.getOrigName().equals(variableName))
+                    return simpleDeclaration;
+            }
+        }
         if(variableDel==null)
             throw new RuntimeException("There is no such variable: "+variableName+" in the project: "+ project);
         return variableDel;
@@ -1104,11 +1188,8 @@ public class ChannelBuilder {
         if(node.getAssignment()!=null){
             AssignmentExpression assignmentExpression = node.getAssignment();
             Expression initial = assignmentExpression.getRight();
-            CExpression expression = (CExpression)getExpression(functionBuilder, initial);
-            initializer = new CInitializerExpression(fileLocation,expression);
+            initializer = getInitializer(functionBuilder, initial);
         }
-        if(type==null)
-            System.out.println();
 
         CVariableDeclaration variableDeclaration = new CVariableDeclaration(
                 fileLocation,
@@ -1121,6 +1202,24 @@ public class ChannelBuilder {
                 initializer);
 
         return variableDeclaration;
+    }
+
+    public CInitializer getInitializer(CFGFunctionBuilder functionBuilder, Expression initializer){
+        CInitializer cInitializer = null;
+        FileLocation fileLocation = getFileLocation(initializer.getLocation());
+        if(initializer instanceof InitializerList){
+            List<CInitializer> elementInitializers = new ArrayList<>(initializer.getChildCount());
+            for(int i=0;i<initializer.getChildCount();i++){
+                CInitializer elementInitializer = getInitializer(functionBuilder, (Expression) initializer.getChild(i));
+                elementInitializers.add(elementInitializer);
+            }
+            cInitializer = new CInitializerList(fileLocation, elementInitializers);
+        }else{
+            CExpression expression = (CExpression)getExpression(functionBuilder, initializer);
+            cInitializer = new CInitializerExpression(fileLocation,expression);
+        }
+
+        return cInitializer;
     }
 
     public Map<Integer, List<AstNode>> globalStatementMap(AstNode top){
@@ -1156,6 +1255,8 @@ public class ChannelBuilder {
     }
 
     private FileLocation getFileLocation(CodeLocation location){
+        if(useSingeFilelocation)
+            return fileLocation;
         return new FileLocation(filename, 0,1,location.startLine,location.startLine);
     }
 
@@ -1211,8 +1312,8 @@ public class ChannelBuilder {
                 case 4:
                     return functionName.endsWith("ue")?ENB:(functionName.endsWith("eNB")?UE:MME);
             }
-
-        }
+        }else if(filename.startsWith("s1ap_"))
+            return project;
 
         return "";
 

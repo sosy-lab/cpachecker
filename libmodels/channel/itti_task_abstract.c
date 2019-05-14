@@ -28,7 +28,7 @@ int itti_send_msg_to_task_ue(task_id_t destination_task_id, instance_t instance,
           uint8_t eNB_index = (uint8_t)message->ittiMsg.rrc_mac_ccch_data_req.enb_index;
           uint8_t ue_mod_id = (uint8_t)instance-1;
           rnti_t rnti = (rnti_t)UE_rrc_inst[ue_mod_id].Info[eNB_index].rnti;
-          rrc_enb_task_RRC_MAC_CCCH_DATA_IND(ue_mod_id, rnti,frame,instance);
+          rrc_enb_task_RRC_MAC_CCCH_DATA_IND(ue_mod_id, rnti,frame,(instance_t)instance);
         }
         break;
         case TASK_RLC_UE:
@@ -135,7 +135,7 @@ int itti_send_msg_to_task_eNB(task_id_t destination_task_id, instance_t instance
                 rnti_t rnti = (rnti_t)message->ittiMsg.rrc_dcch_data_req.rnti;
                 uint8_t eNB_index = (uint8_t)message->ittiMsg.rrc_dcch_data_req.eNB_index;
                 //rrc_ue_task_RRC_MAC_CCCH_DATA_IND(mod_id, instance, enb_index, frame, rnti);
-                rrc_ue_task_RRC_DCCH_DATA_IND(mod_id, instance, enb_index, rnti, frame)
+                rrc_ue_task_RRC_DCCH_DATA_IND(mod_id, (instance_t)instance, enb_index, rnti, frame)
               }
             }
             break;

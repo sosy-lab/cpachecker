@@ -31,6 +31,7 @@ import static org.nulist.plugin.parser.CFGParser.*;
 import static org.nulist.plugin.parser.CFGParser.UE;
 import static org.nulist.plugin.util.ClassTool.printWARNING;
 import static org.nulist.plugin.util.FileOperations.getLocation;
+import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.removeEdgeFromNodes;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.createDummyLiteral;
 
 /**
@@ -744,31 +745,33 @@ public class ChannelBuildOperation {
         CFunctionDeclaration itti_mme = builderMap.get(Channel).functionDeclarations.get(ITTI_SEND_MSG_TO_TASKS+"_mme");
         generateITTI_SEND_TO_TASK(builderMap.get(MME),itti_mme);
 
-        //2. change function call in s1ap_enb_task_abstract.txt and s1ap_mme_task_abstract.txt
-        CFGFunctionBuilder functionBuilder = builderMap.get(ENB).cfgFunctionBuilderMap.get("s1ap_eNB_handle_nas_first_req");
-        CFunctionDeclaration targetFunction = builderMap.get(MME).functionDeclarations.get("s1ap_mme_itti_s1ap_initial_ue_message");
-        functionReplacement(functionBuilder, targetFunction);
 
-        functionBuilder = builderMap.get(ENB).cfgFunctionBuilderMap.get("s1ap_eNB_nas_uplink");
-        targetFunction = builderMap.get(MME).functionDeclarations.get("s1ap_mme_itti_nas_uplink_ind");
-        functionReplacement(functionBuilder, targetFunction);
-
-        functionBuilder = builderMap.get(ENB).cfgFunctionBuilderMap.get("s1ap_eNB_nas_non_delivery_ind");
-        targetFunction = builderMap.get(MME).functionDeclarations.get("s1ap_mme_itti_nas_non_delivery_ind");
-        functionReplacement(functionBuilder, targetFunction);
-
-        functionBuilder = builderMap.get(MME).cfgFunctionBuilderMap.get("s1ap_generate_downlink_nas_transport");
-        targetFunction = builderMap.get(ENB).functionDeclarations.get("s1ap_eNB_itti_send_nas_downlink_ind");
-        functionReplacement(functionBuilder, targetFunction);
-
-        if(builderMap.containsKey(ENB) && builderMap.containsKey(MME))
-            buildSecureChannelBetweeneNBandMME(builderMap.get(ENB),builderMap.get(MME));
-        if(builderMap.containsKey(ENB) && builderMap.containsKey(UE))
-            buildSecureChannelBetweeneNBandMME(builderMap.get(UE),builderMap.get(ENB));
     }
 
-    private static void functionReplacement(CFGFunctionBuilder functionBuilder, CFunctionDeclaration targetFunction){
 
+
+    private static CFAEdge findIttiSendSctpDataReq(CFGFunctionBuilder functionBuilder){
+        String name = functionBuilder.cfaBuilder.projectName.equals(ENB)?"s1ap_eNB_itti_send_sctp_data_req":"s1ap_mme_itti_send_sctp_request";
+        CFANode node = functionBuilder.cfa.getExitNode();
+
+        CFAEdge edge = backTraceAllEdge(node,name);
+        if(edge==null)
+            throw new RuntimeException("No such function: "+name+" is called in "+functionBuilder.functionName);
+        return edge;
+    }
+
+    private static CFAEdge backTraceAllEdge(CFANode node, String targetFunctionName){
+        if(node.getNumEnteringEdges()!=0){
+            for(int i=0;i<node.getNumEnteringEdges();i++){
+                CFAEdge edge = node.getEnteringEdge(i);
+                if(edge instanceof CStatementEdge && ((CStatementEdge) edge).getStatement() instanceof CFunctionCallStatement){
+                    if(((CFunctionCallStatement) ((CStatementEdge) edge).getStatement()).getFunctionCallExpression().getDeclaration().getName().equals(targetFunctionName))
+                        return edge;
+                }
+                backTraceAllEdge(edge.getPredecessor(),targetFunctionName);
+            }
+        }
+        return null;
     }
 
     /**
