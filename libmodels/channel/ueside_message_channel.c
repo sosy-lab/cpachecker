@@ -2,7 +2,7 @@ ue_channel_message_t *UE_channel_message_cache= NULL;
 
 
 void ueChannelMessageInit(){
-    UE_channel_message_cache=(ue_channel_message_t *)malloc(sizeof(ue_channel_message_t));
+    UE_channel_message_cache=UE_malloc(sizeof(ue_channel_message_t));
 }
 
 void uePushNASMSGIDIntoCache(uint16_t msgID){
@@ -96,6 +96,6 @@ LTE_BCCH_DL_SCH_Message_t uePullPlainBCCHDLSCHMessageIntoCache(){
 }
 
 LTE_PCCH_Message_t uePullPlainPCCHMessageIntoCache(){
-	LTE_PCCH_Message_t msg = UE_channel_message_cache->rrc_message.pcch_msg;
+	LTE_PCCH_Message_t msg = UE_channel_message_cache->rrc_message.message.pcch_msg;
 	return msg;
 }

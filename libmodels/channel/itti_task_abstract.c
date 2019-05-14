@@ -16,19 +16,19 @@ int itti_send_msg_to_task_ue(task_id_t destination_task_id, instance_t instance,
 
         case TASK_PHY_UE:
         if(message->ittiMsgHeader.originTaskId==TASK_RRC_UE &&
-          (message->ittiMsgHeader.messageId==PHY_FIND_CELL_REQ||
-           message->ittiMsgHeader.messageId==PHY_FIND_NEXT_CELL_REQ)){
+          (message->ittiMsgHeader.messageId==8||//PHY_FIND_CELL_REQ||
+           message->ittiMsgHeader.messageId==9)){//PHY_FIND_NEXT_CELL_REQ
 
         }
         break;
         case TASK_MAC_UE:
         if(message->ittiMsgHeader.originTaskId==TASK_RRC_UE &&
-          message->ittiMsgHeader.messageId==RRC_MAC_CCCH_DATA_REQ){
+          message->ittiMsgHeader.messageId==18){//RRC_MAC_CCCH_DATA_REQ
           uint32_t frame = (uint32_t)message->ittiMsg.rrc_mac_ccch_data_req.frame;
           uint8_t eNB_index = (uint8_t)message->ittiMsg.rrc_mac_ccch_data_req.enb_index;
-          uint8_t ue_mod_id = (uint8_t)instance;
+          uint8_t ue_mod_id = (uint8_t)instance-1;
           rnti_t rnti = (rnti_t)UE_rrc_inst[ue_mod_id].Info[eNB_index].rnti;
-          rrc_enb_task_RRC_MAC_CCCH_DATA_IND(rnti,frame,instance);
+          rrc_enb_task_RRC_MAC_CCCH_DATA_IND(ue_mod_id, rnti,frame,instance);
         }
         break;
         case TASK_RLC_UE:
@@ -36,19 +36,19 @@ int itti_send_msg_to_task_ue(task_id_t destination_task_id, instance_t instance,
         break;
         case TASK_PDCP_UE:
         if(message->ittiMsgHeader.originTaskId==TASK_RRC_UE &&
-          message->ittiMsgHeader.messageId==RRC_DCCH_DATA_REQ){
-          uint32_t frame = (uint32_t)message_p->ittiMsg.rrc_dcch_data_req.frame;
-          rnti_t rnti = (rnti_t)message_p->ittiMsg.rrc_dcch_data_req.rnti;
-          uint8_t eNB_index = (uint8_t)message_p->ittiMsg.rrc_dcch_data_req.eNB_index;
-          uint8_t module_id = (uint8_t)message_p->ittiMsg.rrc_dcch_data_req.module_id;
+          message->ittiMsgHeader.messageId==34){//RRC_DCCH_DATA_REQ
+          uint32_t frame = (uint32_t)message->ittiMsg.rrc_dcch_data_req.frame;
+          rnti_t rnti = (rnti_t)message->ittiMsg.rrc_dcch_data_req.rnti;
+          uint8_t eNB_index = (uint8_t)message->ittiMsg.rrc_dcch_data_req.eNB_index;
+          uint8_t module_id = (uint8_t)message->ittiMsg.rrc_dcch_data_req.module_id;
           rrc_enb_task_RRC_DCCH_DATA_IND(module_id, rnti, frame, instance);
         }
         break;
         case TASK_RRC_UE:
-            rrc_ue_task_abstract(message);
+            UE_rrc_ue_task_abstract(message);
         break;
         case TASK_NAS_UE:
-            nas_ue_task_abstract(message);
+            UE_nas_ue_task_abstract(message);
             break;
 //            if(if(message->ittiMsgHeader.originTaskId==TASK_RRC_UE){
 //                nas_user_t *user = &users->item[instance-1];
@@ -129,20 +129,21 @@ int itti_send_msg_to_task_eNB(task_id_t destination_task_id, instance_t instance
         break;
         case TASK_PDCP_ENB:
             if(message->ittiMsgHeader.originTaskId==TASK_RRC_ENB){
-              if(message->ittiMsgHeader.messageId==RRC_DCCH_DATA_REQ){
-                uint32_t frame = (uint32_t)RRC_DCCH_DATA_REQ (message).frame;
-                uint8_t mod_id = (uint8_t)RRC_DCCH_DATA_REQ (message).module_id;
-                rnti_t rnti = (rnti_t)RRC_DCCH_DATA_REQ (message).rnti;
-                uint8_t eNB_index = (uint8_t)RRC_DCCH_DATA_REQ (message).eNB_index;
-                rrc_ue_task_RRC_MAC_CCCH_DATA_IND(enb_index, frame, rnti);
+              if(message->ittiMsgHeader.messageId==34){//RRC_DCCH_DATA_REQ
+                uint32_t frame = (uint32_t)message->ittiMsg.rrc_dcch_data_req.frame;
+                uint8_t mod_id = (uint8_t)message->ittiMsg.rrc_dcch_data_req.module_id;
+                rnti_t rnti = (rnti_t)message->ittiMsg.rrc_dcch_data_req.rnti;
+                uint8_t eNB_index = (uint8_t)message->ittiMsg.rrc_dcch_data_req.eNB_index;
+                //rrc_ue_task_RRC_MAC_CCCH_DATA_IND(mod_id, instance, enb_index, frame, rnti);
+                rrc_ue_task_RRC_DCCH_DATA_IND(mod_id, instance, enb_index, rnti, frame)
               }
             }
             break;
         case TASK_RRC_ENB:
-            rrc_enb_task_abstract(message);
+            ENB_rrc_enb_task_abstract(message);
             break;
         case TASK_S1AP:
-            s1ap_eNB_process_itti_msg_abstract(message);
+            ENB_s1ap_eNB_process_itti_msg_abstract(message);
             //build channel between eNB through s1ap and mme through nas
             break;
         case TASK_X2AP:
@@ -170,15 +171,15 @@ int itti_send_msg_to_task_mme(task_id_t destination_task_id, instance_t instance
 //  message_number = itti_increment_message_number ();
   switch(destination_task_id){
     case TASK_NAS_MME:
-        nas_intertask_interface_abstract(message);
+        MME_nas_intertask_interface_abstract(message);
     break;
 
     case TASK_MME_APP:
-        mme_app_thread_abstract(message);
+        MME_mme_app_thread_abstract(message);
     break;
 
     case TASK_S1AP:
-        s1ap_mme_thread_abstract(message);
+        MME_s1ap_mme_thread_abstract(message);
     break;
 
     case TASK_S6A:

@@ -13,6 +13,7 @@ import io.shiftleft.fuzzyc2cpg.ast.langc.statements.blockstarters.IfStatement;
 import io.shiftleft.fuzzyc2cpg.ast.logical.statements.BreakOrContinueStatement;
 import io.shiftleft.fuzzyc2cpg.ast.logical.statements.CompoundStatement;
 import io.shiftleft.fuzzyc2cpg.ast.logical.statements.Label;
+import io.shiftleft.fuzzyc2cpg.ast.logical.statements.Statement;
 import io.shiftleft.fuzzyc2cpg.ast.statements.ExpressionStatement;
 import io.shiftleft.fuzzyc2cpg.ast.statements.IdentifierDeclStatement;
 import io.shiftleft.fuzzyc2cpg.ast.statements.blockstarters.*;
@@ -25,6 +26,7 @@ import jdk.nashorn.internal.runtime.arrays.ArrayIndex;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.Lexer;
+import org.eclipse.jdt.core.dom.PrefixExpression;
 import org.nulist.plugin.parser.CFABuilder;
 import org.nulist.plugin.parser.CFGFunctionBuilder;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -32,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.*;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.*;
@@ -65,13 +68,13 @@ public class ChannelBuilder {
 
     public ChannelBuilder (Map<String, CFABuilder> builderMap, String buildName){
         this.builderMap = builderMap;
-        channelBuilder=new CFABuilder(null, MachineModel.LINUX64,buildName);
+        channelBuilder=new CFABuilder(builderMap.get(UE).logger, MachineModel.LINUX64,buildName);
     }
 
     public void putDriver(String filePath, AntlrCFunctionParserDriver driver){
         channelBuilder.addParsedFile(Paths.get(filePath));
         String fileName = filePath.replace(".c","");
-        fileName = filename.split("/")[filename.split("/").length-1];
+        fileName = fileName.split("/")[fileName.split("/").length-1];
         driverList.put(fileName,driver);
     }
 
@@ -79,40 +82,50 @@ public class ChannelBuilder {
         if(!driverList.isEmpty()){
             buildChannelMessageType();
             //channel related models
-            if(driverList.containsKey("EMMMessageTranslation")){
-                this.project=Channel;
-                parseBuildFile("EMMMessageTranslation",driverList.get("EMMMessageTranslation"));
-            }
-            if(driverList.containsKey("ESMMessageTranslation")){
-                this.project=Channel;
-                parseBuildFile("ESMMessageTranslation",driverList.get("ESMMessageTranslation"));
-            }
             if(driverList.containsKey("cnside_message_channel")){
                 this.project=Channel;
+
                 parseBuildFile("cnside_message_channel",driverList.get("cnside_message_channel"));
+                System.out.println("Parse "+ "cnside_message_channel");
             }
             if(driverList.containsKey("ueside_message_channel")){
                 this.project=Channel;
                 parseBuildFile("ueside_message_channel",driverList.get("ueside_message_channel"));
+                System.out.println("Parse "+ "ueside_message_channel");
             }
+
+            if(driverList.containsKey("EMMMessageTranslation")){
+                this.project=Channel;
+                parseBuildFile("EMMMessageTranslation",driverList.get("EMMMessageTranslation"));
+                System.out.println("Parse "+ "EMMMessageTranslation");
+            }
+//            if(driverList.containsKey("ESMMessageTranslation")){
+//                this.project=Channel;
+//                parseBuildFile("ESMMessageTranslation",driverList.get("ESMMessageTranslation"));
+//                System.out.println("Parse "+ "ESMMessageTranslation");
+//            }
+
             if(driverList.containsKey("channel_operation")){
                 this.project=Channel;
                 parseBuildFile("channel_operation",driverList.get("channel_operation"));
+                System.out.println("Parse "+ "channel_operation");
             }
-
 
             //composition related models
             if(driverList.containsKey("enb_rrc_task_abstract")){
                 this.project=ENB;
                 parseBuildFile("enb_rrc_task_abstract",driverList.get("enb_rrc_task_abstract"));
+                System.out.println("Parse "+ "enb_rrc_task_abstract");
             }
             if(driverList.containsKey("ue_rrc_task_abstract")){
                 this.project=UE;
                 parseBuildFile("ue_rrc_task_abstract",driverList.get("ue_rrc_task_abstract"));
+                System.out.println("Parse "+ "ue_rrc_task_abstract");
             }
             if(driverList.containsKey("itti_task_abstract")){
                 this.project=Channel;
                 parseBuildFile("itti_task_abstract",driverList.get("itti_task_abstract"));
+                System.out.println("Parse "+ "itti_task_abstract");
             }
 
         }
@@ -300,11 +313,12 @@ public class ChannelBuilder {
     public void functionDeclaration(List<AstNode> astNodes){
 
         String functionName = astNodes.get(1).getEscapedCodeStr();
-        CFGFunctionBuilder functionBuilder = new CFGFunctionBuilder(null,
+        CFGFunctionBuilder functionBuilder = new CFGFunctionBuilder(channelBuilder.logger,
                 channelBuilder.typeConverter, null,
                 functionName,
                 filename,
                 channelBuilder);
+        functionBuilder.setDirectAddEdge(true);
 
         String returnTypeName = astNodes.get(0).getEscapedCodeStr();
         CType returnType = getType(getProjectForType(functionName,1),returnTypeName);
@@ -312,24 +326,38 @@ public class ChannelBuilder {
         List<CParameterDeclaration> parameterDeclarations = new ArrayList<>();
         boolean isTakeArgs = false;
 
+
         if(astNodes.size()>5){
             String typename="", param="";
             for(int i=3;i<astNodes.size()-2;i++){
                 FileLocation fileLocation = getFileLocation(astNodes.get(i).getLocation());
+                boolean isConst = false;
+                typename = astNodes.get(i).getEscapedCodeStr();
                 if(typename.equals("...")){
                     isTakeArgs = true;
                     continue;
+                }else if(typename.equals("const")){
+                    isConst = true;
+                    i++;
+                    typename = astNodes.get(i).getEscapedCodeStr();
                 }
-                typename = astNodes.get(i).getEscapedCodeStr();
                 i++;
                 param = astNodes.get(i).getEscapedCodeStr();
                 i++;
+                boolean isArray = false;
                 if(!astNodes.get(i).getEscapedCodeStr().equals(",") && !astNodes.get(i).getEscapedCodeStr().equals(")")){
-                    typename +=" "+param;
-                    param = astNodes.get(i).getEscapedCodeStr();
-                    i++;
+                    if(astNodes.get(i).getEscapedCodeStr().equals("[") && astNodes.get(i+1).getEscapedCodeStr().equals("]")){
+                        i+=3;
+                        isArray = true;
+                    }else {
+                        typename +=" "+param;
+                        param = astNodes.get(i).getEscapedCodeStr();
+                        i++;
+                    }
                 }
                 CType type = getType(getProjectForType(functionName,2),typename);
+                if(isArray)
+                    type = new CArrayType(type.isConst(), type.isVolatile(), type, null);
                 paramTypes.add(type);
 
                 CParameterDeclaration parameterDeclaration = new CParameterDeclaration(fileLocation,type,param);
@@ -350,7 +378,7 @@ public class ChannelBuilder {
         FunctionExitNode functionExit = new FunctionExitNode(functionName);
 
         Optional<CVariableDeclaration> returnVar = Optional.absent();
-        AstNode compoundNode = astNodes.get(astNodes.size()-1);
+        CompoundStatement compoundNode = (CompoundStatement)astNodes.get(astNodes.size()-1);
         if(!returnType.equals(CVoidType.VOID)){
             CVariableDeclaration variableDeclaration = new CVariableDeclaration(
                     FileLocation.DUMMY,
@@ -381,7 +409,7 @@ public class ChannelBuilder {
         functionVisitor(functionBuilder, compoundNode);
     }
 
-    public void functionVisitor(CFGFunctionBuilder functionBuilder, AstNode node){
+    public void functionVisitor(CFGFunctionBuilder functionBuilder, CompoundStatement node){
 
         CFANode cfaNode = functionBuilder.newCFANode();
         BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY,
@@ -414,7 +442,7 @@ public class ChannelBuilder {
         functionBuilder.finish();
     }
 
-    public CFANode treeVisitor(CFGFunctionBuilder functionBuilder, AstNode node, CFANode startNode1, CFANode endNode1){
+    public CFANode treeVisitor(CFGFunctionBuilder functionBuilder, CompoundStatement node, CFANode startNode1, CFANode endNode1){
         if(node.getChildCount()==0){
             FileLocation fileLocation = getFileLocation(node.getLocation());
             functionBuilder.addToCFA(new BlankEdge("",fileLocation,startNode1,endNode1,""));
@@ -427,40 +455,45 @@ public class ChannelBuilder {
             AstNode astNode = iterator.next();
             startNode = endNode;
             endNode = iterator.hasNext()?functionBuilder.newCFANode():endNode1;
-
-            if(astNode instanceof IdentifierDeclStatement){
-                variableDeclaration(functionBuilder, (IdentifierDeclStatement) astNode,startNode,endNode);
-            }else if(astNode instanceof ExpressionStatement){
-                expressionStatement(functionBuilder,(ExpressionStatement) astNode,startNode,endNode);
-            }else if(astNode instanceof IfStatement){
-                ifStatement(functionBuilder,(IfStatement) astNode,startNode,endNode);
-            }else if(astNode instanceof ElseStatement){
-                elseStatement(functionBuilder,(ElseStatement) astNode,startNode,endNode);
-            }else if(astNode instanceof SwitchStatement){
-                switchStatement(functionBuilder,(SwitchStatement) astNode,startNode,endNode);
-            }else if(astNode instanceof Label){
-
-            }else if(astNode instanceof ForStatement){
-                forStatement(functionBuilder,(ForStatement) astNode,startNode,endNode);
-            }else if(astNode instanceof WhileStatement){
-                whileStatement(functionBuilder,(WhileStatement)astNode,startNode,endNode);
-            }else if(astNode instanceof ReturnStatement){
-                returnStatement(functionBuilder,(ReturnStatement)astNode,startNode,endNode);
-            }else if(astNode instanceof DoStatement){
-
-            }else if(astNode instanceof BreakStatement){
-
-            }else if(astNode instanceof ContinueStatement){
-
-            }
+            handleStatement(functionBuilder,(Statement)astNode,startNode,endNode);
         }
         return endNode;
+    }
+
+    public void handleStatement(CFGFunctionBuilder functionBuilder, Statement astNode, CFANode startNode, CFANode endNode){
+        if(astNode instanceof IdentifierDeclStatement){
+            variableDeclaration(functionBuilder, (IdentifierDeclStatement) astNode,startNode,endNode);
+        }else if(astNode instanceof ExpressionStatement){
+            expressionStatement(functionBuilder,(ExpressionStatement) astNode,startNode,endNode);
+        }else if(astNode instanceof IfStatement){
+            ifStatement(functionBuilder,(IfStatement) astNode,startNode,endNode);
+        }else if(astNode instanceof ElseStatement){
+            elseStatement(functionBuilder,(ElseStatement) astNode,startNode,endNode);
+        }else if(astNode instanceof SwitchStatement){
+            switchStatement(functionBuilder,(SwitchStatement) astNode,startNode,endNode);
+        }else if(astNode instanceof Label){
+
+        }else if(astNode instanceof ForStatement){
+            forStatement(functionBuilder,(ForStatement) astNode,startNode,endNode);
+        }else if(astNode instanceof WhileStatement){
+            whileStatement(functionBuilder,(WhileStatement)astNode,startNode,endNode);
+        }else if(astNode instanceof ReturnStatement){
+            returnStatement(functionBuilder,(ReturnStatement)astNode,startNode,endNode);
+        }else if(astNode instanceof DoStatement){
+
+        }else if(astNode instanceof BreakStatement){
+
+        }else if(astNode instanceof ContinueStatement){
+
+        }else if(astNode instanceof CompoundStatement){
+            treeVisitor(functionBuilder,(CompoundStatement)astNode,startNode,endNode);
+        }
     }
 
     public void returnStatement(CFGFunctionBuilder functionBuilder, ReturnStatement astNode, CFANode startNode, CFANode endNode){
         Expression node = astNode.getReturnExpression();
         FileLocation fileLocation = getFileLocation(astNode.getLocation());
-        CExpression expression = getExpression(functionBuilder,node);
+        CExpression expression = (CExpression)getExpression(functionBuilder,node);
 
         CIdExpression returnVarIdExpr = new CIdExpression(fileLocation,(CSimpleDeclaration) functionBuilder.cfa.getReturnVariable().get());
         CExpressionAssignmentStatement returnAssign = new CExpressionAssignmentStatement(
@@ -483,12 +516,12 @@ public class ChannelBuilder {
 
     public void elseStatement(CFGFunctionBuilder functionBuilder, ElseStatement astNode, CFANode startNode, CFANode endNode){
         AstNode node = astNode.getChild(0);
-        treeVisitor(functionBuilder,node, startNode, endNode);
+        handleStatement(functionBuilder,(Statement)node,startNode,endNode);
     }
 
     public void ifStatement(CFGFunctionBuilder functionBuilder, IfStatement astNode, CFANode startNode, CFANode endNode){
         Condition condition = (Condition) astNode.getCondition();
-        CompoundStatement statement = (CompoundStatement) astNode.getStatement();
+        Statement statement =  astNode.getStatement();
 
         //CBinaryExpression conditionExpr = conditionExpression(functionBuilder,condition);
         CFANode ifnode = functionBuilder.newCFANode();
@@ -497,10 +530,11 @@ public class ChannelBuilder {
             ElseStatement elseStatement = astNode.getElseNode();
             CFANode elseCFANode = functionBuilder.newCFANode();
             handleIfCondition(functionBuilder,condition,startNode,ifnode,elseCFANode);
-            treeVisitor(functionBuilder,elseStatement, elseCFANode, endNode);
+            handleStatement(functionBuilder,elseStatement, elseCFANode, endNode);
+
         }else {
             handleIfCondition(functionBuilder,condition,startNode,ifnode,endNode);
-            treeVisitor(functionBuilder, statement, ifnode,endNode);
+            handleStatement(functionBuilder, statement, ifnode,endNode);
         }
     }
 
@@ -522,28 +556,32 @@ public class ChannelBuilder {
             CBinaryExpression binaryExpression = (CBinaryExpression) getExpression(functionBuilder,condition);
             createTrueFalseEdge(functionBuilder,startNode,ifNode,endNode, condition.getEscapedCodeStr(),binaryExpression);
         }if(condition instanceof Identifier){
-            CExpression expression = getExpression(functionBuilder,condition);
+            CExpression expression = (CExpression)getExpression(functionBuilder,condition);
             createTrueFalseEdge(functionBuilder,startNode,ifNode,endNode, condition.getEscapedCodeStr(),expression);
         }
     }
 
 
-    public CExpression getExpression(CFGFunctionBuilder functionBuilder, Expression expressionNode){
+    public CRightHandSide getExpression(CFGFunctionBuilder functionBuilder, Expression expressionNode){
         FileLocation fileLocation = getFileLocation(expressionNode.getLocation());
         if(expressionNode instanceof RelationalExpression){
             CBinaryExpression.BinaryOperator operator = getBinaryOperator(expressionNode.getOperator());
-            CExpression operand1 = getExpression(functionBuilder,(Expression)expressionNode.getChild(0));
-            CExpression operand2 = getExpression(functionBuilder,(Expression)expressionNode.getChild(1));
+            CExpression operand1 = (CExpression) getExpression(functionBuilder,(Expression)expressionNode.getChild(0));
+            CExpression operand2 = (CExpression) getExpression(functionBuilder,(Expression)expressionNode.getChild(1));
+
             return  functionBuilder.expressionHandler.buildBinaryExpression(
                     operand1,
                     operand2,
                     operator,
                     CNumericTypes.BOOL);
         }else if(expressionNode instanceof UnaryOperationExpression){
+            CExpression operand1 = (CExpression)getExpression(functionBuilder,(Expression)expressionNode.getChild(1));
+            CType type = operand1.getExpressionType();
+            if(expressionNode.getChild(0).getEscapedCodeStr().equals("*")){
+                return new CPointerExpression(fileLocation, type, operand1);
+            }
 
             CUnaryExpression.UnaryOperator unaryOperator = getUnaryOperator(expressionNode.getChild(0).getEscapedCodeStr());
-            CExpression operand1 = getExpression(functionBuilder,(Expression)expressionNode.getChild(1));
-            CType type = operand1.getExpressionType();
             if(unaryOperator.equals(CUnaryExpression.UnaryOperator.AMPER))
                 type = new CPointerType(false,false,type);
             else if(unaryOperator.equals(CUnaryExpression.UnaryOperator.SIZEOF))
@@ -553,7 +591,7 @@ public class ChannelBuilder {
                     operand1,
                     unaryOperator);
         }else if(expressionNode instanceof CallExpression){
-            return (CExpression) handleCallExpression(functionBuilder, expressionNode);
+            return handleCallExpression(functionBuilder, (CallExpression)expressionNode);
         }else if(expressionNode instanceof SizeofExpression){
             String SizeofOperandStr = expressionNode.getChild(1).getEscapedCodeStr();
             CType sizeofType = getType(getProjectForType(functionBuilder.functionName,3),SizeofOperandStr);
@@ -566,8 +604,8 @@ public class ChannelBuilder {
             }
         }else if(expressionNode instanceof EqualityExpression){
             CBinaryExpression.BinaryOperator operator = getBinaryOperator(expressionNode.getOperator());
-            CExpression operand1 = getExpression(functionBuilder,(Expression)expressionNode.getChild(0));
-            CExpression operand2 = getExpression(functionBuilder,(Expression)expressionNode.getChild(1));
+            CExpression operand1 = (CExpression)getExpression(functionBuilder,(Expression)expressionNode.getChild(0));
+            CExpression operand2 = (CExpression)getExpression(functionBuilder,(Expression)expressionNode.getChild(1));
             return  functionBuilder.expressionHandler.buildBinaryExpression(
                     operand1,
                     operand2,
@@ -577,13 +615,15 @@ public class ChannelBuilder {
             Expression castExpression = ((CastExpression) expressionNode).getCastExpression();
             Expression castTarget = ((CastExpression) expressionNode).getCastTarget();
             String castType = castTarget.getEscapedCodeStr();
-            CExpression cExpression = getExpression(functionBuilder,castExpression);
+
+            CExpression cExpression = (CExpression)getExpression(functionBuilder,castExpression);
             CType type;
             if(castType.endsWith("*")){
                 type =getType(getProjectForType(functionBuilder.functionName,4),castType.replace("*","").trim());
                 type = new CPointerType(false,false,type);
             }else
                 type = getType(getProjectForType(functionBuilder.functionName,4),castType);
+
             return new CCastExpression(fileLocation, type, cExpression);
         }else if(expressionNode instanceof Identifier ||
                 expressionNode instanceof Constant ||
@@ -591,30 +631,48 @@ public class ChannelBuilder {
                 expressionNode instanceof MemberAccess ||
                 expressionNode instanceof ArrayIndexing){
             return getExpressionFromString(functionBuilder,expressionNode.getEscapedCodeStr());
-        }
-//        else if(expressionNode instanceof PtrMemberAccess){
-//            Expression mainObj = (Expression) expressionNode.getChild(0);
-//            Expression identifier = (Expression) expressionNode.getChild(1);
-//
-//            return new CFieldReference()
-//        }else if(expressionNode instanceof MemberAccess){
-//
-//        }else if(expressionNode instanceof ArrayIndexing){
-//
-//        }
+        }else if(expressionNode instanceof Argument){
+            return getExpression(functionBuilder,(Expression)expressionNode.getChild(0));
+        }else if(expressionNode instanceof PostfixExpression){
+            AstNode identifier = expressionNode.getChild(0);
+            AstNode operation = expressionNode.getChild(1);
+            CSimpleDeclaration variableDeclaration = (CSimpleDeclaration)
+                    functionBuilder.expressionHandler.variableDeclarations.get(identifier.getEscapedCodeStr().hashCode());
+            CIdExpression idExpression = new CIdExpression(fileLocation,variableDeclaration);
+            CBinaryExpression.BinaryOperator operator = operation.getTypeAsString().equals("++")?
+                    CBinaryExpression.BinaryOperator.PLUS:
+                    CBinaryExpression.BinaryOperator.MINUS;
 
+            return functionBuilder.expressionHandler.buildBinaryExpression(
+                    idExpression,
+                    CIntegerLiteralExpression.ONE,
+                    operator,
+                    idExpression.getExpressionType());
+        } else if(expressionNode instanceof BinaryOperationExpression){
+            CExpression operand1 = (CExpression)getExpression(functionBuilder,(Expression)((BinaryOperationExpression) expressionNode).getLeft());
+            CExpression operand2 = (CExpression)getExpression(functionBuilder,(Expression)((BinaryOperationExpression) expressionNode).getRight());
+            CBinaryExpression.BinaryOperator operator = getBinaryOperator(expressionNode.getOperator());
+            if(operator.getOperator().equals("*")||
+                    operator.getOperator().equals("/")||
+                    operator.getOperator().equals("+")||
+                    operator.getOperator().equals("-")||
+                    operator.getOperator().equals("%"))
+                return functionBuilder.expressionHandler.buildBinaryExpression(operand1,operand2,operator, operand1.getExpressionType());
+            else
+                return functionBuilder.expressionHandler.buildBinaryExpression(operand1,operand2,operator,CNumericTypes.BOOL);
+        }
         else {
             throw new RuntimeException("Unsupport expression node: "+ expressionNode.getTypeAsString());
         }
     }
 
-    private CFunctionCallExpression handleCallExpression(CFGFunctionBuilder functionBuilder, Expression expressionNode){
+    private CFunctionCallExpression handleCallExpression(CFGFunctionBuilder functionBuilder, CallExpression expressionNode){
         AstNode callee = expressionNode.getChild(0);
         List<CExpression> paramLists = new ArrayList<>();
         if(expressionNode.getChildCount()>1){
             AstNode agrumentList = expressionNode.getChild(1);
             for(int i=0;i<agrumentList.getChildCount();i++){
-                CExpression expression = getExpression(functionBuilder,(Expression) agrumentList.getChild(i));
+                CExpression expression = (CExpression)getExpression(functionBuilder,(Expression) agrumentList.getChild(i));
                 paramLists.add(expression);
             }
         }
@@ -655,9 +713,45 @@ public class ChannelBuilder {
         else
             functionDeclaration= channelBuilder.functionDeclarations.get(functionName);
         if(functionDeclaration==null)
-            throw new RuntimeException("No such function:"+functionName);
+            throw new RuntimeException("No such function:"+functionName + " in "+ project);
         else
             return functionDeclaration;
+    }
+
+    //locationType= 0:internal variable, 1:global variable in channel, 2 global variable in UE, 3 global variable in eNB, 4 global variable in MME
+    private CSimpleDeclaration getVariableDeclaration(CFGFunctionBuilder functionBuilder, String variableName){
+        CSimpleDeclaration variableDel = null;
+        if(functionBuilder.expressionHandler.globalDeclarations.containsKey(variableName.hashCode()))
+            variableDel = (CSimpleDeclaration)
+                    functionBuilder.expressionHandler.globalDeclarations.get(variableName.hashCode());
+        else
+            variableDel = (CSimpleDeclaration)
+                    functionBuilder.expressionHandler.variableDeclarations.get(variableName.hashCode());
+        if(variableDel==null){
+            switch (project){
+                case UE:
+                    variableDel = (CSimpleDeclaration) builderMap.get(UE).expressionHandler.globalDeclarations.get(variableName.hashCode());
+                    break;
+                case ENB:
+                    variableDel = (CSimpleDeclaration) builderMap.get(ENB).expressionHandler.globalDeclarations.get(variableName.hashCode());
+                    break;
+                case MME:
+                    variableDel = (CSimpleDeclaration) builderMap.get(MME).expressionHandler.globalDeclarations.get(variableName.hashCode());
+                    break;
+            }
+        }
+        if(variableDel==null && filename.equals("itti_task_abstract")){
+            if(functionBuilder.functionName.contains("ue"))
+                variableDel = (CSimpleDeclaration) builderMap.get(UE).expressionHandler.globalDeclarations.get(variableName.hashCode());
+            else if(functionBuilder.functionName.contains("enb"))
+                variableDel = (CSimpleDeclaration) builderMap.get(ENB).expressionHandler.globalDeclarations.get(variableName.hashCode());
+            else
+                variableDel = (CSimpleDeclaration) builderMap.get(MME).expressionHandler.globalDeclarations.get(variableName.hashCode());
+        }
+
+        if(variableDel==null)
+            throw new RuntimeException("There is no such variable: "+variableName+" in the project: "+ project);
+        return variableDel;
     }
 
     private CBinaryExpression.BinaryOperator getBinaryOperator(String operatorCode){
@@ -687,23 +781,71 @@ public class ChannelBuilder {
         FileLocation fileLocation = getFileLocation(astNode.getLocation());
         CStatement statement;
         if(expressionNode instanceof AssignmentExpression){
-            CExpression operand1 = getExpression(functionBuilder,(Expression) expressionNode.getChild(0));
-            CExpression operand2 = getExpression(functionBuilder, (Expression) expressionNode.getChild(1));
-            if(operand2 instanceof CFunctionCallExpression)
-                statement = new CFunctionCallAssignmentStatement(
+            String operatorString = ((AssignmentExpression) expressionNode).getOperator();
+            CBinaryExpression.BinaryOperator operator = null;
+            if(!operatorString.equals("=")){
+                operator = getBinaryOperator(operatorString.replace("=","").trim());
+            }
+            CExpression operand1 = (CExpression)getExpression(functionBuilder,(Expression) expressionNode.getChild(0));
+            CRightHandSide operand2;
+            if(expressionNode.getChild(1) instanceof CallExpression){
+                operand2 = handleCallExpression(functionBuilder, (CallExpression) expressionNode.getChild(1));
+            }else
+                 operand2 = getExpression(functionBuilder, (Expression) expressionNode.getChild(1));
+            if(operand2 instanceof CFunctionCallExpression){
+                if(operator!=null){
+
+                    CVariableDeclaration variableDeclaration = new CVariableDeclaration(
+                            fileLocation,
+                            false,
+                            CStorageClass.AUTO,
+                            operand2.getExpressionType(),
+                            "tempVar"+fileLocation.getStartingLineNumber(),
+                            "tempVar"+fileLocation.getStartingLineNumber(),
+                            "tempVar"+fileLocation.getStartingLineNumber(),
+                            null
+                    );
+                    CFANode delNode = functionBuilder.newCFANode();
+                    CDeclarationEdge declarationEdge = new CDeclarationEdge(variableDeclaration.getType().toString()+" tempVar"+fileLocation.getStartingLineNumber(),
+                            fileLocation,
+                            startNode,delNode,variableDeclaration);
+                    functionBuilder.expressionHandler.variableDeclarations.put(variableDeclaration.getName().hashCode(),variableDeclaration);
+                    functionBuilder.addToCFA(declarationEdge);
+                    CIdExpression idExpression = new CIdExpression(fileLocation,variableDeclaration);
+                    CFunctionCallAssignmentStatement assignmentStatement = new CFunctionCallAssignmentStatement(
+                            fileLocation,
+                            (CLeftHandSide) idExpression,
+                            (CFunctionCallExpression) operand2);
+                    String rawStrings = "tempVar"+fileLocation.getStartingLineNumber()+" = "+operand2.toString();
+                    CFANode cfaNode = functionBuilder.newCFANode();
+                    CStatementEdge statementEdge = new CStatementEdge(rawStrings,assignmentStatement,fileLocation,delNode,cfaNode);
+                    functionBuilder.addToCFA(statementEdge);
+                    startNode = cfaNode;
+                    statement = new CExpressionAssignmentStatement(
+                            fileLocation,
+                            (CLeftHandSide)operand1,
+                            idExpression);
+                }else
+                    statement = new CFunctionCallAssignmentStatement(
                     fileLocation,
                     (CLeftHandSide) operand1,
                         (CFunctionCallExpression) operand2);
-            else
+            }
+            else{
+                if(operator!=null){
+                    operand2 = functionBuilder.expressionHandler.buildBinaryExpression(operand1,(CExpression) operand2,operator,operand1.getExpressionType());
+                }
                 statement = new CExpressionAssignmentStatement(
                         fileLocation,
                         (CLeftHandSide) operand1,
-                        operand2);
+                        (CExpression) operand2);
+            }
         }else if(expressionNode instanceof PostIncDecOperationExpression){
             AstNode identifier = expressionNode.getChild(0);
             AstNode operation = expressionNode.getChild(1);
-            CVariableDeclaration variableDeclaration = (CVariableDeclaration) functionBuilder.variableDeclarations.get(identifier.getEscapedCodeStr().hashCode());
-            CIdExpression idExpression = new CIdExpression(fileLocation,variableDeclaration);
+
+            //CVariableDeclaration variableDeclaration = (CVariableDeclaration) getVariableDeclaration(functionBuilder, identifier.getEscapedCodeStr());//functionBuilder.expressionHandler.variableDeclarations.get(identifier.getEscapedCodeStr().hashCode());
+            CExpression idExpression = (CExpression) getExpression(functionBuilder, (Expression) identifier);
             CBinaryExpression.BinaryOperator operator = operation.getTypeAsString().equals("++")?
                     CBinaryExpression.BinaryOperator.PLUS:
                     CBinaryExpression.BinaryOperator.MINUS;
@@ -717,7 +859,7 @@ public class ChannelBuilder {
         }else if(expressionNode instanceof UnaryExpression){
             AstNode operation = expressionNode.getChild(0);
             AstNode identifier = expressionNode.getChild(1);
-            CExpression idExpression = getExpression(functionBuilder, (Expression) identifier);
+            CExpression idExpression = (CExpression)getExpression(functionBuilder, (Expression) identifier);
 
             if(operation.getTypeAsString().equals("IncDec")){
                 CBinaryExpression.BinaryOperator operator = operation.getTypeAsString().equals("++")?
@@ -732,6 +874,9 @@ public class ChannelBuilder {
                 statement = new CExpressionAssignmentStatement(fileLocation,(CLeftHandSide)idExpression,binaryExpression);
             }else
                 throw  new RuntimeException("other unaryexpression: "+ operation.getTypeAsString());
+        }else if(expressionNode instanceof CallExpression){
+            CFunctionCallExpression callExpression = handleCallExpression(functionBuilder, (CallExpression) expressionNode);
+            statement = new CFunctionCallStatement(fileLocation,callExpression);
         }else {
             throw  new RuntimeException("other expression: "+ expressionNode.getTypeAsString());
         }
@@ -759,14 +904,18 @@ public class ChannelBuilder {
         FileLocation fileLocation = getFileLocation(astNode.getLocation());
         functionBuilder.addToCFA(new BlankEdge(switchString, fileLocation, startNode, switchNode, switchString));
 
-        CExpression variableExpr = expressionParser(functionBuilder,variableString);
+        CExpression variableExpr = getExpressionFromString(functionBuilder,variableString);
 
         CFANode trueNode, falseNode, lastnode=switchNode;
         for(int i=0;i<statement.getChildCount();i++){
             AstNode node = statement.getChild(i);
             if(node instanceof Label){
                 FileLocation fileLocation1 = getFileLocation(node.getLocation());
-                String labelName = node.getChild(0).getEscapedCodeStr();
+                String labelName = "";
+                if(node.getChildCount()==0){
+                    labelName = node.getEscapedCodeStr().replace(":","").replace("case","").trim();
+                }else
+                    labelName = node.getChild(0).getEscapedCodeStr();
 
                 if(labelName.equals("default")){
                     trueNode = functionBuilder.newCFANode();
@@ -808,7 +957,7 @@ public class ChannelBuilder {
                         break;
                     }else {
                         CFANode breakNode = functionBuilder.newCFANode();
-                        treeVisitor(functionBuilder, nextNode, trueNode, breakNode);
+                        handleStatement(functionBuilder, (Statement) nextNode, trueNode, breakNode);
                         trueNode = breakNode;
                     }
                 }
@@ -857,26 +1006,41 @@ public class ChannelBuilder {
         functionBuilder.addToCFA(new BlankEdge("for",fileLocation,startNode,forNode,"for"));
         AstNode initNode = condition1.getChild(0);
         CFANode initCFANode = functionBuilder.newCFANode();
-        treeVisitor(functionBuilder,initNode,forNode, initCFANode);
+        handleStatement(functionBuilder,(Statement) initNode,forNode, initCFANode);
         CFANode conditionNode = functionBuilder.newCFANode();
         String conditionString = condition2.getEscapedCodeStr();
         initCFANode.setLoopStart();
         CBinaryExpression conditionExpr = conditionExpression(functionBuilder,condition2);
         createTrueFalseEdge(functionBuilder,initCFANode,conditionNode,endNode, conditionString,conditionExpr);
         CFANode stateNode = functionBuilder.newCFANode();
-        treeVisitor(functionBuilder, statement, conditionNode,stateNode);
-        treeVisitor(functionBuilder,condition3, stateNode, initCFANode);
+        handleStatement(functionBuilder, (Statement) statement, conditionNode,stateNode);
+        CBinaryExpression expression= (CBinaryExpression) getExpression(functionBuilder,(Expression)condition3);
+        CExpressionAssignmentStatement assignmentStatement = new CExpressionAssignmentStatement(
+                fileLocation,
+                (CLeftHandSide) expression.getOperand1(),
+                expression.getOperand2());
+        CStatementEdge statementEdge = new CStatementEdge(expression.getOperand1().toString()+((Expression) condition3).getOperator(),
+                assignmentStatement,
+                fileLocation,
+                stateNode,initCFANode);
+        functionBuilder.addToCFA(statementEdge);
+        //expressionStatement(functionBuilder, (ExpressionStatement) condition3, stateNode, initCFANode);
+        //handleStatement(functionBuilder, (Statement) condition3, stateNode, initCFANode);
     }
 
     public void whileStatement(CFGFunctionBuilder functionBuilder, WhileStatement astNode, CFANode startNode, CFANode endNode){
-        AstNode condition = astNode.getChild(0);
-        AstNode statement = astNode.getChild(1);
-
-        CBinaryExpression conditionExpr = conditionExpression(functionBuilder,condition);
-        startNode.setLoopStart();
+        Condition condition = (Condition) astNode.getCondition();
+        Statement statement = astNode.getStatement();
+        FileLocation fileLocation = getFileLocation(astNode.getLocation());
+        //CBinaryExpression conditionExpr = conditionExpression(functionBuilder,condition);
+        CFANode whileNode = functionBuilder.newCFANode();
+        functionBuilder.addToCFA(new BlankEdge("while", fileLocation, startNode,whileNode, "while" ));
+        whileNode.setLoopStart();
         CFANode internalNode = functionBuilder.newCFANode();
-        createTrueFalseEdge(functionBuilder,startNode,internalNode, endNode, condition.getEscapedCodeStr(),conditionExpr);
-        treeVisitor(functionBuilder,statement,internalNode,startNode);
+        handleIfCondition(functionBuilder, condition,whileNode,internalNode,endNode);
+        //createTrueFalseEdge(functionBuilder,startNode,internalNode, endNode, condition.getEscapedCodeStr(),conditionExpr);
+
+        handleStatement(functionBuilder, statement,internalNode,whileNode);
     }
 
     public void variableDeclaration(CFGFunctionBuilder functionBuilder, IdentifierDeclStatement astNode, CFANode startNode, CFANode endNode){
@@ -908,27 +1072,43 @@ public class ChannelBuilder {
     }
 
     public CType getType(String projectName, String typename){
+        if(typename.endsWith("*")){
+            CType type =getType(projectName,typename.replace("*","").trim());
+            return new CPointerType(type.isConst(),type.isVolatile(),type);
+        }else if(typename.startsWith("const")){
+            CType type =getType(projectName,typename.replace("const","").trim());
+            if(type.isConst())
+                return type;
+            //TODO
+            //return new CPointerType(type.isConst(),type.isVolatile(),type);
+        }
 
         if(builderMap.containsKey(projectName)){
             return builderMap.get(projectName).typeConverter.typeCache.get(typename.hashCode());
         }else if(channelBuilder.typeConverter.typeCache.containsKey(typename.hashCode()))
             return channelBuilder.typeConverter.typeCache.get(typename.hashCode());
 
-        throw new RuntimeException("No existing type "+typename);
+        throw new RuntimeException("No existing type "+typename+" in project:"+ projectName);
     }
 
     public CDeclaration parseVariableDeclaration(CFGFunctionBuilder functionBuilder, boolean isGlobal, IdentifierDecl node){
         String variableName = node.getName().getEscapedCodeStr();
+        CType type;
+        if(functionBuilder==null){
+            type = getType(getProjectForType("",0), node.getType().completeType);
+        }else
+            type = getType(getProjectForType(functionBuilder.functionName,3), node.getType().completeType);
 
-        CType type = getType(getProjectForType("",0), node.getType().completeType);
         FileLocation fileLocation = getFileLocation(node.getLocation());
         CInitializer initializer = null;
         if(node.getAssignment()!=null){
             AssignmentExpression assignmentExpression = node.getAssignment();
-            String initializerString = assignmentExpression.getLeft().getEscapedCodeStr();
-            CExpression expression = getExpressionFromString(functionBuilder, initializerString);
+            Expression initial = assignmentExpression.getRight();
+            CExpression expression = (CExpression)getExpression(functionBuilder, initial);
             initializer = new CInitializerExpression(fileLocation,expression);
         }
+        if(type==null)
+            System.out.println();
 
         CVariableDeclaration variableDeclaration = new CVariableDeclaration(
                 fileLocation,
@@ -954,14 +1134,29 @@ public class ChannelBuilder {
             if(!node.getTypeAsString().equals("Statement")){
                 astNodeMap.put(i, astNodes);
                 astNodes = new ArrayList<>();
+                i++;
             }
-            i++;
         }
         return astNodeMap;
     }
 
+    private List<List<AstNode>> globalStatementArray(AstNode top){
+        List<List<AstNode>> stateList = new ArrayList<>();
+        Iterator<AstNode> iterator = top.getChildIterator();
+        List<AstNode> astNodes = new ArrayList<>();
+        while (iterator.hasNext()){
+            AstNode node = iterator.next();
+            astNodes.add(node);
+            if(!node.getTypeAsString().equals("Statement")){
+                stateList.add(astNodes);
+                astNodes = new ArrayList<>();
+            }
+        }
+        return stateList;
+    }
+
     private FileLocation getFileLocation(CodeLocation location){
-        return new FileLocation(filename, 0,1,location.startLine,location.endLine);
+        return new FileLocation(filename, 0,1,location.startLine,location.startLine);
     }
 
     //locationType: global variable: 0, function return type: 1, function paramtype:2, variable del: 3, cast type: 4
@@ -1003,7 +1198,8 @@ public class ChannelBuilder {
             else if(locationType == 3)
                 return functionName.contains("UL")?UE:MME;
             else
-                throw new RuntimeException();
+                return "";
+                //throw new RuntimeException(filename+" "+functionName+" "+ locationType);
         }else if(filename.endsWith("rrc_task_abstract")){
             return functionName.startsWith("enb")?ENB:UE;
         }else if(filename.equals("itti_task_abstract")){
@@ -1020,6 +1216,85 @@ public class ChannelBuilder {
 
         return "";
 
+    }
+
+    public CType getRealCompositeType(CType type){
+        if(type instanceof CPointerType)
+            return getRealCompositeType(((CPointerType) type).getType());
+        if(type instanceof CTypedefType)
+            return getRealCompositeType(((CTypedefType) type).getRealType());
+        if(type instanceof CElaboratedType)
+            return getRealCompositeType(((CElaboratedType) type).getRealType());
+        if(type instanceof CCompositeType)
+            return type;
+        return null;
+    }
+
+    private CType getMemberType(CCompositeType type, String memeber){
+        for(CCompositeType.CCompositeTypeMemberDeclaration memberParam: type.getMembers()){
+            if(memberParam.getName().equals(memeber))
+                return memberParam.getType();
+        }
+        throw new RuntimeException(memeber+" does not belong to the type: " +type.toString());
+    }
+
+    public CExpression expressionParser(CFGFunctionBuilder functionBuilder, String[] exprElements){
+        FileLocation fileLocation = FileLocation.DUMMY;
+        if(exprElements.length==1){
+            if(exprElements[0].toLowerCase().equals("null")){
+                CType voidpointer = new CPointerType(false,false, CVoidType.VOID);
+                return new CCastExpression(fileLocation,  voidpointer,  CIntegerLiteralExpression.ZERO);
+            }else if(exprElements[0].toLowerCase().equals("true")){
+                return CIntegerLiteralExpression.ONE;
+            }else if(exprElements[0].toLowerCase().equals("false")){
+                return CIntegerLiteralExpression.ZERO;
+            }else{
+                try {
+                    int caseID = Integer.valueOf(exprElements[0]);
+                    return new CIntegerLiteralExpression(fileLocation, CNumericTypes.UNSIGNED_INT, BigInteger.valueOf(caseID));
+                }catch (Exception e){
+                    CSimpleDeclaration variableDeclaration = getVariableDeclaration(functionBuilder, exprElements[0]);
+                    //functionBuilder.expressionHandler.variableDeclarations.get(exprElements[0].hashCode());
+                    if(variableDeclaration!=null)
+                        return new CIdExpression(fileLocation,variableDeclaration);
+                    else
+                        throw new RuntimeException("No such variable: "+ exprElements[0]);
+                }
+            }
+        }else {
+            CSimpleDeclaration variableDeclaration = getVariableDeclaration(functionBuilder, exprElements[0]);
+            CExpression expression = new CIdExpression(fileLocation,variableDeclaration);
+            for(int i=1;i<exprElements.length;i+=2){
+                if(i+1==exprElements.length)
+                    System.out.println(Arrays.toString(exprElements));
+                String memberName = exprElements[i+1];
+                if(exprElements[i].equals("[") && exprElements[i+2].equals("]")){
+                    CExpression indexExpr = getExpressionFromString(functionBuilder,memberName);
+                    CType expressionType = null;
+                    if(expression.getExpressionType() instanceof CPointerType)
+                        expressionType = ((CPointerType) expression.getExpressionType()).getType();
+                    else if(expression.getExpressionType() instanceof CArrayType)
+                        expressionType = ((CArrayType) expression.getExpressionType()).getType();
+                    else
+                        throw new RuntimeException(expression.getExpressionType().toString() +" is not a pointer or array type! in "+ Arrays.toString(exprElements));
+                    expression = new CArraySubscriptExpression(fileLocation,
+                            expressionType,
+                            expression,
+                            indexExpr);
+                    i++;
+                }else {
+                    CCompositeType cCompositeType = (CCompositeType) getRealCompositeType(expression.getExpressionType());
+                    CType memberType = getMemberType(cCompositeType, memberName);
+                    boolean ispointerder = exprElements[i].equals("->");
+                    expression = new CFieldReference(fileLocation,
+                            memberType,
+                            memberName,
+                            expression,
+                            ispointerder);
+                }
+            }
+            return expression;
+        }
     }
 
 }

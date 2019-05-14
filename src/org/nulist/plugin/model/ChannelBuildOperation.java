@@ -30,6 +30,7 @@ import static org.nulist.plugin.model.action.ITTIAbstract.itti_send_to_task;
 import static org.nulist.plugin.parser.CFGParser.*;
 import static org.nulist.plugin.parser.CFGParser.UE;
 import static org.nulist.plugin.util.ClassTool.printWARNING;
+import static org.nulist.plugin.util.FileOperations.getLocation;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.createDummyLiteral;
 
 /**
@@ -162,29 +163,66 @@ public class ChannelBuildOperation {
      * @Param [itti_send_msg_to_task, itti_send_msg_to_task_abstract]
      * @return void
      **/
-    public static void generateITTI_SEND_TO_TASK(CFABuilder cfaBuilder,procedure itti_send_msg_to_task, procedure itti_send_msg_to_task_abstract)throws result{
-        assert itti_send_msg_to_task.name().equals(ITTI_SEND_MSG_TO_TASKS);
+    public static void generateITTI_SEND_TO_TASK(CFABuilder cfaBuilder, CFunctionDeclaration abstractfunction){
         String functionName = ITTI_SEND_MSG_TO_TASKS;
 
-        if(!cfaBuilder.cfgFunctionBuilderMap.containsKey(functionName)){
+        if(cfaBuilder.cfgFunctionBuilderMap.containsKey(functionName)){
 
-            //replace itti_send_msg_to_task_abstract entry by itti_send_msg_to_task
-            CFGFunctionBuilder cfgFunctionBuilder = new CFGFunctionBuilder(cfaBuilder.logger,
-                    cfaBuilder.typeConverter,
-                    itti_send_msg_to_task_abstract,
-                    functionName,itti_send_msg_to_task_abstract.get_compunit().name(),
-                    cfaBuilder);
-            CFunctionDeclaration functionDeclaration = cfgFunctionBuilder.handleFunctionDeclaration();
+            //replace content of itti_send_msg_to_task with call abstract function
+            CFGFunctionBuilder functionBuilder = cfaBuilder.cfgFunctionBuilderMap.get(functionName);
+            CFANode cfaNode = functionBuilder.newCFANode();
+            BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY,
+                    functionBuilder.cfa, cfaNode, "Function start dummy edge");
+            functionBuilder.addToCFA(dummyEdge);
 
-            cfaBuilder.expressionHandler.globalDeclarations.replace(functionName.hashCode(),functionDeclaration);
-            cfaBuilder.functionDeclarations.put(functionName, functionDeclaration);
-            CFunctionEntryNode en = cfgFunctionBuilder.handleFunctionDefinition();
-            cfaBuilder.functions.put(functionName,en);
+            CFANode returnVarNode = functionBuilder.newCFANode();
+            int lineNumber = functionBuilder.cfa.getFileLocation().getStartingLineNumber();
+            lineNumber++;
+            FileLocation fileLocation = getLocation(functionBuilder.fileName,lineNumber);
+            CVariableDeclaration variableDeclaration = new CVariableDeclaration(
+                    fileLocation,
+                    false,
+                    CStorageClass.AUTO,
+                    functionBuilder.functionDeclaration.getType().getReturnType(),
+                    "returnVar",
+                    "returnVar",
+                    "returnVar",
+                    null);
+            CDeclarationEdge declarationEdge = new CDeclarationEdge(variableDeclaration.getType().toString()+" returnVar",
+                    fileLocation,cfaNode,returnVarNode,variableDeclaration);
+            functionBuilder.addToCFA(declarationEdge);
+            lineNumber++;
+            fileLocation = getLocation(functionBuilder.fileName,lineNumber);
+            CIdExpression idExpression = new CIdExpression(fileLocation,variableDeclaration);
+            CExpression functionNameExpr = new CIdExpression(fileLocation,abstractfunction);
+            List<CExpression> paramLists = new ArrayList<>();
+            String rawString = "returnVar = "+abstractfunction.getName()+"(";
+            for(int i=0;i<functionBuilder.functionDeclaration.getParameters().size();i++){
+                CExpression expression = new CIdExpression(fileLocation,functionBuilder.functionDeclaration.getParameters().get(i));
+                paramLists.add(expression);
+                rawString += functionBuilder.functionDeclaration.getParameters().get(i).getName();
+            }
 
-            cfgFunctionBuilder.visitFunction(false);
+            CFunctionCallExpression functionCallExpression = new CFunctionCallExpression(fileLocation,
+                    abstractfunction.getType().getReturnType(),
+                    functionNameExpr,
+                    paramLists,
+                    abstractfunction);
+            CFunctionCallAssignmentStatement statement = new CFunctionCallAssignmentStatement(fileLocation, idExpression,functionCallExpression);
+            CFANode callNode = functionBuilder.newCFANode();
+            CStatementEdge statementEdge = new CStatementEdge(rawString,statement,fileLocation,returnVarNode, callNode);
+            functionBuilder.addToCFA(statementEdge);
 
-            postAssociateFunctions(cfaBuilder, cfgFunctionBuilder, functionName);
-            //cfgFunctionBuilder.finish();
+            lineNumber++;
+            fileLocation = getLocation(functionBuilder.fileName,lineNumber);
+            CReturnStatement returnStatement = new CReturnStatement(fileLocation,Optional.of(idExpression),Optional.absent());
+            CReturnStatementEdge returnStatementEdge = new CReturnStatementEdge("return returnVar;",
+                    returnStatement,
+                    fileLocation,
+                    callNode,
+                    functionBuilder.cfa.getExitNode());
+            functionBuilder.addToCFA(returnStatementEdge);
+            functionBuilder.finish();
         }
     }
 
@@ -225,9 +263,6 @@ public class ChannelBuildOperation {
         }
     }
 
-    public static void inlineChannelOperation(CFABuilder cfaBuilder, CFGFunctionBuilder funcBuilder){
-
-    }
 
     private static void routingTask(CFABuilder cfaBuilder, CFGFunctionBuilder builder, CFunctionDeclaration functionDeclaration, CFAEdge caseEdge,  String functionName){
         CFANode caseNextNode = caseEdge.getSuccessor();
@@ -694,11 +729,37 @@ public class ChannelBuildOperation {
 //            generateESMNASmessageTranslation(builderMap.get(UE),builderMap.get(MME));
 //        }
 
-        if(builderMap.containsKey(UE) && builderMap.containsKey(MME) && builderMap.containsKey(ENB)){
-            CFABuilder channelBuilder =  ChannelConstructer.constructionMessageChannel(builderMap);
+        if(!builderMap.containsKey(Channel)||
+                !builderMap.containsKey(UE)||
+                !builderMap.containsKey(ENB)||
+                !builderMap.containsKey(MME))
+            return;
+        //1.replace itti_send_msg_to_task
+        CFunctionDeclaration itti_ue = builderMap.get(Channel).functionDeclarations.get(ITTI_SEND_MSG_TO_TASKS+"_ue");
+        generateITTI_SEND_TO_TASK(builderMap.get(UE),itti_ue);
 
-        }
+        CFunctionDeclaration itti_eNB = builderMap.get(Channel).functionDeclarations.get(ITTI_SEND_MSG_TO_TASKS+"_eNB");
+        generateITTI_SEND_TO_TASK(builderMap.get(ENB),itti_eNB);
 
+        CFunctionDeclaration itti_mme = builderMap.get(Channel).functionDeclarations.get(ITTI_SEND_MSG_TO_TASKS+"_mme");
+        generateITTI_SEND_TO_TASK(builderMap.get(MME),itti_mme);
+
+        //2. change function call in s1ap_enb_task_abstract.txt and s1ap_mme_task_abstract.txt
+        CFGFunctionBuilder functionBuilder = builderMap.get(ENB).cfgFunctionBuilderMap.get("s1ap_eNB_handle_nas_first_req");
+        CFunctionDeclaration targetFunction = builderMap.get(MME).functionDeclarations.get("s1ap_mme_itti_s1ap_initial_ue_message");
+        functionReplacement(functionBuilder, targetFunction);
+
+        functionBuilder = builderMap.get(ENB).cfgFunctionBuilderMap.get("s1ap_eNB_nas_uplink");
+        targetFunction = builderMap.get(MME).functionDeclarations.get("s1ap_mme_itti_nas_uplink_ind");
+        functionReplacement(functionBuilder, targetFunction);
+
+        functionBuilder = builderMap.get(ENB).cfgFunctionBuilderMap.get("s1ap_eNB_nas_non_delivery_ind");
+        targetFunction = builderMap.get(MME).functionDeclarations.get("s1ap_mme_itti_nas_non_delivery_ind");
+        functionReplacement(functionBuilder, targetFunction);
+
+        functionBuilder = builderMap.get(MME).cfgFunctionBuilderMap.get("s1ap_generate_downlink_nas_transport");
+        targetFunction = builderMap.get(ENB).functionDeclarations.get("s1ap_eNB_itti_send_nas_downlink_ind");
+        functionReplacement(functionBuilder, targetFunction);
 
         if(builderMap.containsKey(ENB) && builderMap.containsKey(MME))
             buildSecureChannelBetweeneNBandMME(builderMap.get(ENB),builderMap.get(MME));
@@ -706,7 +767,9 @@ public class ChannelBuildOperation {
             buildSecureChannelBetweeneNBandMME(builderMap.get(UE),builderMap.get(ENB));
     }
 
+    private static void functionReplacement(CFGFunctionBuilder functionBuilder, CFunctionDeclaration targetFunction){
 
+    }
 
     /**
      * @Description //build the secure channel with S1AP protocol

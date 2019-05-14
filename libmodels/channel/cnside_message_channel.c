@@ -1,7 +1,7 @@
 cn_channel_message_t *CN_channel_message_cache= NULL;
 
 void cnChannelMessageInit(){
-    CN_channel_message_cache=(cn_channel_message_t *)malloc(sizeof(cn_channel_message_t));
+    CN_channel_message_cache=ENB_malloc(sizeof(cn_channel_message_t));
 }
 
 void cnPushNASMSGIDIntoCache(uint16_t msgID){
@@ -95,6 +95,6 @@ LTE_BCCH_DL_SCH_Message_t cnPullPlainBCCHDLSCHMessageIntoCache(){
 }
 
 LTE_PCCH_Message_t cnPullPlainPCCHMessageIntoCache(){
-	LTE_PCCH_Message_t msg = CN_channel_message_cache->rrc_message.pcch_msg;
+	LTE_PCCH_Message_t msg = CN_channel_message_cache->rrc_message.message.pcch_msg;
 	return msg;
 }

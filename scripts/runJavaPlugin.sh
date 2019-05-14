@@ -160,10 +160,16 @@ cd ../../../
 #CPAChecker agruments
 CPACHECKER_ARGUMENTS=$(echo ${OPTIONS[@]})
 
+#libjvm.so path
+JVMPATH=$(echo ${JAVA_HOME})
+JVMPATH="$JVMPATH/jre/lib/amd64/server/libjvm.so"
+
 sed "2c \    \"${CLASSPATH}\"" -i scripts/csurfJava_plugin.stk
+sed "4c \    \"${JVMPATH}\"" -i scripts/csurfJava_plugin.stk
 sed "5c \    \"${PATH_TO_CPACHECKER}\"" -i scripts/csurfJava_plugin.stk
 sed "6c \    \"${PROJECT}\"" -i scripts/csurfJava_plugin.stk
 sed "7c \    \"${CPACHECKER_ARGUMENTS}\"" -i scripts/csurfJava_plugin.stk
+
 
 # Perform the plugin
 csurf -nogui -l $CODESURFER_STK

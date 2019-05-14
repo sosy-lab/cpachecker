@@ -113,42 +113,45 @@ public class CFABuilder {
         for (compunit_procedure_iterator proc_it = cu.procedures();
              !proc_it.at_end(); proc_it.advance()) {
             procedure proc = proc_it.current();
-
-            if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())||
-                    proc.get_kind().equals(procedure_kind.getLIBRARY())){
-                String funcName = proc.name();
-                if((funcName.equals("main") && !isProjectMainFunction(cu.name(),projectName)) ||
-                        funcName.equals("cmpint") ||
-                        funcName.equals("ASN__STACK_OVERFLOW_CHECK") ||
-                        funcName.startsWith("dump_") ||
-                        funcName.startsWith("memb_") ||
-                        functionDeclarations.containsKey(funcName)) //oai has inline functions and asn generated codes have several same functions
-                    continue;
-
-                //System.out.println(funcName);
-                CFGFunctionBuilder cfgFunctionBuilder =
-                        new CFGFunctionBuilder(logger, typeConverter, proc,funcName, pFileName, this);
-                // add function declaration
-                CFunctionDeclaration functionDeclaration = cfgFunctionBuilder.handleFunctionDeclaration();
-
-                functionDeclarations.put(funcName, functionDeclaration);
-                expressionHandler.globalDeclarations.put(funcName.hashCode(), functionDeclaration);
-                // handle the function definition
-                CFunctionEntryNode en = cfgFunctionBuilder.handleFunctionDefinition();
-
-                if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
-                    functions.put(funcName, en);
-                    cfgFunctionBuilderMap.put(funcName,cfgFunctionBuilder);
-                }else
-                    systemFunctions.put(funcName, en);
-
-            }else if(cu.is_user() && proc.get_kind().equals(procedure_kind.getFILE_INITIALIZATION())
-                    && proc.name().contains("Global_Initialization")){
-                visitGlobalItem(proc,projectName);
-            }
+            buildGlobalDeclaration(proc, pFileName, cu.is_user());
         }
 
         parsedFiles.add(Paths.get(pFileName));
+    }
+
+    public void buildGlobalDeclaration(procedure proc, String pFileName, boolean userFile)throws result{
+        if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())||
+                proc.get_kind().equals(procedure_kind.getLIBRARY())){
+            String funcName = proc.name();
+            if((funcName.equals("main") && !isProjectMainFunction(pFileName,projectName)) ||
+                    funcName.equals("cmpint") ||
+                    funcName.equals("ASN__STACK_OVERFLOW_CHECK") ||
+                    funcName.startsWith("dump_") ||
+                    funcName.startsWith("memb_") ||
+                    functionDeclarations.containsKey(funcName)) //oai has inline functions and asn generated codes have several same functions
+                return;
+
+            //System.out.println(funcName);
+            CFGFunctionBuilder cfgFunctionBuilder =
+                    new CFGFunctionBuilder(logger, typeConverter, proc,funcName, pFileName, this);
+            // add function declaration
+            CFunctionDeclaration functionDeclaration = cfgFunctionBuilder.handleFunctionDeclaration();
+
+            functionDeclarations.put(funcName, functionDeclaration);
+            expressionHandler.globalDeclarations.put(funcName.hashCode(), functionDeclaration);
+            // handle the function definition
+            CFunctionEntryNode en = cfgFunctionBuilder.handleFunctionDefinition();
+
+            if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
+                functions.put(funcName, en);
+                cfgFunctionBuilderMap.put(funcName,cfgFunctionBuilder);
+            }else
+                systemFunctions.put(funcName, en);
+
+        }else if(userFile && proc.get_kind().equals(procedure_kind.getFILE_INITIALIZATION())
+                && proc.name().contains("Global_Initialization")){
+            visitGlobalItem(proc,projectName);
+        }
     }
 
     /**
@@ -175,20 +178,6 @@ public class CFABuilder {
 //                        System.out.println();
                     if(!cfgFunctionBuilder.isFinished){
                         cfgFunctionBuilder.visitFunction(!finishFunctionBuild(funcName));
-//                        if(finishFunctionBuild(funcName))
-//                        if((projectName.equals(UE) || projectName.equals(MME)) && (funcName.equals("nas_message_encode") ||//EMM message
-//                                funcName.equals("esm_msg_encode") ||//ESM message
-//                                funcName.equals("nas_message_decode") ||
-//                                funcName.equals("nas_message_decrypt") ||
-//                                funcName.equals("_emm_as_send"))){//for delivering NAS message through channel operations
-//                            cfgFunctionBuilder.visitFunction(false);
-//                        }if((projectName.equals(UE) || projectName.equals(ENB))&&
-//                                (funcName.equals("uper_encode_to_buffer") ||
-//                                        funcName.equals("uper_decode_complete") ||
-//                                        funcName.equals("uper_decode"))){//for delivering RRC message through channel operations
-//                            cfgFunctionBuilder.visitFunction(false);
-//                        }else
-
                     }
                 }
             }

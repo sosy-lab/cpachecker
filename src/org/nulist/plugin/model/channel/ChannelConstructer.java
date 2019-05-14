@@ -874,6 +874,8 @@ public class ChannelConstructer {
     }
 
     public static CType getRealCompositeType(CType type){
+        if(type instanceof CPointerType)
+            return getRealCompositeType(((CPointerType) type).getType());
         if(type instanceof CTypedefType)
             return getRealCompositeType(((CTypedefType) type).getRealType());
         if(type instanceof CElaboratedType)
@@ -894,16 +896,25 @@ public class ChannelConstructer {
     public static CExpression expressionParser(CFGFunctionBuilder functionBuilder, String[] exprElements){
         FileLocation fileLocation = FileLocation.DUMMY;
         if(exprElements.length==1){
-            if(exprElements[0].equals("NULL")){
+            if(exprElements[0].toLowerCase().equals("null")){
                 CType voidpointer = new CPointerType(false,false, CVoidType.VOID);
                 return new CCastExpression(fileLocation,  voidpointer,  CIntegerLiteralExpression.ZERO);
-            }else {
+            }else if(exprElements[0].toLowerCase().equals("true")){
+                return CIntegerLiteralExpression.ONE;
+            }else if(exprElements[0].toLowerCase().equals("false")){
+                return CIntegerLiteralExpression.ZERO;
+            }else{
                 try {
                     int caseID = Integer.valueOf(exprElements[0]);
                     return new CIntegerLiteralExpression(fileLocation, CNumericTypes.UNSIGNED_INT, BigInteger.valueOf(caseID));
                 }catch (Exception e){
-                    CVariableDeclaration variableDeclaration =
-                            (CVariableDeclaration)functionBuilder.expressionHandler.variableDeclarations.get(exprElements[0].hashCode());
+                    CSimpleDeclaration variableDeclaration;
+                    if(functionBuilder.expressionHandler.globalDeclarations.containsKey(exprElements[0].hashCode()))
+                        variableDeclaration = (CSimpleDeclaration)
+                                functionBuilder.expressionHandler.globalDeclarations.get(exprElements[0].hashCode());
+                    else
+                        variableDeclaration = functionBuilder.expressionHandler.variableDeclarations.get(exprElements[0].hashCode());
+                            //functionBuilder.expressionHandler.variableDeclarations.get(exprElements[0].hashCode());
                     if(variableDeclaration!=null)
                         return new CIdExpression(fileLocation,variableDeclaration);
                     else
@@ -911,16 +922,19 @@ public class ChannelConstructer {
                 }
             }
         }else {
-            CVariableDeclaration variableDeclaration;
+            CSimpleDeclaration variableDeclaration;
             if(functionBuilder.expressionHandler.globalDeclarations.containsKey(exprElements[0].hashCode()))
-                variableDeclaration = (CVariableDeclaration)
+                variableDeclaration = (CSimpleDeclaration)
                     functionBuilder.expressionHandler.globalDeclarations.get(exprElements[0].hashCode());
             else
-                variableDeclaration = (CVariableDeclaration)
+                variableDeclaration = (CSimpleDeclaration)
                         functionBuilder.expressionHandler.variableDeclarations.get(exprElements[0].hashCode());
+            if(variableDeclaration==null)
+                System.out.println(Arrays.toString(exprElements));
             CExpression expression = new CIdExpression(fileLocation,variableDeclaration);
             for(int i=1;i<exprElements.length;i+=2){
-                CCompositeType cCompositeType = (CCompositeType) getRealCompositeType(expression.getExpressionType());
+                if(i+1==exprElements.length)
+                    System.out.println(Arrays.toString(exprElements));
                 String memberName = exprElements[i+1];
                 if(exprElements[i].equals("[") && exprElements[i+2].equals("]")){
                     CExpression indexExpr = expressionParser(functionBuilder,memberName);
@@ -928,7 +942,9 @@ public class ChannelConstructer {
                             ((CArrayType)expression.getExpressionType()).getType(),
                             expression,
                             indexExpr);
+                    i++;
                 }else {
+                    CCompositeType cCompositeType = (CCompositeType) getRealCompositeType(expression.getExpressionType());
                     CType memberType = getMemberType(cCompositeType, memberName);
                     boolean ispointerder = exprElements[i].equals("->");
                     expression = new CFieldReference(fileLocation,
@@ -948,16 +964,19 @@ public class ChannelConstructer {
         StringBuilder builder = new StringBuilder();
         for(int i=0;i<chars.length;i++){
             if((chars[i]=='-' && chars[i+1]=='>')){
-                elements.add(builder.toString());
+                if(!builder.toString().equals(""))
+                    elements.add(builder.toString());
                 elements.add("->");
                 builder = new StringBuilder();
                 i++;
             }else if(chars[i]=='.'){
-                elements.add(builder.toString());
+                if(!builder.toString().equals(""))
+                    elements.add(builder.toString());
                 elements.add(".");
                 builder = new StringBuilder();
             }else if(chars[i]=='['){
-                elements.add(builder.toString());
+                if(!builder.toString().equals(""))
+                    elements.add(builder.toString());
                 elements.add("[");
                 i++;
                 builder = new StringBuilder();
@@ -966,13 +985,16 @@ public class ChannelConstructer {
                         builder.append(chars[i]);
                     else{
                         elements.add(builder.toString());
+                        builder = new StringBuilder();
                         elements.add("]");
+                        break;
                     }
                 }
             }else
                 builder.append(chars[i]);
         }
-        elements.add(builder.toString());
+        if(!builder.toString().equals(""))
+            elements.add(builder.toString());
         return elements.toArray(new String[elements.size()]);
     }
 

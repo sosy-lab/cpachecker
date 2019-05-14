@@ -23,8 +23,9 @@ void translate_UL_ATTACH_REQUEST(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imsi.identity_digit14=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imsi.digit14;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imsi.identity_digit15=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imsi.digit15;//No corresponding Type
         CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imsi.num_digits=14;
-        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imsi.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imsi.identity_digit15!=15)
+        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imsi.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imsi.identity_digit15!=15){
         		   CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imsi.num_digits+=1;
+        		   }
 
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.guti.spare=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.guti.spare;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.guti.oddeven=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.guti.oddeven;
@@ -57,8 +58,10 @@ void translate_UL_ATTACH_REQUEST(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imei.identity_digit14=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imei.digit14;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imei.identity_digit15=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imei.digit15;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imei.num_digits=14;
-        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imei.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imei.identity_digit15!=15)
-           CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imsi.num_digits+=1;
+        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imei.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imei.identity_digit15!=15){
+            CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.oldgutiorimsi.imsi.num_digits+=1;
+        }
+
 
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.eea=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.eea;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.eia=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.eia;
@@ -71,8 +74,8 @@ void translate_UL_ATTACH_REQUEST(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.lcs=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.lcs;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.srvcc=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.srvcc;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.nf=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.nf;
-		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.umts_present=(_Bool)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.umts_present;
-		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.misc_present=(_Bool)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.gprs_present;
+		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.umts_present=(bool)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.umts_present;
+		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.misc_present=(bool)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.uenetworkcapability.gprs_present;
 		//CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.esmmessagecontainer, this message is located in plain ESM_msg
 
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.presencemask=(uint32_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.presencemask;
@@ -95,8 +98,9 @@ void translate_UL_ATTACH_REQUEST(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imsi.identity_digit14=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imsi.digit14;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imsi.identity_digit15=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imsi.digit15;//No corresponding Type
         CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imsi.num_digits=14;
-        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imsi.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imsi.identity_digit15!=15)
-           CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imsi.num_digits+=1;
+        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imsi.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imsi.identity_digit15!=15){
+            CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imsi.num_digits+=1;
+        }
 
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.guti.spare=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.guti.spare;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.guti.oddeven=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.guti.oddeven;
@@ -128,8 +132,9 @@ void translate_UL_ATTACH_REQUEST(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imei.identity_digit14=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imei.digit14;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imei.identity_digit15=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imei.digit15;//No corresponding Type
         CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imei.num_digits=14;
-        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imei.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imei.identity_digit15!=15)
+        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imei.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imei.identity_digit15!=15){
            CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.additionalguti.imei.num_digits+=1;
+           }
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.lastvisitedregisteredtai.plmn=(plmn_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.lastvisitedregisteredtai.mccdigit2;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.lastvisitedregisteredtai.tac=(tac_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.lastvisitedregisteredtai.tac;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.drxparameter.splitpgcyclecode=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_request.drxparameter.splitpgcyclecode;
@@ -205,16 +210,36 @@ void translate_DL_ATTACH_ACCEPT(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.epsattachresult=(EpsAttachResult)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.epsattachresult;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.t3412value.unit=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.t3412value.unit;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.t3412value.timervalue=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.t3412value.timervalue;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.typeoflist=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].typeoflist;
+		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.typeoflist=2817;//OAI UE only support: 0b01 , (uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].typeoflist;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.numberofelements=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].numberofelements;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mccdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mcc_digit2;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mccdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mcc_digit1;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mncdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mnc_digit3;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mccdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mcc_digit3;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mncdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mnc_digit2;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mncdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mnc_digit1;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.tac=(uint16_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.tac[0];
-//		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.esmmessagecontainer=(EsmMessageContainer)(EsmMessageContainer)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.esmmessagecontainer;//Not composite Type
+		int typelist= CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].typeoflist;
+		if(typelist==2817){//TRACKING_AREA_IDENTITY_LIST_ONE_PLMN_CONSECUTIVE_TACS
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mccdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mcc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mccdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mcc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mncdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mnc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mccdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mcc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mncdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mnc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mncdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mnc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.tac=(uint16_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.tac;
+		}else if(typelist==2816){//TRACKING_AREA_IDENTITY_LIST_ONE_PLMN_NON_CONSECUTIVE_TACS
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mccdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mcc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mccdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mcc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mncdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mnc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mccdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mcc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mncdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mnc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mncdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mnc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.tac=(uint16_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.tac[0];
+
+		}else if(typelist == 2832){//TRACKING_AREA_IDENTITY_LIST_MANY_PLMNS
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mccdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mcc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mccdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mcc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mncdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mnc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mccdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mcc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mncdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mnc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.mncdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mnc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.tac=(uint16_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].tac;
+		}
+		//		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.esmmessagecontainer=(EsmMessageContainer)(EsmMessageContainer)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.esmmessagecontainer;//Not composite Type
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.presencemask=(uint32_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.presencemask;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.guti.imsi.digit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.guti.imsi.identity_digit1;//No corresponding Type
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.guti.imsi.oddeven=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.guti.imsi.oddeven;
@@ -396,7 +421,7 @@ void translate_DL_ATTACH_ACCEPT(){
                 if (e->number_digit[j] < 10) {
                     UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.emergencynumberlist.emergency_number_information[i].bcd_digits[j] |= (e->number_digit[i] << 4);
                 } else {
-                    UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.emergencynumberlist.emergency_number_information[i].bcd_digits[j] |= 0xF0;
+                    UE_channel_message_cache->nas_message.nas_message.plain.emm.attach_accept.emergencynumberlist.emergency_number_information[i].bcd_digits[j] |= 240;//0xF0;
                     break;
                 }
             }
@@ -425,7 +450,7 @@ void translate_UL_DETACH_REQUEST(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.protocoldiscriminator=(eps_protocol_discriminator_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.protocoldiscriminator;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.securityheadertype=(security_header_type_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.securityheadertype;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.messagetype=(message_type_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.messagetype;
-		CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.detachtype.switchoff=(_Bool)UE_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.detachtype.switchoff;
+		CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.detachtype.switchoff=(bool)UE_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.detachtype.switchoff;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.detachtype.typeofdetach=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.detachtype.typeofdetach;
 		//CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.emmCause=(emm_cause_t)emmCause;//No corresponding Type
 
@@ -484,8 +509,9 @@ void translate_UL_DETACH_REQUEST(){
         CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.gutiorimsi.imei.identity_digit14=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.gutiorimsi.imei.digit14;
         CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.gutiorimsi.imei.identity_digit15=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.gutiorimsi.imei.digit15;//No corresponding Type
         CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.gutiorimsi.imei.num_digits=14;
-        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.gutiorimsi.imei.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.gutiorimsi.imei.identity_digit15!=15)
+        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.gutiorimsi.imei.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.gutiorimsi.imei.identity_digit15!=15){
            CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.gutiorimsi.imsi.num_digits+=1;
+          }
 
 		//CN_channel_message_cache->nas_message.nas_message.plain.emm.detach_request.presencemask=(uint32_t);//No corresponding Type
 }
@@ -580,8 +606,9 @@ void translate_UL_TRACKING_AREA_UPDATE_REQUEST(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imsi.identity_digit14=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imsi.digit14;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imsi.identity_digit15=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imsi.digit15;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imsi.num_digits=14;//No corresponding Type
-		if(CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imsi.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imsi.identity_digit15!=15)
-                   CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imsi.num_digits+=1;
+		if(CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imsi.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imsi.identity_digit15!=15){
+		    CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imsi.num_digits+=1;
+		}
 
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.guti.spare=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.guti.spare;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.guti.oddeven=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.guti.oddeven;
@@ -613,8 +640,8 @@ void translate_UL_TRACKING_AREA_UPDATE_REQUEST(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imei.identity_digit14=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imei.digit14;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imei.identity_digit15=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imei.digit15;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imei.num_digits=14;//No corresponding Type
-        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imei.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imei.identity_digit15!=15)
-                   CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imei.num_digits+=1;
+        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imei.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imei.identity_digit15!=15){
+                   CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldguti.imei.num_digits+=1;}
 
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.presencemask=(uint32_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.presencemask;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.noncurrentnativenaskeysetidentifier.tsc=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.noncurrentnativenaskeysetidentifier.tsc;
@@ -639,8 +666,8 @@ void translate_UL_TRACKING_AREA_UPDATE_REQUEST(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imsi.identity_digit14=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imsi.digit14;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imsi.identity_digit15=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imsi.digit15;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imsi.num_digits=14;//No corresponding Type
-        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imsi.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imsi.identity_digit15!=15)
-                   CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imsi.num_digits+=1;
+        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imsi.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imsi.identity_digit15!=15){
+                   CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imsi.num_digits+=1;}
 
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.guti.spare=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.guti.spare;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.guti.oddeven=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.guti.oddeven;
@@ -672,8 +699,9 @@ void translate_UL_TRACKING_AREA_UPDATE_REQUEST(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imei.identity_digit14=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imei.digit14;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imei.identity_digit15=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imei.digit15;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imei.num_digits=14;//No corresponding Type
-        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imei.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imei.identity_digit15!=15)
+        if(CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imei.oddeven==1 && CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imei.identity_digit15!=15){
                    CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalguti.imei.num_digits+=1;
+                   }
 
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.nonceue=(nonce_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.nonceue;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.eea=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.eea;
@@ -687,8 +715,8 @@ void translate_UL_TRACKING_AREA_UPDATE_REQUEST(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.lcs=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.lcs;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.srvcc=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.srvcc;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.nf=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.nf;
-		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.umts_present=(_Bool)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.umts_present;
-		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.misc_present=(_Bool)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.gprs_present;//No corresponding Type
+		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.umts_present=(bool)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.umts_present;
+		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.misc_present=(bool)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.uenetworkcapability.gprs_present;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.lastvisitedregisteredtai.plmn=(plmn_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.lastvisitedregisteredtai.mccdigit2;//No corresponding Type
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.lastvisitedregisteredtai.tac=(tac_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.lastvisitedregisteredtai.tac;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.drxparameter.splitpgcyclecode=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.drxparameter.splitpgcyclecode;
@@ -754,11 +782,11 @@ void translate_UL_TRACKING_AREA_UPDATE_REQUEST(){
         CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalupdatetype=(additional_update_type_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.additionalupdatetype;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldgutitype=(guti_type_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.oldgutitype;
 
-		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.voicedomainpreferenceandueusagesetting.spare=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.voicedomainpreferenceandueusagesetting.spare;
-        CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.voicedomainpreferenceandueusagesetting.ue_usage_setting=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.voicedomainpreferenceandueusagesetting.ue_usage_setting;
-        CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.voicedomainpreferenceandueusagesetting.voice_domain_for_eutran=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.voicedomainpreferenceandueusagesetting.voice_domain_for_eutran;
-        CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.msnetworkfeaturesupport.spare_bits=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.msnetworkfeaturesupport.spare_bits;
-        CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.msnetworkfeaturesupport.extended_periodic_timers=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.msnetworkfeaturesupport.extended_periodic_timers;
+//		CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.voicedomainpreferenceandueusagesetting.spare=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.voicedomainpreferenceandueusagesetting.spare;
+//        CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.voicedomainpreferenceandueusagesetting.ue_usage_setting=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.voicedomainpreferenceandueusagesetting.ue_usage_setting;
+//        CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.voicedomainpreferenceandueusagesetting.voice_domain_for_eutran=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.voicedomainpreferenceandueusagesetting.voice_domain_for_eutran;
+//        CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.msnetworkfeaturesupport.spare_bits=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.msnetworkfeaturesupport.spare_bits;
+//        CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.msnetworkfeaturesupport.extended_periodic_timers=(uint8_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_request.msnetworkfeaturesupport.extended_periodic_timers;
 }
 void translate_DL_TRACKING_AREA_UPDATE_ACCEPT(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.protocoldiscriminator=(ProtocolDiscriminator)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.protocoldiscriminator;
@@ -816,15 +844,36 @@ void translate_DL_TRACKING_AREA_UPDATE_ACCEPT(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.guti.imei.digit15=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.guti.imei.identity_digit15;//No corresponding Type
 
 
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.typeoflist=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].typeoflist;
+		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.typeoflist=2817;//(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].typeoflist;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.numberofelements=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].numberofelements;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mccdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mcc_digit2;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mccdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mcc_digit1;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mncdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mnc_digit3;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mccdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mcc_digit3;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mncdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mnc_digit2;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mncdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mnc_digit1;
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.tac=(uint16_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.tac[0];
+
+		int typelist= CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].typeoflist;
+        if(typelist==2817){//TRACKING_AREA_IDENTITY_LIST_ONE_PLMN_CONSECUTIVE_TACS
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mccdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mcc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mccdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mcc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mncdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mnc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mccdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mcc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mncdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mnc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mncdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mnc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.tac=(uint16_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.tac;
+        }else if(typelist==2816){//TRACKING_AREA_IDENTITY_LIST_ONE_PLMN_NON_CONSECUTIVE_TACS
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mccdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mcc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mccdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mcc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mncdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mnc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mccdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mcc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mncdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mnc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mncdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mnc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.tac=(uint16_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.tac[0];
+
+        }else if(typelist == 2832){//TRACKING_AREA_IDENTITY_LIST_MANY_PLMNS
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mccdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mcc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mccdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mcc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mncdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mnc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mccdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mcc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mncdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mnc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.mncdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mnc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.tac=(uint16_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.tailist.partial_tai_list[0].u.tai_many_plmn[0].tac;
+        }
 
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.epsbearercontextstatus=(EpsBearerContextStatus)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.epsbearercontextstatus;
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.locationareaidentification.mccdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.locationareaidentification.mccdigit2;
@@ -962,7 +1011,7 @@ void translate_DL_TRACKING_AREA_UPDATE_ACCEPT(){
                 if (e->number_digit[j] < 10) {
                     UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.emergency_number_information[i].bcd_digits[j] |= (e->number_digit[i] << 4);
                 } else {
-                    UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.emergency_number_information[i].bcd_digits[j] |= 0xF0;
+                    UE_channel_message_cache->nas_message.nas_message.plain.emm.tracking_area_update_accept.emergencynumberlist.emergency_number_information[i].bcd_digits[j] |= 240;//0xF0;
                     break;
                 }
             }
@@ -1156,16 +1205,36 @@ void translate_DL_GUTI_REALLOCATION_COMMAND(){
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.guti.imei.digit15=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.guti.imei.identity_digit15;//No corresponding Type
 		UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.presencemask=(uint32_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.presencemask;
 
-		UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.typeoflist=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].typeoflist;
+		UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.typeoflist=2817;//(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].typeoflist;
         UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.numberofelements=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].numberofelements;
-        UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mccdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mcc_digit2;
-        UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mccdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mcc_digit1;
-        UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mncdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mnc_digit3;
-        UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mccdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mcc_digit3;
-        UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mncdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mnc_digit2;
-        UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mncdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.plmn.mnc_digit1;
-        UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.tac=(uint16_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].tai_one_plmn_consecutive_tacs.tac[0];
 
+        int typelist= CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].typeoflist;
+        if(typelist==2817){//TRACKING_AREA_IDENTITY_LIST_ONE_PLMN_CONSECUTIVE_TACS
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mccdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mcc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mccdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mcc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mncdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mnc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mccdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mcc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mncdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mnc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mncdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.plmn.mnc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.tac=(uint16_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_consecutive_tacs.tac;
+        }else if(typelist==2816){//TRACKING_AREA_IDENTITY_LIST_ONE_PLMN_NON_CONSECUTIVE_TACS
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mccdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mcc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mccdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mcc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mncdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mnc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mccdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mcc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mncdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mnc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mncdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.plmn.mnc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.tac=(uint16_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_one_plmn_non_consecutive_tacs.tac[0];
+
+        }else if(typelist == 2832){//TRACKING_AREA_IDENTITY_LIST_MANY_PLMNS
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mccdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mcc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mccdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mcc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mncdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mnc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mccdigit3=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mcc_digit3;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mncdigit2=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mnc_digit2;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.mncdigit1=(uint8_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_many_plmn[0].plmn.mnc_digit1;
+            UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.tac=(uint16_t)CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_command.tailist.partial_tai_list[0].u.tai_many_plmn[0].tac;
+        }
 }
 void translate_UL_GUTI_REALLOCATION_COMPLETE(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_complete.protocoldiscriminator=(eps_protocol_discriminator_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.guti_reallocation_complete.protocoldiscriminator;
@@ -1203,9 +1272,9 @@ void translate_UL_AUTHENTICATION_FAILURE(){
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.messagetype=(message_type_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.messagetype;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.emmcause=(emm_cause_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.emmcause;
 		CN_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.presencemask=(uint32_t)UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.presencemask;
-		if(UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.authenticationresponseparameter.res.length>0){
-		    CN_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.authenticationresponseparameter->mlen=(int)UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.authenticationresponseparameter.res.length;//Not composite Type
-            CN_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.authenticationresponseparameter->data=(unsigned char *)UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.authenticationresponseparameter.res.value;
+		if(UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.authenticationfailureparameter.auts.length>0){
+		    CN_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.authenticationfailureparameter->mlen=(int)UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.authenticationfailureparameter.auts.length;//Not composite Type
+            CN_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.authenticationfailureparameter->data=(unsigned char *)UE_channel_message_cache->nas_message.nas_message.plain.emm.authentication_failure.authenticationfailureparameter.auts.value;
 		}
 }
 void translate_DL_IDENTITY_REQUEST(){

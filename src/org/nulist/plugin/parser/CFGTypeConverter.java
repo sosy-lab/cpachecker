@@ -384,7 +384,7 @@ public class CFGTypeConverter {
             String memberTypeName = memberType.pretty_print();
             if(memberTypeName.endsWith("<UNNAMED>") || memberTypeName.endsWith("<unnamed>") ){
                 memberTypeName = handleUnnamedType(memberType);
-                memberName = memberTypeName.replace(UNION_PREF,"");
+                //memberName = memberTypeName.replace(UNION_PREF,"");
             }
 
             if(typeMap.containsKey(memberTypeName)){

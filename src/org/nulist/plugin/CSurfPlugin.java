@@ -63,7 +63,7 @@ public class CSurfPlugin {
             project.load(projectPath+UEProjectPath,true);
             project proj = project.current();
 //            CPAMain.executeParser(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
-            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
+//            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
             try {
                 CFABuilder cfaBuilder = cfgParser.parseBuildProject(proj);
                 builderMap.put(proj.name(),cfaBuilder);
