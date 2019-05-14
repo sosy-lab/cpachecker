@@ -25,6 +25,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 import static org.nulist.plugin.parser.CFGAST.*;
+import static org.nulist.plugin.parser.CFGParser.*;
 
 public class CFGTypeConverter {
     private final String STRUCT_PREF = "struct __STRUCT__";
@@ -33,6 +34,7 @@ public class CFGTypeConverter {
     private static final CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
     public final Map<Integer, CType> typeCache = new HashMap<>();
     private Map<String, CType> typeMap = new HashMap<>();
+    public static final CType VoidPointer = new CPointerType(false,false, CVoidType.VOID);
 
     public CFGTypeConverter(final LogManager pLogger) {
         basicTypeInitialization();
@@ -382,7 +384,7 @@ public class CFGTypeConverter {
             String memberTypeName = memberType.pretty_print();
             if(memberTypeName.endsWith("<UNNAMED>") || memberTypeName.endsWith("<unnamed>") ){
                 memberTypeName = handleUnnamedType(memberType);
-                memberName = memberTypeName.replace(UNION_PREF,"");
+                //memberName = memberTypeName.replace(UNION_PREF,"");
             }
 
             if(typeMap.containsKey(memberTypeName)){

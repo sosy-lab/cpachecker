@@ -62,7 +62,7 @@ public class ITTIModelAbstract {
                     CFGFunctionBuilder cfgFunctionBuilder = new CFGFunctionBuilder(logger,
                             cfaBuilder.typeConverter,
                             proc,
-                            functionName,itti_cu.name(),
+                            funcName,itti_cu.name(),
                             cfaBuilder);
                     functionDeclaration = cfgFunctionBuilder.handleFunctionDeclaration();
 
@@ -82,106 +82,9 @@ public class ITTIModelAbstract {
         }
     }
 
-    /**
-     * @Description //send_msg_to_task_abstract to send_msg_to_task
-     * @Param []
-     * @return void
-     **/
-    public void buildITTI_SEND_MSG_TO_TASK() throws result{
-        CFunctionDeclaration functionDeclaration =
-                (CFunctionDeclaration) cfaBuilder.expressionHandler.globalDeclarations.get(functionName.hashCode());
-
-        procedure itti_send_msg_to_task = null;
-        procedure itti_send_msg_to_task_abstract = null;
-        for (compunit_procedure_iterator proc_it = itti_cu.procedures();
-             !proc_it.at_end(); proc_it.advance()) {
-            procedure proc = proc_it.current();
-            if(proc.name().equals(functionName))
-                itti_send_msg_to_task = proc;
-            if(proc.name().equals(functionName+"_abstract"))
-                itti_send_msg_to_task_abstract = proc;
-        }
-
-        if(functionDeclaration==null||itti_send_msg_to_task==null){
-            printWARNING("Can not find itti_send_msg_to_task");
-            return;
-        }
-
-        if(!cfaBuilder.cfgFunctionBuilderMap.containsKey(functionName)){
-
-            //replace itti_send_msg_to_task_abstract entry by itti_send_msg_to_task
-            CFGFunctionBuilder cfgFunctionBuilder = new CFGFunctionBuilder(logger,
-                    cfaBuilder.typeConverter,
-                    itti_send_msg_to_task_abstract,
-                    functionName,itti_cu.name(),
-                    cfaBuilder);
-            CFunctionDeclaration functionDeclaration1 = cfgFunctionBuilder.handleFunctionDeclaration();
-
-            cfaBuilder.expressionHandler.globalDeclarations.replace(functionName.hashCode(),functionDeclaration1);
-            cfaBuilder.functionDeclarations.put(functionName, functionDeclaration1);
-            CFunctionEntryNode en = cfgFunctionBuilder.handleFunctionDefinition();
-            cfaBuilder.functions.put(functionName,en);
 
 
-            cfgFunctionBuilder.visitFunction(false);
-
-            postAssociateFunctions(cfgFunctionBuilder);
-            cfgFunctionBuilder.finish();
-        }
-    }
-
-    public void postAssociateFunctions(CFGFunctionBuilder builder){
-        for(CFANode node:builder.cfaNodes){
-            if(node.getNumLeavingEdges()>0)
-                for(int i=0;i<node.getNumLeavingEdges();i++){
-                    traverseEdges(builder,node.getLeavingEdge(i));
-                }
-        }
-    }
-
-    /**
-     * @Description //insert function call
-     * @Param [edge]
-     * @return void
-     **/
-    private void traverseEdges(CFGFunctionBuilder builder, CFAEdge edge){
-        if(edge instanceof CAssumeEdge && ((CAssumeEdge) edge).getTruthAssumption()){
-            CExpression conditionExpr = ((CAssumeEdge) edge).getExpression();
-            if(conditionExpr instanceof CBinaryExpression){
-                int taskID = ((CIntegerLiteralExpression)((CBinaryExpression) conditionExpr).getOperand2()).getValue().intValue();
-                    CFunctionDeclaration functionDeclaration = itti_send_to_task(taskID,projectName,cfaBuilder.expressionHandler);
-                if(functionDeclaration!=null){
-                    CFANode caseNextNode = edge.getSuccessor();
-                    CFAEdge breakEdge = caseNextNode.getLeavingEdge(0);
-                    CFANode cfaNode = new CFANode(functionName);
-                    caseNextNode.removeLeavingEdge(breakEdge);
-                    CFANode breakNode = breakEdge.getSuccessor();
-                    breakNode.removeEnteringEdge(breakEdge);
-
-                    CParameterDeclaration input = builder.functionDeclaration.getParameters().get(2);
-                    List<CExpression> params = new ArrayList<>();
-                    FileLocation fileLocation = breakEdge.getFileLocation();
-                    CExpression param = builder.expressionHandler.getAssignedIdExpression(input.asVariableDeclaration(),input.getType(),fileLocation);
-                    params.add(param);
-                    CExpression functionCallExpr = new CIdExpression(fileLocation,functionDeclaration.getType(), functionDeclaration.getName(), functionDeclaration);
-
-                    CFunctionCallExpression expression = new CFunctionCallExpression(fileLocation,functionDeclaration.getType(), functionCallExpr, params, functionDeclaration);
-
-                    CFunctionCallStatement cFunctionCallStatement = new CFunctionCallStatement(fileLocation, expression);
-                    String rawCharacters = functionDeclaration.getName()+"("+param.toString()+");";
-                    CStatementEdge statementEdge = new CStatementEdge(rawCharacters,cFunctionCallStatement,
-                            fileLocation, caseNextNode, cfaNode);
-                    builder.addToCFA(statementEdge);
-                    BlankEdge blankEdge = new BlankEdge(breakEdge.getRawStatement(),breakEdge.getFileLocation(),cfaNode,breakNode,breakEdge.getDescription());
-                    builder.addToCFA(blankEdge);
-                    cfaBuilder.addNode(functionName,cfaNode);
-                }
-            }
-        }
-    }
-
-
-    /**
+    /*
      * @Description //copy the original function and inset msg as its input parameter
      * @Param [functionDeclaration]
      * @return void

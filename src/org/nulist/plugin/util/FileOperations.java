@@ -29,6 +29,11 @@ public class FileOperations {
      *@Param [point, pFileName]
      *@return org.sosy_lab.cpachecker.cfa.ast.FileLocation
      **/
+
+
+    public static FileLocation getLocation(final String pFileName, int startNumber){
+        return new FileLocation(pFileName, 0, 1,startNumber, startNumber);
+    }
     public static FileLocation getLocation(point node, final String pFileName){
         assert node != null;
         try {

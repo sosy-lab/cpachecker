@@ -1,9 +1,7 @@
 package org.nulist.plugin.parser;
 
-import com.grammatech.cs.compunit;
-import com.grammatech.cs.project;
-import com.grammatech.cs.project_compunits_iterator;
-import com.grammatech.cs.result;
+import com.grammatech.cs.*;
+import org.nulist.plugin.model.ChannelBuildOperation;
 import org.nulist.plugin.model.ITTIModelAbstract;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -17,6 +15,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 
+import static org.nulist.plugin.model.ChannelBuildOperation.*;
+import static org.nulist.plugin.model.action.ITTIAbstract.extendSuffix;
+
 /**
  * @ClassName CFGParser
  * @Description CFG parse. Given a project, CFGParser extract its all user-defined compunits to construct cfa
@@ -27,10 +28,11 @@ import java.util.List;
 public class CFGParser implements Parser{
 
     private LogManager logger=null;
-    private CFABuilder cfaBuilder=null;
+    private MachineModel machineModel;
     public final static String ENB = "OAI-ENB";
     public final static String MME = "OAI-MME";
     public final static String UE = "OAI-UE";
+    public final static String Channel = "Channel";
 
     private final Timer parseTimer = new Timer();
     private final Timer cfaCreationTimer = new Timer();
@@ -42,7 +44,7 @@ public class CFGParser implements Parser{
 
     public CFGParser(final LogManager pLogger, final MachineModel pMachineModel){
         logger = pLogger ;
-        cfaBuilder = new CFABuilder(logger, pMachineModel);
+        machineModel = pMachineModel;
     }
 
     @Override
@@ -55,10 +57,11 @@ public class CFGParser implements Parser{
         return null;
     }
 
-    public ParseResult parseProject(project project) throws result {
-        List<Path> input_file = new ArrayList<>();
+    public CFABuilder parseBuildProject(project project) throws result {
         parseTimer.start();
         String projectName = project.name();
+        CFABuilder cfaBuilder=new CFABuilder(logger,machineModel,projectName);
+
 
         //first step: traverse for building all functionEntry node
         for(project_compunits_iterator cu_it = project.compunits();
@@ -70,53 +73,63 @@ public class CFGParser implements Parser{
 //            cfaBuilder.basicBuild(cu);
             if(filter(cu.name(), projectName) ||cu.is_library_model())
             {
-                input_file.add(Paths.get(cu.normalized_name()));
                 cfaBuilder.basicBuild(cu, project.name());
             }
         }
         System.out.println("Fisrt Traverse complete!");
 
         //second step: traverse for building intra and inter CFA
-        Map<String,compunit> cuMap = new HashMap<String,compunit>();
 
         for(project_compunits_iterator cu_it = project.compunits();
             !cu_it.at_end(); cu_it.advance() )
         {
             compunit cu = cu_it.current();
-            // only focus on user-defined c files
-            if(cu.name().endsWith("intertask_interface.cpp"))
-                cuMap.put("intertask_interface",cu);
-            else if(cu.name().endsWith("lte-uesoftmodem.c")){
-                cuMap.put("lte-uesoftmodem",cu);
-            }
+
             if(filter(cu.name(),projectName))
             {
-            //input_file.add(Paths.get(cu.normalized_name()));
+                //input_file.add(Paths.get(cu.normalized_name()));
                 System.out.println(cu.name());
                 cfaBuilder.build(cu);
             }
         }
 
         //third step: abstract functions
-            //insert nas_user_container_t *users as the global variable
-        //elimination unrelated initializations
-        if(cuMap.containsKey("lte-uesoftmodem")){
-            compunit cu = cuMap.get("lte-uesoftmodem");
+        //insert nas_user_container_t *users as the global variable
+
+        if(projectName.equals(UE)){
+            procedure createTasksUE = project.find_procedure(CREATE_TASKS_UE);
+            if(createTasksUE!=null)
+                ChannelBuildOperation.generateCreateTasksUE(cfaBuilder,createTasksUE);
+        }
+
+        if(projectName.equals(ENB)){
+            procedure createTasksUE = project.find_procedure(CREATE_TASKS);
+            if(createTasksUE!=null)
+                ChannelBuildOperation.generatCreateTasksENB(cfaBuilder,createTasksUE);
+        }
+
+        procedure proc = project.find_procedure(ITTI_ALLOC_NEW_MESSAGE);
+        if(proc!=null)
+            ChannelBuildOperation.generateITTI_ALLOC_NEW_MESSAGE(cfaBuilder,proc);
+        proc = project.find_procedure(ITTI_SEND_MSG_TO_TASKS);
+        //procedure proc1 = project.find_procedure(ITTI_SEND_MSG_TO_TASKS+extendSuffix);
+        if(proc!=null){
+            cfaBuilder.buildGlobalDeclaration(proc, project.name(), true);
+        }
+
+        parseTimer.stop();
+        return cfaBuilder;
+    }
 
 
-            //split nas_ue_task as nas_ue_users_initialize and nas_ue_task
-        }
-        //abstract itti multiple-thread tasks
-        if(cuMap.containsKey("intertask_interface")){
-            ITTIModelAbstract modelAbstracter = new ITTIModelAbstract(cfaBuilder,projectName, cuMap.get("intertask_interface"),logger,MachineModel.LINUX64);
-            modelAbstracter.buildITTI_ALLOC_NEW_MESSAGE();
-            modelAbstracter.buildITTI_SEND_MSG_TO_TASK();
-        }
+
+    public ParseResult parseProject(project project) throws result {
+        CFABuilder cfaBuilder = parseBuildProject(project);
 
         return new ParseResult(cfaBuilder.functions,
                 cfaBuilder.cfaNodes,
                 cfaBuilder.getGlobalVariableDeclarations(),
-                input_file);
+                cfaBuilder.parsedFiles);
     }
 
     private static boolean filter(String path, String projectName){
@@ -138,12 +151,18 @@ public class CFGParser implements Parser{
             return true;
     }
 
+
+
     public static boolean fileFilter(String name, String projectName){
         return (name.contains("RRC_Rel14/LTE_") && (projectName.equals(UE) || projectName.equals(ENB))) || //AS application protocol interfaces between UE and ENB: radio resource control
                 (name.contains("S1AP_R14/S1AP_") && projectName.equals(ENB)) || //application protocol interfaces between MME and ENB: UE context management
                 //(name.contains("X2AP_R14") && projectName.equals(ENB)) || //application protocol interfaces between enbs for handover (UE mobility) and/or self organizing network related function:
                 (name.contains("openair2/RRC") && (projectName.equals(UE) || projectName.equals(ENB))) || //
+                ((name.contains("openair2/LAYER2/MAC/config.c")||name.contains("openair2/LAYER2/MAC/main.c")) &&  projectName.equals(ENB)) || //
+                ((name.contains("openair2/LAYER2/MAC/config_ue.c")||name.contains("openair2/LAYER2/MAC/main_ue.c")) &&  projectName.equals(UE)) || //
                 name.contains("openair2/COMMON") ||
+                (name.contains("openair2/ENB_APP") && !name.contains("flexran") && !name.contains("NB_IoT")  && projectName.equals(ENB)) ||
+                name.contains("common/utils/channel") ||
                 name.endsWith("common/utils/ocp_itti/intertask_interface.h") ||
                 name.contains("openair2/LAYER2/PDCP_v10.1.0/pdcp.c") ||
                 (name.contains("targets/RT/USER/lte-ue.c") && projectName.equals(UE)) ||
@@ -171,7 +190,9 @@ public class CFGParser implements Parser{
                 (name.contains("openair-cn/src/mme") && projectName.equals(MME)) ||
                 (name.contains("openair-cn/src/oai_mme") && projectName.equals(MME)) ||
                 (name.contains("openair-cn/src/mme_app") && projectName.equals(MME)) ||
-                (name.contains("openair-cn/src/common") && projectName.equals(MME)) ||
+                (name.contains("openair-cn/src/common") &&
+                        !name.endsWith("intertask_interface.c") &&
+                        !name.endsWith("intertask_interface_dump.c") && projectName.equals(MME)) ||
                 (name.contains("openair-cn/src/utils") && !name.contains("openair-cn/src/utils/log") && projectName.equals(MME)) ||
                 (name.contains("CMakeFiles/r10.5") && projectName.equals(MME));//s1ap
     }

@@ -47,7 +47,7 @@ public class CFGFunctionBuilder  {
     public FunctionEntryNode cfa = null;
     public Set<CFANode> cfaNodes = new HashSet<>();
     public Map<Long, CFANode> cfaNodeMap = new HashMap<>();
-    public final Map<Integer, CSimpleDeclaration> variableDeclarations = new HashMap<>();
+    //public final Map<Integer, CSimpleDeclaration> variableDeclarations = new HashMap<>();
 
     public CFGHandleExpression expressionHandler;
     private final LogManager logger;
@@ -57,7 +57,7 @@ public class CFGFunctionBuilder  {
     public CFunctionDeclaration functionDeclaration;
     public final String fileName;
     public CFABuilder cfaBuilder;
-    private boolean directAddEdge = true;
+    private boolean directAddEdge = false;
     public boolean isFinished = false;
 
     public CFGFunctionBuilder(
@@ -79,6 +79,9 @@ public class CFGFunctionBuilder  {
         expressionHandler.setGlobalVariableDeclarations(cfaBuilder.expressionHandler.globalDeclarations);
     }
 
+    public void setDirectAddEdge(boolean directAddEdge) {
+        this.directAddEdge = directAddEdge;
+    }
 
     public FunctionEntryNode getCfa() {
         return cfa;
@@ -317,7 +320,7 @@ public class CFGFunctionBuilder  {
         handleVariableDeclaration(declSet, entryNextNode);
 
         if(functionName.equals("rrc_eNB_generate_HO_RRCConnectionReconfiguration")){
-            directAddEdge = false;
+            directAddEdge = true;
             buildCFAfromBasicBlock();
         } else
             //build edges between cfg nodes
@@ -943,11 +946,25 @@ public class CFGFunctionBuilder  {
     }
 
     private boolean ignoredFunctionCall(String functionName){
-        return functionName.equals("msc_log_event")||
-                functionName.equals("msg_log_message")||
-                functionName.equals("printf")||
-                functionName.equals("sprintf");
+        return functionName.equals("printf")||
+                functionName.equals("sprintf")||
+                functionName.equals("ctfailcb")||
+                functionName.contains("ctfailcb")||
+                //functionName.contains("flexran_agent")||
+                //functionName.contains("free_struct")||
+                functionName.contains("msc_init")||
+                functionName.contains("trx_set_freq_func")||
+                functionName.contains("trx_read_func")||
+                functionName.equals("_network_api_id.open()")||
+                functionName.equals("_network_api_id.recv()")||
+                functionName.equals("_network_api_id.send()")||
+                functionName.equals("user_api_id->open()")||
+                functionName.equals("user_api_id->send()")||
+                functionName.equals("user_api_id->recv()");
+//        functionName.equals("msc_interface.msc_log_event()")||
+//                functionName.equals("msc_interface.msc_log_message()")||
     }
+
 
     /**
      *@Description TODO need to add inter-edge of function call
@@ -963,20 +980,26 @@ public class CFGFunctionBuilder  {
         point_set actuals_in = cfgNode.actuals_in();
         point_set actuals_out = cfgNode.actuals_out();
         point actualoutCFGNode = null, nextCFGNode = null;
+        ast noAST = cfgNode.get_ast(ast_family.getC_NORMALIZED());
 
-        if(cfgNode.toString().endsWith("  printf>")){
-            for(int i=0;i<actuals_in.to_vector().size();i++){
-                String param = actuals_in.to_vector().get(i).get_ast(ast_family.getC_NORMALIZED())
+        if(ignoredFunctionCall(noAST.pretty_print())){
+            if(actuals_out!=null){
+                nextCFGNode = actuals_out.to_vector().get(0).cfg_targets().cbegin().current().get_first();
+                nextCFGNode = nextCFGNode.cfg_targets().cbegin().current().get_first();
+            }else
+                for(int i=0;i<actuals_in.to_vector().size();i++){
+                    String param = actuals_in.to_vector().get(i).get_ast(ast_family.getC_NORMALIZED())
                         .children().get(0).as_ast().pretty_print();
-                if(param.equals("$param_1")){
-                    nextCFGNode = actuals_in.to_vector().get(i).cfg_targets()
+                    if(param.equals("$param_1")){
+                        nextCFGNode = actuals_in.to_vector().get(i).cfg_targets()
                             .cbegin().current().get_first();
-                    break;
+                        break;
+                    }
                 }
-            }
             assert nextCFGNode !=null;
+
             nextNode = handleAllSideEffects(nextCFGNode);
-            BlankEdge blankEdge = new BlankEdge("printf",fileLocation,prevNode,nextNode,"");
+            BlankEdge blankEdge = new BlankEdge("empty",fileLocation,prevNode,nextNode,"");
             addToCFA(blankEdge);
             traverseCFGNode(nextCFGNode, endNode);
             return;
@@ -990,9 +1013,8 @@ public class CFGFunctionBuilder  {
         CType functionType = typeConverter.getCType(operands.children().get(0).get(ast_ordinal.getBASE_TYPE()).as_ast(), expressionHandler);
         CExpression funcNameExpr = expressionHandler
                 .getExpressionFromUC(operands.children().get(0).as_ast(),functionType,fileLocation);
+
         String rawCharacters="";
-
-
 
         List<CExpression> params = new ArrayList<>();
         if(operands.children().size()>1){
@@ -1413,7 +1435,7 @@ public class CFGFunctionBuilder  {
         if(cfgEdgeVector.size()>1){
             for(int i=0;i<cfgEdgeVector.size()-1;i++){
                 CExpression conditionExpr = handleSwitchCase(cfgEdgeVector.get(i).get_first(), endNode, switchExpr);
-                String conditionString = conditionExpr.toASTString();
+                String conditionString = conditionExpr.toString();
                 CFANode case1 = cfaNodeMap.get(cfgEdgeVector.get(i).get_first().id());
                 CFANode case2 = cfaNodeMap.get(cfgEdgeVector.get(i+1).get_first().id());
                 FileLocation fileLoc = getLocation(cfgEdgeVector.get(i).get_first(),fileName);
@@ -1650,15 +1672,15 @@ public class CFGFunctionBuilder  {
 
     public void addToCFA(CFAEdge edge) {
         if(directAddEdge)
-            CFACreationUtils.addEdgeToCFA(edge, logger);
-        else
             addEdgeUnconditionallyToCFA(edge);
+        else
+            CFACreationUtils.addEdgeToCFA(edge, logger);
     }
 
     /**
      * @category helper
      */
-    private CFANode newCFANode() {
+    public CFANode newCFANode() {
         assert cfa != null;
         CFANode nextNode = new CFANode(cfa.getFunctionName());
         cfaNodes.add(nextNode);
