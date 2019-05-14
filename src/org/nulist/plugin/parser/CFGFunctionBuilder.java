@@ -31,6 +31,7 @@ import static org.nulist.plugin.parser.CFABuilder.pointerOf;
 import static org.nulist.plugin.parser.CFGAST.*;
 import static org.nulist.plugin.parser.CFGNode.*;
 import static org.nulist.plugin.parser.CFGNode.DECLARATION;
+import static org.nulist.plugin.parser.CFGParser.ENB;
 import static org.nulist.plugin.util.ClassTool.getUnsignedInt;
 import static org.nulist.plugin.util.ClassTool.printWARNING;
 import static org.nulist.plugin.util.ClassTool.printf;

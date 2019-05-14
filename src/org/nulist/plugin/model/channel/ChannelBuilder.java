@@ -627,16 +627,18 @@ public class ChannelBuilder {
             handleIfCondition(functionBuilder,right,andNode,ifNode,endNode);
         }else if(condition instanceof OrExpression){
             CFANode orNode = functionBuilder.newCFANode();
-            Expression left = ((AndExpression) condition).getLeft();
+            Expression left = ((OrExpression) condition).getLeft();
             handleIfCondition(functionBuilder,left,startNode,ifNode,orNode);
-            Expression right = ((AndExpression) condition).getRight();
+            Expression right = ((OrExpression) condition).getRight();
             handleIfCondition(functionBuilder,right,orNode,ifNode,endNode);
         }else if(condition instanceof EqualityExpression){
             CBinaryExpression binaryExpression = (CBinaryExpression) getExpression(functionBuilder,condition);
             createTrueFalseEdge(functionBuilder,startNode,ifNode,endNode, condition.getEscapedCodeStr(),binaryExpression);
-        }if(condition instanceof Identifier){
+        }else if(condition instanceof Identifier){
             CExpression expression = (CExpression)getExpression(functionBuilder,condition);
             createTrueFalseEdge(functionBuilder,startNode,ifNode,endNode, condition.getEscapedCodeStr(),expression);
+        }else if(condition instanceof Condition){
+            handleIfCondition(functionBuilder, (Expression) condition.getChild(0), startNode, ifNode, endNode);
         }
     }
 
@@ -767,6 +769,7 @@ public class ChannelBuilder {
 
     private CExpression getExpressionFromString(CFGFunctionBuilder functionBuilder, String expressionString){
         String[] expressionElements = splitStringExpression(expressionString);
+
         return expressionParser(functionBuilder,expressionElements);
     }
 
@@ -800,6 +803,12 @@ public class ChannelBuilder {
     //locationType= 0:internal variable, 1:global variable in channel, 2 global variable in UE, 3 global variable in eNB, 4 global variable in MME
     private CSimpleDeclaration getVariableDeclaration(CFGFunctionBuilder functionBuilder, String variableName){
         CSimpleDeclaration variableDel = null;
+        if(filename.startsWith("s1ap")){
+            for(CSimpleDeclaration simpleDeclaration: functionBuilder.expressionHandler.variableDeclarations.values()){
+                if(simpleDeclaration.getOrigName().equals(variableName))
+                    return simpleDeclaration;
+            }
+        }
         if(functionBuilder.expressionHandler.globalDeclarations.containsKey(variableName.hashCode()))
             variableDel = (CSimpleDeclaration)
                     functionBuilder.expressionHandler.globalDeclarations.get(variableName.hashCode());
@@ -820,19 +829,15 @@ public class ChannelBuilder {
             }
         }
         if(variableDel==null && filename.equals("itti_task_abstract")){
-            if(functionBuilder.functionName.contains("ue"))
+            if(functionBuilder.functionName.contains("ue")) {
                 variableDel = (CSimpleDeclaration) builderMap.get(UE).expressionHandler.globalDeclarations.get(variableName.hashCode());
+            }
             else if(functionBuilder.functionName.contains("enb"))
                 variableDel = (CSimpleDeclaration) builderMap.get(ENB).expressionHandler.globalDeclarations.get(variableName.hashCode());
             else
                 variableDel = (CSimpleDeclaration) builderMap.get(MME).expressionHandler.globalDeclarations.get(variableName.hashCode());
         }
-        if(variableDel == null && filename.startsWith("s1ap")){
-            for(CSimpleDeclaration simpleDeclaration: functionBuilder.expressionHandler.variableDeclarations.values()){
-                if(simpleDeclaration.getOrigName().equals(variableName))
-                    return simpleDeclaration;
-            }
-        }
+
         if(variableDel==null)
             throw new RuntimeException("There is no such variable: "+variableName+" in the project: "+ project);
         return variableDel;
@@ -1340,7 +1345,7 @@ public class ChannelBuilder {
     }
 
     public CExpression expressionParser(CFGFunctionBuilder functionBuilder, String[] exprElements){
-        FileLocation fileLocation = FileLocation.DUMMY;
+        FileLocation fileLocation = useSingeFilelocation? this.fileLocation:FileLocation.DUMMY;
         if(exprElements.length==1){
             if(exprElements[0].toLowerCase().equals("null")){
                 CType voidpointer = new CPointerType(false,false, CVoidType.VOID);
@@ -1354,12 +1359,29 @@ public class ChannelBuilder {
                     int caseID = Integer.valueOf(exprElements[0]);
                     return new CIntegerLiteralExpression(fileLocation, CNumericTypes.UNSIGNED_INT, BigInteger.valueOf(caseID));
                 }catch (Exception e){
-                    CSimpleDeclaration variableDeclaration = getVariableDeclaration(functionBuilder, exprElements[0]);
-                    //functionBuilder.expressionHandler.variableDeclarations.get(exprElements[0].hashCode());
-                    if(variableDeclaration!=null)
-                        return new CIdExpression(fileLocation,variableDeclaration);
-                    else
-                        throw new RuntimeException("No such variable: "+ exprElements[0]);
+                    if(exprElements[0].startsWith("TASK_")){
+                        CType type = null;
+                        if(functionBuilder.functionName.contains("ue"))
+                            type = builderMap.get(UE).typeConverter.typeCache.get("task_id_t".hashCode());
+                        else if(functionBuilder.functionName.contains("eNB"))
+                            type = builderMap.get(ENB).typeConverter.typeCache.get("task_id_t".hashCode());
+                        else
+                            type = builderMap.get(MME).typeConverter.typeCache.get("task_id_t".hashCode());
+
+                        int value  = getTaskOrMsgIDbyName(type, exprElements[0]);
+                        if(value!=-1)
+                            return new CIntegerLiteralExpression(fileLocation, type, BigInteger.valueOf(value));
+                        else
+                            throw  new RuntimeException("No such id :"+ exprElements[0]+" in "+ functionBuilder.functionName);
+                    }else {
+                        CSimpleDeclaration variableDeclaration = getVariableDeclaration(functionBuilder, exprElements[0]);
+                        //functionBuilder.expressionHandler.variableDeclarations.get(exprElements[0].hashCode());
+                        if(variableDeclaration!=null)
+                            return new CIdExpression(fileLocation,variableDeclaration);
+                        else
+                            throw new RuntimeException("No such variable: "+ exprElements[0]);
+                    }
+
                 }
             }
         }else {

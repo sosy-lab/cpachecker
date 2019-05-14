@@ -66,9 +66,10 @@ void s1ap_eNB_handle_nas_first_req(){
 
 
 void s1ap_eNB_nas_uplink(){
-    uint16_t mcc = (uint16_t)s1ap_eNB_instance_p->mcc[ue_context_p->selected_plmn_identity];
-    uint16_t mnc = (uint16_t)s1ap_eNB_instance_p->mnc[ue_context_p->selected_plmn_identity];
-    uint8_t length = (uint16_t)s1ap_eNB_instance_p->mnc_digit_length[ue_context_p->selected_plmn_identity];
+    int index = ue_context_p->selected_plmn_identity;
+    uint16_t mcc = (uint16_t)s1ap_eNB_instance_p->mcc[index];
+    uint16_t mnc = (uint16_t)s1ap_eNB_instance_p->mnc[index];
+    uint8_t length = (uint16_t)s1ap_eNB_instance_p->mnc_digit_length[index];
     uint8_t mnc3 = mnc/100;
     if(length==2){
         mnc3 = 15;
