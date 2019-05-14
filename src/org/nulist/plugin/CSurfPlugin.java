@@ -34,18 +34,18 @@ public class CSurfPlugin {
         //perform parser execution
         try{
             printINFO("==================CSURF_PLUGIN_BEGIN==================");
-            printINFO("==================Parsing UE==================");
-            project.load(projectPath+UEProjectPath,true);
-            project proj = project.current();
-            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
+//            printINFO("==================Parsing UE==================");
+//            project.load(projectPath+UEProjectPath,true);
+//            project proj = project.current();
+//            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+UEProjectPath, proj);
             //project.unload();
 //            printINFO("==================Finish==================");
-//            printINFO("==================Parsing ENB==================");
-//            project.load(projectPath+ENBProjectPath,true);
-//            proj = project.current();
-//            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
-//            //project.unload();
-//            printINFO("==================Finish==================");
+            printINFO("==================Parsing ENB==================");
+            project.load(projectPath+ENBProjectPath,true);
+            project proj = project.current();
+            CPAMain.executionTesting(arguments, cpacheckPath, projectPath+ENBProjectPath, proj);
+            //project.unload();
+            printINFO("==================Finish==================");
 //            printINFO("==================Parsing MME==================");
 //            project.load(projectPath+MMEProjectPath,true);
 //            proj = project.current();

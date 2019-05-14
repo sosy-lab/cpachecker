@@ -942,6 +942,12 @@ public class CFGFunctionBuilder  {
         }
     }
 
+    private boolean ignoredFunctionCall(String functionName){
+        return functionName.equals("msc_log_event")||
+                functionName.equals("msg_log_message")||
+                functionName.equals("printf")||
+                functionName.equals("sprintf");
+    }
 
     /**
      *@Description TODO need to add inter-edge of function call
