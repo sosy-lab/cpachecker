@@ -107,6 +107,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
+import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.DefaultExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -609,16 +610,6 @@ public class AutomatonGraphmlParser {
 
     if (useWitnessInvariantsAsAssumptions
         && pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS) {
-      // Rejecting the witness as soon as the invariants for the same target state differ
-      for (GraphMLState targetState : stateInvariantsMap.keySet()) {
-        if (targetState.equals(pTransition.getTarget())) {
-          ExpressionTree<AExpression> invariantAtTargetState = stateInvariantsMap.get(targetState);
-          if (invariantAtTargetState != null
-              && !invariantAtTargetState.equals(candidateInvariants)) {
-            throw new WitnessParseException("Entering same witness state with unequal invariants");
-          }
-        }
-      }
       if (!candidateInvariants.equals(ExpressionTrees.getTrue())) {
         // we create two automata transitions from this witness transition:
         // one leads to the error state assuming the negated invariant
@@ -631,7 +622,20 @@ public class AutomatonGraphmlParser {
               actions,
               candidateInvariants,
               pTransition.getTarget());
-          stateInvariantsMap.put(pTransition.getTarget(), candidateInvariants);
+          // Use conjunction of the invariants which should hold for the same state
+          ExpressionTree<AExpression> stateInvariantsMapEntry = ExpressionTrees.getTrue();
+          for (GraphMLState targetState : stateInvariantsMap.keySet()) {
+            if (targetState.equals(pTransition.getTarget())) {
+              ExpressionTree<AExpression> invariantAtTargetState =
+                  stateInvariantsMap.get(targetState);
+              if (invariantAtTargetState != null
+                  && !invariantAtTargetState.equals(candidateInvariants)) {
+                stateInvariantsMapEntry = invariantAtTargetState;
+              }
+            }
+          }
+          stateInvariantsMap.put(
+              pTransition.getTarget(), And.of(stateInvariantsMapEntry, candidateInvariants));
           return;
         } catch (UnrecognizedCodeException e) {
           throw new WitnessParseException("Unable to parse invariants to CExpressions");
