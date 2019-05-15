@@ -624,10 +624,11 @@ public class AutomatonGraphmlParser {
               pTransition.getTarget());
           // Use conjunction of the invariants which should hold for the same state
           ExpressionTree<AExpression> stateInvariantsMapEntry = ExpressionTrees.getTrue();
-          for (GraphMLState targetState : stateInvariantsMap.keySet()) {
-            if (targetState.equals(pTransition.getTarget())) {
+          for (Map.Entry<GraphMLState, ExpressionTree<AExpression>> entry :
+              stateInvariantsMap.entrySet()) {
+            if (entry.getKey().equals(pTransition.getTarget())) {
               ExpressionTree<AExpression> invariantAtTargetState =
-                  stateInvariantsMap.get(targetState);
+                  stateInvariantsMap.get(entry.getKey());
               if (invariantAtTargetState != null
                   && !invariantAtTargetState.equals(candidateInvariants)) {
                 stateInvariantsMapEntry = invariantAtTargetState;
