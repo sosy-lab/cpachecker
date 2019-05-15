@@ -45,8 +45,10 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -78,7 +80,8 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 @Options(prefix = "cpa.predicate")
 public class PredicateCPA
-    implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable {
+    implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable,
+    ConfigurableProgramAnalysisTM {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
@@ -222,7 +225,11 @@ public class PredicateCPA
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return new PredicateAbstractDomain(predicateManager, symbolicCoverageCheck, statistics);
+    return new PredicateAbstractDomain(
+        predicateManager,
+        symbolicCoverageCheck,
+        statistics,
+        solver.getFormulaManager().getBooleanFormulaManager());
   }
 
   @Override
@@ -254,7 +261,10 @@ public class PredicateCPA
   public StopOperator getStopOperator() {
     switch (stopType) {
       case "SEP":
-        return new PredicateStopOperator(getAbstractDomain());
+        return new PredicateStopOperator(
+            getAbstractDomain(),
+            solver.getFormulaManager().getBooleanFormulaManager(),
+            predicateManager);
       case "SEPPCC":
         return new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
       default:
@@ -370,5 +380,10 @@ public class PredicateCPA
 
   public void changeExplicitAbstractionNodes(final ImmutableSet<CFANode> explicitlyAbstractAt) {
     blk.setExplicitAbstractionNodes(explicitlyAbstractAt);
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() {
+    return new PredicateApplyOperator(solver, formulaManager);
   }
 }

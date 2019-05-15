@@ -23,18 +23,31 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import java.util.Collection;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 
 
 class PredicateStopOperator extends StopSepOperator implements ForcedCoveringStopOperator {
 
-  PredicateStopOperator(AbstractDomain pD) {
+  private final BooleanFormulaManagerView mngr;
+  private final PredicateAbstractionManager amngr;
+
+  PredicateStopOperator(
+      AbstractDomain pD,
+      BooleanFormulaManagerView pMngr,
+      PredicateAbstractionManager pAbstractionManager) {
     super(pD);
+    mngr = pMngr;
+    amngr = pAbstractionManager;
   }
 
   @Override
@@ -47,5 +60,29 @@ class PredicateStopOperator extends StopSepOperator implements ForcedCoveringSto
     // it says only that we can try to cover it.
     return ((PredicateAbstractState)pElement).isAbstractionState()
         && ((PredicateAbstractState)pReachedState).isAbstractionState();
+  }
+
+  @Override
+  public boolean stop(AbstractState el, Collection<AbstractState> reached, Precision precision)
+      throws CPAException, InterruptedException {
+
+    boolean result = super.stop(el, reached, precision);
+
+    if (result && el instanceof AbstractStateWithEdge) {
+      AbstractEdge edge = ((AbstractStateWithEdge)el).getAbstractEdge();
+      for (AbstractState state : reached) {
+        AbstractEdge reachedEdge = ((AbstractStateWithEdge)state).getAbstractEdge();
+        if (edge.equals(reachedEdge)) {
+          return true;
+        } else if (edge.getClass() != reachedEdge.getClass()){
+          return false;
+        } else {
+          Collection<CAssignment> actions = ((PredicateAbstractEdge)edge).getAssignments();
+          Collection<CAssignment> reachedActions = ((PredicateAbstractEdge)reachedEdge).getAssignments();
+          return reachedActions.containsAll(actions);
+        }
+      }
+    }
+    return result;
   }
 }

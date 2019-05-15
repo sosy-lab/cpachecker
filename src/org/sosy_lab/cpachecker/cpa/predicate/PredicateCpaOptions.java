@@ -50,6 +50,9 @@ class PredicateCpaOptions {
       description = "do not include assumptions of states into path formula during strengthening")
   private boolean ignoreStateAssumptions = false;
 
+  @Option(secure = true, description = "Apply only relevant effects.")
+  private boolean applyRelevantEffects = false;
+
   @Option(secure = true, description = "Use formula reporting states for strengthening.")
   private boolean strengthenWithFormulaReportingStates = false;
 
@@ -75,5 +78,9 @@ class PredicateCpaOptions {
 
   boolean strengthenWithFormulaReportingStates() {
     return strengthenWithFormulaReportingStates;
+  }
+
+  boolean applyRelevantEffects() {
+    return applyRelevantEffects;
   }
 }

@@ -96,16 +96,24 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     totalPrecTime.start();
     try {
-      PredicateAbstractState element = (PredicateAbstractState)pElement;
-      CFANode location = AbstractStates.extractLocation(fullState);
+      if (pElement instanceof PredicateAbstractState) {
+        PredicateAbstractState element = (PredicateAbstractState) pElement;
+        CFANode location = AbstractStates.extractLocation(fullState);
 
-      if (shouldComputeAbstraction(fullState, location, element)) {
-        PredicatePrecision precision = (PredicatePrecision)pPrecision;
+        if (shouldComputeAbstraction(fullState, location, element)) {
+          PredicatePrecision precision = (PredicatePrecision) pPrecision;
 
-        return computeAbstraction(element, precision, location, fullState);
+          return computeAbstraction(element, precision, location, fullState);
+        } else {
+          return Optional.of(
+              PrecisionAdjustmentResult
+                  .create(element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
+        }
       } else {
-        return Optional.of(PrecisionAdjustmentResult.create(
-            element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
+        // Predicate Projection
+        return Optional.of(
+            PrecisionAdjustmentResult
+                .create(pElement, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
       }
 
     } catch (SolverException e) {
