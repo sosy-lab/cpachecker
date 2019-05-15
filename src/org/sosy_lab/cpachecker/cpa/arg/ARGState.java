@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
@@ -252,11 +253,13 @@ public class ARGState extends AbstractSingleWrapperState
             CStatementEdge oldStatement = (CStatementEdge) realEdge;
             newEdge =
                 new CStatementEdge(
-                    oldStatement.getRawStatement(),
+                    realEdge.getRawStatement(),
                     oldStatement.getStatement(),
-                    oldStatement.getFileLocation(),
+                    realEdge.getFileLocation(),
                     currentLoc,
                     childLoc);
+          } else if (realEdge instanceof CFunctionReturnEdge) {
+            newEdge = realEdge;
           } else {
             throw new UnsupportedOperationException(
                 "Edge is not supported: " + realEdge.getClass());

@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -47,7 +48,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
 @Options(prefix = "cpa.lock")
 public class LockCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider,
+    ConfigurableProgramAnalysisTM {
 
   public static enum LockAnalysisMode {
     RACE,
