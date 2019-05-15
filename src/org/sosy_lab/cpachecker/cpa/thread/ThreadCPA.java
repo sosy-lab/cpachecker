@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.thread;
 
 import com.google.common.base.Preconditions;
 import java.util.Collection;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -90,7 +89,7 @@ public class ThreadCPA extends AbstractCPA
   }
 
   @Override
-  public ApplyOperator getApplyOperator() throws InvalidConfigurationException {
+  public ApplyOperator getApplyOperator() {
     return new ThreadApplyOperator();
   }
 }

@@ -24,4 +24,6 @@ public interface AbstractStateWithEdge extends AbstractState {
   public AbstractEdge getAbstractEdge();
 
   public boolean hasEmptyEffect();
+
+  public boolean isProjection();
 }

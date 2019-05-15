@@ -21,7 +21,6 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
-import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -50,6 +49,7 @@ public class CompositeApplyOperator implements ApplyOperator {
     Iterator<AbstractState> iter2 = state2.getWrappedStates().iterator();
 
     boolean identicalStates = true;
+
     for (ApplyOperator applyOp : applyOperators) {
       AbstractState absState1 = iter1.next();
       AbstractState absState2 = iter2.next();
@@ -113,7 +113,7 @@ public class CompositeApplyOperator implements ApplyOperator {
       }
 
       if (appliedState instanceof AbstractStateWithEdge) {
-        if (((AbstractStateWithEdge) appliedState).getAbstractEdge() != EmptyEdge.getInstance()) {
+        if (!((AbstractStateWithEdge) appliedState).hasEmptyEffect()) {
           notEmptyEdge = true;
         }
       }

@@ -95,7 +95,7 @@ public class LocationCPA extends AbstractCPA
   }
 
   @Override
-  public ApplyOperator getApplyOperator() throws InvalidConfigurationException {
+  public ApplyOperator getApplyOperator() {
     return new LocationApplyOperator();
   }
 }

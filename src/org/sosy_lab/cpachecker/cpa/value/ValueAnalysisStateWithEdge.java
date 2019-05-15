@@ -118,4 +118,9 @@ public class ValueAnalysisStateWithEdge extends ValueAnalysisState implements Ab
         || edge == EmptyEdge.getInstance();
   }
 
+  @Override
+  public boolean isProjection() {
+    return false;
+  }
+
 }

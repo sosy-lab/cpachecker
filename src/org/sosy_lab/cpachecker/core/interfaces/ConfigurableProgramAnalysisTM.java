@@ -19,12 +19,11 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.defaults.TrivialApplyOperator;
 
 public interface ConfigurableProgramAnalysisTM extends ConfigurableProgramAnalysis {
 
-  default public ApplyOperator getApplyOperator() throws InvalidConfigurationException {
+  default public ApplyOperator getApplyOperator() {
     return TrivialApplyOperator.getInstance();
   }
 }

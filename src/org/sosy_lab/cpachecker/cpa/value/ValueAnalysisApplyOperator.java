@@ -19,6 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -136,7 +137,15 @@ public class ValueAnalysisApplyOperator implements ApplyOperator {
     AbstractEdge edge =
         prepareEdge((ValueAnalysisState) pParent, (ValueAnalysisState) pChild, pEdge);
 
-    return new ValueAnalysisStateWithEdge((ValueAnalysisState) pParent, edge);
+    ValueAnalysisState guard = ValueAnalysisState.copyOf((ValueAnalysisState) pParent);
+    Collection<MemoryLocation> mems = ((ValueAnalysisState) pParent).getTrackedMemoryLocations();
+    for (MemoryLocation mem : mems) {
+      if (mem.isOnFunctionStack()) {
+        guard.forget(mem);
+      }
+    }
+
+    return new ValueAnalysisStateWithEdge(guard, edge);
   }
 
 }

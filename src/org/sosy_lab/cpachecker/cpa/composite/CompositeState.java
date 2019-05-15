@@ -305,7 +305,6 @@ public class CompositeState
 
   @Override
   public boolean hasEmptyEffect() {
-    // Seems it does not help
     for (AbstractState state : states) {
       if (state instanceof AbstractStateWithEdge) {
         boolean res = ((AbstractStateWithEdge) state).hasEmptyEffect();
@@ -321,6 +320,21 @@ public class CompositeState
 
   @Override
   public AbstractEdge getAbstractEdge() {
-    throw new UnsupportedOperationException("?");
+    throw new UnsupportedOperationException("Not yet implemented");
+  }
+
+  @Override
+  public boolean isProjection() {
+
+    for (AbstractState state : states) {
+      if (state instanceof AbstractStateWithEdge) {
+        boolean res = ((AbstractStateWithEdge) state).isProjection();
+        if (res) {
+          // Some CPA can not differ projection from applied states
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

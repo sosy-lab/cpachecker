@@ -19,8 +19,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.threadmodular;
 
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -69,68 +71,49 @@ public class ThreadModularTransferRelation implements TransferRelation {
           throws CPATransferException, InterruptedException {
 
     stats.totalTransfer.start();
-    List<AbstractState> transitions = new ArrayList<>();
-    boolean transitionInThread;
+
+    if (((AbstractStateWithEdge) pState).isProjection()) {
+      // Projection, but not applied transition
+      stats.numberOfProjectionsConsidered.inc();
+      stats.totalTransfer.stop();
+      return Collections.emptySet();
+    }
+    // Just to statistics
     AbstractStateWithLocations loc =
         AbstractStates.extractStateByType(pState, AbstractStateWithLocations.class);
     if (loc instanceof AbstractStateWithEdge) {
       AbstractEdge edge = ((AbstractStateWithEdge) loc).getAbstractEdge();
       if (edge instanceof WrapperCFAEdge) {
-        // Transition in thread
-        transitionInThread = true;
-        transitions.add(pState);
+        stats.numberOfTransitionsInThreadConsidered.inc();
       } else if (edge == EmptyEdge.getInstance()) {
-        // Projection
-        transitionInThread = false;
-      } else {
-        throw new UnsupportedOperationException("Unrecognized abstract edge: " + edge.getClass());
-      }
-    } else {
-      throw new UnsupportedOperationException(
-          "ThreadModularCPA requires location states with edges");
-    }
-
-    stats.allApplyActions.start();
-    shutdownNotifier.shutdownIfNecessary();
-    for (AbstractState state : pReached) {
-      AbstractState newState;
-      stats.applyOperator.start();
-      if (transitionInThread) {
-        newState = applyOperator.apply(pState, state);
-      } else {
-        newState = applyOperator.apply(state, pState);
-      }
-      stats.applyCounter.inc();
-      stats.applyOperator.stop();
-      if (newState != null) {
-        stats.relevantApplyCounter.inc();
-        transitions.add(newState);
+        stats.numberOfTransitionsInEnvironmentConsidered.inc();
       }
     }
-    stats.allApplyActions.stop();
 
     // TODO Get precision from ReachedSet!!
     List<AbstractState> result = new ArrayList<>();
-    for (AbstractState transition : transitions) {
 
-      stats.wrappedTransfer.start();
-      Collection<? extends AbstractState> successors =
-          wrappedTransfer.getAbstractSuccessors(transition, pReached, pPrecision);
-      stats.wrappedTransfer.stop();
+    stats.wrappedTransfer.start();
+    Collection<? extends AbstractState> successors =
+        wrappedTransfer.getAbstractSuccessors(pState, pReached, pPrecision);
+    stats.wrappedTransfer.stop();
 
+    if (!successors.isEmpty()) {
+      for (int i = 0; i < successors.size(); i++) {
+        stats.numberOfTransitionsInThreadProduced.inc();
+      }
       result.addAll(successors);
 
       stats.projectOperator.start();
-      for (AbstractState child : successors) {
-        AbstractState projection = applyOperator.project(transition, child);
-        if (projection != null) {
-          result.add(projection);
-        }
+      // Projection must be independent from child edge, so we may get only one
+      AbstractState projection =
+          applyOperator.project(pState, Iterables.getFirst(successors, null));
+      if (projection != null) {
+        result.add(projection);
+        stats.numberOfProjectionsProduced.inc();
       }
       stats.projectOperator.stop();
-
     }
-
     stats.totalTransfer.stop();
     return result;
   }
@@ -150,5 +133,4 @@ public class ThreadModularTransferRelation implements TransferRelation {
     throw new UnsupportedOperationException(
         "Thread Modular CPA does not support transitions without reached set");
   }
-
 }

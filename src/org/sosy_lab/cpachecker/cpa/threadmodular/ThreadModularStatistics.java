@@ -37,6 +37,14 @@ public class ThreadModularStatistics implements Statistics {
   StatTimer projectOperator = new StatTimer("Total time for project operations");
   StatCounter applyCounter = new StatCounter("Number of apply operations");
   StatCounter relevantApplyCounter = new StatCounter("Number of relevant apply operations");
+  StatCounter numberOfTransitionsInThreadProduced =
+      new StatCounter("Number of obtained transitions in thread");
+  StatCounter numberOfProjectionsProduced = new StatCounter("Number of obtained projections");
+  StatCounter numberOfTransitionsInThreadConsidered =
+      new StatCounter("Number of considered transitions in thread");
+  StatCounter numberOfProjectionsConsidered = new StatCounter("Number of considered projections");
+  StatCounter numberOfTransitionsInEnvironmentConsidered =
+      new StatCounter("Number of considered transitions in environment");
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
@@ -49,7 +57,15 @@ public class ThreadModularStatistics implements Statistics {
         .put(applyOperator)
         .put(projectOperator)
         .put(applyCounter)
-        .put(relevantApplyCounter);
+        .put(relevantApplyCounter)
+        .endLevel()
+        .endLevel()
+        .spacer()
+        .put(numberOfTransitionsInThreadProduced)
+        .put(numberOfProjectionsProduced)
+        .put(numberOfTransitionsInThreadConsidered)
+        .put(numberOfTransitionsInEnvironmentConsidered)
+        .put(numberOfProjectionsConsidered);
   }
 
   @Override

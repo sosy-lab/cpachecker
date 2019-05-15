@@ -25,13 +25,15 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-public class ThreadModularCPA extends AbstractSingleWrapperCPA {
+public class ThreadModularCPA extends AbstractSingleWrapperCPA
+    implements ConfigurableProgramAnalysisTM {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ThreadModularCPA.class);
@@ -40,6 +42,7 @@ public class ThreadModularCPA extends AbstractSingleWrapperCPA {
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
   protected final ThreadModularTransferRelation transfer;
+  protected final ApplyOperator applyOperator;
   protected final ThreadModularStatistics stats;
 
   public ThreadModularCPA(
@@ -60,13 +63,15 @@ public class ThreadModularCPA extends AbstractSingleWrapperCPA {
     shutdownNotifier = pShutdownNotifier;
 
     stats = new ThreadModularStatistics();
+    applyOperator = ((ConfigurableProgramAnalysisTM) pCpa).getApplyOperator();
     transfer =
         new ThreadModularTransferRelation(
             pCpa.getTransferRelation(),
             stats,
             pLogger,
             pShutdownNotifier,
-            ((ConfigurableProgramAnalysisTM) pCpa).getApplyOperator());
+            applyOperator);
+
   }
 
   @Override
@@ -78,5 +83,10 @@ public class ThreadModularCPA extends AbstractSingleWrapperCPA {
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     super.collectStatistics(pStatsCollection);
     pStatsCollection.add(stats);
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() {
+    return applyOperator;
   }
 }

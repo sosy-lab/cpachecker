@@ -359,7 +359,7 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA,
   }
 
   @Override
-  public ApplyOperator getApplyOperator() throws InvalidConfigurationException {
+  public ApplyOperator getApplyOperator() {
     ImmutableList.Builder<ApplyOperator> wrappedOperators = ImmutableList.builder();
     for (ConfigurableProgramAnalysis cpa : cpas) {
       Preconditions.checkState(

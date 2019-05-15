@@ -47,7 +47,10 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -81,6 +84,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private Timer mergeTimer         = new Timer();
     private Timer stopTimer          = new Timer();
     private Timer addTimer           = new Timer();
+    private Timer applyTimer = new Timer();
     private Timer forcedCoveringTimer = new Timer();
 
     private int   countIterations   = 0;
@@ -132,6 +136,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       }
       out.println("  Time for stop operator:         " + stopTimer);
       out.println("  Time for adding to reached set: " + addTimer);
+      out.println("  Time for applying states:       " + applyTimer);
 
     }
   }
@@ -192,6 +197,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
+  private final ApplyOperator applyOperator;
   private final PrecisionAdjustment precisionAdjustment;
 
   private final LogManager                  logger;
@@ -209,6 +215,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     mergeOperator = cpa.getMergeOperator();
     stopOperator = cpa.getStopOperator();
     precisionAdjustment = cpa.getPrecisionAdjustment();
+    if (cpa instanceof ConfigurableProgramAnalysisTM) {
+      applyOperator = ((ConfigurableProgramAnalysisTM)cpa).getApplyOperator();
+    } else {
+      applyOperator = null;
+    }
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
     this.forcedCovering = pForcedCovering;
@@ -455,6 +466,35 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         stats.addTimer.start();
         reachedSet.add(successor, successorPrecision);
         stats.addTimer.stop();
+
+        if (applyOperator != null) {
+          // TODO currently there is apply operator in any case!
+          stats.applyTimer.start();
+          // do not need stop and merge as they has been already performed on projections
+          Map<AbstractState, Precision> toAdd = new HashMap<>();
+
+          boolean isProjection = ((AbstractStateWithEdge) successor).isProjection();
+
+          for (AbstractState oldState : reachedSet) {
+            boolean isProjection2 = ((AbstractStateWithEdge) oldState).isProjection();
+            AbstractState appliedState = null;
+            Precision appliedPrecision = null;
+            if (!isProjection && isProjection2) {
+              appliedState = applyOperator.apply(successor, oldState);
+              appliedPrecision = successorPrecision;
+            } else if (isProjection && !isProjection2) {
+              appliedState = applyOperator.apply(oldState, successor);
+              appliedPrecision = reachedSet.getPrecision(oldState);
+            }
+            if (appliedState != null) {
+              toAdd.put(appliedState, appliedPrecision);
+            }
+          }
+          for (Entry<AbstractState, Precision> entry : toAdd.entrySet()) {
+            reachedSet.add(entry.getKey(), entry.getValue());
+          }
+          stats.applyTimer.stop();
+        }
       }
     }
 

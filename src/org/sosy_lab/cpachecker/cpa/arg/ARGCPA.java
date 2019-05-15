@@ -48,8 +48,10 @@ import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -64,7 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 @Options(prefix = "cpa.arg")
 public class ARGCPA extends AbstractSingleWrapperCPA
-    implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
+    implements ConfigurableProgramAnalysisWithBAM, ProofChecker, ConfigurableProgramAnalysisTM {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARGCPA.class);
@@ -248,5 +250,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA
     return ((ConfigurableProgramAnalysisWithBAM) getWrappedCpa())
         .isCoveredByRecursiveState(
             ((ARGState) state1).getWrappedState(), ((ARGState) state2).getWrappedState());
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() {
+    return new ARGApplyOperator(
+        ((ConfigurableProgramAnalysisTM) getWrappedCpa()).getApplyOperator());
   }
 }
