@@ -154,9 +154,10 @@ public class CFGParser implements Parser{
 
 
     public static boolean fileFilter(String name, String projectName){
-        return (name.contains("RRC_Rel14/LTE_") && (projectName.equals(UE) || projectName.equals(ENB))) || //AS application protocol interfaces between UE and ENB: radio resource control
+        return (name.contains("RRC_Rel14/LTE_")
+                && (projectName.equals(UE) || projectName.equals(ENB))) || //AS application protocol interfaces between UE and ENB: radio resource control
                 (name.contains("S1AP_R14/S1AP_") && projectName.equals(ENB)) || //application protocol interfaces between MME and ENB: UE context management
-                //(name.contains("X2AP_R14") && projectName.equals(ENB)) || //application protocol interfaces between enbs for handover (UE mobility) and/or self organizing network related function:
+        //(name.contains("X2AP_R14") && projectName.equals(ENB)) || //application protocol interfaces between enbs for handover (UE mobility) and/or self organizing network related function:
                 (name.contains("openair2/RRC") && (projectName.equals(UE) || projectName.equals(ENB))) || //
                 ((name.contains("openair2/LAYER2/MAC/config.c")||name.contains("openair2/LAYER2/MAC/main.c")) &&  projectName.equals(ENB)) || //
                 ((name.contains("openair2/LAYER2/MAC/config_ue.c")||name.contains("openair2/LAYER2/MAC/main_ue.c")) &&  projectName.equals(UE)) || //

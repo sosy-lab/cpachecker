@@ -143,6 +143,43 @@ public class ChannelBuilder {
                 System.out.println("Parse "+ "s1ap_mme_message_deliver");
             }
             useSingeFilelocation = false;
+
+            if(builderMap.get(UE).expressionHandler.globalDeclarations.containsKey("uper_encode_to_buffer".hashCode())){
+                boolean builer = builderMap.get(UE).cfgFunctionBuilderMap.containsKey("uper_encode_to_buffer");
+                boolean builer1 = builderMap.get(UE).functionDeclarations.containsKey("uper_encode_to_buffer");
+                System.out.println("Has uper_encode_to_buffer in UE "+builer+" "+ builer1);
+                CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) builderMap.get(UE).expressionHandler.globalDeclarations.get("uper_encode_to_buffer".hashCode());
+                for(CParameterDeclaration parameterDeclaration:functionDeclaration.getParameters()){
+                    System.out.println(parameterDeclaration.getType().toString()+" "+parameterDeclaration.getName());
+                }
+            }
+            if(builderMap.get(UE).expressionHandler.globalDeclarations.containsKey("uper_encode_to_new_buffer".hashCode())){
+                boolean builer = builderMap.get(UE).cfgFunctionBuilderMap.containsKey("uper_encode_to_new_buffer");
+                boolean builer1 = builderMap.get(UE).functionDeclarations.containsKey("uper_encode_to_new_buffer");
+                System.out.println("Has uper_encode_to_new_buffer in UE "+builer+" "+ builer1);
+                CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) builderMap.get(UE).expressionHandler.globalDeclarations.get("uper_encode_to_new_buffer".hashCode());
+                for(CParameterDeclaration parameterDeclaration:functionDeclaration.getParameters()){
+                    System.out.println(parameterDeclaration.getType().toString()+" "+parameterDeclaration.getName());
+                }
+            }
+            if(builderMap.get(ENB).expressionHandler.globalDeclarations.containsKey("uper_encode_to_buffer".hashCode())){
+                boolean builer = builderMap.get(ENB).cfgFunctionBuilderMap.containsKey("uper_encode_to_buffer");
+                boolean builer1 = builderMap.get(ENB).functionDeclarations.containsKey("uper_encode_to_buffer");
+                System.out.println("Has uper_encode_to_buffer in ENB "+builer+" "+ builer1);
+                CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) builderMap.get(ENB).expressionHandler.globalDeclarations.get("uper_encode_to_buffer".hashCode());
+                for(CParameterDeclaration parameterDeclaration:functionDeclaration.getParameters()){
+                    System.out.println(parameterDeclaration.getType().toString()+" "+parameterDeclaration.getName());
+                }
+            }
+            if(builderMap.get(ENB).expressionHandler.globalDeclarations.containsKey("uper_encode_to_new_buffer".hashCode())){
+                boolean builer = builderMap.get(ENB).cfgFunctionBuilderMap.containsKey("uper_encode_to_new_buffer");
+                boolean builer1 = builderMap.get(ENB).functionDeclarations.containsKey("uper_encode_to_new_buffer");
+                System.out.println("Has uper_encode_to_new_buffer in ENB "+builer+" "+ builer1);
+                CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) builderMap.get(ENB).expressionHandler.globalDeclarations.get("uper_encode_to_new_buffer".hashCode());
+                for(CParameterDeclaration parameterDeclaration:functionDeclaration.getParameters()){
+                    System.out.println(parameterDeclaration.getType().toString()+" "+parameterDeclaration.getName());
+                }
+            }
         }
     }
 

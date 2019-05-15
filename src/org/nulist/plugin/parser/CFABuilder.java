@@ -177,16 +177,19 @@ public class CFABuilder {
 //                    if(funcName.equals("rrc_ue_task_abstract"))
 //                        System.out.println();
                     if(!cfgFunctionBuilder.isFinished){
-                        cfgFunctionBuilder.visitFunction(!finishFunctionBuild(funcName));
+                        cfgFunctionBuilder.visitFunction(!finishFunctionBuild(cu.name(),funcName));
                     }
                 }
             }
         }
     }
 
-    private boolean finishFunctionBuild(String functionName){
+    private boolean finishFunctionBuild(String fileaname, String functionName){
         if(projectName.equals(UE)){
-            return functionName.equals("nas_message_encode") ||//EMM message
+            return  fileaname.endsWith("asn1_msg.c") ||
+                    functionName.equals("rrc_ue_process_securityModeCommand")||
+                    functionName.equals("rrc_ue_process_ueCapabilityEnquiry")||
+                    functionName.equals("nas_message_encode") ||//EMM message
                     functionName.equals("esm_msg_encode") ||//ESM message
                     functionName.equals("nas_message_decode") ||
                     functionName.equals("nas_message_decrypt") ||
@@ -202,7 +205,9 @@ public class CFABuilder {
                     functionName.equals("_emm_as_send") ||
                     functionName.equals("s1ap_generate_downlink_nas_transport");
         }else {//eNB
-            return functionName.equals("uper_encode_to_buffer") ||
+            return  fileaname.endsWith("asn1_msg.c") ||
+                    functionName.equals("mac_rrc_data_req") ||
+                    functionName.equals("uper_encode_to_buffer") ||
                     functionName.equals("uper_decode_complete") ||
                     functionName.equals("uper_decode") ||
                     functionName.equals("s1ap_eNB_handle_nas_first_req")||

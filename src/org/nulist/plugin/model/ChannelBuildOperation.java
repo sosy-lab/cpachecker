@@ -746,6 +746,13 @@ public class ChannelBuildOperation {
         generateITTI_SEND_TO_TASK(builderMap.get(MME),itti_mme);
 
 
+        //2. insert RRC message into message channel when it was generated, i.e., when inovke uper_encode_to_buffer
+
+
+    }
+
+    private static void insertRRCMessage2MSGChannel(CFGFunctionBuilder functionBuilder, CFunctionDeclaration functionDeclaration){
+        //
     }
 
     private static void pullNASMsgFromChannel(CFABuilder builder, CFABuilder ueBuilder){
