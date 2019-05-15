@@ -384,6 +384,6 @@ public class PredicateCPA
 
   @Override
   public ApplyOperator getApplyOperator() {
-    return new PredicateApplyOperator(solver, formulaManager);
+    return new PredicateApplyOperator(solver, formulaManager, config);
   }
 }

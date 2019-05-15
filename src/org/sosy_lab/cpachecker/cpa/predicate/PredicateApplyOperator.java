@@ -22,7 +22,10 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import java.util.Collections;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -78,6 +81,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
+@Options(prefix = "cpa.predicate")
 public class PredicateApplyOperator implements ApplyOperator {
 
   private final Function<String, String> rename = s -> s + "__ENV";
@@ -354,10 +358,18 @@ public class PredicateApplyOperator implements ApplyOperator {
 
   final Timer creationTimer = new Timer();
 
-  public PredicateApplyOperator(Solver s, FormulaManagerView pFormulaManager) {
+  public PredicateApplyOperator(
+      Solver s,
+      FormulaManagerView pFormulaManager,
+      Configuration pConfig) {
     solver = s;
     mngr = solver.getFormulaManager().getBooleanFormulaManager();
     fmngr = pFormulaManager;
+    try {
+      pConfig.inject(this);
+    } catch (InvalidConfigurationException e) {
+      // Can do nothing
+    }
   }
 
   @Override
