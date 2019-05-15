@@ -159,43 +159,37 @@ public class WitnessInvariantsExtractor {
     return automatonBuilder.buildWitnessLocationInvariantsAutomaton(invariants);
   }
 
+  @SuppressWarnings("unchecked")
   public void extractInvariantsFromReachedSet(
       final Set<ExpressionTreeLocationInvariant> pInvariants) {
     Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
-    Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
-    Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
     for (AbstractState abstractState : reachedSet) {
       if (shutdownNotifier.shouldShutdown()) {
         return;
       }
-      Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
+      CFANode location = AbstractStates.extractLocation(abstractState);
       for (AutomatonState automatonState :
           AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
         ExpressionTree<AExpression> candidate = automatonState.getCandidateInvariants();
         String groupId = automatonState.getInternalStateName();
+        ExpressionTreeLocationInvariant previousInv = null;
         if (!candidate.equals(ExpressionTrees.getTrue())) {
-          ExpressionTree<AExpression> previous = expressionTrees.get(groupId);
-          if (previous == null) {
-            previous = ExpressionTrees.getTrue();
+          for (ExpressionTreeLocationInvariant inv : pInvariants) {
+            if (inv.getLocation().equals(location)) {
+              previousInv = inv;
+            }
           }
-          expressionTrees.put(groupId, And.of(previous, candidate));
-          for (CFANode location : locations) {
-            ExpressionTreeLocationInvariant invariant =
-                new ExpressionTreeLocationInvariant(
-                    groupId, location, candidate, toCodeVisitorCache);
-            expressionTreeLocationInvariants.add(invariant);
+          ExpressionTree<AExpression> previousExpression = ExpressionTrees.getTrue();
+          if (previousInv != null) {
+            ExpressionTree<?> expr = previousInv.asExpressionTree();
+            previousExpression = (ExpressionTree<AExpression>) expr;
+            pInvariants.remove(previousInv);
           }
+          pInvariants.add(
+              new ExpressionTreeLocationInvariant(
+                  groupId, location, And.of(previousExpression, candidate), toCodeVisitorCache));
         }
       }
-    }
-    for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant :
-        expressionTreeLocationInvariants) {
-      pInvariants.add(
-          new ExpressionTreeLocationInvariant(
-              expressionTreeLocationInvariant.getGroupId(),
-              expressionTreeLocationInvariant.getLocation(),
-              expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
-              toCodeVisitorCache));
     }
   }
 
@@ -352,5 +346,4 @@ public class WitnessInvariantsExtractor {
       variableNames.add(iteratorIdExpressions.next());
     }
   }
-
 }
