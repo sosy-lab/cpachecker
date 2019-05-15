@@ -41,10 +41,13 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
@@ -223,6 +226,31 @@ public class ARGState extends AbstractSingleWrapperState
           final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
           allEdges.add(leavingEdge);
           currentLoc = leavingEdge.getSuccessor();
+        }
+
+        // Can not check transition in environment by apply, because it can be removed due to
+        // coverage
+        if (this.appliedTo != null || pChild.appliedFrom != null) {
+          // Projection
+          return Collections
+              .singletonList(
+                  new BlankEdge(
+                      "projection",
+                      FileLocation.DUMMY,
+                      currentLoc,
+                      childLoc,
+                      "projection"));
+        } else if (this.appliedFrom != null) {
+          // Return origin edge
+          ARGState projection = this.appliedFrom.getSecond();
+          assert projection.getProjectedFrom() != null;
+          ARGState edgePart = projection.getProjectedFrom();
+          AbstractEdge edge =
+              ((AbstractStateWithEdge) AbstractStates
+                  .extractStateByType(edgePart, AbstractStateWithLocations.class))
+                      .getAbstractEdge();
+          assert edge instanceof WrapperCFAEdge;
+          return Collections.singletonList(((WrapperCFAEdge) edge).getCFAEdge());
         }
       }
       return allEdges;
