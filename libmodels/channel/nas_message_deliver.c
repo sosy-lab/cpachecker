@@ -1,0 +1,1 @@
+//TODO for NAS: start from the emm_as.c->_emm_as_data_req->_emm_as_encode/_emm_as_encrypt (message out) to build channel

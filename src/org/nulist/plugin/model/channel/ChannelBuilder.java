@@ -130,17 +130,17 @@ public class ChannelBuilder {
                 parseBuildFile("itti_task_abstract",driverList.get("itti_task_abstract"));
                 System.out.println("Parse "+ "itti_task_abstract");
             }
-            if(driverList.containsKey("s1ap_enb_task_abstract")){
+            if(driverList.containsKey("s1ap_enb_message_deliver")){
                 this.project=MME;
                 useSingeFilelocation = true;
-                parseInsert2Function("s1ap_enb_task_abstract",driverList.get("s1ap_enb_task_abstract"));
-                System.out.println("Parse "+ "s1ap_enb_task_abstract");
+                parseInsert2Function("s1ap_enb_message_deliver",driverList.get("s1ap_enb_message_deliver"));
+                System.out.println("Parse "+ "s1ap_enb_message_deliver");
             }
-            if(driverList.containsKey("s1ap_mme_task_abstract")){
+            if(driverList.containsKey("s1ap_mme_message_deliver")){
                 this.project=ENB;
                 useSingeFilelocation = true;
-                parseInsert2Function("s1ap_mme_task_abstract",driverList.get("s1ap_mme_task_abstract"));
-                System.out.println("Parse "+ "s1ap_mme_task_abstract");
+                parseInsert2Function("s1ap_mme_message_deliver",driverList.get("s1ap_mme_message_deliver"));
+                System.out.println("Parse "+ "s1ap_mme_message_deliver");
             }
             useSingeFilelocation = false;
         }
