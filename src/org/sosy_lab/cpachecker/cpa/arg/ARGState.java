@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
@@ -230,16 +231,10 @@ public class ARGState extends AbstractSingleWrapperState
 
         // Can not check transition in environment by apply, because it can be removed due to
         // coverage
-        if (this.appliedTo != null || pChild.appliedFrom != null) {
-          // Projection
-          return Collections
-              .singletonList(
-                  new BlankEdge(
-                      "projection",
-                      FileLocation.DUMMY,
-                      currentLoc,
-                      childLoc,
-                      "projection"));
+
+        if (this.appliedTo != null && this.appliedTo.contains(pChild)) {
+          return Collections.singletonList(
+              new BlankEdge("application", FileLocation.DUMMY, currentLoc, childLoc, "appliction"));
         } else if (this.appliedFrom != null) {
           // Return origin edge
           ARGState projection = this.appliedFrom.getSecond();
@@ -250,7 +245,23 @@ public class ARGState extends AbstractSingleWrapperState
                   .extractStateByType(edgePart, AbstractStateWithLocations.class))
                       .getAbstractEdge();
           assert edge instanceof WrapperCFAEdge;
-          return Collections.singletonList(((WrapperCFAEdge) edge).getCFAEdge());
+          CFAEdge realEdge =  ((WrapperCFAEdge) edge).getCFAEdge();
+          // Need to replace locations for correct path
+          CFAEdge newEdge;
+          if (realEdge instanceof CStatementEdge) {
+            CStatementEdge oldStatement = (CStatementEdge) realEdge;
+            newEdge =
+                new CStatementEdge(
+                    oldStatement.getRawStatement(),
+                    oldStatement.getStatement(),
+                    oldStatement.getFileLocation(),
+                    currentLoc,
+                    childLoc);
+          } else {
+            throw new UnsupportedOperationException(
+                "Edge is not supported: " + realEdge.getClass());
+          }
+          return Collections.singletonList(newEdge);
         }
       }
       return allEdges;
@@ -261,7 +272,7 @@ public class ARGState extends AbstractSingleWrapperState
 
   public Set<ARGState> getSubgraph() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    return Sets.newHashSet(Traverser.forGraph(ARGState::getChildren).breadthFirst(this));
+    return Sets.newHashSet(Traverser.forGraph(ARGState::getSuccessors).breadthFirst(this));
   }
 
   // coverage

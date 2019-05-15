@@ -66,8 +66,6 @@ public class ARGApplyOperator implements ApplyOperator {
     ARGState result = new ARGState(wrappedState, null);
     result.setProjectedFrom(parent);
     parent.setProjectedTo(result);
-    // Evil hack to restore path
-    result.addParent(parent);
     return result;
   }
 
@@ -85,8 +83,6 @@ public class ARGApplyOperator implements ApplyOperator {
     ARGState result = new ARGState(wrappedState, null);
     result.setProjectedFrom(parent);
     parent.setProjectedTo(result);
-    // Evil hack to restore path
-    result.addParent(parent);
     return result;
   }
 
