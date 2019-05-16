@@ -101,7 +101,7 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
     // Assert that atoms contains all of atom1-5
     // and another atom that is equivalent to atom1ineq
     assertThat(atoms).hasSize(6);
-    assertThat(atoms).containsAllIn(expected);
+    assertThat(atoms).containsAtLeastElementsIn(expected);
 
     atoms = Sets.difference(atoms, expected);
     BooleanFormula remainingAtom = Iterables.getOnlyElement(atoms);

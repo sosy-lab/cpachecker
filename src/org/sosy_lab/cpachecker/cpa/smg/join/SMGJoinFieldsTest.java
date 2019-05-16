@@ -191,7 +191,7 @@ public class SMGJoinFieldsTest {
 
     for (SMGEdgeHasValue hv : Sets.union(hvSet1, hvSet2)) { // just two edges in there
       assertThat(hv.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
-      assertThat(hv.getObject()).isSameAs(obj1);
+      assertThat(hv.getObject()).isSameInstanceAs(obj1);
       assertThat(hv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(32);
       assertThat(hv.getOffset()).isEqualTo(16);
       Assert.assertTrue(hv.isCompatibleField(nonPointer));
@@ -220,7 +220,7 @@ public class SMGJoinFieldsTest {
     assertThat(hvSet).hasSize(2);
     for (SMGEdgeHasValue hv : hvSet) {
       assertThat(hv.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
-      assertThat(hv.getObject()).isSameAs(obj1);
+      assertThat(hv.getObject()).isSameInstanceAs(obj1);
       assertThat(hv.getOffset()).isAnyOf(112L, 144L);
       if (hv.getOffset() == 112) {
         assertThat(hv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(16);
