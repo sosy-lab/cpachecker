@@ -25,11 +25,15 @@
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
          ReferenceEquality: TODO enable this and fix alarms
          EqualsGetClass: TODO enable this and fix alarms?
+         GuardedBy: crashes current error-prone
+         Finally: crashes current error-prone
          -->
     <property name="errorprone.options" value="
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
         -Xep:EqualsGetClass:OFF
+        -Xep:GuardedBy:OFF
+        -Xep:Finally:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>
