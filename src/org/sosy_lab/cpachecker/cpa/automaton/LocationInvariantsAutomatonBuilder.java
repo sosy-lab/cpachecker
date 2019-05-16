@@ -73,7 +73,6 @@ public class LocationInvariantsAutomatonBuilder {
             .stream()
             .filter(inv -> inv.getLocation().equals(pLocation))
             .collect(Collectors.toSet());
-    assert filteredInvariants.size() == 1;
     return filteredInvariants.iterator().next();
   }
 
