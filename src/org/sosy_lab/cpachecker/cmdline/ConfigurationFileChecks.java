@@ -115,6 +115,10 @@ public class ConfigurationFileChecks {
           ".*Skipping one analysis because the configuration file .* could not be read.*",
           Pattern.DOTALL);
 
+  private static final Pattern UNMAINTAINED_CPA_WARNING =
+      Pattern.compile(
+          "Using ConfigurableProgramAnalysis .*, which is unmaintained and may not work correctly\\.");
+
   private static final ImmutableSet<String> UNUSED_OPTIONS =
       ImmutableSet.of(
           // always set by this test
@@ -316,6 +320,14 @@ public class ConfigurationFileChecks {
     }
   }
 
+  private boolean isUnmaintainedConfig() {
+    if (!(configFile instanceof Path)) {
+      return false;
+    }
+    Path basePath = CONFIG_DIR.relativize((Path) configFile);
+    return basePath.getName(0).equals(Paths.get("unmaintained"));
+  }
+
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @BeforeClass
@@ -395,7 +407,7 @@ public class ConfigurationFileChecks {
   public void checkDefaultSpecification() throws InvalidConfigurationException {
     assume().that(configFile).isInstanceOf(Path.class);
     Iterable<Path> basePath = CONFIG_DIR.relativize((Path) configFile);
-    if (basePath.iterator().next().equals(Paths.get("unmaintained"))) {
+    if (isUnmaintainedConfig()) {
       basePath = Iterables.skip(basePath, 1);
     }
     assume().that(basePath).hasSize(1);
@@ -577,7 +589,7 @@ public class ConfigurationFileChecks {
     return TestDataTools.getEmptyProgram(tempFolder, pIsJava);
   }
 
-  private static Stream<String> getSevereMessages(OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {
+  private Stream<String> getSevereMessages(OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {
     // After one component of a parallel algorithm finishes successfully,
     // other components are interrupted, potentially causing warnings that can be ignored.
     // One such example is if another component uses a RestartAlgorithm that is interrupted
@@ -613,11 +625,16 @@ public class ConfigurationFileChecks {
       };
       logRecords = Streams.stream(logRecordIterator);
     }
-    return logRecords
+    Stream<String> result = logRecords
             .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
             .map(LogRecord::getMessage)
             .filter(s -> !INDICATES_MISSING_INPUT_FILE.matcher(s).matches())
             .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
+
+    if (isUnmaintainedConfig()) {
+      result = result.filter(s -> !UNMAINTAINED_CPA_WARNING.matcher(s).matches());
+    }
+    return result;
   }
 
   private static String formatLogRecords(Collection<? extends LogRecord> log) {
