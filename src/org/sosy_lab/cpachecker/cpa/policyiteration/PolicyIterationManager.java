@@ -160,7 +160,7 @@ public class PolicyIterationManager {
   private final ValueDeterminationManager vdfmgr;
   private final PolicyIterationStatistics statistics;
   private final FormulaLinearizationManager linearizationManager;
-  private final PolyhedraWideningManager pwm;
+  @Nullable private final PolyhedraWideningManager pwm;
   private final StateFormulaConversionManager stateFormulaConversionManager;
   private final RCNFManager rcnfManager;
   private final TemplatePrecision initialPrecision;
@@ -178,14 +178,12 @@ public class PolicyIterationManager {
       ValueDeterminationManager pValueDeterminationFormulaManager,
       PolicyIterationStatistics pStatistics,
       FormulaLinearizationManager pLinearizationManager,
-      PolyhedraWideningManager pPwm,
       StateFormulaConversionManager pStateFormulaConversionManager,
       TemplateToFormulaConversionManager pTemplateToFormulaConversionManager,
       TemplatePrecision pPrecision)
       throws InvalidConfigurationException {
     templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
     pConfig.inject(this, PolicyIterationManager.class);
-    pwm = pPwm;
     stateFormulaConversionManager = pStateFormulaConversionManager;
     fmgr = pFormulaManager;
     cfa = pCfa;
@@ -199,6 +197,9 @@ public class PolicyIterationManager {
     linearizationManager = pLinearizationManager;
     rcnfManager = new RCNFManager(pConfig);
     initialPrecision = pPrecision;
+
+    pwm =
+        generateTemplatesUsingConvexHull ? new PolyhedraWideningManager(statistics, logger) : null;
   }
 
   /**
