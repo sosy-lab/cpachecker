@@ -29,6 +29,9 @@ configuration-checks:jdk-11:
     - build-dependencies
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+  # Temporarily allow failures until the segmentation fault is fixed
+  # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
+  allow_failure: true
 
 configuration-checks:jdk-12:
   <<: *configuration-checks
@@ -36,6 +39,9 @@ configuration-checks:jdk-12:
     - build-dependencies
     - build:jdk-12
   image: ${CI_REGISTRY_IMAGE}/test:jdk-12
+  # Temporarily allow failures until the segmentation fault is fixed
+  # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
+  allow_failure: true
 
 
 configuration-documentation:
