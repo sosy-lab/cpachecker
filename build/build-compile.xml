@@ -58,6 +58,7 @@
             <compilerarg value="-Xlint:-fallthrough"/> <!-- checked by error-prone, too, and javac does not recognized $FALL-THROUGH$ -->
             <compilerarg value="-Xlint:-processing"/>
             <compilerarg value="-Xlint:-options"/> <!-- suppress warning about bootclasspath on newer JDK -->
+            <compilerarg value="-Werror"/>
             <compilerarg value="-XDcompilePolicy=simple"/> <!-- necessary for error-prone -->
             <compilerarg value="-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode ${errorprone.options}" unless:set="errorprone.disable"/>
             <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
@@ -66,7 +67,7 @@
     </target>
 
     <path id="ecj">
-        <fileset dir="${ivy.lib.dir}/build" includes="ecj.jar guava.jar auto-common.jar auto-service.jar"/>
+        <fileset dir="${ivy.lib.dir}/build" includes="ecj.jar"/>
     </path>
 
     <target name="build-project-ecj" depends="build-dependencies" description="Build project with the Eclipse JDT compiler">
