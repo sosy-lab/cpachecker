@@ -19,7 +19,7 @@
  */
 package org.sosy_lab.cpachecker.util.test;
 
-import static org.junit.Assert.assertNotNull;
+import static com.google.common.truth.Truth.assert_;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -71,7 +71,11 @@ public abstract class AbstractARGTranslationTest {
   protected static ARGState run(Configuration config, Path program) throws Exception {
     TestResults results = run0(config, program);
     UnmodifiableReachedSet reached = results.getCheckerResult().getReached();
-    assertNotNull(reached.getFirstState());
+    assert_()
+        .withMessage("reached set: %s\nlog: %s", reached, results.getLog())
+        .that(reached.getFirstState())
+        .named("first state of reached set")
+        .isNotNull();
     return (ARGState) reached.getFirstState();
   }
 
