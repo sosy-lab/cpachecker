@@ -96,8 +96,7 @@ public class LocationStateWithEdge extends LocationState implements AbstractStat
 
   @Override
   public Object getPartitionKey() {
-    if (edge == EmptyEdge.getInstance()) {
-      // Transition in environment
+    if (edge == EmptyEdge.getInstance() || edge == AnyCFAEdge.getInstance()) {
       return edge;
     } else {
       return super.getPartitionKey();

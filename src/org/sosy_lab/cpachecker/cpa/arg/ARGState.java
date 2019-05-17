@@ -360,8 +360,10 @@ public class ARGState extends AbstractSingleWrapperState
 
   void setProjectedTo(ARGState pState) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    assert projectedTo == null : "Second projected of element "
-        + this;
+    if (projectedTo != null) {
+      // Means we reexplore the state due to refinement,
+      // Moreover, the projection can be different from previous one sue to precision.
+    }
 
     projectedTo = pState;
   }
