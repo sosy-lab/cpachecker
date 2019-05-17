@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.TrivialApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
@@ -254,7 +255,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA
 
   @Override
   public ApplyOperator getApplyOperator() {
-    return new ARGApplyOperator(
-        ((ConfigurableProgramAnalysisTM) getWrappedCpa()).getApplyOperator());
+    ConfigurableProgramAnalysis cpa = getWrappedCpa();
+    if (cpa instanceof ConfigurableProgramAnalysisTM) {
+      return new ARGApplyOperator(
+        ((ConfigurableProgramAnalysisTM) cpa).getApplyOperator());
+    } else {
+      return TrivialApplyOperator.getInstance();
+    }
   }
 }

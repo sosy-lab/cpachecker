@@ -33,21 +33,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 
 
 class PredicateStopOperator extends StopSepOperator implements ForcedCoveringStopOperator {
 
-  private final BooleanFormulaManagerView mngr;
-  private final PredicateAbstractionManager amngr;
-
   PredicateStopOperator(
-      AbstractDomain pD,
-      BooleanFormulaManagerView pMngr,
-      PredicateAbstractionManager pAbstractionManager) {
+      AbstractDomain pD) {
     super(pD);
-    mngr = pMngr;
-    amngr = pAbstractionManager;
   }
 
   @Override

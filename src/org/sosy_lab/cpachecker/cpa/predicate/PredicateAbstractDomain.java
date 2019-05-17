@@ -94,7 +94,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
             PredicateAbstractEdge pEdge1 = (PredicateAbstractEdge) edge1;
             PredicateAbstractEdge pEdge2 = (PredicateAbstractEdge) edge2;
 
-            if (pEdge1.getAssignments().containsAll(pEdge1.getAssignments())) {
+            if (pEdge1.getAssignments().containsAll(pEdge2.getAssignments())) {
               return true;
             }
             return false;

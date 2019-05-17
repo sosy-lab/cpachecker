@@ -773,6 +773,11 @@ public class ARGState extends AbstractSingleWrapperState
 
   @Override
   public boolean isProjection() {
-    return ((AbstractStateWithEdge) getWrappedState()).isProjection();
+    AbstractState wrapped = getWrappedState();
+    if (wrapped instanceof AbstractStateWithEdge) {
+      return ((AbstractStateWithEdge) wrapped).isProjection();
+    } else {
+      return false;
+    }
   }
 }

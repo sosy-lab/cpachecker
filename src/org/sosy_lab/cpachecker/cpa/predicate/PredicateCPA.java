@@ -262,9 +262,7 @@ public class PredicateCPA
     switch (stopType) {
       case "SEP":
         return new PredicateStopOperator(
-            getAbstractDomain(),
-            solver.getFormulaManager().getBooleanFormulaManager(),
-            predicateManager);
+            getAbstractDomain());
       case "SEPPCC":
         return new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
       default:

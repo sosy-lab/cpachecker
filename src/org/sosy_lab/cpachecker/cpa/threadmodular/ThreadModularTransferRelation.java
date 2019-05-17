@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
@@ -44,20 +43,17 @@ public class ThreadModularTransferRelation implements TransferRelation {
 
   private final TransferRelation wrappedTransfer;
   private final ThreadModularStatistics stats;
-  private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final ApplyOperator applyOperator;
 
   public ThreadModularTransferRelation(
       TransferRelation pTransferRelation,
       ThreadModularStatistics pStats,
-      LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       ApplyOperator pApplyOperator) {
 
     wrappedTransfer = pTransferRelation;
     stats = pStats;
-    logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     applyOperator = pApplyOperator;
   }
@@ -97,6 +93,8 @@ public class ThreadModularTransferRelation implements TransferRelation {
     Collection<? extends AbstractState> successors =
         wrappedTransfer.getAbstractSuccessors(pState, pReached, pPrecision);
     stats.wrappedTransfer.stop();
+
+    shutdownNotifier.shutdownIfNecessary();
 
     if (!successors.isEmpty()) {
       for (int i = 0; i < successors.size(); i++) {

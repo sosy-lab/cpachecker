@@ -22,7 +22,6 @@ package org.sosy_lab.cpachecker.cpa.threadmodular;
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
@@ -39,7 +38,6 @@ public class ThreadModularCPA extends AbstractSingleWrapperCPA
     return AutomaticCPAFactory.forType(ThreadModularCPA.class);
   }
 
-  protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
   protected final ThreadModularTransferRelation transfer;
   protected final ApplyOperator applyOperator;
@@ -48,7 +46,6 @@ public class ThreadModularCPA extends AbstractSingleWrapperCPA
   public ThreadModularCPA(
       ConfigurableProgramAnalysis pCpa,
       // Configuration pConfig,
-      LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     super(pCpa);
@@ -59,7 +56,6 @@ public class ThreadModularCPA extends AbstractSingleWrapperCPA
     }
     // pConfig.inject(this, ThreadModularCPA.class);
 
-    logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
     stats = new ThreadModularStatistics();
@@ -68,7 +64,6 @@ public class ThreadModularCPA extends AbstractSingleWrapperCPA
         new ThreadModularTransferRelation(
             pCpa.getTransferRelation(),
             stats,
-            pLogger,
             pShutdownNotifier,
             applyOperator);
 

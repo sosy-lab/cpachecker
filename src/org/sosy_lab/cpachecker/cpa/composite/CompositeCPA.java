@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.TrivialApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
@@ -362,11 +363,11 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA,
   public ApplyOperator getApplyOperator() {
     ImmutableList.Builder<ApplyOperator> wrappedOperators = ImmutableList.builder();
     for (ConfigurableProgramAnalysis cpa : cpas) {
-      Preconditions.checkState(
-          cpa instanceof ConfigurableProgramAnalysisTM,
-          "wrapped CPA does not support Thread modular approach: "
-              + cpa.getClass().getCanonicalName());
-      wrappedOperators.add(((ConfigurableProgramAnalysisTM) cpa).getApplyOperator());
+      if (cpa instanceof ConfigurableProgramAnalysisTM) {
+        wrappedOperators.add(((ConfigurableProgramAnalysisTM) cpa).getApplyOperator());
+      } else {
+        wrappedOperators.add(TrivialApplyOperator.getInstance());
+      }
     }
     return new CompositeApplyOperator(wrappedOperators.build());
   }
