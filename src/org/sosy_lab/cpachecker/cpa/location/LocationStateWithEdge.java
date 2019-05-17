@@ -32,24 +32,42 @@ public class LocationStateWithEdge extends LocationState implements AbstractStat
   private static final long serialVersionUID = 2798558767388783223L;
 
   private AbstractEdge edge;
+  private final boolean appliedState;
+
+  private LocationStateWithEdge(
+      CFANode pLocationNode,
+      boolean pFollowFunctionCalls,
+      AbstractEdge pEdge,
+      boolean pApplied) {
+    super(pLocationNode, pFollowFunctionCalls);
+    edge = pEdge;
+    appliedState = pApplied;
+  }
 
   public LocationStateWithEdge(
       CFANode pLocationNode,
       boolean pFollowFunctionCalls,
       AbstractEdge pEdge) {
-    super(pLocationNode, pFollowFunctionCalls);
-    edge = pEdge;
+    this(pLocationNode, pFollowFunctionCalls, pEdge, false);
   }
 
   static class BackwardsLocationStateWithEdge extends LocationStateWithEdge {
 
     private static final long serialVersionUID = 6825257572921009531L;
 
-    BackwardsLocationStateWithEdge(
+    private BackwardsLocationStateWithEdge(
         CFANode locationNode,
         boolean pFollowFunctionCalls,
+        AbstractEdge pEdge,
+        boolean pApplied) {
+      super(locationNode, pFollowFunctionCalls, pEdge, pApplied);
+    }
+
+    public BackwardsLocationStateWithEdge(
+        CFANode pLocationNode,
+        boolean pFollowFunctionCalls,
         AbstractEdge pEdge) {
-      super(locationNode, pFollowFunctionCalls, pEdge);
+      this(pLocationNode, pFollowFunctionCalls, pEdge, false);
     }
 
     @Override
@@ -91,12 +109,24 @@ public class LocationStateWithEdge extends LocationState implements AbstractStat
   }
 
   public LocationStateWithEdge updateEdge(AbstractEdge pEdge) {
-    return new LocationStateWithEdge(locationNode, this.followFunctionCalls, pEdge);
+    return new LocationStateWithEdge(
+        locationNode,
+        this.followFunctionCalls,
+        pEdge,
+        this.appliedState);
+  }
+
+  public LocationStateWithEdge asAppliedState() {
+    return new LocationStateWithEdge(
+        locationNode,
+        this.followFunctionCalls,
+        EmptyEdge.getInstance(),
+        true);
   }
 
   @Override
   public Object getPartitionKey() {
-    if (edge == EmptyEdge.getInstance() || edge == AnyCFAEdge.getInstance()) {
+    if (appliedState || edge == AnyCFAEdge.getInstance()) {
       return edge;
     } else {
       return super.getPartitionKey();
@@ -111,5 +141,9 @@ public class LocationStateWithEdge extends LocationState implements AbstractStat
   @Override
   public boolean isProjection() {
     return edge == AnyCFAEdge.getInstance();
+  }
+
+  public boolean isAppliedState() {
+    return appliedState;
   }
 }

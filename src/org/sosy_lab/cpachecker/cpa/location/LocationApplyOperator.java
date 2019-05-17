@@ -20,7 +20,6 @@
 package org.sosy_lab.cpachecker.cpa.location;
 
 import org.sosy_lab.cpachecker.core.defaults.AnyCFAEdge;
-import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -36,11 +35,10 @@ public class LocationApplyOperator implements ApplyOperator {
     if (state2.getAbstractEdge() instanceof WrapperCFAEdge) {
       // Ordinary transition
       return null;
-    } else if (state2.getAbstractEdge() == EmptyEdge.getInstance()) {
-      // Already applied transition
+    } else if (state2.isAppliedState()) {
       return null;
     } else {
-      return state1.updateEdge(EmptyEdge.getInstance());
+      return state1.asAppliedState();
     }
   }
 
