@@ -30,6 +30,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
+import org.sosy_lab.cpachecker.core.defaults.NoEdge;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -83,9 +84,12 @@ public class LocationTransferRelation implements TransferRelation {
         AbstractEdge edge = ((AbstractStateWithEdge) element).getAbstractEdge();
         if (edge instanceof WrapperCFAEdge) {
           return getAbstractSuccessorsForEdge(element, prec, ((WrapperCFAEdge) edge).getCFAEdge());
-        } else if (edge instanceof EmptyEdge) {
+        } else if (edge == EmptyEdge.getInstance()) {
           // Again return all next edges
           return factory.getState(((LocationState) element).locationNode);
+        } else if (edge == NoEdge.getInstance()) {
+          // Again return all next edges
+          return Collections.emptySet();
         } else {
           throw new UnsupportedOperationException(
               edge.getClass() + " edges are not supported in LocationCPA");

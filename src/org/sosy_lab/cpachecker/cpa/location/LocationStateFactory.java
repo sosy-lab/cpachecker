@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
+import org.sosy_lab.cpachecker.core.defaults.NoEdge;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.BackwardsLocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateWithEdge.BackwardsLocationStateWithEdge;
@@ -130,7 +130,7 @@ public class LocationStateFactory {
       }
       if (result.size() == 0) {
         result.add(
-            new BackwardsLocationStateWithEdge(node, followFunctionCalls, EmptyEdge.getInstance()));
+            new BackwardsLocationStateWithEdge(node, followFunctionCalls, NoEdge.getInstance()));
       }
     } else {
       result = new ArrayList<>(node.getNumLeavingEdges());
@@ -143,7 +143,7 @@ public class LocationStateFactory {
                 new WrapperCFAEdge(edge)));
       }
       if (result.size() == 0) {
-        result.add(new LocationStateWithEdge(node, followFunctionCalls, EmptyEdge.getInstance()));
+        result.add(new LocationStateWithEdge(node, followFunctionCalls, NoEdge.getInstance()));
       }
 
     }

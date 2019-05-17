@@ -21,6 +21,7 @@ package org.sosy_lab.cpachecker.core.waitlist;
 
 import org.sosy_lab.cpachecker.core.defaults.AnyCFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
+import org.sosy_lab.cpachecker.core.defaults.NoEdge;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -40,7 +41,9 @@ public class ThreadModularSortedWaitlist extends AbstractSortedWaitlist<Integer>
         AbstractStates.extractStateByType(pState, AbstractStateWithLocations.class);
     if (loc instanceof AbstractStateWithEdge) {
       AbstractEdge edge = ((AbstractStateWithEdge) loc).getAbstractEdge();
-      if (edge instanceof WrapperCFAEdge || edge == AnyCFAEdge.getInstance()) {
+      if (edge instanceof WrapperCFAEdge
+          || edge == AnyCFAEdge.getInstance()
+          || edge == NoEdge.getInstance()) {
         // Thread transition or projection, do not delay them as they are empty
         return 0;
       } else if (edge == EmptyEdge.getInstance()) {
