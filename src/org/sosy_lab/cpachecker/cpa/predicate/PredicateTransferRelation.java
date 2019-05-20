@@ -631,7 +631,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
                 .mkNonAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
         return Collections.singleton(newState);
       } else {
-        return Collections.emptySet();
+        return Collections.singleton(pElement);
       }
     } else {
       throw new CPATransferException("Unsupported edge: " + edge.getClass());

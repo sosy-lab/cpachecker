@@ -163,7 +163,14 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     for (List<AbstractState> successor : createCartesianProduct(
         allComponentsSuccessors,
         resultCount)) {
-      pResults.add(new CompositeState(successor));
+
+      Collection<List<AbstractState>> lResultingElements =
+          callStrengthen(successor, pCompositePrecision, null);
+
+      // finally, create a CompositeState for each result of strengthen
+      for (List<AbstractState> lList : lResultingElements) {
+        pResults.add(new CompositeState(lList));
+      }
     }
   }
 
@@ -196,8 +203,9 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       allComponentsSuccessors.add(componentSuccessors);
     }
 
-    for (List<AbstractState> successor :
-        createCartesianProduct(allComponentsSuccessors, resultCount)) {
+    for (List<AbstractState> successor : createCartesianProduct(
+        allComponentsSuccessors,
+        resultCount)) {
       compositeSuccessors.add(new CompositeState(successor));
     }
   }
