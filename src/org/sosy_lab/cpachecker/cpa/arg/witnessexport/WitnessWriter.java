@@ -185,8 +185,7 @@ class WitnessWriter implements EdgeAppender {
         @Override
         public CFAEdgeWithAssumptions apply(CFAEdgeWithAssumptions pEdgeWithAssumptions) {
           int originalSize = pEdgeWithAssumptions.getExpStmts().size();
-          List<AExpressionStatement> expressionStatements =
-              Lists.newArrayListWithCapacity(originalSize);
+          List<AExpressionStatement> expressionStatements = new ArrayList<>(originalSize);
           for (AExpressionStatement expressionStatement : pEdgeWithAssumptions.getExpStmts()) {
             AExpression assumption = expressionStatement.getExpression();
             if (!(assumption instanceof CBinaryExpression)) {

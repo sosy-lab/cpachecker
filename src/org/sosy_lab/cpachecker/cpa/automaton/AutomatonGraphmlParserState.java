@@ -27,7 +27,6 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayDeque;
@@ -460,7 +459,7 @@ public class AutomatonGraphmlParserState {
       occupiedFunctions.put(pThread, pFunctionInstance);
       return true;
     }
-    Collection<FunctionInstance> copies = Lists.newArrayListWithCapacity(5);
+    Collection<FunctionInstance> copies = new ArrayList<>(5);
     boolean desiredInstanceAvailable = false;
     for (String originalName : functionCopies.keySet()) {
       FunctionInstance copy = new FunctionInstance(originalName, pFunctionInstance.cloneNumber);

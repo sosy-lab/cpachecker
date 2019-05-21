@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -104,18 +103,13 @@ public class DomainSpecificAbstraction<T> {
 
     ProverEnvironment prover = mySolver
         .newProverEnvironment(ProverOptions.GENERATE_MODELS);
-    List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(oldFormulas.size()
-        - 1);
+    List<BooleanFormula> interpolants = new ArrayList<>(oldFormulas.size() - 1);
     for (int it = 0; it < oldFormulas.size() - 1; it = it + 1) {
       BooleanFormula oldInterpolant;
-      formulas = Lists.newArrayListWithExpectedSize(oldFormulas.size
-          ());
-      final List<Set<String>> variablesInFormulas =
-          Lists.newArrayListWithExpectedSize(formulas.size());
+      formulas = new ArrayList<>(oldFormulas.size());
+      final List<Set<String>> variablesInFormulas = new ArrayList<>(formulas.size());
 
-      final List<Map<String, Formula>> variableTypes =
-          Lists.newArrayListWithExpectedSize(oldFormulas.size()
-              - 1);
+      final List<Map<String, Formula>> variableTypes = new ArrayList<>(oldFormulas.size() - 1);
       initialVariableExtractionTimer.start();
       try {
         if (it == 0) {
@@ -137,8 +131,7 @@ public class DomainSpecificAbstraction<T> {
       } finally {
         initialVariableExtractionTimer.stop();
       }
-      List<List<Formula>> frontierList = Lists.newArrayListWithExpectedSize(formulas.size
-          ());
+      List<List<Formula>> frontierList = new ArrayList<>(formulas.size());
       Set<String> variables1 = new HashSet<>();
       Set<String> variables2 = new HashSet<>();
       findingCommonVariablesTimer.start();
@@ -194,12 +187,9 @@ public class DomainSpecificAbstraction<T> {
       }
       String[] latticeNames = new String[arrayVariablesThatAreUsedInBothParts.length];
       List<BooleanFormula> relationAbstraction1Formula =
-          Lists.newArrayListWithExpectedSize(variablesThatAreUsedInBothParts
-              .size());
+          new ArrayList<>(variablesThatAreUsedInBothParts.size());
       List<BooleanFormula> relationAbstraction2Formula =
-          Lists.newArrayListWithExpectedSize(variablesThatAreUsedInBothParts
-              .size());
-
+          new ArrayList<>(variablesThatAreUsedInBothParts.size());
 
       String[] relationAbstraction1 = new String[variablesThatAreUsedInBothParts.size()];
       String[] relationAbstraction2 = new String[variablesThatAreUsedInBothParts.size()];
@@ -1758,10 +1748,8 @@ public class DomainSpecificAbstraction<T> {
         firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
         scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
       }
-      List<BooleanFormula> changedFomulasRest1 =
-          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-      List<BooleanFormula> changedFomulasRest2 =
-          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+      List<BooleanFormula> changedFomulasRest1 = new ArrayList<>(formulas.size() - 1);
+      List<BooleanFormula> changedFomulasRest2 = new ArrayList<>(formulas.size() - 1);
 
       BooleanFormula helperFormula1;
       BooleanFormula helperFormula2;
@@ -1822,8 +1810,7 @@ public class DomainSpecificAbstraction<T> {
 
           if (!latticenamesH.isEmpty()) {
           BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
-          List<BooleanFormula> toCheckFormulaList =
-              Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+            List<BooleanFormula> toCheckFormulaList = new ArrayList<>(formulas.size() - 1);
           for (BooleanFormula f : changedFomulasRest1) {
             toCheckFormulaList.add(f);
           }
@@ -1840,9 +1827,8 @@ public class DomainSpecificAbstraction<T> {
             feasibilityCheckTimer.stop();
           }
           if (abstractionFeasible) {
-           // logger.log(Level.INFO, toCheckFormulaBlocked.toString() + " is feasible");
-            List<List<Formula>> frontierListCopy = Lists
-                .newArrayListWithExpectedSize(oldFormulas.size() - 1);
+              // logger.log(Level.INFO, toCheckFormulaBlocked.toString() + " is feasible");
+              List<List<Formula>> frontierListCopy = new ArrayList<>(oldFormulas.size() - 1);
             for ( List<Formula> s : frontierList) {
               frontierListCopy.add(s);
             }
@@ -2002,10 +1988,7 @@ public class DomainSpecificAbstraction<T> {
     Boolean isFeasible = true;
     BooleanFormula helperFormula1;
     BooleanFormula helperFormula2;
-     List<Formula> maximumFeasibleAbstraction = Lists
-        .newArrayListWithExpectedSize
-            (formulas
-                .size() - 1);
+    List<Formula> maximumFeasibleAbstraction = new ArrayList<>(formulas.size() - 1);
 
     for (int i = 0; i < latticeNames.length; i++) {
          if (!latticenamesH.contains
@@ -2038,8 +2021,7 @@ public class DomainSpecificAbstraction<T> {
           }
         }
         BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
-        List<BooleanFormula> toCheckFormulaList =
-            Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+        List<BooleanFormula> toCheckFormulaList = new ArrayList<>(formulas.size() - 1);
         toCheckFormulaList.add(toCheckFormula);
         BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
         isFeasible = prove(toCheckFormulaBlocked, prover);
@@ -2058,8 +2040,7 @@ public class DomainSpecificAbstraction<T> {
     }
 
     if (middleElement[0] == null){
-      List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
-          - 1);
+      List<FormulaType> formulaTypes = new ArrayList<>(latticeNamesTypes.size() - 1);
       Iterable<String> splitOperator = Splitter.on(" ,").split(latticenamesH);
       for (String s : splitOperator) {
         for (int i = 0; i < latticeNames.length; i++) {
@@ -2109,15 +2090,12 @@ public class DomainSpecificAbstraction<T> {
         }
       }
       BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
-      List<BooleanFormula> toCheckFormulaList =
-          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+      List<BooleanFormula> toCheckFormulaList = new ArrayList<>(formulas.size() - 1);
       toCheckFormulaList.add(toCheckFormula);
       BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
       middleElemFeasible = prove(toCheckFormulaBlocked, prover);
       if (middleElemFeasible) {
-        List<FormulaType> formulaTypes2 = Lists.newArrayListWithExpectedSize(latticeNamesTypes
-            .size()
-            - 1);
+        List<FormulaType> formulaTypes2 = new ArrayList<>(latticeNamesTypes.size() - 1);
         Iterable<String> splitOperator2 = Splitter.on(" ,").split(middleElement[counter/2]);
         for (String s : splitOperator2) {
           for (int i = 0; i < latticeNames.length; i++) {
@@ -2131,8 +2109,7 @@ public class DomainSpecificAbstraction<T> {
                 formulaTypes2);
 
       } else {
-        List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
-            - 1);
+        List<FormulaType> formulaTypes = new ArrayList<>(latticeNamesTypes.size() - 1);
         Iterable<String> splitOperator3 = Splitter.on(" ,").split(latticenamesH);
         for (String s : splitOperator3) {
           for (int i = 0; i < latticeNames.length; i++) {
@@ -2153,7 +2130,7 @@ public class DomainSpecificAbstraction<T> {
   private List<Formula> StringtoIntegerFormulaList(String input, List<FormulaType>
       formulaTypes){
     Formula helperFormula1, helperFormula2, helperFormula3;
-    List<Formula> maximumFeasibleAbstraction = Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+    List<Formula> maximumFeasibleAbstraction = new ArrayList<>(formulas.size() - 1);
 
     if (input.equals("root")){
       return Collections.emptyList();
@@ -2192,8 +2169,7 @@ public class DomainSpecificAbstraction<T> {
       frontierListCopy,
                                      String
        latticenamesH, String[] latticeNames){
-    List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
-        - 1);
+    List<FormulaType> formulaTypes = new ArrayList<>(latticeNamesTypes.size() - 1);
     Iterable<String> splitOperator = Splitter.on(" ,").split(latticenamesH);
     for (String s : splitOperator) {
       for (int i = 0; i < latticeNames.length; i++) {
@@ -2205,8 +2181,7 @@ public class DomainSpecificAbstraction<T> {
 
     List<Formula> toCompareWith = StringtoIntegerFormulaList(latticenamesH,
          formulaTypes);
-    List<List<Formula>> compareList = Lists.newArrayListWithExpectedSize(formulas.size() -
-        1);
+    List<List<Formula>> compareList = new ArrayList<>(formulas.size() - 1);
     Boolean isIncomparable = false;
     Boolean comparable = false;
     while (frontierListCopy.size() != 0) {

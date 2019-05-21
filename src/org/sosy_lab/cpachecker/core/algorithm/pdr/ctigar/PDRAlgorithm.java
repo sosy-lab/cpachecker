@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -443,7 +442,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
     logger.log(Level.INFO, "Error found, creating error path");
 
-    List<ARGPath> paths = Lists.newArrayListWithCapacity(pBlocks.size());
+    List<ARGPath> paths = new ArrayList<>(pBlocks.size());
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       for (BlockWithConcreteState blockWithConcreteState : pBlocks) {
         Block block = blockWithConcreteState.block;

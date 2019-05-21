@@ -1819,8 +1819,7 @@ class ASTConverter {
       // and apply them after we have reached the inner-most declarator.
 
       // Collection of all modifiers (outermost modifier is first).
-      List<IASTNode> modifiers = Lists.newArrayListWithExpectedSize(1);
-
+      List<IASTNode> modifiers = new ArrayList<>(1);
 
       IASTInitializer initializer = null;
       String name = null;
@@ -1880,9 +1879,9 @@ class ASTConverter {
 
       // Add the modifiers to the type.
       CType type = specifier;
-      //array modifiers have to be added backwards, otherwise the arraysize is wrong
+      // array modifiers have to be added backwards, otherwise the arraysize is wrong
       // with multidimensional arrays
-      List<IASTArrayModifier> tmpArrMod = Lists.newArrayListWithExpectedSize(1);
+      List<IASTArrayModifier> tmpArrMod = new ArrayList<>();
       for (IASTNode modifier : modifiers) {
         if (modifier instanceof IASTArrayModifier) {
           tmpArrMod.add((IASTArrayModifier) modifier);
