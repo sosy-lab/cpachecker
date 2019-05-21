@@ -459,7 +459,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
             //     \-->3
             // if 1~>3 is infeasible, but 1~>2 is not, we cannot remove A, so we need to cut A->3:
             for (ARGState s :
-                Sets.intersection(Sets.newHashSet(key.getParents()), Sets.newHashSet(segment))) {
+                Sets.intersection(new HashSet<>(key.getParents()), new HashSet<>(segment))) {
               key.removeParent(s); // this is the cut of A->3 in the example of the comment above
             }
           }

@@ -26,13 +26,13 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -128,7 +128,8 @@ public class BDDPartitionOrderer {
       addToPartitions(p, partitions);
     }
 
-    List<Partition> orderedPartitions = Lists.newLinkedList(partitions);
+    @SuppressWarnings("JdkObsolete") // TODO consider replacing this with ArrayList or ArrayDeque
+    List<Partition> orderedPartitions = new LinkedList<>(partitions);
 
     // add partitions, that are not dependent, in front of all other partitions
     for (Partition p : varClass.getPartitions()) {

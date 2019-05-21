@@ -727,7 +727,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
    */
   private static Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
     final Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
-    Set<CFANode> visited = Sets.newHashSet(pTargetLocations);
+    Set<CFANode> visited = new HashSet<>(pTargetLocations);
     Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();

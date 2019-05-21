@@ -239,8 +239,8 @@ public final class PointerTargetSet implements Serializable {
     private SerializationProxy(PointerTargetSet pts) {
       bases = pts.bases;
       fields = pts.fields;
-      this.deferredAllocations = Lists.newArrayList(pts.deferredAllocations);
-      this.targets = new HashMap<>(Maps.transformValues(pts.targets, Lists::newArrayList));
+      this.deferredAllocations = new ArrayList<>(pts.deferredAllocations);
+      this.targets = new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       highestAllocatedAddresses =
           new ArrayList<>(

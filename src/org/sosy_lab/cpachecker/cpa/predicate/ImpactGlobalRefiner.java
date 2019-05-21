@@ -342,7 +342,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
     pathsRefined++;
     totalPathLengthToInfeasibility += itpStack.size();
 
-    itpStack = Lists.newArrayList(itpStack); // copy because we will modify it
+    itpStack = new ArrayList<>(itpStack); // copy because we will modify it
     List<ARGState> affectedStates = new ArrayList<>();
 
     // going upwards from unreachableState refining states with interpolants

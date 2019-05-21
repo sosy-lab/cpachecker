@@ -385,7 +385,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
       return falseAssumptionStates;
     } else {
-      falseAssumptionStates = Sets.newHashSet(pReached.getWaitlist());
+      falseAssumptionStates = new HashSet<>(pReached.getWaitlist());
     }
     return falseAssumptionStates;
   }

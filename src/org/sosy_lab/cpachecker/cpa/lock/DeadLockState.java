@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -83,9 +82,10 @@ public class DeadLockState extends AbstractLockState {
   public class DeadLockStateBuilder extends AbstractLockStateBuilder {
     private List<LockIdentifier> mutableLockList;
 
+    @SuppressWarnings("JdkObsolete") // TODO consider replacing this with ArrayList or ArrayDeque
     public DeadLockStateBuilder(DeadLockState state) {
       super(state);
-      mutableLockList = Lists.newLinkedList(state.lockList);
+      mutableLockList = new LinkedList<>(state.lockList);
     }
 
     @Override
@@ -225,9 +225,10 @@ public class DeadLockState extends AbstractLockState {
     lockList = new LinkedList<>();
   }
 
+  @SuppressWarnings("JdkObsolete") // TODO consider replacing this with ArrayList or ArrayDeque
   protected DeadLockState(List<LockIdentifier> gLocks, DeadLockState state) {
     super(state);
-    this.lockList = Lists.newLinkedList(gLocks);
+    this.lockList = new LinkedList<>(gLocks);
   }
 
   @Override

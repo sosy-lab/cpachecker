@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.lock;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
@@ -103,7 +102,7 @@ public class LockState extends AbstractLockState {
 
     public LockStateBuilder(LockState state) {
       super(state);
-      mutableLocks = Maps.newTreeMap(state.locks);
+      mutableLocks = new TreeMap<>(state.locks);
     }
 
     @Override
@@ -274,7 +273,7 @@ public class LockState extends AbstractLockState {
 
   protected LockState(SortedMap<LockIdentifier, Integer> gLocks, LockState state) {
     super(state);
-    this.locks = Maps.newTreeMap(gLocks);
+    this.locks = new TreeMap<>(gLocks);
   }
 
   @Override

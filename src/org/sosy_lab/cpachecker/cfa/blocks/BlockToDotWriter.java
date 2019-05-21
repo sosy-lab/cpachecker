@@ -100,7 +100,7 @@ public class BlockToDotWriter {
   private Multimap<Block, Block> getHierarchy() {
 
     // sort blocks, largest blocks first
-    List<Block> sortedBlocks = Lists.newArrayList(blockPartitioning.getBlocks());
+    List<Block> sortedBlocks = new ArrayList<>(blockPartitioning.getBlocks());
     Collections.sort(
         sortedBlocks,
         Comparator.<Block>comparingInt((block) -> block.getNodes().size()).reversed());

@@ -64,7 +64,7 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
       return this;
     }
 
-    Set<Wrapper<ASimpleDeclaration>> newState = Sets.newHashSet(deterministicVariables);
+    Set<Wrapper<ASimpleDeclaration>> newState = new HashSet<>(deterministicVariables);
     newState.add(pDeterministicVariable);
 
     return new DeterministicVariablesState(newState);
@@ -78,7 +78,7 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
       return this;
     }
 
-    Set<Wrapper<ASimpleDeclaration>> newState = Sets.newHashSet(deterministicVariables);
+    Set<Wrapper<ASimpleDeclaration>> newState = new HashSet<>(deterministicVariables);
     newState.addAll(pDeterministicVariables);
 
     return new DeterministicVariablesState(newState);
@@ -91,7 +91,7 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
       return this;
     }
 
-    Set<Wrapper<ASimpleDeclaration>> newState = Sets.newHashSet(deterministicVariables);
+    Set<Wrapper<ASimpleDeclaration>> newState = new HashSet<>(deterministicVariables);
     newState.remove(pNonDeterministicVariable);
 
     return new DeterministicVariablesState(newState);
@@ -100,7 +100,7 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
   DeterministicVariablesState removeDeterministicVariables(Collection<Wrapper<ASimpleDeclaration>> pNonDeterministicVariables) {
     checkNotNull(pNonDeterministicVariables);
 
-    Set<Wrapper<ASimpleDeclaration>> newState = Sets.newHashSet(deterministicVariables);
+    Set<Wrapper<ASimpleDeclaration>> newState = new HashSet<>(deterministicVariables);
     newState.removeAll(pNonDeterministicVariables);
 
     return new DeterministicVariablesState(newState);
