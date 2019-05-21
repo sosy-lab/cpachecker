@@ -78,6 +78,6 @@ public class ReducerExtractor extends AllTargetsExtractor {
           "Failed to build composite specification of condition and property specification. Continue with property specification only.");
       compositeSpec = pError;
     }
-    return getSlicingCriteria(pCfa, compositeSpec, shutdownNotifier, logger);
+    return super.getSlicingCriteria(pCfa, compositeSpec, shutdownNotifier, logger);
   }
 }
