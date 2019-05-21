@@ -695,6 +695,7 @@ public class ARGState extends AbstractSingleWrapperState
         }
         replacement.appliedTo.add(applied);
       }
+      appliedTo = null;
     }
 
     if (appliedFrom != null) {
@@ -705,14 +706,19 @@ public class ARGState extends AbstractSingleWrapperState
       second.appliedTo.remove(this);
       second.appliedTo.add(replacement);
       replacement.appliedFrom = Pair.of(first, second);
+      appliedFrom = null;
     }
 
     if (projectedFrom != null) {
+      this.projectedFrom.projectedTo = replacement;
       replacement.projectedFrom = this.projectedFrom;
+      this.projectedFrom = null;
     }
 
     if (projectedTo != null) {
+      this.projectedTo.projectedFrom = replacement;
       replacement.projectedTo = this.projectedTo;
+      this.projectedTo = null;
     }
 
     destroyed = true;

@@ -251,7 +251,11 @@ public class PredicateCPA
       case "SEP":
         return MergeSepOperator.getInstance();
       case "ABE":
-        return new PredicateMergeOperator(logger, pathFormulaManager, statistics);
+        return new PredicateMergeOperator(
+            logger,
+            solver.getFormulaManager().getBooleanFormulaManager(),
+            pathFormulaManager,
+            statistics);
       default:
         throw new InternalError("Update list of allowed merge operators");
     }

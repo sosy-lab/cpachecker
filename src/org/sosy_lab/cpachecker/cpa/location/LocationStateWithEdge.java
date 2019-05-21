@@ -19,6 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import java.util.Collections;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -32,6 +33,7 @@ public class LocationStateWithEdge extends LocationState implements AbstractStat
   private static final long serialVersionUID = 2798558767388783223L;
 
   private AbstractEdge edge;
+  private final static CFANode dummy = new CFANode("Projection");
 
   public LocationStateWithEdge(
       CFANode pLocationNode,
@@ -39,6 +41,31 @@ public class LocationStateWithEdge extends LocationState implements AbstractStat
       AbstractEdge pEdge) {
     super(pLocationNode, pFollowFunctionCalls);
     edge = pEdge;
+  }
+
+  static class ProjectedLocationStateWithEdge extends LocationStateWithEdge {
+
+    private static final long serialVersionUID = 6825257572921009531L;
+    private final static ProjectedLocationStateWithEdge instance =
+        new ProjectedLocationStateWithEdge();
+
+    private ProjectedLocationStateWithEdge() {
+      super(dummy, true, AnyCFAEdge.getInstance());
+    }
+
+    @Override
+    public Iterable<CFAEdge> getOutgoingEdges() {
+      return Collections.emptySet();
+    }
+
+    @Override
+    public Iterable<CFAEdge> getIngoingEdges() {
+      return Collections.emptySet();
+    }
+
+    public static ProjectedLocationStateWithEdge getInstance() {
+      return instance;
+    }
   }
 
   static class BackwardsLocationStateWithEdge extends LocationStateWithEdge {

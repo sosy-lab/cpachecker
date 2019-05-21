@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
+import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -38,6 +38,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 /**
  * Merge operator for symbolic predicate abstraction.
@@ -50,14 +52,21 @@ public class PredicateMergeOperator implements MergeOperator {
 
   private final LogManager logger;
   private final PathFormulaManager formulaManager;
+  private final BooleanFormulaManager mngr;
   private final PredicateStatistics statistics;
   private final TimerWrapper totalMergeTimer;
 
+  private final boolean abstractionLattice = false;
+
   public PredicateMergeOperator(
-      LogManager pLogger, PathFormulaManager pPfmgr, PredicateStatistics pStatistics) {
+      LogManager pLogger,
+      BooleanFormulaManager pMngr,
+      PathFormulaManager pPfmgr,
+      PredicateStatistics pStatistics) {
     logger = pLogger;
     formulaManager = pPfmgr;
     statistics = pStatistics;
+    mngr = pMngr;
     totalMergeTimer = statistics.totalMergeTime.getNewTimer();
   }
 
@@ -65,60 +74,81 @@ public class PredicateMergeOperator implements MergeOperator {
   public AbstractState merge(AbstractState element1,
                                AbstractState element2, Precision precision) throws InterruptedException {
 
-    PredicateAbstractState elem1 = (PredicateAbstractState)element1;
-    PredicateAbstractState elem2 = (PredicateAbstractState)element2;
+    if (element1 instanceof PredicateProjectedState) {
 
-    PredicateAbstractState merged = merge(elem1, elem2);
+      PredicateProjectedState e1 = (PredicateProjectedState) element1;
+      PredicateProjectedState e2 = (PredicateProjectedState) element2;
 
-    if (merged == elem2) {
-      // Independently from class
-      return elem2;
-    }
+      BooleanFormula abs1 = e1.getGuard();
+      BooleanFormula abs2 = e2.getGuard();
 
-    if (elem1.getClass() == elem2.getClass()) {
-      if (elem1 instanceof AbstractStateWithEdge && elem2 instanceof AbstractStateWithEdge) {
-        AbstractEdge edge1 = ((AbstractStateWithEdge) elem1).getAbstractEdge();
-        AbstractEdge edge2 = ((AbstractStateWithEdge) elem2).getAbstractEdge();
+      AbstractEdge newEdge;
+      BooleanFormula newAbs;
 
-        if (edge1 instanceof PredicateAbstractEdge && edge2 instanceof PredicateAbstractEdge) {
-          Collection<CAssignment> formulas1 = ((PredicateAbstractEdge) edge1).getAssignments();
-          Collection<CAssignment> formulas2 = ((PredicateAbstractEdge) edge2).getAssignments();
-
-          PredicateAbstractEdge newEdge;
-
-          if (formulas2.containsAll(formulas1)) {
-            newEdge = (PredicateAbstractEdge) edge2;
+      try {
+        totalMergeTimer.start();
+        if (abstractionLattice) {
+          if (!abs1.equals(abs2)) {
+            return e2;
           } else {
-            Collection<CAssignment> newFormulas = new HashSet<>();
-            newFormulas.addAll(formulas1);
-            newFormulas.addAll(formulas2);
-            newEdge = new PredicateAbstractEdge(newFormulas);
+            newAbs = abs2;
           }
-
-          return copyStateWithEdge(elem2, merged, newEdge);
-        } else if (edge1.equals(edge2)) {
-          return copyStateWithEdge(elem2, merged, edge2);
         } else {
-          return elem2;
+          if (mngr.isTrue(abs2)) {
+            newAbs = abs2;
+          } else if (mngr.isTrue(abs1)) {
+            newAbs = abs1;
+          } else {
+            newAbs = mngr.or(abs1, abs2);
+          }
+        }
+
+        AbstractEdge edge1 = e1.getAbstractEdge();
+        AbstractEdge edge2 = e2.getAbstractEdge();
+
+        assert edge1 instanceof PredicateAbstractEdge && edge2 instanceof PredicateAbstractEdge;
+
+        Collection<CAssignment> formulas1 = ((PredicateAbstractEdge) edge1).getAssignments();
+        Collection<CAssignment> formulas2 = ((PredicateAbstractEdge) edge2).getAssignments();
+
+        if (formulas2.containsAll(formulas1)) {
+          newEdge = edge2;
+        } else {
+          Collection<CAssignment> newFormulas = Sets.newHashSet(formulas1);
+          newFormulas.addAll(formulas2);
+          newEdge = new PredicateAbstractEdge(newFormulas);
+        }
+
+        if (newAbs == abs2 && newEdge == edge2) {
+          return e2;
+        } else {
+          return new PredicateProjectedState(newEdge, newAbs);
+        }
+      } finally {
+        totalMergeTimer.stop();
+      }
+
+    } else {
+
+      PredicateAbstractState elem1 = (PredicateAbstractState) element1;
+      PredicateAbstractState elem2 = (PredicateAbstractState) element2;
+
+      PredicateAbstractState merged = merge(elem1, elem2);
+
+      if (merged == elem2) {
+        // Independently from class
+        return elem2;
+      }
+
+      if (elem1.getClass() == elem2.getClass()) {
+        if (elem1 instanceof AbstractStateWithEdge || elem2 instanceof AbstractStateWithEdge) {
+          throw new UnsupportedOperationException("Should not be mergable");
+        } else {
+          return merged;
         }
       } else {
-        return merged;
+        return elem2;
       }
-    } else {
-      return elem2;
-    }
-  }
-
-  private PredicateAbstractState copyStateWithEdge(
-      PredicateAbstractState base,
-      PredicateAbstractState merged,
-      AbstractEdge edge) {
-    if (base instanceof PredicateNonAbstractionStateWithEdge) {
-      return new PredicateNonAbstractionStateWithEdge(merged, edge);
-    } else if (base instanceof PredicateAbstractionStateWithEdge) {
-      return new PredicateNonAbstractionStateWithEdge(merged, edge);
-    } else {
-      throw new UnsupportedOperationException("Unknown state with edge: " + base.getClass());
     }
   }
 

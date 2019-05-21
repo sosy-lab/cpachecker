@@ -55,7 +55,12 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
 public class ReachedSetFactory {
 
   private enum ReachedSetType {
-    NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE
+    NORMAL,
+    LOCATIONMAPPED,
+    PARTITIONED,
+    PSEUDOPARTITIONED,
+    USAGE,
+    THREADMODULAR
   }
 
   @Option(
@@ -279,6 +284,9 @@ public class ReachedSetFactory {
 
     ReachedSet reached;
     switch (reachedSet) {
+      case THREADMODULAR:
+        reached = new ThreadModularReachedSet(waitlistFactory);
+        break;
     case PARTITIONED:
         reached = new PartitionedReachedSet(waitlistFactory);
         break;

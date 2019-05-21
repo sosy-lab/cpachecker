@@ -19,12 +19,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import org.sosy_lab.cpachecker.core.defaults.AnyCFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateWithEdge.ProjectedLocationStateWithEdge;
 
 public class LocationApplyOperator implements ApplyOperator {
 
@@ -46,8 +46,7 @@ public class LocationApplyOperator implements ApplyOperator {
 
   @Override
   public AbstractState project(AbstractState pParent, AbstractState pChild) {
-    LocationStateWithEdge state1 = (LocationStateWithEdge) pParent;
-    return state1.updateEdge(AnyCFAEdge.getInstance());
+    return ProjectedLocationStateWithEdge.getInstance();
   }
 
   @Override
@@ -59,7 +58,7 @@ public class LocationApplyOperator implements ApplyOperator {
 
     // That is important to remove CFAEdge, to avoid considering it
     // Evil hack!
-    return state1.updateEdge(AnyCFAEdge.getInstance());
+    return ProjectedLocationStateWithEdge.getInstance();
   }
 
 }

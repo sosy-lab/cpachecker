@@ -36,7 +36,7 @@ public class CallstackApplyOperator implements ApplyOperator {
 
   @Override
   public AbstractState project(AbstractState pParent, AbstractState pChild) {
-    return new ProjectedCallstackState((CallstackState) pParent);
+    return ProjectedCallstackState.getInstance();
   }
 
   @Override

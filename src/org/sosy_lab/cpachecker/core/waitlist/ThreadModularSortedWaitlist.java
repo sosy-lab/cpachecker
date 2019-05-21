@@ -45,10 +45,10 @@ public class ThreadModularSortedWaitlist extends AbstractSortedWaitlist<Integer>
           || edge == AnyCFAEdge.getInstance()
           || edge == NoEdge.getInstance()) {
         // Thread transition or projection, do not delay them as they are empty
-        return 0;
+        return 1;
       } else if (edge == EmptyEdge.getInstance()) {
         // Environment transition
-        return 1;
+        return 0;
       } else {
         throw new UnsupportedOperationException("Unknown edge: " + edge.getClass());
       }

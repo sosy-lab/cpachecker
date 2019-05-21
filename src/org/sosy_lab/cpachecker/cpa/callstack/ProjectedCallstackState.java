@@ -22,13 +22,18 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 public class ProjectedCallstackState extends CallstackState {
   private static final long serialVersionUID = 3250857147115751058L;
 
-  public ProjectedCallstackState(
-      CallstackState pPreviousElement) {
-    super(pPreviousElement.getPreviousState(), pPreviousElement.getCurrentFunction(), pPreviousElement.getCallNode());
+  private final static ProjectedCallstackState instance = new ProjectedCallstackState();
+
+  private ProjectedCallstackState() {
+    super(null, null, null);
   }
 
   @Override
   public Object getPartitionKey() {
     return null;
+  }
+
+  public static ProjectedCallstackState getInstance() {
+    return instance;
   }
 }
