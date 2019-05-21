@@ -1867,7 +1867,7 @@ public class DomainSpecificAbstraction<T> {
      // logger.log(Level.INFO,  "Frontier List: " + frontierList.toString());
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
-      if (frontierList != null && (frontierList.size() >= 1)) {
+      if (frontierList.size() >= 1) {
         for (Formula y : frontierList.get(0)) {
           for (int k = 0; k < relationAbstraction1.length; k++) {
 
@@ -1938,12 +1938,7 @@ public class DomainSpecificAbstraction<T> {
       }
 
     }
-    if (interpolants != null && !interpolants.isEmpty()) {
-    //  logger.log(Level.INFO,  "Interpolants: " + interpolants.toString());
-      return interpolants;
-    } else {
-      return Collections.emptyList();
-    }
+    return interpolants;
   }
 
   @SuppressWarnings("rawtypes")
