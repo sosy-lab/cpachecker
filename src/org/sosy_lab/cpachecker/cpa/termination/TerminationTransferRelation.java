@@ -31,10 +31,10 @@ import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -120,7 +120,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
           "__VERIFIER_nondet_int",
           Collections.emptyList());
 
-  private Set<CFAEdge> createdCfaEdges = Sets.newLinkedHashSet();
+  private Set<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
 
   private final TerminationLoopInformation terminationInformation;
   private final LogManager logger;
@@ -308,7 +308,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     Collection<TerminationState> statesAtNode4 =
         getAbstractSuccessorsForEdge0(nonLoopStatesAtNode3, pPrecision, negativeNodetAssumeEdge);
 
-    Collection<TerminationState> statesAtNode5 = Lists.newArrayList();
+    Collection<TerminationState> statesAtNode5 = new ArrayList<>();
 
     // node4 - x' = x; y' = y; ... -> node 5
     CFANode node5 = creatCfaNode(functionName);

@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -70,11 +69,11 @@ public final class AbstractionManager {
   private final FormulaManagerView fmgr;
   private final Solver solver;
   // Here we keep the mapping abstract predicate variable -> predicate
-  private final Map<Region, AbstractionPredicate> absVarToPredicate = Maps.newHashMap();
+  private final Map<Region, AbstractionPredicate> absVarToPredicate = new HashMap<>();
   // and the mapping symbolic variable -> predicate
-  private final Map<BooleanFormula, AbstractionPredicate> symbVarToPredicate = Maps.newHashMap();
+  private final Map<BooleanFormula, AbstractionPredicate> symbVarToPredicate = new HashMap<>();
   // and the mapping atom -> predicate
-  private final Map<BooleanFormula, AbstractionPredicate> atomToPredicate = Maps.newHashMap();
+  private final Map<BooleanFormula, AbstractionPredicate> atomToPredicate = new HashMap<>();
 
   // Properties for BDD variable ordering:
   @Option(secure = true, name = "abs.predicateOrdering.method",

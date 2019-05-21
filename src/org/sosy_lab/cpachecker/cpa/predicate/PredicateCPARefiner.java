@@ -460,7 +460,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
       // add invariant precision increment if necessary
-      List<BooleanFormula> precisionIncrement = Lists.newArrayList();
+      List<BooleanFormula> precisionIncrement = new ArrayList<>();
       if (invariantsManager.addToPrecision()) {
         precisionIncrement = addInvariants(abstractionStatesTrace);
       }

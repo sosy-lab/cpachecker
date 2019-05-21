@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.ForOverride;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -110,7 +110,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
   private final PathExtractor pathExtractor;
 
-  private Set<Integer> previousErrorPathIds = Sets.newHashSet();
+  private Set<Integer> previousErrorPathIds = new HashSet<>();
 
   // statistics
   private final StatCounter refinementCounter = new StatCounter("Number of refinements");

@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import java.io.Serializable;
@@ -42,7 +41,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -459,7 +461,7 @@ public final class ExpressionTrees {
       private final Map<
               Set<ExpressionTree<LeafType>>,
               ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, NoException>>
-          simplificationVisitors = Maps.newHashMap();
+          simplificationVisitors = new HashMap<>();
 
       @Override
       public ExpressionTree<LeafType> simplify(ExpressionTree<LeafType> pExpressionTree) {
@@ -476,7 +478,7 @@ public final class ExpressionTrees {
 
   public static <LeafType> ExpressionTree<LeafType> simplify(
       ExpressionTree<LeafType> pExpressionTree, ExpressionTreeFactory<LeafType> pFactory) {
-    return simplify(pExpressionTree, Collections.emptySet(), Maps.newHashMap(), pFactory, true);
+    return simplify(pExpressionTree, Collections.emptySet(), new HashMap<>(), pFactory, true);
   }
 
   private static <LeafType> ExpressionTree<LeafType> simplify(
@@ -629,7 +631,9 @@ public final class ExpressionTrees {
                 }
               }
 
-              List<ExpressionTree<LeafType>> operands = Lists.newLinkedList();
+              @SuppressWarnings(
+                  "JdkObsolete") // TODO consider replacing this with ArrayList or ArrayDeque
+              List<ExpressionTree<LeafType>> operands = new LinkedList<>();
               Set<ExpressionTree<LeafType>> changedOps = Collections.emptySet();
               boolean changed = false;
 
@@ -647,7 +651,7 @@ public final class ExpressionTrees {
                   changed = true;
                   if (!pThorough) {
                     if (changedOps.isEmpty()) {
-                      changedOps = Sets.newHashSet();
+                      changedOps = new HashSet<>();
                     }
                     changedOps.add(simplified);
                   }
@@ -809,11 +813,11 @@ public final class ExpressionTrees {
   public static <LeafType> ExpressionTreeFactory<LeafType> newCachingFactory() {
     return new ExpressionTreeFactory<LeafType>() {
 
-      private final Map<Object, ExpressionTree<LeafType>> leafCache = Maps.newHashMap();
+      private final Map<Object, ExpressionTree<LeafType>> leafCache = new HashMap<>();
 
-      private final Map<Object, ExpressionTree<LeafType>> andCache = Maps.newHashMap();
+      private final Map<Object, ExpressionTree<LeafType>> andCache = new HashMap<>();
 
-      private final Map<Object, ExpressionTree<LeafType>> orCache = Maps.newHashMap();
+      private final Map<Object, ExpressionTree<LeafType>> orCache = new HashMap<>();
 
       @Override
       public ExpressionTree<LeafType> leaf(LeafType pLeafType) {
@@ -903,7 +907,6 @@ public final class ExpressionTrees {
         return result;
       }
     };
-
   }
 
   public static <LeafType> Comparator<ExpressionTree<LeafType>> getComparator() {

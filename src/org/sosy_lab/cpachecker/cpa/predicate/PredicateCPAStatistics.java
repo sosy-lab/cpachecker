@@ -41,6 +41,7 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -194,7 +195,7 @@ class PredicateCPAStatistics implements Statistics {
 
       this.location = MultimapBuilder.treeKeys().linkedHashSetValues().build();
       this.function = MultimapBuilder.treeKeys().linkedHashSetValues().build();
-      this.global = Sets.newLinkedHashSet();
+      this.global = new LinkedHashSet<>();
     }
 
   }

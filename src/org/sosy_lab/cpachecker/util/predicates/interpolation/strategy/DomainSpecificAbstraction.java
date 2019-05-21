@@ -29,6 +29,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -138,8 +139,8 @@ public class DomainSpecificAbstraction<T> {
       }
       List<List<Formula>> frontierList = Lists.newArrayListWithExpectedSize(formulas.size
           ());
-      Set<String> variables1 = Sets.newHashSet();
-      Set<String> variables2 = Sets.newHashSet();
+      Set<String> variables1 = new HashSet<>();
+      Set<String> variables2 = new HashSet<>();
       findingCommonVariablesTimer.start();
       try {
         if (it == 0) {

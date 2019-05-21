@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -587,7 +588,7 @@ public class PredicateAbstractionManager {
           continue;
         }
 
-        Set<Integer> reuseIds = Sets.newTreeSet();
+        Set<Integer> reuseIds = new TreeSet<>();
         BooleanFormula reuseFormula = bfmgr.makeTrue();
         for (AbstractionNode an : candidateAbstractions) {
           reuseFormula = bfmgr.and(reuseFormula, an.getFormula());

@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -392,7 +393,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       throws CPAException, InterruptedException, SolverException {
 
     // Reconstruct error trace from start location to direct error predecessor.
-    List<BlockWithConcreteState> blocks = Lists.newArrayList();
+    List<BlockWithConcreteState> blocks = new ArrayList<>();
     StatesWithLocation lastStateInformation = pFinalFailingObligation.getState();
     ProofObligation currentObligation = pFinalFailingObligation;
 

@@ -31,6 +31,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -218,9 +219,10 @@ public class DeadLockState extends AbstractLockState {
   private final List<LockIdentifier> lockList;
   // if we need restore state, we save it here
   // Used for function annotations like annotate.function_name.restore
+  @SuppressWarnings("JdkObsolete") // TODO consider replacing this with ArrayList or ArrayDeque
   public DeadLockState() {
     super();
-    lockList = Lists.newLinkedList();
+    lockList = new LinkedList<>();
   }
 
   protected DeadLockState(List<LockIdentifier> gLocks, DeadLockState state) {

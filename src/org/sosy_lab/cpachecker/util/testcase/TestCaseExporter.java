@@ -24,11 +24,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -93,9 +93,9 @@ public class TestCaseExporter {
         pCounterexampleInfo.getExactVariableValues();
 
     List<String> values = new ArrayList<>();
-    Set<ARGState> visited = Sets.newHashSet();
-    Deque<ARGState> stack = Queues.newArrayDeque();
-    Deque<CFAEdge> lastEdgeStack = Queues.newArrayDeque();
+    Set<ARGState> visited = new HashSet<>();
+    Deque<ARGState> stack = new ArrayDeque<>();
+    Deque<CFAEdge> lastEdgeStack = new ArrayDeque<>();
     stack.push(pRootState);
     visited.addAll(stack);
     Optional<String> value;

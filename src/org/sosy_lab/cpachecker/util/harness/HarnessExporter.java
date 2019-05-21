@@ -34,10 +34,9 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -295,9 +294,9 @@ public class HarnessExporter {
       final Predicate<? super ARGState> pIsRelevantState,
       Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
-    Set<State> visited = Sets.newHashSet();
-    Deque<State> stack = Queues.newArrayDeque();
-    Deque<CFAEdge> lastEdgeStack = Queues.newArrayDeque();
+    Set<State> visited = new HashSet<>();
+    Deque<State> stack = new ArrayDeque<>();
+    Deque<CFAEdge> lastEdgeStack = new ArrayDeque<>();
     stack.push(State.of(pRootState, TestVector.newTestVector()));
     visited.addAll(stack);
     while (!stack.isEmpty()) {

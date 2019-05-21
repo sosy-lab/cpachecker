@@ -36,7 +36,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -579,7 +578,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   private static class ParallelAlgorithmStatistics implements Statistics {
 
     private final LogManager logger;
-    private final List<StatisticsEntry> allAnalysesStats = Lists.newCopyOnWriteArrayList();
+    private final List<StatisticsEntry> allAnalysesStats = new CopyOnWriteArrayList<>();
     private int noOfAlgorithmsUsed = 0;
     private String successfulAnalysisName = null;
 
@@ -589,7 +588,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     public synchronized StatisticsEntry getNewSubStatistics(
         ReachedSet pReached, String pName, @Nullable ThreadCpuTimeLimit pRLimit, AtomicBoolean pTerminated) {
-      Collection<Statistics> subStats = Lists.newCopyOnWriteArrayList();
+      Collection<Statistics> subStats = new CopyOnWriteArrayList<>();
       StatisticsEntry entry = new StatisticsEntry(subStats, pReached, pName, pRLimit, pTerminated);
       allAnalysesStats.add(entry);
       return entry;

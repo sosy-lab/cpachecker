@@ -31,7 +31,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
 import com.google.common.io.MoreFiles;
@@ -46,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -225,7 +225,7 @@ public class AutomatonInternalTest {
   @Test
   public void automataVariableReplacement() {
     LogManager mockLogger = mock(LogManager.class);
-    Map<String, AutomatonVariable> automatonVariables = Maps.newHashMap();
+    Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
     AutomatonVariable intVar1 = AutomatonVariable.createAutomatonVariable("int", "intVar1");
     AutomatonVariable intVar2 = AutomatonVariable.createAutomatonVariable("Integer", "intVar2");
     ((AutomatonIntVariable) intVar2).setValue(10);

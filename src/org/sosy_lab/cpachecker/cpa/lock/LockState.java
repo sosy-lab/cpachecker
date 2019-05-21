@@ -36,6 +36,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
@@ -268,7 +269,7 @@ public class LockState extends AbstractLockState {
   // Used for function annotations like annotate.function_name.restore
   public LockState() {
     super();
-    locks = Maps.newTreeMap();
+    locks = new TreeMap<>();
   }
 
   protected LockState(SortedMap<LockIdentifier, Integer> gLocks, LockState state) {

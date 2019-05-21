@@ -43,6 +43,7 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -176,8 +177,8 @@ public class LassoBuilder {
       throws CPATransferException, InterruptedException {
     PathIterator path = pCounterexampleInfo.getTargetPath().fullPathIterator();
 
-    List<CFAEdge> stemEdges = Lists.newArrayList();
-    List<CFAEdge> loopEdges = Lists.newArrayList();
+    List<CFAEdge> stemEdges = new ArrayList<>();
+    List<CFAEdge> loopEdges = new ArrayList<>();
     boolean loopStarted = false;
     path.advance(); // the first state has no incoming edge
 

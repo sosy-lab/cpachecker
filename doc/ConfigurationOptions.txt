@@ -1559,7 +1559,7 @@ cpa.lock.analysisMode = RACE
 cpa.lock.annotate = no default value
 
 # contains all lock names
-cpa.lock.lockinfo = Sets.newHashSet()
+cpa.lock.lockinfo = {}
 
 # reduce unused locks
 cpa.lock.reduceUselessLocks = false
