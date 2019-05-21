@@ -71,9 +71,9 @@ public abstract class AbstractSlicer implements Slicer {
       case REDUCER:
         extractor = new ReducerExtractor(pConfig);
         break;
-      case SYNTAX:
+        /* case SYNTAX: TODO
         extractor = new SyntaxExtractor();
-        break;
+        break;*/
       default:
         throw new AssertionError("Unknown criterion extractor type");
     }
