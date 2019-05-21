@@ -77,7 +77,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   public StaticSlicer(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig,
       DependenceGraph pDependenceGraph) throws InvalidConfigurationException {
-    super(pLogger, pShutdownNotifier);
+    super(pLogger, pShutdownNotifier, pConfig);
 
     pConfig.inject(this);
 
