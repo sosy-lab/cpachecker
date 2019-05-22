@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -80,7 +79,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
       final InterpolationManager.Interpolator<T> interpolator,
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStateAndGroupId)
       throws InterruptedException, SolverException {
-    final List<T> formulas = Lists.transform(formulasWithStateAndGroupId, Triple::getThird);
+    final List<T> formulas = projectToThird(formulasWithStateAndGroupId);
 
     switch (sequentialStrategy) {
       case FWD_FALLBACK:

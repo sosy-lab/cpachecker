@@ -23,11 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -36,7 +34,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -165,26 +162,8 @@ public abstract class ITPStrategy<T> {
     }
   }
 
-  protected static <T> List<Set<T>> wrapAllInSets(final List<T> l) {
-    return Lists.transform(l, new Function<T, Set<T>>() {
-
-      @Override
-      public Set<T> apply(T f) {
-        return Collections.singleton(f);
-      }
-    });
-  }
-
-  protected static <T1, T2> List<T1> projectToFirst(final List<Pair<T1, T2>> l) {
-    return Lists.transform(l, Pair::getFirst);
-  }
-
   protected static <T1, T2, T3> List<T3> projectToThird(final List<Triple<T1, T2, T3>> l) {
     return Lists.transform(l, Triple::getThird);
-  }
-
-  protected static <T, S> List<S> projectToSecond(final List<Pair<T, S>> l) {
-    return Lists.transform(l, Pair::getSecond);
   }
 
   /**
