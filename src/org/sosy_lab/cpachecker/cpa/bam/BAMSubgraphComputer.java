@@ -173,7 +173,10 @@ public class BAMSubgraphComputer {
           assert !useCopyOnWriteRefinement
               : "CopyOnWrite-refinement should never cause missing blocks: " + e;
           if (cleanupOnMissingBlock) {
-            ARGInPlaceSubtreeRemover.removeSubtree(reachedSet, currentState);
+            if (!currentState.isDestroyed()) {
+              // TODO Why is the state (and subtree) already removed before?
+              ARGInPlaceSubtreeRemover.removeSubtree(reachedSet, currentState);
+            }
           }
           throw e;
         }
