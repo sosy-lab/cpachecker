@@ -89,7 +89,18 @@ public class PredicateApplyOperator implements ApplyOperator {
   private final Function<String, String> localRename = s -> {
     if (s.contains("::")) {
       // local var, rename
-      return rename.apply(s);
+      if (s.contains("@")) {
+        // instantiated
+        String[] parts = s.split("@");
+        String newName = rename.apply(parts[0]) + "@";
+        if (parts.length > 1) {
+          // @ may be last symbol
+          newName += parts[1];
+        }
+        return newName;
+      } else {
+        return rename.apply(s);
+      }
     } else {
       return s;
     }
