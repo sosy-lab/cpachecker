@@ -136,6 +136,7 @@ javascript-e2e-tests:
   allow_failure: true # tests are currently racy (cf. #520)
 
 
+# Checks for Python code
 check-format-python:
   stage: checks
   dependencies: []
@@ -144,6 +145,16 @@ check-format-python:
     - pip install black
   script:
     - black . --check --diff
+
+flake8:
+  stage: checks
+  dependencies: []
+  image: python
+  before_script:
+    - pip install flake8-awesome
+  script:
+    - flake8
+  allow_failure: true # need to fix existing code first
 
 
 # No coverage is computed for CPAchecker
