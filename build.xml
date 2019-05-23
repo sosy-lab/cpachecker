@@ -146,21 +146,4 @@
             <arg line="-m unittest discover scripts"/>
         </exec>
     </target>
-
-    <!-- Targets for downloading CPAchecker instead of building it.
-         This downloads CPAchecker from the VerifierCloud and is used by the BuildBot.
-         Warning: this might overwrite local changes. -->
-    <target name="download-cpachecker" depends="determine-version-revision, resolve-dependencies">
-        <script language="javascript"><![CDATA[
-            var revision = project.getProperty("version.revision");
-            project.setProperty("version.revision.without-suffix", revision.replaceAll("[A-Za-z]*$", ''));
-        ]]></script>
-        <get src="https://vcloud.sosy-lab.org/cpachecker/webclient/tool/archive?revision=${version.revision.without-suffix}" dest="CPAchecker.zip" verbose="false"/>
-        <unzip src="CPAchecker.zip" dest="." failOnEmptyArchive="true" overwrite="true">
-            <patternset>
-                <include name="cpachecker.jar"/>
-            </patternset>
-        </unzip>
-    </target>
-
 </project>
