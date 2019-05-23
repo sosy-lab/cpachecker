@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ThreadModularSortedWaitlist extends AbstractSortedWaitlist<Integer> {
@@ -48,7 +49,7 @@ public class ThreadModularSortedWaitlist extends AbstractSortedWaitlist<Integer>
         return 1;
       } else if (edge == EmptyEdge.getInstance()) {
         // Environment transition
-        return 0;
+        return -((ARGState) pState).getStateId();
       } else {
         throw new UnsupportedOperationException("Unknown edge: " + edge.getClass());
       }

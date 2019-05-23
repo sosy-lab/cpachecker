@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ThreadModularReachedSet extends PartitionedReachedSet {
@@ -75,6 +76,12 @@ public class ThreadModularReachedSet extends PartitionedReachedSet {
         threadTransitions.remove(pState);
       } else {
         // applied state, skip
+      }
+      Collection<ARGState> appliedStates = ((ARGState) pState).getAppliedTo();
+      if (appliedStates != null) {
+        for (AbstractState state : appliedStates) {
+          super.removeOnlyFromWaitlist(state);
+        }
       }
     }
   }
