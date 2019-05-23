@@ -136,6 +136,16 @@ javascript-e2e-tests:
   allow_failure: true # tests are currently racy (cf. #520)
 
 
+check-format-python:
+  stage: checks
+  dependencies: []
+  image: python
+  before_script:
+    - pip install black
+  script:
+    - black . --check --diff
+
+
 # No coverage is computed for CPAchecker
 unit-tests:jdk-8:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
