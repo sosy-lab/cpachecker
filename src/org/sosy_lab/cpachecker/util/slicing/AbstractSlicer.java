@@ -58,7 +58,7 @@ public abstract class AbstractSlicer implements Slicer {
   private final SlicingCriteriaExtractor extractor;
 
   public AbstractSlicer(
-      LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig)
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
       throws InvalidConfigurationException {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -71,9 +71,9 @@ public abstract class AbstractSlicer implements Slicer {
       case REDUCER:
         extractor = new ReducerExtractor(pConfig);
         break;
-        /* case SYNTAX: TODO
-        extractor = new SyntaxExtractor();
-        break;*/
+      case SYNTAX:
+        extractor = new SyntaxExtractor(pConfig, pCfa, logger);
+        break;
       default:
         throw new AssertionError("Unknown criterion extractor type");
     }

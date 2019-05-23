@@ -39,7 +39,10 @@ public interface SlicingCriteriaExtractor {
    *     criteria should be aborted
    * @param pLogger object for writing log messages
    * @return subset of CFA edges
+   * @throws InterruptedException if a shutdown is requested and this is detected with the help of
+   *     the <code>pShutdownNotifier</code>
    */
   public Set<CFAEdge> getSlicingCriteria(
-      CFA pCfa, Specification pError, ShutdownNotifier pShutdownNotifier, LogManager pLogger);
+      CFA pCfa, Specification pError, ShutdownNotifier pShutdownNotifier, LogManager pLogger)
+      throws InterruptedException;
 }
