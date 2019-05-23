@@ -12,9 +12,6 @@
     <option name="-setprop">pdr.invariantRefinementStrategy=UNSAT_CORE_BASED_STRENGTHENING</option>
   </rundefinition>
 
-  <!-- SV-Comp files assume that malloc always succeeds -->
-  <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
 
@@ -31,7 +28,8 @@
     <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1a*</exclude>
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 
   <tasks>
@@ -41,6 +39,8 @@
     <exclude>../programs/benchmarks/list-properties/*</exclude>
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 
   <tasks>
@@ -52,6 +52,8 @@
     <exclude>../programs/benchmarks/loop-lit/cggmp2005_*</exclude>
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 
   <tasks>
@@ -70,5 +72,7 @@
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>
     <option name="-64"/>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 </benchmark>
