@@ -353,7 +353,8 @@ class WebInterface:
             cert_path = cert_paths.cafile or cert_paths.capath # both might be None
         except AttributeError: # not available on old Python
             cert_path = None
-        self._connection.verify = cert_path or True # make sure that verification is enabled
+        # make sure that certificate verification is enabled
+        self._connection.verify = cert_path or True
         if user_pwd:
             self._connection.auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
             self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")
@@ -811,7 +812,8 @@ class WebInterface:
                 #    # retry t
                 #    self._download_result_async(run_id)
 
-        if run_id not in self._downloading_result_futures.values():  # result is not downloaded
+        if run_id not in self._downloading_result_futures.values():
+            # result is not downloaded
             future = self._executor.submit(self._download_result, run_id)
             self._downloading_result_futures[future] = run_id
             future.add_done_callback(callback)

@@ -93,7 +93,8 @@ def execute_benchmark(benchmark, output_handler):
             logLevel =  "FINER"
         else:
             logLevel = "INFO"
-        heapSize = benchmark.config.cloudClientHeap + numberOfRuns//10 # 100 MB and 100 kB per run
+        # heuristic for heap size: 100 MB and 100 kB per run
+        heapSize = benchmark.config.cloudClientHeap + numberOfRuns//10
         lib = os.path.join(_ROOT_DIR, "lib", "java-benchmark", "vcloud.jar")
         cmdLine = ["java", "-Xmx"+str(heapSize)+"m", "-jar", lib, "benchmark", "--loglevel", logLevel, \
                    "--run-collection-meta-information", meta_information, \

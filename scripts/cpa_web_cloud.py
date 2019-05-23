@@ -58,7 +58,8 @@ def _create_argument_parser():
         description="Execute a CPAchecker run in the VerifierCloud using the web interface." \
          + " Command-line parameters can additionally be read from a file if file name prefixed with '@' is given as argument.",
         fromfile_prefix_chars='@',
-        add_help=False) # conflicts with -heap
+        add_help=False,  # conflicts with -heap
+    )
 
     parser.add_argument("--help",
                       action='help',

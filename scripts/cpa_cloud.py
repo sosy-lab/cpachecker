@@ -61,7 +61,8 @@ logging.debug("Starting cloud.")
 
 logLevel = "FINER"
 
-cpachecker_dir = os.path.normpath(os.path.join(os.path.dirname(argv[0]), os.pardir)) # directory above script directory
+# cpachecker_dir is directory above script directory
+cpachecker_dir = os.path.normpath(os.path.join(os.path.dirname(argv[0]), os.pardir))
 lib_dir = os.path.abspath(os.path.join("lib", "java-benchmark"))
 cmd_line = ["java", "-jar", os.path.join(lib_dir, "vcloud.jar"), "cpachecker",
             "--loglevel", logLevel,

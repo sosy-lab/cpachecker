@@ -387,7 +387,8 @@ def transitiveReductionCheck(nodes):
               % (c.name,reach[c].name,current2.name,current.name))
         else:
           reach[c] = current2
-          if not c.name.endswith(".spc"): # do not explore children of spc files
+          if not c.name.endswith(".spc"):
+            # do not explore children of spc files
             wlist2.append(c)
 
 

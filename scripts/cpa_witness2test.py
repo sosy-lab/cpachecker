@@ -504,7 +504,8 @@ def run():
         elif result == RESULT_REJECT:
             reject_count += 1
             if not final_result:
-                final_result = RESULT_REJECT  # Only set final result to 'reject' if no harness produces any error
+                # Only set final result to 'reject' if no harness produces any error
+                final_result = RESULT_REJECT
         else:
             final_result = RESULT_UNK
 
