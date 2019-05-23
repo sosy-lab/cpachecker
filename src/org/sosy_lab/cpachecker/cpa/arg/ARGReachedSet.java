@@ -323,7 +323,10 @@ public class ARGReachedSet {
 
   private Set<ARGState> removeSubtree0(ARGState e) {
     Preconditions.checkNotNull(e);
-    Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ARG/reached set");
+    Preconditions.checkArgument(
+        !e.getParents().isEmpty(),
+        "May not remove the initial state from the ARG/reached set.\nTrying to remove state '%s'.",
+        e);
 
     dumpSubgraph(e);
 
