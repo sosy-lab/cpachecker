@@ -43,7 +43,7 @@ reaches the target location specified by the violation witness.
 Currently, reachability, overflow and memory safety properties are supported.
 """
 
-__version__ = '0.1'
+__version__ = "0.1"
 
 
 COMPILE_ARGS_FIXED = ["-D__alias__(x)="]
@@ -57,28 +57,28 @@ EXPECTED_ERRMSG_MEM_DEREF = "ERROR: AddressSanitizer:"
 EXPECTED_ERRMSG_MEM_MEMTRACK = "ERROR: AddressSanitizer:"
 
 # Used machine models
-MACHINE_MODEL_32 = '32bit'
-MACHINE_MODEL_64 = '64bit'
+MACHINE_MODEL_32 = "32bit"
+MACHINE_MODEL_64 = "64bit"
 
 # Possible results of CPAchecker for C harness generation
-RESULT_ACCEPT = 'FALSE'
-RESULT_REJECT = 'TRUE'
-RESULT_UNK = 'UNKNOWN'
+RESULT_ACCEPT = "FALSE"
+RESULT_REJECT = "TRUE"
+RESULT_UNK = "UNKNOWN"
 
 # Regular expressions used to match given specification properties
-REGEX_REACH = re.compile('G\s*!\s*call\(\s*__VERIFIER_error\(\)\s*\)')
-REGEX_OVERFLOW = re.compile('G\s*!\s*overflow')
-_REGEX_MEM_TEMPLATE = 'G\s*valid-%s'
-REGEX_MEM_FREE = re.compile(_REGEX_MEM_TEMPLATE % 'free')
-REGEX_MEM_DEREF = re.compile(_REGEX_MEM_TEMPLATE % 'deref')
-REGEX_MEM_MEMTRACK = re.compile(_REGEX_MEM_TEMPLATE % 'memtrack')
+REGEX_REACH = re.compile("G\s*!\s*call\(\s*__VERIFIER_error\(\)\s*\)")
+REGEX_OVERFLOW = re.compile("G\s*!\s*overflow")
+_REGEX_MEM_TEMPLATE = "G\s*valid-%s"
+REGEX_MEM_FREE = re.compile(_REGEX_MEM_TEMPLATE % "free")
+REGEX_MEM_DEREF = re.compile(_REGEX_MEM_TEMPLATE % "deref")
+REGEX_MEM_MEMTRACK = re.compile(_REGEX_MEM_TEMPLATE % "memtrack")
 
 # Names of supported specifications
-SPEC_REACH = 'unreach-call'
-SPEC_OVERFLOW = 'no-overflow'
-SPEC_MEM_FREE = 'valid-free'
-SPEC_MEM_DEREF = 'valid-deref'
-SPEC_MEM_MEMTRACK = 'valid-memtrack'
+SPEC_REACH = "unreach-call"
+SPEC_OVERFLOW = "no-overflow"
+SPEC_MEM_FREE = "valid-free"
+SPEC_MEM_DEREF = "valid-deref"
+SPEC_MEM_MEMTRACK = "valid-memtrack"
 # specifications -> regular expressions
 SPECIFICATIONS = {
     SPEC_REACH: REGEX_REACH,
@@ -136,75 +136,79 @@ def get_cpachecker_version():
     executable = get_cpachecker_executable()
     result = execute([executable, "-help"], quiet=True)
     for line in result.stdout.split(os.linesep):
-        if line.startswith('CPAchecker'):
-            return line.replace('CPAchecker', '').strip()
+        if line.startswith("CPAchecker"):
+            return line.replace("CPAchecker", "").strip()
     return None
 
 
 def create_parser():
-    descr="Validate a given violation witness for an input file."
-    if sys.version_info >= (3,5):
-        parser = argparse.ArgumentParser(description=descr, add_help=False, allow_abbrev=False)
+    descr = "Validate a given violation witness for an input file."
+    if sys.version_info >= (3, 5):
+        parser = argparse.ArgumentParser(
+            description=descr, add_help=False, allow_abbrev=False
+        )
     else:
         parser = argparse.ArgumentParser(description=descr, add_help=False)
 
-    parser.add_argument("-help",
-                        action='help'
-                        )
+    parser.add_argument("-help", action="help")
 
-    parser.add_argument("-version",
-                        action="version", version='{}'.format(get_cpachecker_version())
-                        )
+    parser.add_argument(
+        "-version", action="version", version="{}".format(get_cpachecker_version())
+    )
 
     machine_model_args = parser.add_mutually_exclusive_group(required=False)
-    machine_model_args.add_argument('-32',
-                                    dest='machine_model', action='store_const', const=MACHINE_MODEL_32,
-                                    help="use 32 bit machine model"
-                                    )
-    machine_model_args.add_argument('-64',
-                                    dest='machine_model', action='store_const', const=MACHINE_MODEL_64,
-                                    help="use 64 bit machine model"
-                                    )
+    machine_model_args.add_argument(
+        "-32",
+        dest="machine_model",
+        action="store_const",
+        const=MACHINE_MODEL_32,
+        help="use 32 bit machine model",
+    )
+    machine_model_args.add_argument(
+        "-64",
+        dest="machine_model",
+        action="store_const",
+        const=MACHINE_MODEL_64,
+        help="use 64 bit machine model",
+    )
     machine_model_args.set_defaults(machine_model=MACHINE_MODEL_32)
 
-    parser.add_argument('-outputpath',
-                        dest='output_path',
-                        type=str, action='store', default="output",
-                        help="path where output should be stored"
-                        )
+    parser.add_argument(
+        "-outputpath",
+        dest="output_path",
+        type=str,
+        action="store",
+        default="output",
+        help="path where output should be stored",
+    )
 
-    parser.add_argument('-stats',
-                        action='store_true',
-                        help="show statistics")
+    parser.add_argument("-stats", action="store_true", help="show statistics")
 
-    parser.add_argument('-gcc-args',
-                        dest='compile_args',
-                        type=str,
-                        action='store',
-                        nargs=argparse.REMAINDER,
-                        default=[],
-                        help='list of arguments to use when compiling the counterexample test'
-                        )
+    parser.add_argument(
+        "-gcc-args",
+        dest="compile_args",
+        type=str,
+        action="store",
+        nargs=argparse.REMAINDER,
+        default=[],
+        help="list of arguments to use when compiling the counterexample test",
+    )
 
-    parser.add_argument('-spec',
-                        dest='specification_file',
-                        type=str,
-                        action='store',
-                        help='specification file',
-                        )
+    parser.add_argument(
+        "-spec",
+        dest="specification_file",
+        type=str,
+        action="store",
+        help="specification file",
+    )
 
-    parser.add_argument('-witness',
-                        dest='witness_file',
-                        type=str,
-                        action='store',
-                        help='witness file',
-                        )
+    parser.add_argument(
+        "-witness", dest="witness_file", type=str, action="store", help="witness file"
+    )
 
-    parser.add_argument("file",
-                        type=str,
-                        nargs="?",
-                        help="file to validate witness for"
-                        )
+    parser.add_argument(
+        "file", type=str, nargs="?", help="file to validate witness for"
+    )
 
     return parser
 
@@ -221,19 +225,20 @@ def _parse_args(argv=sys.argv[1:]):
 def _create_compile_basic_args(args):
     compile_args = COMPILE_ARGS_FIXED + [x for x in args.compile_args if x is not None]
     if args.machine_model == MACHINE_MODEL_64:
-        compile_args.append('-m64')
+        compile_args.append("-m64")
     elif args.machine_model == MACHINE_MODEL_32:
-        compile_args.append('-m32')
+        compile_args.append("-m32")
     else:
-        raise ValidationError('Neither 32 nor 64 bit machine model specified')
+        raise ValidationError("Neither 32 nor 64 bit machine model specified")
 
     return compile_args
 
+
 def _create_compiler_cmd_tail(harness, file, target):
-    return ['-o', target,'-include', file, harness]
+    return ["-o", target, "-include", file, harness]
 
 
-def create_compile_cmd(harness, target, args, specification, c_version='gnu11'):
+def create_compile_cmd(harness, target, args, specification, c_version="gnu11"):
     """Create the compile command.
 
     :param str harness: path to harness file
@@ -244,21 +249,27 @@ def create_compile_cmd(harness, target, args, specification, c_version='gnu11'):
     :return: list of command-line keywords that can be given to method `execute`
     """
 
-    if shutil.which('clang'):
-        compiler = 'clang'
+    if shutil.which("clang"):
+        compiler = "clang"
     else:
-        compiler = 'gcc'
+        compiler = "gcc"
 
     compile_cmd = [compiler] + _create_compile_basic_args(args)
-    compile_cmd.append('-std={}'.format(c_version))
+    compile_cmd.append("-std={}".format(c_version))
 
     sanitizer_in_use = False
     if SPEC_OVERFLOW in specification:
         sanitizer_in_use = True
-        compile_cmd += ['-fsanitize=signed-integer-overflow', '-fsanitize=float-cast-overflow']
-    if any(spec in specification for spec in (SPEC_MEM_FREE, SPEC_MEM_DEREF, SPEC_MEM_MEMTRACK)):
+        compile_cmd += [
+            "-fsanitize=signed-integer-overflow",
+            "-fsanitize=float-cast-overflow",
+        ]
+    if any(
+        spec in specification
+        for spec in (SPEC_MEM_FREE, SPEC_MEM_DEREF, SPEC_MEM_MEMTRACK)
+    ):
         sanitizer_in_use = True
-        compile_cmd += ['-fsanitize=address', '-fsanitize=leak']
+        compile_cmd += ["-fsanitize=address", "-fsanitize=leak"]
 
     if sanitizer_in_use:
         # Do not continue execution after a sanitize error
@@ -270,11 +281,11 @@ def create_compile_cmd(harness, target, args, specification, c_version='gnu11'):
 def _create_cpachecker_args(args):
     cpachecker_args = sys.argv[1:]
 
-    for compile_arg in ['-gcc-args'] + args.compile_args:
+    for compile_arg in ["-gcc-args"] + args.compile_args:
         if compile_arg in cpachecker_args:
             cpachecker_args.remove(compile_arg)
 
-    cpachecker_args.append('-witness2test')
+    cpachecker_args.append("-witness2test")
 
     return cpachecker_args
 
@@ -288,7 +299,7 @@ def get_cpachecker_executable():
     :return str: the path to the executable.
     :raise ValidationError: if no CPAchecker executable found.
     """
-    executable_name = 'cpa.sh'
+    executable_name = "cpa.sh"
 
     def is_exe(exe_path):
         return os.path.isfile(exe_path) and os.access(exe_path, os.X_OK)
@@ -297,7 +308,11 @@ def get_cpachecker_executable():
     # It's important to put '.' and './scripts' last, because we
     # want to look at the "real" PATH directories first
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    path_candidates = os.environ["PATH"].split(os.pathsep) + [script_dir, '.', '.' + os.sep + 'scripts']
+    path_candidates = os.environ["PATH"].split(os.pathsep) + [
+        script_dir,
+        ".",
+        "." + os.sep + "scripts",
+    ]
     for path in path_candidates:
         path = path.strip('"')
         exe_file = os.path.join(path, executable_name)
@@ -320,7 +335,7 @@ def find_harnesses(output_path):
 
 def get_target_name(harness_name):
     """Returns a name for the given harness file name."""
-    harness_number = re.search(r'(\d+)\.harness\.c', harness_name).group(1)
+    harness_number = re.search(r"(\d+)\.harness\.c", harness_name).group(1)
 
     return "test_cex" + harness_number
 
@@ -334,11 +349,9 @@ def execute(command, quiet=False):
     """
     if not quiet:
         logging.info(" ".join(command))
-    p = subprocess.Popen(command,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE,
-                         universal_newlines=True
-                         )
+    p = subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
+    )
     returncode = p.wait()
     output = p.stdout.read()
     err_output = p.stderr.read()
@@ -359,7 +372,8 @@ def analyze_result(test_result, harness, specification):
 
     def check(code, err_msg, spec_property):
         results_and_violated_props.append(
-            _analyze_result_values(test_result, harness, code, err_msg, spec_property))
+            _analyze_result_values(test_result, harness, code, err_msg, spec_property)
+        )
 
     # For each specification property, check whether an error message
     # showing its violation was printed
@@ -385,10 +399,19 @@ def analyze_result(test_result, harness, specification):
         return RESULT_REJECT, None
 
 
-def _analyze_result_values(test_result, harness, expected_returncode, expected_errmsg, spec_prop):
-    if test_result.returncode == expected_returncode \
-            and test_result.stderr and expected_errmsg in test_result.stderr:
-        logging.info("Harness {} reached expected property violation ({}).".format(harness, spec_prop))
+def _analyze_result_values(
+    test_result, harness, expected_returncode, expected_errmsg, spec_prop
+):
+    if (
+        test_result.returncode == expected_returncode
+        and test_result.stderr
+        and expected_errmsg in test_result.stderr
+    ):
+        logging.info(
+            "Harness {} reached expected property violation ({}).".format(
+                harness, spec_prop
+            )
+        )
         return RESULT_ACCEPT, spec_prop
     elif test_result.returncode == 0:
         logging.info("Harness {} did not encounter _any_ error".format(harness))
@@ -402,7 +425,7 @@ def _log_multiline(msg, level=logging.INFO):
     if type(msg) is list:
         msg_lines = msg
     else:
-        msg_lines = msg.split('\n')
+        msg_lines = msg.split("\n")
     for line in msg_lines:
         logging.log(level, line)
 
@@ -419,13 +442,17 @@ def get_spec(specification_file):
     if not specification_file:
         raise ValidationError("No specification file given.")
     if not os.path.isfile(specification_file):
-        raise ValidationError("Specification file does not exist: %s" % specification_file)
+        raise ValidationError(
+            "Specification file does not exist: %s" % specification_file
+        )
 
-    with open(specification_file, 'r') as inp:
+    with open(specification_file, "r") as inp:
         content = inp.read().strip()
 
     specification = list()
-    spec_matches = re.match("CHECK\(\s*init\(.*\),\s*LTL\(\s*(.+)\s*\)\\r*\\n*", content)
+    spec_matches = re.match(
+        "CHECK\(\s*init\(.*\),\s*LTL\(\s*(.+)\s*\)\\r*\\n*", content
+    )
     if spec_matches:
         for spec, regex in SPECIFICATIONS.items():
             if regex.search(content):
@@ -469,7 +496,9 @@ def run():
         _log_multiline(compile_result.stdout, level=logging.DEBUG)
 
         if compile_result.returncode != 0:
-            compile_cmd = create_compile_cmd(harness, exe_target, args, specification, 'gnu90')
+            compile_cmd = create_compile_cmd(
+                harness, exe_target, args, specification, "gnu90"
+            )
             compile_result = execute(compile_cmd)
             _log_multiline(compile_result.stderr, level=logging.INFO)
             _log_multiline(compile_result.stdout, level=logging.DEBUG)
@@ -483,18 +512,24 @@ def run():
         compile_success_count += 1
 
         test_result = execute([exe_target])
-        test_stdout_file = output_dir + os.sep + 'stdout.txt'
-        test_stderr_file = output_dir + os.sep + 'stderr.txt'
+        test_stdout_file = output_dir + os.sep + "stdout.txt"
+        test_stderr_file = output_dir + os.sep + "stderr.txt"
         if test_result.stdout:
-            with open(test_stdout_file, 'w+') as output:
+            with open(test_stdout_file, "w+") as output:
                 output.write(test_result.stdout)
-                logging.info("Wrote stdout of test execution to {}".format(test_stdout_file))
+                logging.info(
+                    "Wrote stdout of test execution to {}".format(test_stdout_file)
+                )
         if test_result.stderr:
-            with open(test_stderr_file, 'w+') as error_output:
+            with open(test_stderr_file, "w+") as error_output:
                 error_output.write(test_result.stderr)
-                logging.info("Wrote stderr of test execution to {}".format(test_stderr_file))
+                logging.info(
+                    "Wrote stderr of test execution to {}".format(test_stderr_file)
+                )
 
-        result, new_violated_property = analyze_result(test_result, harness, specification)
+        result, new_violated_property = analyze_result(
+            test_result, harness, specification
+        )
         if result == RESULT_ACCEPT:
             successful_harness = harness
             final_result = RESULT_ACCEPT
@@ -527,12 +562,14 @@ def run():
 
     result_str = "Verification result: %s" % final_result
     if violated_property:
-        result_str += ". Property violation (%s) found by chosen configuration." % violated_property
+        result_str += (
+            ". Property violation (%s) found by chosen configuration."
+            % violated_property
+        )
     print(result_str)
 
 
-logging.basicConfig(format="%(levelname)s: %(message)s",
-                    level=logging.INFO)
+logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
 if __name__ == "__main__":
     try:
@@ -540,4 +577,3 @@ if __name__ == "__main__":
     except ValidationError as e:
         logging.error(e.msg)
         print("Verification result: ERROR.")
-

@@ -31,85 +31,95 @@ import sys
 import os
 from lxml import etree
 
-sys.dont_write_bytecode = True # prevent creation of .pyc files
+sys.dont_write_bytecode = True  # prevent creation of .pyc files
+
 
 def _get_test_directory():
-  return os.path.dirname(os.path.dirname(__file__))
+    return os.path.dirname(os.path.dirname(__file__))
+
 
 def _strip_xml_extension(path):
-  expected_extension = '.xml'
-  if path.lower().endswith(expected_extension):
-    return path[:-len(expected_extension)]
-  return path
+    expected_extension = ".xml"
+    if path.lower().endswith(expected_extension):
+        return path[: -len(expected_extension)]
+    return path
+
 
 def _get_validation_path(testdef_path):
-  return _strip_xml_extension(testdef_path) + '-validation.xml'
+    return _strip_xml_extension(testdef_path) + "-validation.xml"
+
 
 def _generate_validation_file(testdef_path):
-  testdef = etree.parse(testdef_path)
-  benchmark = testdef.getroot()
-  rundef = benchmark.find('rundefinition')
-  input_rundef_name = rundef.get('name')
+    testdef = etree.parse(testdef_path)
+    benchmark = testdef.getroot()
+    rundef = benchmark.find("rundefinition")
+    input_rundef_name = rundef.get("name")
 
-  # Remove the rundefinition for the verification runs
-  for child in rundef:
-    rundef.remove(child)
-  rundef.text = None
+    # Remove the rundefinition for the verification runs
+    for child in rundef:
+        rundef.remove(child)
+    rundef.text = None
 
-  # Replace the rundefinition with one for witness validation
-  witness_file = ('results/'
-    + _strip_xml_extension(os.path.basename(testdef_path))
-    + '.logfiles/')
-  if input_rundef_name:
-    witness_file = witness_file + input_rundef_name + '.'
-  witness_file = witness_file + '${inputfile_name}.files/' + 'output/witness.graphml.gz'
-  test_dir = _get_test_directory()
-  rundef.set('name', 'witnessValidation')
-  analysis_option = etree.Element('option')
-  analysis_option.set('name', '-witnessValidation')
-  rundef.append(analysis_option)
-  witness_option = etree.Element('option')
-  witness_option.set('name', '-witness')
-  witness_option.text = 'test/' + witness_file
-  rundef.append(witness_option)
-  requiredfiles = etree.Element('requiredfiles')
-  requiredfiles.text = (os.path.relpath(test_dir, os.path.dirname(testdef_path))
-    + '/'
-    + witness_file)
-  rundef.append(requiredfiles)
+    # Replace the rundefinition with one for witness validation
+    witness_file = (
+        "results/" + _strip_xml_extension(os.path.basename(testdef_path)) + ".logfiles/"
+    )
+    if input_rundef_name:
+        witness_file = witness_file + input_rundef_name + "."
+    witness_file = (
+        witness_file + "${inputfile_name}.files/" + "output/witness.graphml.gz"
+    )
+    test_dir = _get_test_directory()
+    rundef.set("name", "witnessValidation")
+    analysis_option = etree.Element("option")
+    analysis_option.set("name", "-witnessValidation")
+    rundef.append(analysis_option)
+    witness_option = etree.Element("option")
+    witness_option.set("name", "-witness")
+    witness_option.text = "test/" + witness_file
+    rundef.append(witness_option)
+    requiredfiles = etree.Element("requiredfiles")
+    requiredfiles.text = (
+        os.path.relpath(test_dir, os.path.dirname(testdef_path)) + "/" + witness_file
+    )
+    rundef.append(requiredfiles)
 
-  # Remove the resultfiles tag
-  resultfiles = benchmark.find('resultfiles')
-  resultfiles.getparent().remove(resultfiles)
+    # Remove the resultfiles tag
+    resultfiles = benchmark.find("resultfiles")
+    resultfiles.getparent().remove(resultfiles)
 
-  # Write the validation file
-  with open(_get_validation_path(testdef_path), 'wb') as output_file:
-    testdef.write(output_file, pretty_print=True)
+    # Write the validation file
+    with open(_get_validation_path(testdef_path), "wb") as output_file:
+        testdef.write(output_file, pretty_print=True)
 
 
 if __name__ == "__main__":
-  if not os.path.isdir(_get_test_directory()):
-    sys.exit('The CPAchecker test directory was not found.')
-  args = sys.argv[1:]
-  for path in args:
-    if not os.path.isfile(path):
-      sys.exit('The input-file path {0} does not exist.'.format(path))
-    try:
-      testdef = etree.parse(path)
-      benchmark = testdef.getroot()
-      if benchmark is None:
-        sys.exit('The input file {0} contains no root element.'.format(path))
-      rundef = benchmark.find('rundefinition')
-      if rundef is None:
-        sys.exit('The input file {0} contains no rundefinition.'.format(path))
-      resultfiles = benchmark.find('resultfiles')
-      if resultfiles is None:
-        sys.exit(('The input file {0} does not specify any result files, '
-          + 'so it is guaranteed that it will not yield any witnesses').format(path))
-    except etree.ParseError:
-      sys.exit('The input file {0} is not a well-formed XML file.'.format(path))
-    validation_path = _get_validation_path(path)
-    if os.path.isfile(validation_path):
-      sys.exit('The output-file path {0} already exists.'.format(validation_path))
-  for path in args:
-    _generate_validation_file(path)
+    if not os.path.isdir(_get_test_directory()):
+        sys.exit("The CPAchecker test directory was not found.")
+    args = sys.argv[1:]
+    for path in args:
+        if not os.path.isfile(path):
+            sys.exit("The input-file path {0} does not exist.".format(path))
+        try:
+            testdef = etree.parse(path)
+            benchmark = testdef.getroot()
+            if benchmark is None:
+                sys.exit("The input file {0} contains no root element.".format(path))
+            rundef = benchmark.find("rundefinition")
+            if rundef is None:
+                sys.exit("The input file {0} contains no rundefinition.".format(path))
+            resultfiles = benchmark.find("resultfiles")
+            if resultfiles is None:
+                sys.exit(
+                    (
+                        "The input file {0} does not specify any result files, "
+                        + "so it is guaranteed that it will not yield any witnesses"
+                    ).format(path)
+                )
+        except etree.ParseError:
+            sys.exit("The input file {0} is not a well-formed XML file.".format(path))
+        validation_path = _get_validation_path(path)
+        if os.path.isfile(validation_path):
+            sys.exit("The output-file path {0} already exists.".format(validation_path))
+    for path in args:
+        _generate_validation_file(path)
