@@ -70,7 +70,6 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
   private final BlockOperator blk;
   private final FormulaManagerView fmgr;
-  private final BooleanFormulaManagerView bfmgr;
 
   private final AnalysisDirection direction;
   private final PredicateStatistics statistics;
@@ -96,7 +95,6 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     formulaManager = pPredAbsManager;
     pathFormulaManager = pPfmgr;
     fmgr = pFmgr;
-    bfmgr = fmgr.getBooleanFormulaManager();
     blk = pBlk;
     direction = pDirection;
     statistics = pStatistics;
@@ -427,6 +425,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     BooleanFormula formula =
         pFormulaReportingState.getFormulaApproximation(fmgr);
 
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     if (bfmgr.isTrue(formula) || bfmgr.isFalse(formula)) {
       return pElement;
     }
