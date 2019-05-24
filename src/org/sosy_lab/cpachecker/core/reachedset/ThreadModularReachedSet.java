@@ -101,4 +101,12 @@ public class ThreadModularReachedSet extends PartitionedReachedSet {
     }
     return Collections.emptySet();
   }
+
+  public int getProjectioinsNum() {
+    return projections.size();
+  }
+
+  public int getThreadTransitionsNum() {
+    return threadTransitions.size();
+  }
 }
