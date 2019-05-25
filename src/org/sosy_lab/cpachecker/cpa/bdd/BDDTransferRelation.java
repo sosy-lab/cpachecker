@@ -671,7 +671,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     // we do not need them after this location, because the next edge is the functionReturnEdge.
     // this results in a smaller BDD and allows to call a function twice.
     for (String var : predmgr.getTrackedVars()) {
-      if (isLocalVariableForFunction(var, functionName) && !returnVar.equals(var)) {
+      if (isLocalVariableForFunction(var, functionName) && !var.equals(returnVar)) {
         newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
       }
     }
