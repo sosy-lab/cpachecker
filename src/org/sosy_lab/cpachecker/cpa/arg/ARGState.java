@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.EnvironmentActionEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
@@ -72,7 +73,7 @@ public class ARGState extends AbstractSingleWrapperState
   private final Collection<ARGState> parents = new ArrayList<>(1);
 
   private ARGState mCoveredBy = null;
-  private ARGState projectedFrom = null;
+  private Collection<ARGState> projectedFrom = null;
   private ARGState projectedTo = null;
   private Pair<ARGState, ARGState> appliedFrom = null;
   private Collection<ARGState> appliedTo = null;
@@ -235,36 +236,46 @@ public class ARGState extends AbstractSingleWrapperState
 
         if (this.appliedTo != null && this.appliedTo.contains(pChild)) {
           return Collections.singletonList(
-              new BlankEdge("application", FileLocation.DUMMY, currentLoc, childLoc, "appliction"));
+              new BlankEdge(
+                  "application",
+                  FileLocation.DUMMY,
+                  currentLoc,
+                  childLoc,
+                  "application"));
         } else if (this.appliedFrom != null) {
-          // Return origin edge
+          // Origin edge may be not enough as it may be merged with something else
           ARGState projection = this.appliedFrom.getSecond();
           assert projection.getProjectedFrom() != null;
-          ARGState edgePart = projection.getProjectedFrom();
-          AbstractEdge edge =
-              ((AbstractStateWithEdge) AbstractStates
-                  .extractStateByType(edgePart, AbstractStateWithLocations.class))
-                      .getAbstractEdge();
-          assert edge instanceof WrapperCFAEdge;
-          CFAEdge realEdge =  ((WrapperCFAEdge) edge).getCFAEdge();
-          // Need to replace locations for correct path
-          CFAEdge newEdge;
-          if (realEdge instanceof CStatementEdge) {
-            CStatementEdge oldStatement = (CStatementEdge) realEdge;
-            newEdge =
-                new CStatementEdge(
-                    realEdge.getRawStatement(),
-                    oldStatement.getStatement(),
-                    realEdge.getFileLocation(),
-                    currentLoc,
-                    childLoc);
-          } else if (realEdge instanceof CFunctionReturnEdge) {
-            newEdge = realEdge;
-          } else {
-            throw new UnsupportedOperationException(
-                "Edge is not supported: " + realEdge.getClass());
+          Collection<ARGState> edgeParts = projection.getProjectedFrom();
+          List<CFAEdge> result = new ArrayList<>();
+
+          for (ARGState edgePart : edgeParts) {
+            AbstractEdge edge =
+                ((AbstractStateWithEdge) AbstractStates
+                    .extractStateByType(edgePart, AbstractStateWithLocations.class))
+                        .getAbstractEdge();
+            assert edge instanceof WrapperCFAEdge;
+            CFAEdge realEdge = ((WrapperCFAEdge) edge).getCFAEdge();
+            // Need to replace locations for correct path
+            CFAEdge newEdge;
+            if (realEdge instanceof CStatementEdge) {
+              CStatementEdge oldStatement = (CStatementEdge) realEdge;
+              newEdge =
+                  new EnvironmentActionEdge(
+                      realEdge.getRawStatement(),
+                      oldStatement.getStatement(),
+                      realEdge.getFileLocation(),
+                      currentLoc,
+                      childLoc);
+            } else if (realEdge instanceof CFunctionReturnEdge) {
+              newEdge = realEdge;
+            } else {
+              throw new UnsupportedOperationException(
+                  "Edge is not supported: " + realEdge.getClass());
+            }
+            result.add(newEdge);
           }
-          return Collections.singletonList(newEdge);
+          return result;
         }
       }
       return allEdges;
@@ -347,14 +358,17 @@ public class ARGState extends AbstractSingleWrapperState
     return mergedWith;
   }
 
-  void setProjectedFrom(ARGState pState) {
+  void addProjectedFrom(ARGState pState) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    assert projectedFrom == null : "Second projected of element " + this;
 
-    projectedFrom = pState;
+    if (projectedFrom == null) {
+      projectedFrom = new ArrayList<>();
+    }
+
+    projectedFrom.add(pState);
   }
 
-  public ARGState getProjectedFrom() {
+  public Collection<ARGState> getProjectedFrom() {
     return projectedFrom;
   }
 
@@ -624,8 +638,10 @@ public class ARGState extends AbstractSingleWrapperState
       appliedFrom = null;
     }
 
-    if (projectedFrom != null) {
-      projectedFrom.projectedTo = null;
+    if (projectedFrom != null && !projectedFrom.isEmpty()) {
+      for (ARGState projection : projectedFrom) {
+        projection.projectedTo = null;
+      }
       projectedFrom = null;
     }
 
@@ -710,13 +726,16 @@ public class ARGState extends AbstractSingleWrapperState
     }
 
     if (projectedFrom != null) {
-      this.projectedFrom.projectedTo = replacement;
+      for (ARGState projection : this.projectedFrom) {
+        projection.projectedTo = replacement;
+      }
       replacement.projectedFrom = this.projectedFrom;
       this.projectedFrom = null;
     }
 
     if (projectedTo != null) {
-      this.projectedTo.projectedFrom = replacement;
+      this.projectedTo.projectedFrom.remove(this);
+      this.projectedTo.projectedFrom.add(replacement);
       replacement.projectedTo = this.projectedTo;
       this.projectedTo = null;
     }

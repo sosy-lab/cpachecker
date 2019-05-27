@@ -64,7 +64,7 @@ public class ARGApplyOperator implements ApplyOperator {
     }
 
     ARGState result = new ARGState(wrappedState, null);
-    result.setProjectedFrom(parent);
+    result.addProjectedFrom(parent);
     parent.setProjectedTo(result);
     return result;
   }
@@ -81,7 +81,7 @@ public class ARGApplyOperator implements ApplyOperator {
     }
 
     ARGState result = new ARGState(wrappedState, null);
-    result.setProjectedFrom(parent);
+    result.addProjectedFrom(parent);
     parent.setProjectedTo(result);
     return result;
   }
