@@ -23,43 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cpa.collector;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class CollectorARGStateGenerator {
   private final LogManager logger;
   private final UnmodifiableReachedSet reachedSet;
   private Collection<ARGState> reachedcollectionARG = new ArrayList<>();
-  public int currentARGStateID;
   private ImmutableList<AbstractState> theStorage;
-  private AbstractState first;
-  private int idFirst;
-  private Object idParents;
-  private ARGState simpleARGState;
-  private Object idChildren;
-  private AbstractState wrappedState;
-  private AbstractState wrappedWrappedState;
-  private Collection<ARGState> testmalparent;
-  private ArrayList parents = new ArrayList<ARGState>();
-  private Object firstparent;
-  private Object secondparent;
+  private myARGState myARGState1;
+  private myARGState myARGState2;
+  private myARGState myARGStatetransfer;
+  private ARGState convertedARGStatetransfer;
+  private ARGState currentARG;
+  private ARGState convertedparenttransfer;
+  private ARGState newarg;
+  private ARGState newarg1;
+  private ARGState newarg2;
+  private LinkedHashMap<ARGState,ARGState> linkedparents = new LinkedHashMap<>();
+  private ImmutableList anecstors;
+  private LinkedHashMap<ARGState, Boolean> linkedDestroyer = new LinkedHashMap<>();
 
 
   public CollectorARGStateGenerator(
@@ -69,40 +59,129 @@ public class CollectorARGStateGenerator {
     logger = pLogger;
     reachedSet = pReachedSet;
 
+
     buildGraphData(reachedSet);
+    logger.log(Level.INFO, "sonja reachedset "+ reachedSet.toString());
   }
 
   /** Build ARG data for all ARG states in the reached set. */
   private void buildGraphData(UnmodifiableReachedSet reached) {
+
     for (AbstractState entry : reached.asCollection()) {
-      currentARGStateID = ((CollectorState) entry).getStateId();
-      simpleARGState = ((CollectorState) entry).getARGState();
-      reachedcollectionARG.add(simpleARGState);
-      theStorage = ((CollectorState) entry).getStorage();
-      if(theStorage != null){
-        wrappedState = ((CollectorState) entry).getWrappedState();
-        wrappedWrappedState = ((CollectorState) entry).getWrappedWrappedState();
-        ARGState wrappedStateARG = (ARGState) wrappedState;
-        testmalparent = wrappedStateARG.getParents();
-        parents.addAll(testmalparent);
-       if (parents.size()> 1) {
-         firstparent = parents.get(0);
-         ARGState f = (ARGState) firstparent;
-         ARGState testmal2 = new ARGState(wrappedWrappedState, f);
-         secondparent = parents.get(1);
-         ARGState s = (ARGState) secondparent;
-         ARGState testmal3 = new ARGState(wrappedWrappedState, s);
-         reachedcollectionARG.add(wrappedStateARG);
-         //reachedcollectionARG.add(f);
-         //reachedcollectionARG.add(s);
-         reachedcollectionARG.add(testmal2);
-         reachedcollectionARG.add(testmal3);
-       }
+
+      logger.log(Level.INFO, "sonja reachedCOLLECTION singleentry "+ reachedcollectionARG.toString());
+      //logger.log(Level.INFO, "sonja ENTRY "+ entry.toString());
+      anecstors = ((CollectorState) entry).getAncestor();
+      Boolean merged = ((CollectorState) entry).ismerged();
+      if (merged){
+      //if (anecstors.size()>= 2){
+        //logger.log(Level.INFO, "sonja es wurde gemerged!!!!!!!");
+        //logger.log(Level.INFO, "sonja ENTRY "+ entry.toString());
+        myARGState1 = ((CollectorState) entry).getTestmyARG();
+        myARGState2 = ((CollectorState) entry).getTestmyARG2();
+        if(myARGState1 !=null && myARGState2 !=null){
+          ARGState convertedARGState1 = myARGState1.getARGState();
+          ARGState convertedparent1 = myARGState1.getparentARGState();
+          //logger.log(Level.INFO, "sonja converted 1 !!!! " + "\n"+ convertedARGState1.toString());
+          //logger.log(Level.INFO, "sonja converted_Parent 1!!!! "+ "\n"+ convertedparent1.toString());
+          ARGState convertedARGState2 = myARGState2.getARGState();
+          ARGState convertedparent2 = myARGState2.getparentARGState();
+          //logger.log(Level.INFO, "sonja converted 2 !!!! " + "\n"+ convertedARGState2.toString());
+          //logger.log(Level.INFO, "sonja converted_Parent 2!!!! "+ "\n"+ convertedparent2.toString());
+
+
+          AbstractState wrappedmyARG1 = ((CollectorState) entry).getTestmyARG().getwrappedState();
+          AbstractState wrappedmyARG2 = ((CollectorState) entry).getTestmyARG2().getwrappedState();
+
+          if(linkedparents.containsKey(convertedparent1))
+          {
+            ARGState current1 =linkedparents.get(convertedparent1);
+            boolean destroyed1 = convertedARGState1.isDestroyed();
+            newarg1 = new ARGState(wrappedmyARG1, current1);
+            //logger.log(Level.INFO, "sonja NEWARG "+ newarg.toString());
+            linkedparents.put(convertedARGState1, newarg1);
+            linkedDestroyer.put(newarg1,destroyed1);
+            reachedcollectionARG.add(newarg1);
+            //logger.log(Level.INFO, "sonja DESTROYED "+ destroyed1);
+          }
+          if(linkedparents.containsKey(convertedparent2))
+          {
+            ARGState current2 =linkedparents.get(convertedparent2);
+            boolean destroyed2 = convertedARGState2.isDestroyed();
+            newarg2 = new ARGState(wrappedmyARG2, current2);
+            //logger.log(Level.INFO, "sonja NEWARG "+ newarg.toString());
+            linkedparents.put(convertedARGState2, newarg2);
+            linkedDestroyer.put(newarg2,destroyed2);
+            reachedcollectionARG.add(newarg2);
+            //logger.log(Level.INFO, "sonja DESTROYED2 "+ convertedARGState2.getStateId() + destroyed2);
+          }
+          ARGState mergedstate = ((CollectorState) entry).getARGState();
+          //logger.log(Level.INFO, "sonja mergedstate "+ mergedstate.toString());
+          if(linkedparents.containsKey(convertedparent1) && linkedparents.containsKey(convertedparent2)){
+            AbstractState c = mergedstate.getWrappedState();
+            ARGState parent2 =linkedparents.get(convertedparent2);
+            ARGState parent1 =linkedparents.get(convertedparent1);
+            newarg = new ARGState(c, parent2);
+            newarg.addParent(parent1);
+            linkedparents.put(mergedstate, newarg);
+            //logger.log(Level.INFO, "sonja NewARg with parents "+ newarg.toString());
+            reachedcollectionARG.add(newarg);
+          }
+        }
+
       }
+
+
+
+      myARGStatetransfer = ((CollectorState) entry).getMyARGTransfer();
+
+      if (myARGStatetransfer != null){
+        logger.log(Level.INFO, "sonja myARGTransfer "+ myARGStatetransfer.toDOTLabel());
+        convertedARGStatetransfer = myARGStatetransfer.getARGState();
+        convertedparenttransfer = myARGStatetransfer.getparentARGState();
+        //logger.log(Level.INFO, "sonja convertedARGTransfer "+ convertedARGStatetransfer.toString());
+        //logger.log(Level.INFO, "sonja convertedARGTransfer_Parent "+ convertedparenttransfer.toString());
+
+        AbstractState wrappedmyARG = ((CollectorState) entry).getMyARGTransfer().getwrappedState();
+
+        if(reachedcollectionARG.size() == 0){
+          newarg = new ARGState(wrappedmyARG, null);
+          newarg.markExpanded();
+          linkedparents.put(convertedARGStatetransfer,newarg);
+        }
+        else{
+          //logger.log(Level.INFO, "sonja linkedparents!!!!!! "+ "\n" + linkedparents.toString());
+              if(linkedparents.containsKey(convertedparenttransfer))
+              {
+                //logger.log(Level.INFO, "sonja current in liste!!!!!! "+ "\n" + convertedparenttransfer);
+                ARGState current =linkedparents.get(convertedparenttransfer);
+                //logger.log(Level.INFO, "sonja current!!!!!! "+ "\n" + current);
+                newarg = new ARGState(wrappedmyARG, current);
+                newarg.markExpanded();
+                linkedparents.put(convertedARGStatetransfer, newarg);
+            }
+            else {
+              logger.log(Level.INFO, "sonja sollte hier nicht herkommen!!!!! ");
+            }
+        }
+        //logger.log(Level.INFO, "sonja NEWARG "+ newarg.toString());
+        reachedcollectionARG.add(newarg);
+      }
+
+  /**    theStorage = ((CollectorState) entry).getStorage();
+      //logger.log(Level.INFO, "sonja theStorage "+ theStorage);
+      if(theStorage != null){
+        currentARG = ((CollectorState) entry).getARGState();
+        //reachedcollectionARG.add(currentARG);
+      }**/
     }
+
+    logger.log(Level.INFO, "sonja reachedcollection "+ reachedcollectionARG.toString());
+
   }
 
   public Collection<ARGState> getCollection() { return reachedcollectionARG; }
+  public LinkedHashMap<ARGState, Boolean> getDestroyed() { return linkedDestroyer; }
 
 }
 

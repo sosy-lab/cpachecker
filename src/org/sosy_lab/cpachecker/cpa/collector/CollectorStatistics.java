@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Predicates;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -39,6 +40,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -79,6 +82,7 @@ public class CollectorStatistics implements Statistics {
   private CollectorARGStateGenerator argStateGenerator;
   private CollectorARGStateGenerator test;
   private Collection<ARGState> reconstructedCollection;
+  private LinkedHashMap<ARGState, Boolean> destroyedStates;
 
 
   public CollectorStatistics(CollectorCPA ccpa, Configuration config,LogManager pLogger) throws InvalidConfigurationException {
@@ -101,7 +105,10 @@ public class CollectorStatistics implements Statistics {
     if (!reached.isEmpty() && reached.getFirstState() instanceof CollectorState) {
       argStateGenerator = new CollectorARGStateGenerator(logger,reached);
       reconstructedCollection = argStateGenerator.getCollection();
-      makeFile2(reconstructedCollection);
+      destroyedStates = argStateGenerator.getDestroyed();
+      //logger.log(Level.INFO, "sonja reconstructedCollection:\n" + reconstructedCollection);
+      logger.log(Level.INFO, "sonja destroyedStates:\n" + destroyedStates);
+      //makeFile2(reconstructedCollection);
 
     }
 
@@ -127,9 +134,8 @@ public class CollectorStatistics implements Statistics {
           //logger.log(Level.INFO, "sonja got the ARGState: " + argstate);
           //logger.log(Level.INFO, "sonja got them ALL: " + reachedcollectionARG);
 
-
           int i = 0;
-          String filenamepart1 = "./output/etape";
+          String filenamepart1 = "./output/etape_";
           String filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
           File file = new File(filenamefinal);
           while (file.exists()) {
@@ -189,8 +195,12 @@ public class CollectorStatistics implements Statistics {
 
         reachedcollectionARG.add(argstate);
 
+        logger.log(Level.INFO, "sonja ROOTSTATES:\n" + argstate);
+
+
+
         int i = 0;
-        String filenamepart1 = "./output/etape";
+        String filenamepart1 = "./output/etape_";
         String filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
         File file = new File(filenamefinal);
         while (file.exists()) {
@@ -203,8 +213,23 @@ public class CollectorStatistics implements Statistics {
         BufferedWriter bw = new BufferedWriter(writer);
 
         ARGToDotWriter.write(bw,reachedcollectionARG,"Test Reconstruction Sonja");
+        /**ARGToDotWriter.write(
+            bw, rootState, ARGState::getChildren, Predicates.alwaysTrue(), Objects::nonNull);**/
 
         bw.close();
+
+        if(destroyedStates.containsKey(argstate)) {
+          if (destroyedStates.get(argstate) == true) {
+            logger.log(Level.INFO, "sonja destroyedStates CONTAINS true:" + destroyedStates.get(argstate)
+                + "\n" + argstate);
+            reachedcollectionARG.remove(argstate);
+          } else {
+            logger.log(Level.INFO,
+                "sonja destroyedStates CONTAINS:" + destroyedStates.get(argstate) + "\n"
+                    + argstate);
+            //reachedcollectionARG.remove(argstate);
+          }
+        }
       }
     }catch (IOException e) {
       logger.logUserException(

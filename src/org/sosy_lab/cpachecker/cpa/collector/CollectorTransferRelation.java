@@ -68,9 +68,7 @@ public class CollectorTransferRelation implements TransferRelation, Graphable {
   private final LogManager logger;
   Map<Integer, Collection<? extends AbstractState>>
       successorsHashmap = new HashMap<Integer, Collection<? extends AbstractState>>();
-  Collection<AbstractState> NEWstoredstates = new ArrayList<AbstractState>();
-  Collection<ARGState> rootStatestest = new ArrayList<ARGState>();
-
+  private myARGState mytransferARG;
 
 
   public CollectorTransferRelation(TransferRelation tr, LogManager trLogger) {
@@ -87,6 +85,7 @@ public class CollectorTransferRelation implements TransferRelation, Graphable {
   assert pElement instanceof CollectorState;
 
     AbstractState wrappedState = pElement;
+    //logger.log(Level.INFO, "sonja pElement:\n" + pElement);
     ARGState wrappedState2 = (ARGState) ((CollectorState) wrappedState).getWrappedState();
     AbstractState wrappedState3 = wrappedState2;
 
@@ -96,23 +95,19 @@ public class CollectorTransferRelation implements TransferRelation, Graphable {
           + " relation, but " + transferRelation.getClass().getSimpleName();
 
       successors = transferRelation.getAbstractSuccessors(wrappedState2, pPrecision);
+      //logger.log(Level.INFO, "sonja successors:\n" + successors);
 
+      Collection<ARGState> ARGSuccessors = new ArrayList<>();
       Collection<AbstractState> wrappedSuccessors = new ArrayList<>();
       for (AbstractState absElement : successors) {
-       CollectorState successorElem = new CollectorState(absElement, null,logger) {
-       };
+        ARGState absARG = (ARGState) absElement;
+        ARGSuccessors.add(absARG);
+        mytransferARG = new myARGState(absARG,wrappedState2,null, null,null, logger);
+        CollectorState successorElem = new CollectorState(absElement, null, mytransferARG, false,null,null,logger);
         wrappedSuccessors.add(successorElem);
       }
-      //CollectorState test2 = new CollectorState(element,wrappedSuccessors, logger);
-      CollectorState test2 = new CollectorState(wrappedState3,wrappedSuccessors, logger);
-      NEWstoredstates.add(test2);
-      //logger.log(Level.INFO, "sonja NEW TESTinTR:\n" + NEWstoredstates);
-      //makeFile2(NEWstoredstates);
 
-
-      rootStatestest.add(wrappedState2);
-
-
+      //logger.log(Level.INFO, "sonja wrappedSuccesors:\n" + wrappedSuccessors);
       return wrappedSuccessors;
 
     } catch (UnsupportedCodeException e) {
@@ -143,20 +138,4 @@ public class CollectorTransferRelation implements TransferRelation, Graphable {
     return false;
   }
 
-
-  private void makeFile2(Collection<AbstractState> pNEWstoredstates) {
-    try{
-      Writer writer = new FileWriter("./output/SonjasFileA.txt", true);
-      //Writer writer = IO.openOutputFile(Paths.get("./output/SonjasFile2.txt"), Charsets.UTF_8);
-      BufferedWriter bw = new BufferedWriter(writer);
-      String line = "CollectorTransferRelation Data";
-      bw.write(line + "\n");
-      bw.write(String.valueOf(pNEWstoredstates) + "\n");
-      bw.close();
-
-    }catch (IOException e) {
-      logger.logUserException(
-          WARNING, e, "Could not create Sonjas file.");
-    }
-  }
 }
