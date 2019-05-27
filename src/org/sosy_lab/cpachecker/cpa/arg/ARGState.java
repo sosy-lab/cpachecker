@@ -646,7 +646,7 @@ public class ARGState extends AbstractSingleWrapperState
     }
 
     if (projectedTo != null) {
-      projectedTo.projectedFrom = null;
+      projectedTo.projectedFrom.remove(this);
       projectedTo = null;
     }
   }

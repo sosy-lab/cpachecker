@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -151,6 +152,41 @@ public class CallstackState
     in.defaultReadObject();
     int nodeNumber = in.readInt();
     callerNode = GlobalInfo.getInstance().getCFAInfo().get().getNodeByNodeNumber(nodeNumber);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == this) {
+      return true;
+    }
+    if (!(o instanceof CallstackState)) {
+      return false;
+    }
+    CallstackState other = (CallstackState) o;
+    CallstackState tmp = this;
+    if (other.getDepth() != tmp.getDepth()) {
+      return false;
+    }
+
+    // check the whole stack
+    while (tmp != null) {
+      if (other == tmp) {
+        return true;
+      }
+      if (!other.getCallNode().equals(tmp.getCallNode())
+          || !other.getCurrentFunction().equals(tmp.getCurrentFunction())) {
+        return false;
+      }
+      other = other.getPreviousState();
+      tmp = tmp.getPreviousState();
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(callerNode, currentFunction, depth);
   }
 
 }
