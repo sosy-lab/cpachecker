@@ -45,7 +45,6 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStateInformation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -441,7 +440,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    */
   @Override
   public boolean isHeapObject(SMGObject object) {
-    return heap_objects.contains(object);
+    return getHeapObjects().contains(object);
   }
 
   /**
@@ -457,24 +456,11 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   /**
    * Constant.
    *
-   * <p>Checks whether given object is global.
-   *
-   * @param object SMGObject to be checked.
-   * @return True, if the given object is referenced in the set of global objects, false otherwise.
-   */
-  @Override
-  public boolean isGlobal(SMGObject object) {
-    return global_objects.containsValue(object);
-  }
-
-  /**
-   * Constant.
-   *
    * @return a {@link SMGObject} for current function return value
    */
   @Override
   public SMGObject getFunctionReturnObject() {
-    return stack_objects.peek().getReturnObject();
+    return getStackFrames().peek().getReturnObject();
   }
 
   @Override
@@ -490,25 +476,6 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   final public void removeHeapObjectAndEdges(SMGObject pObject) {
     heap_objects = heap_objects.removeAndCopy(pObject);
     removeObjectAndEdges(pObject);
-  }
-
-  @Override
-  public IDExpression createIDExpression(SMGObject pObject) {
-
-    if (global_objects.containsValue(pObject)) {
-      // TODO Breaks if label is changed
-      return new IDExpression(pObject.getLabel());
-    }
-
-    for (CLangStackFrame frame : stack_objects) {
-      if (frame.getVariables().containsValue(pObject)) {
-        // TODO Breaks if label is changed
-
-        return new IDExpression(pObject.getLabel(), frame.getFunctionDeclaration().getName());
-      }
-    }
-
-    return null;
   }
 
   private Set<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {

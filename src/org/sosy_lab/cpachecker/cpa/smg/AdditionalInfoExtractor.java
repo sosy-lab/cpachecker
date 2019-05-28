@@ -120,7 +120,7 @@ public class AdditionalInfoExtractor {
     if (elem instanceof SMGObject) {
       SMGObject smgObject = (SMGObject) elem;
       return smg.isHeapObject(smgObject)
-          || smg.isGlobal(smgObject)
+          || smg.getGlobalObjects().containsValue(smgObject)
           || isStackObject(smg, smgObject);
     } else if (elem instanceof SMGEdgeHasValue) {
       SMGEdgeHasValue edgeHasValue = (SMGEdgeHasValue) elem;

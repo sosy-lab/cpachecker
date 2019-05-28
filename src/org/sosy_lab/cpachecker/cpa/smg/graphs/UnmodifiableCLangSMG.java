@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import java.util.Optional;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -56,11 +55,11 @@ public interface UnmodifiableCLangSMG extends UnmodifiableSMG {
 
   PersistentMap<String, SMGRegion> getGlobalObjects();
 
-  boolean isGlobal(SMGObject object);
-
+  /**
+   * return the FunctionReturn-object for the most recent function call, i.e., from the top-level
+   * stackframe.
+   */
   SMGObject getFunctionReturnObject();
-
-  IDExpression createIDExpression(SMGObject pObject);
 
   Optional<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(SMGMemoryPath pLocation);
 }
