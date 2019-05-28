@@ -202,11 +202,6 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     stack_objects = stack_objects.popAndCopy().pushAndCopy(top.addStackVariable(pObject.getLabel(), pObject));
   }
 
-  @Override
-  public boolean isStackEmpty() {
-    return stack_objects.isEmpty();
-  }
-
   /**
    * Add a new stack frame for the passed function.
    *

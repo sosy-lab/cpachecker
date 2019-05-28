@@ -44,8 +44,6 @@ public interface UnmodifiableCLangSMG extends UnmodifiableSMG {
   @Override
   CLangSMG copyOf();
 
-  boolean isStackEmpty();
-
   SMGRegion getObjectForVisibleVariable(String pVariableName);
 
   PersistentStack<CLangStackFrame> getStackFrames();

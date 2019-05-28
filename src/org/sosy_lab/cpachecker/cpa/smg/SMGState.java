@@ -263,7 +263,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    */
   public Optional<SMGObject> addLocalVariable(int pTypeSize, String pVarName)
       throws SMGInconsistentException {
-    if (heap.isStackEmpty()) {
+    if (heap.getStackFrames().isEmpty()) {
       return Optional.empty();
     }
 
