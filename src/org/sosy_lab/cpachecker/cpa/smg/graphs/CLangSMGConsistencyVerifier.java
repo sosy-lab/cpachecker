@@ -208,8 +208,12 @@ public class CLangSMGConsistencyVerifier {
 
     for (String label: pSmg.getGlobalObjects().keySet()) {
       String globalLabel = globals.get(label).getLabel();
-      if (! globalLabel.equals(label)) {
-        pLogger.log(Level.SEVERE,  "CLangSMG inconsistent: label [" + label + "] points to an object with label [" + pSmg.getGlobalObjects().get(label).getLabel() + "]");
+      if (!globalLabel.equals(label)) {
+        pLogger.logf(
+            Level.SEVERE,
+            "CLangSMG inconsistent: label [%s] points to an object with label [%s]",
+            label,
+            pSmg.getGlobalObjects().get(label).getLabel());
         return false;
       }
     }
