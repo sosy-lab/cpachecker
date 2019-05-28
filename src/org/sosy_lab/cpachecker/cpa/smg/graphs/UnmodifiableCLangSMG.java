@@ -45,10 +45,6 @@ public interface UnmodifiableCLangSMG extends UnmodifiableSMG {
   @Override
   CLangSMG copyOf();
 
-  boolean containsInvalidElement(Object elem);
-
-  String getNoteMessageOnElement(Object elem);
-
   boolean isStackEmpty();
 
   SMGRegion getObjectForVisibleVariable(String pVariableName);

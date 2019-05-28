@@ -46,12 +46,10 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStateInformation;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -98,50 +96,6 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    * run the checks in the production build.
    */
   static private boolean perform_checks = false;
-
-  @Override
-  public boolean containsInvalidElement(Object elem) {
-    if (elem instanceof SMGObject) {
-      SMGObject smgObject = (SMGObject) elem;
-      return isHeapObject(smgObject) || isGlobal(smgObject) || isStackObject(smgObject);
-    } else if (elem instanceof SMGEdgeHasValue) {
-      SMGEdgeHasValue edgeHasValue = (SMGEdgeHasValue) elem;
-      SMGEdgeHasValueFilter filter =
-          SMGEdgeHasValueFilter.objectFilter(edgeHasValue.getObject())
-              .filterAtOffset(edgeHasValue.getOffset())
-              .filterHavingValue(edgeHasValue.getValue());
-      Set<SMGEdgeHasValue> edges = getHVEdges(filter);
-      return !edges.isEmpty();
-    } else if (elem instanceof SMGEdgePointsTo) {
-      SMGEdgePointsTo edgePointsTo = (SMGEdgePointsTo) elem;
-      SMGEdgePointsToFilter filter =
-          SMGEdgePointsToFilter.targetObjectFilter(edgePointsTo.getObject())
-              .filterAtTargetOffset(edgePointsTo.getOffset())
-              .filterHavingValue(edgePointsTo.getValue());
-      Set<SMGEdgePointsTo> edges = getPtEdges(filter);
-      return !edges.isEmpty();
-    } else if (elem instanceof SMGValue) {
-      SMGValue smgValue = (SMGValue) elem;
-      return getValues().contains(smgValue);
-    }
-    return false;
-  }
-
-  @Override
-  public String getNoteMessageOnElement(Object elem) {
-    if (elem instanceof SMGEdge) {
-      return "Assign edge";
-    } else if (elem instanceof Integer || elem instanceof SMGValue) {
-      return "Assign value";
-    } else if (elem instanceof SMGObject) {
-      SMGObject smgObject = (SMGObject) elem;
-      if (isFunctionParameter(smgObject)) {
-        return "Function parameter";
-      }
-      return "Object creation";
-    }
-    return null;
-  }
 
   public static void setPerformChecks(boolean pSetting, LogManager pLogger) {
     CLangSMG.perform_checks = pSetting;
@@ -471,33 +425,6 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   @Override
   public PersistentStack<CLangStackFrame> getStackFrames() {
     return stack_objects;
-  }
-
-  private boolean isStackObject(SMGObject pObject) {
-
-    String regionLabel = pObject.getLabel();
-
-    for (CLangStackFrame frame : stack_objects) {
-      if ((frame.containsVariable(regionLabel) && frame.getVariable(regionLabel) == pObject)
-          || pObject == frame.getReturnObject()) {
-
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private boolean isFunctionParameter(SMGObject pObject) {
-    String regionLabel = pObject.getLabel();
-    for (CLangStackFrame frame : stack_objects) {
-      for (CParameterDeclaration parameter : frame.getFunctionDeclaration().getParameters()) {
-        if (parameter.getName().equals(regionLabel) && frame.getVariable(regionLabel) == pObject) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   /**
