@@ -444,6 +444,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             // because ARGCPA doesn't like states in toRemove to be in the reachedSet.
             reachedSet.removeAll(toRemove);
             reachedSet.addAll(toAdd);
+            for (Pair<AbstractState, Precision> pair : toAdd) {
+              frontier(pair.getFirst(), pair.getSecond(), reachedSet);
+            }
           }
 
           if (mergeOperator instanceof ARGMergeJoinCPAEnabledAnalysis) {
@@ -474,49 +477,54 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         reachedSet.add(successor, successorPrecision);
         stats.addTimer.stop();
 
-        if (applyOperator != null) {
-          // TODO currently there is apply operator in any case!
-          stats.applyTimer.start();
-          // do not need stop and merge as they has been already performed on projections
-          Map<AbstractState, Precision> toAdd = new HashMap<>();
-
-          Collection<AbstractState> toApply =
-              ((ThreadModularReachedSet) reachedSet).getStatesForApply(successor);
-
-          boolean isProjection = ((AbstractStateWithEdge) successor).isProjection();
-
-          stats.mainLoop.start();
-          for (AbstractState oldState : toApply) {
-            AbstractState appliedState = null;
-            Precision appliedPrecision = null;
-            if (isProjection) {
-              stats.apply.start();
-              appliedState = applyOperator.apply(oldState, successor);
-              stats.apply.stop();
-              appliedPrecision = reachedSet.getPrecision(oldState);
-            } else {
-              stats.apply.start();
-              appliedState = applyOperator.apply(successor, oldState);
-              stats.apply.stop();
-              appliedPrecision = successorPrecision;
-            }
-            if (appliedState != null) {
-              toAdd.put(appliedState, appliedPrecision);
-            }
-          }
-          stats.mainLoop.stop();
-
-          stats.add.start();
-          for (Entry<AbstractState, Precision> entry : toAdd.entrySet()) {
-            reachedSet.add(entry.getKey(), entry.getValue());
-          }
-          stats.add.stop();
-          stats.applyTimer.stop();
-        }
+        frontier(successor, successorPrecision, reachedSet);
       }
     }
 
     return false;
+  }
+
+  private void frontier(AbstractState state, Precision precision, ReachedSet reachedSet) {
+
+    if (applyOperator != null) {
+      // TODO currently there is apply operator in any case!
+      stats.applyTimer.start();
+      // do not need stop and merge as they has been already performed on projections
+      Map<AbstractState, Precision> toAdd = new HashMap<>();
+
+      Collection<AbstractState> toApply =
+          ((ThreadModularReachedSet) reachedSet).getStatesForApply(state);
+
+      boolean isProjection = ((AbstractStateWithEdge) state).isProjection();
+
+      stats.mainLoop.start();
+      for (AbstractState oldState : toApply) {
+        AbstractState appliedState = null;
+        Precision appliedPrecision = null;
+        if (isProjection) {
+          stats.apply.start();
+          appliedState = applyOperator.apply(oldState, state);
+          stats.apply.stop();
+          appliedPrecision = reachedSet.getPrecision(oldState);
+        } else {
+          stats.apply.start();
+          appliedState = applyOperator.apply(state, oldState);
+          stats.apply.stop();
+          appliedPrecision = precision;
+        }
+        if (appliedState != null) {
+          toAdd.put(appliedState, appliedPrecision);
+        }
+      }
+      stats.mainLoop.stop();
+
+      stats.add.start();
+      for (Entry<AbstractState, Precision> entry : toAdd.entrySet()) {
+        reachedSet.add(entry.getKey(), entry.getValue());
+      }
+      stats.add.stop();
+      stats.applyTimer.stop();
+    }
   }
 
   @Override
