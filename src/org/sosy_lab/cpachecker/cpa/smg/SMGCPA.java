@@ -191,7 +191,7 @@ public class SMGCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new SMGPrecisionAdjustment(logger, exportOptions, blockOperator);
+    return new SMGPrecisionAdjustment(logger, exportOptions, blockOperator, stats);
   }
 
   @Override
