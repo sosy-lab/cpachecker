@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
@@ -136,5 +137,10 @@ public class LockCPA extends AbstractCPA
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     LockTransferRelation transfer = (LockTransferRelation) getTransferRelation();
     pStatsCollection.add(transfer.getStatistics());
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() {
+    return new LockApplyOperator();
   }
 }
