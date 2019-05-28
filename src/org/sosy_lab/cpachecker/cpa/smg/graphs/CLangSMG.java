@@ -433,8 +433,8 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    * @return Unmodifiable view of the set of the heap objects
    */
   @Override
-  public Set<SMGObject> getHeapObjects() {
-    return Collections.unmodifiableSet(heap_objects.asSet());
+  public PersistentSet<SMGObject> getHeapObjects() {
+    return heap_objects;
   }
 
   /**
@@ -668,8 +668,8 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   @Override
   public Set<SMGMemoryPath> getMemoryPaths() {
 
-    Set<SMGMemoryPath> result = new HashSet<>();
-    Set<SMGObject> reached = new HashSet<>();
+    Set<SMGMemoryPath> result = new LinkedHashSet<>();
+    Set<SMGObject> reached = new LinkedHashSet<>();
 
     getMemoryPathsFromGlobalVariables(result, reached);
     getMemoryPathsFromStack(result, reached);

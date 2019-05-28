@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -1434,7 +1435,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       case HAS_HEAP_OBJECTS:
         // Having heap objects is not an error on its own.
         // However, when combined with program exit, we can detect property MemCleanup.
-        Set<SMGObject> heapObs = heap.getHeapObjects();
+        PersistentSet<SMGObject> heapObs = heap.getHeapObjects();
         Preconditions.checkState(
             heapObs.size() >= 1 && heapObs.contains(SMGNullObject.INSTANCE),
             "NULL must always be a heap object");

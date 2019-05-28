@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.Map;
-import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 public class CLangSMGTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
@@ -119,7 +119,7 @@ public class CLangSMGTest {
 
     smg.addHeapObject(obj1);
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
-    Set<SMGObject> heap_objs = smg.getHeapObjects();
+    PersistentSet<SMGObject> heap_objs = smg.getHeapObjects();
 
     assertThat(heap_objs).contains(obj1);
     assertThat(heap_objs).doesNotContain(obj2);

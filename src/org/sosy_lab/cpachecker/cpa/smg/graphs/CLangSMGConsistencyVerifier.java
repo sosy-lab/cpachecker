@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashSet;
@@ -61,7 +62,7 @@ public class CLangSMGConsistencyVerifier {
   private static boolean verifyDisjunctHeapAndGlobal(
       LogManager pLogger, UnmodifiableCLangSMG pSmg) {
     Map<String, SMGRegion> globals = pSmg.getGlobalObjects();
-    Set<SMGObject> heap = pSmg.getHeapObjects();
+    Set<SMGObject> heap = pSmg.getHeapObjects().asSet();
 
     boolean toReturn = Collections.disjoint(globals.values(), heap);
 
@@ -84,7 +85,7 @@ public class CLangSMGConsistencyVerifier {
     for (CLangStackFrame frame : pSmg.getStackFrames()) {
       stack.addAll(frame.getAllObjects());
     }
-    Set<SMGObject> heap = pSmg.getHeapObjects();
+    Set<SMGObject> heap = pSmg.getHeapObjects().asSet();
 
     boolean toReturn = Collections.disjoint(stack, heap);
 
@@ -129,7 +130,7 @@ public class CLangSMGConsistencyVerifier {
   private static boolean verifyStackGlobalHeapUnion(LogManager pLogger, UnmodifiableCLangSMG pSmg) {
     Set<SMGObject> object_union = new HashSet<>();
 
-    object_union.addAll(pSmg.getHeapObjects());
+    Iterables.addAll(object_union, pSmg.getHeapObjects());
     object_union.addAll(pSmg.getGlobalObjects().values());
 
     for (CLangStackFrame frame : pSmg.getStackFrames()) {
