@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
@@ -67,8 +65,4 @@ public interface UnmodifiableCLangSMG extends UnmodifiableSMG {
   IDExpression createIDExpression(SMGObject pObject);
 
   Optional<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(SMGMemoryPath pLocation);
-
-  Set<SMGMemoryPath> getMemoryPaths();
-
-  Map<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths();
 }
