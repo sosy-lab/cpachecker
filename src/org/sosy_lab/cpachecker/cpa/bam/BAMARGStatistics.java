@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Optional;
@@ -195,7 +196,9 @@ public class BAMARGStatistics extends ARGStatistics {
     //   pReached.getLastState(), pReached.getFirstState(), targets);
     ARGReachedSet pMainReachedSet =
         new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
-    assert pMainReachedSet.asReachedSet().asCollection().containsAll(frontierStates);
+    assert pMainReachedSet.asReachedSet().asCollection().containsAll(frontierStates)
+        : "The following states are frontier states, but not part of the reachedset: "
+            + Iterables.transform(frontierStates, s -> !pMainReachedSet.asReachedSet().contains(s));
     final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa, false);
     final Pair<BackwardARGState, Collection<BackwardARGState>> rootAndTargetsOfSubgraph =
         cexSubgraphComputer.computeCounterexampleSubgraph(frontierStates, pMainReachedSet);
