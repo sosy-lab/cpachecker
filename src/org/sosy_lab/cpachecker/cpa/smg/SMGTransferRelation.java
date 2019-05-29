@@ -35,7 +35,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
@@ -73,7 +72,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
@@ -326,15 +324,33 @@ public class SMGTransferRelation
     }
 
     SMGState initialNewState = state.copyOf();
-    Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGSymbolicValue>>> valuesMap = new HashMap<>();
-
-    //TODO Refactor, ugly
-
-    List<SMGState> newStates = new ArrayList<>(4);
-    newStates.add(initialNewState);
-
-    List<Pair<SMGRegion, SMGSymbolicValue>> initialValuesList = new ArrayList<>(paramDecl.size());
+    Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGSymbolicValue>>> valuesMap = new LinkedHashMap<>();
+    List<Pair<SMGRegion, SMGSymbolicValue>> initialValuesList = new ArrayList<>();
     valuesMap.put(initialNewState, initialValuesList);
+
+    List<SMGState> newStates =
+        evaluateArgumentValues(callEdge, arguments, paramDecl, initialNewState, valuesMap);
+
+    for (SMGState newState : newStates) {
+      assignParameterValues(callEdge, paramDecl, valuesMap.get(newState), newState);
+    }
+    return newStates;
+  }
+
+  /**
+   * read and evaluate all arguments and put them into the valuesMap.
+   *
+   * @param valuesMap contains a mapping of newly created states (copied from initial state due to
+   *     read operation) to a list of parameter assignments (pairs of region and symbolic value).
+   */
+  private List<SMGState> evaluateArgumentValues(
+      CFunctionCallEdge callEdge,
+      List<CExpression> arguments,
+      List<CParameterDeclaration> paramDecl,
+      SMGState initialNewState,
+      Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGSymbolicValue>>> valuesMap)
+      throws UnrecognizedCodeException, CPATransferException {
+    List<SMGState> newStates = Collections.singletonList(initialNewState);
 
     // get value of actual parameter in caller function context
     for (int i = 0; i < paramDecl.size(); i++) {
@@ -351,93 +367,104 @@ public class SMGTransferRelation
       }
       SMGRegion paramObj = new SMGRegion(size, varName);
 
-      List<SMGState> result = new ArrayList<>(4);
-
+      List<SMGState> result = new ArrayList<>();
       for (SMGState newState : newStates) {
-        // We want to write a possible new Address in the new State, but
-        // explore the old state for the parameters
-        for (SMGValueAndState stateValue : readValueToBeAssiged(newState, callEdge, exp)) {
-          SMGState newStateWithReadSymbolicValue = stateValue.getSmgState();
-          SMGSymbolicValue value = stateValue.getObject();
+        result.addAll(evaluateArgumentValue(callEdge, valuesMap, i, exp, paramObj, newState));
+      }
+      newStates = result;
+    }
 
-          for (Pair<SMGState, SMGKnownSymbolicValue> newStateWithExpVal :
-              assignExplicitValueToSymbolicValue(
-                  newStateWithReadSymbolicValue, callEdge, value, exp)) {
+    return newStates;
+  }
 
-            SMGState curState = newStateWithExpVal.getFirst();
-            if (!valuesMap.containsKey(curState)) {
-              List<Pair<SMGRegion, SMGSymbolicValue>> newValues = new ArrayList<>(paramDecl.size());
-              newValues.addAll(valuesMap.get(newState));
-              valuesMap.put(curState, newValues);
-            }
+  /** read and evaluate one argument (at index <code>i</code>) and put it into the valuesMap. */
+  private List<SMGState> evaluateArgumentValue(
+      CFunctionCallEdge callEdge,
+      Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGSymbolicValue>>> valuesMap,
+      int i,
+      CExpression exp,
+      SMGRegion paramObj,
+      SMGState newState)
+      throws CPATransferException {
+    final List<SMGState> result = new ArrayList<>();
+    // We want to write a possible new Address in the new State, but
+    // explore the old state for the parameters
+    for (SMGValueAndState stateValue : readValueToBeAssiged(newState, callEdge, exp)) {
+      SMGState newStateWithReadSymbolicValue = stateValue.getSmgState();
+      SMGSymbolicValue value = stateValue.getObject();
 
-            Pair<SMGRegion, SMGSymbolicValue> lhsValuePair = Pair.of(paramObj, value);
-            valuesMap.get(curState).add(i, lhsValuePair);
-            result.add(curState);
+      for (Pair<SMGState, SMGKnownSymbolicValue> newStateWithExpVal :
+          assignExplicitValueToSymbolicValue(newStateWithReadSymbolicValue, callEdge, value, exp)) {
 
-            //Check that previous values are not merged with new one
-            if (newStateWithExpVal.getSecond() != null) {
-              for (int j = i - 1; j >= 0; j--) {
-                Pair<SMGRegion, SMGSymbolicValue> lhsCheckValuePair = valuesMap.get(curState).get(j);
-                SMGSymbolicValue symbolicValue = lhsCheckValuePair.getSecond();
-                if (newStateWithExpVal.getSecond().equals(symbolicValue)) {
-                  //Previous value was merged, replace with new value
-                  Pair<SMGRegion, SMGSymbolicValue> newLhsValuePair = Pair.of(lhsCheckValuePair.getFirst(), value);
-                  valuesMap.get(curState).remove(j);
-                  valuesMap.get(curState).add(j, newLhsValuePair);
-                }
-              }
+        SMGState curState = newStateWithExpVal.getFirst();
+        result.add(curState);
+
+        if (!valuesMap.containsKey(curState)) {
+          // copy values into new list
+          valuesMap.put(curState, new ArrayList<>(valuesMap.get(newState)));
+        }
+
+        final List<Pair<SMGRegion, SMGSymbolicValue>> curValues = valuesMap.get(curState);
+        assert curValues.size() == i : "evaluation of parameters out of order";
+        curValues.add(i, Pair.of(paramObj, value));
+
+        // Check that previous values are not merged with new one
+        if (newStateWithExpVal.getSecond() != null) {
+          for (int j = i - 1; j >= 0; j--) {
+            Pair<SMGRegion, SMGSymbolicValue> lhsCheckValuePair = curValues.get(j);
+            SMGSymbolicValue symbolicValue = lhsCheckValuePair.getSecond();
+            if (newStateWithExpVal.getSecond().equals(symbolicValue)) {
+              // Previous value was merged, replace with new value
+              curValues.set(j, Pair.of(lhsCheckValuePair.getFirst(), value));
             }
           }
         }
       }
-
-      newStates = result;
     }
+    return result;
+  }
 
-    for (SMGState newState : newStates) {
-      newState.addStackFrame(functionDeclaration);
+  /** add a new stackframe and assign all arguments to parameters. */
+  private void assignParameterValues(
+      CFunctionCallEdge callEdge,
+      List<CParameterDeclaration> paramDecl,
+      List<Pair<SMGRegion, SMGSymbolicValue>> values,
+      SMGState newState)
+      throws SMGInconsistentException, UnrecognizedCodeException {
 
-      // get value of actual parameter in caller function context
-      for (int i = 0; i < paramDecl.size(); i++) {
+    newState.addStackFrame(callEdge.getSuccessor().getFunctionDefinition());
 
-        CExpression exp = arguments.get(i);
+    // get value of actual parameter in caller function context
+    for (int i = 0; i < paramDecl.size(); i++) {
+      String varName = paramDecl.get(i).getName();
+      CType cParamType = TypeUtils.getRealExpressionType(paramDecl.get(i));
 
-        String varName = paramDecl.get(i).getName();
-        CType cParamType = TypeUtils.getRealExpressionType(paramDecl.get(i));
-        CType rValueType = TypeUtils.getRealExpressionType(exp.getExpressionType());
-        // if function declaration is in form 'int foo(char b[32])' then omit array length
-        if (rValueType instanceof CArrayType) {
-          rValueType = new CPointerType(rValueType.isConst(), rValueType.isVolatile(), ((CArrayType)rValueType).getType());
-        }
-
-        if (cParamType instanceof CArrayType) {
-          cParamType = new CPointerType(cParamType.isConst(), cParamType.isVolatile(), ((CArrayType) cParamType).getType());
-        }
-
-        List<Pair<SMGRegion, SMGSymbolicValue>> values = valuesMap.get(newState);
-        SMGRegion newObject = values.get(i).getFirst();
-        SMGSymbolicValue symbolicValue = values.get(i).getSecond();
-
-        int typeSize = expressionEvaluator.getBitSizeof(callEdge, cParamType, newState);
-
-        newState.addLocalVariable(typeSize, varName, newObject);
-
-        //TODO (  cast expression)
-
-        //6.5.16.1 right operand is converted to type of assignment expression
-        // 6.5.26 The type of an assignment expression is the type the left operand would have after lvalue conversion.
-        rValueType = cParamType;
-
-        // We want to write a possible new Address in the new State, but
-        // explore the old state for the parameters
-        newState =
-            expressionEvaluator.assignFieldToState(
-                newState, callEdge, newObject, 0, symbolicValue, rValueType);
+      // if function declaration is in form 'int foo(char b[32])' then omit array length
+      if (cParamType instanceof CArrayType) {
+        cParamType =
+            new CPointerType(
+                cParamType.isConst(), cParamType.isVolatile(), ((CArrayType) cParamType).getType());
       }
-    }
 
-    return newStates;
+      SMGRegion newObject = values.get(i).getFirst();
+      SMGSymbolicValue symbolicValue = values.get(i).getSecond();
+      int typeSize = expressionEvaluator.getBitSizeof(callEdge, cParamType, newState);
+
+      newState.addLocalVariable(typeSize, varName, newObject);
+
+      // TODO (  cast expression)
+
+      // 6.5.16.1 right operand is converted to type of assignment expression
+      // 6.5.26 The type of an assignment expression is the type the left operand would have after
+      // lvalue conversion.
+      CType rValueType = cParamType;
+
+      // We want to write a possible new Address in the new State, but
+      // explore the old state for the parameters
+      newState =
+          expressionEvaluator.assignFieldToState(
+              newState, callEdge, newObject, 0, symbolicValue, rValueType);
+    }
   }
 
   // Current SMGState is not fully persistent
