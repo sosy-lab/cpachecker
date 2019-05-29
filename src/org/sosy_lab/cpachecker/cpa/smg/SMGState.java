@@ -353,7 +353,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     if ((pLevel == null || options.getRuntimeCheck().isFinerOrEqualThan(pLevel))) {
       if (!CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap)) {
         throw new SMGInconsistentException(
-            "SMG was found inconsistent during a check on state id " + getId());
+            String.format(
+                "SMG was found inconsistent during a check on state id %d:\n%s", getId(), this));
       }
     }
   }

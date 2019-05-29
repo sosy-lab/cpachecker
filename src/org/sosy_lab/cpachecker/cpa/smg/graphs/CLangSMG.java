@@ -664,20 +664,15 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   public Optional<SMGEdgeHasValue> forget(SMGMemoryPath pLocation) {
-
     Optional<SMGEdgeHasValue> edgeToForget = getHVEdgeFromMemoryLocation(pLocation);
-
     if (!edgeToForget.isPresent()) {
       return Optional.empty();
     }
-
     removeHasValueEdge(edgeToForget.get());
-
     return edgeToForget;
   }
 
   public SMGStateInformation forgetStackVariable(MemoryLocation pMemoryLocation) {
-
     if (pMemoryLocation.isOnFunctionStack()) {
       return forgetFunctionStackVariable(pMemoryLocation, true);
     } else {
@@ -724,13 +719,9 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
 
     SMGObject reg = frame.getVariable(variableName);
-
     SMGStateInformation info = createInfo ? createStateInfo(reg) : null; // lazy
-
     stack_objects = stack_objects.replace(f -> f == frame, frame.removeVariable(variableName));
-
     removeObjectAndEdges(reg);
-
     return info;
   }
 
