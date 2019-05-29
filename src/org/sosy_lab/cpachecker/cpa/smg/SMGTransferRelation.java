@@ -199,15 +199,14 @@ public class SMGTransferRelation
     Collection<SMGState> successors;
     SMGObject tmpFieldMemory = smgState.getHeap().getFunctionReturnObject();
     if (tmpFieldMemory != null) {
-      CExpression returnExp =
-          returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
+      // value 0 is the default return value in C
+      CExpression returnExp = returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO);
       CType expType = TypeUtils.getRealExpressionType(returnExp);
       Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
       if (returnAssignment.isPresent()) {
         expType = returnAssignment.get().getLeftHandSide().getExpressionType();
       }
-      successors =
-          assignFieldToState(smgState.copyOf(), returnEdge, tmpFieldMemory, 0, expType, returnExp);
+      successors = assignFieldToState(smgState, returnEdge, tmpFieldMemory, 0, expType, returnExp);
     } else {
       successors = ImmutableList.of(smgState);
     }
@@ -262,29 +261,28 @@ public class SMGTransferRelation
         .equals(functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
-
       // Assign the return value to the lValue of the functionCallAssignment
-      CExpression lValue = ((CFunctionCallAssignmentStatement) exprOnSummary).getLeftHandSide();
-      CType rValueType =
-          TypeUtils.getRealExpressionType(
-              ((CFunctionCallAssignmentStatement) exprOnSummary).getRightHandSide());
+      CFunctionCallAssignmentStatement funcAssignment =
+          (CFunctionCallAssignmentStatement) exprOnSummary;
+      CExpression lValue = funcAssignment.getLeftHandSide();
+      CType rValueType = TypeUtils.getRealExpressionType(funcAssignment.getRightHandSide());
       SMGObject tmpMemory = newState.getHeap().getFunctionReturnObject();
       SMGSymbolicValue rValue =
           expressionEvaluator
               .readValue(
                   newState, tmpMemory, SMGZeroValue.INSTANCE, rValueType, functionReturnEdge)
               .getObject();
-      SMGAddress address = null;
 
       // Lvalue is one frame above
       newState.dropStackFrame();
-      LValueAssignmentVisitor visitor = expressionEvaluator.getLValueAssignmentVisitor(functionReturnEdge, newState);
+      LValueAssignmentVisitor visitor =
+          expressionEvaluator.getLValueAssignmentVisitor(functionReturnEdge, newState);
       List<SMGAddressAndState> addressAndValues = lValue.accept(visitor);
       List<SMGState> result = new ArrayList<>(addressAndValues.size());
 
       for (SMGAddressAndState addressAndValue : addressAndValues) {
-        address = addressAndValue.getObject();
-        newState = addressAndValue.getSmgState();
+        SMGAddress address = addressAndValue.getObject();
+        SMGState newState2 = addressAndValue.getSmgState();
 
         if (!address.isUnknown()) {
           if (rValue.isUnknown()) {
@@ -299,11 +297,11 @@ public class SMGTransferRelation
 
           SMGState resultState =
               expressionEvaluator.assignFieldToState(
-                  newState, functionReturnEdge, object, offset, rValue, rValueType);
+                  newState2, functionReturnEdge, object, offset, rValue, rValueType);
           result.add(resultState);
         } else {
-          //TODO missingInformation, exception
-          result.add(newState);
+          // TODO missingInformation, exception
+          result.add(newState2);
         }
       }
 
@@ -322,15 +320,12 @@ public class SMGTransferRelation
       String calledFunctionName)
       throws CPATransferException {
 
-    CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
-    SMGState initialNewState = state.copyOf();
-    CFunctionDeclaration functionDeclaration = functionEntryNode.getFunctionDefinition();
-
     if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
       //TODO Parameter with varArgs
       assert (paramDecl.size() == arguments.size());
     }
 
+    SMGState initialNewState = state.copyOf();
     Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGSymbolicValue>>> valuesMap = new HashMap<>();
 
     //TODO Refactor, ugly
@@ -343,21 +338,18 @@ public class SMGTransferRelation
 
     // get value of actual parameter in caller function context
     for (int i = 0; i < paramDecl.size(); i++) {
-
       CExpression exp = arguments.get(i);
-
       String varName = paramDecl.get(i).getName();
       CType cParamType = TypeUtils.getRealExpressionType(paramDecl.get(i));
 
-      SMGRegion paramObj;
       // If parameter is a array, convert to pointer
+      final int size;
       if (cParamType instanceof CArrayType) {
-        int size = machineModel.getSizeofPtrInBits();
-        paramObj = new SMGRegion(size, varName);
+        size = machineModel.getSizeofPtrInBits();
       } else {
-        int size = expressionEvaluator.getBitSizeof(callEdge, cParamType, initialNewState);
-        paramObj = new SMGRegion(size, varName);
+        size = expressionEvaluator.getBitSizeof(callEdge, cParamType, initialNewState);
       }
+      SMGRegion paramObj = new SMGRegion(size, varName);
 
       List<SMGState> result = new ArrayList<>(4);
 
