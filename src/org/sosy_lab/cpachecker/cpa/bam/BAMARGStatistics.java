@@ -198,7 +198,7 @@ public class BAMARGStatistics extends ARGStatistics {
         new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
     assert pMainReachedSet.asReachedSet().asCollection().containsAll(frontierStates)
         : "The following states are frontier states, but not part of the reachedset: "
-            + Iterables.transform(frontierStates, s -> !pMainReachedSet.asReachedSet().contains(s));
+            + Iterables.filter(frontierStates, s -> !pMainReachedSet.asReachedSet().contains(s));
     final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa, false);
     final Pair<BackwardARGState, Collection<BackwardARGState>> rootAndTargetsOfSubgraph =
         cexSubgraphComputer.computeCounterexampleSubgraph(frontierStates, pMainReachedSet);
