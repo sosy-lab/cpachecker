@@ -2106,7 +2106,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public void unknownWrite() {
     if (!isTrackPredicatesEnabled()) {
-      heap.unknownWrite();
+      heap.clearValues();
     }
   }
 
