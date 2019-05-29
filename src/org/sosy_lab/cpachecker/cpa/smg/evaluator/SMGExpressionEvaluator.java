@@ -444,19 +444,6 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  @Deprecated // unused
-  public SMGAddressValue evaluateAddressV2(
-      SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
-
-    List<SMGAddressValueAndState> result = evaluateAddress(newState, cfaEdge, rValue);
-
-    if (result.size() == 1) {
-      return result.get(0).getObject();
-    } else {
-      return SMGUnknownValue.INSTANCE;
-    }
-  }
-
   List<SMGAddressValueAndState> handlePointerArithmetic(
       SMGState initialSmgState,
       CFAEdge cfaEdge,
