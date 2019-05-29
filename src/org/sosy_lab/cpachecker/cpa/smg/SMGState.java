@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1989,7 +1990,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public boolean forgetNonTrackedHve(Set<SMGMemoryPath> pMempaths) {
 
-    Set<SMGEdgeHasValue> trackkedHves = new HashSet<>();
+    Set<SMGEdgeHasValue> trackedHves = new HashSet<>();
     Set<SMGValue> trackedValues = new HashSet<>();
     trackedValues.add(SMGZeroValue.INSTANCE);
 
@@ -1997,7 +1998,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       Optional<SMGEdgeHasValue> hve = heap.getHVEdgeFromMemoryLocation(path);
 
       if (hve.isPresent()) {
-        trackkedHves.add(hve.get());
+        trackedHves.add(hve.get());
         trackedValues.add(hve.get().getValue());
       }
     }
@@ -2012,7 +2013,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         continue;
       }
 
-      if (!trackkedHves.contains(edge)) {
+      if (!trackedHves.contains(edge)) {
         heap.removeHasValueEdge(edge);
         change = true;
       }
@@ -2042,7 +2043,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public Map<MemoryLocation, SMGRegion> getStackVariables() {
 
-    Map<MemoryLocation, SMGRegion> result = new HashMap<>();
+    Map<MemoryLocation, SMGRegion> result = new LinkedHashMap<>();
 
     for (Entry<String, SMGRegion> variableEntry : heap.getGlobalObjects().entrySet()) {
       String variableName = variableEntry.getKey();
