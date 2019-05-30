@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -154,11 +153,9 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
   static List<SMGAddressAndState> asAddressAndStateList(List<SMGAddressValueAndState> lst) {
     List<SMGAddressAndState> result = new ArrayList<>();
     for (SMGAddressValueAndState addressValueAndState : lst) {
-      SMGAddressValue addressValue = addressValueAndState.getObject();
       result.add(
           SMGAddressAndState.of(
-              addressValueAndState.getSmgState(),
-              addressValue.isUnknown() ? SMGAddress.UNKNOWN : addressValue.getAddress()));
+              addressValueAndState.getSmgState(), addressValueAndState.getObject().getAddress()));
     }
     return result;
   }
