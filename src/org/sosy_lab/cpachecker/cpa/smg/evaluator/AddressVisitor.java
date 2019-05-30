@@ -158,9 +158,7 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
       result.add(
           SMGAddressAndState.of(
               addressValueAndState.getSmgState(),
-              addressValue.isUnknown()
-                  ? SMGAddress.getUnknownInstance()
-                  : addressValue.getAddress()));
+              addressValue.isUnknown() ? SMGAddress.UNKNOWN : addressValue.getAddress()));
     }
     return result;
   }

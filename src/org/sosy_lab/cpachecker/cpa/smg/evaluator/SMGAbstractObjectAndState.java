@@ -84,7 +84,7 @@ public abstract class SMGAbstractObjectAndState<T> {
     }
 
     public static SMGAddressAndState of(SMGState pState) {
-      return new SMGAddressAndState(pState, SMGAddress.getUnknownInstance());
+      return new SMGAddressAndState(pState, SMGAddress.UNKNOWN);
     }
 
     public static SMGAddressAndState of(SMGState pState, SMGAddress pAddress) {
