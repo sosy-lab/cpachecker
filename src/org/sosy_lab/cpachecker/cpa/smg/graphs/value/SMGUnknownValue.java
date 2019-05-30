@@ -31,6 +31,8 @@ public final class SMGUnknownValue implements SMGExplicitValue, SMGAddressValue 
 
   public static final SMGUnknownValue INSTANCE = new SMGUnknownValue();
 
+  private SMGUnknownValue() {}
+
   @Override
   public String toString() {
     return "UNKNOWN";
