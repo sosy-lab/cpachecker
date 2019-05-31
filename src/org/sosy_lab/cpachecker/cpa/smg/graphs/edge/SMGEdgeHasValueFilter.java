@@ -40,6 +40,7 @@ public class SMGEdgeHasValueFilter {
   private boolean valueComplement = false;
   private Long offset = null;
   private CType type = null;
+  private Integer size = null;
 
   public SMGObject getObject() {
     return object;
@@ -55,6 +56,10 @@ public class SMGEdgeHasValueFilter {
 
   public CType getType() {
     return type;
+  }
+
+  public Integer getSize() {
+    return size;
   }
 
   @VisibleForTesting
@@ -85,6 +90,11 @@ public class SMGEdgeHasValueFilter {
     return this;
   }
 
+  public SMGEdgeHasValueFilter filterBySize(Integer pSize) {
+    size = pSize;
+    return this;
+  }
+
   public boolean holdsFor(SMGEdgeHasValue pEdge) {
     if (object != null && object != pEdge.getObject()) {
       return false;
@@ -103,6 +113,10 @@ public class SMGEdgeHasValueFilter {
     }
 
     if (type != null && ! type.getCanonicalType().equals(pEdge.getType().getCanonicalType())) {
+      return false;
+    }
+
+    if (size != null && pEdge.getSizeInBits() != size) {
       return false;
     }
 

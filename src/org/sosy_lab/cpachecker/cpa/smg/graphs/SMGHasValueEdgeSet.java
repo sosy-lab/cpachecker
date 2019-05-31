@@ -174,13 +174,14 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
   @Override
   public SMGHasValueEdges filter(SMGEdgeHasValueFilter pFilter) {
     SMGHasValueEdgeSet filtered = this;
-    SMGObject object = pFilter.getObject();
-    Long offset = pFilter.getOffset();
-    SMGValue value = pFilter.getValue();
-    CType type = pFilter.getType();
-    if (object != null) {
-      filtered = getEdgesForObject(object);
-      if (offset == null && value == null && type == null) {
+    SMGObject filterObject = pFilter.getObject();
+    Long filterOffset = pFilter.getOffset();
+    SMGValue filterValue = pFilter.getValue();
+    CType filterType = pFilter.getType();
+    Integer filterSize = pFilter.getSize();
+    if (filterObject != null) {
+      filtered = getEdgesForObject(filterObject);
+      if (filterOffset == null && filterValue == null && filterType == null) {
         return filtered;
       }
     }
@@ -189,16 +190,22 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     for (Entry<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> entry : entries) {
       filtered = filtered.removeAllEdgesOfObjectAndCopy(entry.getKey());
       PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = entry.getValue();
-      if (offset != null) {
-        Entry<Long, SMGEdgeHasValue> candidateEntry = sortedByOffsets.floorEntry(offset);
+      if (filterOffset != null) {
+        Entry<Long, SMGEdgeHasValue> candidateEntry = sortedByOffsets.floorEntry(filterOffset);
         if (candidateEntry != null) {
           SMGEdgeHasValue candidate = candidateEntry.getValue();
 
           // also return part of zero edge
           if (candidate.getValue().isZero()) {
-            candidate = new SMGEdgeHasValue(
-                candidate.getSizeInBits() - Math.toIntExact((offset - candidate.getOffset())),
-                offset, candidate.getObject(), candidate.getValue());
+            int newSize = candidate.getSizeInBits() - Math.toIntExact((filterOffset - candidate.getOffset()));
+            if (filterSize != null && newSize > filterSize) {
+              newSize = filterSize;
+            }
+            if (newSize > 0) {
+              candidate = new SMGEdgeHasValue(newSize, filterOffset, candidate.getObject(), candidate.getValue());
+            } else {
+              continue;
+            }
           }
           if (pFilter.holdsFor(candidate)) {
             filtered = filtered.addEdgeAndCopy(candidate);
@@ -206,6 +213,11 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
         }
       } else {
         for (SMGEdgeHasValue candidate : sortedByOffsets.values()) {
+          if (candidate.getValue().isZero() && filterSize != null) {
+            assert false;
+            //TODO:
+            candidate = new SMGEdgeHasValue(filterSize, candidate.getOffset(), candidate.getObject(), candidate.getValue());
+          }
           if (pFilter.holdsFor(candidate)) {
             filtered = filtered.addEdgeAndCopy(candidate);
           }
