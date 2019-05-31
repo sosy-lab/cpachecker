@@ -102,6 +102,9 @@ class SMGJoinFields {
 
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
     SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
+    if (pSMG1.getHVEdges(filterForSMG1).equals(pSMG2.getHVEdges(filterForSMG2))) {
+      return returnSet;
+    }
     filterForSMG1.filterNotHavingValue(SMGZeroValue.INSTANCE);
 
     for (SMGEdgeHasValue edge : pSMG1.getHVEdges(filterForSMG1)) {
@@ -154,6 +157,10 @@ class SMGJoinFields {
   @VisibleForTesting
   static void setCompatibleHVEdgesToSMG(
       SMG pSMG, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+
+    if (pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1)).equals(pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2)))) {
+      return;
+    }
 
     SMGEdgeHasValueFilter nullValueFilter =
         SMGEdgeHasValueFilter.objectFilter(pObj1).filterHavingValue(SMGZeroValue.INSTANCE);
