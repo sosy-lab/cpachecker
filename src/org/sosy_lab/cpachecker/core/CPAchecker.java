@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -508,8 +508,7 @@ public class CPAchecker {
         cfa = (CFA) ois.readObject();
       }
 
-      assert CFACheck.check(
-          cfa.getMainFunction(), ImmutableSet.copyOf(cfa.getAllNodes()), cfa.getMachineModel());
+      assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel());
     }
 
     stats.setCFA(cfa);
