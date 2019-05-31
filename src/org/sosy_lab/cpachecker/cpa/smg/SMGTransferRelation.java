@@ -921,9 +921,26 @@ public class SMGTransferRelation
           ((CInitializerExpression) pInitializer).getExpression());
 
     } else if (pInitializer instanceof CInitializerList) {
+      CInitializerList pNewInitializer = ((CInitializerList) pInitializer);
+      CType realCType = pLValueType.getCanonicalType();
 
-      return handleInitializerList(pNewState, pVarDecl, pEdge,
-          pNewObject, pOffset, pLValueType, ((CInitializerList) pInitializer));
+      if (realCType instanceof CArrayType) {
+        CArrayType arrayType = (CArrayType) realCType;
+        return handleInitializerList(
+            pNewState, pVarDecl, pEdge, pNewObject, pOffset, arrayType, pNewInitializer);
+
+      } else if (realCType instanceof CCompositeType) {
+        CCompositeType structType = (CCompositeType) realCType;
+        return handleInitializerList(
+            pNewState.copyOf(), pVarDecl, pEdge, pNewObject, pOffset, structType, pNewInitializer);
+      }
+
+      // Type cannot be resolved
+      logger.log(Level.INFO,() ->
+                String.format("Type %s cannot be resolved sufficiently to handle initializer %s",
+                    realCType.toASTString(""), pNewInitializer));
+      return ImmutableList.of(pNewState);
+
     } else if (pInitializer instanceof CDesignatedInitializer) {
       throw new AssertionError("Error in handling initializer, designated Initializer " + pInitializer.toASTString()
           + " should not appear at this point.");
@@ -931,36 +948,6 @@ public class SMGTransferRelation
     } else {
       throw new UnrecognizedCodeException("Did not recognize Initializer", pInitializer);
     }
-  }
-
-  private List<SMGState> handleInitializerList(
-      SMGState pNewState,
-      CVariableDeclaration pVarDecl,
-      CFAEdge pEdge,
-      SMGObject pNewObject,
-      long pOffset,
-      CType pLValueType,
-      CInitializerList pNewInitializer)
-      throws CPATransferException {
-
-    CType realCType = pLValueType.getCanonicalType();
-
-    if (realCType instanceof CArrayType) {
-      CArrayType arrayType = (CArrayType) realCType;
-      return handleInitializerList(pNewState, pVarDecl, pEdge,
-          pNewObject, pOffset, arrayType, pNewInitializer);
-
-    } else if (realCType instanceof CCompositeType) {
-      CCompositeType structType = (CCompositeType) realCType;
-      return handleInitializerList(pNewState, pVarDecl, pEdge,
-          pNewObject, pOffset, structType, pNewInitializer);
-    }
-
-    // Type cannot be resolved
-    logger.log(Level.INFO,() ->
-              String.format("Type %s cannot be resolved sufficiently to handle initializer %s",
-                  realCType.toASTString(""), pNewInitializer));
-    return ImmutableList.of(pNewState);
   }
 
   @SuppressWarnings("deprecation") // replace with machineModel.getAllFieldOffsetsInBits
@@ -1077,10 +1064,9 @@ public class SMGTransferRelation
 
       if (listCounter >= memberTypes.size()) {
         throw new UnrecognizedCodeException(
-            "More Initializer in initializer list "
-                + pNewInitializer.toASTString()
-                + " than fit in type "
-                + pLValueType.toASTString(""),
+            String.format(
+                "More initializer in initializer list %s than fit in type %s",
+                pNewInitializer.toASTString(), pLValueType.toASTString("")),
             pEdge);
       }
 
@@ -1088,22 +1074,9 @@ public class SMGTransferRelation
       List<Pair<SMGState, Long>> resultOffsetAndStates = new ArrayList<>();
 
       for (Pair<SMGState, Long> offsetAndState : offsetAndStates) {
-        long offset = offsetAndState.getSecond();
-        if (!(memberType instanceof CBitFieldType)) {
-          int overByte = Math.toIntExact(offset % machineModel.getSizeofCharInBits());
-          if (overByte > 0) {
-            offset += machineModel.getSizeofCharInBits() - overByte;
-          }
-          @SuppressWarnings("deprecation") // replace with machineModel.getAllFieldOffsetsInBits
-          long padding =
-              machineModel
-                  .getPadding(
-                      BigInteger.valueOf(offset / machineModel.getSizeofCharInBits()), memberType)
-                  .longValueExact();
-          offset += padding * machineModel.getSizeofCharInBits();
-        }
-        SMGState newState = offsetAndState.getFirst();
+        long offset = getOffsetWithPadding(offsetAndState.getSecond(), memberType);
 
+        SMGState newState = offsetAndState.getFirst();
         List<SMGState> pNewStates =
             handleInitializer(newState, pVarDecl, pEdge, pNewObject, offset, memberType, initializer);
 
@@ -1118,6 +1091,23 @@ public class SMGTransferRelation
     }
 
     return Lists.transform(offsetAndStates, Pair::getFirst);
+  }
+
+  private long getOffsetWithPadding(long offset, CType memberType) {
+    if (!(memberType instanceof CBitFieldType)) {
+      int overByte = Math.toIntExact(offset % machineModel.getSizeofCharInBits());
+      if (overByte > 0) {
+        offset += machineModel.getSizeofCharInBits() - overByte;
+      }
+      @SuppressWarnings("deprecation") // replace with machineModel.getAllFieldOffsetsInBits
+      long padding =
+          machineModel
+              .getPadding(
+                  BigInteger.valueOf(offset / machineModel.getSizeofCharInBits()), memberType)
+              .longValueExact();
+      offset += padding * machineModel.getSizeofCharInBits();
+    }
+    return offset;
   }
 
   private List<SMGState> handleInitializerList(
