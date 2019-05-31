@@ -91,7 +91,12 @@ public class PersistentSet<K extends Comparable<? super K>> implements Set<K> {
 
   @Override
   public Object[] toArray() {
-    throw new UnsupportedOperationException();
+    Object[] objects = new Object[size()];
+    int i = 0;
+    for(K object : this) {
+      objects[i++] = object;
+    }
+    return objects;
   }
 
   @Override

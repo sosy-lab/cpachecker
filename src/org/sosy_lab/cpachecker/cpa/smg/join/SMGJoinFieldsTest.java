@@ -443,11 +443,9 @@ public class SMGJoinFieldsTest {
     smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, obj2, SMGZeroValue.INSTANCE));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
 
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 64, obj1, SMGZeroValue.INSTANCE));
     smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 96, obj1, SMGZeroValue.INSTANCE));
     smg3.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 64, obj1, SMGZeroValue.INSTANCE));
 
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 64, obj2, SMGZeroValue.INSTANCE));
     smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 96, obj2, SMGZeroValue.INSTANCE));
     smg4.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 64, obj2, SMGZeroValue.INSTANCE));
 

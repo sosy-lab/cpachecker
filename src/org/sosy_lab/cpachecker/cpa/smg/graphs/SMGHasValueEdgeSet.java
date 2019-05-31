@@ -71,6 +71,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     int pSize = size - sortedByOffsets.size();
     sortedByOffsets = sortedByOffsets.putAndCopy(pEdge.getOffset(), pEdge);
     pSize += sortedByOffsets.size();
+    assert (size != pSize);
     return new SMGHasValueEdgeSet(map.putAndCopy(pEdge.getObject(), sortedByOffsets), pSize);
   }
 
