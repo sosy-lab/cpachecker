@@ -494,12 +494,14 @@ public class CPAchecker {
     final CFA cfa;
     if (serializedCfaFile == null) {
       // parse file and create CFA
+      logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
       CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
       stats.setCFACreator(cfaCreator);
       cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
 
     } else {
       // load CFA from serialization file
+      logger.logf(Level.INFO, "Reading CFA from file \"%s\"", serializedCfaFile);
       try (InputStream inputStream = Files.newInputStream(serializedCfaFile);
           InputStream gzipInputStream = new GZIPInputStream(inputStream);
           ObjectInputStream ois = new ObjectInputStream(gzipInputStream)) {
