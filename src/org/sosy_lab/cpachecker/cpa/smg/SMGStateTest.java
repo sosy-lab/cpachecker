@@ -305,7 +305,6 @@ public class SMGStateTest {
     final long hfo = 0;
     final long nfo = 0;
     final long pfo = 32; // hidden nullified part
-    final long dfo = 64; // hidden nullified part
     final int minLength = 3;
     final int level = 0;
 
@@ -356,12 +355,9 @@ public class SMGStateTest {
         Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(nfo)));
     SMGEdgeHasValue prevField =
         Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(pfo)));
-    SMGEdgeHasValue dataField =
-        Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(dfo)));
 
     Truth.assertThat(newNextField.getSizeInBits(model32)).isEqualTo(ptrSizeInBits);
-    Truth.assertThat(prevField.getSizeInBits(model32)).isEqualTo(ptrSizeInBits);
-    Truth.assertThat(dataField.getSizeInBits(model32)).isEqualTo(ptrSizeInBits);
+    Truth.assertThat(prevField.getSizeInBits(model32)).isEqualTo(2 * ptrSizeInBits);
 
     // next of new region should point to new dll
     SMGObject newDll = newSMG.getPointer(newNextField.getValue()).getObject();
@@ -376,7 +372,6 @@ public class SMGStateTest {
     Truth.assertThat(((SMGDoublyLinkedList) newDll).getMinimumLength())
         .isEqualTo(dll.getMinimumLength() - 1);
     Truth.assertThat(prevField.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
-    Truth.assertThat(dataField.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
   }
 
   @Test
