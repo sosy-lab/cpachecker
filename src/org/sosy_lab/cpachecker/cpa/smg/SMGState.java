@@ -1199,22 +1199,20 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
 
 
-    Set<SMGEdgeHasValue> overlappingZeroEdges = new HashSet<>();
+    List<SMGEdgeHasValue> overlappingZeroEdges = new ArrayList<>();
 
     /* We need to remove all non-zero overlapping edges
      * and remember all overlapping zero edges to shrink them later
      */
-    for (SMGEdgeHasValue hv : edges) {
+    Iterable<SMGEdgeHasValue> overlappingEdges = edges.getOverlapping(new_edge, heap.getMachineModel());
+    for (SMGEdgeHasValue hv : overlappingEdges) {
 
-      boolean hvEdgeOverlaps = new_edge.overlapsWith(hv, heap.getMachineModel());
       boolean hvEdgeIsZero = hv.getValue() == SMGZeroValue.INSTANCE;
 
-      if (hvEdgeOverlaps) {
-        if (hvEdgeIsZero) {
-          overlappingZeroEdges.add(hv);
-        } else {
-          heap.removeHasValueEdge(hv);
-        }
+      if (hvEdgeIsZero) {
+        overlappingZeroEdges.add(hv);
+      } else {
+        heap.removeHasValueEdge(hv);
       }
     }
 
@@ -1266,7 +1264,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   private void mergeWithOverlappingZeroEdges(
-      SMGEdgeHasValue pNew_edge, Set<SMGEdgeHasValue> pOverlappingZeroEdges) {
+      SMGEdgeHasValue pNew_edge, Iterable<SMGEdgeHasValue> pOverlappingZeroEdges) {
     SMGObject object = pNew_edge.getObject();
     long startOffset = pNew_edge.getOffset();
 
@@ -1312,7 +1310,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   private void shrinkOverlappingZeroEdges(SMGEdgeHasValue pNew_edge,
-      Set<SMGEdgeHasValue> pOverlappingZeroEdges) {
+      Iterable<SMGEdgeHasValue> pOverlappingZeroEdges) {
 
     SMGObject object = pNew_edge.getObject();
     long startOffset = pNew_edge.getOffset();
