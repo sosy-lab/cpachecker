@@ -86,7 +86,7 @@ public class FunctionCallDumper {
           // different format for call to external function
           final String format =
               functionNames.contains(calleeFunctionName) ? "" : "shape=\"box\", color=grey";
-          pAppender.append(String.format("%s [label=\"%s\", %s];\n", callee, label, format));
+          pAppender.append(String.format("%s [label=\"%s\", %s];%n", callee, label, format));
         }
 
         pAppender.append(caller + " -> " + callee + ";\n");
