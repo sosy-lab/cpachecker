@@ -403,15 +403,14 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       throws SMGInconsistentException {
     if (heap.isPointer(pValue)) {
       SMGEdgePointsTo addressValue = heap.getPointer(pValue);
-      SMGAddressValue address = SMGKnownAddressValue.valueOf(addressValue);
-      SMGObject obj = address.getObject();
+      SMGObject obj = addressValue.getObject();
 
       if (obj.isAbstract()) {
         performConsistencyCheck(SMGRuntimeCheck.HALF);
         return handleMaterilisation(addressValue, ((SMGAbstractObject) obj));
       }
 
-      return Collections.singletonList(SMGAddressValueAndState.of(this, address));
+      return Collections.singletonList(SMGAddressValueAndState.of(this, addressValue));
     }
 
     throw new SMGInconsistentException("Asked for a Points-To edge for a non-pointer value");
@@ -513,10 +512,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     return SMGAddressValueAndState.of(
         this,
-        SMGKnownAddressValue.valueOf(
-            (SMGKnownSymbolicValue) pPointerToAbstractObject.getValue(),
-            newObject,
-            SMGKnownExpValue.valueOf(pPointerToAbstractObject.getOffset())));
+        (SMGKnownSymbolicValue) pPointerToAbstractObject.getValue(),
+        newObject,
+        SMGKnownExpValue.valueOf(pPointerToAbstractObject.getOffset()));
   }
 
   private List<SMGAddressValueAndState> removeSll(
@@ -696,8 +694,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     writeValue(newSll, nfo, CPointerType.POINTER_TO_VOID, oldPointerToRegion);
 
-    return SMGAddressValueAndState.of(
-        this, SMGKnownAddressValue.valueOf(newPtEdgeToNewRegionFromOutsideSMG));
+    return SMGAddressValueAndState.of(this, newPtEdgeToNewRegionFromOutsideSMG);
   }
 
   private SMGAddressValueAndState materialiseDls(SMGDoublyLinkedList pListSeg,
@@ -813,8 +810,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     heap.addPointsToEdge(newPtEToDll);
 
-    return SMGAddressValueAndState.of(
-        this, SMGKnownAddressValue.valueOf(newPtEdgeToNewRegionFromOutsideSMG));
+    return SMGAddressValueAndState.of(this, newPtEdgeToNewRegionFromOutsideSMG);
   }
 
   private void copyRestrictedSubSmgToObject(SMGObject pRoot, SMGRegion pNewRegion,
@@ -1054,7 +1050,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGStateEdgePair stateAndNewEdge;
       if (valueAndState.getSmgState().getHeap().isObjectExternallyAllocated(pObject)
           && pType.getCanonicalType() instanceof CPointerType) {
-        SMGAddressValue new_address = valueAndState.getSmgState().addExternalAllocation(genRecursiveLabel(pObject.getLabel()));
+        SMGAddressValue new_address =
+            SMGKnownAddressValue.valueOf(
+                valueAndState
+                    .getSmgState()
+                    .addExternalAllocation(genRecursiveLabel(pObject.getLabel())));
         stateAndNewEdge = writeValue(pObject, pOffset, pType, new_address);
       } else {
         SMGValue newValue = SMGKnownSymValue.of();
@@ -1453,18 +1453,18 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /** memory allocated in the heap has to be freed by the user, otherwise this is a memory-leak. */
-  public SMGAddressValue addNewHeapAllocation(int pSize, String pLabel)
+  public SMGEdgePointsTo addNewHeapAllocation(int pSize, String pLabel)
       throws SMGInconsistentException {
     return addHeapAllocation(pLabel, pSize, 0, false);
   }
 
   /** memory externally allocated could be freed by the user */
-  public SMGAddressValue addExternalAllocation(String pLabel) throws SMGInconsistentException {
+  public SMGEdgePointsTo addExternalAllocation(String pLabel) throws SMGInconsistentException {
     return addHeapAllocation(
         pLabel, options.getExternalAllocationSize(), options.getExternalAllocationSize() / 2, true);
   }
 
-  private SMGAddressValue addHeapAllocation(String label, int size, int offset, boolean external)
+  private SMGEdgePointsTo addHeapAllocation(String label, int size, int offset, boolean external)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(size, label);
     SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
@@ -1474,15 +1474,17 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addPointsToEdge(pointsTo);
     heap.setExternallyAllocatedFlag(new_object, external);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return SMGKnownAddressValue.valueOf(pointsTo);
+    return pointsTo;
   }
 
   public void setExternallyAllocatedFlag(SMGObject pObject) {
     heap.setExternallyAllocatedFlag(pObject, true);
   }
 
-  /** memory allocated on the stack is automatically freed when leaving the current function scope */
-  public SMGAddressValue addNewStackAllocation(int pSize, String pLabel)
+  /**
+   * memory allocated on the stack is automatically freed when leaving the current function scope
+   */
+  public SMGEdgePointsTo addNewStackAllocation(int pSize, String pLabel)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
     SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
@@ -1491,7 +1493,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGEdgePointsTo pointsTo = new SMGEdgePointsTo(new_value, new_object, 0);
     heap.addPointsToEdge(pointsTo);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return SMGKnownAddressValue.valueOf(pointsTo);
+    return pointsTo;
   }
 
   /** Sets a flag indicating this SMGState is a successor over an edge causing a memory leak. */
