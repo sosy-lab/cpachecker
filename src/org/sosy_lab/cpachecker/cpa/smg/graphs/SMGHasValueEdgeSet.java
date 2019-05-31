@@ -173,7 +173,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     if (floorEntryCandidate != null) {
       SMGEdgeHasValue edgeCandidate = floorEntryCandidate.getValue();
       long edgeCandidateOffset = edgeCandidate.getOffset();
-      long edgeCandidateEndOffset = edgeCandidateOffset + pMachineModel.getSizeof(edgeCandidate.getType()).longValueExact();
+      long edgeCandidateEndOffset = edgeCandidateOffset + pMachineModel.getSizeofInBits(edgeCandidate.getType()).longValueExact();
       if (edgeCandidateEndOffset > startOffset) {
         startOffset = edgeCandidateOffset;
       }
