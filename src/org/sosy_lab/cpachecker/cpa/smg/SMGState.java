@@ -1197,7 +1197,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return new SMGStateEdgePair(this, new_edge);
     }
 
-    heap.addValue(pValue);
 
     Set<SMGEdgeHasValue> overlappingZeroEdges = new HashSet<>();
 
@@ -1217,10 +1216,16 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         }
       }
     }
-//TODO: check whether we add zero edge
-    shrinkOverlappingZeroEdges(new_edge, overlappingZeroEdges);
 
-    heap.addHasValueEdge(new_edge);
+    boolean newEdgeIsZero = pValue == SMGZeroValue.INSTANCE;
+    if (newEdgeIsZero) {
+      mergeWithOverlappingZeroEdges(new_edge, overlappingZeroEdges);
+    } else {
+      heap.addValue(pValue);
+      shrinkOverlappingZeroEdges(new_edge, overlappingZeroEdges);
+      heap.addHasValueEdge(new_edge);
+    }
+
     performConsistencyCheck(SMGRuntimeCheck.HALF);
 
     return new SMGStateEdgePair(this, new_edge);
@@ -1259,38 +1264,87 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
   }
 
+  private void mergeWithOverlappingZeroEdges(
+      SMGEdgeHasValue pNew_edge, Set<SMGEdgeHasValue> pOverlappingZeroEdges) {
+    SMGObject object = pNew_edge.getObject();
+    long startOffset = pNew_edge.getOffset();
+
+    MachineModel maModel = heap.getMachineModel();
+    int sizeOfType = pNew_edge.getSizeInBits(maModel);
+    long endOffset = startOffset + sizeOfType;
+
+    long resultStartOffset = startOffset;
+    long resultEndOffset = endOffset;
+
+    boolean changed = false;
+
+    // Merge overlapping zero edges
+    for (SMGEdgeHasValue zeroEdge : pOverlappingZeroEdges) {
+      long zeroEdgeStartOffset = zeroEdge.getOffset();
+
+      long zeroEdgeEndOffset = zeroEdgeStartOffset + zeroEdge.getSizeInBits(maModel);
+
+      if (!changed && (zeroEdgeStartOffset <= startOffset) && (endOffset <= zeroEdgeEndOffset)) {
+        // Do nothing because SMG already contains zero edge covering new one
+        return;
+      }
+
+      changed = true;
+      heap.removeHasValueEdge(zeroEdge);
+
+      if (zeroEdgeStartOffset < resultStartOffset) {
+        resultStartOffset = zeroEdgeStartOffset;
+      }
+
+      if (resultEndOffset < zeroEdgeEndOffset) {
+        resultEndOffset = zeroEdgeEndOffset;
+      }
+    }
+
+    SMGEdgeHasValue newZeroEdge =
+        new SMGEdgeHasValue(
+            Math.toIntExact(resultEndOffset - resultStartOffset),
+            resultStartOffset,
+            object,
+            SMGZeroValue.INSTANCE);
+    heap.addHasValueEdge(newZeroEdge);
+  }
+
   private void shrinkOverlappingZeroEdges(SMGEdgeHasValue pNew_edge,
       Set<SMGEdgeHasValue> pOverlappingZeroEdges) {
 
     SMGObject object = pNew_edge.getObject();
-    long offset = pNew_edge.getOffset();
+    long startOffset = pNew_edge.getOffset();
 
     MachineModel maModel = heap.getMachineModel();
     int sizeOfType = pNew_edge.getSizeInBits(maModel);
+    long endOffset = startOffset + sizeOfType;
 
     // Shrink overlapping zero edges
     for (SMGEdgeHasValue zeroEdge : pOverlappingZeroEdges) {
       heap.removeHasValueEdge(zeroEdge);
 
-      long zeroEdgeOffset = zeroEdge.getOffset();
+      long zeroEdgeStartOffset = zeroEdge.getOffset();
 
-      long offset2 = offset + sizeOfType;
-      long zeroEdgeOffset2 = zeroEdgeOffset + zeroEdge.getSizeInBits(maModel);
+      long zeroEdgeEndOffset = zeroEdgeStartOffset + zeroEdge.getSizeInBits(maModel);
 
-      if (zeroEdgeOffset < offset) {
+      if (zeroEdgeStartOffset < startOffset) {
         SMGEdgeHasValue newZeroEdge =
             new SMGEdgeHasValue(
-                Math.toIntExact(offset - zeroEdgeOffset),
-                zeroEdgeOffset,
+                Math.toIntExact(startOffset - zeroEdgeStartOffset),
+                zeroEdgeStartOffset,
                 object,
                 SMGZeroValue.INSTANCE);
         heap.addHasValueEdge(newZeroEdge);
       }
 
-      if (offset2 < zeroEdgeOffset2) {
+      if (endOffset < zeroEdgeEndOffset) {
         SMGEdgeHasValue newZeroEdge =
             new SMGEdgeHasValue(
-                Math.toIntExact(zeroEdgeOffset2 - offset2), offset2, object, SMGZeroValue.INSTANCE);
+                Math.toIntExact(zeroEdgeEndOffset - endOffset),
+                endOffset,
+                object,
+                SMGZeroValue.INSTANCE);
         heap.addHasValueEdge(newZeroEdge);
       }
     }
