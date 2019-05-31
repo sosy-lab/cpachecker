@@ -65,6 +65,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -504,6 +505,9 @@ public class CPAchecker {
           ObjectInputStream ois = new ObjectInputStream(gzipInputStream)) {
         cfa = (CFA) ois.readObject();
       }
+
+      assert CFACheck.check(
+          cfa.getMainFunction(), ImmutableSet.copyOf(cfa.getAllNodes()), cfa.getMachineModel());
     }
 
     stats.setCFA(cfa);
