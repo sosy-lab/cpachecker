@@ -1217,7 +1217,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         }
       }
     }
-
+//TODO: check whether we add zero edge
     shrinkOverlappingZeroEdges(new_edge, overlappingZeroEdges);
 
     heap.addHasValueEdge(new_edge);
