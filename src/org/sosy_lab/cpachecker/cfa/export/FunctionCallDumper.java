@@ -23,11 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cfa.export;
 
+import static org.sosy_lab.cpachecker.cfa.export.DOTBuilder.escapeGraphvizLabel;
+
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -69,18 +74,33 @@ public class FunctionCallDumper {
     final String mainFunction = pCfa.getMainFunction().getFunctionName();
     pAppender.append(mainFunction + " [shape=\"box\", color=blue];\n");
 
+    final Map<String, String> escapedNames = new HashMap<>();
+    final Set<String> writtenNames = new HashSet<>();
+
     for (final String callerFunctionName : finder.functionCalls.keySet()) {
       for (final String calleeFunctionName : finder.functionCalls.get(callerFunctionName)) {
-          // call to external function
-          if (!functionNames.contains(calleeFunctionName)) {
-            pAppender.append(calleeFunctionName + " [shape=\"box\", color=grey];\n");
-          }
+        final String caller = escape(escapedNames, callerFunctionName);
+        final String callee = escape(escapedNames, calleeFunctionName);
+        if (writtenNames.add(calleeFunctionName)) {
+          final String label = escapeGraphvizLabel(calleeFunctionName, " ");
+          // different format for call to external function
+          final String format =
+              functionNames.contains(calleeFunctionName) ? "" : "shape=\"box\", color=grey";
+          pAppender.append(String.format("%s [label=\"%s\", %s];\n", callee, label, format));
+        }
 
-          pAppender.append(callerFunctionName + " -> " + calleeFunctionName + ";\n");
+        pAppender.append(caller + " -> " + callee + ";\n");
       }
     }
 
     pAppender.append("}\n");
+  }
+
+  /** escape non-graphviz-conform identifiers for nodes */
+  private static String escape(Map<String, String> escapedNames, String functionName) {
+    return escapedNames.computeIfAbsent(
+        functionName,
+        str -> str.matches("[a-zA-Z0-9_]*") ? str : ("escapedFunctionName_" + escapedNames.size()));
   }
 
   private static class CFAFunctionCallFinder extends DefaultCFAVisitor {
