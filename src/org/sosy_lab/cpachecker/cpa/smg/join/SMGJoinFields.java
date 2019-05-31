@@ -108,8 +108,12 @@ class SMGJoinFields {
     filterForSMG1.filterNotHavingValue(SMGZeroValue.INSTANCE);
 
     for (SMGEdgeHasValue edge : pSMG1.getHVEdges(filterForSMG1)) {
-      filterForSMG2.filterAtOffset(edge.getOffset());
-      if (pSMG2.getHVEdges(filterForSMG2).size() == 0) {
+      if (!pSMG2
+          .getHVEdges(filterForSMG2)
+          .getOverlapping(
+              new SMGEdgeHasValue(edge.getSizeInBits(), edge.getOffset(), pObj2, edge.getValue()))
+          .iterator()
+          .hasNext()) {
         returnSet =
             returnSet.addEdgeAndCopy(
                 new SMGEdgeHasValue(pSMG1.getMachineModel(), edge.getType(), edge.getOffset(), pObj2, SMGKnownSymValue.of()));
