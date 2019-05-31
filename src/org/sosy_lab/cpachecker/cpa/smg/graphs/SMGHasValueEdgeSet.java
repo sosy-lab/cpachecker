@@ -70,47 +70,94 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
 
   @Override
   public SMGHasValueEdgeSet addEdgeAndCopy(SMGEdgeHasValue pEdge) {
-    Integer sizeForObject = sizesMap.get(pEdge.getObject());
-    PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets;
+    SMGHasValueEdgeSet result = this;
+    Integer sizeForObject = sizesMap.getOrDefault(pEdge.getObject(), 0);
+    PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = map.getOrDefault(pEdge.getObject(), PathCopyingPersistentTreeMap.of());
 
-    if (sizeForObject == null || sizeForObject == 0) {
-      sortedByOffsets = PathCopyingPersistentTreeMap.of();
-      sizeForObject = 0;
-    } else {
-      sortedByOffsets = map.get(pEdge.getObject());
-    }
 
-// Check on overlapping edges
+    // Check on overlapping edges
     Entry<Long, SMGEdgeHasValue> ceilingEntry = sortedByOffsets.ceilingEntry(pEdge.getOffset());
     long endOffset = pEdge.getSizeInBits() + pEdge.getOffset();
     assert (ceilingEntry == null || endOffset <= ceilingEntry.getKey());
+
     Entry<Long, SMGEdgeHasValue> floorEntry = sortedByOffsets.lowerEntry(endOffset);
     assert (floorEntry == null || pEdge.getOffset() >= floorEntry.getValue().getSizeInBits()
         + floorEntry.getValue().getOffset());
 
+    // Merge zero edges
+    if (pEdge.getValue().isZero()) {
+      if (ceilingEntry != null && ceilingEntry.getKey() == endOffset && ceilingEntry.getValue().getValue().isZero()) {
+        pEdge = new SMGEdgeHasValue(pEdge.getSizeInBits() + ceilingEntry.getValue().getSizeInBits(), pEdge.getOffset(), pEdge.getObject(), pEdge.getValue());
+        result = result.removeEdgeAndCopy(ceilingEntry.getValue());
+      }
+      if (floorEntry != null && pEdge.getOffset() == floorEntry.getValue().getSizeInBits()
+          + floorEntry.getValue().getOffset() && floorEntry.getValue().getValue().isZero()) {
+        pEdge = new SMGEdgeHasValue(pEdge.getSizeInBits() + floorEntry.getValue().getSizeInBits(), floorEntry.getKey(), pEdge.getObject(), pEdge.getValue());
+        result = result.removeEdgeAndCopy(floorEntry.getValue());
+      }
+      sizeForObject = result.sizesMap.getOrDefault(pEdge.getObject(), 0);
+      sortedByOffsets = result.map.getOrDefault(pEdge.getObject(), PathCopyingPersistentTreeMap.of());
+    }
+
     sortedByOffsets = sortedByOffsets.putAndCopy(pEdge.getOffset(), pEdge);
-    PersistentSortedMap<SMGObject, Integer> newSizesMap = sizesMap.putAndCopy(pEdge.getObject(), sizeForObject + 1);
-    return new SMGHasValueEdgeSet(map.putAndCopy(pEdge.getObject(), sortedByOffsets), newSizesMap, size + 1);
+    PersistentSortedMap<SMGObject, Integer> newSizesMap =
+        result.sizesMap.putAndCopy(pEdge.getObject(), sizeForObject + 1);
+    return new SMGHasValueEdgeSet(result.map.putAndCopy(pEdge.getObject(), sortedByOffsets), newSizesMap,
+        result.size + 1);
   }
 
   @Override
   public SMGHasValueEdgeSet removeEdgeAndCopy(SMGEdgeHasValue pEdge) {
 
-    Integer sizeForObject = sizesMap.get(pEdge.getObject());
+    int sizeForObject = sizesMap.getOrDefault(pEdge.getObject(), 0);
+    PersistentSortedMap<Long, SMGEdgeHasValue> updated;
+    int pSize = size;
 
-    if (sizeForObject == null || sizeForObject == 0) {
+    if (sizeForObject == 0) {
       return this;
     } else {
       PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = map.get(pEdge.getObject());
-      PersistentSortedMap<Long, SMGEdgeHasValue> updated = sortedByOffsets.removeAndCopy(pEdge.getOffset());
+      if (pEdge.getValue().isZero()) {
+        Entry<Long, SMGEdgeHasValue> floorEntry = sortedByOffsets.floorEntry(pEdge.getOffset());
+        if (floorEntry != null) {
+          SMGEdgeHasValue removingEdge = floorEntry.getValue();
+          if (removingEdge.getOffset() + removingEdge.getSizeInBits() <= pEdge.getOffset()) {
+            return this;
+          } else {
+            updated = sortedByOffsets.removeAndCopy(removingEdge.getOffset());
+            pSize--;
+            sizeForObject--;
+            if (removingEdge.getOffset() < pEdge.getOffset()) {
+              updated = updated.putAndCopy(removingEdge.getOffset(),
+                  new SMGEdgeHasValue(Math.toIntExact(pEdge.getOffset() - removingEdge.getOffset()),
+                      removingEdge.getOffset(), pEdge.getObject(), pEdge.getValue()));
+              pSize++;
+              sizeForObject++;
+            }
+            if (removingEdge.getOffset() + removingEdge.getSizeInBits() > pEdge.getOffset() + pEdge.getSizeInBits()) {
+              updated = updated.putAndCopy(pEdge.getOffset() + pEdge.getSizeInBits(),
+                  new SMGEdgeHasValue(Math.toIntExact(removingEdge.getOffset() - pEdge.getOffset()) + removingEdge.getSizeInBits() - pEdge.getSizeInBits(),
+                      pEdge.getOffset() + pEdge.getSizeInBits(), pEdge.getObject(), pEdge.getValue()));
+              pSize++;
+              sizeForObject++;
+            }
+          }
+        } else {
+          return this;
+        }
+      } else {
+        updated = sortedByOffsets.removeAndCopy(pEdge.getOffset());
+        pSize--;
+        sizeForObject--;
+      }
+
       if (updated == sortedByOffsets) {
         return this;
       } else {
-        int pSize = size - 1;
         if (updated.isEmpty()) {
           return new SMGHasValueEdgeSet(map.removeAndCopy(pEdge.getObject()), sizesMap.removeAndCopy(pEdge.getObject()), pSize);
         } else {
-          return new SMGHasValueEdgeSet(map.putAndCopy(pEdge.getObject(), updated), sizesMap.putAndCopy(pEdge.getObject(), sizeForObject - 1), pSize);
+          return new SMGHasValueEdgeSet(map.putAndCopy(pEdge.getObject(), updated), sizesMap.putAndCopy(pEdge.getObject(), sizeForObject), pSize);
         }
       }
     }
@@ -138,13 +185,24 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
         filtered.map.entrySet();
     for (Entry<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> entry : entries) {
       filtered = filtered.removeAllEdgesOfObjectAndCopy(entry.getKey());
+      PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = entry.getValue();
       if (offset != null) {
-        SMGEdgeHasValue candidate = entry.getValue().get(offset);
-        if (candidate != null && pFilter.holdsFor(candidate)) {
-          filtered = filtered.addEdgeAndCopy(candidate);
+        Entry<Long, SMGEdgeHasValue> candidateEntry = sortedByOffsets.floorEntry(offset);
+        if (candidateEntry != null) {
+          SMGEdgeHasValue candidate = candidateEntry.getValue();
+
+          // also return part of zero edge
+          if (candidate.getValue().isZero()) {
+            candidate = new SMGEdgeHasValue(
+                candidate.getSizeInBits() - Math.toIntExact((offset - candidate.getOffset())),
+                offset, candidate.getObject(), candidate.getValue());
+          }
+          if (pFilter.holdsFor(candidate)) {
+            filtered = filtered.addEdgeAndCopy(candidate);
+          }
         }
       } else {
-        for (SMGEdgeHasValue candidate : entry.getValue().values()) {
+        for (SMGEdgeHasValue candidate : sortedByOffsets.values()) {
           if (pFilter.holdsFor(candidate)) {
             filtered = filtered.addEdgeAndCopy(candidate);
           }
