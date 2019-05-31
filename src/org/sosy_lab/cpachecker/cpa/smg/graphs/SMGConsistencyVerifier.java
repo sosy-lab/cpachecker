@@ -90,7 +90,7 @@ final class SMGConsistencyVerifier {
     // Verify that NULL object has no value
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(SMGNullObject.INSTANCE);
 
-    if (! pSmg.getHVEdges(filter).isEmpty()) {
+    if (pSmg.getHVEdges(filter).size() > 0) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object has some value");
       return false;
     }

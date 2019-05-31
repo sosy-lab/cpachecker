@@ -110,8 +110,8 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
           SMGEdgeHasValueFilter.objectFilter(edgeHasValue.getObject())
               .filterAtOffset(edgeHasValue.getOffset())
               .filterHavingValue(edgeHasValue.getValue());
-      Set<SMGEdgeHasValue> edges = getHVEdges(filter);
-      return !edges.isEmpty();
+      SMGHasValueEdges edges = getHVEdges(filter);
+      return edges.size() != 0;
     } else if (elem instanceof SMGEdgePointsTo) {
       SMGEdgePointsTo edgePointsTo = (SMGEdgePointsTo) elem;
       SMGEdgePointsToFilter filter =
@@ -427,9 +427,9 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
     for (SMGEdgeHasValue hvedge : getHVEdges()) {
       MemoryLocation memloc = resolveMemLoc(hvedge);
-      Set<SMGEdgeHasValue> edge = getHVEdgeFromMemoryLocation(memloc);
+      SMGHasValueEdges edge = getHVEdgeFromMemoryLocation(memloc);
 
-      if (!edge.isEmpty()) {
+      if (edge.size() != 0) {
         result.put(memloc, edge.iterator().next().getValue());
       }
     }
@@ -591,10 +591,10 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     return null;
   }
 
-  private Set<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {
+  private SMGHasValueEdges getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {
     SMGObject objectAtLocation = getObjectFromMemoryLocation(pLocation);
     if (objectAtLocation == null) {
-      return Collections.emptySet();
+      return new SMGHasValueEdgeSet();
     }
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(objectAtLocation);
@@ -656,9 +656,9 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     while (it.hasNext()) {
       long offset = it.next();
 
-      Set<SMGEdgeHasValue> hves =
+      SMGHasValueEdges hves =
           getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
-      if (hves.isEmpty()) {
+      if (hves.size() == 0) {
         return Optional.empty();
       }
 
@@ -1029,7 +1029,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
   private SMGStateInformation createStateInfo(SMGObject pObj) {
 
-    Set<SMGEdgeHasValue> hves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj));
+    SMGHasValueEdges hves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj));
     Set<SMGEdgePointsTo> ptes = getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(pObj));
     Set<SMGEdgePointsTo> resultPtes = new HashSet<>(ptes);
 
@@ -1088,7 +1088,14 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   public void rememberEdges(SMGStateInformation pForgottenInformation) {
-    for(SMGEdgeHasValue edge : Sets.difference(pForgottenInformation.getHvEdges(), getHVEdges())) {
+    SMGHasValueEdges forgottenHvEdges = pForgottenInformation.getHvEdges();
+    SMGHasValueEdges toAddHvEdges = new SMGHasValueEdgeSet();
+    for (SMGEdgeHasValue edge : forgottenHvEdges) {
+      if (!getHVEdges().contains(edge)) {
+        toAddHvEdges = toAddHvEdges.addEdgeAndCopy(edge);
+      }
+     }
+    for(SMGEdgeHasValue edge : toAddHvEdges) {
       addHasValueEdge(edge);
     }
 

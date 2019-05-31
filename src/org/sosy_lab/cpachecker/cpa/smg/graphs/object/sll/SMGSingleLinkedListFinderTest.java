@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -103,7 +104,7 @@ public class SMGSingleLinkedListFinderTest {
     SMGEdgeHasValue connection = null;
     do {
       SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(lastFromHead).filterAtOffset(64);
-      Set<SMGEdgeHasValue> connections = smg.getHVEdges(filter);
+      SMGHasValueEdges connections = smg.getHVEdges(filter);
       connection = null;
       if (connections.size() > 0) {
         connection = Iterables.getOnlyElement(connections);

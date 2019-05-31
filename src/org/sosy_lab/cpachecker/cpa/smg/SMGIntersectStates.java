@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -269,8 +270,8 @@ public final class SMGIntersectStates {
   private boolean intersectPairFields(
       SMGObject pObject1, SMGObject pObject2, SMGObject pDestObject) {
 
-    Set<SMGEdgeHasValue> hves1 = heap1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject1));
-    Set<SMGEdgeHasValue> hves2 = heap2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
+    SMGHasValueEdges hves1 = heap1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject1));
+    SMGHasValueEdges hves2 = heap2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
 
     Map<Long, SMGEdgeHasValue> offsetToHve1Map =
         FluentIterable.from(hves1).uniqueIndex(SMGEdgeHasValue::getOffset);

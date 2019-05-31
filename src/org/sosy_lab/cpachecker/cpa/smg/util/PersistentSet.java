@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.util;
 
 import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -35,12 +36,16 @@ import org.sosy_lab.common.collect.PersistentMap;
  * internal value for the map.
  */
 @Immutable(containerOf = "K")
-public class PersistentSet<K> implements Iterable<K> {
+public class PersistentSet<K extends Comparable<? super K>> implements Set<K> {
 
   private final PersistentMap<K, Void> delegate;
 
   private PersistentSet(PersistentMap<K, Void> pDelegate) {
     delegate = pDelegate;
+  }
+
+  public PersistentSet() {
+    delegate = PathCopyingPersistentTreeMap.of();
   }
 
   public static <K extends Comparable<? super K>> PersistentSet<K> of() {
@@ -56,16 +61,23 @@ public class PersistentSet<K> implements Iterable<K> {
     return new PersistentSet<>(delegate.removeAndCopy(key));
   }
 
-  public boolean contains(K key) {
-    return delegate.containsKey(key);
-  }
+//  public boolean contains(K key) {
+//    return delegate.containsKey(key);
+//  }
 
+  @Override
   public int size() {
     return delegate.size();
   }
 
+  @Override
   public boolean isEmpty() {
     return delegate.isEmpty();
+  }
+
+  @Override
+  public boolean contains(Object o) {
+    return delegate.containsKey(o);
   }
 
   public Set<K> asSet() {
@@ -75,6 +87,51 @@ public class PersistentSet<K> implements Iterable<K> {
   @Override
   public Iterator<K> iterator() {
     return delegate.keySet().iterator();
+  }
+
+  @Override
+  public Object[] toArray() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public <T> T[] toArray(T[] a) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean add(K pK) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean remove(Object o) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean containsAll(Collection<?> c) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean addAll(Collection<? extends K> c) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean retainAll(Collection<?> c) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean removeAll(Collection<?> c) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void clear() {
+    throw new UnsupportedOperationException();
   }
 
   @Override

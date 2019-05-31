@@ -25,13 +25,14 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
 import java.util.Set;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdgeSet;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
@@ -197,11 +198,11 @@ public class SMGEdgeHasValueTest {
     SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, 0, object1, value2);
     SMGEdgeHasValue hv21at0 = new SMGEdgeHasValue(mockType, 0, object2, value1);
     SMGEdgeHasValue hv22at0 = new SMGEdgeHasValue(mockType, 0, object2, value2);
-    Set<SMGEdgeHasValue> allEdges = new HashSet<>();
-    allEdges.add(hv11at0);
-    allEdges.add(hv12at0);
-    allEdges.add(hv21at0);
-    allEdges.add(hv22at0);
+    SMGHasValueEdges allEdges = new SMGHasValueEdgeSet();
+    allEdges = allEdges.addEdgeAndCopy(hv11at0);
+    allEdges = allEdges.addEdgeAndCopy(hv12at0);
+    allEdges = allEdges.addEdgeAndCopy(hv21at0);
+    allEdges = allEdges.addEdgeAndCopy(hv22at0);
 
     SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
 
@@ -236,11 +237,11 @@ public class SMGEdgeHasValueTest {
     SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, 32, object1, value2);
     SMGEdgeHasValue hv21at0 = new SMGEdgeHasValue(mockType, 0, object2, value1);
     SMGEdgeHasValue hv22at0 = new SMGEdgeHasValue(mockType, 32, object2, value2);
-    Set<SMGEdgeHasValue> allEdges = new HashSet<>();
-    allEdges.add(hv11at0);
-    allEdges.add(hv12at0);
-    allEdges.add(hv21at0);
-    allEdges.add(hv22at0);
+    SMGHasValueEdges allEdges = new SMGHasValueEdgeSet();
+    allEdges = allEdges.addEdgeAndCopy(hv11at0);
+    allEdges = allEdges.addEdgeAndCopy(hv12at0);
+    allEdges = allEdges.addEdgeAndCopy(hv21at0);
+    allEdges = allEdges.addEdgeAndCopy(hv22at0);
 
     SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
 
@@ -270,11 +271,11 @@ public class SMGEdgeHasValueTest {
     SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, 32, object1, value2);
     SMGEdgeHasValue hv21at0 = new SMGEdgeHasValue(mockType, 0, object2, value1);
     SMGEdgeHasValue hv22at0 = new SMGEdgeHasValue(mockType, 32, object2, value2);
-    Set<SMGEdgeHasValue> allEdges = new HashSet<>();
-    allEdges.add(hv11at0);
-    allEdges.add(hv12at0);
-    allEdges.add(hv21at0);
-    allEdges.add(hv22at0);
+    SMGHasValueEdges allEdges = new SMGHasValueEdgeSet();
+    allEdges = allEdges.addEdgeAndCopy(hv11at0);
+    allEdges = allEdges.addEdgeAndCopy(hv12at0);
+    allEdges = allEdges.addEdgeAndCopy(hv21at0);
+    allEdges = allEdges.addEdgeAndCopy(hv22at0);
 
     SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
 

@@ -28,7 +28,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.Assert;
 import org.junit.Before;
@@ -45,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -125,7 +125,7 @@ public class SMGRegionsWithListsTest {
 
     SMGListAbstractionTestHelpers.executeHeapAbstractionWithConsistencyChecks(state, smg);
 
-    Set<SMGEdgeHasValue> hvs =
+    SMGHasValueEdges hvs =
         smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
     Truth.assertThat(hvs.size()).isEqualTo(1);
 
@@ -135,7 +135,7 @@ public class SMGRegionsWithListsTest {
     SMGListAbstractionTestHelpers.assertAbstractListSegmentAsExpected(
         abstractionResult, nodeSize, LEVEL_ZERO, listKind, sublists.length);
 
-    Set<SMGEdgeHasValue> dataFieldSet =
+    SMGHasValueEdges dataFieldSet =
         smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(abstractionResult).filterAtOffset(dfo));
     Truth.assertThat(dataFieldSet.size()).isEqualTo(1);
     SMGEdgeHasValue dataField = Iterables.getOnlyElement(dataFieldSet);

@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGConsistencyVerifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -457,7 +458,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(pOptionalObject, heap);
 
-    Set<SMGEdgeHasValue> fields = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pOptionalObject));
+    SMGHasValueEdges fields = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pOptionalObject));
 
     heap.removeHeapObjectAndEdges(pOptionalObject);
 
@@ -487,7 +488,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(pOptionalObject, heap);
 
-    Set<SMGEdgeHasValue> fields = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pOptionalObject));
+    SMGHasValueEdges fields = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pOptionalObject));
 
     SMGObject newObject = new SMGRegion(pOptionalObject.getSize(),
         "Concrete object of " + pOptionalObject.toString(), pOptionalObject.getLevel());
@@ -618,18 +619,18 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     long hfo = pListSeg.getHfo();
     long nfo = pListSeg.getNfo();
 
-    Set<SMGEdgeHasValue> oldSllFieldsToOldRegion =
+    SMGHasValueEdges oldSllFieldsToOldRegion =
         heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo));
     SMGSymbolicValue oldPointerToRegion =
         readValue(pListSeg, nfo, CPointerType.POINTER_TO_VOID).getObject();
-    if (!oldSllFieldsToOldRegion.isEmpty()) {
+    if (oldSllFieldsToOldRegion.iterator().hasNext()) {
       SMGEdgeHasValue oldSllFieldToOldRegion = Iterables.getOnlyElement(oldSllFieldsToOldRegion);
       heap.removeHasValueEdge(oldSllFieldToOldRegion);
     }
 
     SMGValue oldPointerToSll = pPointerToAbstractObject.getValue();
 
-    Set<SMGEdgeHasValue> oldFieldsEdges =
+    SMGHasValueEdges oldFieldsEdges =
         heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg));
     Set<SMGEdgePointsTo> oldPtEdges = SMGUtils.getPointerToThisObject(pListSeg, heap);
 
@@ -660,10 +661,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     /*If you can't find the pointer, use generic pointer type*/
     CType typeOfPointerToSll;
 
-    Set<SMGEdgeHasValue> fieldsContainingOldPointerToSll =
+    SMGHasValueEdges fieldsContainingOldPointerToSll =
         heap.getHVEdges(SMGEdgeHasValueFilter.valueFilter(oldPointerToSll));
 
-    if (fieldsContainingOldPointerToSll.isEmpty()) {
+    if (!fieldsContainingOldPointerToSll.iterator().hasNext()) {
       typeOfPointerToSll = CPointerType.POINTER_TO_VOID;
     } else {
       typeOfPointerToSll = fieldsContainingOldPointerToSll.iterator().next().getType();
@@ -731,12 +732,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     long hfo = pListSeg.getHfo();
 
-    Set<SMGEdgeHasValue> oldDllFieldsToOldRegion =
+    SMGHasValueEdges oldDllFieldsToOldRegion =
         heap.getHVEdges(
             SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(offsetPointingToRegion));
     SMGSymbolicValue oldPointerToRegion =
         readValue(pListSeg, offsetPointingToRegion, CPointerType.POINTER_TO_VOID).getObject();
-    if (!oldDllFieldsToOldRegion.isEmpty()) {
+    if (oldDllFieldsToOldRegion.iterator().hasNext()) {
       SMGEdgeHasValue oldDllFieldToOldRegion = Iterables.getOnlyElement(oldDllFieldsToOldRegion);
       heap.removeHasValueEdge(oldDllFieldToOldRegion);
     }
@@ -746,7 +747,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     heap.removePointsToEdge(oldPointerToDll);
 
-    Set<SMGEdgeHasValue> oldFieldsEdges =
+    SMGHasValueEdges oldFieldsEdges =
         heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg));
     Set<SMGEdgePointsTo> oldPtEdges = SMGUtils.getPointerToThisObject(pListSeg, heap);
 
@@ -779,10 +780,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     CType typeOfPointerToDll;
 
-    Set<SMGEdgeHasValue> fieldsContainingOldPointerToDll =
+    SMGHasValueEdges fieldsContainingOldPointerToDll =
         heap.getHVEdges(SMGEdgeHasValueFilter.valueFilter(oldPointerToDll));
 
-    if (fieldsContainingOldPointerToDll.isEmpty()) {
+    if (!fieldsContainingOldPointerToDll.iterator().hasNext()) {
       typeOfPointerToDll = CPointerType.POINTER_TO_VOID;
     } else {
       typeOfPointerToDll = fieldsContainingOldPointerToDll.iterator().next().getType();
@@ -1191,7 +1192,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // Check if the edge is  not present already
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
 
-    Set<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
+    SMGHasValueEdges edges = heap.getHVEdges(filter);
     if (edges.contains(new_edge)) {
       performConsistencyCheck(SMGRuntimeCheck.HALF);
       return new SMGStateEdgePair(this, new_edge);
@@ -1680,7 +1681,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @VisibleForTesting
-  Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
+  SMGHasValueEdges getHVEdges(SMGEdgeHasValueFilter pFilter) {
     return heap.getHVEdges(pFilter);
   }
 

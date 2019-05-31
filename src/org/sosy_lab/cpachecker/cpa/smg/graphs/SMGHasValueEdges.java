@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.collect.ImmutableSet;
-import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
-/** An immutable collection of has-value-edges. */
-public interface SMGHasValueEdges {
+/** An immutable collection of has-value-edges.
+ * Should keep invariant: All has-value-edges, corresponding to one object, shouldn't interleave.
+ * Also it is possible to provide implementation with sorting by objects and offsets */
+public interface SMGHasValueEdges extends Iterable<SMGEdgeHasValue> {
 
   // Modifying methods
 
@@ -42,8 +42,13 @@ public interface SMGHasValueEdges {
 
   // Querying methods
 
-  ImmutableSet<SMGEdgeHasValue> getHvEdges();
+  SMGHasValueEdges getHvEdges();
 
-  @Nullable
-  Set<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject);
+  SMGHasValueEdges filter(SMGEdgeHasValueFilter pFilter);
+
+  SMGHasValueEdges getEdgesForObject(SMGObject pObject);
+
+  int size();
+
+  boolean contains(SMGEdgeHasValue pHv);
 }

@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -77,7 +78,7 @@ public class SMGSingleLinkedListCandidateTest {
         new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration())));
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
-    Set<SMGEdgeHasValue> globalHves =
+    SMGHasValueEdges globalHves =
         abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(root.getObject()));
     root = Iterables.getOnlyElement(globalHves);
     value = root.getValue();
@@ -88,7 +89,7 @@ public class SMGSingleLinkedListCandidateTest {
     Assert.assertEquals(NODE_SIZE, segment.getSize());
     Assert.assertEquals(SEGMENT_LENGTH, segment.getMinimumLength());
     Assert.assertEquals(OFFSET, segment.getNfo());
-    Set<SMGEdgeHasValue> outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(segment));
+    SMGHasValueEdges outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(segment));
     Assert.assertEquals(1, outboundEdges.size());
     SMGEdgeHasValue onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
     Assert.assertEquals(OFFSET, onlyOutboundEdge.getOffset());
@@ -114,7 +115,7 @@ public class SMGSingleLinkedListCandidateTest {
         new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration())));
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
-    Set<SMGEdgeHasValue> globalHves =
+    SMGHasValueEdges globalHves =
         abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(root.getObject()));
     root = Iterables.getOnlyElement(globalHves);
     value = root.getValue();
@@ -123,7 +124,7 @@ public class SMGSingleLinkedListCandidateTest {
     Assert.assertTrue(sll instanceof SMGSingleLinkedList);
     SMGSingleLinkedList realSll = (SMGSingleLinkedList)sll;
     Assert.assertEquals(2, realSll.getMinimumLength());
-    Set<SMGEdgeHasValue> outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(realSll));
+    SMGHasValueEdges outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(realSll));
     Assert.assertEquals(1, outboundEdges.size());
     SMGEdgeHasValue outbound = Iterables.getOnlyElement(outboundEdges);
     Assert.assertEquals(64, outbound.getOffset());

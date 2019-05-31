@@ -24,9 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -43,6 +40,22 @@ public class SMGEdgeHasValueFilter {
   private boolean valueComplement = false;
   private Long offset = null;
   private CType type = null;
+
+  public SMGObject getObject() {
+    return object;
+  }
+
+  public SMGValue getValue() {
+    return value;
+  }
+
+  public Long getOffset() {
+    return offset;
+  }
+
+  public CType getType() {
+    return type;
+  }
 
   @VisibleForTesting
   public SMGEdgeHasValueFilter filterByObject(SMGObject pObject) {
@@ -96,23 +109,14 @@ public class SMGEdgeHasValueFilter {
     return true;
   }
 
-  public Iterable<SMGEdgeHasValue> filter(SMGHasValueEdges pEdges) {
-    Set<SMGEdgeHasValue> filtered;
+  public SMGHasValueEdges filter(SMGHasValueEdges pEdges) {
+    SMGHasValueEdges filtered;
     if (object != null) {
       filtered = pEdges.getEdgesForObject(object);
-      if (filtered == null) {
-        return ImmutableSet.of();
-      }
     } else {
       filtered = pEdges.getHvEdges();
     }
-    return filter(filtered);
-  }
-
-  /** Info: Please use SMG.getHVEdges(filter) for better performance when filtering for objects. */
-  @VisibleForTesting
-  public Iterable<SMGEdgeHasValue> filter(Iterable<SMGEdgeHasValue> pEdges) {
-    return Iterables.filter(pEdges, this::holdsFor);
+    return filtered.filter(this);
   }
 
   public static SMGEdgeHasValueFilter valueFilter(SMGValue pValue) {
@@ -122,7 +126,7 @@ public class SMGEdgeHasValueFilter {
   @Override
   public String toString() {
     return String.format(
-        "Filter %s<object=%s@%d, value=%s, type=%s>",
-        valueComplement ? "" : "NOT", object, offset, value, type);
+        "Filter <object=%s@%d, value%s=%s, type=%s>",
+        object, offset, valueComplement ? "" : "!", value, type);
   }
 }

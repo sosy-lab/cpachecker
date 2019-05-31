@@ -34,6 +34,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -116,8 +117,8 @@ public class SMGJoinAbstractionManager {
 
     SMGRegion root = (SMGRegion) destObject;
 
-    Set<SMGEdgeHasValue> fieldsOfObject1 = SMGUtils.getFieldsOfObject(smgObject1, inputSMG1);
-    Set<SMGEdgeHasValue> fieldsOfObject2 = SMGUtils.getFieldsOfObject(smgObject2, inputSMG2);
+    SMGHasValueEdges fieldsOfObject1 = SMGUtils.getFieldsOfObject(smgObject1, inputSMG1);
+    SMGHasValueEdges fieldsOfObject2 = SMGUtils.getFieldsOfObject(smgObject2, inputSMG2);
 
     Triple<Set<Pair<SMGEdgeHasValue,SMGEdgeHasValue>>, Set<SMGEdgeHasValue>, Set<SMGEdgeHasValue>> sharedPnonSharedPsharedNP = assignToSharedPPointerAndNonSharedOPointerAndSharedNonPointer(fieldsOfObject1, fieldsOfObject2);
 
@@ -179,7 +180,7 @@ public class SMGJoinAbstractionManager {
   }
 
   private Triple<Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>>, Set<SMGEdgeHasValue>, Set<SMGEdgeHasValue>> assignToSharedPPointerAndNonSharedOPointerAndSharedNonPointer(
-      Set<SMGEdgeHasValue> pFieldsOfObject1, Set<SMGEdgeHasValue> pFieldsOfObject2) {
+      SMGHasValueEdges pFieldsOfObject1, SMGHasValueEdges pFieldsOfObject2) {
 
     Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>> sharedOPointer = new HashSet<>();
     Set<SMGEdgeHasValue> nonSharedOPointer = new HashSet<>();
