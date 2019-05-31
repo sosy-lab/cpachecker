@@ -144,12 +144,12 @@ public class SMGJoinMatchObjectsTest {
     smg1.addObject(srcObj1);
     smg2.addObject(srcObj2);
 
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType2b, 0, srcObj1, SMGKnownSymValue.of());
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType2b, 2, srcObj2, SMGKnownSymValue.of());
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType2b, 0, srcObj1, SMGKnownSymValue.of());
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(smg2.getMachineModel(), mockType2b, 2, srcObj2, SMGKnownSymValue.of());
     SMGEdgeHasValue hvMatching1 =
-        new SMGEdgeHasValue(mockType2b, 4, srcObj1, SMGKnownSymValue.of());
+        new SMGEdgeHasValue(smg1.getMachineModel(), mockType2b, 4, srcObj1, SMGKnownSymValue.of());
     SMGEdgeHasValue hvMatching2 =
-        new SMGEdgeHasValue(mockType2b, 4, srcObj2, SMGKnownSymValue.of());
+        new SMGEdgeHasValue(smg2.getMachineModel(), mockType2b, 4, srcObj2, SMGKnownSymValue.of());
 
     smg1.addValue(hv1.getValue());
     smg1.addHasValueEdge(hv1);

@@ -110,8 +110,9 @@ class SMGJoinFields {
     for (SMGEdgeHasValue edge : pSMG1.getHVEdges(filterForSMG1)) {
       filterForSMG2.filterAtOffset(edge.getOffset());
       if (pSMG2.getHVEdges(filterForSMG2).size() == 0) {
-        returnSet = returnSet.addEdgeAndCopy(
-            new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj2, SMGKnownSymValue.of()));
+        returnSet =
+            returnSet.addEdgeAndCopy(
+                new SMGEdgeHasValue(pSMG1.getMachineModel(), edge.getType(), edge.getOffset(), pObj2, SMGKnownSymValue.of()));
       }
     }
 
@@ -204,11 +205,11 @@ class SMGJoinFields {
             pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
 
         long min = edge.getOffset();
-        long max = edge.getOffset() + edge.getSizeInBits(pSMG1.getMachineModel());
+        long max = edge.getOffset() + edge.getSizeInBits();
 
         Entry<Long, Integer> floorEntry = newNullEdgesOffsetToSize.floorEntry(min);
         if (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= max ) {
-          retset.add(new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj1, SMGZeroValue.INSTANCE));
+          retset.add(new SMGEdgeHasValue(pSMG1.getMachineModel(), edge.getType(), edge.getOffset(), pObj1, SMGZeroValue.INSTANCE));
         }
       }
     }
@@ -257,7 +258,7 @@ class SMGJoinFields {
       throws SMGInconsistentException {
     for (SMGEdgeHasValue edgeInSMG1 : pSMG1.getHVEdges(nullEdges1)) {
       long start = edgeInSMG1.getOffset();
-      long byte_after_end = start + edgeInSMG1.getSizeInBits(pSMG1.getMachineModel());
+      long byte_after_end = start + edgeInSMG1.getSizeInBits();
       SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObj2)
                                                           .filterAtOffset(edgeInSMG1.getOffset())
                                                           .filterByType(edgeInSMG1.getType());

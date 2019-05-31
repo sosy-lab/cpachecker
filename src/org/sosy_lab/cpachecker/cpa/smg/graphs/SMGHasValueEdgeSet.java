@@ -68,11 +68,16 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     if (sortedByOffsets == null) {
       sortedByOffsets = PathCopyingPersistentTreeMap.of();
     }
-    int pSize = size - sortedByOffsets.size();
+// Check on overlapping edges
+    Entry<Long, SMGEdgeHasValue> ceilingEntry = sortedByOffsets.ceilingEntry(pEdge.getOffset());
+    long endOffset = pEdge.getSizeInBits() + pEdge.getOffset();
+    assert (ceilingEntry == null || endOffset <= ceilingEntry.getKey());
+    Entry<Long, SMGEdgeHasValue> floorEntry = sortedByOffsets.lowerEntry(endOffset);
+    assert (floorEntry == null || pEdge.getOffset() >= floorEntry.getValue().getSizeInBits()
+        + floorEntry.getValue().getOffset());
+
     sortedByOffsets = sortedByOffsets.putAndCopy(pEdge.getOffset(), pEdge);
-    pSize += sortedByOffsets.size();
-    assert (size != pSize);
-    return new SMGHasValueEdgeSet(map.putAndCopy(pEdge.getObject(), sortedByOffsets), pSize);
+    return new SMGHasValueEdgeSet(map.putAndCopy(pEdge.getObject(), sortedByOffsets), size + 1);
   }
 
   @Override

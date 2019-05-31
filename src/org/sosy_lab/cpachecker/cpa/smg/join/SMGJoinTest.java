@@ -351,10 +351,10 @@ public class SMGJoinTest {
     Pair<SMGRegion, SMGRegion> objs = addHeapWithoutValueToBoth("Object", 64);
 
     // more general
-    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0 , objs.getFirst(), SMGZeroValue.INSTANCE));
+    smg1.addHasValueEdge(new SMGEdgeHasValue(smg1.getMachineModel(), mockType4b, 0 , objs.getFirst(), SMGZeroValue.INSTANCE));
 
-    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0 , objs.getSecond(), SMGZeroValue.INSTANCE));
-    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, objs.getSecond(), SMGZeroValue.INSTANCE));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(smg2.getMachineModel(), mockType4b, 0 , objs.getSecond(), SMGZeroValue.INSTANCE));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(smg2.getMachineModel(), mockType4b, 32, objs.getSecond(), SMGZeroValue.INSTANCE));
 
     Pair<SMGRegion, SMGRegion> global = addGlobalWithoutValueToBoth("global", 128);
     addPointerValueToBoth(global, 0, 100, 32, objs, 0);
@@ -369,7 +369,7 @@ public class SMGJoinTest {
     // this join fails due to SMGJoinValues not due to SMGJoinFields!
     SMGValue un = SMGKnownSymValue.valueOf(666);
     smg1.addValue(un);
-    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, objs.getFirst(), un));
+    smg1.addHasValueEdge(new SMGEdgeHasValue(smg1.getMachineModel(), mockType4b, 32, objs.getFirst(), un));
 
     SMGJoin join2 = new SMGJoin(smg1, smg2, null, null);
     Assert.assertFalse(join2.isDefined());

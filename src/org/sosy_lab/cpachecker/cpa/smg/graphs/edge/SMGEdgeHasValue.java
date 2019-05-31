@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasValue> {
 
   final private CType type;
+  final private int sizeInBits;
 
   /**
    * @param pType type of the object's memory starting at offset.
@@ -47,29 +48,31 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
    * @param pObject the target object pointed to.
    * @param pValue the value that points to some object.
    */
-  public SMGEdgeHasValue(CType pType, long pOffset, SMGObject pObject, SMGValue pValue) {
+  public SMGEdgeHasValue(MachineModel pMachineModel, CType pType, long pOffset, SMGObject pObject, SMGValue pValue) {
     super(pValue, pObject, pOffset);
     type = pType;
+    sizeInBits = pMachineModel.getSizeofInBits(type).intValueExact();
   }
 
   public SMGEdgeHasValue(int pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
     super(pValue, pObject, pOffset);
     type = TypeUtils.createTypeWithLength(pSizeInBits);
+    sizeInBits = pSizeInBits;
   }
 
   @Override
   public String toString() {
     return String.format(
-        "sizeof(%s)b @ %s+%db has value %s",
-        type.toASTString(""), object.getLabel(), getOffset(), value);
+        "Type \"%s\" with size %db @ %s+%db has value %s",
+        type.toASTString(""), sizeInBits, object.getLabel(), getOffset(), value);
   }
 
   public CType getType() {
     return type;
   }
 
-  public int getSizeInBits(MachineModel pMachineModel) {
-    return pMachineModel.getSizeofInBits(type).intValueExact();
+  public int getSizeInBits() {
+    return sizeInBits;
   }
 
   @Override
@@ -156,7 +159,11 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
     if (result != 0) {
       return result;
     }
-    if (type.equals(o.type)) {
+    result = Long.compare(sizeInBits, o.sizeInBits);
+    if (result != 0) {
+      return result;
+    }
+    if (type.getCanonicalType().equals(o.type.getCanonicalType())) {
       return 0;
     } else {
       if (type.canBeAssignedFrom(o.type)) {

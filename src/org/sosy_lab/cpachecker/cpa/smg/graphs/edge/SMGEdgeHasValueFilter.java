@@ -127,6 +127,6 @@ public class SMGEdgeHasValueFilter {
   public String toString() {
     return String.format(
         "Filter <object=%s@%d, value%s=%s, type=%s>",
-        object, offset, valueComplement ? "" : "!", value, type);
+        object, offset, !valueComplement ? "" : "!", value, type);
   }
 }

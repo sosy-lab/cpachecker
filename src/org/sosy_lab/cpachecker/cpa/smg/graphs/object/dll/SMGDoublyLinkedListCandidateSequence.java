@@ -108,8 +108,8 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
       pSMG.removeHeapObjectAndEdges(prevObject);
       prevObject = newAbsObj;
 
-      SMGEdgeHasValue nfoHve = new SMGEdgeHasValue(nextObj2hve.getType(), nextObj2hve.getOffset(), newAbsObj, nextObj2hve.getValue());
-      SMGEdgeHasValue pfoHve = new SMGEdgeHasValue(prevObj1hve.getType(), prevObj1hve.getOffset(), newAbsObj, prevObj1hve.getValue());
+      SMGEdgeHasValue nfoHve = new SMGEdgeHasValue(pSMG.getMachineModel(), nextObj2hve.getType(), nextObj2hve.getOffset(), newAbsObj, nextObj2hve.getValue());
+      SMGEdgeHasValue pfoHve = new SMGEdgeHasValue(pSMG.getMachineModel(), prevObj1hve.getType(), prevObj1hve.getOffset(), newAbsObj, prevObj1hve.getValue());
       pSMG.addHasValueEdge(nfoHve);
       pSMG.addHasValueEdge(pfoHve);
 

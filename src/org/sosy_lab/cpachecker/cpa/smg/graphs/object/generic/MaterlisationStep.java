@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -186,11 +187,11 @@ public class MaterlisationStep {
     Set<SMGEdgeHasValue> concreteHves = new HashSet<>();
 
     for (SMGEdgeHasValueTemplate aHve : fieldTemplateContainingPointerTemplate) {
-      createFieldToPointer(aHve, concreteObjectMap, abstractObjectToPointersMap, concreteHves);
+      createFieldToPointer(pSMG.getMachineModel(), aHve, concreteObjectMap, abstractObjectToPointersMap, concreteHves);
     }
 
     for (SMGEdgeHasValueTemplate aHve : fieldTemplateContainingPointer) {
-      createFieldToPointer(aHve, concreteObjectMap, abstractObjectToPointersMap, concreteHves);
+      createFieldToPointer(pSMG.getMachineModel(), aHve, concreteObjectMap, abstractObjectToPointersMap, concreteHves);
     }
 
     /*Fourth, create all values that are contained in this abstraction*/
@@ -200,7 +201,7 @@ public class MaterlisationStep {
       SMGValue value = aField.getValue();
       SMGObject concreteObject = concreteObjectMap.get(templateObject);
       CType type = aField.getType();
-      SMGEdgeHasValue concreteHve = new SMGEdgeHasValue(type, offset, concreteObject, value);
+      SMGEdgeHasValue concreteHve = new SMGEdgeHasValue(pSMG.getMachineModel(), type, offset, concreteObject, value);
       concreteHves.add(concreteHve);
     }
 
@@ -237,6 +238,7 @@ public class MaterlisationStep {
   }
 
   private void createFieldToPointer(
+      MachineModel pMachineModel,
       SMGEdgeHasValueTemplate pAbstractField,
       Map<SMGObjectTemplate, SMGObject> pConcreteObjectMap,
       Map<SMGObjectTemplate, Map<SMGValue, SMGValue>> pAbstractObjectToPointersMap,
@@ -247,7 +249,7 @@ public class MaterlisationStep {
     SMGValue abstractValue = pAbstractField.getAbstractValue();
     SMGValue value = pAbstractObjectToPointersMap.get(templateObject).get(abstractValue);
     CType type = pAbstractField.getType();
-    concreteHves.add(new SMGEdgeHasValue(type, offset, object, value));
+    concreteHves.add(new SMGEdgeHasValue(pMachineModel, type, offset, object, value));
   }
 
   private void createPointer(

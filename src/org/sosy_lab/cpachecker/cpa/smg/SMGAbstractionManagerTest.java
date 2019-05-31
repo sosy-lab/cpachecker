@@ -59,7 +59,7 @@ public class SMGAbstractionManagerTest {
       if (next != null) {
         SMGValue address = SMGKnownSymValue.of();
         SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
-        hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, node, address);
+        hv = new SMGEdgeHasValue(smg.getMachineModel(), CPointerType.POINTER_TO_VOID, 64, node, address);
         smg.addValue(address);
         smg.addPointsToEdge(pt);
       } else {
@@ -70,7 +70,7 @@ public class SMGAbstractionManagerTest {
     }
 
     SMGValue address = SMGKnownSymValue.of();
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, globalVar, address);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(smg.getMachineModel(), CPointerType.POINTER_TO_VOID, 64, globalVar, address);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
     smg.addGlobalObject(globalVar);
     smg.addValue(address);

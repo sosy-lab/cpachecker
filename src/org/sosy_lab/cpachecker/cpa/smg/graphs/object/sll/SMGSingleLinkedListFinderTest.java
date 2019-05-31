@@ -93,12 +93,12 @@ public class SMGSingleLinkedListFinderTest {
     SMGEdgeHasValue head = TestHelpers.createGlobalList(smg, 3, 128, 64, "head");
 
     SMGObject inside = new SMGRegion(128, "pointed_at");
-    SMGEdgeHasValue tailConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, inside, tail);
+    SMGEdgeHasValue tailConnection = new SMGEdgeHasValue(smg.getMachineModel(), CPointerType.POINTER_TO_VOID, 64, inside, tail);
 
     SMGValue addressOfInside = SMGKnownSymValue.of();
     SMGEdgePointsTo insidePT = new SMGEdgePointsTo(addressOfInside, inside, 0);
     SMGRegion inboundPointer = new SMGRegion(64, "inbound_pointer");
-    SMGEdgeHasValue inboundPointerConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 0, inboundPointer, addressOfInside);
+    SMGEdgeHasValue inboundPointerConnection = new SMGEdgeHasValue(smg.getMachineModel(), CPointerType.POINTER_TO_VOID, 0, inboundPointer, addressOfInside);
 
     SMGObject lastFromHead = smg.getPointer(head.getValue()).getObject();
     SMGEdgeHasValue connection = null;
@@ -116,10 +116,10 @@ public class SMGSingleLinkedListFinderTest {
       smg.removeHasValueEdge(hv);
     }
 
-    SMGEdgeHasValue headConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, lastFromHead, addressOfInside);
+    SMGEdgeHasValue headConnection = new SMGEdgeHasValue(smg.getMachineModel(), CPointerType.POINTER_TO_VOID, 64, lastFromHead, addressOfInside);
 
     SMGRegion tailPointer = new SMGRegion(64, "tail_pointer");
-    SMGEdgeHasValue tailPointerConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 0, tailPointer, tail);
+    SMGEdgeHasValue tailPointerConnection = new SMGEdgeHasValue(smg.getMachineModel(), CPointerType.POINTER_TO_VOID, 0, tailPointer, tail);
 
     smg.addGlobalObject(tailPointer);
     smg.addHasValueEdge(tailPointerConnection);

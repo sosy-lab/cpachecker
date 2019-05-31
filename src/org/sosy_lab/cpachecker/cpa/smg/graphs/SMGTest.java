@@ -58,8 +58,8 @@ public class SMGTest {
   SMGValue val2 = SMGKnownExpValue.valueOf(2);
 
   SMGEdgePointsTo pt1to1 = new SMGEdgePointsTo(val1, obj1, 0);
-  SMGEdgeHasValue hv2has2at0 = new SMGEdgeHasValue(mockType, 0, obj2, val2);
-  SMGEdgeHasValue hv2has1at4 = new SMGEdgeHasValue(mockType, 32, obj2, val1);
+  SMGEdgeHasValue hv2has2at0 = new SMGEdgeHasValue(MachineModel.LINUX64, mockType, 0, obj2, val2);
+  SMGEdgeHasValue hv2has1at4 = new SMGEdgeHasValue(MachineModel.LINUX64, mockType, 32, obj2, val1);
 
   // obj1 = xxxxxxxx
   // obj2 = yyyyzzzz
@@ -92,7 +92,7 @@ public class SMGTest {
   public void getNullBytesForObjectTest() {
     SMG smg1 = getNewSMG64();
     smg1.addObject(obj1);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj1, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 32, obj1, SMGZeroValue.INSTANCE);
     smg1.addHasValueEdge(hv);
 
     TreeMap<Long, Integer> nullEdges = smg1.getNullEdgesMapOffsetToSizeForObject(obj1);
@@ -129,7 +129,7 @@ public class SMGTest {
     SMGValue third_value = SMGKnownExpValue.valueOf(3);
     smg_copy.addObject(third_object);
     smg_copy.addValue(third_value);
-    smg_copy.addHasValueEdge(new SMGEdgeHasValue(mockType, 0, third_object,  third_value));
+    smg_copy.addHasValueEdge(new SMGEdgeHasValue(smg_copy.getMachineModel(), mockType, 0, third_object,  third_value));
     smg_copy.addPointsToEdge(new SMGEdgePointsTo(third_value, third_object, 0));
 
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
@@ -156,7 +156,7 @@ public class SMGTest {
     SMG smg1 = getNewSMG64();
     SMGObject object = new SMGRegion(32, "object");
 
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 0, object, SMGZeroValue.INSTANCE);
 
     smg1.addHasValueEdge(hv);
     assertThat(smg1.getHVEdges()).contains(hv);
@@ -171,8 +171,8 @@ public class SMGTest {
     SMGValue newValue = SMGKnownSymValue.of();
 
     SMGObject object = new SMGRegion(64, "object");
-    SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, SMGZeroValue.INSTANCE);
-    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, 32, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv0 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 0, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 32, object, SMGZeroValue.INSTANCE);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(newValue, object, 0);
 
     smg1.addValue(newValue);
@@ -195,8 +195,8 @@ public class SMGTest {
     SMGValue newValue = SMGKnownSymValue.of();
 
     SMGObject object = new SMGRegion(64, "object");
-    SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, SMGZeroValue.INSTANCE);
-    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, 32, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv0 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 0, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 32, object, SMGZeroValue.INSTANCE);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(newValue, object, 0);
 
     smg1.addValue(newValue);
@@ -270,10 +270,10 @@ public class SMGTest {
     smg2.addValue(random_value);
 
     // Read 4 bytes (sizeof(mockType)) on offset 0 of 2b object -> out of bounds
-    SMGEdgeHasValue invalidHV1 = new SMGEdgeHasValue(mockType, 0, object_2b, random_value);
+    SMGEdgeHasValue invalidHV1 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 0, object_2b, random_value);
 
     // Read 4 bytes (sizeof(mockType)) on offset 8 of 4b object -> out of bounds
-    SMGEdgeHasValue invalidHV2 = new SMGEdgeHasValue(mockType, 64, object_4b, random_value);
+    SMGEdgeHasValue invalidHV2 = new SMGEdgeHasValue(smg2.getMachineModel(), mockType, 64, object_4b, random_value);
 
     smg1.addHasValueEdge(invalidHV1);
     smg2.addHasValueEdge(invalidHV2);
@@ -294,10 +294,10 @@ public class SMGTest {
 
     // 1, 3, 4 are consistent (different offsets or object)
     // 2 is inconsistent with 1 (same object and offset, different value)
-    SMGEdgeHasValue hv_edge1 = new SMGEdgeHasValue(mockType, 0, object_8b, first_value);
-    SMGEdgeHasValue hv_edge2 = new SMGEdgeHasValue(mockType, 0, object_8b, second_value);
-    SMGEdgeHasValue hv_edge3 = new SMGEdgeHasValue(mockType, 32, object_8b, second_value);
-    SMGEdgeHasValue hv_edge4 = new SMGEdgeHasValue(mockType, 0, object_16b, second_value);
+    SMGEdgeHasValue hv_edge1 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 0, object_8b, first_value);
+    SMGEdgeHasValue hv_edge2 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 0, object_8b, second_value);
+    SMGEdgeHasValue hv_edge3 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 32, object_8b, second_value);
+    SMGEdgeHasValue hv_edge4 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 0, object_16b, second_value);
 
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 

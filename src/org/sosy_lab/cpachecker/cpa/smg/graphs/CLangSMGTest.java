@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -43,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -86,7 +85,7 @@ public class CLangSMGTest {
     SMGValue val2 = SMGKnownExpValue.valueOf(2);
 
     SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(CNumericTypes.UNSIGNED_LONG_INT, 0, obj2, val2);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(smg.getMachineModel(), CNumericTypes.UNSIGNED_LONG_INT, 0, obj2, val2);
 
     smg.addValue(val1);
     smg.addValue(val2);
@@ -362,13 +361,10 @@ public class CLangSMGTest {
   public void consistencyViolationNullTest() {
 
     CLangSMG smg = getNewCLangSMG64();
-
-    smg = getNewCLangSMG64();
     SMGObject null_object = smg.getHeapObjects().iterator().next();
     SMGValue some_value = SMGKnownExpValue.valueOf(5);
-    CType type = mock(CType.class);
-    when(type.getCanonicalType()).thenReturn(type);
-    SMGEdgeHasValue edge = new SMGEdgeHasValue(type, 0, null_object, some_value);
+    CType type = TypeUtils.createTypeWithLength(8);
+    SMGEdgeHasValue edge = new SMGEdgeHasValue(smg.getMachineModel(), type, 0, null_object, some_value);
 
     smg.addValue(some_value);
     smg.addHasValueEdge(edge);

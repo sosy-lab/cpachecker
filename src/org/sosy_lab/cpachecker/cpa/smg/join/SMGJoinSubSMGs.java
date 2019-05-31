@@ -148,7 +148,7 @@ final class SMGJoinSubSMGs {
             && joinValues.getValue().equals(hvIn1.getValue())) {
           newHV = hvIn1;
         } else {
-          newHV = new SMGEdgeHasValue(hvIn1.getType(), hvIn1.getOffset(), pNewObject,
+          newHV = new SMGEdgeHasValue(destSMG.getMachineModel(), hvIn1.getType(), hvIn1.getOffset(), pNewObject,
               joinValues.getValue());
         }
 
