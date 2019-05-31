@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
  * SMGEdgeHasValue}s lead from {@link SMGObject}s to {@link SMGValue}s. {@link SMGEdgeHasValue}s are
  * labelled by the offset and type of the field in which the value is stored within an object.
  */
-public class SMGEdgeHasValue extends SMGEdge {
+public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasValue> {
 
   final private CType type;
 
@@ -140,5 +140,33 @@ public class SMGEdgeHasValue extends SMGEdge {
     SMGEdgeHasValue other = (SMGEdgeHasValue) obj;
     return super.equals(obj)
         && type.getCanonicalType().equals(other.type.getCanonicalType());
+  }
+
+  @Override
+  public int compareTo(SMGEdgeHasValue o) {
+    int result = object.compareTo(o.object);
+    if (result != 0) {
+      return result;
+    }
+    result = Long.compare(getOffset(), o.getOffset());
+    if (result != 0) {
+      return result;
+    }
+    result = value.compareTo(o.value);
+    if (result != 0) {
+      return result;
+    }
+    if (type.equals(o.type)) {
+      return 0;
+    } else {
+      if (type.canBeAssignedFrom(o.type)) {
+        return -1;
+      }
+      if (o.type.canBeAssignedFrom(type)) {
+        return 1;
+      }
+      // FIXME: require some comparison of types
+      return -1;
+    }
   }
 }
