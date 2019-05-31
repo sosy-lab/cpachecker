@@ -84,25 +84,25 @@ public class SMGEdgeHasValueTest {
     SMGEdgeHasValue at4 = new SMGEdgeHasValue(MachineModel.LINUX64, mockType, 32, object, value);
     SMGEdgeHasValue at6 = new SMGEdgeHasValue(MachineModel.LINUX64, mockType, 48, object, value);
 
-    Assert.assertTrue(at0.overlapsWith(at2, MachineModel.LINUX64));
-    Assert.assertTrue(at2.overlapsWith(at0, MachineModel.LINUX64));
-    Assert.assertTrue(at2.overlapsWith(at4, MachineModel.LINUX64));
-    Assert.assertTrue(at4.overlapsWith(at2, MachineModel.LINUX64));
-    Assert.assertTrue(at4.overlapsWith(at6, MachineModel.LINUX64));
-    Assert.assertTrue(at6.overlapsWith(at4, MachineModel.LINUX64));
+    Assert.assertTrue(at0.overlapsWith(at2));
+    Assert.assertTrue(at2.overlapsWith(at0));
+    Assert.assertTrue(at2.overlapsWith(at4));
+    Assert.assertTrue(at4.overlapsWith(at2));
+    Assert.assertTrue(at4.overlapsWith(at6));
+    Assert.assertTrue(at6.overlapsWith(at4));
 
-    Assert.assertTrue(at0.overlapsWith(at0, MachineModel.LINUX64));
+    Assert.assertTrue(at0.overlapsWith(at0));
 
-    Assert.assertFalse(at0.overlapsWith(at4, MachineModel.LINUX64));
-    Assert.assertFalse(at0.overlapsWith(at6, MachineModel.LINUX64));
-    Assert.assertFalse(at2.overlapsWith(at6, MachineModel.LINUX64));
-    Assert.assertFalse(at4.overlapsWith(at0, MachineModel.LINUX64));
-    Assert.assertFalse(at6.overlapsWith(at0, MachineModel.LINUX64));
-    Assert.assertFalse(at6.overlapsWith(at2, MachineModel.LINUX64));
+    Assert.assertFalse(at0.overlapsWith(at4));
+    Assert.assertFalse(at0.overlapsWith(at6));
+    Assert.assertFalse(at2.overlapsWith(at6));
+    Assert.assertFalse(at4.overlapsWith(at0));
+    Assert.assertFalse(at6.overlapsWith(at0));
+    Assert.assertFalse(at6.overlapsWith(at2));
 
     SMGEdgeHasValue whole = new SMGEdgeHasValue(MachineModel.LINUX64, mockType12b, 0, object, value);
-    Assert.assertTrue(whole.overlapsWith(at4, MachineModel.LINUX64));
-    Assert.assertTrue(at4.overlapsWith(whole, MachineModel.LINUX64));
+    Assert.assertTrue(whole.overlapsWith(at4));
+    Assert.assertTrue(at4.overlapsWith(whole));
   }
 
   @Test
@@ -166,7 +166,7 @@ public class SMGEdgeHasValueTest {
     SMGEdgeHasValue hv1 = new SMGEdgeHasValue(MachineModel.LINUX64, mockType, 0, object1, value);
     SMGEdgeHasValue hv2 = new SMGEdgeHasValue(MachineModel.LINUX64, mockType, 16, object2, value);
 
-    hv1.overlapsWith(hv2, MachineModel.LINUX64);
+    hv1.overlapsWith(hv2);
   }
 
   @Test

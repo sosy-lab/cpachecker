@@ -90,23 +90,23 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
     return true;
   }
 
-  public boolean overlapsWith(SMGEdgeHasValue other, MachineModel pModel) {
+  public boolean overlapsWith(SMGEdgeHasValue other) {
     if (object != other.object) {
       throw new IllegalArgumentException("Call of overlapsWith() on Has-Value edges pair not originating from the same object");
     }
 
     long otStart = other.getOffset();
 
-    long otEnd = otStart + pModel.getSizeofInBits(other.getType()).longValueExact();
+    long otEnd = otStart + other.getSizeInBits();
 
-    return overlapsWith(otStart, otEnd, pModel);
+    return overlapsWith(otStart, otEnd);
   }
 
-  public boolean overlapsWith(long pOtStart, long pOtEnd, MachineModel pModel) {
+  public boolean overlapsWith(long pOtStart, long pOtEnd) {
 
     long myStart = getOffset();
 
-    long myEnd = myStart + pModel.getSizeofInBits(type).longValueExact();
+    long myEnd = myStart + getSizeInBits();
 
     if (myStart < pOtStart) {
       return (myEnd > pOtStart);
