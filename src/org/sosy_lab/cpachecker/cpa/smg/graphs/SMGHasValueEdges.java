@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -53,5 +52,5 @@ public interface SMGHasValueEdges extends Iterable<SMGEdgeHasValue> {
 
   boolean contains(SMGEdgeHasValue pHv);
 
-  Iterable<SMGEdgeHasValue> getOverlapping(SMGEdgeHasValue pNew_edge, MachineModel pMachineModel);
+  Iterable<SMGEdgeHasValue> getOverlapping(SMGEdgeHasValue pNew_edge);
 }

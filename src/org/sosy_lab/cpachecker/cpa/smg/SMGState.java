@@ -1097,7 +1097,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGEdgeHasValueFilter filter =
         SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pOffset);
     for (SMGEdgeHasValue object_edge : heap.getHVEdges(filter)) {
-      if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())) {
+      if (edge.isCompatibleFieldOnSameObject(object_edge)) {
         performConsistencyCheck(SMGRuntimeCheck.HALF);
         addElementToCurrentChain(object_edge);
         return SMGValueAndState.of(this, (SMGSymbolicValue) object_edge.getValue());
@@ -1204,7 +1204,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     /* We need to remove all non-zero overlapping edges
      * and remember all overlapping zero edges to shrink them later
      */
-    Iterable<SMGEdgeHasValue> overlappingEdges = edges.getOverlapping(new_edge, heap.getMachineModel());
+    Iterable<SMGEdgeHasValue> overlappingEdges = edges.getOverlapping(new_edge);
     for (SMGEdgeHasValue hv : overlappingEdges) {
 
       boolean hvEdgeIsZero = hv.getValue() == SMGZeroValue.INSTANCE;
@@ -1216,7 +1216,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       }
     }
 
-    boolean newEdgeIsZero = pValue == SMGZeroValue.INSTANCE;
+    boolean newEdgeIsZero = pValue.isZero();
     if (newEdgeIsZero) {
       mergeWithOverlappingZeroEdges(new_edge, overlappingZeroEdges);
     } else {

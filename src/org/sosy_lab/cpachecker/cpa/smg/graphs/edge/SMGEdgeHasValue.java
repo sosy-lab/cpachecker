@@ -124,10 +124,18 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
     return type.equals(other.type) && (getOffset() == other.getOffset());
   }
 
-  public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
-    return pModel.getSizeofInBits(type).equals(pModel.getSizeofInBits(other.type))
-        && (getOffset() == other.getOffset())
-        && object == other.object;
+  public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other) {
+    if (other.getValue().isZero()) {
+      return
+          getOffset() + getSizeInBits() <= other.getOffset() + other.getSizeInBits()
+            && getOffset() >= other.getOffset()
+            && object == other.object;
+    } else {
+      return
+          getSizeInBits() == other.getSizeInBits()
+              && getOffset() == other.getOffset()
+              && object == other.object;
+    }
   }
 
   @Override

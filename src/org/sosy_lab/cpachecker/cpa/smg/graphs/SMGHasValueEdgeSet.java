@@ -31,7 +31,6 @@ import java.util.NavigableSet;
 import java.util.NoSuchElementException;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -114,6 +113,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     int pSize = size;
 
     if (sizeForObject == 0) {
+      assert false;
       return this;
     } else {
       PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = map.get(pEdge.getObject());
@@ -122,6 +122,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
         if (floorEntry != null) {
           SMGEdgeHasValue removingEdge = floorEntry.getValue();
           if (removingEdge.getOffset() + removingEdge.getSizeInBits() <= pEdge.getOffset()) {
+            assert false;
             return this;
           } else {
             updated = sortedByOffsets.removeAndCopy(removingEdge.getOffset());
@@ -143,6 +144,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
             }
           }
         } else {
+          assert false;
           return this;
         }
       } else {
@@ -152,6 +154,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
       }
 
       if (updated == sortedByOffsets) {
+        assert false;
         return this;
       } else {
         if (updated.isEmpty()) {
@@ -233,28 +236,40 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
 
   @Override
   public boolean contains(SMGEdgeHasValue pHv) {
+
     PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = map.get(pHv.getObject());
     if (sortedByOffsets == null) {
       return false;
+    }
+    if (pHv.getValue().isZero()) {
+      Entry<Long, SMGEdgeHasValue> floorEntryCandidate = sortedByOffsets.floorEntry(pHv.getOffset());
+      if (floorEntryCandidate != null) {
+        SMGEdgeHasValue edgeCandidate = floorEntryCandidate.getValue();
+        if (edgeCandidate.getValue().isZero()) {
+          long edgeCandidateOffset = edgeCandidate.getOffset();
+          long edgeCandidateEndOffset = edgeCandidateOffset + edgeCandidate.getSizeInBits();
+          return pHv.getOffset() + pHv.getSizeInBits() <= edgeCandidateEndOffset;
+        }
+      }
     }
     return pHv.equals(sortedByOffsets.get(pHv.getOffset()));
   }
 
   @Override
   public Iterable<SMGEdgeHasValue> getOverlapping(
-      SMGEdgeHasValue pNew_edge, MachineModel pMachineModel) {
+      SMGEdgeHasValue pNew_edge) {
     PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets =
         map.get(pNew_edge.getObject());
     if (sortedByOffsets == null) {
       return ImmutableSet.of();
     }
     long startOffset = pNew_edge.getOffset();
-    long endOffset = startOffset + pMachineModel.getSizeofInBits(pNew_edge.getType()).longValueExact();
+    long endOffset = startOffset + pNew_edge.getSizeInBits();
     Entry<Long, SMGEdgeHasValue> floorEntryCandidate = sortedByOffsets.floorEntry(startOffset);
     if (floorEntryCandidate != null) {
       SMGEdgeHasValue edgeCandidate = floorEntryCandidate.getValue();
       long edgeCandidateOffset = edgeCandidate.getOffset();
-      long edgeCandidateEndOffset = edgeCandidateOffset + pMachineModel.getSizeofInBits(edgeCandidate.getType()).longValueExact();
+      long edgeCandidateEndOffset = edgeCandidateOffset + edgeCandidate.getSizeInBits();
       if (edgeCandidateEndOffset > startOffset) {
         startOffset = edgeCandidateOffset;
       }
