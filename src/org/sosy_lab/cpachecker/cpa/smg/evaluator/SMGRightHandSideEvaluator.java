@@ -99,10 +99,10 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     Value val = rVal.accept(v);
 
     if (val.isUnknown()) {
-      return SMGExplicitValueAndState.of(v.getNewState());
+      return SMGExplicitValueAndState.of(v.getState());
     }
 
-    return SMGExplicitValueAndState.of(v.getNewState(),
+    return SMGExplicitValueAndState.of(v.getState(),
         SMGKnownExpValue.valueOf(val.asNumericValue().longValue()));
   }
 

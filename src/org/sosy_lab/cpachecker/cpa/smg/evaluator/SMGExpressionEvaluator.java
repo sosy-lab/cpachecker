@@ -309,7 +309,7 @@ public class SMGExpressionEvaluator {
     ExplicitValueVisitor visitor = new ExplicitValueVisitor(this, smgState, null, machineModel, logger, cfaEdge);
 
     Value value = rValue.accept(visitor);
-    SMGState newState = visitor.getNewState();
+    SMGState newState = visitor.getState();
 
     if (!value.isExplicitlyKnown() || !value.isNumericValue()) {
 
