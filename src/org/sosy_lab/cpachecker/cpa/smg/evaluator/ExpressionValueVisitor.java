@@ -132,6 +132,7 @@ class ExpressionValueVisitor
     boolean isZero = value.equals(BigInteger.ZERO);
 
     SMGSymbolicValue val = (isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE);
+    //TODO: check whether we can get real symbolic instead of unknown
     return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
   }
 
