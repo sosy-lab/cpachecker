@@ -153,16 +153,16 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
           if (isWildcardState(e, AnalysisDirection.FORWARD)) {
             returnElement = new CallstackState(null, callerFunction, e.getCallNode());
 
-        } else {
-          if (!callNode.equals(e.getCallNode())) {
-            // this is not the right return edge
-            return Collections.emptySet();
-          }
+          } else {
+            if (!callNode.equals(e.getCallNode())) {
+              // this is not the right return edge
+              return Collections.emptySet();
+            }
 
-          // we are in a function return:
-          //    remove the current function from the stack;
-          //    the new abstract state is the predecessor state in the stack
-          returnElement = e.getPreviousState();
+            // we are in a function return:
+            //    remove the current function from the stack;
+            //    the new abstract state is the predecessor state in the stack
+            returnElement = e.getPreviousState();
 
             assert callerFunction.equals(returnElement.getCurrentFunction())
                     || isWildcardState(returnElement, AnalysisDirection.FORWARD)
@@ -171,7 +171,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
                     callerFunction, returnElement.getCurrentFunction(), returnElement);
           }
 
-        return Collections.singleton(returnElement);
+          return Collections.singleton(returnElement);
       }
 
     default:
