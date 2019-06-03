@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.thread;
 import java.util.Collection;
 import java.util.Collections;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStateBuilder;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
+@Options(prefix = "cpa.thread")
 public class ThreadTransferRelation extends SingleEdgeTransferRelation {
   @Option(
     secure = true,
@@ -55,7 +57,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     secure = true,
     description = "The case when the same thread is created several times we do not support."
         + "We may try to support it with self-parallelizm.")
-  private boolean supportSelfCreation = false;
+  private boolean supportSelfCreation = true;
 
   private final ThreadCPAStatistics threadStatistics;
 
