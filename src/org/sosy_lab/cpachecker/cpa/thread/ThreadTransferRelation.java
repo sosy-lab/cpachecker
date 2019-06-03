@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.thread;
 
 import java.util.Collection;
 import java.util.Collections;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
@@ -41,10 +42,21 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStateBuilder;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 
 
 public class ThreadTransferRelation extends SingleEdgeTransferRelation {
+  @Option(
+    secure = true,
+    description = "The case when the same thread is created several times we do not support."
+        + "We may skip or fail in this case.")
+  private boolean skipTheSameThread = false;
+
+  @Option(
+    secure = true,
+    description = "The case when the same thread is created several times we do not support."
+        + "We may try to support it with self-parallelizm.")
+  private boolean supportSelfCreation = false;
+
   private final ThreadCPAStatistics threadStatistics;
 
   public ThreadTransferRelation() {
@@ -68,7 +80,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
       } else if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
         CFunctionCall functionCall = ((CFunctionSummaryStatementEdge) pCfaEdge).getFunctionCall();
         if (isThreadCreateFunction(functionCall)) {
-          builder.handleParentThread((CThreadCreateStatement) functionCall);
+          builder.handleParentThread((CThreadCreateStatement) functionCall, supportSelfCreation);
         }
       } else if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
         CStatement stmnt = ((CStatementEdge) pCfaEdge).getStatement();
@@ -86,20 +98,25 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
         }
       }
       return Collections.singleton(builder.build());
-    } catch (HandleCodeException e) {
-      return Collections.emptySet();
+    } catch (CPATransferException e) {
+      if (skipTheSameThread) {
+        return Collections.emptySet();
+      } else {
+        throw e;
+      }
     } finally {
       threadStatistics.transfer.stop();
     }
   }
 
   private boolean handleFunctionCall(CFunctionCallEdge pCfaEdge,
-      ThreadStateBuilder builder) throws HandleCodeException {
+      ThreadStateBuilder builder)
+      throws CPATransferException {
 
     boolean success = true;
     CFunctionCall fCall = pCfaEdge.getSummaryEdge().getExpression();
     if (isThreadCreateFunction(fCall)) {
-      builder.handleChildThread((CThreadCreateStatement) fCall);
+      builder.handleChildThread((CThreadCreateStatement) fCall, supportSelfCreation);
       if (threadStatistics.createdThreads.add(pCfaEdge.getSuccessor().getFunctionName())) {
         threadStatistics.threadCreates.inc();
         // Just to statistics
