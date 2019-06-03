@@ -69,7 +69,7 @@ public abstract class AbstractLockState
   public boolean isCompatibleWith(CompatibleState state) {
     Preconditions.checkArgument(state instanceof AbstractLockState);
     AbstractLockState pLocks = (AbstractLockState) state;
-    return !Sets.intersection(getLocks(), pLocks.getLocks()).isEmpty();
+    return Sets.intersection(getLocks(), pLocks.getLocks()).isEmpty();
   }
 
   public abstract AbstractLockStateBuilder builder();

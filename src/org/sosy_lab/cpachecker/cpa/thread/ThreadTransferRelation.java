@@ -57,7 +57,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     secure = true,
     description = "The case when the same thread is created several times we do not support."
         + "We may try to support it with self-parallelizm.")
-  private boolean supportSelfCreation = true;
+  private boolean supportSelfCreation = false;
 
   private final ThreadCPAStatistics threadStatistics;
 
