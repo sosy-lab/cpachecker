@@ -1748,19 +1748,10 @@ public class CFABuilder {
                     BinaryOperator.PLUS));
         }
       } else if (currentType instanceof CArrayType) {
-        if (valueIsZero(indexValue)) {
-          /* if we look into the first value, then use operator *
-           * instead of [0], so that Ref can remove the * from
-           * the expression where possible */
-          currentExpression =
-              new CPointerExpression(fileLocation,
-                                     currentType.getCanonicalType(),
-                                     currentExpression);
-        } else {
-          currentExpression =
-              new CArraySubscriptExpression(fileLocation, currentType,
-                                            currentExpression, index);
-        }
+        currentExpression =
+            new CArraySubscriptExpression(fileLocation,
+                                          ((CArrayType) currentType).getType().getCanonicalType(),
+                                          currentExpression, index);
       } else if (currentType instanceof CCompositeType) {
         if (!(index instanceof CIntegerLiteralExpression)) {
           throw new UnsupportedOperationException(
