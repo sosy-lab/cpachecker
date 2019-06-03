@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.thread;
 
 import java.util.Collection;
 import java.util.Collections;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -61,7 +63,8 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
 
   private final ThreadCPAStatistics threadStatistics;
 
-  public ThreadTransferRelation() {
+  public ThreadTransferRelation(Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
     threadStatistics = new ThreadCPAStatistics();
   }
 
