@@ -56,18 +56,20 @@ public class PredicateMergeOperator implements MergeOperator {
   private final PredicateStatistics statistics;
   private final TimerWrapper totalMergeTimer;
 
-  private final boolean abstractionLattice = false;
+  private final boolean abstractionLattice;
 
   public PredicateMergeOperator(
       LogManager pLogger,
       BooleanFormulaManager pMngr,
       PathFormulaManager pPfmgr,
-      PredicateStatistics pStatistics) {
+      PredicateStatistics pStatistics,
+      boolean pAbstractionLattice) {
     logger = pLogger;
     formulaManager = pPfmgr;
     statistics = pStatistics;
     mngr = pMngr;
     totalMergeTimer = statistics.totalMergeTime.getNewTimer();
+    abstractionLattice = pAbstractionLattice;
   }
 
   @Override

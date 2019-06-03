@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
+import org.sosy_lab.cpachecker.core.defaults.TrivialApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -71,6 +72,9 @@ public class LockCPA extends AbstractCPA
 
   @Option(description = "Consider or not special cases with empty lock sets", secure = true)
   private StopMode stopMode = StopMode.DEFAULT;
+
+  @Option(description = "Consider or not lock guards", secure = true)
+  private boolean considerLockGuards = true;
 
   private final Reducer reducer;
 
@@ -141,6 +145,10 @@ public class LockCPA extends AbstractCPA
 
   @Override
   public ApplyOperator getApplyOperator() {
-    return new LockApplyOperator();
+    if (considerLockGuards) {
+      return new LockApplyOperator();
+    } else {
+      return TrivialApplyOperator.getInstance();
+    }
   }
 }

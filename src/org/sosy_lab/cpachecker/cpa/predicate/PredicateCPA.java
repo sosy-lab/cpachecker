@@ -255,7 +255,8 @@ public class PredicateCPA
             logger,
             solver.getFormulaManager().getBooleanFormulaManager(),
             pathFormulaManager,
-            statistics);
+            statistics,
+            options.abstractionLattice());
       default:
         throw new InternalError("Update list of allowed merge operators");
     }
