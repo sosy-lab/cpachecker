@@ -184,8 +184,8 @@ public class SMGTest {
     assertThat(smg1.getObjects()).contains(object);
     smg1.removeObject(object);
     assertThat(smg1.getObjects()).doesNotContain(object);
-    assertThat(smg1.getHVEdges()).contains(hv0);
-    assertThat(smg1.getHVEdges()).contains(hv4);
+    Assert.assertTrue(smg1.getHVEdges().contains(hv0));
+    Assert.assertTrue(smg1.getHVEdges().contains(hv4));
     assertThat(smg1.getPTEdges()).contains(pt);
   }
 
