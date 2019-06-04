@@ -39,8 +39,12 @@ public class EnvironmentActionEdge extends CStatementEdge {
   public boolean equals(Object pOther) {
     boolean res = super.equals(pOther);
     if (res) {
-      EnvironmentActionEdge other = (EnvironmentActionEdge) pOther;
-      return Objects.equals(statement, other.statement);
+      if (pOther instanceof EnvironmentActionEdge) {
+        EnvironmentActionEdge other = (EnvironmentActionEdge) pOther;
+        return Objects.equals(statement, other.statement);
+      } else {
+        return false;
+      }
     }
     return false;
   }
