@@ -198,6 +198,12 @@ public class CFACreator {
 
   @Option(
     secure = true,
+    name = "cfa.exportPixelGraphicFile",
+    description = "export CFA as pixel graphic file")
+  private boolean exportPixelGraphicFile = true;
+
+  @Option(
+    secure = true,
     name = "cfa.callgraph.file",
     description = "file name for call graph as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -613,7 +619,7 @@ public class CFACreator {
     if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
         || ((exportFunctionCallsFile != null) && exportFunctionCalls)
         || ((serializeCfaFile != null) && serializeCfa)
-        || (exportCfaPixelFile != null)) {
+        || (exportCfaPixelFile != null) && exportPixelGraphicFile) {
       exportCFAAsync(immutableCFA);
     }
 
