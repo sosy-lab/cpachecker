@@ -1704,11 +1704,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public void pruneUnreachable() throws SMGInconsistentException {
     Set<SMGObject> unreachable = heap.pruneUnreachable();
     if (!unreachable.isEmpty()) {
-      String error = "";
+      StringBuffer error = new StringBuffer();
       for (SMGObject obj : unreachable) {
-        error += " " + obj.getLabel();
+        error.append(obj.getLabel());
       }
-      setMemLeak("Memory leak is detected" + error, unreachable);
+      setMemLeak("Memory leak of " + error.toString() + " is detected", unreachable);
     }
     //TODO: Explicit values pruning
     performConsistencyCheck(SMGRuntimeCheck.HALF);
