@@ -570,7 +570,16 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
           ((WrapperCFAEdge) edge).getCFAEdge());
     } else if (edge == EmptyEdge.getInstance()) {
       // Empty environment action
-      return Collections.singleton(pElement);
+      // Need to omit edge part, so return the same state, but without edge
+      PredicateAbstractState predecessor = (PredicateAbstractState) pElement;
+
+      PredicateAbstractState newState =
+          PredicateAbstractState
+              .mkAbstractionState(
+                  predecessor.getPathFormula(),
+                  predecessor.getAbstractionFormula(),
+                  predecessor.getAbstractionLocationsOnPath());
+      return Collections.singleton(newState);
     } else if (edge instanceof PredicateAbstractEdge) {
       environmentTimer.start();
       PredicateAbstractState predecessor = (PredicateAbstractState) pElement;
@@ -631,7 +640,11 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
                 .mkNonAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
         return Collections.singleton(newState);
       } else {
-        return Collections.singleton(pElement);
+        // Need to omit edge part, so return the same state, but without edge
+        PredicateAbstractState newState =
+            PredicateAbstractState
+                .mkAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
+        return Collections.singleton(newState);
       }
     } else {
       throw new CPATransferException("Unsupported edge: " + edge.getClass());

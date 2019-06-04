@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.EnvironmentActionEdge;
@@ -268,6 +269,8 @@ public class ARGState extends AbstractSingleWrapperState
                       currentLoc,
                       childLoc);
             } else if (realEdge instanceof CFunctionReturnEdge) {
+              newEdge = realEdge;
+            } else if (realEdge instanceof CAssumeEdge) {
               newEdge = realEdge;
             } else {
               throw new UnsupportedOperationException(

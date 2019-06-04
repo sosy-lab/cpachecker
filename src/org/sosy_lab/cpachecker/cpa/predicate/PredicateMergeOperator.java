@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
@@ -107,19 +108,7 @@ public class PredicateMergeOperator implements MergeOperator {
 
         AbstractEdge edge1 = e1.getAbstractEdge();
         AbstractEdge edge2 = e2.getAbstractEdge();
-
-        assert edge1 instanceof PredicateAbstractEdge && edge2 instanceof PredicateAbstractEdge;
-
-        Collection<CAssignment> formulas1 = ((PredicateAbstractEdge) edge1).getAssignments();
-        Collection<CAssignment> formulas2 = ((PredicateAbstractEdge) edge2).getAssignments();
-
-        if (formulas2.containsAll(formulas1)) {
-          newEdge = edge2;
-        } else {
-          Collection<CAssignment> newFormulas = Sets.newHashSet(formulas1);
-          newFormulas.addAll(formulas2);
-          newEdge = new PredicateAbstractEdge(newFormulas);
-        }
+        newEdge = mergeEdges(edge1, edge2);
 
         if (newAbs == abs2 && newEdge == edge2) {
           return e2;
@@ -151,6 +140,28 @@ public class PredicateMergeOperator implements MergeOperator {
       } else {
         return elem2;
       }
+    }
+  }
+
+  private AbstractEdge mergeEdges(AbstractEdge edge1, AbstractEdge edge2) {
+
+    if (edge1 == EmptyEdge.getInstance()) {
+      return edge2;
+    } else if (edge2 == EmptyEdge.getInstance()) {
+      return edge1;
+    }
+
+    assert edge1 instanceof PredicateAbstractEdge && edge2 instanceof PredicateAbstractEdge;
+
+    Collection<CAssignment> formulas1 = ((PredicateAbstractEdge) edge1).getAssignments();
+    Collection<CAssignment> formulas2 = ((PredicateAbstractEdge) edge2).getAssignments();
+
+    if (formulas2.containsAll(formulas1)) {
+      return edge2;
+    } else {
+      Collection<CAssignment> newFormulas = Sets.newHashSet(formulas1);
+      newFormulas.addAll(formulas2);
+      return new PredicateAbstractEdge(newFormulas);
     }
   }
 

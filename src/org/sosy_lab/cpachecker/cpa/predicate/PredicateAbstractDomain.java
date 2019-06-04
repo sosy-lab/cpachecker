@@ -64,96 +64,95 @@ public class PredicateAbstractDomain implements AbstractDomain {
     coverageCheckTimer.start();
     try {
 
-      if (element1.getClass() == element2.getClass()) {
+      if (element1 instanceof PredicateProjectedState
+          && element2 instanceof PredicateProjectedState) {
 
-        if (element1 instanceof PredicateProjectedState) {
+        PredicateProjectedState e1 = (PredicateProjectedState) element1;
+        PredicateProjectedState e2 = (PredicateProjectedState) element2;
 
-          PredicateProjectedState e1 = (PredicateProjectedState) element1;
-          PredicateProjectedState e2 = (PredicateProjectedState) element2;
-
-          BooleanFormula abs1 = e1.getGuard();
-          BooleanFormula abs2 = e2.getGuard();
-          if (!bmgr.isTrue(abs2) && bmgr.isTrue(abs1)) {
+        BooleanFormula abs1 = e1.getGuard();
+        BooleanFormula abs2 = e2.getGuard();
+        if (!bmgr.isTrue(abs2) && bmgr.isTrue(abs1)) {
+          return false;
+        }
+        BooleanFormula implication = bmgr.implication(abs1, abs2);
+        BooleanFormula negation = bmgr.not(implication);
+        try {
+          if (!mgr.unsat(negation)) {
             return false;
           }
-          BooleanFormula implication = bmgr.implication(abs1, abs2);
-          BooleanFormula negation = bmgr.not(implication);
-          try {
-            if (!mgr.unsat(negation)) {
-              return false;
-            }
-          } catch (SolverException | InterruptedException e) {
-            return false;
+        } catch (SolverException | InterruptedException e) {
+          return false;
+        }
+
+        AbstractEdge edge1 = e1.getAbstractEdge();
+        AbstractEdge edge2 = e2.getAbstractEdge();
+
+        if (edge1 instanceof PredicateAbstractEdge && edge2 instanceof PredicateAbstractEdge) {
+
+          PredicateAbstractEdge pEdge1 = (PredicateAbstractEdge) edge1;
+          PredicateAbstractEdge pEdge2 = (PredicateAbstractEdge) edge2;
+
+          if (pEdge2.getAssignments().containsAll(pEdge1.getAssignments())) {
+            return true;
           }
+          return false;
 
-          AbstractEdge edge1 = e1.getAbstractEdge();
-          AbstractEdge edge2 = e2.getAbstractEdge();
+        } else {
+          return edge1.getClass() == edge2.getClass();
+        }
 
-          if (edge1 instanceof PredicateAbstractEdge && edge2 instanceof PredicateAbstractEdge) {
+      } else if (element1 instanceof PredicateAbstractState
+          && element2 instanceof PredicateAbstractState) {
 
-            PredicateAbstractEdge pEdge1 = (PredicateAbstractEdge) edge1;
-            PredicateAbstractEdge pEdge2 = (PredicateAbstractEdge) edge2;
+        PredicateAbstractState e1 = (PredicateAbstractState) element1;
+        PredicateAbstractState e2 = (PredicateAbstractState) element2;
 
-            if (pEdge2.getAssignments().containsAll(pEdge1.getAssignments())) {
-              return true;
-            }
-            return false;
+        // TODO time statistics (previously in formula manager)
+        /*
+         * long start = System.currentTimeMillis(); entails(f1, f2); long end =
+         * System.currentTimeMillis(); stats.bddCoverageCheckMaxTime =
+         * Math.max(stats.bddCoverageCheckMaxTime, (end - start)); stats.bddCoverageCheckTime +=
+         * (end - start); ++stats.numCoverageChecks;
+         */
+
+        if (e1.isAbstractionState() && e2.isAbstractionState()) {
+          bddCoverageCheckTimer.start();
+
+          // if e1's predicate abstraction entails e2's pred. abst.
+          boolean result =
+              mgr.checkCoverage(e1.getAbstractionFormula(), e2.getAbstractionFormula());
+
+          bddCoverageCheckTimer.stop();
+          return result;
+
+        } else if (e2.isAbstractionState()) {
+          if (symbolicCoverageCheck) {
+            symbolicCoverageCheckTimer.start();
+
+            boolean result =
+                mgr.checkCoverage(
+                    e1.getAbstractionFormula(),
+                    e1.getPathFormula(),
+                    e2.getAbstractionFormula());
+
+            symbolicCoverageCheckTimer.stop();
+            return result;
 
           } else {
-            return edge1.getClass() == edge2.getClass();
+            return false;
           }
+
+        } else if (e1.isAbstractionState()) {
+          return false;
 
         } else {
 
-          PredicateAbstractState e1 = (PredicateAbstractState) element1;
-          PredicateAbstractState e2 = (PredicateAbstractState) element2;
-
-          // TODO time statistics (previously in formula manager)
-          /*
-           * long start = System.currentTimeMillis(); entails(f1, f2); long end =
-           * System.currentTimeMillis(); stats.bddCoverageCheckMaxTime =
-           * Math.max(stats.bddCoverageCheckMaxTime, (end - start)); stats.bddCoverageCheckTime +=
-           * (end - start); ++stats.numCoverageChecks;
-           */
-
-          if (e1.isAbstractionState() && e2.isAbstractionState()) {
-            bddCoverageCheckTimer.start();
-
-            // if e1's predicate abstraction entails e2's pred. abst.
-            boolean result =
-                mgr.checkCoverage(e1.getAbstractionFormula(), e2.getAbstractionFormula());
-
-            bddCoverageCheckTimer.stop();
-            return result;
-
-          } else if (e2.isAbstractionState()) {
-            if (symbolicCoverageCheck) {
-              symbolicCoverageCheckTimer.start();
-
-              boolean result =
-                  mgr.checkCoverage(
-                      e1.getAbstractionFormula(),
-                      e1.getPathFormula(),
-                      e2.getAbstractionFormula());
-
-              symbolicCoverageCheckTimer.stop();
-              return result;
-
-            } else {
-              return false;
-            }
-
-          } else if (e1.isAbstractionState()) {
-            return false;
-
-          } else {
-
-            if (e1.getPathFormula().equals(e2.getPathFormula())) {
-              return true;
-            }
-            // only the fast check which returns true if a merge occurred for this element
-            return e1.getMergedInto() == e2;
+          if (e1.getPathFormula().equals(e2.getPathFormula())) {
+            return true;
           }
+          // only the fast check which returns true if a merge occurred for this element
+          return e1.getMergedInto() == e2;
         }
       } else {
         throw new UnsupportedOperationException("Should not be possible");
