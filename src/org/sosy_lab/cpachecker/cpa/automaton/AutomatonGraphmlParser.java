@@ -193,7 +193,7 @@ public class AutomatonGraphmlParser {
     this.cfa = pCFA;
     this.config = pConfig;
     this.parserTools =
-        ParserTools.create(ExpressionTrees.newCachingFactory(), cfa.getMachineModel(), logger);
+        ParserTools.create(ExpressionTrees.newFactory(), cfa.getMachineModel(), logger);
   }
 
   /**

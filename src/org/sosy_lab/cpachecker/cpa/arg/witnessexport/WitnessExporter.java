@@ -82,7 +82,7 @@ public class WitnessExporter {
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  protected final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
+  protected final ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
   protected final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
   protected final VerificationTaskMetaData verificationTaskMetaData;
