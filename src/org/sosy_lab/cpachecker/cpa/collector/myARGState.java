@@ -39,14 +39,12 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class myARGState implements Graphable {
   private final LogManager logger;
-  //private final Collection<ARGState> mychildren = new ArrayList<>(1);
   private final Collection<ARGState> myparents = new ArrayList<>(1);
   private final int currentID;
   private final AbstractState wrappedelement;
   private final Collection<ARGState> currentChildren;
+  private AbstractState parentwrapped;
   private ARGState parentelement;
-  private ARGState mychild;
-  private Collection<ARGState> mychildren;
   private Collection<ARGState> myparentsCollection;
   private ARGState element;
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
@@ -55,8 +53,6 @@ public class myARGState implements Graphable {
   public myARGState(ARGState celement,
                     @Nullable ARGState pParentElement,
                     @Nullable Collection<ARGState> cParents,
-                    @Nullable ARGState cChild,
-                    @Nullable Collection<ARGState> cChildren,
                     LogManager clogger){
     logger = clogger;
     stateId = idGenerator.getFreshId();
@@ -64,22 +60,14 @@ public class myARGState implements Graphable {
     wrappedelement = element.getWrappedState();
     currentID = element.getStateId();
     currentChildren = element.getChildren();
-    if (cChild != null) {
-      mychild = cChild;
-    }
-    if (cChildren != null) {
-      mychildren = cChildren;
-    }
+
     if (cParents != null) {
       myparentsCollection = cParents;
     }
-    //logger.log(Level.INFO, "sonja check this element:\n" + element);
-    //logger.log(Level.INFO, "sonja check this parent:\n" + pParentElement);
-    //logger.log(Level.INFO, "sonja check this children:\n" + cChildren);
-    //logger.log(Level.INFO, "sonja check this parentsCollection:\n" + myparentsCollection);
     if (pParentElement != null) {
       addParent(pParentElement);
       parentelement = pParentElement;
+      parentwrapped = parentelement.getWrappedState();
     }
   }
 
@@ -104,23 +92,9 @@ public class myARGState implements Graphable {
         sb.append(", myParents: ");
       sb.append(stateIdsOf(myparents));
       }
-    /**if (myparentsCollection != null){
-      sb.append(", ParentsCollection: ");
-      sb.append(stateIdsOf(myparentsCollection));
-    }**/
       sb.append(", myChildren: ");
-      if (mychildren != null){
-      sb.append(stateIdsOf(mychildren));
-      }
-      else {
-        sb.append(stateIdsOf(currentChildren));
-      }
-      if (mychild != null){
-      sb.append(", Child: ");
-      sb.append(mychild.getStateId());
-      }
-
-    sb.append(") ");
+      sb.append(stateIdsOf(currentChildren));
+      sb.append(") ");
     //sb.append(element);
     sb.append(wrappedelement);
     return sb.toString();
@@ -139,7 +113,6 @@ public class myARGState implements Graphable {
   public ARGState getparentARGState() {
     return parentelement;
   }
-  public AbstractState getwrappedState() {
-    return wrappedelement;
-  }
+  public AbstractState getwrappedState() { return wrappedelement; }
+ public AbstractState getwrappedParentState() { return parentwrapped; }
 }

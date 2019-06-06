@@ -49,7 +49,6 @@ public class CollectorMergeJoin implements MergeOperator {
 
   private final MergeOperator wrappedMergeCol;
   private final LogManager logger;
-  Collection<AbstractState> NEWstoredstatesAbstract = new ArrayList<AbstractState>();
   private ArrayList parents1 = new ArrayList<ARGState>();
   private ArrayList parents2 = new ArrayList<ARGState>();
   private myARGState myARG1;
@@ -82,31 +81,19 @@ public class CollectorMergeJoin implements MergeOperator {
     parents1.addAll(wrappedParent1);
     parents2.addAll(wrappedParent2);
 
-    if (parents2.size() >= 1) {
+    if (parents2.size() >= 1 && parents1.size() >=1) {
       Object firstparent = parents2.get(0);
-      ARGState f = (ARGState) firstparent;
-
-
-      myARG2 = new myARGState(wrappedState2,f,parents2,null,null, logger);
-      parents2.clear();
-
-    } else {
-      myARG2 = new myARGState(wrappedState2,null,null,null,null,logger);
-    }
-
-    if (parents1.size() >= 1) {
       Object firstparent1 = parents1.get(0);
+      ARGState f = (ARGState) firstparent;
       ARGState f1 = (ARGState) firstparent1;
-
-
-      myARG1 = new myARGState(wrappedState1,f1,parents1,null,null, logger);
+      myARG1 = new myARGState(wrappedState1,f1,parents1, logger);
       parents1.clear();
-
+      myARG2 = new myARGState(wrappedState2,f,parents2, logger);
+      parents2.clear();
     } else {
-      myARG1 = new myARGState(wrappedState1,null,null,null,null,logger);
-
+      myARG2 = new myARGState(wrappedState2,null,null,logger);
+      myARG1 = new myARGState(wrappedState1,null,null,logger);
     }
-
 
     ARGState mergedElement = (ARGState) wrappedMergeCol.merge(wrappedState1,wrappedState2,
         pPrecision);
@@ -124,17 +111,9 @@ public class CollectorMergeJoin implements MergeOperator {
         (merged,wrappedAbstract, null, isMerged, myARG1, myARG2,logger);
 
 
-    NEWstoredstatesAbstract.add(mergedElementplusStorage);
-    //logger.log(Level.INFO, "sonja NEW TESTinMERGE:\n" + NEWstoredstatesAbstract);
     AbstractState mergedElementplusStorageAbstract = mergedElementplusStorage;
 
 
     return mergedElementplusStorageAbstract;
   }
-
-  public Collection<AbstractState> getStorage() {
-    return NEWstoredstatesAbstract;
-  }
-
-
 }

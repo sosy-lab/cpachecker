@@ -102,7 +102,7 @@ public class CollectorTransferRelation implements TransferRelation, Graphable {
       for (AbstractState absElement : successors) {
         ARGState absARG = (ARGState) absElement;
         ARGSuccessors.add(absARG);
-        mytransferARG = new myARGState(absARG,wrappedState2,null, null,null, logger);
+        mytransferARG = new myARGState(absARG,wrappedState2,null, logger);
         CollectorState successorElem = new CollectorState(absElement, null, mytransferARG, false,null,null,logger);
         wrappedSuccessors.add(successorElem);
       }

@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Predicates;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -41,7 +40,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -79,10 +77,21 @@ public class CollectorStatistics implements Statistics {
   private static final String CSS_TEMPLATE = "collectortable.css";
   private static final String JS_TEMPLATE = "collectortable.js";
   private Collection<ARGState> reachedcollectionARG = new ArrayList<ARGState>();
-  private CollectorARGStateGenerator argStateGenerator;
-  private CollectorARGStateGenerator test;
   private Collection<ARGState> reconstructedCollection;
   private LinkedHashMap<ARGState, Boolean> destroyedStates;
+  private Boolean aftermerge;
+  private LinkedHashMap<ARGState, Boolean> linkedmergepartner;
+  private myARGState myARGState1;
+  private myARGState myARGState2;
+  private final LinkedHashMap<ARGState,ARGState> linkedparents = new LinkedHashMap<>();
+  private LinkedHashMap<ARGState, Boolean> linkedDestroyer = new LinkedHashMap<>();
+  private ARGState newarg1;
+  private ARGState newarg2;
+  private ARGState newarg;
+  private myARGState myARGStatetransfer;
+  private ARGState convertedARGStatetransfer;
+  private ARGState convertedparenttransfer;
+  private ARGState newarg3;
 
 
   public CollectorStatistics(CollectorCPA ccpa, Configuration config,LogManager pLogger) throws InvalidConfigurationException {
@@ -103,20 +112,14 @@ public class CollectorStatistics implements Statistics {
   //makeFile(result, reached);
 
     if (!reached.isEmpty() && reached.getFirstState() instanceof CollectorState) {
-      argStateGenerator = new CollectorARGStateGenerator(logger,reached);
-      reconstructedCollection = argStateGenerator.getCollection();
-      destroyedStates = argStateGenerator.getDestroyed();
-      //logger.log(Level.INFO, "sonja reconstructedCollection:\n" + reconstructedCollection);
-      logger.log(Level.INFO, "sonja destroyedStates:\n" + destroyedStates);
-      //makeFile2(reconstructedCollection);
-
+      reconstructARG(reached);
     }
 
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     writer.put("Sonja", 42);//hier können statistics gedruckt werden, siehe andere Klassen
     writer.put("sonja result", result);
     writer.put("Sonja reached", reached.toString()) ;
-    writer.put("Sonja reconstructed", reconstructedCollection.toString());
+    writer.put("Sonja reconstructed", reachedcollectionARG.toString());
     }
 
   private void makeFile(Result result, UnmodifiableReachedSet reached) {
@@ -187,56 +190,94 @@ public class CollectorStatistics implements Statistics {
 }
   }
 
-  private void makeFile2(Collection<ARGState> reached) {
-    try{
+  private void reconstructARG(UnmodifiableReachedSet reached){
 
-      for (ARGState rootState: reached) {
-        ARGState argstate = rootState;
+    for (AbstractState entry : reached.asCollection()) {
 
-        reachedcollectionARG.add(argstate);
+      myARGStatetransfer = ((CollectorState) entry).getMyARGTransferRelation();
 
-        logger.log(Level.INFO, "sonja ROOTSTATES:\n" + argstate);
+      if (myARGStatetransfer != null) {
+        convertedARGStatetransfer = myARGStatetransfer.getARGState();
+        convertedparenttransfer = myARGStatetransfer.getparentARGState();
+        AbstractState wrappedmyARG = ((CollectorState) entry).getMyARGTransferRelation().getwrappedState();
+        AbstractState parentwrappedmyARG = ((CollectorState) entry).getMyARGTransferRelation().getwrappedParentState();
 
+        if (reachedcollectionARG.size() == 0) {
+          newarg = new ARGState(parentwrappedmyARG, null);
+          newarg.markExpanded();
+          linkedparents.put(convertedARGStatetransfer, newarg);
+        } else {
 
-
-        int i = 0;
-        String filenamepart1 = "./output/etape_";
-        String filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
-        File file = new File(filenamefinal);
-        while (file.exists()) {
-          filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
-          file = new File(filenamefinal);
-          i++;
-        }
-        file.createNewFile();
-        Writer writer = new FileWriter(file, false);
-        BufferedWriter bw = new BufferedWriter(writer);
-
-        ARGToDotWriter.write(bw,reachedcollectionARG,"Test Reconstruction Sonja");
-        /**ARGToDotWriter.write(
-            bw, rootState, ARGState::getChildren, Predicates.alwaysTrue(), Objects::nonNull);**/
-
-        bw.close();
-
-        if(destroyedStates.containsKey(argstate)) {
-          if (destroyedStates.get(argstate) == true) {
-            logger.log(Level.INFO, "sonja destroyedStates CONTAINS true:" + destroyedStates.get(argstate)
-                + "\n" + argstate);
-            reachedcollectionARG.remove(argstate);
+          if (linkedparents.containsKey(convertedparenttransfer)) {
+            ARGState current = linkedparents.get(convertedparenttransfer);
+            newarg = new ARGState(wrappedmyARG, current);
+            newarg.markExpanded();
+            linkedparents.put(convertedARGStatetransfer, newarg);
           } else {
-            logger.log(Level.INFO,
-                "sonja destroyedStates CONTAINS:" + destroyedStates.get(argstate) + "\n"
-                    + argstate);
-            //reachedcollectionARG.remove(argstate);
+            logger.log(Level.INFO, "sonja sollte hier nicht herkommen!!!!! ");
+          }
+        }
+        reachedcollectionARG.add(newarg);
+        makeFiles(reachedcollectionARG);
+
+      }
+
+      Boolean merged = ((CollectorState) entry).ismerged();
+      if (merged) {
+        myARGState1 = ((CollectorState) entry).getmyARG1();
+        myARGState2 = ((CollectorState) entry).getMyARG2();
+        if (myARGState1 != null && myARGState2 != null) {
+          ARGState convertedARGState1 = myARGState1.getARGState();
+          ARGState convertedparent1 = myARGState1.getparentARGState();
+
+          ARGState convertedARGState2 = myARGState2.getARGState();
+          ARGState convertedparent2 = myARGState2.getparentARGState();
+
+          AbstractState wrappedmyARG1 = ((CollectorState) entry).getmyARG1().getwrappedState();
+          AbstractState wrappedmyARG2 = ((CollectorState) entry).getMyARG2().getwrappedState();
+
+          ARGState mergedstate = ((CollectorState) entry).getARGState();
+
+          if (linkedparents.containsKey(convertedparent1) && linkedparents
+              .containsKey(convertedparent2)) {
+
+            AbstractState c = mergedstate.getWrappedState();
+            final ARGState current1 = linkedparents.get(convertedparent1);
+            final ARGState current2 = linkedparents.get(convertedparent2);
+
+            newarg1 = new ARGState(wrappedmyARG1, current1);
+            reachedcollectionARG.add(newarg1);
+            makeFiles(reachedcollectionARG);
+            newarg2 = new ARGState(wrappedmyARG2, current2);
+            reachedcollectionARG.add(newarg2);
+            makeFiles(reachedcollectionARG);
+
+            boolean destroyed1 = convertedARGState1.isDestroyed();
+            boolean destroyed2 = convertedARGState2.isDestroyed();
+            linkedparents.put(convertedARGState1, newarg1);
+            linkedDestroyer.put(newarg1, destroyed1);
+            linkedparents.put(convertedARGState2, newarg2);
+            linkedDestroyer.put(newarg2, destroyed2);
+
+            reachedcollectionARG.remove(newarg2);
+            reachedcollectionARG.remove(newarg1);
+            newarg1.removeFromARG();
+            newarg2.removeFromARG();
+
+            newarg3 = new ARGState(c, current2);
+            newarg3.addParent(current1);
+
+            linkedparents.put(mergedstate, newarg3);
+
+            reachedcollectionARG.add(newarg3);
+            makeFiles(reachedcollectionARG);
+
           }
         }
       }
-    }catch (IOException e) {
-      logger.logUserException(
-          WARNING, e, "Could not create Sonjas file.");
-    }
   }
 
+  }
 
   private void insertCss(BufferedWriter pWriter) {
   }
@@ -244,4 +285,30 @@ public class CollectorStatistics implements Statistics {
   public ARGState getFirst(Collection<ARGState> collection){
       return collection.iterator().next();
     }
+
+
+  private void makeFiles(Collection<ARGState> pReachedcollectionARG) {
+    try{
+      int i = 0;
+      String filenamepart1 = "./output/etape_";
+      String filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
+      File file = new File(filenamefinal);
+      while (file.exists()) {
+        filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
+        file = new File(filenamefinal);
+        i++;
+      }
+      file.createNewFile();
+      Writer writer = new FileWriter(file, false);
+      BufferedWriter bw = new BufferedWriter(writer);
+
+      ARGToDotWriter.write(bw, pReachedcollectionARG, "Test Reconstruction Sonja");
+
+      bw.close();
+    }catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create Sonjas file.");
+    }
+  }
+
 }
