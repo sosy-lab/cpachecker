@@ -43,7 +43,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -755,6 +754,9 @@ public final class ExpressionTrees {
     @Override
     public ExpressionTree<LeafType> cacheMissOr(Or<LeafType> pOr) {
 
+      // 1. If we can factor out common facts of the operands, we do so and call simplify
+      // recursively.
+      // Next time we enter, there are no common facts and we continue with 2.
       Iterator<ExpressionTree<LeafType>> opIt = pOr.iterator();
       if (opIt.hasNext()) {
         int nOperands = 1;
@@ -794,11 +796,11 @@ public final class ExpressionTrees {
         }
       }
 
-      List<ExpressionTree<LeafType>> operands = new LinkedList<>();
+      List<ExpressionTree<LeafType>> operands = new ArrayList<>();
       Set<ExpressionTree<LeafType>> changedOps = new HashSet<>();
       boolean changed = false;
 
-      // Simplify the operands
+      // 2. Simplify the operands
       for (ExpressionTree<LeafType> operandToAdd : pOr) {
         ExpressionTree<LeafType> simplified =
             simplify(operandToAdd, externalKnowledge, visitorCache, factory, thorough);
@@ -819,49 +821,22 @@ public final class ExpressionTrees {
         }
       }
 
-      // Remove operands that imply other operands
+      // 3. Remove operands that imply other operands
       if (changed || thorough) {
         Iterator<ExpressionTree<LeafType>> operandIt = operands.iterator();
         while (operandIt.hasNext()) {
           ExpressionTree<LeafType> operand = operandIt.next();
-          boolean operandChanged = thorough || changedOps.contains(operand);
-          Iterable<ExpressionTree<LeafType>> innerOperands = operandChanged ? operands : changedOps;
+          Iterable<ExpressionTree<LeafType>> relevantInnerOperands = thorough || changedOps.contains(operand) ? operands : changedOps;
           if (operand instanceof LeafExpression) {
-            LeafExpression<LeafType> negated = ((LeafExpression<LeafType>) operand).negate();
-            if (!externalKnowledge.contains(negated)) {
-              for (ExpressionTree<LeafType> op : innerOperands) {
-                if (op == operand) {
-                  continue;
-                }
-                if ((operandChanged || changedOps.contains(op))
-                    && getTrue()
-                        .equals(
-                            simplify(
-                                op,
-                                Collections.singleton(negated),
-                                visitorCache,
-                                factory,
-                                false))) {
-                  return getTrue();
-                }
-              }
+            if (isImplied(operand, relevantInnerOperands, true)) {
+              // we proved !a -> b, so a v b v ... has to be a tautology:
+              return getTrue();
             }
           }
-          if (!externalKnowledge.contains(operand)) {
-            for (ExpressionTree<LeafType> op : innerOperands) {
-              if (op == operand) {
-                continue;
-              }
-              if ((operandChanged || changedOps.contains(op))
-                  && getTrue()
-                      .equals(
-                          simplify(
-                              op, Collections.singleton(operand), visitorCache, factory, false))) {
-                changed = true;
-                operandIt.remove();
-                break;
-              }
-            }
+          if (isImplied(operand, relevantInnerOperands, false)) {
+            // we proved that a -> b, so we can remove b from a v b v ...
+            changed = true;
+            operandIt.remove();
           }
         }
       }
@@ -871,6 +846,32 @@ public final class ExpressionTrees {
       }
 
       return factory.or(operands);
+    }
+
+    private boolean isImplied(
+        ExpressionTree<LeafType> originalOperand,
+        Iterable<ExpressionTree<LeafType>> relevantInnerOperands,
+        boolean negate) {
+
+      ExpressionTree<LeafType> operandForCheck = originalOperand;
+      if (negate) {
+        operandForCheck = ((LeafExpression<LeafType>) originalOperand).negate();
+      }
+
+      if (!externalKnowledge.contains(operandForCheck)) {
+        for (ExpressionTree<LeafType> op : relevantInnerOperands) {
+          if (op == originalOperand) {
+            continue;
+          }
+          if (getTrue()
+              .equals(
+                  simplify(
+                      op, Collections.singleton(operandForCheck), visitorCache, factory, false))) {
+            return true;
+          }
+        }
+      }
+      return false;
     }
 
     private Iterable<ExpressionTree<LeafType>> asFacts(ExpressionTree<LeafType> pExprTree) {
