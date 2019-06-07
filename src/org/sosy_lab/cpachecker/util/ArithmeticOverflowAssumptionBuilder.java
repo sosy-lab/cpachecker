@@ -289,8 +289,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
         }
       } else if (trackLeftShifts && binop.equals(BinaryOperator.SHIFT_LEFT)) {
         if (upperBounds.get(calculationType) != null && width.get(calculationType) != null) {
-          addLeftShiftAssumptions(
-              op1, op2, upperBounds.get(calculationType), width.get(calculationType), result);
+          addLeftShiftAssumptions(op1, op2, upperBounds.get(calculationType), result);
         }
       }
     } else if (exp instanceof CUnaryExpression) {
@@ -534,7 +533,6 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       CExpression operand1,
       CExpression operand2,
       CLiteralExpression limit,
-      CLiteralExpression pWidth,
       Set<CExpression> result)
       throws UnrecognizedCodeException {
 

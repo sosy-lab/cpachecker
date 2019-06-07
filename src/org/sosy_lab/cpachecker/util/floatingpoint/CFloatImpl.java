@@ -521,7 +521,7 @@ public class CFloatImpl extends CFloat {
     }
 
     long rExp = 0;
-    long rMan = 0;
+
 
     // extract bit representations for operation
     long tExp = tSummand.getExponent() & tSummand.getExponentMask();
@@ -624,7 +624,7 @@ public class CFloatImpl extends CFloat {
         }
       }
     }
-    rMan = tMan + oMan;
+    long rMan = tMan + oMan;
 
     switch (tSummand.getType()) {
       case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
@@ -1588,7 +1588,7 @@ public class CFloatImpl extends CFloat {
   }
 
   private int[] getDecimalArray(final long pExp, final long pMan) {
-    int[] result = null;
+
     int[] fracArray = CFloatUtil.getDecimalArray(type, pMan & 1);
     for (int i = 1; i < getMantissaLength(); i++) {
       fracArray = decimalAdd(fracArray, CFloatUtil.getDecimalArray(type, pMan & (1L << i)));
@@ -1638,7 +1638,7 @@ public class CFloatImpl extends CFloat {
         }
       }
     }
-    result = new int[integralArray.length + fracArray.length + 1];
+    int[] result = new int[integralArray.length + fracArray.length + 1];
     for (int i = 0; i < result.length; i++) {
       if (i < integralArray.length) {
         result[i] = integralArray[i];

@@ -241,7 +241,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     // compute the abstraction for assignment thresholds
     if (assignments != null) {
       totalEnforcePath.start();
-      enforcePathThreshold(resultState, pPrecision, assignments);
+      enforcePathThreshold(resultState, assignments);
       totalEnforcePath.stop();
     }
 
@@ -339,7 +339,6 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
    * @param assignments the assignment information
    */
   private void enforcePathThreshold(ValueAnalysisState state,
-      VariableTrackingPrecision precision,
       UniqueAssignmentsInPathConditionState assignments) {
 
     // forget the value for all variables that exceed their threshold

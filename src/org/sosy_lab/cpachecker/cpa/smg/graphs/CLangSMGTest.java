@@ -362,8 +362,6 @@ public class CLangSMGTest {
   public void consistencyViolationNullTest() {
 
     CLangSMG smg = getNewCLangSMG64();
-
-    smg = getNewCLangSMG64();
     SMGObject null_object = smg.getHeapObjects().iterator().next();
     SMGValue some_value = SMGKnownExpValue.valueOf(5);
     CType type = mock(CType.class);

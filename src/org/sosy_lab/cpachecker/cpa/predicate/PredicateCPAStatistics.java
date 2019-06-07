@@ -84,12 +84,6 @@ class PredicateCPAStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path predmapFile = Paths.get("predmap.txt");
 
-  @Option(secure=true, name="precondition.file", description="File for exporting the weakest precondition.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path preconditionFile = Paths.get("precondition.txt");
-  @Option(secure=true, name="precondition.export", description="Export the weakest precondition?")
-  private boolean preconditionExport = false;
-
   @Option(secure=true, description="export final loop invariants",
           name="invariants.export")
   private boolean exportInvariants = true;
@@ -115,14 +109,6 @@ class PredicateCPAStatistics implements Statistics {
       name="abstractions.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path abstractionsFile = Paths.get("abstractions.txt");
-
-  @Option(description="enable export of all relations that were collected to synthecise the abstract precision?",
-      name="relations.export")
-  private boolean relationsExport = false;
-  @Option(description="file that consists all relations that were collected to synthecise the abstract precision",
-      name="relations.file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path relationsFile = Paths.get("relations.txt");
 
   private final LogManager logger;
 

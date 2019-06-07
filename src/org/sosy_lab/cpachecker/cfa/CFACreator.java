@@ -278,10 +278,6 @@ public class CFACreator {
   )
   private boolean addLabels = false;
 
-  @Option(secure=true, name="cfa.classifyNodes",
-      description="This option enables the computation of a classification of CFA nodes.")
-private boolean classifyNodes = false;
-
   @Option(secure=true,
       description="Programming language of the input program. If not given explicitly, "
           + "auto-detection will occur")

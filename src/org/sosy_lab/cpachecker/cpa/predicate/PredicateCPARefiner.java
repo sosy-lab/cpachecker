@@ -103,13 +103,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   @Option(secure=true, description="which sliced prefix should be used for interpolation")
   private List<PrefixPreference> prefixPreference = PrefixSelector.NO_SELECTION;
 
-  @Option(
-    secure = true,
-    description =
-        "use only atoms from generated invariants" + "as predicates, and not the whole invariant"
-  )
-  private boolean atomicInvariants = false;
-
   @Option(secure=true, description="use only the atoms from the interpolants"
                                  + "as predicates, and not the whole interpolant")
   private boolean atomicInterpolants = true;

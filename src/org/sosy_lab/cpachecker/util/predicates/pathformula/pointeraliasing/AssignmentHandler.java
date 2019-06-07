@@ -306,7 +306,7 @@ class AssignmentHandler {
         && !assignments.isEmpty()) {
       return handleInitializationAssignmentsWithQuantifier(variable, assignments, false);
     } else {
-      return handleInitializationAssignmentsWithoutQuantifier(variable, assignments);
+      return handleInitializationAssignmentsWithoutQuantifier(assignments);
     }
   }
 
@@ -320,7 +320,7 @@ class AssignmentHandler {
    * @throws InterruptedException It the execution was interrupted.
    */
   private BooleanFormula handleInitializationAssignmentsWithoutQuantifier(
-      final CIdExpression variable, final List<CExpressionAssignmentStatement> assignments)
+      final List<CExpressionAssignmentStatement> assignments)
       throws UnrecognizedCodeException, InterruptedException {
     BooleanFormula result = conv.bfmgr.makeTrue();
     for (CExpressionAssignmentStatement assignment : assignments) {
@@ -376,7 +376,7 @@ class AssignmentHandler {
       //    ...
       //    const struct s s = { .x = 1 };
       //    struct t t = { .s = s };
-      return handleInitializationAssignmentsWithoutQuantifier(pLeftHandSide, pAssignments);
+      return handleInitializationAssignmentsWithoutQuantifier(pAssignments);
     } else {
       MemoryRegion region = lhsLocation.asAliased().getMemoryRegion();
       if(region == null) {

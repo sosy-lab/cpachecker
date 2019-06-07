@@ -246,7 +246,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     }
 
     // Calculate Strongest Post Condition of all pathLocations
-    return calculateStrongestPostCondition(pathLocations, unsatCore, pPath);
+    return calculateStrongestPostCondition(pathLocations, unsatCore);
   }
 
   /**
@@ -305,7 +305,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @throws RefinementFailedException In case an exception in the solver.
    */
   private List<BooleanFormula> calculateStrongestPostCondition(
-      List<PathLocation> pPathLocations, Optional<List<BooleanFormula>> pUnsatCore, ARGPath pPath)
+      List<PathLocation> pPathLocations, Optional<List<BooleanFormula>> pUnsatCore)
       throws InterruptedException, RefinementFailedException {
     logger.log(Level.FINE, "Calculate Strongest Postcondition for the error trace.");
     stats.postConditionTimer.start();

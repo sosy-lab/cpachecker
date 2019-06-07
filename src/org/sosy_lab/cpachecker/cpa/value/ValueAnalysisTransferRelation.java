@@ -1058,9 +1058,8 @@ public class ValueAnalysisTransferRelation
     long offset = 0L;
     for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
       MemoryLocation assignedField = createFieldMemoryLocation(pAssignedVar, offset);
-      CExpression owner = null;
 
-      owner = pExp;
+      CExpression owner = pExp;
 
       CExpression fieldReference =
           new CFieldReference(pExp.getFileLocation(), memberType.getType(), memberType.getName(), owner, false);
