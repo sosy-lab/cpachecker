@@ -306,7 +306,6 @@ class ASTConverter {
    *
    * @param exp the "x" of x=x+1
    * @param fileLoc location of the expression
-   * @param type result-typeof the operation
    * @param op binary operator, should be PLUS or MINUS */
   private CIdExpression addSideAssignmentsForUnaryExpressions(
       final CLeftHandSide exp, final FileLocation fileLoc, final BinaryOperator op) {

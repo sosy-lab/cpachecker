@@ -313,7 +313,6 @@ class AssignmentHandler {
   /**
    * Handles initialization assignments.
    *
-   * @param variable The left hand side of the variable.
    * @param assignments A list of assignment statements.
    * @return A boolean formula for the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
@@ -336,8 +335,7 @@ class AssignmentHandler {
    * quantifier over the resulting SMT array.
    *
    * <p>If we cannot make an assignment of the form {@code <variable> = <value>}, we fall back to
-   * the normal initialization in
-   * {@link #handleInitializationAssignmentsWithoutQuantifier(CIdExpression, List)}.
+   * the normal initialization in {@link #handleInitializationAssignmentsWithoutQuantifier(List)}.
    *
    * @param pLeftHandSide The left hand side of the statement. Needed for fallback scenario.
    * @param pAssignments A list of assignment statements.
@@ -345,7 +343,7 @@ class AssignmentHandler {
    * @return A boolean formula for the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
-   * @see #handleInitializationAssignmentsWithoutQuantifier(CIdExpression, List)
+   * @see #handleInitializationAssignmentsWithoutQuantifier(List)
    */
   private BooleanFormula handleInitializationAssignmentsWithQuantifier(
       final CIdExpression pLeftHandSide,

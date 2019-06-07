@@ -526,7 +526,6 @@ public final class ArithmeticOverflowAssumptionBuilder implements
    * @param operand1 first operand in the C Expression for which the assumption should be generated
    * @param operand2 second operand in the C Expression for which the assumption should be generated
    * @param limit the largest value in the expression's type
-   * @param pWidth the width of the type as defined in ISO-C11 (6.2.6.2 #6)
    * @param result the set to which the generated assumptions are added
    */
   private void addLeftShiftAssumptions(

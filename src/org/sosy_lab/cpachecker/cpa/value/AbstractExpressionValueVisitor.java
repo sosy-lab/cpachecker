@@ -478,8 +478,6 @@ public abstract class AbstractExpressionValueVisitor
    * @param r right hand side value
    * @param op the binary operator
    * @param calculationType The type the result of the calculation should have
-   * @param machineModel the machine model
-   * @param logger logging
    * @return the resulting value
    */
   private static double arithmeticOperation(
@@ -517,10 +515,6 @@ public abstract class AbstractExpressionValueVisitor
    *
    * @param l left hand side value
    * @param r right hand side value
-   * @param op the binary operator
-   * @param calculationType The type the result of the calculation should have
-   * @param machineModel the machine model
-   * @param logger logging
    * @return the resulting value
    */
   private static float arithmeticOperation(final float l, final float r, final BinaryOperator op) {

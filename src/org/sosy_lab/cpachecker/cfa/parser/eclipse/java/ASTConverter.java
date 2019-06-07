@@ -963,9 +963,6 @@ class ASTConverter {
       return miv;
   }
 
-  /**
-   * @param pE the node to convert
-   */
   private JAstNode convert() {
     throw new CFAGenerationRuntimeException("Standard Library support not yet implemented.\n"
       +  "Cannot use Type Literals which would return a class Object.");

@@ -335,7 +335,6 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
    * This method abstracts variables that exceed the threshold of assignments along the current path.
    *
    * @param state the state to abstract
-   * @param precision the current precision
    * @param assignments the assignment information
    */
   private void enforcePathThreshold(ValueAnalysisState state,

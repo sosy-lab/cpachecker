@@ -259,7 +259,6 @@ public class SMGRefiner implements Refiner {
   /**
    * This method creates a model for the given error path.
    *
-   * @param errorPath the error path for which to create the model
    * @return the model for the given error path
    */
   private CFAPathWithAssumptions createModel() {

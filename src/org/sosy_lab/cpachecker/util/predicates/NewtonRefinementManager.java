@@ -298,7 +298,6 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pPathLocations A list with the necessary information to all path locations
    * @param pUnsatCore An optional holding the unsatisfiable core in the form of a list of Formulas.
    *     If no list of formulas is applied it computes the regular postCondition
-   * @param pPath The path to the Error(Needed for RefinementFailedException)
    * @return A list of Formulas, each Formula represents an assertion at the corresponding
    *     abstraction state, the last formula should be unsatisfiable(representing Error state)
    * @throws InterruptedException In case of interruption
