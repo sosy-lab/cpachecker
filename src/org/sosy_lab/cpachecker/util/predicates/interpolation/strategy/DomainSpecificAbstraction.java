@@ -2409,10 +2409,9 @@ public class DomainSpecificAbstraction<T> {
     return maximumFeasibleAbstraction;
   }
 
-  private Boolean checkComparability( List<List<Formula>>
-      frontierListCopy,
-                                     String
-       latticenamesH, String[] latticeNames){
+  @SuppressWarnings("unused")
+  private Boolean checkComparability(
+      List<List<Formula>> frontierListCopy, String latticenamesH, String[] latticeNames) {
     List<FormulaType> formulaTypes = new ArrayList<>(latticeNamesTypes.size() - 1);
     Iterable<String> splitOperator = Splitter.on(" ,").split(latticenamesH);
     for (String s : splitOperator) {

@@ -300,6 +300,7 @@ class DefaultReachedSet implements ReachedSet, Serializable {
     }
   }
 
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
     s.defaultReadObject();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());

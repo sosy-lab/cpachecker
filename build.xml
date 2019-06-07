@@ -27,6 +27,7 @@
          EqualsGetClass: TODO enable this and fix alarms?
          GuardedBy: crashes current error-prone
          Finally: crashes current error-prone
+         MixedMutabilityReturnType: too many warnings, need to fix them first
          -->
     <property name="errorprone.options" value="
         -Xep:BadImport:OFF
@@ -34,6 +35,7 @@
         -Xep:EqualsGetClass:OFF
         -Xep:GuardedBy:OFF
         -Xep:Finally:OFF
+        -Xep:MixedMutabilityReturnType:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>

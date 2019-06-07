@@ -1329,8 +1329,7 @@ public class PolicyIterationManager {
       PolicyBound bound2 = e.getValue();
 
       Optional<PolicyBound> bound1 = aState1.getBound(t);
-      if (!bound1.isPresent()
-          || bound1.get().getBound().compareTo(bound2.getBound()) >= 1) {
+      if (!bound1.isPresent() || bound1.get().getBound().compareTo(bound2.getBound()) > 0) {
         return false;
       }
     }

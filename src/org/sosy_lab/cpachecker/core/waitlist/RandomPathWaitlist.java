@@ -98,7 +98,7 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
     s.writeObject(parent.getNodeNumber());
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
     s.defaultReadObject();
     Integer nodeNumber = (Integer) s.readObject();

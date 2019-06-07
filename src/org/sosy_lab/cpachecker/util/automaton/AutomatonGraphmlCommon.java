@@ -36,6 +36,7 @@ import com.google.common.io.MoreFiles;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -414,7 +415,7 @@ public class AutomatonGraphmlCommon {
 
       graph.appendChild(
           createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pCfa.getMachineModel())));
-      ZonedDateTime now = ZonedDateTime.now().withNano(0);
+      ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
       graph.appendChild(
           createDataElement(
               KeyDef.CREATIONTIME, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));
