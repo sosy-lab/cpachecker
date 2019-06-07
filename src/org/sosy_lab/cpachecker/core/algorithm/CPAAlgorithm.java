@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
@@ -65,6 +66,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ThreadModularReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinCPAEnabledAnalysis;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -320,7 +322,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
    * @return true if analysis should terminate, false if analysis should continue with next state
    */
   private boolean handleState(
-      final AbstractState state, final Precision precision, final ReachedSet reachedSet)
+      final AbstractState state,
+      Precision precision,
+      final ReachedSet reachedSet)
       throws CPAException, InterruptedException {
     logger.log(Level.ALL, "Current state is", state, "with precision", precision);
 
@@ -336,6 +340,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       } finally {
         stats.forcedCoveringTimer.stop();
       }
+    }
+
+    if (((ARGState) state).getAppliedFrom() != null) {
+      ARGState parent = ((ARGState) state).getAppliedFrom().getFirst();
+      Precision parentPrecision = reachedSet.getPrecision(parent);
+      precision = ((AdjustablePrecision) precision).add((AdjustablePrecision) parentPrecision);
     }
 
     stats.transferTimer.start();

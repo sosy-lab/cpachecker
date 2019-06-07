@@ -273,7 +273,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
                   .map(AbstractStates.EXTRACT_LOCATION)
                   .filter(x -> x != null)
                   .collect(ImmutableList.toImmutableList());
-      final boolean repeatedCounterexample = false;// lastErrorPaths.contains(errorPath);
+      final boolean repeatedCounterexample = lastErrorPaths.contains(errorPath);
       lastErrorPaths.add(errorPath);
 
       Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
