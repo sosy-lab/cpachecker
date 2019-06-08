@@ -67,22 +67,14 @@ def init(config, benchmark):
         logging.warning("No URL of a VerifierCloud instance is given.")
         return
 
-    if config.revision:
-        tokens = config.revision.split(":")
-        svn_branch = tokens[0]
-        if len(tokens) > 1:
-            svn_revision = config.revision.split(":")[1]
-        else:
-            svn_revision = "HEAD"
-    else:
-        svn_branch = "trunk"
-        svn_revision = "HEAD"
+
+    if not config.revision:
+        config.revision = "trunk:HEAD"
 
     _webclient = WebInterface(
         config.cloudMaster,
         config.cloudUser,
-        svn_branch,
-        svn_revision,
+        config.revision,
         config.cloud_threads,
         config.cloud_poll_interval,
         user_agent="BenchExec",

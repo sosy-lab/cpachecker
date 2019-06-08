@@ -374,8 +374,7 @@ class WebInterface:
         self,
         web_interface_url,
         user_pwd,
-        svn_branch="trunk",
-        svn_revision="HEAD",
+        revision="trunk:HEAD",
         thread_count=1,
         result_poll_interval=2,
         user_agent=None,
@@ -386,8 +385,7 @@ class WebInterface:
         The given svn revision is resolved (e.g. 'HEAD' -> 17495).
         @param web_interface_url: the base URL of the VerifierCloud's web interface
         @param user_pwd: user name and password in the format '<user_name>:<password>' or none if no authentification is required
-        @param svn_branch: the svn branch name or 'trunk', defaults to 'trunk'
-        @param svn_revision: the svn revision number or 'HEAD', defaults to 'HEAD'
+        @param revision: the svn revision string, defaults to 'trunk:HEAD'
         @param thread_count: the number of threads for fetching results in parallel
         @param result_poll_interval: the number of seconds to wait between polling results
         """
@@ -427,8 +425,10 @@ class WebInterface:
             cert_path = cert_paths.cafile or cert_paths.capath  # both might be None
         except AttributeError:  # not available on old Python
             cert_path = None
+
         # make sure that certificate verification is enabled
         self._connection.verify = cert_path or True
+
         if user_pwd:
             self._connection.auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
             self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode(
@@ -447,7 +447,7 @@ class WebInterface:
         self._hash_code_cache = {}
         self._group_id = str(random.randint(0, 1000000))
         self._read_hash_code_cache()
-        self._resolved_tool_revision(svn_branch, svn_revision)
+        self._resolved_tool_revision(revision)
         self._tool_name = self._request_tool_name()
 
         try:
@@ -484,13 +484,12 @@ class WebInterface:
                 e.strerror,
             )
 
-    def _resolved_tool_revision(self, svn_branch, svn_revision):
+    def _resolved_tool_revision(self, revision):
 
-        path = "tool/version?svnBranch=" + svn_branch + "&revision=" + svn_revision
+        path = "tool/version_string?revision=" + revision
 
         (resolved_svn_revision, _) = self._request("GET", path)
-        self._svn_branch = svn_branch
-        self._svn_revision = resolved_svn_revision.decode("UTF-8")
+        self._revision = resolved_svn_revision.decode("UTF-8")
 
     def _request_tool_name(self):
         path = "tool/name"
@@ -498,7 +497,7 @@ class WebInterface:
         return tool_name.decode("UTF-8")
 
     def tool_revision(self):
-        return self._svn_branch + ":" + self._svn_revision
+        return self._revision
 
     def tool_name(self):
         return self._tool_name
@@ -582,8 +581,7 @@ class WebInterface:
         meta_information=None,
         priority="IDLE",
         user_pwd=None,
-        svn_branch=None,
-        svn_revision=None,
+        revision=None,
         result_files_patterns=[],
         required_files=[],
     ):
@@ -600,8 +598,7 @@ class WebInterface:
         @param meta_information: meta information about the submitted run as JSON string
         @param priority: the priority of the submitted run, defaults to 'IDLE'
         @param user_pwd: overrides the user name and password given in the constructor (optional)
-        @param svn_branch: overrids the svn branch given in the constructor (optional)
-        @param svn_revision: overrides the svn revision given in the constructor (optional)
+        @param revision: overrides the revision given in the constructor (optional)
         @param result_files_patterns: list of result_files_pattern (optional)
         @param required_files: list of additional file required to execute the run (optional)
         @raise WebClientError: if the HTTP request could not be created
@@ -624,8 +621,7 @@ class WebInterface:
             meta_information,
             priority,
             user_pwd,
-            svn_branch,
-            svn_revision,
+            revision,
         )
 
     def _submit(
@@ -638,8 +634,7 @@ class WebInterface:
         meta_information,
         priority,
         user_pwd,
-        svn_branch,
-        svn_revision,
+        revision,
         counter=0,
     ):
 
@@ -658,8 +653,8 @@ class WebInterface:
                 ("requiredFileHash", (norm_path, self._get_sha256_hash(required_file)))
             )
 
-        params.append(("svnBranch", svn_branch or self._svn_branch))
-        params.append(("revision", svn_revision or self._svn_revision))
+
+        params.append(("revision", revision or self._revision))
 
         if run.propertyfile:
             property_file = self._add_file_to_params(
@@ -765,8 +760,7 @@ class WebInterface:
                 meta_information,
                 priority,
                 user_pwd,
-                svn_branch,
-                svn_revision,
+                revision,
                 counter + 1,
             )
 
@@ -1015,8 +1009,10 @@ class WebInterface:
                 #    # retry t
                 #    self._download_result_async(run_id)
 
+
         if run_id not in self._downloading_result_futures.values():
             # result is not downloaded
+
             future = self._executor.submit(self._download_result, run_id)
             self._downloading_result_futures[future] = run_id
             future.add_done_callback(callback)
