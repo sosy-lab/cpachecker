@@ -175,6 +175,7 @@ def stop():
 def formatEnvironment(environment):
     return ";".join(k + "=" + v for k, v in environment.get("newEnv", {}).items())
 
+
 def toTabList(l):
     return "\t".join(map(str, l))
 

@@ -67,7 +67,6 @@ def init(config, benchmark):
         logging.warning("No URL of a VerifierCloud instance is given.")
         return
 
-
     if not config.revision:
         config.revision = "trunk:HEAD"
 

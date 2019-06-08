@@ -653,7 +653,6 @@ class WebInterface:
                 ("requiredFileHash", (norm_path, self._get_sha256_hash(required_file)))
             )
 
-
         params.append(("revision", revision or self._revision))
 
         if run.propertyfile:
@@ -1008,7 +1007,6 @@ class WebInterface:
                 # else:
                 #    # retry t
                 #    self._download_result_async(run_id)
-
 
         if run_id not in self._downloading_result_futures.values():
             # result is not downloaded
