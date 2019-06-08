@@ -102,7 +102,7 @@ class Benchmark(benchexec.benchexec.BenchExec):
         vcloud_args.add_argument(
             "--revision",
             dest="revision",
-            metavar="(tag/<tag name>|branch_name)[:(HEAD|head|<revision number>)]",
+            metavar="(tags/<tag name>|branch_name)[:(HEAD|head|<revision number>)]",
             default="trunk:HEAD",
             help="The svn revision of CPAchecker to use (if using the web interface of the VerifierCloud).",
         )
