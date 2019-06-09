@@ -24,7 +24,9 @@
       </value>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.7 (sosylabs)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" project-jdk-name="1.8" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/bin" />
+  </component>
   <component name="SvnBranchConfigurationManager">
     <option name="myConfigurationMap">
       <map>
