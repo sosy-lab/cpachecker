@@ -62,9 +62,9 @@
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <!-- exclude some files that are nearly identical in complexity and runtime, some of them are timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-*</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--input--*</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--*</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
   </tasks>
 
   <columns>
