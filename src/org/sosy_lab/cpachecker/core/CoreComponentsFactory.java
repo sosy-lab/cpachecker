@@ -94,7 +94,6 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -272,18 +271,10 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "validateCorrectnessWitness",
+      name = "buildInvariantsSpecificationAutomaton",
       description =
-          "validate correctness witness by building an automaton as additional specification")
-  private CorrectnessWitnessValidation correctnessWitnessValidation =
-      CorrectnessWitnessValidation.NONE;
-
-  private static enum CorrectnessWitnessValidation {
-    NONE, // no validation
-    WITNESSAUTOMATON, // use witness automaton with invariants assumptions
-    INVARIANTSAUTOMATON, // use invariant automaton
-    LOCATIONINVARIANTSAUTOMATON; // use CFA nodes based invariant automaton
-  }
+          "validate correctness witness by building an invariants specification automaton as additional specification")
+  private boolean buildInvariantsSpecificationAutomaton = false;
 
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   @Option(secure = true, description = "correctness witness file to validate")
@@ -609,9 +600,8 @@ public class CoreComponentsFactory {
       specification = pSpecification;
     }
 
-    if (correctnessWitnessValidation != CorrectnessWitnessValidation.NONE
-        && correctnessWitnessFile != null) {
-      return buildCPAsWithWitnessInvariantsAutomaton(cfa, specification);
+    if (buildInvariantsSpecificationAutomaton && correctnessWitnessFile != null) {
+      return buildCPAsWithInvariantsSpecificationAutomaton(cfa, specification);
     }
 
     return cpaFactory.buildCPAs(cfa, specification, aggregatedReachedSets);
@@ -644,42 +634,18 @@ public class CoreComponentsFactory {
     return terminationSpecification;
   }
 
-  private ConfigurableProgramAnalysis buildCPAsWithWitnessInvariantsAutomaton(
-      final CFA cfa, final Specification specification)
+  private ConfigurableProgramAnalysis buildCPAsWithInvariantsSpecificationAutomaton(
+      final CFA pCfa, final Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
     List<Automaton> automata = new ArrayList<>(1);
-    switch (correctnessWitnessValidation) {
-      case WITNESSAUTOMATON:
-        Specification automatonAsSpec =
-            Specification.fromFiles(
-                specification.getProperties(),
-                ImmutableList.of(correctnessWitnessFile),
-                cfa,
-                config,
-                logger);
-        automata.add(automatonAsSpec.getSpecificationAutomata().get(0));
-        break;
-      case INVARIANTSAUTOMATON:
-        {
-        WitnessInvariantsExtractor extractor =
-            new WitnessInvariantsExtractor(
-                config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
-          Automaton automaton = extractor.buildInvariantsAutomatonFromWitness();
-        automata.add(automaton);
-        break;
-        }
-      case LOCATIONINVARIANTSAUTOMATON:
-        {
-          WitnessInvariantsExtractor extractor =
-              new WitnessInvariantsExtractor(
-                  config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
-          Automaton automaton = extractor.buildLocationInvariantsAutomatonFromWitness();
-          automata.add(automaton);
-        break;
-        }
-      default:
-        break;
-    }
-    return cpaFactory.buildCPAs(cfa, specification, automata, aggregatedReachedSets);
+    Specification automatonAsSpec =
+        Specification.fromFiles(
+            pSpecification.getProperties(),
+            ImmutableList.of(correctnessWitnessFile),
+            pCfa,
+            config,
+            logger);
+    automata.add(automatonAsSpec.getSpecificationAutomata().get(0));
+    return cpaFactory.buildCPAs(pCfa, pSpecification, automata, aggregatedReachedSets);
   }
 }

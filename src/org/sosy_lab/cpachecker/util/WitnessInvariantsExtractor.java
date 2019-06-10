@@ -26,10 +26,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,8 +39,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -58,28 +55,40 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.automaton.InvariantsAutomatonBuilder;
-import org.sosy_lab.cpachecker.cpa.automaton.LocationInvariantsAutomatonBuilder;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-/** Utility class to extract candidates from witness file */
+/**
+ * This class extracts invariants from the correctness witness automaton. Calling {@link
+ * WitnessInvariantsExtractor#analyzeWitness()} analyzes the witness first by conducting a
+ * reachability analysis over the witness automaton. Subsequently, the invariants can be extracted
+ * from the reached set.
+ */
 public class WitnessInvariantsExtractor {
 
   private Configuration config;
-  private Specification specification;
   private LogManager logger;
   private CFA cfa;
   private ShutdownNotifier shutdownNotifier;
-  private Path pathToWitnessFile;
   private ReachedSet reachedSet;
+  private Specification automatonAsSpec;
 
+  /**
+   * Creates an instance of {@link WitnessInvariantsExtractor} and uses {@code pSpecification} and
+   * {@code pPathToWitnessFile} to build the witness automaton so this automaton can be applied as
+   * specification ({@code automatonAsSpec}) for the reachability analysis that is subsequently
+   * called.
+   *
+   * @param pConfig the configuration
+   * @param pSpecification the specification
+   * @param pLogger the logger
+   * @param pCFA the cfa
+   * @param pShutdownNotifier the shutdown notifier
+   * @param pPathToWitnessFile the path to the witness file
+   * @throws InvalidConfigurationException if the configuration is invalid
+   */
   public WitnessInvariantsExtractor(
       Configuration pConfig,
       Specification pSpecification,
@@ -89,11 +98,38 @@ public class WitnessInvariantsExtractor {
       Path pPathToWitnessFile)
       throws InvalidConfigurationException, CPAException {
     this.config = generateLocalConfiguration(pConfig);
-    this.specification = pSpecification;
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
-    this.pathToWitnessFile = pPathToWitnessFile;
+    this.automatonAsSpec = buildSpecification(pSpecification, pPathToWitnessFile);
+    analyzeWitness();
+  }
+
+  /**
+   * Creates an instance of {@link WitnessInvariantsExtractor} and uses {@code pAutomaton} so {@code
+   * pAutomaton} can be applied as specification ({@code automatonAsSpec}) for the reachability
+   * analysis that is subsequently called.
+   *
+   * @param pConfig the configuration
+   * @param pAutomaton the automaton used as specificatigiton
+   * @param pLogger the logger
+   * @param pCFA the cfa
+   * @param pShutdownNotifier the shutdown notifier
+   * @throws InvalidConfigurationException if the configuration is invalid
+   * @throws CPAException if an error occurs during the reachability analysis
+   */
+  public WitnessInvariantsExtractor(
+      Configuration pConfig,
+      Automaton pAutomaton,
+      LogManager pLogger,
+      CFA pCFA,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, CPAException {
+    this.config = generateLocalConfiguration(pConfig);
+    this.logger = pLogger;
+    this.cfa = pCFA;
+    this.shutdownNotifier = pShutdownNotifier;
+    this.automatonAsSpec = buildSpecification(pAutomaton);
     analyzeWitness();
   }
 
@@ -117,17 +153,22 @@ public class WitnessInvariantsExtractor {
     return configBuilder.build();
   }
 
+  private Specification buildSpecification(Specification pSpecification, Path pathToWitnessFile)
+      throws InvalidConfigurationException {
+    return Specification.fromFiles(
+        pSpecification.getProperties(), ImmutableList.of(pathToWitnessFile), cfa, config, logger);
+  }
+
+  private Specification buildSpecification(Automaton pAutomaton) {
+    List<Automaton> automata = new ArrayList<>(1);
+    automata.add(pAutomaton);
+    return Specification.fromAutomata(automata);
+  }
+
   private void analyzeWitness() throws InvalidConfigurationException, CPAException {
     ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
     reachedSet = reachedSetFactory.create();
     CPABuilder builder = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
-    Specification automatonAsSpec =
-        Specification.fromFiles(
-            specification.getProperties(),
-            ImmutableList.of(pathToWitnessFile),
-            cfa,
-            config,
-            logger);
     ConfigurableProgramAnalysis cpa =
         builder.buildCPAs(cfa, automatonAsSpec, new AggregatedReachedSets());
     CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
@@ -144,21 +185,13 @@ public class WitnessInvariantsExtractor {
     }
   }
 
-  public Automaton buildInvariantsAutomatonFromWitness() {
-    InvariantsAutomatonBuilder automatonBuilder = new InvariantsAutomatonBuilder(cfa, logger);
-    final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
-    extractInvariantsFromReachedSet(invariants);
-    return automatonBuilder.buildWitnessInvariantsAutomaton(invariants);
-  }
-
-  public Automaton buildLocationInvariantsAutomatonFromWitness() {
-    LocationInvariantsAutomatonBuilder automatonBuilder =
-        new LocationInvariantsAutomatonBuilder(cfa, logger);
-    final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
-    extractInvariantsFromReachedSet(invariants);
-    return automatonBuilder.buildWitnessLocationInvariantsAutomaton(invariants);
-  }
-
+  /**
+   * Extracts the invariants with their corresponding CFA location from {@link:
+   * WitnessInvariantsExtractor#reachedSet}. For two invariants at the same CFA location the
+   * conjunction is applied for the two invariants.
+   *
+   * @param pInvariants the set of location invariants that stores the extracted location invariants
+   */
   @SuppressWarnings("unchecked")
   public void extractInvariantsFromReachedSet(
       final Set<ExpressionTreeLocationInvariant> pInvariants) {
@@ -193,6 +226,16 @@ public class WitnessInvariantsExtractor {
     }
   }
 
+  /**
+   * Extracts the invariants from {@link: WitnessInvariantsExtractor#reachedSet} and stores it in
+   * {@code pCandidates}. The invariants are regarded as candidates that can hold at several CFA
+   * locations. Therefore, {@code pCandidateGroupLocations} is used that groups CFANodes by using a
+   * groupID. For two invariants that are part of the same group the conjunction is applied for the
+   * two invariants.
+   *
+   * @param pCandidates stores the invariants which are regarded as candidates
+   * @param pCandidateGroupLocations stores as key the groupID with its associated CFANodes
+   */
   public void extractCandidatesFromReachedSet(
       final Set<CandidateInvariant> pCandidates,
       final Multimap<String, CFANode> pCandidateGroupLocations) {
@@ -263,87 +306,6 @@ public class WitnessInvariantsExtractor {
                 expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
                 toCodeVisitorCache));
       }
-    }
-  }
-
-  public void extractCandidateVariablesFromReachedSet(
-      final Multimap<CFANode, MemoryLocation> candidates,
-      final Multimap<String, CFANode> candidateGroupLocations) {
-    Set<CFANode> visited = Sets.newHashSet();
-    Multimap<String, MemoryLocation> groupIDToMemoryLocation = HashMultimap.create();
-    Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
-    // TODO: considering potential Candidates because of FunctionReturnEdges
-    for (AbstractState abstractState : reachedSet) {
-      if (shutdownNotifier.shouldShutdown()) {
-        return;
-      }
-      Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
-      Iterables.addAll(visited, locations);
-      for (AutomatonState automatonState :
-          AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
-        ExpressionTree<AExpression> candidate = automatonState.getCandidateInvariants();
-        String groupId = automatonState.getInternalStateName();
-        candidateGroupLocations.putAll(groupId, locations);
-        if (!candidate.equals(ExpressionTrees.getTrue())) {
-          ExpressionTree<AExpression> previous = expressionTrees.get(groupId);
-          if (previous == null) {
-            previous = ExpressionTrees.getTrue();
-          }
-          ExpressionTree<AExpression> candidateAnd = And.of(previous, candidate);
-          groupIDToMemoryLocation.removeAll(groupId);
-          Set<CExpression> variableNames = new HashSet<>();
-          findVariables(candidateAnd, variableNames);
-          CallstackState callstackState =
-              AbstractStates.extractStateByType(abstractState, CallstackState.class);
-          for (CExpression variableName : variableNames) {
-            groupIDToMemoryLocation.put(
-                groupId,
-                MemoryLocation.valueOf(
-                    callstackState.getCurrentFunction(), variableName.toString()));
-          }
-        }
-      }
-    }
-    for (String groupID : candidateGroupLocations.keySet()) {
-      for (MemoryLocation m : groupIDToMemoryLocation.get(groupID)) {
-        for (CFANode n : candidateGroupLocations.get(groupID)) {
-          String function = m.getFunctionName();
-          String variable = m.getIdentifier();
-          candidates.put(n, MemoryLocation.valueOf(function, variable));
-        }
-      }
-    }
-  }
-
-  private static void findVariables(
-      ExpressionTree<AExpression> expression, Set<CExpression> variableNames) {
-    if (expression instanceof Or<?>) {
-      Or<AExpression> expressionOr = (Or<AExpression>) expression;
-      Iterator<ExpressionTree<AExpression>> operands = expressionOr.iterator();
-      while (operands.hasNext()) {
-        ExpressionTree<AExpression> next = operands.next();
-        findVariables(next, variableNames);
-      }
-    } else if (expression instanceof And<?>) {
-      And<AExpression> expressionAnd = (And<AExpression>) expression;
-      Iterator<ExpressionTree<AExpression>> operands = expressionAnd.iterator();
-      while (operands.hasNext()) {
-        ExpressionTree<AExpression> next = operands.next();
-        findVariables(next, variableNames);
-      }
-    } else if (expression instanceof LeafExpression<?>) {
-      Object expressionC = ((LeafExpression<?>) expression).getExpression();
-      extractCIdExpressionsfromCExpression((CExpression) expressionC, variableNames);
-    }
-  }
-
-  private static void extractCIdExpressionsfromCExpression(
-      CExpression expressionC, Set<CExpression> variableNames) {
-    Iterable<CIdExpression> filteredExpressionsC =
-        CFAUtils.getIdExpressionsOfExpression(expressionC);
-    Iterator<CIdExpression> iteratorIdExpressions = filteredExpressionsC.iterator();
-    while (iteratorIdExpressions.hasNext()) {
-      variableNames.add(iteratorIdExpressions.next());
     }
   }
 }

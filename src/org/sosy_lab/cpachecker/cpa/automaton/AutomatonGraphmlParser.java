@@ -153,9 +153,6 @@ public class AutomatonGraphmlParser {
   @Option(secure=true, description="Consider assumptions that are provided with the path automaton?")
   private boolean considerAssumptions = true;
 
-  @Option(secure = true, description = "use invariants from correctness witness as assumptions")
-  private boolean useWitnessInvariantsAsAssumptions = false;
-
   @Option(
     secure = true,
     description = "Represent sink states by bottom state instead of break state"
@@ -188,6 +185,14 @@ public class AutomatonGraphmlParser {
   @Option(secure=true, description="File for exporting the witness automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path automatonDumpFile = null;
+
+  @Option(
+      secure = true,
+      name = "invariantsSpecificationAutomaton",
+      description =
+          "Validate correctness witness by specifying an invariants specification automaton")
+  private InvariantsSpecificationAutomatonBuilder invariantsSpecAutomaton =
+      InvariantsSpecificationAutomatonBuilder.NO_ISA;
 
   private Scope scope;
   private final LogManager logger;
@@ -286,6 +291,10 @@ public class AutomatonGraphmlParser {
     } catch (InvalidAutomatonException e) {
       throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE, e);
     }
+
+    // the automaton will be an ISA if specified
+    automaton = invariantsSpecAutomaton.build(automaton, config, logger, cfa);
+
     result.add(automaton);
 
     if (automatonDumpFile != null) {
@@ -328,8 +337,8 @@ public class AutomatonGraphmlParser {
     }
 
     // Wait in the source state until the witness checker catches up with the witness
-
-    if (useWitnessInvariantsAsAssumptions
+    if (invariantsSpecAutomaton
+            == InvariantsSpecificationAutomatonBuilder.WITNESSBASED_ISA
         && pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
         && stateInvariantsMap.containsKey(pState)) {
       // Create two stutter transitions for states with an invariant as precondition
@@ -608,7 +617,8 @@ public class AutomatonGraphmlParser {
     }
     pGraphMLParserState.getStutterConditions().put(pTransition.getSource(), stutterCondition);
 
-    if (useWitnessInvariantsAsAssumptions
+    if (invariantsSpecAutomaton
+            == InvariantsSpecificationAutomatonBuilder.WITNESSBASED_ISA
         && pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS) {
       if (!candidateInvariants.equals(ExpressionTrees.getTrue())) {
         // we create two automata transitions from this witness transition:
