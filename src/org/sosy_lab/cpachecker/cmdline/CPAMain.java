@@ -653,7 +653,6 @@ public class CPAMain {
         overrideOptions.put(
             "invariantGeneration.kInduction.invariantsAutomatonFile", options.witness.toString());
         overrideOptions.put("cpa.predicate.correctnessWitnessFile", options.witness.toString());
-        overrideOptions.put("cpa.valueAnalysis.correctnessWitnessFile", options.witness.toString());
         overrideOptions.put("analysis.correctnessWitnessFile", options.witness.toString());
         break;
       default:
