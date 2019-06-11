@@ -19,6 +19,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.xml.XmlEscapers;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -26,28 +27,20 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
-import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
-import org.w3c.dom.DocumentType;
 import org.w3c.dom.Element;
+import org.w3c.dom.Text;
 
 public class TestSuiteWriter {
 
@@ -85,127 +78,204 @@ public class TestSuiteWriter {
       Element parentElement,
       Document dom) {
     Element newElement = dom.createElement(elementName);
-    newElement.appendChild(dom.createTextNode(elementTest));
+    Text textNode = dom.createTextNode(elementTest);
+    newElement.appendChild(textNode);
     parentElement.appendChild(newElement);
     return newElement;
   }
 
-  private void writeMetaData() {
-    logger.log(
-        Level.INFO,
-        "Writing Metadata with FQL Statement: " + spec + " and producer " + producer);
+  private void writeMetaData() throws IOException {
+    StringBuilder builder = new StringBuilder();
+    Preconditions.checkArgument(cfa.getFileNames().size() == 1);
+    Path programFile = cfa.getFileNames().get(0);
 
-    Document dom;
-    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-    try {
-      DocumentBuilder db = dbf.newDocumentBuilder();
-      dom = db.newDocument();
-      Element root = dom.createElement("test-metadata");
+    builder.append(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
+            + "<!DOCTYPE test-metadata SYSTEM \"https://gitlab.com/sosy-lab/software/test-format/blob/master/test-metadata.dtd\">\n");
+    builder.append("<test-metadata>\n");
 
-      createAndAppendElement("sourcecodelang", cfa.getLanguage().toString(), root, dom);
-      createAndAppendElement(
-          "producer",
-          XmlEscapers.xmlContentEscaper().escape(producer),
-          root,
-          dom);
-      createAndAppendElement("specification", spec, root, dom);
-      Path file = cfa.getFileNames().get(0);
-      createAndAppendElement("programfile", file.toString(), root, dom);
-      createAndAppendElement(
-          "programhash",
-          AutomatonGraphmlCommon.computeHash(file),
-          root,
-          dom);
-      createAndAppendElement("entryfunction", originalMainFunction, root, dom);
+    builder.append("\t<sourcecodelang>");
+    builder.append(cfa.getLanguage().toString());
+    builder.append("</sourcecodelang>\n");
 
-      createAndAppendElement(
-          "architecture",
-          AutomatonGraphmlCommon.getArchitecture(cfa.getMachineModel()),
-          root,
-          dom);
-      createAndAppendElement(
-          "creationtime",
-          ZonedDateTime.now().withNano(0).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
-          root,
-          dom);
+    builder.append("\t<producer>");
+    builder.append(XmlEscapers.xmlContentEscaper().escape(producer));
+    builder.append("</producer>\n");
 
-      dom.appendChild(root);
-      try {
-        Transformer tr = TransformerFactory.newInstance().newTransformer();
-        tr.setOutputProperty(OutputKeys.INDENT, "yes");
-        tr.setOutputProperty(OutputKeys.METHOD, "xml");
-        tr.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-        DOMImplementation domImpl = dom.getImplementation();
-        DocumentType doctype =
-            domImpl.createDocumentType(
-                "doctype",
-                "+//IDN sosy-lab.org//DTD test-format test-metadata 1.0//EN",
-                "https://gitlab.com/sosy-lab/software/test-format/raw/v1.0/test-metadata.dtd");
-        tr.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM, doctype.getSystemId());
-        tr.setOutputProperty(OutputKeys.DOCTYPE_PUBLIC, doctype.getPublicId());
-
-        tr.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-
-        // send DOM to file
-        DOMSource domSource = new DOMSource(dom);
-        StreamResult streamResult =
-            new StreamResult(new File(outputFolder + "/metadata.xml"));
-        tr.transform(
-            domSource,
-            streamResult);
-
-      } catch (TransformerException te) {
-        logger.log(Level.WARNING, te.getMessage());
-      }
-    } catch (ParserConfigurationException pce) {
-      logger.log(Level.WARNING, "UsersXML: Error trying to instantiate DocumentBuilder " + pce);
-    } catch (IOException e) {
-      logger.log(Level.WARNING, e.getMessage());
+    if (spec != null) {
+      builder.append("\t<specification>");
+      builder.append(spec);
+      builder.append("</specification>\n");
+    } else {
+      builder.append("\t<specification/>\n");
     }
+
+    builder.append("\t<programfile>");
+    builder.append(programFile.toString());
+    builder.append("</programfile>\n");
+
+    builder.append("\t<programhash>");
+    builder.append(AutomatonGraphmlCommon.computeHash(programFile));
+    builder.append("</programhash>\n");
+
+    builder.append("\t<entryfunction>");
+    builder.append(cfa.getMainFunction().getFunctionName());
+    builder.append("</entryfunction>\n");
+
+    builder.append("\t<architecture>");
+    builder.append(AutomatonGraphmlCommon.getArchitecture(cfa.getMachineModel()));
+    builder.append("</architecture>\n");
+
+    builder.append("\t<creationtime>");
+    builder.append(ZonedDateTime.now().withNano(0).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+    builder.append("</creationtime>\n");
+
+    builder.append("</test-metadata>");
+
+    Files.write(Paths.get(outputFolder + "/metadata.xml"), builder.toString().getBytes());
+
+    // logger.log(
+    // Level.INFO,
+    // "Writing Metadata with FQL Statement: " + spec + " and producer " + producer);
+    //
+    // Document dom;
+    // DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+    // try {
+    // DocumentBuilder db = dbf.newDocumentBuilder();
+    // dom = db.newDocument();
+    // Element root = dom.createElement("test-metadata");
+    //
+    // createAndAppendElement("sourcecodelang", cfa.getLanguage().toString(), root, dom);
+    // createAndAppendElement(
+    // "producer",
+    // XmlEscapers.xmlContentEscaper().escape(producer),
+    // root,
+    // dom);
+    // createAndAppendElement("specification", spec, root, dom);
+    // Path file = cfa.getFileNames().get(0);
+    // createAndAppendElement("programfile", file.toString(), root, dom);
+    // createAndAppendElement(
+    // "programhash",
+    // AutomatonGraphmlCommon.computeHash(file),
+    // root,
+    // dom);
+    // createAndAppendElement("entryfunction", originalMainFunction, root, dom);
+    //
+    // createAndAppendElement(
+    // "architecture",
+    // AutomatonGraphmlCommon.getArchitecture(cfa.getMachineModel()),
+    // root,
+    // dom);
+    // createAndAppendElement(
+    // "creationtime",
+    // ZonedDateTime.now().withNano(0).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+    // root,
+    // dom);
+    //
+    // dom.appendChild(root);
+    // try {
+    // Transformer tr = TransformerFactory.newInstance().newTransformer();
+    // tr.setOutputProperty(OutputKeys.INDENT, "yes");
+    // tr.setOutputProperty(OutputKeys.METHOD, "xml");
+    // tr.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+    // DOMImplementation domImpl = dom.getImplementation();
+    // DocumentType doctype =
+    // domImpl.createDocumentType(
+    // "doctype",
+    // "+//IDN sosy-lab.org//DTD test-format test-metadata 1.0//EN",
+    // "https://gitlab.com/sosy-lab/software/test-format/raw/v1.0/test-metadata.dtd");
+    // tr.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM, doctype.getSystemId());
+    // tr.setOutputProperty(OutputKeys.DOCTYPE_PUBLIC, doctype.getPublicId());
+    //
+    // tr.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+    //
+    // // send DOM to file
+    // DOMSource domSource = new DOMSource(dom);
+    // StreamResult streamResult =
+    // new StreamResult(new File(outputFolder + "/metadata.xml"));
+    // tr.transform(
+    // domSource,
+    // streamResult);
+    //
+    // } catch (TransformerException te) {
+    // logger.log(Level.WARNING, te.getMessage());
+    // }
+    // } catch (ParserConfigurationException pce) {
+    // logger.log(Level.WARNING, "UsersXML: Error trying to instantiate DocumentBuilder " + pce);
+    // } catch (IOException e) {
+    // logger.log(Level.WARNING, e.getMessage());
+    // }
   }
 
   private void writeTestCase(TestCase testcase) {
-    Document dom;
-    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+
     try {
-      DocumentBuilder db = dbf.newDocumentBuilder();
-      dom = db.newDocument();
-      Element root = dom.createElement("testcase");
-      // TODO order of variables if important for testcomp!
+      StringBuilder builder = new StringBuilder();
+      builder.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
+      builder.append(
+          "<!DOCTYPE testcase SYSTEM \"https://gitlab.com/sosy-lab/software/test-format/blob/master/testcase.dtd\">\n");
+      builder.append("<testcase>\n");
       for (TestCaseVariable var : testcase.getInputs()) {
-        Element input = createAndAppendElement("input", var.getValue().toString(), root, dom);
-        input.setAttribute("variable", var.getName());
+        builder.append("\t<input  variable=\"" + var.getName() + "\">");
+        builder.append(var.getValue());
+        builder.append("</input>\n");
       }
-
-      dom.appendChild(root);
-      try {
-        Transformer tr = TransformerFactory.newInstance().newTransformer();
-        tr.setOutputProperty(OutputKeys.INDENT, "yes");
-        tr.setOutputProperty(OutputKeys.METHOD, "xml");
-        tr.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-        DOMImplementation domImpl = dom.getImplementation();
-        DocumentType doctype =
-            domImpl.createDocumentType(
-                "doctype",
-                "+//IDN sosy-lab.org//DTD test-format testcase 1.0//EN",
-                "https://gitlab.com/sosy-lab/software/test-format/raw/v1.0/testcase.dtd");
-        tr.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM, doctype.getSystemId());
-        tr.setOutputProperty(OutputKeys.DOCTYPE_PUBLIC, doctype.getPublicId());
-
-        tr.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-
-        // send DOM to file
-        File outputFile = new File(outputFolder + "/testcase-" + testcase.getId() + ".xml");
-        tr.transform(
-            new DOMSource(dom),
-            new StreamResult(outputFile));
-
-      } catch (TransformerException te) {
-        logger.log(Level.WARNING, te.getMessage());
-      }
-    } catch (ParserConfigurationException pce) {
-      logger.log(Level.WARNING, "UsersXML: Error trying to instantiate DocumentBuilder " + pce);
+      builder.append("</testcase>\n");
+      Files.write(
+          Paths.get(outputFolder + "/testcase-" + testcase.getId() + ".xml"),
+          builder.toString().getBytes());
+    } catch (IOException ex) {
+      logger.log(Level.SEVERE, "Could not write test-case!");
     }
+
+    // Document dom;
+    // DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+    // try {
+
+    // DocumentBuilder db = dbf.newDocumentBuilder();
+    // dom = db.newDocument();
+    // Element root = dom.createElement("testcase");
+    // // TODO order of variables if important for testcomp!
+    // for (TestCaseVariable var : testcase.getInputs()) {
+    // String value = var.getValue().toString();
+    // Element input = createAndAppendElement("input", value, root, dom);
+    // input.setAttribute("variable", var.getName());
+    // }
+    //
+    // long timeInSeconds =
+    // TimeUnit.MILLISECONDS.convert(testcase.getElapsedTime(), TimeUnit.NANOSECONDS);
+    // Element time = createAndAppendElement("elapsedTime", Long.toString(timeInSeconds), root,
+    // dom);
+    //
+    // dom.appendChild(root);
+    // try {
+    // Transformer tr = TransformerFactory.newInstance().newTransformer();
+    // tr.setOutputProperty(OutputKeys.INDENT, "yes");
+    // tr.setOutputProperty(OutputKeys.METHOD, "xml");
+    // tr.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+    // DOMImplementation domImpl = dom.getImplementation();
+    // DocumentType doctype =
+    // domImpl.createDocumentType(
+    // "doctype",
+    // "+//IDN sosy-lab.org//DTD test-format testcase 1.0//EN",
+    // "https://gitlab.com/sosy-lab/software/test-format/raw/v1.0/testcase.dtd");
+    // tr.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM, doctype.getSystemId());
+    // tr.setOutputProperty(OutputKeys.DOCTYPE_PUBLIC, doctype.getPublicId());
+    //
+    // tr.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+    //
+    // // send DOM to file
+    // File outputFile = new File(outputFolder + "/testcase-" + testcase.getId() + ".xml");
+    // tr.transform(
+    // new DOMSource(dom),
+    // new StreamResult(outputFile));
+    //
+    // } catch (TransformerException te) {
+    // logger.log(Level.WARNING, te.getMessage());
+    // }
+    // } catch (ParserConfigurationException pce) {
+    // logger.log(Level.WARNING, "UsersXML: Error trying to instantiate DocumentBuilder " + pce);
+    // }
   }
 
   private void initTestSuiteFolder() {
@@ -214,7 +284,11 @@ public class TestSuiteWriter {
       outputFolderFile.mkdirs();
     }
     if (useTestCompOutput) {
-      writeMetaData();
+      try {
+        writeMetaData();
+      } catch (IOException e) {
+        logger.log(Level.SEVERE, "could not write metadata");
+      }
     }
   }
 

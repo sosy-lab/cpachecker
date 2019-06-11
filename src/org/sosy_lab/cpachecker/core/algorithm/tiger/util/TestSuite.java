@@ -52,7 +52,6 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
   private Map<T, List<TestCase>> coveringTestCases;
   private List<T> includedTestGoals;
   private TestSuiteData testSuiteData;
-  private int numberOfFeasibleGoals = 0;
   private TigerAlgorithmConfiguration tigerConfig;
   private Map<T, Region> remainingPresenceConditions;
 
@@ -75,6 +74,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
       setRemainingPresenceCondition(goal, bddUtils.makeTrue());
     }
   }
+
 
   public Set<T> getTestGoals() {
     Set<T> result = new HashSet<>();
@@ -103,7 +103,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
   }
 
   public int getNumberOfFeasibleGoals() {
-    return numberOfFeasibleGoals;
+    return getTestGoals().size();
   }
 
   public int getNumberOfInfeasibleTestGoals() {
@@ -144,9 +144,6 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
   public boolean addTestCase(
       TestCase testcase,
       T goal) {
-    if (!isGoalPariallyCovered(goal)) {
-      numberOfFeasibleGoals++;
-    }
 
     List<T> goals = mapping.get(testcase);
     List<TestCase> testcases = coveringTestCases.get(goal);

@@ -48,6 +48,7 @@ public class TestCase {
   private Region presenceCondition;
   private ARGPath argPath;
   private BDDUtils bddUtils;
+  private long elapsedTime;
 
   public TestCase(
       int pID,
@@ -255,6 +256,14 @@ public class TestCase {
   public int hashCode() {
     return 38495 + 33 * inputs.hashCode() + 13 * path.hashCode()
         + (presenceCondition != null ? 25 * presenceCondition.hashCode() : 0);
+  }
+
+  public void setElapsedTime(long pElapsedTime) {
+    this.elapsedTime = pElapsedTime;
+  }
+
+  public long getElapsedTime() {
+    return elapsedTime;
   }
 
 }
