@@ -524,14 +524,14 @@ public class ConfigurationFileChecks {
 
     assert_()
         .withMessage(
-            "Failure in CPAchecker run with following log\n%s\n",
+            "Failure in CPAchecker run with following log\n%s\n\nlog with level WARNING or higher",
             formatLogRecords(logHandler.getStoredLogRecords()))
         .about(streams())
         .that(getSevereMessages(options, logHandler))
-        .named("log with level WARNING or higher")
         .isEmpty();
 
     assume()
+        .withMessage("messages indicating missing input files")
         .about(streams())
         .that(
             logHandler
@@ -539,7 +539,6 @@ public class ConfigurationFileChecks {
                 .stream()
                 .map(LogRecord::getMessage)
                 .filter(s -> INDICATES_MISSING_INPUT_FILE.matcher(s).matches()))
-        .named("messages indicating missing input files")
         .isEmpty();
 
     if (!isOptionEnabled(config, "analysis.disable")) {
@@ -557,10 +556,9 @@ public class ConfigurationFileChecks {
       // RestartAlgorithm
       assert_()
           .withMessage(
-              "Failure in CPAchecker run with following log\n%s\n",
+              "Failure in CPAchecker run with following log\n%s\n\nlist of unused options",
               formatLogRecords(logHandler.getStoredLogRecords()))
           .that(Sets.difference(config.getUnusedProperties(), UNUSED_OPTIONS))
-          .named("list of unused options")
           .isEmpty();
     }
   }

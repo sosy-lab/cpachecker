@@ -362,10 +362,12 @@ public class AutomatonInternalTest {
   @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
   private class ASTMatcherSubject extends Subject<ASTMatcherSubject, String> {
 
+    private final String pattern;
     private final AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
 
     public ASTMatcherSubject(FailureMetadata pMetadata, String pPattern) {
       super(pMetadata, pPattern);
+      pattern = pPattern;
     }
 
     private boolean matches0(String src) throws InvalidAutomatonException {
@@ -376,7 +378,7 @@ public class AutomatonInternalTest {
       } catch (InvalidAutomatonException e) {
         throw new RuntimeException("Cannot parse source code for test", e);
       }
-      matcher = AutomatonASTComparator.generatePatternAST(actual(), parser, CProgramScope.empty());
+      matcher = AutomatonASTComparator.generatePatternAST(pattern, parser, CProgramScope.empty());
 
       return matcher.matches(sourceAST, args);
     }
@@ -388,7 +390,7 @@ public class AutomatonInternalTest {
       } catch (InvalidAutomatonException e) {
         failWithoutActual(
             Fact.simpleFact("expected to be a valid pattern"),
-            Fact.fact("but was", actual()),
+            Fact.fact("but was", pattern),
             Fact.fact("which cannot be parsed", e));
         return new Matches() {
           @Override
@@ -426,15 +428,16 @@ public class AutomatonInternalTest {
           if (args.getTransitionVariables().isEmpty()) {
             failWithActual(Fact.fact("expected to not match", src));
           } else {
-            failWithoutActual(Fact.fact("expected to not match", src),
-                Fact.fact("but was", actual()),
+            failWithoutActual(
+                Fact.fact("expected to not match", src),
+                Fact.fact("but was", pattern),
                 Fact.fact("with transition variables", args.getTransitionVariables()));
           }
         }
       } catch (InvalidAutomatonException e) {
         failWithoutActual(
             Fact.simpleFact("expected to be a valid pattern"),
-            Fact.fact("but was", actual()),
+            Fact.fact("but was", pattern),
             Fact.fact("which cannot be parsed", e));
       }
     }

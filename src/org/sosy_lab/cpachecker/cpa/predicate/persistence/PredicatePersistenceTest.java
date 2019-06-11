@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.truth.Truth;
@@ -88,8 +89,8 @@ public class PredicatePersistenceTest extends SolverViewBasedTest0 {
   }
 
   private void assertThatAllParenthesesAreClosed(String formula) {
-    assertThat(CharMatcher.anyOf(")").countIn(formula))
-        .named("number of closing parentheses")
+    assertWithMessage("number of closing parentheses")
+        .that(CharMatcher.anyOf(")").countIn(formula))
         .isEqualTo(CharMatcher.anyOf("(").countIn(formula));
   }
 }

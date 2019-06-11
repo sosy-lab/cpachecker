@@ -72,9 +72,9 @@ public abstract class AbstractARGTranslationTest {
     TestResults results = run0(config, program);
     UnmodifiableReachedSet reached = results.getCheckerResult().getReached();
     assert_()
-        .withMessage("reached set: %s\nlog: %s", reached, results.getLog())
+        .withMessage(
+            "reached set: %s\nlog: %s\nfirst state of reached set", reached, results.getLog())
         .that(reached.getFirstState())
-        .named("first state of reached set")
         .isNotNull();
     return (ARGState) reached.getFirstState();
   }
