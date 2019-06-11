@@ -148,13 +148,37 @@ class Benchmark(benchexec.benchexec.BenchExec):
         return parser
 
     def load_executor(self):
+        webclient = False
         if self.config.cloud:
             if self.config.cloudMaster and "http" in self.config.cloudMaster:
+                webclient = True
                 import benchmark.webclient_benchexec as executor
             else:
                 import benchmark.vcloud as executor
         else:
             executor = super(Benchmark, self).load_executor()
+
+        if not webclient:
+            original_load_function = benchexec.model.load_tool_info
+
+            def build_cpachecker_before_load(tool_name, *args, **kwargs):
+                if (
+                    tool_name == "cpachecker"
+                    and os.path.exists(os.path.join(cpachecker_dir, "build.xml"))
+                    and subprocess.call(
+                        ["ant", "-q", "jar"],
+                        cwd=cpachecker_dir,
+                        shell=benchexec.util.is_windows(),
+                    )
+                ):
+                    sys.exit("Failed to build CPAchecker, please fix the build first.")
+
+                return original_load_function(tool_name, *args, **kwargs)
+
+            # Monkey-patch BenchExec to build CPAchecker before loading the tool-info
+            # module (https://gitlab.com/sosy-lab/software/cpachecker/issues/549)
+            benchexec.model.load_tool_info = build_cpachecker_before_load
+
         return executor
 
     def check_existing_results(self, benchmark):
@@ -174,25 +198,5 @@ if __name__ == "__main__":
     if bin_dir:
         bin_dir = os.path.join(os.path.dirname(__file__), os.pardir, bin_dir)
         os.environ["PATH"] += os.pathsep + bin_dir
-
-    original_load_function = benchexec.model.load_tool_info
-
-    def build_cpachecker_before_load(tool_name, *args, **kwargs):
-        if (
-            tool_name == "cpachecker"
-            and os.path.exists(os.path.join(cpachecker_dir, "build.xml"))
-            and subprocess.call(
-                ["ant", "-q", "jar"],
-                cwd=cpachecker_dir,
-                shell=benchexec.util.is_windows(),
-            )
-        ):
-            sys.exit("Failed to build CPAchecker, please fix the build first.")
-
-        return original_load_function(tool_name, *args, **kwargs)
-
-    # Monkey-patch BenchExec to build CPAchecker before loading the tool-info module
-    # (https://gitlab.com/sosy-lab/software/cpachecker/issues/549)
-    benchexec.model.load_tool_info = build_cpachecker_before_load
 
     benchexec.benchexec.main(Benchmark())
