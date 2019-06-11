@@ -100,6 +100,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
   protected BDDUtils bddUtils;
   protected TimeoutCPA timeoutCPA;
   protected TestSuiteWriter tsWriter;
+  protected ShutdownNotifier shutdownNotifier;
 
   protected LinkedList<T> goalsToCover;
 
@@ -115,6 +116,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     cfa = pCfa;
     cpa = pCpa;
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
+    shutdownNotifier = pShutdownNotifier;
     // startupConfig.getConfig().inject(this);
     logger = pLogger;
     if (pStats != null && pStats.getProperties() != null) {
@@ -133,7 +135,10 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     logger.logf(Level.INFO, "FQL query string: %s", tigerConfig.getFqlQuery());
     this.stats = pStats;
     values =
-        new InputOutputValues(tigerConfig.getInputInterface(), tigerConfig.getOutputInterface());
+        new InputOutputValues(
+            tigerConfig.getInputInterface(),
+            tigerConfig.getOutputInterface(),
+            logger);
     currentTestCaseID = 0;
 
     // Check if BDD is enabled for variability-aware test-suite generation
@@ -152,7 +157,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
             pLogger,
             originalMainFunction,
             tigerConfig.shouldUseTestCompOutput(),
-            outputFolder,
+            outputFolder + cfa.getFileNames().get(0).getFileName().toString(),
             tigerConfig.getFqlQuery(),
             producerString);
   }
@@ -174,7 +179,10 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     boolean analysisWasSound = false;
     boolean hasTimedOut = false;
     analysisWasSound = algorithm.run(pReachedSet).isSound();
-    hasTimedOut = timeoutCPA.hasTimedout();
+    hasTimedOut = false;
+    if (timeoutCPA != null) {
+      hasTimedOut = timeoutCPA.hasTimedout();
+    }
     if (hasTimedOut) {
       logger.logf(Level.INFO, "Test goal timed out!");
     }
@@ -253,7 +261,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
         pGoalsToCheckCoverage.remove(goal);
         log += "and is removed from goal list";
       }
-      logger.log(Level.INFO, log);
+      logger.log(Level.FINE, log);
     }
     return coveredGoals;
   }
