@@ -42,7 +42,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -95,10 +97,12 @@ public class InputOutputValues {
 
   private Set<String> inputVariables;
   private Set<String> outputVariables;
+  LogManager logger;
 
 
-  public InputOutputValues(String inputInterface, String outputInterface) {
+  public InputOutputValues(String inputInterface, String outputInterface, LogManager logger) {
     inputVariables = new TreeSet<>();
+    this.logger = logger;
     for (String variable : inputInterface.split(",")) {
       String var = variable.trim();
       if (!var.isEmpty()) {
@@ -112,6 +116,7 @@ public class InputOutputValues {
         outputVariables.add(var);
       }
     }
+
   }
 
   private BigInteger getValueFromComment(CFAEdgeWithAssumptions edge) {
@@ -508,7 +513,7 @@ public class InputOutputValues {
     return values;
   }
 
-  public static Optional<TestCaseVariable> getReturnValueForExternalFunction(
+  public Optional<TestCaseVariable> getReturnValueForExternalFunction(
       final AFunctionCall functionCall,
       final CFAEdge edge,
       final @Nullable Collection<CFAEdgeWithAssumptions> pAssumptions,
@@ -525,6 +530,11 @@ public class InputOutputValues {
       if (nameExpression instanceof AIdExpression) {
 
         ASimpleDeclaration declaration = ((AIdExpression) nameExpression).getDeclaration();
+        if(declaration == null) {
+          logger.log(
+              Level.WARNING,
+              "Could not extract inputValues fom function: " + functionCall.toASTString());
+        }
         if (declaration != null && pCfa.getFunctionHead(declaration.getQualifiedName()) == null) {
           // external function with return value
 
@@ -578,15 +588,20 @@ public class InputOutputValues {
                   || returnType instanceof CBitFieldType
                   || (returnType instanceof CElaboratedType
                       && ((CElaboratedType) returnType).getKind() != ComplexTypeKind.ENUM))) {
-
+                ALiteralExpression expression =
+                    ((ALiteralExpression) ((CInitializerExpression) CDefaults
+                        .forType((CType) returnType, FileLocation.DUMMY)).getExpression());
+                Object exprValue = expression.getValue();
+                String value = "";
+                // only use default, if its not a character, otherwise string breaks
+                if (!(exprValue instanceof Character)) {
+                  value = String.valueOf(exprValue.toString());
+                }
                 return Optional.of(
                     new TestCaseVariable(
-                        "Dummy",
-                    String.valueOf(
-                        ((ALiteralExpression) ((CInitializerExpression) CDefaults
-                            .forType((CType) returnType, FileLocation.DUMMY)).getExpression())
-                                .getValue()
-                                    .toString())));
+                        ((AFunctionCallAssignmentStatement) functionCall).getLeftHandSide()
+                            .toASTString(),
+                        value));
               } else {
                 throw new AssertionError("Cannot write test case value (not a literal)");
               }
