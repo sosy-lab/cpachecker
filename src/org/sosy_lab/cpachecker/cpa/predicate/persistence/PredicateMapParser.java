@@ -47,7 +47,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -133,9 +132,6 @@ public class PredicateMapParser {
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public PredicatePrecision parsePredicates(Path file)
           throws IOException, PredicateParsingFailedException {
-
-    IO.checkReadableFile(file);
-
     try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.US_ASCII)) {
       return parsePredicates(reader, file.getFileName().toString());
     }

@@ -41,6 +41,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -142,6 +143,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
       for (Path predicatesFile : predicatesFiles) {
         try {
+          IO.checkReadableFile(predicatesFile);
           if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(predicatesFile)) {
             switch (AutomatonGraphmlParser.getWitnessType(predicatesFile)) {
               case CORRECTNESS_WITNESS:
@@ -158,7 +160,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
           }
 
         } catch (IOException e) {
-          logger.logUserException(Level.WARNING, e, "Could not read predicate map from file");
+          logger.logUserException(Level.WARNING, e, "Could not read predicate precision from file");
 
         } catch (PredicateParsingFailedException e) {
           logger.logUserException(Level.WARNING, e, "Could not read predicate map");
