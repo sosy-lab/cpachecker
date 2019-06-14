@@ -590,6 +590,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
         }
       }
     }
+
+    // evil hack
+    ARGState tmpState = firstInterpolationPoint;
+    if (tmpState.getParents().size() == 1) {
+      return Iterables.getOnlyElement(tmpState.getParents());
+    }
     return firstInterpolationPoint;
   }
 
