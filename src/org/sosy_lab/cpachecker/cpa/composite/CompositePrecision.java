@@ -156,10 +156,10 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision, Seria
 
       Preconditions.checkArgument(
               currentPrecision instanceof AdjustablePrecision,
-              "Precision " + currentPrecision + "does not support adjusting precision");
+          "Precision " + currentPrecision.getClass() + "does not support adjusting precision");
       Preconditions.checkArgument(
               adjustedPrecision instanceof AdjustablePrecision,
-              "Precision " + adjustedPrecision + "does not support adjusting precision");
+          "Precision " + adjustedPrecision.getClass() + "does not support adjusting precision");
 
       Precision newPrecision =
               adjustFunction.apply(
