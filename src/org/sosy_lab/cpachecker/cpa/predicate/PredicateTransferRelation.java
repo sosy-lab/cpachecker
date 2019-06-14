@@ -592,6 +592,15 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       PredicatePrecision prec = (PredicatePrecision) pPrecision;
       PathFormula currentFormula = pathFormulaManager.makeEmptyPathFormula(oldFormula);
 
+      if (bfmgr.isTrue(oldAbstraction.asFormula())) {
+        // Need to omit edge part, so return the same state, but without edge
+        PredicateAbstractState newState =
+            PredicateAbstractState
+                .mkAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
+        environmentTimer.stop();
+        return Collections.singleton(newState);
+      }
+
       boolean changed = false;
 
       Pair<Set<String>, Set<String>> extractedPredicateInfo = null;
