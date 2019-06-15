@@ -36,8 +36,10 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.backward.BackwardCPA;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -73,6 +75,8 @@ public class PredicateCPARefinerFactory {
 
   private @Nullable BlockFormulaStrategy blockFormulaStrategy = null;
 
+  private boolean isBackwards = false;
+
   /**
    * Create a factory instance.
    * @param pCpa The CPA used for this whole analysis.
@@ -83,6 +87,7 @@ public class PredicateCPARefinerFactory {
   public PredicateCPARefinerFactory(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     predicateCpa = CPAs.retrieveCPAOrFail(checkNotNull(pCpa), PredicateCPA.class, PredicateCPARefiner.class);
+    isBackwards = CPAs.retrieveCPA(pCpa, BackwardCPA.class) != null;
     predicateCpa.getConfiguration().inject(this);
   }
 
@@ -130,7 +135,8 @@ public class PredicateCPARefinerFactory {
     LogManager logger = predicateCpa.getLogger();
     ShutdownNotifier shutdownNotifier = predicateCpa.getShutdownNotifier();
     Solver solver = predicateCpa.getSolver();
-    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
+    PathFormulaManager pfmgr =
+        isBackwards ? predicateCpa.getPathFormulaManagerBw() : predicateCpa.getPathFormulaManager();
 
     CFA cfa = predicateCpa.getCfa();
     MachineModel machineModel = cfa.getMachineModel();

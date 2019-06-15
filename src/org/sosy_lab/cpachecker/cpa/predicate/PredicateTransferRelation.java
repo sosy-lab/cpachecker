@@ -67,6 +67,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
+  private final PathFormulaManager pathFormulaManagerBw;
 
   private final BlockOperator blk;
   private final FormulaManagerView fmgr;
@@ -88,6 +89,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       AnalysisDirection pDirection,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
+      PathFormulaManager pPfmgrBw,
       BlockOperator pBlk,
       PredicateAbstractionManager pPredAbsManager,
       PredicateStatistics pStatistics,
@@ -95,6 +97,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     logger = pLogger;
     formulaManager = pPredAbsManager;
     pathFormulaManager = pPfmgr;
+    pathFormulaManagerBw = pPfmgrBw;
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     blk = pBlk;
@@ -148,6 +151,47 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     }
   }
 
+  @Override
+  public Collection<? extends AbstractState>
+      getAbstractPredecessorsForEdge(AbstractState pElement, Precision pPrecision, CFAEdge edge)
+          throws CPATransferException, InterruptedException {
+
+    postTimer.start();
+    try {
+      PredicateAbstractState element = (PredicateAbstractState) pElement;
+
+      // Check whether abstraction is false.
+      // Such elements might get created when precision adjustment computes an abstraction.
+      if (element.getAbstractionFormula().isFalse()) {
+        return Collections.emptySet();
+      }
+
+      // calculate strongest post
+      PathFormula pathFormula = convertEdgeToPathFormulaBw(element.getPathFormula(), edge);
+      logger.log(Level.ALL, "New path formula is", pathFormula);
+
+      // Check whether we should do a SAT check.s
+      boolean satCheck = shouldDoSatCheckBackward(edge, pathFormula);
+      logger.log(
+          Level.FINEST,
+          "Handling non-abstraction location",
+          (satCheck ? "with satisfiability check" : ""));
+
+      try {
+        if (satCheck && unsatCheck(element.getAbstractionFormula(), pathFormula)) {
+          return Collections.emptySet();
+        }
+      } catch (SolverException e) {
+        throw new CPATransferException("Solver failed during successor generation", e);
+      }
+
+      return Collections.singleton(mkNonAbstractionStateWithNewPathFormula(pathFormula, element));
+
+    } finally {
+      postTimer.stop();
+    }
+  }
+
   private boolean shouldDoSatCheck(CFAEdge edge, PathFormula pathFormula) {
     if ((options.getSatCheckBlockSize() > 0)
         && (pathFormula.getLength() >= options.getSatCheckBlockSize())) {
@@ -155,6 +199,20 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     }
     if (options.satCheckAtAbstraction()) {
       CFANode loc = getAnalysisSuccessor(edge);
+      if (blk.isBlockEnd(loc, pathFormula.getLength())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean shouldDoSatCheckBackward(CFAEdge edge, PathFormula pathFormula) {
+    if ((options.getSatCheckBlockSize() > 0)
+        && (pathFormula.getLength() >= options.getSatCheckBlockSize())) {
+      return true;
+    }
+    if (options.satCheckAtAbstraction()) {
+      CFANode loc = edge.getPredecessor();
       if (blk.isBlockEnd(loc, pathFormula.getLength())) {
         return true;
       }
@@ -205,6 +263,27 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     try {
       // compute new pathFormula with the operation on the edge
       return pathFormulaManager.makeAnd(pathFormula, edge);
+    } finally {
+      pathFormulaTimer.stop();
+    }
+  }
+
+  /**
+   * Converts an edge into a formula in backwards analysis direction and creates a conjunction of it
+   * with the previous pathFormula.
+   *
+   * This method implements the strongest post operator.
+   *
+   * @param pathFormula The previous pathFormula.
+   * @param edge The edge to analyze.
+   * @return The new pathFormula.
+   */
+  private PathFormula convertEdgeToPathFormulaBw(PathFormula pathFormula, CFAEdge edge)
+      throws CPATransferException, InterruptedException {
+    pathFormulaTimer.start();
+    try {
+      // compute new pathFormula with the operation on the edge
+      return pathFormulaManagerBw.makeAnd(pathFormula, edge);
     } finally {
       pathFormulaTimer.stop();
     }

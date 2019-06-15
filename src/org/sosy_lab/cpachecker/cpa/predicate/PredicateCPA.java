@@ -118,6 +118,7 @@ public class PredicateCPA
 
   private final PredicatePrecision initialPrecision;
   private final PathFormulaManager pathFormulaManager;
+  private final PathFormulaManager pathFormulaManagerBw;
   private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
@@ -163,10 +164,20 @@ public class PredicateCPA
     String libraries = solver.getVersion();
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, direction);
+    PathFormulaManager pfMgrBw =
+        new PathFormulaManagerImpl(
+            formulaManager,
+            config,
+            logger,
+            shutdownNotifier,
+            cfa,
+            AnalysisDirection.BACKWARD);
     if (useCache) {
       pfMgr = new CachingPathFormulaManager(pfMgr);
+      pfMgrBw = new CachingPathFormulaManager(pfMgrBw);
     }
     pathFormulaManager = pfMgr;
+    pathFormulaManagerBw = pfMgrBw;
 
     RegionManager regionManager;
     if (abstractionType.equals("FORMULA") || blk.alwaysReturnsFalse()) {
@@ -232,6 +243,7 @@ public class PredicateCPA
         direction,
         formulaManager,
         pathFormulaManager,
+        pathFormulaManagerBw,
         blk,
         predicateManager,
         statistics,
@@ -268,6 +280,10 @@ public class PredicateCPA
 
   public PathFormulaManager getPathFormulaManager() {
     return pathFormulaManager;
+  }
+
+  public PathFormulaManager getPathFormulaManagerBw() {
+    return pathFormulaManagerBw;
   }
 
   public Solver getSolver() {
