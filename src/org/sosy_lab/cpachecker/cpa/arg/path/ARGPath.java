@@ -110,11 +110,7 @@ public class ARGPath extends AbstractAppender {
     edges = Collections.unmodifiableList(edgesBuilder);
     assert states.size() - 1 == edges.size();
   }
-    }
 
-    edges = Collections.unmodifiableList(edgesBuilder);
-    assert states.size() - 1 == edges.size();
-  }
 
   public ARGPath(List<ARGState> pStates, List<CFAEdge> pEdges) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
