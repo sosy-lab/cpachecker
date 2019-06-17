@@ -38,7 +38,7 @@
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="27.1-jre" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="28.0-jre" conf="runtime->default; contrib->sources"/>
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.3.1-15-gdb8139f" conf="runtime->runtime; contrib->sources"/>
 
@@ -76,7 +76,7 @@
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="2.27.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="2.28.2" conf="test->default"/>
 
         <!-- Antlr
              Parser generator. -->
@@ -93,7 +93,7 @@
         <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.45" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="27.1-jre" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava-testlib" rev="28.0-jre" conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
