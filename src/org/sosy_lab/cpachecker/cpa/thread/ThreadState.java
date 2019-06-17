@@ -28,101 +28,34 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.cpa.thread.ThreadLabel.LabelStatus;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class ThreadState implements LatticeAbstractState<ThreadState>, CompatibleNode {
 
-  public static class ThreadStateBuilder {
-    private final List<ThreadLabel> tSet;
-    private final List<ThreadLabel> rSet;
+  public static class SimpleThreadState extends ThreadState {
 
-    private ThreadStateBuilder(ThreadState state) {
-      tSet = new ArrayList<>(state.threadSet);
-      rSet = new ArrayList<>(state.removedSet);
+    public SimpleThreadState(List<ThreadLabel> Tset, List<ThreadLabel> Rset) {
+      super(Tset, Rset);
     }
 
-    public void handleParentThread(CThreadCreateStatement tCall, boolean supportSelfCreation)
-        throws CPATransferException {
-      createThread(tCall, LabelStatus.PARENT_THREAD, supportSelfCreation);
+    @Override
+    public boolean isCompatibleWith(CompatibleState state) {
+      return !Objects.equals(this.getThreadSet(), ((ThreadState) state).getThreadSet());
     }
 
-    public void handleChildThread(CThreadCreateStatement tCall, boolean supportSelfCreation)
-        throws CPATransferException {
-      createThread(
-          tCall,
-          tCall.isSelfParallel() ? LabelStatus.SELF_PARALLEL_THREAD : LabelStatus.CREATED_THREAD,
-          supportSelfCreation);
+    @Override
+    public ThreadState prepareToStore() {
+      return new SimpleThreadState(this.getThreadSet(), Collections.emptyList());
     }
 
-    private void createThread(
-        CThreadCreateStatement tCall,
-        LabelStatus pParentThread,
-        boolean supportSelfCreation)
-        throws CPATransferException {
-      final String pVarName = tCall.getVariableName();
-      //Just to info
-      final String pFunctionName = tCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
-
-      for (ThreadLabel l : tSet) {
-        if (l.getName().equals(pFunctionName)
-            && l.getVarName().equals(pVarName)
-            && pParentThread == LabelStatus.CREATED_THREAD) {
-
-          if (supportSelfCreation) {
-            int i = tSet.indexOf(l);
-            tSet.remove(l);
-            ThreadLabel newL =
-                new ThreadLabel(pFunctionName, pVarName, LabelStatus.SELF_PARALLEL_THREAD);
-            tSet.add(i, newL);
-            return;
-
-          } else {
-            throw new CPATransferException(
-                "Can not create thread " + pFunctionName + ", it was already created");
-          }
-        }
-      }
-
-      ThreadLabel label = new ThreadLabel(pFunctionName, pVarName, pParentThread);
-      if (!tSet.isEmpty() && tSet.get(tSet.size() - 1).isSelfParallel()) {
-        //Can add only the same status
-        label = label.toSelfParallelLabel();
-      }
-      tSet.add(label);
-    }
-
-    public ThreadState build() {
-      return new ThreadState(tSet, rSet);
-    }
-
-    public boolean joinThread(CThreadJoinStatement jCall) {
-      // If we found several labels for different functions
-      // it means, that there are several thread created for one thread variable.
-      // Not a good situation, but it is not forbidden, so join the last assigned thread
-      Optional<ThreadLabel> result =
-          from(tSet).filter(l -> l.getVarName().equals(jCall.getVariableName())).last();
-      // Do not self-join
-      if (result.isPresent() && !result.get().isCreatedThread()) {
-        return tSet.remove(result.get());
-      } else {
-        return false;
-      }
-    }
-
-    public int getThreadSize() {
-      //Only for statistics
-      return tSet.size();
+    public static ThreadState emptyState() {
+      return new SimpleThreadState(Collections.emptyList(), Collections.emptyList());
     }
   }
 
@@ -131,7 +64,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   // Do not remove it now
   private final ImmutableList<ThreadLabel> removedSet;
 
-  private ThreadState(List<ThreadLabel> Tset, List<ThreadLabel> Rset) {
+  public ThreadState(List<ThreadLabel> Tset, List<ThreadLabel> Rset) {
     threadSet = ImmutableList.copyOf(Tset);
     removedSet = ImmutableList.copyOf(Rset);
   }
@@ -195,10 +128,6 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     return new ThreadState(this.threadSet, Collections.emptyList());
   }
 
-  public ThreadStateBuilder getBuilder() {
-    return new ThreadStateBuilder(this);
-  }
-
   public static ThreadState emptyState() {
     return new ThreadState(Collections.emptyList(), Collections.emptyList());
   }
@@ -234,5 +163,18 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
   public boolean hasEmptyEffect() {
     return true;
+  }
+
+  public ImmutableList<ThreadLabel> getThreadSet() {
+    return threadSet;
+  }
+
+  public ImmutableList<ThreadLabel> getRemovedSet() {
+    return removedSet;
+  }
+
+  public int getThreadSize() {
+    // Only for statistics
+    return threadSet.size();
   }
 }
