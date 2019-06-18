@@ -217,6 +217,12 @@ public class FormulaManagerView {
     } catch (UnsupportedOperationException e) {
       // do nothing, solver does not support arrays
     }
+
+    try {
+      slFormulaManager = new SLFormulaManagerView(wrappingHandler, manager.getSLFormulaManager());
+    } catch (UnsupportedOperationException e) {
+      // do nothing, solver does not support separation logic
+    }
   }
 
   /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'. */
@@ -917,7 +923,7 @@ public class FormulaManagerView {
 
   public SLFormulaManagerView getSLFormulaManager() {
     if (slFormulaManager == null) {
-      throw new UnsupportedOperationException("Solver does not support seperation logic.");
+      throw new UnsupportedOperationException("Solver does not support separation logic.");
     }
     return slFormulaManager;
   }
