@@ -20,6 +20,7 @@
 package org.sosy_lab.cpachecker.cpa.sl;
 
 import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -48,9 +49,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SLFormulaManager;
 
@@ -63,6 +67,7 @@ public class SLTransferRelation
   private PathFormulaManager pfm;
   private BooleanFormulaManager bfm;
   private IntegerFormulaManager ifm;
+  private BitvectorFormulaManager bvfm;
   private SLFormulaManager slfm;
   private Solver solver;
   private final SLVisitor slVisitor;
@@ -167,6 +172,7 @@ public class SLTransferRelation
     bfm = fm.getBooleanFormulaManager();
     ifm = fm.getIntegerFormulaManager();
     slfm = fm.getSLFormulaManager();
+    bvfm = fm.getBitvectorFormulaManager();
   }
 
   private String getSSAVarName(String pVarName) {
@@ -185,18 +191,45 @@ public class SLTransferRelation
   // Delegate methods starting here.
 
   @Override
-  public void addToHeap(String pVarName) {
-    Formula f = getFormulaForVarName(pVarName);
-
-    heap.put(f, ifm.makeNumber(0));
-
+  public void addToHeap(String pVarName, BigInteger size) {
+    for (int i = 0; i < size.intValueExact(); i++) {
+      Formula f = getFormulaForVarName(pVarName);
+      if (i > 0) {
+        f = bvfm.add((BitvectorFormula) f, bvfm.makeBitvector(size.bitLength(), i));
+      }
+      heap.put(f, ifm.makeNumber(0));
+    }
   }
 
+  /**
+   * Determines the numeric value of the @CExpression used as a parameter in a malloc() function
+   * call.
+   */
   @Override
-  public void handleMalloc(String pVarName, CExpression pAllocationSize) {
-    ProverEnvironment env = solver.newProverEnvironment(null);
-
-
+  public BigInteger getAllocationSize(CExpression pExp) throws Exception {
+    Formula f = pfm.expressionToFormula(pathFormulaPrev, (CIdExpression) pExp, edge);
+    ProverEnvironment env;
+    try {
+      ProverEnvironment env = solver.newProverEnvironment();
+      env.addConstraint(pathFormulaPrev.getFormula());
+      if (!env.isUnsat()) {
+        for (ValueAssignment a : env.getModelAssignments()) {
+          if (a.getKey().toString().equals(f.toString())) {
+            return (BigInteger) a.getValue();
+          }
+        }
+      }
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, e.getMessage());
+    } finally {
+      if (env != null) {
+        env.close();
+      }
+    }
+    logger.log(
+        Level.SEVERE,
+        "Numeric value of expression " + pExp.toString() + " could not be determined.");
+    return null;
   }
 
   @Override
@@ -236,11 +269,13 @@ public class SLTransferRelation
     logger.log(Level.INFO, "Syntactical allocation check only.");
     return heap.containsKey(f);
     // if (heap.containsKey(f)) {
+    // // Syntactical check.
     // return true;
     // }
-
+    //
     // logger.log(Level.INFO, "Checking allocation for " + pExp);
-    // BooleanFormula stackFormula = pathFormulaPrev.getFormula();
+    // BooleanFormula stackFormula = pathFormula.getFormula();
+    //
     // logger.log(Level.INFO, "Stack formula: " + stackFormula);
     // Formula heapFormula = getHeapFormulaFromMap();
     //
@@ -255,14 +290,14 @@ public class SLTransferRelation
     // return isAllocated;
   }
 
-  private Formula getHeapFormulaFromMap() {
-    Formula heapFormula = slfm.makeEmptyHeap(ifm.makeNumber(42), ifm.makeNumber(42));
-    for (Formula key : heap.keySet()) {
-      // TODO build heap formula
-      Formula tmp = slfm.makePointsTo(key, heap.get(key));
-      heapFormula = slfm.makeStar(heapFormula, tmp);
-    }
-
-    return heapFormula;
-  }
+  // private Formula getHeapFormulaFromMap() {
+  // Formula heapFormula = slfm.makeEmptyHeap(ifm.makeNumber(42), ifm.makeNumber(42));
+  // for (Formula key : heap.keySet()) {
+  // // TODO build heap formula
+  // Formula tmp = slfm.makePointsTo(key, heap.get(key));
+  // heapFormula = slfm.makeStar(heapFormula, tmp);
+  // }
+  //
+  // return heapFormula;
+  // }
 }

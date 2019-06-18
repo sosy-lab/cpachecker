@@ -19,6 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.sl;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -311,7 +312,8 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
     if (fctNameExp.getName().equals("malloc")) {
       final String varName = ((CIdExpression) lhSide).getName();
       CExpression allocationSize = fctExp.getParameterExpressions().get(0);
-      delegate.addToHeap(varName);
+      BigInteger size = delegate.getAllocationSize(allocationSize);
+      delegate.addToHeap(varName, size);
     }
 
 
@@ -331,9 +333,9 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   }
 
   public interface SLVisitorDelegate {
-    public void handleMalloc(String pVarName, CExpression pAllocationSize);
+    public BigInteger getAllocationSize(CExpression pExp) throws Exception;
 
-    public void addToHeap(String pVarName);
+    public void addToHeap(String pVarName, BigInteger size);
 
     public void updateHeap(String pVarName, CExpression pExp);
 
