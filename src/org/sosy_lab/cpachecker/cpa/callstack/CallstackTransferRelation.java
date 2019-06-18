@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.callstack;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.util.Collection;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
@@ -224,7 +226,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
           final CFANode callerNode = succ.getEnteringSummaryEdge().getPredecessor();
 
           if (hasRecursion(state, calledFunction)) {
-            if (skipRecursiveFunctionCall(state, (FunctionCallEdge) pEdge)) {
+          if (skipRecursiveFunctionCall((FunctionReturnEdge) pEdge)) {
               // skip recursion, don't enter function
               logger.logOnce(
                   Level.WARNING,
@@ -342,6 +344,27 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       return true;
     }
     if (options.skipVoidRecursion() && hasVoidRecursion(element, callEdge)) {
+      return true;
+    }
+    return false;
+  }
+
+  protected boolean
+      skipRecursiveFunctionCall(final FunctionReturnEdge callEdge) {
+    // Cannot skip if there is no edge for skipping
+    // (this would just terminate the path here -> unsound).
+    if (enteringEdges(callEdge.getPredecessor()).filter(CFunctionSummaryStatementEdge.class)
+        .isEmpty()) {
+      return false;
+    }
+
+    if (options.skipRecursion()) {
+      return true;
+    }
+    if (options.skipFunctionPointerRecursion()) {
+      return true;
+    }
+    if (options.skipVoidRecursion()) {
       return true;
     }
     return false;
