@@ -341,7 +341,7 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
     public void setFunctionScope(String scope);
 
-    public boolean isAllocated(CExpression pExp);
+    public boolean isAllocated(CExpression pExp) throws Exception;
   }
 
   private boolean acceptOnRightHandSide(CRightHandSide pExp) throws Exception {

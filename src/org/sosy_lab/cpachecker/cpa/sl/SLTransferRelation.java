@@ -31,7 +31,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -51,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
@@ -205,15 +205,17 @@ public class SLTransferRelation
    * Determines the numeric value of the @CExpression used as a parameter in a malloc() function
    * call.
    */
+  @SuppressWarnings("resource")
   @Override
   public BigInteger getAllocationSize(CExpression pExp) throws Exception {
-    Formula f = pfm.expressionToFormula(pathFormulaPrev, (CIdExpression) pExp, edge);
-    ProverEnvironment env;
+    Formula f = pfm.expressionToFormula(pathFormulaPrev, pExp, edge);
+    ProverEnvironment env = null;
     try {
-      ProverEnvironment env = solver.newProverEnvironment();
+      env = solver.newProverEnvironment();
       env.addConstraint(pathFormulaPrev.getFormula());
       if (!env.isUnsat()) {
-        for (ValueAssignment a : env.getModelAssignments()) {
+        List<ValueAssignment> assignments = env.getModelAssignments();
+        for (ValueAssignment a : assignments) {
           if (a.getKey().toString().equals(f.toString())) {
             return (BigInteger) a.getValue();
           }
@@ -234,16 +236,14 @@ public class SLTransferRelation
 
   @Override
   public void updateHeap(String pVarName, CExpression pExp) {
-    Formula f = getFormulaForVarName(pVarName);
-
-
+    // Formula f = getFormulaForVarName(pVarName);
     PathFormula tmp = pfm.makeEmptyPathFormula();
     try {
       tmp = pfm.makeAnd(tmp, pExp);
     } catch (CPATransferException | InterruptedException e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
-    tmp = pfm.makeNewPathFormula(tmp, pathFormula.getSsa());
+
     // TODO heap.put(f, tmp);
   }
 
@@ -252,42 +252,35 @@ public class SLTransferRelation
     currentFunctionScope = pScope;
   }
 
+  @SuppressWarnings("resource")
   @Override
-  public boolean isAllocated(CExpression pExp) {
+  public boolean isAllocated(CExpression pExp) throws Exception {
+
     Formula f = null;
-    if (pExp instanceof CIdExpression) {
-      try {
-        f = pfm.expressionToFormula(pathFormulaPrev, (CIdExpression) pExp, edge);
-      } catch (UnrecognizedCodeException e1) {
-        logger.log(
-            Level.SEVERE,
-            "Allocation check for PointerExpressions more complex than CIDExpressions not supported yet.");
-      }
-    } else {
+    try {
+      f = pfm.expressionToFormula(pathFormulaPrev, pExp, edge);
+    } catch (UnrecognizedCodeException e1) {
       return false;
     }
-    logger.log(Level.INFO, "Syntactical allocation check only.");
-    return heap.containsKey(f);
-    // if (heap.containsKey(f)) {
-    // // Syntactical check.
-    // return true;
-    // }
-    //
-    // logger.log(Level.INFO, "Checking allocation for " + pExp);
-    // BooleanFormula stackFormula = pathFormula.getFormula();
-    //
-    // logger.log(Level.INFO, "Stack formula: " + stackFormula);
-    // Formula heapFormula = getHeapFormulaFromMap();
-    //
-    // logger.log(Level.INFO, "Heap formula: " + heapFormula);
-    // boolean isAllocated = false;
-    // try {
-    //
-    // isAllocated = !solver.isUnsat(bfm.and(stackFormula, (BooleanFormula) heapFormula));
-    // } catch (SolverException | InterruptedException e) {
-    // logger.log(Level.SEVERE, e.getMessage());
-    // }
-    // return isAllocated;
+    // logger.log(Level.INFO, "Syntactical allocation check only.");
+    // return heap.containsKey(f);
+    if (heap.containsKey(f)) {
+      // Syntactical check for performance.
+      return true;
+    }
+
+    for (Formula formulaOnHeap : heap.keySet()) {
+      ProverEnvironment env = solver.newProverEnvironment();
+      env.addConstraint(pathFormulaPrev.getFormula());
+      Formula tmp = fm.makeEqual(f, formulaOnHeap);
+      env.addConstraint((BooleanFormula) tmp);
+      if (!env.isUnsat()) {
+        env.close();
+        return true;
+      }
+      env.close();
+    }
+    return false;
   }
 
   // private Formula getHeapFormulaFromMap() {
