@@ -361,12 +361,6 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     if (options.skipRecursion()) {
       return true;
     }
-    if (options.skipFunctionPointerRecursion()) {
-      return true;
-    }
-    if (options.skipVoidRecursion()) {
-      return true;
-    }
     return false;
   }
 
