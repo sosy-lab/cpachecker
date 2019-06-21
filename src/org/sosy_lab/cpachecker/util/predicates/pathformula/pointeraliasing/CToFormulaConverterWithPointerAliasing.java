@@ -127,6 +127,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   final FormulaType<?> voidPointerFormulaType;
   final Formula nullPointer;
   private MemoryRegionManager regionMgr;
+  private final AnalysisDirection direction;
 
   public CToFormulaConverterWithPointerAliasing(
       final FormulaEncodingWithPointerAliasingOptions pOptions,
@@ -140,10 +141,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       throws InvalidConfigurationException {
     super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pShutdownNotifier, pTypeHandler, pDirection);
 
-    if (pDirection == AnalysisDirection.BACKWARD) {
-      throw new InvalidConfigurationException(
-          "Backward formula construction is not yet implemented for pointer aliasing.");
-    }
+    direction = pDirection;
 
     variableClassification = pVariableClassification;
     options = pOptions;
@@ -247,7 +245,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final PointerTargetSet pts)
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
-
+    checkBackward();
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
       if(!options.useMemoryRegions()) {
         assert symbolName.equals(typeHandler.getPointerAccessNameForType(symbolType));
@@ -702,6 +700,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
+    checkBackward();
     return new RealPointerTargetSetBuilder(pts, fmgr, typeHandler, ptsMgr, options, regionMgr);
   }
 
@@ -717,6 +716,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
       PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSsa) throws InterruptedException {
+    checkBackward();
     return ptsMgr.mergePointerTargetSets(pPts1, pPts2, pSsa);
   }
 
@@ -768,6 +768,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
+    checkBackward();
     BooleanFormula result = super.makeReturn(assignment, returnEdge, function, ssa, pts, constraints, errorConditions);
 
     if (assignment.isPresent()) {
@@ -817,7 +818,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
-
+    checkBackward();
     // This corresponds to an argument passed as function parameter of array type
     // (this is the only case when arrays can be "assigned" explicitly, not as structure members)
     // In this case the parameter is treated as pointer
@@ -910,7 +911,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       throws UnrecognizedCodeException, InterruptedException {
 
     // TODO merge with super-class method
-
+    checkBackward();
     if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
       // function declaration, typedef etc.
       logDebug("Ignoring declaration", declarationEdge);
@@ -1062,6 +1063,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
+    checkBackward();
     final CType expressionType = typeHandler.getSimplifiedType(e);
     CExpressionVisitorWithPointerAliasing ev = new CExpressionVisitorWithPointerAliasing(this, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
     BooleanFormula result = toBooleanFormula(ev.asValueFormula(e.accept(ev), expressionType));
@@ -1108,7 +1110,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
-
+    checkBackward();
     final CFunctionEntryNode entryNode = edge.getSuccessor();
 
     for (CParameterDeclaration formalParameter : entryNode.getFunctionParameters()) {
@@ -1161,7 +1163,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
-
+    checkBackward();
     final BooleanFormula result = super.makeExitFunction(summaryEdge, calledFunction, ssa, pts, constraints, errorConditions);
 
     DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(this, summaryEdge, ssa, pts, constraints, errorConditions, regionMgr);
@@ -1241,6 +1243,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
 
+    checkBackward();
+
     final Formula address;
 
     if (forcePointerDereference) {
@@ -1262,11 +1266,20 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return ptsMgr.makePointerDereference(ufName, returnType, address);
   }
 
+  private void checkBackward() throws AssertionError {
+    if (direction == AnalysisDirection.BACKWARD) {
+      throw new AssertionError(
+          "Backward formula construction is not yet implemented for pointer aliasing.");
+    }
+  }
+
   /** {@inheritDoc} */
   @Override
   public Formula makeFormulaForVariable(
       SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
+
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
+    checkBackward();
     final Formula formula;
     final SSAMapBuilder ssa = pContextSSA.builder();
 
