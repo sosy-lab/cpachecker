@@ -682,6 +682,62 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     return newState;
   }
 
+  /**
+   * This function handles functionStatements like "return (x)". The equality of the returnValue
+   * (FUNCTION_RETURN_VARIABLE) and the evaluated right side ("x") is added to the new state.
+   */
+  @Override
+  protected BDDState handleReturnStatementEdgeBackwards(CReturnStatementEdge cfaEdge)
+      throws UnsupportedCodeException {
+    BDDState newState = state;
+    String returnVar = null;
+
+    if (cfaEdge.getExpression().isPresent()) {
+      returnVar =
+          ((CIdExpression) cfaEdge.asAssignment().get().getLeftHandSide()).getDeclaration()
+              .getQualifiedName();
+      final Partition partition = varClass.getPartitionForEdge(cfaEdge);
+      final CType functionReturnType =
+          ((CFunctionDeclaration) cfaEdge.getSuccessor().getEntryNode().getFunctionDefinition())
+              .getType()
+              .getReturnType();
+
+      // make region for RIGHT SIDE, this is the 'x' from 'return (x);
+      final Region[] regRHS =
+          evaluateVectorExpression(
+              partition,
+              cfaEdge.getExpression().get(),
+              functionReturnType,
+              cfaEdge.getPredecessor());
+
+      // make variable (predicate) for returnStatement,
+      // delete variable, if it was used before, this is done with an existential operator
+      final Region[] retvar =
+          predmgr.createPredicate(
+              returnVar,
+              functionReturnType,
+              cfaEdge.getPredecessor(),
+              getBitsize(partition, functionReturnType),
+              precision);
+      // newState = newState.forget(retvar);
+      newState = newState.addAssignment(retvar, regRHS);
+    }
+
+    // delete variables from returning function,
+    // we do not need them after this location, because the next edge is the functionReturnEdge.
+    // this results in a smaller BDD and allows to call a function twice.
+    // for (String var : predmgr.getTrackedVars()) {
+    // if (isLocalVariableForFunction(var, functionName) && !returnVar.equals(var)) {
+    // newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
+    // }
+    // }
+
+    // delete variables from returning function,
+    // we do not need them after this location, because the next edge is the functionReturnEdge.
+    // this results in a smaller BDD and allows to call a function twice.
+    return newState;
+  }
+
   @Override
   protected BDDState handleBlankEdge(BlankEdge cfaEdge) {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
