@@ -291,10 +291,10 @@ public class ARGUtils {
       Iterator<ARGState> parents = currentARGState.getParents().iterator();
 
       // ARGState parentElement = parents.next();
-      ARGState parentElement = null;
-      if (currentARGState.getParents().size() >= 1) {
-        parentElement = (ARGState) currentARGState.getParents().toArray()[0];
-      }
+      ARGState parentElement = parents.next();
+      // if (currentARGState.getParents().size() >= 1) {
+      // parentElement = (ARGState) currentARGState.getParents().toArray()[0];
+      // }
       while (seenElements.contains(parentElement) && parents.hasNext()) {
         // while seenElements already contained parentElement, try next parent
         parentElement = parents.next();
