@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -109,8 +110,6 @@ public class CollectorStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
-  //makeFile(result, reached);
-
     if (!reached.isEmpty() && reached.getFirstState() instanceof CollectorState) {
       reconstructARG(reached);
     }
@@ -122,75 +121,9 @@ public class CollectorStatistics implements Statistics {
     writer.put("Sonja reconstructed", reachedcollectionARG.toString());
     }
 
-  private void makeFile(Result result, UnmodifiableReachedSet reached) {
-      try{
+    private void reconstructARG(UnmodifiableReachedSet reached){
 
-        for (AbstractState rootState: reached) {
-          CollectorState cstate = (CollectorState) rootState;
-          ARGState argstate = cstate.getARGState();
-
-
-          reachedcollectionARG.add(argstate);
-          //logger.log(Level.INFO, "sonja got the Size: " + reachedcollectionARG.size());
-          //ARGState first = getFirst(reachedcollectionARG);
-          //logger.log(Level.INFO, "sonja got the first: " + first);
-          //logger.log(Level.INFO, "sonja got the ARGState: " + argstate);
-          //logger.log(Level.INFO, "sonja got them ALL: " + reachedcollectionARG);
-
-          int i = 0;
-          String filenamepart1 = "./output/etape_";
-          String filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
-          File file = new File(filenamefinal);
-          while (file.exists()) {
-            filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
-            file = new File(filenamefinal);
-            i++;
-          }
-          file.createNewFile();
-          Writer writer = new FileWriter(file, false);
-          BufferedWriter bw = new BufferedWriter(writer);
-
-          //ARGToDotWriter.write(bw,reachedcollectionARG,"Test Sonja");
-          ARGToDotWriter.write(bw,reconstructedCollection,"Test Reconstruction Sonja");
-
-          bw.close();
-        }
-
-
-        BufferedReader reader =
-            Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
-                .openBufferedStream();
-        Writer writerhtml = IO.openOutputFile(Paths.get("./output/SonjasFile.html"),
-            Charsets.UTF_8);
-        BufferedWriter bwhtml = new BufferedWriter(writerhtml);
-        String line2;
-        while (null != (line2 = reader.readLine())){
-          logger.log(Level.INFO, "sonja will lesen " + line2);
-          //bwhtml.write(line2);
-          if (line2.contains("REPORT_CSS")) {
-            //insertCss(writer);
-            bwhtml.write("<style>" + "\n");
-            Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
-                .copyTo(bwhtml);
-            bwhtml.write("</style>");
-          } else if (line2.contains("REPORT_JS")){
-            logger.log(Level.INFO, "sonja will javascript " );
-            //insertJs(writer, cfa, dotBuilder, counterExample);
-                     Resources.asCharSource(Resources.getResource(getClass(), JS_TEMPLATE), Charsets.UTF_8)
-                         .copyTo(bwhtml);
-          } else {
-            bwhtml.write(line2 + "\n");
-          }
-        }
-        bwhtml.close();
-
-    }catch (IOException e) {
-  logger.logUserException(
-      WARNING, e, "Could not create Sonjas file.");
-}
-  }
-
-  private void reconstructARG(UnmodifiableReachedSet reached){
+    makeASonjaFileDirectory();
 
     for (AbstractState entry : reached.asCollection()) {
 
@@ -214,7 +147,9 @@ public class CollectorStatistics implements Statistics {
             newarg.markExpanded();
             linkedparents.put(convertedARGStatetransfer, newarg);
           } else {
-            logger.log(Level.INFO, "sonja sollte hier nicht herkommen!!!!! ");
+            newarg = new ARGState(wrappedmyARG, null);
+            linkedparents.put(convertedARGStatetransfer, newarg);
+            logger.log(Level.INFO, "ARGState without parents:\n" + newarg);
           }
         }
         reachedcollectionARG.add(newarg);
@@ -271,7 +206,6 @@ public class CollectorStatistics implements Statistics {
 
             reachedcollectionARG.add(newarg3);
             makeFiles(reachedcollectionARG);
-
           }
         }
       }
@@ -290,7 +224,7 @@ public class CollectorStatistics implements Statistics {
   private void makeFiles(Collection<ARGState> pReachedcollectionARG) {
     try{
       int i = 0;
-      String filenamepart1 = "./output/etape_";
+      String filenamepart1 = "./output/SonjasDotFiles/etape_";
       String filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
       File file = new File(filenamefinal);
       while (file.exists()) {
@@ -305,10 +239,53 @@ public class CollectorStatistics implements Statistics {
       ARGToDotWriter.write(bw, pReachedcollectionARG, "Test Reconstruction Sonja");
 
       bw.close();
+      //####################################
+      BufferedReader reader =
+          Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
+              .openBufferedStream();
+      Writer writerhtml = IO.openOutputFile(Paths.get("./output/SonjasFile.html"),
+          Charsets.UTF_8);
+      BufferedWriter bwhtml = new BufferedWriter(writerhtml);
+      String line2;
+      while (null != (line2 = reader.readLine())){
+        logger.log(Level.INFO, "sonja will lesen " + line2);
+        //bwhtml.write(line2);
+        if (line2.contains("REPORT_CSS")) {
+          //insertCss(writer);
+          bwhtml.write("<style>" + "\n");
+          Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
+              .copyTo(bwhtml);
+          bwhtml.write("</style>");
+        } else if (line2.contains("REPORT_JS")){
+          logger.log(Level.INFO, "sonja will javascript " );
+          //insertJs(writer, cfa, dotBuilder, counterExample);
+          Resources.asCharSource(Resources.getResource(getClass(), JS_TEMPLATE), Charsets.UTF_8)
+              .copyTo(bwhtml);
+        } else {
+          bwhtml.write(line2 + "\n");
+        }
+      }
+      bwhtml.close();
+      //####################################
+
+
+
     }catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create Sonjas file.");
     }
   }
+private void makeASonjaFileDirectory () {
 
+    String directoryName = "./output/SonjasDotFiles";
+    File directory = new File(directoryName);
+   if (! directory.exists()){
+     try {
+       directory.mkdir();
+     }catch(SecurityException se){
+       logger.logUserException(
+           WARNING, se, "Could not create Sonjas directory.");
+     }
+    }
+}
 }
