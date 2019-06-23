@@ -624,7 +624,7 @@ public enum MachineModel {
 
   public BigInteger getSizeof(CType pType) {
     checkArgument(
-        pType instanceof CVoidType || !pType.isIncomplete(),
+        pType.getCanonicalType() instanceof CVoidType || !pType.isIncomplete(),
         "Cannot compute size of incomplete type %s",
         pType);
     return getSizeof(pType, sizeofVisitor);

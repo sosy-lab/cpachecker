@@ -30,7 +30,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -39,10 +38,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.io.IO;
@@ -103,7 +105,7 @@ public class PredicateAbstractionsStorage {
   private Integer rootAbstractionId = null;
   private ImmutableMap<Integer, AbstractionNode> abstractions = ImmutableMap.of();
   private ImmutableMultimap<Integer, Integer> abstractionTree = ImmutableMultimap.of();
-  private Set<Integer> reusedAbstractions = Sets.newTreeSet();
+  private Set<Integer> reusedAbstractions = new TreeSet<>();
 
   public PredicateAbstractionsStorage(Path pFile, LogManager pLogger, FormulaManagerView pFmgr, @Nullable Converter pConverter) throws PredicateParsingFailedException {
     this.fmgr = pFmgr;
@@ -124,8 +126,8 @@ public class PredicateAbstractionsStorage {
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private void parseAbstractionTree() throws IOException, PredicateParsingFailedException {
     Multimap<Integer, Integer> resultTree = LinkedHashMultimap.create();
-    Map<Integer, AbstractionNode> resultAbstractions = Maps.newTreeMap();
-    Set<Integer> abstractionsWithParents = Sets.newTreeSet();
+    Map<Integer, AbstractionNode> resultAbstractions = new TreeMap<>();
+    Set<Integer> abstractionsWithParents = new TreeSet<>();
 
     String source = abstractionsFile.getFileName().toString();
     try (BufferedReader reader =
@@ -139,7 +141,7 @@ public class PredicateAbstractionsStorage {
       String currentLine;
       int currentAbstractionId = -1;
       OptionalInt currentLocationId = OptionalInt.empty();
-      Set<Integer> currentSuccessors = Sets.newTreeSet();
+      Set<Integer> currentSuccessors = new TreeSet<>();
 
       AbstractionsParserState parserState = AbstractionsParserState.EXPECT_NODE_DECLARATION;
       while ((currentLine = reader.readLine()) != null) {
@@ -258,7 +260,7 @@ public class PredicateAbstractionsStorage {
   }
 
   public Set<AbstractionNode> getSuccessorAbstractions(Integer ofAbstractionWithId) {
-    Set<AbstractionNode> result = Sets.newHashSet();
+    Set<AbstractionNode> result = new HashSet<>();
 
     if (abstractionTree != null) {
       for (Integer successorId : abstractionTree.get(ofAbstractionWithId)) {

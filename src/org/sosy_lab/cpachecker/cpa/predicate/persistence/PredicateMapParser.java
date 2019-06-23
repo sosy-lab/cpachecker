@@ -29,7 +29,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -37,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -95,7 +95,7 @@ public class PredicateMapParser {
   private final FormulaManagerView fmgr;
   private final AbstractionManager amgr;
 
-  private final Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
+  private final Map<Integer, CFANode> idToNodeMap = new HashMap<>();
 
   private final PredicatePrecisionBootstrapper.InitialPredicatesOptions options;
 

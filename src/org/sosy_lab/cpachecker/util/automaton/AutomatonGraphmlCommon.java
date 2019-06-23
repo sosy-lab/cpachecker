@@ -27,7 +27,6 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
@@ -37,13 +36,16 @@ import com.google.common.io.MoreFiles;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -240,7 +242,7 @@ public class AutomatonGraphmlCommon {
       this.key = key;
     }
 
-    private final static Map<String, NodeFlag> stringToFlagMap = Maps.newHashMap();
+    private static final Map<String, NodeFlag> stringToFlagMap = new HashMap<>();
 
     static {
       for (NodeFlag f : NodeFlag.values()) {
@@ -349,7 +351,7 @@ public class AutomatonGraphmlCommon {
     private final Document doc;
     private final Element graph;
     private final Set<KeyDef> definedKeys = EnumSet.noneOf(KeyDef.class);
-    private final Map<KeyDef, Node> keyDefsToAppend = Maps.newEnumMap(KeyDef.class);
+    private final Map<KeyDef, Node> keyDefsToAppend = new EnumMap<>(KeyDef.class);
 
     public GraphMlBuilder(
         WitnessType pGraphType,
@@ -413,7 +415,7 @@ public class AutomatonGraphmlCommon {
 
       graph.appendChild(
           createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pCfa.getMachineModel())));
-      ZonedDateTime now = ZonedDateTime.now().withNano(0);
+      ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
       graph.appendChild(
           createDataElement(
               KeyDef.CREATIONTIME, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));

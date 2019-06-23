@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.TreeMap;
 import org.junit.Assert;
 import org.junit.Before;
@@ -369,12 +367,7 @@ public class SMGTest {
 
   @Test
   public void getObjectsTest() {
-    Set<SMGObject> set = new HashSet<>();
-    set.add(obj1);
-    set.add(obj2);
-    set.add(SMGNullObject.INSTANCE);
-
-    assertThat(smg.getObjects()).containsAllIn(set);
+    assertThat(smg.getObjects()).containsAtLeast(obj1, obj2, SMGNullObject.INSTANCE);
   }
 
   @Test
@@ -386,29 +379,17 @@ public class SMGTest {
 
   @Test
   public void getValuesTest() {
-    Set<SMGValue> set = new HashSet<>();
-    set.add(val1);
-    set.add(val2);
-    set.add(SMGZeroValue.INSTANCE);
-
-    assertThat(smg.getValues()).containsAllIn(set);
+    assertThat(smg.getValues()).containsAtLeast(val1, val2, SMGZeroValue.INSTANCE);
   }
 
   @Test
   public void getHVEdgesTest() {
-    Set<SMGEdgeHasValue> set = new HashSet<>();
-    set.add(hv2has2at0);
-    set.add(hv2has1at4);
-
-    assertThat(smg.getHVEdges()).containsAllIn(set);
+    assertThat(smg.getHVEdges()).containsAtLeast(hv2has2at0, hv2has1at4);
   }
 
   @Test
   public void getPTEdgesTest() {
-    Set<SMGEdgePointsTo> set = new HashSet<>();
-    set.add(pt1to1);
-
-    assertThat(smg.getPTEdges()).containsAllIn(set);
+    assertThat(smg.getPTEdges()).contains(pt1to1);
   }
 
   @Test

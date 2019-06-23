@@ -23,24 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -72,15 +64,16 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.ValueToCExpressionTransformer;
 
 /**
  * Transforms {@link SymbolicExpression}s into {@link CExpression}s.
  *
  * @see org.sosy_lab.cpachecker.cpa.value.symbolic.ExpressionTransformer
  */
-public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpression> {
+public class SymbolicExpressionToCExpressionTransformer
+    implements SymbolicValueVisitor<CExpression> {
 
   private static final FileLocation DUMMY_LOCATION = FileLocation.DUMMY;
 
@@ -105,51 +98,8 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
     } else if (pValue instanceof SymbolicValue) {
       return ((SymbolicValue) pValue).accept(this);
 
-    } else if (pValue instanceof NumericValue) {
-      if (isIntegerType(pType)) {
-        BigInteger valueAsBigInt = BigInteger.valueOf(((NumericValue) pValue).longValue());
-
-        return new CIntegerLiteralExpression(DUMMY_LOCATION, pType, valueAsBigInt);
-
-      } else {
-        assert pType instanceof CSimpleType;
-        double valueAsDouble = ((NumericValue) pValue).doubleValue();
-
-        return doubleToExpression(valueAsDouble, (CSimpleType) pType);
-      }
     } else {
-      throw new AssertionError("Unhandled value " + pValue);
-    }
-  }
-
-  private boolean isIntegerType(CType pType) {
-    CType canonicalType = pType.getCanonicalType();
-
-    return canonicalType instanceof CPointerType || canonicalType instanceof CEnumType
-        || ((CSimpleType) canonicalType).getType().isIntegerType();
-  }
-
-  private CExpression doubleToExpression(double pValue, CSimpleType pType) {
-
-    if (Double.isNaN(pValue) || Double.isInfinite(pValue)) {
-      CExpression zero = new CIntegerLiteralExpression(DUMMY_LOCATION, CNumericTypes.INT, BigInteger.valueOf(0));
-      CExpression firstOp;
-
-      if (Double.isNaN(pValue)) {
-        firstOp = new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(0));
-
-      } else if (Double.POSITIVE_INFINITY == pValue) {
-        firstOp = new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(1));
-
-      } else {
-        assert Double.NEGATIVE_INFINITY == pValue;
-        firstOp = new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(-1));
-      }
-
-      return new CBinaryExpression(DUMMY_LOCATION, pType, pType, firstOp, zero, CBinaryExpression.BinaryOperator.DIVIDE);
-
-    } else {
-      return new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(pValue));
+      return pValue.accept(new ValueToCExpressionTransformer(pType));
     }
   }
 

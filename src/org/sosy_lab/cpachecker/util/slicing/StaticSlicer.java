@@ -75,9 +75,13 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
 
   public StaticSlicer(
-      LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig,
-      DependenceGraph pDependenceGraph) throws InvalidConfigurationException {
-    super(pLogger, pShutdownNotifier);
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      Configuration pConfig,
+      DependenceGraph pDependenceGraph,
+      CFA pCfa)
+      throws InvalidConfigurationException {
+    super(pLogger, pShutdownNotifier, pConfig, pCfa);
 
     pConfig.inject(this);
 

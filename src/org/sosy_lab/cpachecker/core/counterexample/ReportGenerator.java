@@ -36,7 +36,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -52,6 +51,7 @@ import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -615,7 +615,7 @@ public class ReportGenerator {
   private void insertFunctionNames(Writer writer, CFA cfa) {
     try {
       writer.write("\"functionNames\":");
-      Set<String> allFunctionsEntryFirst = Sets.newLinkedHashSet();
+      Set<String> allFunctionsEntryFirst = new LinkedHashSet<>();
       allFunctionsEntryFirst.add(cfa.getMainFunction().getFunctionName());
       allFunctionsEntryFirst.addAll(cfa.getAllFunctionNames());
       JSON.writeJSONString(allFunctionsEntryFirst, writer);

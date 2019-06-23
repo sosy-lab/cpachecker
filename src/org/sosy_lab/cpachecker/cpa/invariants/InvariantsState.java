@@ -34,7 +34,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.ibm.icu.math.BigDecimal;
 import java.math.BigInteger;
@@ -1099,7 +1098,7 @@ public class InvariantsState implements AbstractState,
       }
     }
 
-    final Set<MemoryLocation> safePointers = Sets.newHashSet();
+    final Set<MemoryLocation> safePointers = new HashSet<>();
     isInvalidVar =
         Predicates.or(
             isInvalidVar,
@@ -1242,8 +1241,8 @@ public class InvariantsState implements AbstractState,
       }
       if (!evaluated.isSingleton()) {
         // Try and find a variable referring to this variable
-        Set<Variable<CompoundInterval>> visited = Sets.newHashSet();
-        Queue<Variable<CompoundInterval>> waitlist = Queues.newArrayDeque();
+        Set<Variable<CompoundInterval>> visited = new HashSet<>();
+        Queue<Variable<CompoundInterval>> waitlist = new ArrayDeque<>();
         visited.add((Variable<CompoundInterval>) pFormula);
         waitlist.addAll(visited);
         while (!waitlist.isEmpty()) {

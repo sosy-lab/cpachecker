@@ -23,24 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 
 public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> {
 
-  private final SymbolicExpressionTransformer symbolicTransformer =
-      new SymbolicExpressionTransformer();
+  private final SymbolicExpressionToCExpressionTransformer symbolicTransformer =
+      new SymbolicExpressionToCExpressionTransformer();
 
   private CType type;
 
@@ -89,16 +88,66 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
 
   @Override
   public CExpression visit(NumericValue pValue) {
-    if (type instanceof CSimpleType
-        && (((CSimpleType) type).getType().equals(CBasicType.FLOAT)
-            || ((CSimpleType) type).getType().equals(CBasicType.DOUBLE))) {
-      return new CFloatLiteralExpression(
-          FileLocation.DUMMY, type, BigDecimal.valueOf(pValue.doubleValue()));
-
-    } else {
-      return new CIntegerLiteralExpression(
-          FileLocation.DUMMY, type, BigInteger.valueOf(pValue.longValue()));
+    if (type instanceof CSimpleType) {
+      switch (((CSimpleType) type).getType()) {
+        case FLOAT:
+        case DOUBLE:
+          return visitFloatingValue(pValue, (CSimpleType) type);
+        default:
+          // DO NOTHING
+          break;
+      }
     }
+
+    return new CIntegerLiteralExpression(
+        FileLocation.DUMMY, type, BigInteger.valueOf(pValue.longValue()));
+  }
+
+  private CExpression visitFloatingValue(NumericValue pValue, CSimpleType pType) {
+    boolean isInfinite;
+    boolean isNegative;
+    boolean isNan;
+    switch (pType.getType()) {
+      case FLOAT:
+        {
+          float val = pValue.floatValue();
+          isInfinite = Float.isInfinite(val);
+          isNegative = val < 0;
+          isNan = Float.isNaN(val);
+          break;
+        }
+      case DOUBLE:
+        {
+          double val = pValue.doubleValue();
+          isInfinite = Double.isInfinite(val);
+          isNegative = val < 0;
+          isNan = Double.isNaN(val);
+          break;
+        }
+      default:
+        throw new AssertionError("Unhandled type: " + pType);
+    }
+
+    assert !(isInfinite && isNan);
+
+    if (isInfinite) {
+      if (isNegative) {
+        return CFloatLiteralExpression.forNegativeInfinity(FileLocation.DUMMY, pType);
+      } else {
+        return CFloatLiteralExpression.forPositiveInfinity(FileLocation.DUMMY, pType);
+      }
+    } else if (isNan) {
+      return createNanExpression(pType);
+    } else {
+      return new CFloatLiteralExpression(FileLocation.DUMMY, pType, pValue.bigDecimalValue());
+    }
+  }
+
+  private CExpression createNanExpression(CSimpleType pType) {
+    // Represent NaN by '0/0', until CFloats are used by CFloatLiteralExpression
+    CExpression zero = new CFloatLiteralExpression(FileLocation.DUMMY, pType, BigDecimal.ZERO);
+    return new CBinaryExpression(
+        FileLocation.DUMMY, pType, pType, zero, zero, CBinaryExpression.BinaryOperator.DIVIDE);
   }
 
   @Override

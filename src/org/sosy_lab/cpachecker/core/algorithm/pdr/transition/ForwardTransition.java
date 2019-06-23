@@ -27,10 +27,12 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -130,10 +132,10 @@ public class ForwardTransition {
 
     Function<ARGState, AbstractState> asAbstractState = asAbstractState(reachedSet);
 
-    Set<BlockState> blocks = Sets.newHashSet();
+    Set<BlockState> blocks = new HashSet<>();
 
-    Set<BlockState> visitedPredecessorStates = Sets.newHashSet();
-    Deque<BlockState> currentStateQueue = Queues.newArrayDeque();
+    Set<BlockState> visitedPredecessorStates = new HashSet<>();
+    Deque<BlockState> currentStateQueue = new ArrayDeque<>();
     BlockState initialBlockCandidate = new BlockState(initialState, initialState);
     visitedPredecessorStates.add(initialBlockCandidate);
     currentStateQueue.offer(initialBlockCandidate);
@@ -384,7 +386,7 @@ public class ForwardTransition {
         if (nondetInBlockEnd.getBlockNondetVariables().isEmpty()) {
           return nondeterministicVariables = Collections.emptySet();
         }
-        nondeterministicVariables = Sets.newHashSet();
+        nondeterministicVariables = new HashSet<>();
         for (AbstractState state : getReachedSet()) {
           if (state != getPredecessor()) {
             NondeterminismState nondetState = getNondeterminismState(state).get();
@@ -445,10 +447,10 @@ public class ForwardTransition {
       AbstractState pInitialState,
       AbstractState pBlockStartState,
       Function<ARGState, AbstractState> pAsAbstractState) {
-    Deque<AbstractState> waitlist = Queues.newArrayDeque();
+    Deque<AbstractState> waitlist = new ArrayDeque<>();
     waitlist.push(pInitialState);
 
-    Set<AbstractState> forward = Sets.newLinkedHashSet();
+    Set<AbstractState> forward = new LinkedHashSet<>();
     forward.add(pInitialState);
 
     while (!waitlist.isEmpty()) {
@@ -468,7 +470,7 @@ public class ForwardTransition {
     waitlist.clear();
     waitlist.push(pBlockStartState);
 
-    Set<AbstractState> backward = Sets.newHashSet();
+    Set<AbstractState> backward = new HashSet<>();
     backward.add(pBlockStartState);
 
     while (!waitlist.isEmpty()) {

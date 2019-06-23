@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 public class SMGSingleLinkedListCandidateTest {
 
@@ -75,7 +76,7 @@ public class SMGSingleLinkedListCandidateTest {
 
     CLangSMG abstractedSmg = candidateSeq.execute(smg,
         new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration())));
-    Set<SMGObject> heap = abstractedSmg.getHeapObjects();
+    PersistentSet<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
     Set<SMGEdgeHasValue> globalHves =
         abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(root.getObject()));
@@ -112,7 +113,7 @@ public class SMGSingleLinkedListCandidateTest {
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE, false);
     CLangSMG abstractedSmg = candidateSeq.execute(smg,
         new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration())));
-    Set<SMGObject> heap = abstractedSmg.getHeapObjects();
+    PersistentSet<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
     Set<SMGEdgeHasValue> globalHves =
         abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(root.getObject()));

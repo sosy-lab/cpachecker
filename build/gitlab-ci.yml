@@ -42,17 +42,13 @@ build-dependencies:
 build:jdk-8:
   <<: *build
 
-build:jdk-9:
-  <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-9
-
-build:jdk-10:
-  <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
-
 build:jdk-11:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+
+build:jdk-12:
+  <<: *build
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
 
 
 # For checks that need the binaries
@@ -73,18 +69,13 @@ build:jdk-11:
 build-project-ecj:jdk-8:
   <<: *build-project-ecj
 
-build-project-ecj:jdk-9:
-  <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-9
-
-build-project-ecj:jdk-10:
-  <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
-
 build-project-ecj:jdk-11:
   <<: *build-project-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
-  allow_failure: true # ECJ disables annotation processing on Java 11 because it fails to detect the version correctly
+
+build-project-ecj:jdk-12:
+  <<: *build-project-ecj
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
 
 
 check-format:
@@ -142,26 +133,19 @@ unit-tests:jdk-8:
     - build-dependencies
     - build:jdk-8
 
-unit-tests:jdk-9:
-  <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-9
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-9
-
-unit-tests:jdk-10:
-  <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-10
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
-
 unit-tests:jdk-11:
   <<: *unit-tests
   dependencies:
     - build-dependencies
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+
+unit-tests:jdk-12:
+  <<: *unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-12
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
 
 
 deploy-coverage:

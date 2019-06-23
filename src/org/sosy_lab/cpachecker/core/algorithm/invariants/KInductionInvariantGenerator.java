@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -298,7 +299,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     CandidateGenerator statisticsCandidateGenerator =
         new CandidateGenerator() {
 
-          private final Set<CandidateInvariant> confirmedCandidates = Sets.newHashSet();
+          private final Set<CandidateInvariant> confirmedCandidates = new HashSet<>();
 
           @Override
           public boolean produceMoreCandidates() {
@@ -504,7 +505,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
 
-    final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
+    final Set<CandidateInvariant> candidates = new LinkedHashSet<>();
 
     for (CandidateInvariant candidate : pOptions.guessCandidatesFromCFA.create(pCFA, pSpecification, pTargetLocationProvider, pLogger)) {
       candidates.add(candidate);
@@ -593,8 +594,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
    * @return the relevant assume edges.
    */
   private static Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
-    final Set<AssumeEdge> assumeEdges = Sets.newLinkedHashSet();
-    Set<CFANode> visited = Sets.newHashSet(pTargetLocations);
+    final Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
+    Set<CFANode> visited = new HashSet<>(pTargetLocations);
     Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();

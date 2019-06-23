@@ -1092,9 +1092,9 @@ public class CompoundIntervalFormulaManager {
     if (pFormulas.isEmpty() || pConstantPart.containsAllPossibleValues()) {
       return asConstant(pInfo, pConstantPart);
     }
-    NumeralFormula<CompoundInterval> result = null;
+
     Iterator<NumeralFormula<CompoundInterval>> atomicUnionPartsIterator = pFormulas.iterator();
-    result = atomicUnionPartsIterator.next();
+    NumeralFormula<CompoundInterval> result = atomicUnionPartsIterator.next();
     while (atomicUnionPartsIterator.hasNext()) {
       result = InvariantsFormulaManager.INSTANCE.union(result, atomicUnionPartsIterator.next());
     }

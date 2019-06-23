@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.coverage;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public final class CoverageData {
 
-  private final Map<String, FileCoverageInformation> infosPerFile = new HashMap<>();
+  private final Map<String, FileCoverageInformation> infosPerFile = new LinkedHashMap<>();
 
   public static boolean coversLine(CFAEdge pEdge) {
     FileLocation loc = pEdge.getFileLocation();

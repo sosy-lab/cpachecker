@@ -39,4 +39,5 @@
  * More information on this abstract domain, the implementation, and the evaluation of this CPA
  * can be found at: <b>http://stieglmaier.me/uploads/thesis.pdf</b>
  */
+@org.sosy_lab.common.annotations.Unmaintained
 package org.sosy_lab.cpachecker.cpa.apron;

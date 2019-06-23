@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
@@ -144,7 +145,7 @@ public class CPAMain {
       dumpConfiguration(options, cpaConfig, logManager);
 
       // generate correct frontend based on file language
-      cpaConfig = extractFrontendfromFileending(options, cpaConfig, logManager);
+      cpaConfig = detectFrontendLanguageIfNecessary(options, cpaConfig, logManager);
 
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
       limits.start();
@@ -255,7 +256,9 @@ public class CPAMain {
     )
     private ImmutableList<String> programs = ImmutableList.of();
 
-    @Option(secure = true, description = "C, Java, or LLVM IR?")
+    @Option(secure=true,
+        description="Programming language of the input program. If not given explicitly, "
+            + "auto-detection will occur")
     // keep option name in sync with {@link CFACreator#language}, value might differ
     private Language language = null;
 
@@ -376,59 +379,74 @@ public class CPAMain {
           " Please specify a language directly with the option 'language=%s'.",
           Arrays.toString(Language.values()));
 
-  /** determine the frontend language based on the file endings of the given programs. */
+  /**
+   * Determines the frontend language based on the file endings of the given programs, if no
+   * language is given by the user. If a language is detected, it is set in the given {@link
+   * MainOptions} object and a new configuration for that language, based on the given
+   * configuration, is returned.
+   */
   @VisibleForTesting
-  protected static Configuration extractFrontendfromFileending(
+  static Configuration detectFrontendLanguageIfNecessary(
       MainOptions pOptions, Configuration pConfig, LogManager pLogManager)
       throws InvalidConfigurationException {
     if (pOptions.language == null) {
       // if language was not specified by option, we determine the best matching language
-      Language frontendLanguage = null;
-      for (String program : pOptions.programs) {
-        Language language;
-        String suffix = program.substring(program.lastIndexOf(".") + 1);
-        switch (suffix) {
-          case "c":
-          case "i":
-          case "h":
-            language = Language.C;
-            break;
-          case "ll":
-          case "bc":
-            language = Language.LLVM;
-            break;
-          case "java":
-            language = Language.JAVA;
-            break;
-          default:
-            throw new InvalidConfigurationException(
-                String.format(
-                        "Cannot determine language from file '%s' with suffix '.%s'.",
-                        program, suffix)
-                    + LANGUAGE_HINT);
-        }
-        Preconditions.checkNotNull(language);
-        if (frontendLanguage == null) { // first iteration
-          frontendLanguage = language;
-        }
-        if (frontendLanguage != language) { // further iterations: check for conflicting endings
-          throw new InvalidConfigurationException(
-              String.format(
-                      "Differing file formats detected: %s and %s files are declared for analysis.",
-                      frontendLanguage, language)
-                  + LANGUAGE_HINT);
-        }
+      Language frontendLanguage;
+      if (areJavaOptionsSet(pConfig)) {
+        frontendLanguage = Language.JAVA;
+      } else {
+        frontendLanguage = detectFrontendLanguageFromFileEndings(pOptions.programs);
       }
       Preconditions.checkNotNull(frontendLanguage);
       ConfigurationBuilder configBuilder = Configuration.builder();
       configBuilder.copyFrom(pConfig);
-      configBuilder.setOption("language", frontendLanguage.toString());
+      configBuilder.setOption("language", frontendLanguage.name());
       pConfig = configBuilder.build();
       pOptions.language = frontendLanguage;
       pLogManager.logf(Level.INFO, "Language %s detected and set for analysis", frontendLanguage);
     }
     Preconditions.checkNotNull(pOptions.language);
     return pConfig;
+  }
+
+  @SuppressWarnings("deprecation") // checking the properties directly is more maintainable
+  private static boolean areJavaOptionsSet(Configuration pConfig) {
+    // Make sure to keep this synchronized with EclipseJavaParser
+    return pConfig.hasProperty("java.sourcepath") || pConfig.hasProperty("java.classpath");
+  }
+
+  private static Language detectFrontendLanguageFromFileEndings(ImmutableList<String> pPrograms)
+      throws InvalidConfigurationException {
+    checkArgument(!pPrograms.isEmpty(), "Empty list of programs");
+    Language frontendLanguage = null;
+    for (String program : pPrograms) {
+      Language language;
+      String suffix = program.substring(program.lastIndexOf(".") + 1);
+      switch (suffix) {
+        case "ll":
+        case "bc":
+          language = Language.LLVM;
+          break;
+        case "c":
+        case "i":
+        case "h":
+        default:
+          language = Language.C;
+          break;
+      }
+      Preconditions.checkNotNull(language);
+      if (frontendLanguage == null) { // first iteration
+        frontendLanguage = language;
+      }
+      if (frontendLanguage != language) { // further iterations: check for conflicting endings
+        throw new InvalidConfigurationException(
+            String.format(
+                    "Differing file formats detected: %s and %s files are declared for analysis.",
+                    frontendLanguage, language)
+                + LANGUAGE_HINT);
+      }
+    }
+    return frontendLanguage;
   }
 
   private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =

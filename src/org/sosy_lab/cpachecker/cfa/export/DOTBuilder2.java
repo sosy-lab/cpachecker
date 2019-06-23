@@ -32,16 +32,17 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import com.google.common.html.HtmlEscapers;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -135,7 +136,7 @@ public final class DOTBuilder2 {
     // global state for all functions
     private final Map<Integer, Set<Integer>> comboNodes = new HashMap<>();
     private final Map<Integer, StringBuilder> comboNodesLabels = new HashMap<>();
-    private final Set<Integer> mergedNodes = Sets.newLinkedHashSet();
+    private final Set<Integer> mergedNodes = new LinkedHashSet<>();
     private final Map<Integer, List<Integer>> virtFuncCallEdges = new HashMap<>();
     private int virtFuncCallNodeIdCounter = 100000;
 
@@ -179,7 +180,7 @@ public final class DOTBuilder2 {
       } else {
         // add combo edge
         if (currentComboEdge == null) {
-          currentComboEdge = Lists.newArrayList();
+          currentComboEdge = new ArrayList<>();
           comboedges.put(funcname, currentComboEdge);
         }
         currentComboEdge.add(edge);
@@ -211,7 +212,7 @@ public final class DOTBuilder2 {
           // Initialize the list of nodes and the label if necessary
           if (combinedNodes == null) {
             assert label == null : "label and combinedNodes should always be initialized and changed together";
-            combinedNodes = Sets.newLinkedHashSet();
+            combinedNodes = new LinkedHashSet<>();
             comboNodes.put(firstNode, combinedNodes);
             label = new StringBuilder();
             comboNodesLabels.put(firstNode, label);

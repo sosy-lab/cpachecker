@@ -112,7 +112,7 @@ public class SMGListsWithValuesTest {
 
     SMGObject segment = smg.getObjectPointedBy(addresses[0]);
     Assert.assertTrue(segment.isAbstract());
-    Truth.assertThat(segment.getKind()).isSameAs(listKind);
+    Truth.assertThat(segment.getKind()).isSameInstanceAs(listKind);
     Truth.assertThat(segment.getLevel()).isEqualTo(LEVEL_ZERO);
     Truth.assertThat(segment.getSize()).isEqualTo(nodeSize);
   }

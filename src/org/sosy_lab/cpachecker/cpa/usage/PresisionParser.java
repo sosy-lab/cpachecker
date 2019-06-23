@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.Maps;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -56,7 +55,7 @@ public class PresisionParser {
   }
 
   public Map<CFANode, Map<GeneralIdentifier, DataType>> parse(Path file) {
-    Map<CFANode, Map<GeneralIdentifier, DataType>> localStatistics = Maps.newHashMap();
+    Map<CFANode, Map<GeneralIdentifier, DataType>> localStatistics = new HashMap<>();
     Map<Integer, CFANode> idToNodeMap = new HashMap<>();
     cfa.getAllNodes().forEach(n -> idToNodeMap.put(n.getNodeNumber(), n));
 

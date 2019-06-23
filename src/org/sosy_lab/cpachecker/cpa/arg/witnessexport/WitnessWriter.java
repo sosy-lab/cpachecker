@@ -43,10 +43,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.Queues;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -57,8 +55,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -185,8 +185,7 @@ class WitnessWriter implements EdgeAppender {
         @Override
         public CFAEdgeWithAssumptions apply(CFAEdgeWithAssumptions pEdgeWithAssumptions) {
           int originalSize = pEdgeWithAssumptions.getExpStmts().size();
-          List<AExpressionStatement> expressionStatements =
-              Lists.newArrayListWithCapacity(originalSize);
+          List<AExpressionStatement> expressionStatements = new ArrayList<>(originalSize);
           for (AExpressionStatement expressionStatement : pEdgeWithAssumptions.getExpStmts()) {
             AExpression assumption = expressionStatement.getExpression();
             if (!(assumption instanceof CBinaryExpression)) {
@@ -293,25 +292,26 @@ class WitnessWriter implements EdgeAppender {
 
   private final SetMultimap<String, NodeFlag> nodeFlags = LinkedHashMultimap.create();
   private final Multimap<String, Property> violatedProperties = HashMultimap.create();
-  private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments = Maps.newHashMap();
+  private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments =
+      new HashMap<>();
 
   private final Multimap<String, Edge> leavingEdges = LinkedHashMultimap.create();
   private final Multimap<String, Edge> enteringEdges = LinkedHashMultimap.create();
 
-  private final Map<String, ExpressionTree<Object>> stateInvariants = Maps.newLinkedHashMap();
-  private final Map<String, ExpressionTree<Object>> stateQuasiInvariants = Maps.newLinkedHashMap();
-  private final Map<String, String> stateScopes = Maps.newLinkedHashMap();
-  private final Set<String> invariantExportStates = Sets.newTreeSet();
+  private final Map<String, ExpressionTree<Object>> stateInvariants = new LinkedHashMap<>();
+  private final Map<String, ExpressionTree<Object>> stateQuasiInvariants = new LinkedHashMap<>();
+  private final Map<String, String> stateScopes = new LinkedHashMap<>();
+  private final Set<String> invariantExportStates = new TreeSet<>();
 
-  private final Map<Edge, CFANode> loopHeadEnteringEdges = Maps.newHashMap();
+  private final Map<Edge, CFANode> loopHeadEnteringEdges = new HashMap<>();
 
   private final String defaultSourcefileName;
   private final WitnessType graphType;
 
   private final InvariantProvider invariantProvider;
 
-  private final Map<CFAEdge, LoopEntryInfo> loopEntryInfoMemo = Maps.newHashMap();
-  private final Map<CFANode, Boolean> loopProximityMemo = Maps.newHashMap();
+  private final Map<CFAEdge, LoopEntryInfo> loopEntryInfoMemo = new HashMap<>();
+  private final Map<CFANode, Boolean> loopProximityMemo = new HashMap<>();
 
   private final NumericIdProvider numericThreadIdProvider = NumericIdProvider.create();
 
@@ -1176,7 +1176,7 @@ class WitnessWriter implements EdgeAppender {
     removeUnnecessarySinkEdges();
 
     // Merge nodes with empty or repeated edges
-    TreeSet<Edge> waitlist = Sets.newTreeSet(leavingEdges.values());
+    TreeSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is redundant, remove it
@@ -1318,8 +1318,8 @@ class WitnessWriter implements EdgeAppender {
   }
 
   private void writeElementsOfGraphToDoc(GraphMlBuilder doc, String entryStateNodeId) {
-    Map<String, Element> nodes = Maps.newHashMap();
-    Deque<String> waitlist = Queues.newArrayDeque();
+    Map<String, Element> nodes = new HashMap<>();
+    Deque<String> waitlist = new ArrayDeque<>();
     waitlist.push(entryStateNodeId);
     Element entryNode = createNewNode(doc, entryStateNodeId);
     addInvariantsData(doc, entryNode, entryStateNodeId);
@@ -1522,7 +1522,7 @@ class WitnessWriter implements EdgeAppender {
     // Merge the violated properties
     violatedProperties.putAll(nodeToKeep, violatedProperties.removeAll(nodeToRemove));
 
-    Set<Edge> replacementEdges = Sets.newHashSet();
+    Set<Edge> replacementEdges = new HashSet<>();
 
     // Move the leaving edges
     Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(nodeToRemove));
@@ -1710,7 +1710,7 @@ class WitnessWriter implements EdgeAppender {
   }
 
   private Collection<Property> extractViolatedProperties(ARGState pState) {
-    ArrayList<Property> result = Lists.newArrayList();
+    ArrayList<Property> result = new ArrayList<>();
     if (pState.isTarget()) {
       result.addAll(pState.getViolatedProperties());
     }
@@ -1808,8 +1808,8 @@ class WitnessWriter implements EdgeAppender {
    */
   private boolean isInLoopProximity(CFANode pReferenceNode) {
 
-    Deque<List<CFANode>> waitlist = Queues.newArrayDeque();
-    Set<CFANode> visited = Sets.newHashSet();
+    Deque<List<CFANode>> waitlist = new ArrayDeque<>();
+    Set<CFANode> visited = new HashSet<>();
     waitlist.push(ImmutableList.of(pReferenceNode));
     visited.add(pReferenceNode);
 
@@ -1855,7 +1855,7 @@ class WitnessWriter implements EdgeAppender {
   private Optional<CFANode> entersLoop(CFAEdge pEdge, boolean pAllowGoto) {
     class EnterLoopVisitor implements CFAVisitor {
 
-      private final Collection<CFAEdge> previouslyChecked = Lists.newArrayList();
+      private final Collection<CFAEdge> previouslyChecked = new ArrayList<>();
 
       private LoopEntryInfo loopEntryInfo = new LoopEntryInfo();
 

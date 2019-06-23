@@ -27,7 +27,6 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -37,6 +36,7 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -120,7 +120,7 @@ public class WitnessExporterTest {
       Map<String, String> pOverrideOptions,
       TempCompressedFilePath pWitnessPath)
       throws Exception {
-    Map<String, String> overrideOptions = Maps.newHashMap(pOverrideOptions);
+    Map<String, String> overrideOptions = new HashMap<>(pOverrideOptions);
     overrideOptions.put(
         "counterexample.export.graphml", pWitnessPath.uncompressedFilePath.toString());
     if (pGenerationConfig.equals(WitnessGenerationConfig.K_INDUCTION)) {
@@ -189,7 +189,7 @@ public class WitnessExporterTest {
       WitnessType witnessType)
       throws Exception {
     Map<String, String> overrideOptions;
-    overrideOptions = Maps.newHashMap(pOverrideOptions);
+    overrideOptions = new HashMap<>(pOverrideOptions);
     final String validationConfigFile;
     String specification = pSpecification;
     switch (witnessType) {

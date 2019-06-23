@@ -26,14 +26,13 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -89,11 +88,12 @@ class CFABuilder extends ASTVisitor {
   private final List<String> eliminateableDuplicates = new ArrayList<>();
 
   // Data structure for storing global declarations
-  private final List<Triple<ADeclaration, String, GlobalScope>> globalDeclarations = Lists.newArrayList();
-  private final List<Pair<ADeclaration, String>> globalDecls = Lists.newArrayList();
+  private final List<Triple<ADeclaration, String, GlobalScope>> globalDeclarations =
+      new ArrayList<>();
+  private final List<Pair<ADeclaration, String>> globalDecls = new ArrayList<>();
 
   // Data structure for checking amount of initializations per global variable
-  private final Set<String> globalInitializedVariables = Sets.newHashSet();
+  private final Set<String> globalInitializedVariables = new HashSet<>();
 
   private final List<Path> parsedFiles = new ArrayList<>();
 

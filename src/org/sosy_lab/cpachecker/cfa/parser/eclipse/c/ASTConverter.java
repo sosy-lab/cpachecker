@@ -251,9 +251,10 @@ class ASTConverter {
 
     } else if (e instanceof IASTUnaryExpression && (((IASTUnaryExpression)e).getOperator() == IASTUnaryExpression.op_postFixDecr
                                                    || ((IASTUnaryExpression)e).getOperator() == IASTUnaryExpression.op_postFixIncr)) {
-      return addSideAssignmentsForUnaryExpressions(((CAssignment)node).getLeftHandSide(),
-          node.getFileLocation(), typeConverter.convert(e.getExpressionType()),
-          ((CBinaryExpression)((CAssignment)node).getRightHandSide()).getOperator());
+      return addSideAssignmentsForUnaryExpressions(
+          ((CAssignment) node).getLeftHandSide(),
+          node.getFileLocation(),
+          ((CBinaryExpression) ((CAssignment) node).getRightHandSide()).getOperator());
 
     } else if (node instanceof CAssignment) {
       sideAssignmentStack.addPreSideAssignment(node);
@@ -305,11 +306,9 @@ class ASTConverter {
    *
    * @param exp the "x" of x=x+1
    * @param fileLoc location of the expression
-   * @param type result-typeof the operation
    * @param op binary operator, should be PLUS or MINUS */
   private CIdExpression addSideAssignmentsForUnaryExpressions(
-      final CLeftHandSide exp, final FileLocation fileLoc,
-      final CType type, final BinaryOperator op) {
+      final CLeftHandSide exp, final FileLocation fileLoc, final BinaryOperator op) {
     final CIdExpression tmp = createInitializedTemporaryVariable(fileLoc, exp.getExpressionType(), exp);
     final CBinaryExpression postExp = buildBinaryExpression(exp, CIntegerLiteralExpression.ONE, op);
     sideAssignmentStack.addPreSideAssignment(new CExpressionAssignmentStatement(fileLoc, exp, postExp));
@@ -1819,8 +1818,7 @@ class ASTConverter {
       // and apply them after we have reached the inner-most declarator.
 
       // Collection of all modifiers (outermost modifier is first).
-      List<IASTNode> modifiers = Lists.newArrayListWithExpectedSize(1);
-
+      List<IASTNode> modifiers = new ArrayList<>(1);
 
       IASTInitializer initializer = null;
       String name = null;
@@ -1880,9 +1878,9 @@ class ASTConverter {
 
       // Add the modifiers to the type.
       CType type = specifier;
-      //array modifiers have to be added backwards, otherwise the arraysize is wrong
+      // array modifiers have to be added backwards, otherwise the arraysize is wrong
       // with multidimensional arrays
-      List<IASTArrayModifier> tmpArrMod = Lists.newArrayListWithExpectedSize(1);
+      List<IASTArrayModifier> tmpArrMod = new ArrayList<>();
       for (IASTNode modifier : modifiers) {
         if (modifier instanceof IASTArrayModifier) {
           tmpArrMod.add((IASTArrayModifier) modifier);

@@ -30,7 +30,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import java.io.IOException;
@@ -38,6 +37,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -427,7 +427,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     Multimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
 
     // Predicates that should be tracked globally
-    Collection<AbstractionPredicate> globalPredicates = Lists.newArrayList();
+    Collection<AbstractionPredicate> globalPredicates = new ArrayList<>();
 
     // Determine the ERROR location of the path (last node)
     CFANode targetLocation = AbstractStates.extractLocation(targetState);

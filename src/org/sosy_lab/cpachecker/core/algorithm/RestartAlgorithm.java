@@ -31,7 +31,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
@@ -196,7 +195,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =
       new CopyOnWriteArrayList<>();
 
-  private final Collection<ReachedSetUpdateListener> reachedSetUpdateListenersAdded = Lists.newArrayList();
+  private final Collection<ReachedSetUpdateListener> reachedSetUpdateListenersAdded =
+      new ArrayList<>();
 
   private RestartAlgorithm(
       Configuration config,

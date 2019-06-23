@@ -34,9 +34,9 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -122,7 +122,7 @@ public class TerminationLoopInformation {
   private List<CFANode> relevantVariablesInitializationIntermediateLocations =
       Collections.emptyList();
 
-  private Set<CFAEdge> createdCfaEdges = Sets.newLinkedHashSet();
+  private Set<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
 
   private Optional<CFANode> targetNode = Optional.empty();
 

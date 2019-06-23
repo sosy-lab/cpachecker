@@ -412,4 +412,19 @@ class AutomatonTransition {
   public boolean isTransitionWithAssumptions() {
     return assumptions.size() > 0;
   }
+
+  public boolean nontriviallyMatches(final CFAEdge pEdge, final LogManager pLogger) {
+    if (trigger != AutomatonBoolExpr.TRUE) {
+      try {
+        ResultValue<Boolean> match =
+            trigger.eval(new AutomatonExpressionArguments(null, null, null, pEdge, pLogger));
+        // be conservative and also return true if trigger cannot be evaluated
+        return match.canNotEvaluate() || match.getValue();
+      } catch (CPATransferException e) {
+        // be conservative and assume that it would match
+        return true;
+      }
+    }
+    return false;
+  }
 }

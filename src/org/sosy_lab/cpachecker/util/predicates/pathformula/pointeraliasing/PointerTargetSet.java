@@ -220,8 +220,10 @@ public final class PointerTargetSet implements Serializable {
 
   /**
    * javadoc to remove unused parameter warning
+   *
    * @param in the input stream
    */
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }
@@ -239,8 +241,8 @@ public final class PointerTargetSet implements Serializable {
     private SerializationProxy(PointerTargetSet pts) {
       bases = pts.bases;
       fields = pts.fields;
-      this.deferredAllocations = Lists.newArrayList(pts.deferredAllocations);
-      this.targets = new HashMap<>(Maps.transformValues(pts.targets, Lists::newArrayList));
+      this.deferredAllocations = new ArrayList<>(pts.deferredAllocations);
+      this.targets = new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       highestAllocatedAddresses =
           new ArrayList<>(

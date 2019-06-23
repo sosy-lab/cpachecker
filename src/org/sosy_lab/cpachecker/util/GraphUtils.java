@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayDeque;
@@ -65,7 +65,7 @@ public class GraphUtils {
     isRelevant = Predicates.or(Predicates.equalTo(root),
                                isRelevant);
 
-    SetMultimap<N, N> successors = HashMultimap.create();
+    SetMultimap<N, N> successors = LinkedHashMultimap.create();
 
     // Our state is a stack of pairs of todo items.
     // The first item of each pair is a relevant state,

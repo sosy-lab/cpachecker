@@ -26,16 +26,16 @@ package org.sosy_lab.cpachecker.cpa.bam.cache;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -76,10 +76,10 @@ public class BAMDataManagerImpl implements BAMDataManager {
       HashBasedTable.create();
 
   /** Mapping of reduced initial states to non-reduced initial states. */
-  private final Multimap<AbstractState, AbstractState> reducedToNonReduced = HashMultimap.create();
+  private final Multimap<AbstractState, AbstractState> reducedToNonReduced =
+      LinkedHashMultimap.create();
 
-  private final Map<AbstractState, BlockExitData> expandedStateToBlockExit = new HashMap<>();
-
+  private final Map<AbstractState, BlockExitData> expandedStateToBlockExit = new LinkedHashMap<>();
 
   private static class BlockExitData {
 

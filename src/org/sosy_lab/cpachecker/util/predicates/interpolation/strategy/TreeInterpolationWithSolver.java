@@ -23,20 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
+import com.google.common.primitives.Ints;
 import java.util.List;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-
-import com.google.common.primitives.Ints;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class TreeInterpolationWithSolver<T> extends AbstractTreeInterpolation<T> {
 
@@ -56,8 +54,9 @@ public class TreeInterpolationWithSolver<T> extends AbstractTreeInterpolation<T>
           final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
           throws InterruptedException, SolverException {
     final Pair<List<Triple<BooleanFormula, AbstractState, T>>, List<Integer>> p = buildTreeStructure(formulasWithStatesAndGroupdIds);
-    final List<BooleanFormula> itps = interpolator.itpProver.getTreeInterpolants(
-            wrapAllInSets(projectToThird(p.getFirst())), Ints.toArray(p.getSecond()));
+    final List<BooleanFormula> itps =
+        interpolator.itpProver.getTreeInterpolants0(
+            projectToThird(p.getFirst()), Ints.toArray(p.getSecond()));
     return flattenTreeItps(formulasWithStatesAndGroupdIds, itps);
   }
 

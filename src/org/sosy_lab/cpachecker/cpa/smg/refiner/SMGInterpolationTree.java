@@ -28,7 +28,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
@@ -39,6 +38,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,10 +75,8 @@ public class SMGInterpolationTree {
    */
   private final ARGState root;
 
-  /**
-   * the predecessor relation of the states contained in this tree
-   */
-  private final Map<ARGState, ARGState> predecessorRelation = Maps.newLinkedHashMap();
+  /** the predecessor relation of the states contained in this tree */
+  private final Map<ARGState, ARGState> predecessorRelation = new LinkedHashMap<>();
 
   /**
    * the successor relation of the states contained in this tree

@@ -183,7 +183,8 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
             cfa.getDependenceGraph()
                 .orElseThrow(
                     () ->
-                        new InvalidConfigurationException("Dependence graph of CFA " + "missing")));
+                        new InvalidConfigurationException("Dependence graph of CFA " + "missing")),
+            cfa);
 
     return new SlicingRefiner(
         pathExtractor,
