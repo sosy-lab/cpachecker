@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.KeyValueStatistics;
 
@@ -71,22 +72,41 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   @Option(secure=true, description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
 
-  @Option(
-      secure = true,
-      name = "correctnessWitness.atomPredicatesFromFormula",
-      description = "invariants from witness are added as atom predicates")
-  private boolean atomPredicatesFromFormula = false;
+  @Options(prefix = "cpa.predicate.abstraction.initialPredicates")
+  public static class InitialPredicatesOptions {
 
-  @Option(
-      secure = true,
-      name = "correctnessWitness.witnessInvariantScope",
-      description = "Where to apply the found invariants to?")
-  private WitnessInvariantScope witnessInvariantScope = WitnessInvariantScope.LOCATION;
-  private static enum WitnessInvariantScope {
-    GLOBAL, // at all locations
-    FUNCTION, // at all locations in the respective function
-    LOCATION, // at all occurrences of the respective location
-    ;
+    @Option(
+        secure = true,
+        description = "Apply location-specific predicates to all locations in their function")
+    private boolean applyFunctionWide = false;
+
+    @Option(
+        secure = true,
+        description =
+            "Apply location- and function-specific predicates globally (to all locations in the program)")
+    private boolean applyGlobally = false;
+
+    @Option(
+        secure = true,
+        description =
+            "when reading predicates from file, convert them from Integer- to BV-theory or reverse.")
+    private PrecisionConverter encodePredicates = PrecisionConverter.DISABLE;
+
+    @Option(secure = true, description = "initial predicates are added as atomic predicates")
+    private boolean splitIntoAtoms = false;
+
+    public boolean applyFunctionWide() {
+      return applyFunctionWide;
+    }
+
+    public boolean applyGlobally() {
+      return applyGlobally;
+    }
+
+    public PrecisionConverter getPrecisionConverter() {
+      return encodePredicates;
+    }
+
   }
 
   private final FormulaManagerView formulaManagerView;
@@ -102,6 +122,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final PredicateAbstractionManager predicateAbstractionManager;
 
   private final KeyValueStatistics statistics = new KeyValueStatistics();
+
+  private final InitialPredicatesOptions options;
 
   public PredicatePrecisionBootstrapper(
       Configuration config,
@@ -127,6 +149,9 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     this.predicateAbstractionManager = predicateAbstractionManager;
 
     config.inject(this);
+
+    this.options = new InitialPredicatesOptions();
+    config.inject(this.options);
   }
 
   private PredicatePrecision internalPrepareInitialPredicates() throws InvalidConfigurationException {
@@ -139,7 +164,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     }
 
     if (!predicatesFiles.isEmpty()) {
-      PredicateMapParser parser = new PredicateMapParser(config, cfa, logger, formulaManagerView, abstractionManager);
+      PredicateMapParser parser =
+          new PredicateMapParser(cfa, logger, formulaManagerView, abstractionManager, options);
 
       for (Path predicatesFile : predicatesFiles) {
         try {
@@ -190,7 +216,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
         List<AbstractionPredicate> predicates = new ArrayList<>();
         // get atom predicates from invariant
-        if (atomPredicatesFromFormula) {
+        if (options.splitIntoAtoms) {
           predicates.addAll(
               predicateAbstractionManager.getPredicatesForAtomsOf(
                   invariant.getFormula(formulaManagerView, pathFormulaManager, null)));
@@ -209,18 +235,17 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
         }
 
         // add predicates according to the scope
-        switch (witnessInvariantScope) {
-          case FUNCTION:
-            result = result.addFunctionPredicates(functionPredicates.entries());
-            break;
-          case GLOBAL:
-            result = result.addGlobalPredicates(globalPredicates);
-            break;
-          case LOCATION:
-            result = result.addLocalPredicates(localPredicates.entries());
-            break;
-          default:
-            break;
+        // location scope is chosen if neither function or global scope is specified or both are
+        // specified which would be a conflict here
+        boolean applyLocally =
+            (!options.applyFunctionWide && !options.applyGlobally)
+                || (options.applyFunctionWide && options.applyGlobally);
+        if (applyLocally) {
+          result = result.addLocalPredicates(localPredicates.entries());
+        } else if (options.applyFunctionWide) {
+          result = result.addFunctionPredicates(functionPredicates.entries());
+        } else if (options.applyGlobally) {
+          result = result.addGlobalPredicates(globalPredicates);
         }
       }
     } catch (CPAException | InterruptedException | InvalidConfigurationException e) {
