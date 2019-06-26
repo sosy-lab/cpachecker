@@ -395,7 +395,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   @Override
   public IntegerFormula toIntegerFormula(BitvectorFormula pI, boolean pSigned) {
-    // BV to INT -> just unwrap
-    return wrap(FormulaType.IntegerType, unwrap(pI));
+    final T unwrapped = unwrap(pI);
+    if (numericFormulaManager.getFormulaType().equals(FormulaType.IntegerType)) {
+      return (IntegerFormula) unwrapped;
+    } else {
+      return numericFormulaManager.floor(unwrapped);
+    }
   }
 }
