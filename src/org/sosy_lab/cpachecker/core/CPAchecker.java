@@ -321,6 +321,13 @@ public class CPAchecker {
     shutdownNotifier = pShutdownManager.getNotifier();
 
     config.inject(this);
+    // if backwardSpecification is present switch it with specification to allow the user handle
+    // this analysis like a forward analysis
+    if (!backwardSpecificationFiles.isEmpty()) {
+      List<Path> tmpSpecificationFiles = ImmutableList.copyOf(backwardSpecificationFiles);
+      backwardSpecificationFiles = ImmutableList.copyOf(specificationFiles);
+      specificationFiles = tmpSpecificationFiles;
+    }
     factory =
         new CoreComponentsFactory(
             pConfiguration, pLogManager, shutdownNotifier, new AggregatedReachedSets());
