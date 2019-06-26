@@ -23,15 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import java.math.BigInteger;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
-
-import java.math.BigInteger;
-
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 public class BitvectorFormulaManagerView extends BaseManagerView implements BitvectorFormulaManager {
 
@@ -189,5 +188,15 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
   @Override
   public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
     return manager.extend(pNumber, pExtensionBits, pSigned);
+  }
+
+  @Override
+  public BitvectorFormula makeBitvector(int pLength, IntegerFormula pI) {
+    return manager.makeBitvector(pLength, pI);
+  }
+
+  @Override
+  public IntegerFormula toIntegerFormula(BitvectorFormula pI, boolean pSigned) {
+    return manager.toIntegerFormula(pI, pSigned);
   }
 }
