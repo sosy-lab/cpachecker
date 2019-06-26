@@ -194,6 +194,11 @@ public class ARGToDotWriter {
     if (state.getChildren().contains(successorState)) {
       List<CFAEdge> edges = state.getEdgesToChild(successorState);
 
+      // maby its an backwards ARG so the direction of the edges is successorState -> state
+      if (edges.isEmpty()) {
+        edges = successorState.getEdgesToChild(state);
+      }
+
       // there is no direct edge between the nodes, use a dummy-edge
       if (edges.isEmpty()) {
         builder.append("style=\"bold\" color=\"blue\" label=\"dummy edge\"");
