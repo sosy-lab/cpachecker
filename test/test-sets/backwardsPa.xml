@@ -7,10 +7,12 @@
 
   <rundefinition name="pa">
     <option name="-predicateAnalysis"/>
-		<option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
     <!-- deactivated for better tables, as long as BW-analysis does not work with "-spec".
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     -->
+  </rundefinition>
+  <rundefinition name="pa-backwards">
+    <option name="-predicateAnalysisBackward"/>
   </rundefinition>
 
 	<propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
