@@ -324,8 +324,8 @@ public class CPAchecker {
     // if backwardSpecification is present switch it with specification to allow the user handle
     // this analysis like a forward analysis
     if (!backwardSpecificationFiles.isEmpty()) {
-      List<Path> tmpSpecificationFiles = ImmutableList.copyOf(backwardSpecificationFiles);
-      backwardSpecificationFiles = ImmutableList.copyOf(specificationFiles);
+      List<Path> tmpSpecificationFiles = backwardSpecificationFiles;
+      backwardSpecificationFiles = specificationFiles;
       specificationFiles = tmpSpecificationFiles;
     }
     factory =
