@@ -140,7 +140,6 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
     return manager.xor(pBits1, pBits2);
   }
 
-
   @Override
   public BitvectorFormula makeBitvector(int pLength, long pI) {
     return manager.makeBitvector(pLength, pI);

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cmdline;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.truth.StreamSubject.streams;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 import static java.lang.Boolean.parseBoolean;
@@ -233,8 +234,9 @@ public class ConfigurationFileChecks {
     try {
       parse(configFile).build();
     } catch (InvalidConfigurationException | IOException e) {
-      assert_()
-          .fail("Error during parsing of configuration file %s : %s", configFile, e.getMessage());
+      assertWithMessage(
+              "Error during parsing of configuration file %s : %s", configFile, e.getMessage())
+          .fail();
     }
   }
 
@@ -504,8 +506,9 @@ public class ConfigurationFileChecks {
     try {
       cpachecker = new CPAchecker(config, logger, ShutdownManager.create());
     } catch (InvalidConfigurationException e) {
-      assert_()
-          .fail("Invalid configuration in configuration file %s : %s", configFile, e.getMessage());
+      assertWithMessage(
+              "Invalid configuration in configuration file %s : %s", configFile, e.getMessage())
+          .fail();
       return;
     }
 
@@ -514,7 +517,7 @@ public class ConfigurationFileChecks {
       result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
     } catch (IllegalArgumentException e) {
       if (isJava) {
-        assume().fail("Java frontend has a bug and cannot be run twice");
+        assume().withMessage("Java frontend has a bug and cannot be run twice").fail();
       }
       throw e;
     } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {

@@ -34,7 +34,7 @@
     <dependencies>
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-343-gafbf75e" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-357-gc47b29f" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
@@ -89,8 +89,8 @@
 
         <!-- Truth
              Library for writing literal assertions. -->
-        <dependency org="com.google.truth" name="truth" rev="0.45" conf="test->default; contrib->sources"/>
-        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.45" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.truth" name="truth" rev="0.46" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.46" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
         <dependency org="com.google.guava" name="guava-testlib" rev="28.0-jre" conf="test->default; contrib->sources"/>
@@ -120,7 +120,7 @@
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- Checkstyle -->
-        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.33.0" conf="checkstyle->default"/>
+        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.34.0" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>

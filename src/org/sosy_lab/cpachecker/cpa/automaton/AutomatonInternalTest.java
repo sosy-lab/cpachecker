@@ -356,11 +356,11 @@ public class AutomatonInternalTest {
       };
 
   /**
-   * {@link Subject} subclass for testing ASTMatchers with Truth
-   * (allows to use assert_().about(astMatcher).that("ast pattern").matches(...)).
+   * {@link Subject} subclass for testing ASTMatchers with Truth (allows to use
+   * assert_().about(astMatcher).that("ast pattern").matches(...)).
    */
   @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
-  private class ASTMatcherSubject extends Subject<ASTMatcherSubject, String> {
+  private class ASTMatcherSubject extends Subject {
 
     private final String pattern;
     private final AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
