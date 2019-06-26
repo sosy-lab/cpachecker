@@ -719,22 +719,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
               cfaEdge.getPredecessor(),
               getBitsize(partition, functionReturnType),
               precision);
-      // newState = newState.forget(retvar);
       newState = newState.addAssignment(retvar, regRHS);
+      newState = newState.forget(retvar);
     }
 
-    // delete variables from returning function,
-    // we do not need them after this location, because the next edge is the functionReturnEdge.
-    // this results in a smaller BDD and allows to call a function twice.
-    // for (String var : predmgr.getTrackedVars()) {
-    // if (isLocalVariableForFunction(var, functionName) && !returnVar.equals(var)) {
-    // newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
-    // }
-    // }
-
-    // delete variables from returning function,
-    // we do not need them after this location, because the next edge is the functionReturnEdge.
-    // this results in a smaller BDD and allows to call a function twice.
     return newState;
   }
 
