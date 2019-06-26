@@ -661,7 +661,10 @@ public class ReportGenerator {
             argEdges.put(
                 parentStateId + "->" + childStateId,
                 createArgEdge(
-                    parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child)));
+                    parentStateId,
+                    childStateId,
+                    ((ARGState) entry),
+                    child));
           }
         }
       }
@@ -692,7 +695,7 @@ public class ReportGenerator {
           }
           argRelevantEdges.put(
               parentStateId + "->" + childStateId,
-              createArgEdge(parentStateId, childStateId, parent.getEdgesToChild(child)));
+              createArgEdge(parentStateId, childStateId, parent, child));
         }
       }
     }
@@ -764,10 +767,20 @@ public class ReportGenerator {
   }
 
   private Map<String, Object> createArgEdge(
-      int parentStateId, int childStateId, List<CFAEdge> edges) {
+      int parentStateId,
+      int childStateId,
+      ARGState parent,
+      ARGState child) {
     Map<String, Object> argEdge = new HashMap<>();
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
+
+    List<CFAEdge> edges = parent.getEdgesToChild(child);
+    // if theres no edge parent -> child there might be an edge parent <- child if it is a backwards
+    // ARG
+    if (edges.isEmpty()) {
+      edges = child.getEdgesToChild(parent);
+    }
     StringBuilder edgeLabel = new StringBuilder();
     if (edges.isEmpty()) {
       edgeLabel.append("dummy edge");
