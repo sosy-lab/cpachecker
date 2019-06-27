@@ -208,14 +208,18 @@ public class SLTransferRelation
   @Override
   public BigInteger getAllocationSize(CExpression pExp) throws Exception {
     Formula f = pfm.expressionToFormula(pathFormulaPrev, pExp, edge);
+    final String tmpVarName = "0_allocationSize";
+    f = fm.makeEqual(bvfm.makeVariable(32, tmpVarName), f);
+
     ProverEnvironment env = null;
     try {
       env = solver.newProverEnvironment();
       env.addConstraint(pathFormulaPrev.getFormula());
+      env.addConstraint((BooleanFormula) f);
       if (!env.isUnsat()) {
         List<ValueAssignment> assignments = env.getModelAssignments();
         for (ValueAssignment a : assignments) {
-          if (a.getKey().toString().equals(f.toString())) {
+          if (a.getKey().toString().equals(tmpVarName)) {
             return (BigInteger) a.getValue();
           }
         }
