@@ -75,6 +75,7 @@ public class SLTransferRelation
   private PathFormula pathFormula;
   private PathFormula pathFormulaPrev;
   private Map<Formula, Formula> heap;
+  private Map<Formula, BigInteger> allocationSizes;
   private Map<String, Formula> stack;
   private CFAEdge edge;
 
@@ -82,6 +83,7 @@ public class SLTransferRelation
   public SLTransferRelation(LogManager pLogger) {
     logger = pLogger;
     slVisitor = new SLVisitor(this);
+    allocationSizes = new HashMap<>();
   }
 
   @Override
@@ -195,9 +197,27 @@ public class SLTransferRelation
       Formula f = getFormulaForVarName(pVarName);
       if (i > 0) {
         f = bvfm.add((BitvectorFormula) f, bvfm.makeBitvector(size.bitLength(), i));
+      } else {
+        allocationSizes.put(f, size);
       }
       heap.put(f, ifm.makeNumber(0));
     }
+  }
+
+  @Override
+  public void removeFromHeap(Formula pAddrFormula) {
+    BigInteger size = allocationSizes.get(pAddrFormula);
+    for (int i = 0; i < size.intValueExact(); i++) {
+      if (i == 0) {
+        heap.remove(pAddrFormula);
+      } else {
+        Formula tmp =
+            bvfm.add((BitvectorFormula) pAddrFormula, bvfm.makeBitvector(size.bitLength(), i));
+        heap.remove(tmp);
+      }
+
+    }
+
   }
 
   /**
@@ -244,7 +264,7 @@ public class SLTransferRelation
 
   @SuppressWarnings("resource")
   @Override
-  public boolean isAllocated(CExpression pAddrExp, CExpression pValExp) throws Exception {
+  public Formula checkAllocation(CExpression pAddrExp, CExpression pValExp) throws Exception {
     Formula fAddr = null;
     Formula fVal = null;
     try {
@@ -253,7 +273,7 @@ public class SLTransferRelation
         fVal = pfm.expressionToFormula(pathFormulaPrev, pValExp, edge);
       }
     } catch (UnrecognizedCodeException e1) {
-      return false;
+      return null;
     }
 
     if (heap.containsKey(fAddr)) {
@@ -261,7 +281,7 @@ public class SLTransferRelation
         heap.put(fAddr, fVal);
       }
       // Syntactical check for performance.
-      return true;
+      return fAddr;
     }
 
     // Semantical check.
@@ -275,11 +295,11 @@ public class SLTransferRelation
         if (fVal != null) {
           heap.put(formulaOnHeap, fVal);
         }
-        return true;
+        return formulaOnHeap;
       }
       env.close();
     }
-    return false;
+    return null;
   }
 
   // private Formula getHeapFormulaFromMap() {
