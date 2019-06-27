@@ -20,7 +20,9 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import com.google.common.base.Ascii;
+import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.CharStreams;
 import com.google.common.io.MoreFiles;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -95,28 +97,21 @@ public class BOMParser {
       }
       switch (bom) {
         case NO_BOM:
-          // Read the file from the beginning again
-          return MoreFiles.asCharSource(Paths.get(pFilename), Charset.defaultCharset()).read();
-        case UTF8_BOM:
-        case UTF16_BE_BOM:
-        case UTF16_LE_BOM:
-        case UTF32_BE_BOM:
-        case UTF32_LE_BOM:
-          bufferedReader = new BufferedReader(new InputStreamReader(in, bom.charset));
+          // Reset the stream to read the file from the beginning again
+          in.reset();
           break;
+        case UNKNOWN_BOM:
+          throw new CParserException("Byte Order Mark is unknown");
         default:
-          throw new CParserException("Byte Order Mark Unknown");
+          break;
       }
-      StringBuilder sb = new StringBuilder();
-      int data;
-      while ((data = bufferedReader.read()) != -1) {
-        // when we continue to read the data in a BOM file we do not want any no ascii characters
-        if (Ascii.MAX < data) {
-          throw new CParserException(bom.charset + " encoded file has non-ascii values");
-        }
-        sb.append((char) data);
+      bufferedReader = new BufferedReader(new InputStreamReader(in, bom.charset));
+      String code = CharStreams.toString(bufferedReader);
+      // If we have a BOM we need to check whether it contains only ascii values
+      if (bom != ByteOrderMark.NO_BOM && !CharMatcher.ascii().matchesAllOf(code)) {
+        throw new CParserException(bom.charset + " encoded file has non-ascii values");
       }
-      return sb.toString();
+      return code;
     } finally {
       if (bufferedReader != null) {
         bufferedReader.close();
