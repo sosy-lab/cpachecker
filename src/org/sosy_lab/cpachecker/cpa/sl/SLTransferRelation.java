@@ -56,7 +56,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.SLFormulaManager;
 
 public class SLTransferRelation
     extends ForwardingTransferRelation<Collection<SLState>, SLState, Precision>
@@ -68,7 +67,7 @@ public class SLTransferRelation
   private BooleanFormulaManager bfm;
   private IntegerFormulaManager ifm;
   private BitvectorFormulaManager bvfm;
-  private SLFormulaManager slfm;
+  // private SLFormulaManager slfm;
   private Solver solver;
   private final SLVisitor slVisitor;
 
@@ -171,7 +170,7 @@ public class SLTransferRelation
     fm = pFMgr;
     bfm = fm.getBooleanFormulaManager();
     ifm = fm.getIntegerFormulaManager();
-    slfm = fm.getSLFormulaManager();
+    // slfm = fm.getSLFormulaManager();
     bvfm = fm.getBitvectorFormulaManager();
   }
 
@@ -235,47 +234,43 @@ public class SLTransferRelation
   }
 
   @Override
-  public void updateHeap(String pVarName, CExpression pExp) {
-    // Formula f = getFormulaForVarName(pVarName);
-    PathFormula tmp = pfm.makeEmptyPathFormula();
-    try {
-      tmp = pfm.makeAnd(tmp, pExp);
-    } catch (CPATransferException | InterruptedException e) {
-      logger.log(Level.SEVERE, e.getMessage());
-    }
-
-    // TODO heap.put(f, tmp);
-  }
-
-  @Override
   public void setFunctionScope(String pScope) {
     currentFunctionScope = pScope;
   }
 
   @SuppressWarnings("resource")
   @Override
-  public boolean isAllocated(CExpression pExp) throws Exception {
-
-    Formula f = null;
+  public boolean isAllocated(CExpression pAddrExp, CExpression pValExp) throws Exception {
+    Formula fAddr = null;
+    Formula fVal = null;
     try {
-      f = pfm.expressionToFormula(pathFormulaPrev, pExp, edge);
+      fAddr = pfm.expressionToFormula(pathFormulaPrev, pAddrExp, edge);
+      if (pValExp != null) {
+        fVal = pfm.expressionToFormula(pathFormulaPrev, pValExp, edge);
+      }
     } catch (UnrecognizedCodeException e1) {
       return false;
     }
-    // logger.log(Level.INFO, "Syntactical allocation check only.");
-    // return heap.containsKey(f);
-    if (heap.containsKey(f)) {
+
+    if (heap.containsKey(fAddr)) {
+      if (fVal != null) {
+        heap.put(fAddr, fVal);
+      }
       // Syntactical check for performance.
       return true;
     }
 
+    // Semantical check.
     for (Formula formulaOnHeap : heap.keySet()) {
       ProverEnvironment env = solver.newProverEnvironment();
       env.addConstraint(pathFormulaPrev.getFormula());
-      Formula tmp = fm.makeEqual(f, formulaOnHeap);
+      Formula tmp = fm.makeEqual(fAddr, formulaOnHeap);
       env.addConstraint((BooleanFormula) tmp);
       if (!env.isUnsat()) {
         env.close();
+        if (fVal != null) {
+          heap.put(formulaOnHeap, fVal);
+        }
         return true;
       }
       env.close();

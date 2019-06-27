@@ -35,9 +35,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.SLFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 
 /**
  *
@@ -59,10 +57,8 @@ public class SLCPA extends AbstractCPA {
 
   private final SLTransferRelation transfer;
   private final FormulaManagerView fm;
-  private final IntegerFormulaManager ifm;
   // private final BooleanFormulaManager bfm;
   private final PathFormulaManager pfm;
-  private final SLFormulaManagerView slfm;
 
   private SLCPA(
       CFA pCfa,
@@ -75,7 +71,6 @@ public class SLCPA extends AbstractCPA {
 
     Solver solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     fm = solver.getFormulaManager();
-    ifm = fm.getIntegerFormulaManager();
     // bfm = fm.getBooleanFormulaManager();
     pfm =
         new PathFormulaManagerImpl(
@@ -86,7 +81,6 @@ public class SLCPA extends AbstractCPA {
             pCfa,
             AnalysisDirection.FORWARD);
 
-    slfm = fm.getSLFormulaManager();
     transfer = (SLTransferRelation) getTransferRelation();
     transfer.setPathFormulaManager(pfm);
     transfer.setSolver(solver);

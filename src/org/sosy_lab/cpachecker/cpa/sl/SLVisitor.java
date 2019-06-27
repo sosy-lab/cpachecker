@@ -65,15 +65,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   private final SLVisitorDelegate delegate;
-  private boolean onRightHandSide;
-  private CPointerExpression topLvlPtrExp;
-  private boolean isAssignment;
 
   public SLVisitor(SLVisitorDelegate pDelegate) {
     delegate = pDelegate;
-    onRightHandSide = false;
-    topLvlPtrExp = null;
-    isAssignment = false;
   }
 
   @Override
@@ -199,20 +193,8 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   public Boolean visit(CPointerExpression pPointerExpression) throws Exception {
     boolean isTarget = false;
     CExpression operand = pPointerExpression.getOperand();
-    isTarget = !delegate.isAllocated(operand);
-
-    if (topLvlPtrExp == null) {
-      topLvlPtrExp = pPointerExpression;
-    }
-
-    // if (operand instanceof CIdExpression) {
-    // CIdExpression e = (CIdExpression) operand;
-    // isTarget = !delegate.isAllocated(e.getName());
-    //
-    // } else {
-    // throw new NotImplementedException();
-    // }
-
+    isTarget = !delegate.isAllocated(operand, null);
+    isTarget |= operand.accept(this);
     return isTarget;
   }
 
@@ -246,12 +228,10 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   @Override
   public Boolean visit(CVariableDeclaration pDecl) throws Exception {
-    // final CIdExpression e = new CIdExpression(pDecl.getFileLocation(), pDecl);
-    // delegate.addVarToHeap(e, pDecl.getName());
     boolean isTarget = false;
     CInitializer i = pDecl.getInitializer();
     if (i != null) {
-      isTarget = acceptOnRightHandSide(i);
+      isTarget = i.accept(this);
     }
     return isTarget;
   }
@@ -275,23 +255,13 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   @Override
   public Boolean visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement)
       throws Exception {
-    topLvlPtrExp = null;
-    isAssignment = true;
     final CRightHandSide rhSide = pIastExpressionAssignmentStatement.getRightHandSide();
-    final boolean rightIsTarget = acceptOnRightHandSide(rhSide);
+    final boolean rightIsTarget = rhSide.accept(this);
 
     final CLeftHandSide lhSide = pIastExpressionAssignmentStatement.getLeftHandSide();
     final boolean leftIsTarget = lhSide.accept(this);
 
-    if (lhSide instanceof CPointerExpression) {
-      CPointerExpression e = (CPointerExpression) lhSide;
-      CExpression o = e.getOperand();
-      if (o instanceof CIdExpression) {
-        CIdExpression cid = (CIdExpression) o;
-        delegate.updateHeap(cid.getName(), (CExpression) rhSide);
-      }
-
-    }
+    checkPtrAssignment(lhSide, rhSide);
 
     return leftIsTarget || rightIsTarget;
   }
@@ -299,10 +269,8 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   @Override
   public Boolean visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement)
       throws Exception {
-    topLvlPtrExp = null;
-    isAssignment = true;
     final CFunctionCallExpression fctExp = pIastFunctionCallAssignmentStatement.getRightHandSide();
-    final boolean rightIsTarget = acceptOnRightHandSide(fctExp);
+    final boolean rightIsTarget = fctExp.accept(this);
     final CIdExpression fctNameExp = (CIdExpression) fctExp.getFunctionNameExpression();
 
     final CLeftHandSide lhSide = pIastFunctionCallAssignmentStatement.getLeftHandSide();
@@ -316,6 +284,7 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
       delegate.addToHeap(varName, size);
     }
 
+    checkPtrAssignment(lhSide, fctExp);
 
     return leftIsTarget || rightIsTarget;
   }
@@ -335,27 +304,40 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   public interface SLVisitorDelegate {
     public BigInteger getAllocationSize(CExpression pExp) throws Exception;
 
+    /**
+     * A new range of consecutive fresh cells is allocated on the heap.
+     *
+     * @param pVarName - pointer name.
+     * @param size - size of range.
+     */
     public void addToHeap(String pVarName, BigInteger size);
 
-    public void updateHeap(String pVarName, CExpression pExp);
-
+    /**
+     * Updates the function name of the current scope.
+     *
+     * @param scope - The name of the function.
+     */
     public void setFunctionScope(String scope);
 
-    public boolean isAllocated(CExpression pExp) throws Exception;
+    /**
+     * Checks whether the given address is allocated on the heap. The associated value can be
+     * updated.
+     *
+     * @param pAddrExp - the address to be checked.
+     * @param pVal - the value to be updated, null otherwise.
+     * @return true if allocation check succeeded, false otherwise.
+     * @throws Exception - Either PathFormulaManager can't convert expression(s) to formulae or
+     *         solver exception.
+     */
+    public boolean isAllocated(CExpression pAddrExp, CExpression pVal) throws Exception;
   }
 
-  private boolean acceptOnRightHandSide(CRightHandSide pExp) throws Exception {
-    onRightHandSide = true;
-    boolean isTarget = pExp.accept(this);
-    onRightHandSide = false;
-    return isTarget;
-  }
-
-  private boolean acceptOnRightHandSide(CInitializer pExp) throws Exception {
-    onRightHandSide = true;
-    boolean isTarget = pExp.accept(this);
-    onRightHandSide = false;
-    return isTarget;
+  private void checkPtrAssignment(CLeftHandSide pLhs, CRightHandSide pRhs)
+      throws Exception {
+    if (pLhs instanceof CPointerExpression) {
+      CPointerExpression addrExp = (CPointerExpression) pLhs;
+      delegate.isAllocated(addrExp.getOperand(), (CExpression) pRhs);
+    }
   }
 }
 
