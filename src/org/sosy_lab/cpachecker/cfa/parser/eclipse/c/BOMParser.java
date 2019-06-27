@@ -39,19 +39,23 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 public class BOMParser {
 
   private enum ByteOrderMark {
-    NO_BOM("Without BOM", ImmutableList.of()),
-    UTF8_BOM("UTF8", ImmutableList.of(0xEF, 0xBB, 0xBF)),
-    UTF16_BE_BOM("UTF16 BE", ImmutableList.of(0xFE, 0xFF, 0xFE, 0xFF)),
-    UTF16_LE_BOM("UTF16 LE", ImmutableList.of(0xFF, 0xFE, 0xFF, 0xFE)),
-    UTF32_BE_BOM("UTF32 BE", ImmutableList.of(0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0xFE, 0xFF)),
-    UTF32_LE_BOM("UTF32 LE", ImmutableList.of(0xFF, 0xFE, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00)),
-    UNKNOWN_BOM("Unknown BOM", ImmutableList.of());
+    NO_BOM(Charset.defaultCharset(), ImmutableList.of()),
+    UTF8_BOM(StandardCharsets.UTF_8, ImmutableList.of(0xEF, 0xBB, 0xBF)),
+    UTF16_BE_BOM(StandardCharsets.UTF_16BE, ImmutableList.of(0xFE, 0xFF, 0xFE, 0xFF)),
+    UTF16_LE_BOM(StandardCharsets.UTF_16LE, ImmutableList.of(0xFF, 0xFE, 0xFF, 0xFE)),
+    UTF32_BE_BOM(
+        Charset.forName("UTF-32BE"),
+        ImmutableList.of(0x00, 0x00, 0xFE, 0xFF, 0x00, 0x00, 0xFE, 0xFF)),
+    UTF32_LE_BOM(
+        Charset.forName("UTF-32LE"),
+        ImmutableList.of(0xFF, 0xFE, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00)),
+    UNKNOWN_BOM(null, ImmutableList.of());
 
-    private final String encoding;
     private final ImmutableList<Integer> sequence;
+    private final Charset charset;
 
-    ByteOrderMark(String encoding, ImmutableList<Integer> sequence) {
-      this.encoding = encoding;
+    ByteOrderMark(Charset charset, ImmutableList<Integer> sequence) {
+      this.charset = charset;
       this.sequence = sequence;
     }
   }
@@ -94,21 +98,11 @@ public class BOMParser {
           // Read the file from the beginning again
           return MoreFiles.asCharSource(Paths.get(pFilename), Charset.defaultCharset()).read();
         case UTF8_BOM:
-          bufferedReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-          break;
         case UTF16_BE_BOM:
-          bufferedReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_16BE));
-          break;
         case UTF16_LE_BOM:
-          bufferedReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_16LE));
-          break;
         case UTF32_BE_BOM:
-          bufferedReader =
-              new BufferedReader(new InputStreamReader(in, Charset.forName("UTF-32BE")));
-          break;
         case UTF32_LE_BOM:
-          bufferedReader =
-              new BufferedReader(new InputStreamReader(in, Charset.forName("UTF-32LE")));
+          bufferedReader = new BufferedReader(new InputStreamReader(in, bom.charset));
           break;
         default:
           throw new CParserException("Byte Order Mark Unknown");
@@ -118,7 +112,7 @@ public class BOMParser {
       while ((data = bufferedReader.read()) != -1) {
         // when we continue to read the data in a BOM file we do not want any no ascii characters
         if (Ascii.MAX < data) {
-          throw new CParserException(bom.encoding + " encoded file has non-ascii values");
+          throw new CParserException(bom.charset + " encoded file has non-ascii values");
         }
         sb.append((char) data);
       }
