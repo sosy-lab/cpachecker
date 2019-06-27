@@ -322,10 +322,9 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
     public void addToHeap(String pVarName, BigInteger size);
 
     /**
-     * A new range of consecutive fresh cells is allocated on the heap.
+     * The range associated with the given pointer is deallocated i.e. removed from the heap.
      *
-     * @param pVarName - pointer name.
-     * @param size - size of range.
+     * @param pAddrFormula - the formula representing the pointer.
      */
     public void removeFromHeap(Formula pAddrFormula);
 
