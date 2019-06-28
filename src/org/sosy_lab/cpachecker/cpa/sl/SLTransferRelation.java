@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.sl.SLVisitor.SLVisitorDelegate;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -59,7 +58,7 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 
 public class SLTransferRelation
     extends ForwardingTransferRelation<Collection<SLState>, SLState, Precision>
-    implements SLVisitorDelegate {
+    implements SLHeapDelegate {
 
   private final LogManager logger;
   private FormulaManagerView fm;
@@ -268,11 +267,16 @@ public class SLTransferRelation
 
   @SuppressWarnings("resource")
   @Override
-  public Formula checkAllocation(CExpression pAddrExp, CExpression pValExp) throws Exception {
+  public Formula checkAllocation(CExpression pAddrExp, CExpression pOffset, CExpression pValExp)
+      throws Exception {
     Formula fAddr = null;
     Formula fVal = null;
     try {
       fAddr = pfm.expressionToFormula(pathFormulaPrev, pAddrExp, edge);
+      if (pOffset != null) {
+        Formula fOffset = pfm.expressionToFormula(pathFormulaPrev, pOffset, edge);
+        fAddr = fm.makePlus(fAddr, fOffset);
+      }
       if (pValExp != null) {
         fVal = pfm.expressionToFormula(pathFormulaPrev, pValExp, edge);
       }

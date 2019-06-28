@@ -65,9 +65,9 @@ import org.sosy_lab.java_smt.api.Formula;
  */
 public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
-  private final SLVisitorDelegate delegate;
+  private final SLHeapDelegate delegate;
 
-  public SLVisitor(SLVisitorDelegate pDelegate) {
+  public SLVisitor(SLHeapDelegate pDelegate) {
     delegate = pDelegate;
   }
 
@@ -114,7 +114,7 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
     CExpression fctExp = pIastFunctionCallExpression.getFunctionNameExpression();
     if (((CIdExpression) fctExp).getName().equals("free")) {
       CExpression addrExp = pIastFunctionCallExpression.getParameterExpressions().get(0);
-      Formula addrFormula = delegate.checkAllocation(addrExp, null);
+      Formula addrFormula = delegate.checkAllocation(addrExp);
       if (addrFormula == null) {
         return true;
       }
@@ -183,8 +183,12 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   @Override
   public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws Exception {
-    throw new UnsupportedOperationException(
-        CArraySubscriptExpression.class.getSimpleName() + "is not implemented yet.");
+    CExpression subscriptExp = pIastArraySubscriptExpression.getSubscriptExpression();
+    CExpression arrayExp = pIastArraySubscriptExpression.getArrayExpression();
+    if (subscriptExp.accept(this)) {
+      return true;
+    }
+    return delegate.checkAllocation(arrayExp, subscriptExp, null) == null;
   }
 
   @Override
@@ -195,17 +199,16 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   @Override
   public Boolean visit(CIdExpression pIastIdExpression) throws Exception {
-    // boolean isOnHeap = delegate.isAllocated(pIastIdExpression, pIastIdExpression.getName());
     return false;
   }
 
   @Override
   public Boolean visit(CPointerExpression pPointerExpression) throws Exception {
-    boolean isTarget = false;
     CExpression operand = pPointerExpression.getOperand();
-    isTarget = delegate.checkAllocation(operand, null) == null;
-    isTarget |= operand.accept(this);
-    return isTarget;
+    if(operand.accept(this)) {
+      return true;
+    }
+    return delegate.checkAllocation(operand) == null;
   }
 
   @Override
@@ -217,11 +220,12 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   @Override
   public Boolean visit(CFunctionDeclaration pDecl) throws Exception {
     delegate.setFunctionScope(pDecl.getName());
-    boolean isTarget = false;
     for (CParameterDeclaration dec : pDecl.getParameters()) {
-      isTarget |= dec.accept(this);
+      if (dec.accept(this)) {
+        return true;
+      }
     }
-    return isTarget;
+    return false;
   }
 
   @Override
@@ -238,12 +242,8 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   @Override
   public Boolean visit(CVariableDeclaration pDecl) throws Exception {
-    boolean isTarget = false;
     CInitializer i = pDecl.getInitializer();
-    if (i != null) {
-      isTarget = i.accept(this);
-    }
-    return isTarget;
+    return i != null ? i.accept(this) : false;
   }
 
   @Override
@@ -310,49 +310,17 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
         CReturnStatement.class.getSimpleName() + "is not implemented yet.");
   }
 
-  public interface SLVisitorDelegate {
-    public BigInteger getAllocationSize(CExpression pExp) throws Exception;
-
-    /**
-     * A new range of consecutive fresh cells is allocated on the heap.
-     *
-     * @param pVarName - pointer name.
-     * @param size - size of range.
-     */
-    public void addToHeap(String pVarName, BigInteger size);
-
-    /**
-     * The range associated with the given pointer is deallocated i.e. removed from the heap.
-     *
-     * @param pAddrFormula - the formula representing the pointer.
-     */
-    public void removeFromHeap(Formula pAddrFormula);
-
-    /**
-     * Updates the function name of the current scope.
-     *
-     * @param scope - The name of the function.
-     */
-    public void setFunctionScope(String scope);
-
-    /**
-     * Checks whether the given address is allocated on the heap. The associated value can be
-     * updated.
-     *
-     * @param pAddrExp - the address to be checked.
-     * @param pVal - the value to be updated, null otherwise.
-     * @return The formula on the heap if allocated.
-     * @throws Exception - Either PathFormulaManager can't convert expression(s) to formulae or
-     *         solver exception.
-     */
-    public Formula checkAllocation(CExpression pAddrExp, CExpression pVal) throws Exception;
-  }
-
   private void checkPtrAssignment(CLeftHandSide pLhs, CRightHandSide pRhs)
       throws Exception {
     if (pLhs instanceof CPointerExpression) {
       CPointerExpression addrExp = (CPointerExpression) pLhs;
-      delegate.checkAllocation(addrExp.getOperand(), (CExpression) pRhs);
+      delegate.checkAllocation(addrExp.getOperand(), null, (CExpression) pRhs);
+    } else if (pLhs instanceof CArraySubscriptExpression) {
+      CArraySubscriptExpression subscriptExp = (CArraySubscriptExpression) pLhs;
+      delegate.checkAllocation(
+          subscriptExp.getArrayExpression(),
+          subscriptExp.getSubscriptExpression(),
+          (CExpression) pRhs);
     }
   }
 }
