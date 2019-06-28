@@ -127,16 +127,20 @@ public class SLTransferRelation
   protected @Nullable Collection<SLState>
       handleAssumption(CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
           throws CPATransferException {
-    // TODO
-
-    return super.handleAssumption(pCfaEdge, pExpression, pTruthAssumption);
+    boolean isTarget = true;
+    try {
+      isTarget = pExpression.accept(slVisitor);
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, e.getMessage());
+    }
+    return ImmutableList.of(new SLState(pathFormula, heap, isTarget));
   }
 
   @Override
   protected List<SLState>
       handleDeclarationEdge(CDeclarationEdge pCfaEdge, CDeclaration pDecl)
       throws CPATransferException {
-    boolean isTarget = false;
+    boolean isTarget = true;
     try {
       isTarget = pDecl.accept(slVisitor);
     } catch (Exception e) {
