@@ -28,12 +28,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -79,7 +81,6 @@ public class SLTransferRelation
   private Map<Formula, Formula> heap;
 
   private Map<Formula, BigInteger> allocationSizes;
-  private Map<String, Formula> stack;
   private CFAEdge edge;
 
 
@@ -100,7 +101,6 @@ public class SLTransferRelation
       logger.log(Level.SEVERE, e.getMessage());
     }
     heap = new HashMap<>(state.getHeap());
-    stack = new HashMap<>(state.getStack());
     edge = pCfaEdge;
   }
 
@@ -123,6 +123,14 @@ public class SLTransferRelation
     edge = null;
   }
 
+  @Override
+  protected @Nullable Collection<SLState>
+      handleAssumption(CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
+          throws CPATransferException {
+    // TODO
+
+    return super.handleAssumption(pCfaEdge, pExpression, pTruthAssumption);
+  }
 
   @Override
   protected List<SLState>
@@ -134,7 +142,7 @@ public class SLTransferRelation
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
-    return ImmutableList.of(new SLState(pathFormula, heap, stack, isTarget));
+    return ImmutableList.of(new SLState(pathFormula, heap, isTarget));
   }
 
   @Override
@@ -148,19 +156,19 @@ public class SLTransferRelation
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
-    return ImmutableList.of(new SLState(pathFormula, heap, stack, isTarget));
+    return ImmutableList.of(new SLState(pathFormula, heap, isTarget));
   }
 
   @Override
   protected Collection<SLState> handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
     setFunctionScope(null);
-    return ImmutableList.of(new SLState(pathFormula, heap, stack, false));
+    return ImmutableList.of(new SLState(pathFormula, heap, false));
   }
 
   @Override
   protected Set<SLState> handleBlankEdge(BlankEdge pCfaEdge) {
-    return Collections.singleton(new SLState(pathFormula, heap, stack, false));
+    return Collections.singleton(new SLState(pathFormula, heap, false));
   }
 
   public void setPathFormulaManager(PathFormulaManager pPfm) {
@@ -309,4 +317,5 @@ public class SLTransferRelation
     }
     return null;
   }
+
 }
