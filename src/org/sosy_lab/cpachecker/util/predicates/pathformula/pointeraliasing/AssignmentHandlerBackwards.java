@@ -160,6 +160,49 @@ class AssignmentHandlerBackwards {
       return conv.bfmgr.makeTrue();
     }
 
+    // LHS handling
+    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
+    final Expression lhsExpression = lhs.accept(lhsVisitor);
+    if (lhsExpression.isNondetValue()) {
+      // only because of CExpressionVisitorWithPointerAliasing.visit(CFieldReference)
+      conv.logger.logfOnce(
+          Level.WARNING,
+          "%s: Ignoring assignment to %s because bit fields are currently not fully supported",
+          edge.getFileLocation(),
+          lhs);
+      return conv.bfmgr.makeTrue();
+    }
+    final Location lhsLocation = lhsExpression.asLocation();
+    // final boolean useOldSSAIndices = useOldSSAIndicesIfAliased && lhsLocation.isAliased();
+    final boolean useOldSSAIndices = useOldSSAIndicesIfAliased && lhsLocation.isAliased();
+
+    final Map<String, CType> lhsLearnedPointerTypes = lhsVisitor.getLearnedPointerTypes();
+    pts.addEssentialFields(lhsVisitor.getInitializedFields());
+    pts.addEssentialFields(lhsVisitor.getUsedFields());
+    // the pattern matching possibly aliased locations
+    final String targetName;
+    final int oldIndex;
+    if (!lhsLocation.isAliased()) { // Unaliased LHS
+      assert !useOldSSAIndices;
+      targetName = lhsLocation.asUnaliased().getVariableName();
+    } else {
+      MemoryRegion region = lhsLocation.asAliased().getMemoryRegion();
+      if (region == null) {
+        region = regionMgr.makeMemoryRegion(lhsType);
+      }
+      targetName = regionMgr.getPointerAccessName(region);
+    }
+    // making new variable
+    oldIndex = conv.getIndex(targetName, lhsType, ssa);
+    final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lhsType);
+    final Formula lhsFormula;
+    if (!lhsLocation.isAliased()) {
+      lhsFormula = conv.makeFreshVariable(targetName, lhsType, ssa);
+    // final Formula lhsFormula = fmgr.makeVariable(targetType, targetName, oldIndex);
+    int newIndex = conv.getFreshIndex(targetName, lhsType, ssa);
+    } else {
+      lhsFormula = null;
+    }
     final CType rhsType =
         rhs != null ? typeHandler.getSimplifiedType(rhs) : CNumericTypes.SIGNED_CHAR;
 
@@ -180,25 +223,7 @@ class AssignmentHandlerBackwards {
     final List<CompositeField> rhsAddressedFields = rhsVisitor.getAddressedFields();
     final Map<String, CType> rhsLearnedPointersTypes = rhsVisitor.getLearnedPointerTypes();
 
-    // LHS handling
-    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
-    final Expression lhsExpression = lhs.accept(lhsVisitor);
-    if (lhsExpression.isNondetValue()) {
-      // only because of CExpressionVisitorWithPointerAliasing.visit(CFieldReference)
-      conv.logger.logfOnce(
-          Level.WARNING,
-          "%s: Ignoring assignment to %s because bit fields are currently not fully supported",
-          edge.getFileLocation(),
-          lhs);
-      return conv.bfmgr.makeTrue();
-    }
-    final Location lhsLocation = lhsExpression.asLocation();
-    final boolean useOldSSAIndices = useOldSSAIndicesIfAliased && lhsLocation.isAliased();
 
-    final Map<String, CType> lhsLearnedPointerTypes = lhsVisitor.getLearnedPointerTypes();
-    pts.addEssentialFields(lhsVisitor.getInitializedFields());
-    pts.addEssentialFields(lhsVisitor.getUsedFields());
-    // the pattern matching possibly aliased locations
 
     if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
       DynamicMemoryHandler memoryHandler =
@@ -221,6 +246,7 @@ class AssignmentHandlerBackwards {
             lhsType,
             rhsType,
             lhsLocation,
+            lhsFormula,
             rhsExpression,
             useOldSSAIndices,
             updatedRegions);
@@ -234,6 +260,7 @@ class AssignmentHandlerBackwards {
           addAssignmentsForOtherFieldsOfUnion(
               lhsType,
               (CCompositeType) ownerType,
+              lhsFormula,
               rhsType,
               rhsExpression,
               useOldSSAIndices,
@@ -248,6 +275,7 @@ class AssignmentHandlerBackwards {
             addAssignmentsForOtherFieldsOfUnion(
                 ownersOwnerType,
                 (CCompositeType) ownersOwnerType,
+                lhsFormula,
                 ownerType,
                 createRHSExpression(owner, ownerType, rhsVisitor),
                 useOldSSAIndices,
@@ -521,6 +549,7 @@ class AssignmentHandlerBackwards {
       CType lvalueType,
       CType rvalueType,
       final Location lvalue,
+      final Formula lhsFormula,
       final Expression rvalue,
       final boolean useOldSSAIndices,
       final @Nullable Set<MemoryRegion> updatedRegions)
@@ -536,6 +565,7 @@ class AssignmentHandlerBackwards {
           (CArrayType) lvalueType,
           rvalueType,
           lvalue,
+          lhsFormula,
           rvalue,
           useOldSSAIndices,
           updatedRegions);
@@ -546,6 +576,7 @@ class AssignmentHandlerBackwards {
           lvalueCompositeType,
           rvalueType,
           lvalue,
+          lhsFormula,
           rvalue,
           useOldSSAIndices,
           updatedRegions);
@@ -555,6 +586,7 @@ class AssignmentHandlerBackwards {
           lvalueType,
           rvalueType,
           lvalue,
+          lhsFormula,
           rvalue,
           useOldSSAIndices,
           updatedRegions);
@@ -565,6 +597,7 @@ class AssignmentHandlerBackwards {
       CArrayType lvalueArrayType,
       CType rvalueType,
       final Location lvalue,
+      final Formula lhsFormula,
       final Expression rvalue,
       final boolean useOldSSAIndices,
       final Set<MemoryRegion> updatedRegions)
@@ -641,6 +674,7 @@ class AssignmentHandlerBackwards {
                   lvalueElementType,
                   newRvalueType,
                   newLvalue,
+                  lhsFormula,
                   newRvalue,
                   useOldSSAIndices,
                   updatedRegions));
@@ -653,6 +687,7 @@ class AssignmentHandlerBackwards {
       final CCompositeType lvalueCompositeType,
       CType rvalueType,
       final Location lvalue,
+      final Formula lhsFormula,
       final Expression rvalue,
       final boolean useOldSSAIndices,
       final Set<MemoryRegion> updatedRegions)
@@ -750,6 +785,7 @@ class AssignmentHandlerBackwards {
                     newLvalueType,
                     newRvalueType,
                     newLvalue,
+                    lhsFormula,
                     newRvalue,
                     useOldSSAIndices,
                     updatedRegions));
@@ -774,6 +810,7 @@ class AssignmentHandlerBackwards {
       CType lvalueType,
       final CType pRvalueType,
       final Location lvalue,
+      final Formula lhsFormula,
       Expression rvalue,
       final boolean useOldSSAIndices,
       final @Nullable Set<MemoryRegion> updatedRegions)
@@ -807,7 +844,7 @@ class AssignmentHandlerBackwards {
       final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
 
       if (rhs != null) {
-        result = fmgr.assignment(fmgr.makeVariable(targetType, targetName, oldIndex), rhs);
+        result = fmgr.assignment(lhsFormula, rhs);
       } else {
         result = bfmgr.makeTrue();
       }
@@ -827,7 +864,7 @@ class AssignmentHandlerBackwards {
             conv.ptsMgr.makePointerAssignment(
                 targetName,
                 targetType,
-                oldIndex - 1,
+                oldIndex,
                 oldIndex,
                 address,
                 rhs);
@@ -893,6 +930,7 @@ class AssignmentHandlerBackwards {
   private void addAssignmentsForOtherFieldsOfUnion(
       final CType lhsType,
       final CCompositeType ownerType,
+      final Formula lhsFormula,
       final CType rhsType,
       final Expression rhsExpression,
       final boolean useOldSSAIndices,
@@ -1008,6 +1046,7 @@ class AssignmentHandlerBackwards {
                 newLhsType,
                 newRhsType,
                 newLhsLocation,
+                lhsFormula,
                 newRhsExpression,
                 useOldSSAIndices,
                 updatedRegions));
@@ -1081,6 +1120,7 @@ class AssignmentHandlerBackwards {
                   innerMember.getType(),
                   innerMember.getType(),
                   innerMemberLocation,
+                  lhsFormula,
                   newRhsExpression,
                   useOldSSAIndices,
                   updatedRegions));
