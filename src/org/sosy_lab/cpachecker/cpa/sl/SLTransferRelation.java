@@ -67,14 +67,18 @@ public class SLTransferRelation
   private BooleanFormulaManager bfm;
   private IntegerFormulaManager ifm;
   private BitvectorFormulaManager bvfm;
-  // private SLFormulaManager slfm;
   private Solver solver;
   private final SLVisitor slVisitor;
 
   private String currentFunctionScope;
   private PathFormula pathFormula;
   private PathFormula pathFormulaPrev;
+
+  /**
+   * Modeling a heap of chars.
+   */
   private Map<Formula, Formula> heap;
+
   private Map<Formula, BigInteger> allocationSizes;
   private Map<String, Formula> stack;
   private CFAEdge edge;
@@ -183,14 +187,14 @@ public class SLTransferRelation
   private Formula getFormulaForVarName(String pVarName) {
     String var = getSSAVarName(pVarName);
     CType type = pathFormula.getSsa().getType(var);
-    // type = CNumericTypes.CHAR;
     Formula f = pfm.makeFormulaForVariable(pathFormula, var, type);
-
     return f;
   }
 
-  // Delegate methods starting here.
-
+  // -------------------------------------------------------------------------------------------------
+  // Delegate methods starting
+  // here.------------------------------------------------------------------
+  // -------------------------------------------------------------------------------------------------
   @Override
   public void addToHeap(String pVarName, BigInteger size) {
     for (int i = 0; i < size.intValueExact(); i++) {
@@ -301,15 +305,4 @@ public class SLTransferRelation
     }
     return null;
   }
-
-  // private Formula getHeapFormulaFromMap() {
-  // Formula heapFormula = slfm.makeEmptyHeap(ifm.makeNumber(42), ifm.makeNumber(42));
-  // for (Formula key : heap.keySet()) {
-  // // TODO build heap formula
-  // Formula tmp = slfm.makePointsTo(key, heap.get(key));
-  // heapFormula = slfm.makeStar(heapFormula, tmp);
-  // }
-  //
-  // return heapFormula;
-  // }
 }
