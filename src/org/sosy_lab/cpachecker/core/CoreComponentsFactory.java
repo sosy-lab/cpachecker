@@ -26,18 +26,13 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -89,7 +84,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
@@ -268,17 +262,6 @@ public class CoreComponentsFactory {
       name = "algorithm.CBMC",
       description = "use CBMC as an external tool from CPAchecker")
   boolean runCBMCasExternalTool = false;
-
-  @Option(
-      secure = true,
-      name = "buildInvariantsSpecificationAutomaton",
-      description =
-          "validate correctness witness by building an invariants specification automaton as additional specification")
-  private boolean buildInvariantsSpecificationAutomaton = false;
-
-  @FileOption(Type.OPTIONAL_INPUT_FILE)
-  @Option(secure = true, description = "correctness witness file to validate")
-  private Path correctnessWitnessFile = null;
 
   private final Configuration config;
   private final LogManager logger;
@@ -600,9 +583,6 @@ public class CoreComponentsFactory {
       specification = pSpecification;
     }
 
-    if (buildInvariantsSpecificationAutomaton && correctnessWitnessFile != null) {
-      return buildCPAsWithInvariantsSpecificationAutomaton(cfa, specification);
-    }
 
     return cpaFactory.buildCPAs(cfa, specification, aggregatedReachedSets);
   }
@@ -634,18 +614,4 @@ public class CoreComponentsFactory {
     return terminationSpecification;
   }
 
-  private ConfigurableProgramAnalysis buildCPAsWithInvariantsSpecificationAutomaton(
-      final CFA pCfa, final Specification pSpecification)
-      throws InvalidConfigurationException, CPAException {
-    List<Automaton> automata = new ArrayList<>(1);
-    Specification automatonAsSpec =
-        Specification.fromFiles(
-            pSpecification.getProperties(),
-            ImmutableList.of(correctnessWitnessFile),
-            pCfa,
-            config,
-            logger);
-    automata.add(automatonAsSpec.getSpecificationAutomata().get(0));
-    return cpaFactory.buildCPAs(pCfa, pSpecification, automata, aggregatedReachedSets);
-  }
 }

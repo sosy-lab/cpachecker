@@ -670,7 +670,6 @@ public class CPAMain {
         validationConfigFile = options.correctnessWitnessValidationConfig;
         overrideOptions.put(
             "invariantGeneration.kInduction.invariantsAutomatonFile", options.witness.toString());
-        overrideOptions.put("analysis.correctnessWitnessFile", options.witness.toString());
         break;
       default:
         throw new InvalidConfigurationException(
