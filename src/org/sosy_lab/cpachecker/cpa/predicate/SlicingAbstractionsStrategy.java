@@ -414,7 +414,6 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       Map<ARGState, List<ARGState>> segmentMap =
           SlicingAbstractionsUtils.calculateOutgoingSegments(currentState);
       Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
-      Set<ARGState> segmentStateSet = new HashSet<>();
       for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
         ARGState key = entry.getKey();
         List<ARGState> segment = entry.getValue();
@@ -434,45 +433,55 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
         }
 
         infeasibleMap.put(key, infeasible);
-        segmentStateSet.addAll(segment);
       }
-      for (Map.Entry<ARGState, Boolean> entry : infeasibleMap.entrySet()) {
-        ARGState key = entry.getKey();
-        boolean isInfeasible = entry.getValue();
-        List<ARGState> segment = segmentMap.get(key);
-        if (!isInfeasible) {
-          segmentStateSet.removeAll(segment);
-        } else {
-          if (key.getParents().contains(currentState)) {
-            // checking for segement.size()==0 would not be enough, because we could also
-            // have this:
-            // 1-->A-->2
-            // |       ^
-            // \-------|
-            key.removeParent(currentState); // this removes 1->2 in the above example
-          }
-          if (!Collections.disjoint(key.getParents(), segment)) {
-            // Consider the following case, where abstraction states have numbers and
-            // non-abstractions
-            // states are shown as letters:
-            // 1-->A-->2
-            //     \-->3
-            // if 1~>3 is infeasible, but 1~>2 is not, we cannot remove A, so we need to cut A->3:
-            for (ARGState s :
-                Sets.intersection(Sets.newHashSet(key.getParents()), Sets.newHashSet(segment))) {
-              key.removeParent(s); // this is the cut of A->3 in the example of the comment above
-            }
-          }
-        }
-      }
-
-      for (ARGState toRemove : segmentStateSet) {
-        detachFromParentsInARG(toRemove);
-      }
+      slice0(currentState, segmentMap, infeasibleMap);
     }
   }
 
-  private void detachFromParentsInARG(final ARGState toRemove) {
+  private static void slice0(
+      ARGState currentState,
+      Map<ARGState, List<ARGState>> segmentMap,
+      Map<ARGState, Boolean> infeasibleMap) {
+    Set<ARGState> segmentStateSet = new HashSet<>();
+    for (List<ARGState> segment : segmentMap.values()) {
+      segmentStateSet.addAll(segment);
+    }
+    for (Map.Entry<ARGState, Boolean> entry : infeasibleMap.entrySet()) {
+      ARGState key = entry.getKey();
+      boolean isInfeasible = entry.getValue();
+      List<ARGState> segment = segmentMap.get(key);
+      if (!isInfeasible) {
+        segmentStateSet.removeAll(segment);
+      } else {
+        if (key.getParents().contains(currentState)) {
+          // checking for segement.size()==0 would not be enough, because we could also
+          // have this:
+          // 1-->A-->2
+          // |       ^
+          // \-------|
+          key.removeParent(currentState); // this removes 1->2 in the above example
+        }
+        if (!Collections.disjoint(key.getParents(), segment)) {
+          // Consider the following case, where abstraction states have numbers and
+          // non-abstractions
+          // states are shown as letters:
+          // 1-->A-->2
+          //     \-->3
+          // if 1~>3 is infeasible, but 1~>2 is not, we cannot remove A, so we need to cut A->3:
+          for (ARGState s :
+              Sets.intersection(new HashSet<>(key.getParents()), new HashSet<>(segment))) {
+            key.removeParent(s); // this is the cut of A->3 in the example of the comment above
+          }
+        }
+      }
+    }
+
+    for (ARGState toRemove : segmentStateSet) {
+      detachFromParentsInARG(toRemove);
+    }
+  }
+
+  private static void detachFromParentsInARG(final ARGState toRemove) {
     // avoid concurrent modification by making a copy:
     for (ARGState parent : ImmutableList.copyOf(toRemove.getParents())) {
       toRemove.removeParent(parent);

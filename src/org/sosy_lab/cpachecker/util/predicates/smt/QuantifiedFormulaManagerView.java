@@ -25,17 +25,15 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-
-import org.sosy_lab.java_smt.api.SolverException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager;
-
-import java.util.Collections;
-import java.util.List;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class QuantifiedFormulaManagerView
   extends BaseManagerView
@@ -134,7 +132,7 @@ public class QuantifiedFormulaManagerView
 
     List<BooleanFormula> rangeConstraint = makeRangeConstraint(pVariable, pLowerBound, pUpperBound);
 
-    List<BooleanFormula> bodyPredicates = Lists.newArrayListWithExpectedSize(rangeConstraint.size() + 1);
+    List<BooleanFormula> bodyPredicates = new ArrayList<>(rangeConstraint.size() + 1);
     bodyPredicates.addAll(rangeConstraint);
     bodyPredicates.add(pBody);
 

@@ -64,7 +64,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGField;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
@@ -310,7 +309,7 @@ public class SMGExpressionEvaluator {
     ExplicitValueVisitor visitor = new ExplicitValueVisitor(this, smgState, null, machineModel, logger, cfaEdge);
 
     Value value = rValue.accept(visitor);
-    SMGState newState = visitor.getNewState();
+    SMGState newState = visitor.getState();
 
     if (!value.isExplicitlyKnown() || !value.isNumericValue()) {
 
@@ -441,19 +440,6 @@ public class SMGExpressionEvaluator {
     } else {
       throw new AssertionError("The method evaluateAddress may not be called" +
           "with the type " + expressionType.toASTString(""));
-    }
-  }
-
-  @Deprecated // unused
-  public SMGAddressValue evaluateAddressV2(
-      SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
-
-    List<SMGAddressValueAndState> result = evaluateAddress(newState, cfaEdge, rValue);
-
-    if (result.size() == 1) {
-      return result.get(0).getObject();
-    } else {
-      return SMGUnknownValue.INSTANCE;
     }
   }
 
@@ -687,18 +673,14 @@ public class SMGExpressionEvaluator {
     if (pTarget == null || pOffset.isUnknown()) {
       return singletonList(
           SMGAddressValueAndState.of(
-              pSmgState,
-              SMGKnownAddressValue.valueOf(
-                  SMGKnownSymValue.of(), pTarget, (SMGKnownExpValue) pOffset)));
+              pSmgState, SMGKnownSymValue.of(), pTarget, (SMGKnownExpValue) pOffset));
     }
     if (pTarget instanceof SMGRegion) {
       SMGValue address = pSmgState.getAddress((SMGRegion) pTarget, pOffset.getAsLong());
       if (address == null) {
         return singletonList(
             SMGAddressValueAndState.of(
-                pSmgState,
-                SMGKnownAddressValue.valueOf(
-                    SMGKnownSymValue.of(), pTarget, (SMGKnownExpValue) pOffset)));
+                pSmgState, SMGKnownSymValue.of(), pTarget, (SMGKnownExpValue) pOffset));
       }
       return pSmgState.getPointerFromValue(address);
     }
@@ -707,8 +689,9 @@ public class SMGExpressionEvaluator {
       return singletonList(
           SMGAddressValueAndState.of(
               pSmgState,
-              SMGKnownAddressValue.valueOf(
-                  SMGZeroValue.INSTANCE, pTarget, SMGKnownExpValue.valueOf(pOffset.getAsLong()))));
+              SMGZeroValue.INSTANCE,
+              pTarget,
+              SMGKnownExpValue.valueOf(pOffset.getAsLong())));
     }
     throw new AssertionError("Abstraction " + pTarget + " was not materialised.");
   }

@@ -34,7 +34,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Queues;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.graph.Traverser;
 import java.util.ArrayDeque;
@@ -433,7 +432,7 @@ public class CFAUtils {
    */
   public static Iterable<List<CFANode>> getBlankPaths(CFANode pNode) {
     List<List<CFANode>> blankPaths = new ArrayList<>();
-    Queue<List<CFANode>> waitlist = Queues.newArrayDeque();
+    Queue<List<CFANode>> waitlist = new ArrayDeque<>();
     waitlist.offer(ImmutableList.of(pNode));
     while (!waitlist.isEmpty()) {
       List<CFANode> currentPath = waitlist.poll();

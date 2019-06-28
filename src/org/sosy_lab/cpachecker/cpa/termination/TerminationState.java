@@ -32,8 +32,8 @@ import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.annotation.concurrent.Immutable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
@@ -262,8 +262,10 @@ public class TerminationState extends AbstractSingleWrapperState
 
   /**
    * Throws {@link UnsupportedOperationException}.
+   *
    * @param out unused
    */
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void writeObject(ObjectOutputStream out) {
     throw new UnsupportedOperationException(
         TerminationState.class.getSimpleName() + "does not support serialization.");
@@ -271,8 +273,10 @@ public class TerminationState extends AbstractSingleWrapperState
 
   /**
    * Throws {@link UnsupportedOperationException}.
+   *
    * @param in unused
    */
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(ObjectInputStream in) {
     throw new UnsupportedOperationException(
         TerminationState.class.getSimpleName() + "does not support serialization.");

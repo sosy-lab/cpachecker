@@ -125,7 +125,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
       Pair<BackwardARGState, BackwardARGState> rootAndTargetOfSubgraph;
       try {
         try {
-          final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
+          final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa, true);
           rootAndTargetOfSubgraph = Preconditions.checkNotNull(
               cexSubgraphComputer.computeCounterexampleSubgraph(pLastElement, pMainReachedSet));
         } catch (MissingBlockException e) {

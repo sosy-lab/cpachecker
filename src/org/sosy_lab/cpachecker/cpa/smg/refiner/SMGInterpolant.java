@@ -74,7 +74,7 @@ public class SMGInterpolant implements Interpolant<Collection<SMGState>, SMGInte
     ImmutableSet.Builder<SMGMemoryPath> memoryPaths = ImmutableSet.builder();
     ImmutableSet.Builder<MemoryLocation> stackVariables = ImmutableSet.builder();
     for (UnmodifiableSMGState state : smgStates) {
-      memoryPaths.addAll(state.getHeap().getMemoryPaths());
+      memoryPaths.addAll(new SMGMemoryPathCollector(state.getHeap()).getMemoryPaths());
       stackVariables.addAll(state.getStackVariables().keySet());
     }
 

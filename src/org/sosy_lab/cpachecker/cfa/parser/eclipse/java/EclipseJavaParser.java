@@ -80,11 +80,13 @@ class EclipseJavaParser implements Parser {
   @Option(secure=true, name ="java.sourcepath",
       description="Specify the source code path to " +
           "search for java class or interface definitions")
+  // Make sure to keep the option name synchronized with CPAMain#areJavaOptionsSet
   private String javaSourcepath = "";
 
   @Option(secure=true, name ="java.classpath",
       description="Specify the class code path to " +
           "search for java class or interface definitions")
+  // Make sure to keep the option name synchronized with CPAMain#areJavaOptionsSet
   private String javaClasspath = "";
 
   @Option(secure=true, name="java.exportTypeHierarchy",

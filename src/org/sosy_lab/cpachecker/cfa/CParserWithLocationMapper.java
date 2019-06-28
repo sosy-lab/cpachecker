@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -126,7 +125,7 @@ public class CParserWithLocationMapper implements CParser {
 
         if (token.getType() == IToken.tPOUND) { // match #
           // Read the complete line containing the directive...
-          ArrayList<Token> directiveTokens = Lists.newArrayList();
+          ArrayList<Token> directiveTokens = new ArrayList<>();
           token = lx.nextToken();
           while (token.getType() != Lexer.tNEWLINE && token.getType() != IToken.tEND_OF_INPUT) {
             directiveTokens.add(token);

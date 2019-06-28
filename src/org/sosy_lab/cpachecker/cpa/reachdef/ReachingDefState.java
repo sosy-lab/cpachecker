@@ -305,7 +305,7 @@ public class ReachingDefState implements AbstractState, Serializable,
     }
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "UnusedVariable"}) // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 
@@ -451,6 +451,7 @@ public class ReachingDefState implements AbstractState, Serializable,
       out.writeInt(exit.getNodeNumber());
     }
 
+    @SuppressWarnings("UnusedVariable") // parameter is required by API
     private void readObject(java.io.ObjectInputStream in) throws IOException {
       int nodeNumber = in.readInt();
       CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();

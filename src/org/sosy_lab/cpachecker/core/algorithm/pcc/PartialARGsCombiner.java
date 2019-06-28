@@ -31,7 +31,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -209,7 +208,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     List<List<ARGState>> successorsForEdge = new ArrayList<>(initialStates.size());
     EdgeSuccessor edgeSuccessorIdentifier = new EdgeSuccessor();
 
-    Map<Pair<List<AbstractState>, List<ARGState>>, ARGState> constructedCombinedStates = Maps.newHashMap();
+    Map<Pair<List<AbstractState>, List<ARGState>>, ARGState> constructedCombinedStates =
+        new HashMap<>();
     Deque<Pair<List<ARGState>, ARGState>> toVisit = new ArrayDeque<>();
     toVisit.add(Pair.of(roots, combinedRoot));
 

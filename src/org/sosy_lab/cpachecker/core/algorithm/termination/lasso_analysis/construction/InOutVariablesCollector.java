@@ -27,14 +27,15 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -47,8 +48,8 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
 
   private final FormulaManagerView formulaManagerView;
 
-  private final Set<Formula> inVariables = Sets.newLinkedHashSet();
-  private final Set<Formula> outVariables = Sets.newLinkedHashSet();
+  private final Set<Formula> inVariables = new LinkedHashSet<>();
+  private final Set<Formula> outVariables = new LinkedHashSet<>();
   private final Map<Pair<String, List<Formula>>, SortedMap<Integer, Formula>> ufs;
 
   private final SSAMap outVariablesSsa;
@@ -67,7 +68,7 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
     inVariablesSsa = pInVariablesSsa;
     relevantVariables = pRelevantVariables;
     substitution = pSubstitution;
-    ufs = Maps.newLinkedHashMap();
+    ufs = new LinkedHashMap<>();
   }
 
   @Override
@@ -153,7 +154,7 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
       List<Formula> uninstatiatedArgs =
           transformedImmutableListCopy(pArgs, formulaManagerView::uninstantiate);
       Pair<String, List<Formula>> key = Pair.of(tokens.getFirstNotNull(), uninstatiatedArgs);
-      ufs.putIfAbsent(key, Maps.newTreeMap());
+      ufs.putIfAbsent(key, new TreeMap<>());
       Map<Integer, Formula> ufApplications = ufs.get(key);
       int functionIndex = tokens.getSecondNotNull().orElse(0);
       ufApplications.put(functionIndex + argIndexes, substitution.get(pF));

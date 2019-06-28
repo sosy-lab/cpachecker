@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -392,7 +392,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       throws CPAException, InterruptedException, SolverException {
 
     // Reconstruct error trace from start location to direct error predecessor.
-    List<BlockWithConcreteState> blocks = Lists.newArrayList();
+    List<BlockWithConcreteState> blocks = new ArrayList<>();
     StatesWithLocation lastStateInformation = pFinalFailingObligation.getState();
     ProofObligation currentObligation = pFinalFailingObligation;
 
@@ -442,7 +442,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
     logger.log(Level.INFO, "Error found, creating error path");
 
-    List<ARGPath> paths = Lists.newArrayListWithCapacity(pBlocks.size());
+    List<ARGPath> paths = new ArrayList<>(pBlocks.size());
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       for (BlockWithConcreteState blockWithConcreteState : pBlocks) {
         Block block = blockWithConcreteState.block;

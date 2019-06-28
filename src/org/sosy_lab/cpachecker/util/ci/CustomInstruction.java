@@ -807,7 +807,8 @@ public class CustomInstruction{
       else if (aciExp instanceof CFloatLiteralExpression) {
         compareSimpleTypes(ciExp, ((CFloatLiteralExpression) aciExp).getValue(), (CSimpleType) aciExp.getExpressionType());
       } else {
-        throw new AppliedCustomInstructionParsingFailedException("The aci expression " + ciExp + " is not a CSimpleType.");
+        throw new AppliedCustomInstructionParsingFailedException(
+            "The aci expression " + aciExp + " is not a CSimpleType.");
       }
       return null;
     }

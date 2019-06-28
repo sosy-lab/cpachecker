@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
@@ -117,8 +116,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
             pTemplateToFormulaConversionManager);
     FormulaLinearizationManager formulaLinearizationManager = new
         FormulaLinearizationManager(fmgr, statistics);
-    PolyhedraWideningManager pPwm = new PolyhedraWideningManager(
-        statistics, logger);
     templatePrecision = new TemplatePrecision(
         logger, config, cfa, pTemplateToFormulaConversionManager
     );
@@ -134,7 +131,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         valueDeterminationFormulaManager,
         statistics,
         formulaLinearizationManager,
-        pPwm,
         stateFormulaConversionManager,
         pTemplateToFormulaConversionManager,
         templatePrecision);

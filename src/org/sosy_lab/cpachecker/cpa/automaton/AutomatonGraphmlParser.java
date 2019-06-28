@@ -33,11 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
@@ -53,6 +49,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -67,12 +65,12 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -195,7 +193,7 @@ public class AutomatonGraphmlParser {
     this.cfa = pCFA;
     this.config = pConfig;
     this.parserTools =
-        ParserTools.create(ExpressionTrees.newCachingFactory(), cfa.getMachineModel(), logger);
+        ParserTools.create(ExpressionTrees.newFactory(), cfa.getMachineModel(), logger);
   }
 
   /**
@@ -257,13 +255,13 @@ public class AutomatonGraphmlParser {
     parseTransitions(cparser, graphMLParserState);
 
     // Create the actual states in our automaton model
-    List<AutomatonInternalState> automatonStates = Lists.newArrayList();
+    List<AutomatonInternalState> automatonStates = new ArrayList<>();
     for (GraphMLState state : graphMLParserState.getStates()) {
       automatonStates.add(createAutomatonState(graphMLParserState, state));
     }
 
     // Build and return the result
-    List<Automaton> result = Lists.newArrayList();
+    List<Automaton> result = new ArrayList<>();
     Automaton automaton;
     try {
       automaton = new Automaton(
@@ -366,10 +364,10 @@ public class AutomatonGraphmlParser {
       AutomatonGraphmlParserState pGraphMLParserState) throws WitnessParseException {
 
     // The transitions (represented in the GraphML model) already visited
-    Set<GraphMLTransition> visitedTransitions = Sets.newHashSet();
+    Set<GraphMLTransition> visitedTransitions = new HashSet<>();
     // The transition search frontier, i.e. the transitions (represented in the GraphML model)
     // currently waiting to be explored
-    Queue<GraphMLTransition> waitingTransitions = Queues.newArrayDeque();
+    Queue<GraphMLTransition> waitingTransitions = new ArrayDeque<>();
     waitingTransitions.addAll(
         pGraphMLParserState.getLeavingTransitions().get(pGraphMLParserState.getEntryState()));
     visitedTransitions.addAll(waitingTransitions);
@@ -445,7 +443,7 @@ public class AutomatonGraphmlParser {
     }
 
     List<Function<AutomatonBoolExpr, AutomatonBoolExpr>> conditionTransformations =
-        Lists.newArrayList();
+        new ArrayList<>();
 
     // Add a source-code guard for specified line numbers
     if (matchOriginLine) {
@@ -950,11 +948,11 @@ public class AutomatonGraphmlParser {
       automatonName += "_" + nameAttribute.getTextContent();
     }
 
-    Map<String, GraphMLState> states = Maps.newHashMap();
+    Map<String, GraphMLState> states = new HashMap<>();
     Multimap<GraphMLState, GraphMLTransition> enteringTransitions = HashMultimap.create();
     Multimap<GraphMLState, GraphMLTransition> leavingTransitions = HashMultimap.create();
     NumericIdProvider numericIdProvider = NumericIdProvider.create();
-    Set<GraphMLState> entryStates = Sets.newHashSet();
+    Set<GraphMLState> entryStates = new HashSet<>();
     for (Node transition : docDat.getTransitions()) {
       collectEdgeData(
           docDat,
@@ -1820,7 +1818,7 @@ public class AutomatonGraphmlParser {
       Element nodeElement = (Element) node;
       Set<Node> dataNodes = findKeyedDataNode(nodeElement, dataKey);
 
-      Set<String> result = Sets.newHashSet();
+      Set<String> result = new HashSet<>();
       for (Node n: dataNodes) {
         result.add(n.getTextContent());
       }
@@ -1829,7 +1827,7 @@ public class AutomatonGraphmlParser {
     }
 
     private static Set<Node> findKeyedDataNode(Element of, final KeyDef dataKey) {
-      Set<Node> result = Sets.newHashSet();
+      Set<Node> result = new HashSet<>();
       Set<Node> alternative = null;
       NodeList dataChilds = of.getElementsByTagName(GraphMLTag.DATA.toString());
       for (Node dataChild : asIterable(dataChilds)) {
@@ -1845,7 +1843,7 @@ public class AutomatonGraphmlParser {
             && result.isEmpty()
             && dataKey.equals(KeyDef.WITNESS_TYPE)
             && nodeKey.equals("type")) {
-          alternative = Sets.newHashSet();
+          alternative = new HashSet<>();
           alternative.add(dataChild);
         }
       }

@@ -23,29 +23,22 @@ configuration-checks:jdk-8:
     - build-dependencies
     - build:jdk-8
 
-configuration-checks:jdk-9:
-  <<: *configuration-checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-9
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-9
-
-configuration-checks:jdk-10:
-  <<: *configuration-checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-10
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
-  # Temporarily allow failures until the segmentation fault is fixed
-  # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
-  allow_failure: true
-
 configuration-checks:jdk-11:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+  # Temporarily allow failures until the segmentation fault is fixed
+  # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
+  allow_failure: true
+
+configuration-checks:jdk-12:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-12
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
   # Temporarily allow failures until the segmentation fault is fixed
   # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
   allow_failure: true
@@ -85,26 +78,19 @@ python-unit-tests:jdk-8:
     - build-dependencies
     - build:jdk-8
 
-python-unit-tests:jdk-9:
-  <<: *python-unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-9
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-9
-
-python-unit-tests:jdk-10:
-  <<: *python-unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-10
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
-
 python-unit-tests:jdk-11:
   <<: *python-unit-tests
   dependencies:
     - build-dependencies
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+
+python-unit-tests:jdk-12:
+  <<: *python-unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-12
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
 
 
 javascript-unit-tests:
@@ -150,18 +136,37 @@ javascript-e2e-tests:
   allow_failure: true # tests are currently racy (cf. #520)
 
 
+# Checks for Python code
+check-format-python:
+  stage: checks
+  dependencies: []
+  image: python
+  before_script:
+    - pip install black
+  script:
+    - black . --check --diff
+
+flake8:
+  stage: checks
+  dependencies: []
+  image: python
+  before_script:
+    - pip install flake8-awesome
+  script:
+    - flake8
+  allow_failure: true # need to fix existing code first
+
+
 # No coverage is computed for CPAchecker
 unit-tests:jdk-8:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
 
-unit-tests:jdk-9:
-  script: "ant $ANT_PROPS_CHECKS unit-tests"
-
-unit-tests:jdk-10:
-  script: "ant $ANT_PROPS_CHECKS unit-tests"
-
 unit-tests:jdk-11:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
+
+unit-tests:jdk-12:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+
 
 # Disable some checks because they are not used for CPAchecker
 check-format:

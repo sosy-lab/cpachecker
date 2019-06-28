@@ -36,7 +36,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
@@ -48,6 +47,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -61,6 +61,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -114,8 +115,8 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.EdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant.ManagerKey;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -310,7 +311,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     CandidateGenerator statisticsCandidateGenerator =
         new CandidateGenerator() {
 
-          private final Set<CandidateInvariant> confirmedCandidates = Sets.newHashSet();
+          private final Set<CandidateInvariant> confirmedCandidates = new HashSet<>();
 
           @Override
           public boolean produceMoreCandidates() {
@@ -516,7 +517,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
 
-    final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
+    final Set<CandidateInvariant> candidates = new LinkedHashSet<>();
 
     for (CandidateInvariant candidate : pOptions.guessCandidatesFromCFA.create(pCFA, pSpecification, pTargetLocationProvider, pLogger)) {
       candidates.add(candidate);
@@ -648,12 +649,12 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   private static void extractCandidatesFromReachedSet(final ShutdownManager pShutdownManager,
       final Set<CandidateInvariant> candidates,
       final Multimap<String, CFANode> candidateGroupLocations, ReachedSet reachedSet) {
-    Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
-    Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
-    Set<CFANode> visited = Sets.newHashSet();
+    Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = new HashSet<>();
+    Map<String, ExpressionTree<AExpression>> expressionTrees = new HashMap<>();
+    Set<CFANode> visited = new HashSet<>();
     Multimap<CFANode, ExpressionTreeLocationInvariant> potentialAdditionalCandidates =
         HashMultimap.create();
-    Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
+    Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
     for (AbstractState abstractState : reachedSet) {
       if (pShutdownManager.getNotifier().shouldShutdown()) {
         return;
@@ -725,8 +726,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
    * @return the relevant assume edges.
    */
   private static Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
-    final Set<AssumeEdge> assumeEdges = Sets.newLinkedHashSet();
-    Set<CFANode> visited = Sets.newHashSet(pTargetLocations);
+    final Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
+    Set<CFANode> visited = new HashSet<>(pTargetLocations);
     Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();

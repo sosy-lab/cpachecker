@@ -289,8 +289,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
         }
       } else if (trackLeftShifts && binop.equals(BinaryOperator.SHIFT_LEFT)) {
         if (upperBounds.get(calculationType) != null && width.get(calculationType) != null) {
-          addLeftShiftAssumptions(
-              op1, op2, upperBounds.get(calculationType), width.get(calculationType), result);
+          addLeftShiftAssumptions(op1, op2, upperBounds.get(calculationType), result);
         }
       }
     } else if (exp instanceof CUnaryExpression) {
@@ -527,14 +526,12 @@ public final class ArithmeticOverflowAssumptionBuilder implements
    * @param operand1 first operand in the C Expression for which the assumption should be generated
    * @param operand2 second operand in the C Expression for which the assumption should be generated
    * @param limit the largest value in the expression's type
-   * @param pWidth the width of the type as defined in ISO-C11 (6.2.6.2 #6)
    * @param result the set to which the generated assumptions are added
    */
   private void addLeftShiftAssumptions(
       CExpression operand1,
       CExpression operand2,
       CLiteralExpression limit,
-      CLiteralExpression pWidth,
       Set<CExpression> result)
       throws UnrecognizedCodeException {
 

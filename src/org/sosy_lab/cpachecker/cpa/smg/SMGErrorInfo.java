@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -173,7 +173,7 @@ class SMGErrorInfo {
         invalidFree,
         hasMemoryLeak,
         errorDescription,
-        invalidChain.withAll(Lists.newArrayList(pObjects)),
+        invalidChain.withAll(new ArrayList<>(pObjects)),
         currentChain);
   }
 

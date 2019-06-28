@@ -56,7 +56,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   private final Function<ARGState, Integer> getStateId;
 
   BAMMultipleCEXSubgraphComputer(BAMCPA bamCPA, @NonNull Function<ARGState, Integer> idExtractor) {
-    super(bamCPA);
+    super(bamCPA, true);
     getStateId = idExtractor;
   }
 

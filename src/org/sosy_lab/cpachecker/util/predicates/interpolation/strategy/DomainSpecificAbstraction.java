@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -103,18 +103,13 @@ public class DomainSpecificAbstraction<T> {
 
     ProverEnvironment prover = mySolver
         .newProverEnvironment(ProverOptions.GENERATE_MODELS);
-    List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(oldFormulas.size()
-        - 1);
+    List<BooleanFormula> interpolants = new ArrayList<>(oldFormulas.size() - 1);
     for (int it = 0; it < oldFormulas.size() - 1; it = it + 1) {
       BooleanFormula oldInterpolant;
-      formulas = Lists.newArrayListWithExpectedSize(oldFormulas.size
-          ());
-      final List<Set<String>> variablesInFormulas =
-          Lists.newArrayListWithExpectedSize(formulas.size());
+      formulas = new ArrayList<>(oldFormulas.size());
+      final List<Set<String>> variablesInFormulas = new ArrayList<>(formulas.size());
 
-      final List<Map<String, Formula>> variableTypes =
-          Lists.newArrayListWithExpectedSize(oldFormulas.size()
-              - 1);
+      final List<Map<String, Formula>> variableTypes = new ArrayList<>(oldFormulas.size() - 1);
       initialVariableExtractionTimer.start();
       try {
         if (it == 0) {
@@ -136,10 +131,9 @@ public class DomainSpecificAbstraction<T> {
       } finally {
         initialVariableExtractionTimer.stop();
       }
-      List<List<Formula>> frontierList = Lists.newArrayListWithExpectedSize(formulas.size
-          ());
-      Set<String> variables1 = Sets.newHashSet();
-      Set<String> variables2 = Sets.newHashSet();
+      List<List<Formula>> frontierList = new ArrayList<>(formulas.size());
+      Set<String> variables1 = new HashSet<>();
+      Set<String> variables2 = new HashSet<>();
       findingCommonVariablesTimer.start();
       try {
         if (it == 0) {
@@ -193,11 +187,9 @@ public class DomainSpecificAbstraction<T> {
       }
       String[] latticeNames = new String[arrayVariablesThatAreUsedInBothParts.length];
       List<BooleanFormula> relationAbstraction1Formula =
-          Lists.newArrayListWithExpectedSize(variablesThatAreUsedInBothParts
-              .size());
+          new ArrayList<>(variablesThatAreUsedInBothParts.size());
       List<BooleanFormula> relationAbstraction2Formula =
-          Lists.newArrayListWithExpectedSize(variablesThatAreUsedInBothParts
-              .size());
+          new ArrayList<>(variablesThatAreUsedInBothParts.size());
 
 
       String[] relationAbstraction1 = new String[variablesThatAreUsedInBothParts.size()];
@@ -272,8 +264,21 @@ public class DomainSpecificAbstraction<T> {
                 helperFormula8 = fmgr.makeVariable(resultType2,
                     arrayVariablesThatAreUsedInBothParts[i+1] + "#");
               }
-              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              if (inequalityInterpolationAbstractions && (resultType2.isBitvectorType() ||
+                  resultType2.isIntegerType() || resultType2.isRationalType() ||
+                  resultType2.isFloatingPointRoundingModeType()
+              )){
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+              } else {
+                helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              }
+              if (inequalityInterpolationAbstractions && (resultType1.isBitvectorType() ||
+                  resultType1.isIntegerType() || resultType1.isRationalType() || resultType1.isFloatingPointRoundingModeType()
+              )) {
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
+              } else {
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              }
               relationAbstraction1Formula.add(helperFormula6);
               relationAbstraction1Formula.add(helperFormula5);
               latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
@@ -369,8 +374,8 @@ public class DomainSpecificAbstraction<T> {
                 relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
                     arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
               } else {
-                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, true);
-                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                 relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                     arrayVariablesThatAreUsedInBothParts[i] + "#";
                 relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " < " +
@@ -436,8 +441,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "#";
                   relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -471,8 +476,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "#";
                   relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -508,8 +513,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "#";
                   relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -590,8 +595,21 @@ public class DomainSpecificAbstraction<T> {
                 helperFormula8 = fmgr.makeVariable(resultType2,
                     arrayVariablesThatAreUsedInBothParts[i+1] + "##");
               }
-              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              if (inequalityInterpolationAbstractions && (resultType2.isBitvectorType() ||
+                  resultType2.isIntegerType() || resultType2.isRationalType() ||
+                  resultType2.isFloatingPointRoundingModeType()
+              )){
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+              } else {
+                helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              }
+              if (inequalityInterpolationAbstractions && (resultType1.isBitvectorType() ||
+                  resultType1.isIntegerType() || resultType1.isRationalType() || resultType1.isFloatingPointRoundingModeType()
+              )) {
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
+              } else {
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              }
               relationAbstraction2Formula.add(helperFormula6);
               relationAbstraction2Formula.add(helperFormula5);
             } else if (resultType1.isArrayType() && resultType2.isArrayType()) {
@@ -677,8 +695,8 @@ public class DomainSpecificAbstraction<T> {
                 relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
                     arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
               } else {
-                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, true);
-                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                 relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                     arrayVariablesThatAreUsedInBothParts[i] + "##";
                 relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " < " +
@@ -735,8 +753,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "##";
                   relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -771,8 +789,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "##";
                   relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -809,8 +827,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "##";
                   relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -927,8 +945,21 @@ public class DomainSpecificAbstraction<T> {
                   arrayVariablesThatAreUsedInBothParts[i + 1] + "#");*/
               helperFormula8 = fmgr.makeVariable(resultType2Array,
                   arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              if (inequalityInterpolationAbstractions && (resultType2.isBitvectorType() ||
+                  resultType2.isIntegerType() || resultType2.isRationalType() ||
+                  resultType2.isFloatingPointRoundingModeType()
+              )){
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+              } else {
+                helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              }
+              if (inequalityInterpolationAbstractions && (resultType1.isBitvectorType() ||
+                  resultType1.isIntegerType() || resultType1.isRationalType() || resultType1.isFloatingPointRoundingModeType()
+              )) {
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
+              } else {
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              }
               relationAbstraction1Formula.add(helperFormula6);
               relationAbstraction1Formula.add(helperFormula5);
               latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
@@ -986,8 +1017,8 @@ public class DomainSpecificAbstraction<T> {
                 relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
                     arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
               } else {
-                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, true);
-                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                 relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                     arrayVariablesThatAreUsedInBothParts[i] + "#";
                 relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " < " +
@@ -1053,8 +1084,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "#";
                   relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -1088,8 +1119,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "#";
                   relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -1125,8 +1156,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "#";
                   relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -1207,8 +1238,21 @@ public class DomainSpecificAbstraction<T> {
                 helperFormula8 = fmgr.makeVariable(resultType2,
                     arrayVariablesThatAreUsedInBothParts[i+1] + "##");
               }
-              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              if (inequalityInterpolationAbstractions && (resultType2.isBitvectorType() ||
+                  resultType2.isIntegerType() || resultType2.isRationalType() ||
+                  resultType2.isFloatingPointRoundingModeType()
+              )){
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+              } else {
+                helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              }
+              if (inequalityInterpolationAbstractions && (resultType1.isBitvectorType() ||
+                  resultType1.isIntegerType() || resultType1.isRationalType() || resultType1.isFloatingPointRoundingModeType()
+              )) {
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
+              } else {
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              }
               relationAbstraction2Formula.add(helperFormula6);
               relationAbstraction2Formula.add(helperFormula5);
             } else if (resultType1.isArrayType() && resultType2.isArrayType()) {
@@ -1289,8 +1333,8 @@ public class DomainSpecificAbstraction<T> {
                 relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
                     arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
               } else {
-                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, true);
-                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                helperFormula5 = fmgr.makeLessOrEqual(helperFormula2, helperFormula8, false);
+                helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                 relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                     arrayVariablesThatAreUsedInBothParts[i] + "##";
                 relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " < " +
@@ -1347,8 +1391,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "##";
                   relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -1383,8 +1427,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "##";
                   relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -1421,8 +1465,8 @@ public class DomainSpecificAbstraction<T> {
                       arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
                       arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
                 } else {
-                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, true);
-                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, true);
+                  helperFormula5 = fmgr.makeLessOrEqual(helperFormula3, helperFormula4, false);
+                  helperFormula6 = fmgr.makeLessOrEqual(helperFormula1, helperFormula7, false);
                   relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " < " +
                       arrayVariablesThatAreUsedInBothParts[i] + "##";
                   relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
@@ -1479,7 +1523,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
             } else {
-              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, true);
+              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, false);
               relationAbstraction1[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1499,7 +1543,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
             } else {
-              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, true);
+              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, false);
               relationAbstraction1[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1521,7 +1565,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
             } else {
-              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, true);
+              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, false);
               relationAbstraction1[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1557,7 +1601,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
             } else {
-              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, true);
+              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, false);
               relationAbstraction1[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1615,7 +1659,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
             } else {
-              helperFormula6 = fmgr.makeLessOrEqual(helperFormula4, helperFormula5, true);
+              helperFormula6 = fmgr.makeLessOrEqual(helperFormula4, helperFormula5, false);
               relationAbstraction2[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1635,7 +1679,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
             } else {
-              helperFormula6 = fmgr.makeLessOrEqual(helperFormula4, helperFormula5, true);
+              helperFormula6 = fmgr.makeLessOrEqual(helperFormula4, helperFormula5, false);
               relationAbstraction2[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1656,7 +1700,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
             } else {
-              helperFormula6 = fmgr.makeLessOrEqual(helperFormula4, helperFormula5, true);
+              helperFormula6 = fmgr.makeLessOrEqual(helperFormula4, helperFormula5, false);
               relationAbstraction2[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1692,7 +1736,7 @@ public class DomainSpecificAbstraction<T> {
             if (!inequalityInterpolationAbstractions) {
               helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
             } else {
-              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, true);
+              helperFormula3 = fmgr.makeLessOrEqual(helperFormula1, helperFormula2, false);
               relationAbstraction2[arrayVariablesThatAreUsedInBothParts.length - 1] =
                   arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                       + ""
@@ -1720,24 +1764,24 @@ public class DomainSpecificAbstraction<T> {
         buildingLatticeNamesAndLatticeTypesTimer.stop();
       }
 
-      for(Formula x : relationAbstraction1Formula){
-        logger.log(Level.WARNING, x.toString());
+    /*  for(Formula x : relationAbstraction1Formula){
+        logger.log(Level.INFO, "Relation Abstraction 1: " + x.toString());
       }
 
       for(Formula y : relationAbstraction2Formula){
-        logger.log(Level.WARNING, y.toString());
+        logger.log(Level.INFO, "Relation Abstraction 2: " + y.toString());
       }
 
       for(int i=0; i < latticeNames.length; i++){
-        logger.log(Level.WARNING, "LatticeName: " + latticeNames[i] + " "
+        logger.log(Level.INFO, "LatticeName: " + latticeNames[i] + " "
             + "LatticeNameType: " + latticeNamesTypes.get
             (latticeNames[i]));
-      }
+      } */
 
       FirstPartRenamingFct renamer1 = new FirstPartRenamingFct
-          (arrayVariablesThatAreUsedInBothParts, arrayVariablesThatAreNotUsedInBothParts);
+          (arrayVariablesThatAreNotUsedInBothParts, arrayVariablesThatAreUsedInBothParts);
       ScndPartRenamingFct renamer2 = new ScndPartRenamingFct
-          (arrayVariablesThatAreUsedInBothParts, arrayVariablesThatAreNotUsedInBothParts);
+          (arrayVariablesThatAreNotUsedInBothParts, arrayVariablesThatAreUsedInBothParts);
       BooleanFormula firstPart;
       BooleanFormula scndPart;
 
@@ -1757,10 +1801,8 @@ public class DomainSpecificAbstraction<T> {
         firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
         scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
       }
-      List<BooleanFormula> changedFomulasRest1 =
-          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-      List<BooleanFormula> changedFomulasRest2 =
-          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+      List<BooleanFormula> changedFomulasRest1 = new ArrayList<>(formulas.size() - 1);
+      List<BooleanFormula> changedFomulasRest2 = new ArrayList<>(formulas.size() - 1);
 
       BooleanFormula helperFormula1;
       BooleanFormula helperFormula2;
@@ -1787,106 +1829,116 @@ public class DomainSpecificAbstraction<T> {
 
 
       boolean abstractionFeasible = false;
-      boolean isIncomparable = false;
+      //boolean isIncomparable = false;
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
       String latticenamesH = "";
+      //long latticeNamesSize = (long)Math.pow(2, latticeNames.length);
+      //int counter;
       buildingAbstractionsTimer.start();
       try {
-        for (int h = 0; h < latticeNames.length;
-             h++) {
-          for (int k = 0; k < relationAbstraction1.length; k++) {
-            if (relationAbstraction1[k] != null && latticeNames[h] != null) {
-              if (relationAbstraction1[k].contains(latticeNames[h] + " = ")
-                  || relationAbstraction1[k].contains(latticeNames[h] + " < ")) {
-                helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
-                    (k));
-                if (latticenamesH.isEmpty()) {
-                  latticenamesH = latticeNames[h];
-                } else {
-                  latticenamesH = latticenamesH + " ," + latticeNames[h];
+          for (int h = 0; h < latticeNames.length;
+               h++) {
+              for (int k = 0; k < relationAbstraction1.length; k++) {
+                if (relationAbstraction1[k] != null && latticeNames[h] != null) {
+                  if (relationAbstraction1[k].contains(latticeNames[h] + " = ")
+                      || relationAbstraction1[k].contains(latticeNames[h] + " < ")) {
+                    helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
+                        (k));
+                    if (latticenamesH.isEmpty()) {
+                      latticenamesH = latticeNames[h];
+                    } else {
+                      latticenamesH = latticenamesH + " ," + latticeNames[h];
+                    }
+
+                  }
                 }
+                if (relationAbstraction2[k] != null && latticeNames[h] != null) {
+                  if (relationAbstraction2[k].contains(latticeNames[h] + " = ")
+                      || relationAbstraction2[k].contains(latticeNames[h] + " < ")) {
+                    helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
+                        (k));
 
+                  }
+                }
               }
-            }
-            if (relationAbstraction2[k] != null && latticeNames[h] != null) {
-              if (relationAbstraction2[k].contains(latticeNames[h] + " = ")
-                  || relationAbstraction2[k].contains(latticeNames[h] + " < ")) {
-                helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
-                    (k));
 
-              }
-            }
-          }
 
-          if (!latticenamesH.isEmpty()) {
-          BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
-          List<BooleanFormula> toCheckFormulaList =
-              Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-          for (BooleanFormula f : changedFomulasRest1) {
-            toCheckFormulaList.add(f);
-          }
-          toCheckFormulaList.add(toCheckFormula);
-          for (BooleanFormula f : changedFomulasRest2) {
-            toCheckFormulaList.add(f);
-          }
-          BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
-          feasibilityCheckTimer.start();
-          try {
-            abstractionFeasible = prove(toCheckFormulaBlocked, prover);
-          } finally {
-            feasibilityCheckTimer.stop();
-          }
-          if (abstractionFeasible) {
-            List<List<Formula>> frontierListCopy = Lists
-                .newArrayListWithExpectedSize(oldFormulas.size() - 1);
-            for ( List<Formula> s : frontierList) {
+              if (!latticenamesH.isEmpty()) {
+                BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
+                List<BooleanFormula> toCheckFormulaList = new ArrayList<>(formulas.size() - 1);
+                for (BooleanFormula f : changedFomulasRest1) {
+                  toCheckFormulaList.add(f);
+                }
+                toCheckFormulaList.add(toCheckFormula);
+                for (BooleanFormula f : changedFomulasRest2) {
+                  toCheckFormulaList.add(f);
+                }
+                BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
+                feasibilityCheckTimer.start();
+                try {
+                 //  logger.log(Level.INFO, "Feasibility Check on " + toCheckFormulaBlocked
+                  //    .toString());
+                  abstractionFeasible = prove(toCheckFormulaBlocked, prover);
+                } finally {
+                  feasibilityCheckTimer.stop();
+                }
+                if (abstractionFeasible) {
+                  // logger.log(Level.INFO, toCheckFormulaBlocked.toString() + " is feasible");
+                  // List<List<Formula>> frontierListCopy = new ArrayList<>(oldFormulas.size() - 1);
+           /* for ( List<Formula> s : frontierList) {
               frontierListCopy.add(s);
-            }
-            isIncomparable = checkComparability(frontierListCopy,
-                latticenamesH, latticeNames);
+            }*/
+                  //isIncomparable = checkComparability(frontierListCopy,
+                  //  latticenamesH, latticeNames);
 
-            if (isIncomparable) {
-              maximisationTimer.start();
-              try {
-                List<Formula> new_frontier_elem = maximise(firstPartChanged,
-                    scndPartChanged,
-                    relationAbstraction1,
-                    relationAbstraction2, relationAbstraction1Formula,
-                    relationAbstraction2Formula, latticeNames,
-                    latticenamesH,
-                     prover);
-                frontierList.add(new_frontier_elem);
-              } finally {
-                maximisationTimer.stop();
+                  // if (isIncomparable) {
+                  //  logger.log(Level.INFO,  "Incomparable");
+                  maximisationTimer.start();
+                 // logger.log(Level.INFO, "Maximisation");
+                  try {
+                    List<Formula> new_frontier_elem = maximise(firstPartChanged,
+                        scndPartChanged,
+                        relationAbstraction1,
+                        relationAbstraction2, relationAbstraction1Formula,
+                        relationAbstraction2Formula, latticeNames,
+                        latticenamesH,
+                        prover, changedFomulasRest1, changedFomulasRest2);
+                    frontierList.add(new_frontier_elem);
+
+                   // logger.log(Level.INFO, "Newly added element into frontier list: " +
+                   //     new_frontier_elem.toString());
+                    break;
+                  } finally {
+                    maximisationTimer.stop();
+                  }
+                  // }
+                }
               }
             }
-          }
-        }
-
-    }
   } finally
 
   {
     buildingAbstractionsTimer.stop();
   }
 
+     // logger.log(Level.INFO,  "Frontier List: " + frontierList.toString());
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
-      if (frontierList != null && (frontierList.size() >= 1)) {
+      if (frontierList.size() >= 1) {
         for (Formula y : frontierList.get(0)) {
           for (int k = 0; k < relationAbstraction1.length; k++) {
 
-            if (relationAbstraction1Formula.get(k).toString().contains("= " + y.toString())
-                || relationAbstraction1Formula.get(k).toString().contains("<= " + y.toString())) {
+            if (relationAbstraction1[k].contains(y.toString() + " = ")
+                || relationAbstraction1[k].contains(y.toString() + " < ")) {
               helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
                   (k));
 
 
             }
 
-            if (relationAbstraction2Formula.get(k).toString().contains("= " + y.toString())
-                || relationAbstraction1Formula.get(k).toString().contains("<= " + y.toString())) {
+            if (relationAbstraction2[k].contains(y.toString() + " = ")
+                || relationAbstraction2[k].contains(y.toString() + " < ")) {
               helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
                   (k));
 
@@ -1894,6 +1946,30 @@ public class DomainSpecificAbstraction<T> {
             }
           }
         }
+      } else {
+        if (it == 0) {
+          firstPart = formulas.get(0);
+          scndPart = formulas.get(1);
+        } else {
+          firstPart = formulas.get(1);
+          scndPart = formulas.get(2);
+        }
+        helperFormula1 = fmgr.translateFrom(firstPart, oldFmgr);
+        helperFormula2 = fmgr.translateFrom(scndPart, oldFmgr);
+
+        changedFomulasRest1.clear();
+        changedFomulasRest2.clear();
+
+          if (it != 0) {
+            BooleanFormula addFormula = interpolants.get(it - 1);
+            changedFomulasRest1.add(addFormula);
+          }
+          for (int i = it + 2; i < oldFormulas.size(); i++) {
+            BooleanFormula addFormula = oldFormulas.get(i);
+            addFormula = fmgr.translateFrom(addFormula, oldFmgr);
+            changedFomulasRest2.add(addFormula);
+          }
+
       }
 
       try (@SuppressWarnings("unchecked")
@@ -1903,6 +1979,11 @@ public class DomainSpecificAbstraction<T> {
 
 
         List<T> myItpGroupIds = new ArrayList<>(formulas.size());
+
+     /*   logger.log(Level.INFO,  "changedFormulasRest1: " + changedFomulasRest1.toString());
+        logger.log(Level.INFO,  "Helper Formula 1: " + helperFormula1.toString());
+        logger.log(Level.INFO,  "Helper Formula 2: " + helperFormula2.toString());
+        logger.log(Level.INFO,  "changedFomulasRest2: " + changedFomulasRest2.toString()); */
 
     interpolationTimer.start();
     try {
@@ -1939,11 +2020,7 @@ public class DomainSpecificAbstraction<T> {
       }
 
     }
-    if (interpolants != null && !interpolants.isEmpty()) {
-      return interpolants;
-    } else {
-      return Collections.emptyList();
-    }
+    return interpolants;
   }
 
   @SuppressWarnings("rawtypes")
@@ -1981,25 +2058,189 @@ public class DomainSpecificAbstraction<T> {
                                                                relationAbstraction2Formula,
                                                            String[]
        latticeNames,  String latticenamesH, ProverEnvironment
-                                                               prover){
+                                                               prover, List<BooleanFormula>
+                                       changedFormulaRest1a, List<BooleanFormula>
+                                       changedFormulaRest2a){
 
-    String[] middleElement = new String[latticeNames.length];
-    int middleElemIndex = 0;
+   // String[] middleElement = new String[latticeNames.length];
+   // int middleElemIndex = 0;
     Boolean isFeasible = true;
     BooleanFormula helperFormula1;
     BooleanFormula helperFormula2;
-     List<Formula> maximumFeasibleAbstraction = Lists
-        .newArrayListWithExpectedSize
-            (formulas
-                .size() - 1);
+    List<BooleanFormula> changedFormulasRest1 = changedFormulaRest1a;
+    List<BooleanFormula> changedFormulasRest2 = changedFormulaRest2a;
+     List<Formula> maximumFeasibleAbstraction;
 
-    for (int i = 0; i < latticeNames.length; i++) {
+     helperFormula1 = firstPartChanged;
+     helperFormula2 = scndPartChanged;
+     List<String> middleElem = new ArrayList<>(formulas.size() - 1);
+    Iterable<String> splitOperator = Splitter.on(" ,").split(latticenamesH);
+    List<String> latticeNamesHElements = new ArrayList<>(formulas.size() - 1);
+    List<String> latticeNamesHElementsCopy = new ArrayList<>(formulas.size() - 1);
+    for (String s : splitOperator){
+      latticeNamesHElements.add(s);
+      latticeNamesHElementsCopy.add(s);
+    }
+    int counter = 0;
+    for (int i = 0; i < latticeNamesHElements.size(); i++){
+      if (counter > 4){
+        break;
+      }
+      middleElem.clear();
+      latticeNamesHElementsCopy.remove(i);
+      if (latticeNamesHElementsCopy.isEmpty()){
+        break;
+      }
+      helperFormula1 = firstPartChanged;
+      helperFormula2 = scndPartChanged;
+      for (String g2 : latticeNamesHElementsCopy){
+        for (int k = 0; k < relationAbstraction1.length; k++) {
+          if (relationAbstraction1[k] != null && !(g2 == null)) {
+            if (relationAbstraction1[k].contains(g2 + " = ")
+                || relationAbstraction1[k].contains(g2 + " < ")) {
+              helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
+                  (k));
+
+
+            }
+          }
+          if (relationAbstraction2[k] != null && !(g2 == null)) {
+            if (relationAbstraction2[k].contains(g2 + " = ")
+                || relationAbstraction2[k].contains(g2 + " < ")) {
+              helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
+                  (k));
+
+
+            }
+          }
+        }
+      }
+      BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
+      List<BooleanFormula> toCheckFormulaList = new ArrayList<>(formulas.size() - 1);
+      for (BooleanFormula f : changedFormulasRest1) {
+        toCheckFormulaList.add(f);
+      }
+      toCheckFormulaList.add(toCheckFormula);
+      for (BooleanFormula f : changedFormulasRest2) {
+        toCheckFormulaList.add(f);
+      }
+      BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
+     // logger.log(Level.INFO, "Feasibility Check on " + toCheckFormulaBlocked.toString());
+      isFeasible = prove(toCheckFormulaBlocked, prover);
+      if (!isFeasible){
+        latticeNamesHElementsCopy.clear();
+        for (String v : latticeNamesHElements){
+          latticeNamesHElementsCopy.add(v);
+        }
+        counter++;
+      } else {
+        if (latticeNamesHElementsCopy.size() > 2) {
+          for (int i1 = 0; i1 < latticeNamesHElementsCopy.size(); i1 = i1 + 2) {
+            middleElem.add(latticeNamesHElementsCopy.get(i1));
+          }
+        }
+        if (latticeNamesHElementsCopy.size() == 2){
+          middleElem.add(latticeNamesHElementsCopy.get(1));
+        }
+        if (!middleElem.isEmpty()) {
+            helperFormula1 = firstPartChanged;
+            helperFormula2 = scndPartChanged;
+          for (String h2 : middleElem) {
+            for (int k = 0; k < relationAbstraction1.length; k++) {
+              if (relationAbstraction1[k] != null && !(h2 == null)) {
+                if (relationAbstraction1[k].contains(h2 + " = ")
+                    || relationAbstraction1[k].contains(h2 + " < ")) {
+                  helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
+                      (k));
+
+
+                }
+              }
+              if (relationAbstraction2[k] != null && !(h2 == null)) {
+                if (relationAbstraction2[k].contains(h2 + " = ")
+                    || relationAbstraction2[k].contains(h2 + " < ")) {
+                  helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
+                      (k));
+
+
+                }
+              }
+            }
+          }
+
+        BooleanFormula toCheckFormula2 = fmgr.makeAnd(helperFormula1, helperFormula2);
+        List<BooleanFormula> toCheckFormulaList2 = new ArrayList<>(formulas.size() - 1);
+        for (BooleanFormula f : changedFormulasRest1) {
+          toCheckFormulaList2.add(f);
+        }
+        toCheckFormulaList2.add(toCheckFormula2);
+        for (BooleanFormula f : changedFormulasRest2) {
+          toCheckFormulaList2.add(f);
+        }
+        BlockFormulas toCheckFormulaBlocked2 = new BlockFormulas(toCheckFormulaList2);
+       // logger.log(Level.INFO, "Feasibility Check on " + toCheckFormulaBlocked2.toString());
+        isFeasible = prove(toCheckFormulaBlocked2, prover);
+        if (!isFeasible) {
+          latticeNamesHElements.clear();
+          for (String v : latticeNamesHElementsCopy){
+            latticeNamesHElements.add(v);
+          }
+          i = 0;
+          counter++;
+        } else {
+          latticeNamesHElements.clear();
+          for (String v : middleElem){
+            latticeNamesHElements.add(v);
+          }
+          i = 0;
+          counter++;
+        }
+      } else {
+          latticeNamesHElements.clear();
+          for (String v : latticeNamesHElementsCopy){
+            latticeNamesHElements.add(v);
+          }
+          i = 0;
+          counter++;
+        }
+      }
+    }
+
+    String maxAbs = "";
+    for (String k : latticeNamesHElements){
+      if (maxAbs.isEmpty()) {
+        maxAbs = k;
+      } else {
+        maxAbs = maxAbs + " ," + k;
+      }
+    }
+
+    List<FormulaType> formulaTypes = new ArrayList<>(latticeNamesTypes.size() - 1);
+    Iterable<String> splitOperator2 = Splitter.on(" ,").split(maxAbs);
+    for (String s : splitOperator2) {
+      for (int i = 0; i < latticeNames.length; i++) {
+        if (latticeNames[i] != null && !(s == null) && s.equals(latticeNames[i])){
+          formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
+        }
+      }
+    }
+
+    maximumFeasibleAbstraction = StringtoIntegerFormulaList
+        ( maxAbs, formulaTypes);
+
+    return maximumFeasibleAbstraction;
+
+ /*   for (int i = 0; i < latticeNames.length; i++) {
          if (!latticenamesH.contains
           (latticeNames[i])){
         latticenamesH = latticenamesH + " ," + latticeNames[i];
         helperFormula1 = firstPartChanged;
         helperFormula2 = scndPartChanged;
         Iterable<String> splitOperator = Splitter.on(" ,").split(latticenamesH);
+        List<String> latticeNamesHElements = new ArrayList<>(formulas.size() - 1);
+        for (String s : splitOperator){
+          latticeNamesHElements.add(s);
+        }
         for (String s : splitOperator) {
 
           for (int k = 0; k < relationAbstraction1.length; k++) {
@@ -2024,8 +2265,7 @@ public class DomainSpecificAbstraction<T> {
           }
         }
         BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
-        List<BooleanFormula> toCheckFormulaList =
-            Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+        List<BooleanFormula> toCheckFormulaList = new ArrayList<>(formulas.size() - 1);
         toCheckFormulaList.add(toCheckFormula);
         BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
         isFeasible = prove(toCheckFormulaBlocked, prover);
@@ -2044,8 +2284,7 @@ public class DomainSpecificAbstraction<T> {
     }
 
     if (middleElement[0] == null){
-      List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
-          - 1);
+      List<FormulaType> formulaTypes = new ArrayList<>(latticeNamesTypes.size() - 1);
       Iterable<String> splitOperator = Splitter.on(" ,").split(latticenamesH);
       for (String s : splitOperator) {
         for (int i = 0; i < latticeNames.length; i++) {
@@ -2095,15 +2334,12 @@ public class DomainSpecificAbstraction<T> {
         }
       }
       BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
-      List<BooleanFormula> toCheckFormulaList =
-          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+      List<BooleanFormula> toCheckFormulaList = new ArrayList<>(formulas.size() - 1);
       toCheckFormulaList.add(toCheckFormula);
       BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
       middleElemFeasible = prove(toCheckFormulaBlocked, prover);
       if (middleElemFeasible) {
-        List<FormulaType> formulaTypes2 = Lists.newArrayListWithExpectedSize(latticeNamesTypes
-            .size()
-            - 1);
+        List<FormulaType> formulaTypes2 = new ArrayList<>(latticeNamesTypes.size() - 1);
         Iterable<String> splitOperator2 = Splitter.on(" ,").split(middleElement[counter/2]);
         for (String s : splitOperator2) {
           for (int i = 0; i < latticeNames.length; i++) {
@@ -2117,8 +2353,7 @@ public class DomainSpecificAbstraction<T> {
                 formulaTypes2);
 
       } else {
-        List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
-            - 1);
+        List<FormulaType> formulaTypes = new ArrayList<>(latticeNamesTypes.size() - 1);
         Iterable<String> splitOperator3 = Splitter.on(" ,").split(latticenamesH);
         for (String s : splitOperator3) {
           for (int i = 0; i < latticeNames.length; i++) {
@@ -2133,13 +2368,13 @@ public class DomainSpecificAbstraction<T> {
 
       }
     }
-    return maximumFeasibleAbstraction;
+    return maximumFeasibleAbstraction; */
   }
   @SuppressWarnings({"rawtype", "unchecked"})
   private List<Formula> StringtoIntegerFormulaList(String input, List<FormulaType>
       formulaTypes){
     Formula helperFormula1, helperFormula2, helperFormula3;
-    List<Formula> maximumFeasibleAbstraction = Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+    List<Formula> maximumFeasibleAbstraction = new ArrayList<>(formulas.size() - 1);
 
     if (input.equals("root")){
       return Collections.emptyList();
@@ -2174,12 +2409,10 @@ public class DomainSpecificAbstraction<T> {
     return maximumFeasibleAbstraction;
   }
 
-  private Boolean checkComparability( List<List<Formula>>
-      frontierListCopy,
-                                     String
-       latticenamesH, String[] latticeNames){
-    List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
-        - 1);
+  @SuppressWarnings("unused")
+  private Boolean checkComparability(
+      List<List<Formula>> frontierListCopy, String latticenamesH, String[] latticeNames) {
+    List<FormulaType> formulaTypes = new ArrayList<>(latticeNamesTypes.size() - 1);
     Iterable<String> splitOperator = Splitter.on(" ,").split(latticenamesH);
     for (String s : splitOperator) {
       for (int i = 0; i < latticeNames.length; i++) {
@@ -2191,8 +2424,7 @@ public class DomainSpecificAbstraction<T> {
 
     List<Formula> toCompareWith = StringtoIntegerFormulaList(latticenamesH,
          formulaTypes);
-    List<List<Formula>> compareList = Lists.newArrayListWithExpectedSize(formulas.size() -
-        1);
+    List<List<Formula>> compareList = new ArrayList<>(formulas.size() - 1);
     Boolean isIncomparable = false;
     Boolean comparable = false;
     while (frontierListCopy.size() != 0) {

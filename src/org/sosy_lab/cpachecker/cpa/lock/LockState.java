@@ -26,16 +26,16 @@ package org.sosy_lab.cpachecker.cpa.lock;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
-import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
@@ -98,11 +98,11 @@ public class LockState extends AbstractLockState {
   }
 
   public class LockStateBuilder extends AbstractLockStateBuilder {
-    private SortedMap<LockIdentifier, Integer> mutableLocks;
+    private NavigableMap<LockIdentifier, Integer> mutableLocks;
 
     public LockStateBuilder(LockState state) {
       super(state);
-      mutableLocks = Maps.newTreeMap(state.locks);
+      mutableLocks = new TreeMap<>(state.locks);
     }
 
     @Override
@@ -229,7 +229,7 @@ public class LockState extends AbstractLockState {
     @Override
     public void
         expandLockCounters(AbstractLockState pRootState, Set<LockIdentifier> pRestrictedLocks) {
-      SortedMap<LockIdentifier, Integer> rootLocks = ((LockState) pRootState).locks;
+      NavigableMap<LockIdentifier, Integer> rootLocks = ((LockState) pRootState).locks;
       for (Entry<LockIdentifier, Integer> entry : rootLocks.entrySet()) {
         LockIdentifier lock = entry.getKey();
         if (!pRestrictedLocks.contains(lock)) {
@@ -263,17 +263,17 @@ public class LockState extends AbstractLockState {
     }
   }
 
-  private final SortedMap<LockIdentifier, Integer> locks;
+  private final NavigableMap<LockIdentifier, Integer> locks;
   // if we need restore state, we save it here
   // Used for function annotations like annotate.function_name.restore
   public LockState() {
     super();
-    locks = Maps.newTreeMap();
+    locks = new TreeMap<>();
   }
 
-  protected LockState(SortedMap<LockIdentifier, Integer> gLocks, LockState state) {
+  protected LockState(NavigableMap<LockIdentifier, Integer> gLocks, LockState state) {
     super(state);
-    this.locks = Maps.newTreeMap(gLocks);
+    this.locks = new TreeMap<>(gLocks);
   }
 
   @Override
@@ -324,9 +324,8 @@ public class LockState extends AbstractLockState {
   @Override
   public int compareTo(CompatibleState pOther) {
     LockState other = (LockState) pOther;
-    int result = 0;
 
-    result = other.getSize() - this.getSize(); // decreasing queue
+    int result = other.getSize() - this.getSize(); // decreasing queue
 
     if (result != 0) {
       return result;

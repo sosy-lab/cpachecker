@@ -306,21 +306,20 @@ class AssignmentHandler {
         && !assignments.isEmpty()) {
       return handleInitializationAssignmentsWithQuantifier(variable, assignments, false);
     } else {
-      return handleInitializationAssignmentsWithoutQuantifier(variable, assignments);
+      return handleInitializationAssignmentsWithoutQuantifier(assignments);
     }
   }
 
   /**
    * Handles initialization assignments.
    *
-   * @param variable The left hand side of the variable.
    * @param assignments A list of assignment statements.
    * @return A boolean formula for the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException It the execution was interrupted.
    */
   private BooleanFormula handleInitializationAssignmentsWithoutQuantifier(
-      final CIdExpression variable, final List<CExpressionAssignmentStatement> assignments)
+      final List<CExpressionAssignmentStatement> assignments)
       throws UnrecognizedCodeException, InterruptedException {
     BooleanFormula result = conv.bfmgr.makeTrue();
     for (CExpressionAssignmentStatement assignment : assignments) {
@@ -336,8 +335,7 @@ class AssignmentHandler {
    * quantifier over the resulting SMT array.
    *
    * <p>If we cannot make an assignment of the form {@code <variable> = <value>}, we fall back to
-   * the normal initialization in
-   * {@link #handleInitializationAssignmentsWithoutQuantifier(CIdExpression, List)}.
+   * the normal initialization in {@link #handleInitializationAssignmentsWithoutQuantifier(List)}.
    *
    * @param pLeftHandSide The left hand side of the statement. Needed for fallback scenario.
    * @param pAssignments A list of assignment statements.
@@ -345,7 +343,7 @@ class AssignmentHandler {
    * @return A boolean formula for the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
-   * @see #handleInitializationAssignmentsWithoutQuantifier(CIdExpression, List)
+   * @see #handleInitializationAssignmentsWithoutQuantifier(List)
    */
   private BooleanFormula handleInitializationAssignmentsWithQuantifier(
       final CIdExpression pLeftHandSide,
@@ -376,7 +374,7 @@ class AssignmentHandler {
       //    ...
       //    const struct s s = { .x = 1 };
       //    struct t t = { .s = s };
-      return handleInitializationAssignmentsWithoutQuantifier(pLeftHandSide, pAssignments);
+      return handleInitializationAssignmentsWithoutQuantifier(pAssignments);
     } else {
       MemoryRegion region = lhsLocation.asAliased().getMemoryRegion();
       if(region == null) {

@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPathCollector;
 
 public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandidateSequence<SMGDoublyLinkedListCandidate> {
 
@@ -130,7 +131,8 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
 
   @Override
   public SMGAbstractionBlock createAbstractionBlock(UnmodifiableSMGState pSmgState) {
-    Map<SMGObject, SMGMemoryPath> map = pSmgState.getHeap().getHeapObjectMemoryPaths();
+    Map<SMGObject, SMGMemoryPath> map =
+        new SMGMemoryPathCollector(pSmgState.getHeap()).getHeapObjectMemoryPaths();
     SMGMemoryPath pPointerToStartObject = map.get(candidate.getStartObject());
     return new SMGDoublyLinkedListCandidateSequenceBlock(candidate.getShape(), length,
         pPointerToStartObject);

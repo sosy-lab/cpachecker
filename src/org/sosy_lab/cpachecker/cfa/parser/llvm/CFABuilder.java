@@ -876,6 +876,8 @@ public class CFABuilder {
     CType currentType = baseType;
     CExpression currentExpression = getExpression(accessed, currentType, pFileName);
     for (Integer indexValue : pItem.getIndices()) {
+      // it's safe to assume `int` as a type for the index - if the number of elements in the array
+      // exceeds INT_MAX, we might have different problems, nonetheless
       CIntegerLiteralExpression index =
           new CIntegerLiteralExpression(
               fileLocation, CNumericTypes.INT, BigInteger.valueOf(indexValue));
@@ -1178,11 +1180,13 @@ public class CFABuilder {
     FileLocation location = getLocation(pItem, pFileName);
     if (pItem.isConstantInt()) {
       long constantValue = pItem.constIntGetSExtValue();
+      // In LLVM, literals of arbitrary size can be given.
+      // Since we want to map this to C, let's just use the largest integer type available to us
       return new CIntegerLiteralExpression(
-          getLocation(pItem, pFileName), pExpectedType, BigInteger.valueOf(constantValue));
+          getLocation(pItem, pFileName), CNumericTypes.UNSIGNED_LONG_LONG_INT, BigInteger.valueOf(constantValue));
 
     } else if (pItem.isConstantPointerNull()) {
-      return new CPointerExpression(location, pExpectedType, getNull(location, pExpectedType));
+      return new CPointerExpression(location, pExpectedType, getNull(location));
 
     } else if (pItem.isConstantExpr()) {
       return getExpression(pItem, pExpectedType, pFileName);
@@ -1222,8 +1226,9 @@ public class CFABuilder {
     }
   }
 
-  private CExpression getNull(final FileLocation pLocation, final CType pType) {
-    return new CIntegerLiteralExpression(pLocation, pType, BigInteger.ZERO);
+  private CExpression getNull(final FileLocation pLocation) {
+    // it's safe to assume integer as type for a constant NULL
+    return new CIntegerLiteralExpression(pLocation, CNumericTypes.INT, BigInteger.ZERO);
   }
 
   private CInitializer getConstantAggregateInitializer(

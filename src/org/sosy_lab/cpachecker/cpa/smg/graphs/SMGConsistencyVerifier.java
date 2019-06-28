@@ -195,15 +195,13 @@ final class SMGConsistencyVerifier {
 
       // Verify that the object assigned to the edge exists in the SMG
       if (!pSmg.getObjects().contains(edge.getObject())) {
-        pLogger.log(Level.SEVERE, "SMG inconsistent: Edge from a nonexistent object");
-        pLogger.log(Level.SEVERE, "Edge :", edge);
+        pLogger.log(Level.SEVERE, "SMG inconsistent: Edge from a nonexistent object:", edge);
         return false;
       }
 
       // Verify that the value assigned to the edge exists in the SMG
       if (! pSmg.getValues().contains(edge.getValue())) {
-        pLogger.log(Level.SEVERE, "SMG inconsistent: Edge to a nonexistent value");
-        pLogger.log(Level.SEVERE, "Edge :", edge);
+        pLogger.log(Level.SEVERE, "SMG inconsistent: Edge to a nonexistent value:", edge);
         return false;
       }
 

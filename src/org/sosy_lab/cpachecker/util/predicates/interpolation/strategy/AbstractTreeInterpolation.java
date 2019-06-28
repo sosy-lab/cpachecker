@@ -163,7 +163,7 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
     }
 
     // check (D)
-    final List<Set<String>> variablesInFormulas = Lists.newArrayListWithExpectedSize(formulas.size());
+    final List<Set<String>> variablesInFormulas = new ArrayList<>(formulas.size());
     for (BooleanFormula f : formulas) {
       variablesInFormulas.add(fmgr.extractVariableNames(f));
     }

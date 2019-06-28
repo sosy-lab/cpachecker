@@ -35,6 +35,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -358,7 +359,7 @@ public final class BMCHelper {
         }
       }
     }
-    Set<ARGState> redundantStates = Sets.newHashSet();
+    Set<ARGState> redundantStates = new HashSet<>();
     for (Map.Entry<ARGState, Collection<ARGState>> family : parentToTarget.asMap().entrySet()) {
       ARGState parent = family.getKey();
       Collection<ARGState> children = family.getValue();

@@ -165,7 +165,7 @@ public class UsageState extends AbstractSingleWrapperState
     int result = 1;
     result = prime * result + Objects.hashCode(variableBindingRelation);
     result = prime * result + Objects.hashCode(recentUsages);
-    result = prime * super.hashCode();
+    result = prime * result + super.hashCode();
     return result;
   }
 

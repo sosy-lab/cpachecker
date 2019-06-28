@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.util.coverage;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.HashMultiset;
+import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 
@@ -45,12 +45,12 @@ class FileCoverageInformation {
     }
   }
 
-  final Multiset<Integer> visitedLines = HashMultiset.create();
-  final Set<Integer> allLines = new HashSet<>();
-  final Multiset<String> visitedFunctions = HashMultiset.create();
-  final Set<FunctionInfo> allFunctions = new HashSet<>();
-  final Set<AssumeEdge> allAssumes = new HashSet<>();
-  final Set<AssumeEdge> visitedAssumes = new HashSet<>();
+  final Multiset<Integer> visitedLines = LinkedHashMultiset.create();
+  final Set<Integer> allLines = new LinkedHashSet<>();
+  final Multiset<String> visitedFunctions = LinkedHashMultiset.create();
+  final Set<FunctionInfo> allFunctions = new LinkedHashSet<>();
+  final Set<AssumeEdge> allAssumes = new LinkedHashSet<>();
+  final Set<AssumeEdge> visitedAssumes = new LinkedHashSet<>();
 
   void addVisitedAssume(AssumeEdge pEdge) {
     visitedAssumes.add(pEdge);

@@ -41,8 +41,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -64,7 +65,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-final class CompositeTransferRelation implements TransferRelation {
+final class CompositeTransferRelation implements WrapperTransferRelation {
 
   private final ImmutableList<TransferRelation> transferRelations;
   private final CFA cfa;
@@ -343,33 +344,27 @@ final class CompositeTransferRelation implements TransferRelation {
       Iterator<List<AbstractState>> it = strengthenedStates.iterator();
       while (it.hasNext()) {
         final List<AbstractState> strengthenedState = it.next();
-        List<AbstractState> assumptionElements =
-            strengthenedState
-                .stream()
-                .filter(CompositeTransferRelation::hasAssumptions)
-                .collect(ImmutableList.toImmutableList());
+        ImmutableList<AbstractState> assumptionElements =
+            from(strengthenedState).filter(CompositeTransferRelation::hasAssumptions).toList();
         if (assumptionElements.isEmpty()) {
           continue;
         }
 
-        Optional<AbstractState> predElement =
-            strengthenedState.stream().filter(x -> x instanceof PredicateAbstractState).findFirst();
-        assert predElement.isPresent()
-            : "cartesian product should ensure that predicates do not vanish!";
-        if (predElement.isPresent()) {
-          int predIndex = strengthenedState.indexOf(predElement.get());
-          Precision predPrecision = compositePrecision.get(predIndex);
-          TransferRelation predTransfer = transferRelations.get(predIndex);
-          Collection<? extends AbstractState> predResult =
-              predTransfer.strengthen(
-                  predElement.get(), assumptionElements, cfaEdge, predPrecision);
-          if (predResult.isEmpty()) {
-            it.remove();
-            resultCount--;
-          } else {
-            assert predResult.size() == 1;
-            strengthenedState.set(predIndex, predResult.iterator().next());
-          }
+        final int predIndex =
+            Iterables.indexOf(strengthenedState, x -> x instanceof PredicateAbstractState);
+        Preconditions.checkState(
+            predIndex >= 0, "cartesian product should ensure that predicates do not vanish!");
+        AbstractState predElement = strengthenedState.get(predIndex);
+        Precision predPrecision = compositePrecision.get(predIndex);
+        TransferRelation predTransfer = transferRelations.get(predIndex);
+        Collection<? extends AbstractState> predResult =
+            predTransfer.strengthen(predElement, assumptionElements, cfaEdge, predPrecision);
+        if (predResult.isEmpty()) {
+          it.remove();
+          resultCount--;
+        } else {
+          assert predResult.size() == 1;
+          strengthenedState.set(predIndex, predResult.iterator().next());
         }
       }
     }
@@ -522,5 +517,29 @@ final class CompositeTransferRelation implements TransferRelation {
     if (resultCount != states.size()) { return false; }
 
     return result;
+  }
+
+  @Override
+  @Nullable
+  public <T extends TransferRelation> T retrieveWrappedTransferRelation(Class<T> pType) {
+    if (pType.isAssignableFrom(getClass())) {
+      return pType.cast(this);
+    }
+    for (TransferRelation tr : transferRelations) {
+      if (pType.isAssignableFrom(tr.getClass())) {
+        return pType.cast(tr);
+      } else if (tr instanceof WrapperTransferRelation) {
+        T result = ((WrapperTransferRelation) tr).retrieveWrappedTransferRelation(pType);
+        if (result != null) {
+          return result;
+        }
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public Iterable<TransferRelation> getWrappedTransferRelations() {
+    return transferRelations;
   }
 }

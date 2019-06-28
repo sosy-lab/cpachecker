@@ -641,9 +641,6 @@ cfa.checkNullPointers = false
 # pointer dereferences or to have separate nodes for each dereference
 cfa.checkNullPointers.singleTargetPerFunction = true
 
-# This option enables the computation of a classification of CFA nodes.
-cfa.classifyNodes = false
-
 # Whether to create dependence graph for the CFA of the program
 cfa.createDependenceGraph = false
 
@@ -1286,10 +1283,6 @@ cpa.chc.firingRelation = "Always"
 cpa.chc.generalizationOperator = "Widen"
   allowed values: [Top, Widen, WidenMax, WidenSum]
 
-# merge operator to be used
-cpa.chc.merge = "SEP"
-  allowed values: [SEP, JOIN]
-
 # By enabling this option the CompositeTransferRelation will compute abstract
 # successors for as many edges as possible in one call. For any chain of
 # edges in the CFA which does not have more than one outgoing or leaving edge
@@ -1438,9 +1431,6 @@ cpa.ifcsecurity.defaultsc = "LOW"
 # which immediatechecksfile to use for PolicyEnforcementCPA
 cpa.ifcsecurity.immediatechecksfile = "immediatechecks.conf"
 
-# defines security classes of entities
-cpa.ifcsecurity.initialmapfile = no default value
-
 # which merge operator to use for ControlDependencyTrackerCPA
 # which merge operator to use for DependencyTrackerCPA
 # which merge operator to use for PolicyEnforcementCPA
@@ -1559,7 +1549,7 @@ cpa.lock.analysisMode = RACE
 cpa.lock.annotate = no default value
 
 # contains all lock names
-cpa.lock.lockinfo = Sets.newHashSet()
+cpa.lock.lockinfo = {}
 
 # reduce unused locks
 cpa.lock.reduceUselessLocks = false
@@ -2048,12 +2038,6 @@ cpa.predicate.precision.sharing = LOCATION
 # generate statistics about precisions (may be slow)
 cpa.predicate.precisionStatistics = true
 
-# Export the weakest precondition?
-cpa.predicate.precondition.export = false
-
-# File for exporting the weakest precondition.
-cpa.predicate.precondition.file = "precondition.txt"
-
 # export final predicate map
 cpa.predicate.predmap.export = true
 
@@ -2086,10 +2070,6 @@ cpa.predicate.refinement.abstractInterpolantOnly = false
 # use only the atoms from the interpolantsas predicates, and not the whole
 # interpolant
 cpa.predicate.refinement.atomicInterpolants = true
-
-# use only atoms from generated invariantsas predicates, and not the whole
-# invariant
-cpa.predicate.refinement.atomicInvariants = false
 
 # Direction for doing counterexample analysis: from start of trace, from end
 # of trace, or alternatingly from start and end of the trace towards the
@@ -2251,14 +2231,6 @@ cpa.predicate.refinement.useUCBRefinement = false
 
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
-
-# enable export of all relations that were collected to synthecise the
-# abstract precision?
-cpa.predicate.relations.export = false
-
-# file that consists all relations that were collected to synthecise the
-# abstract precision
-cpa.predicate.relations.file = "relations.txt"
 
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
@@ -3138,6 +3110,8 @@ java.typeHierarchyFile = "typeHierarchy.dot"
 # Specifies the java version of source code accepted
 java.version = JavaCore.VERSION_1_7
 
+# Programming language of the input program. If not given explicitly,
+# auto-detection will occur
 # C, Java, or LLVM IR?
 language = C
   enum:     [C, JAVA, LLVM]
@@ -3681,6 +3655,19 @@ restartAlgorithm.printIntermediateStatistics = true
 # let each component of the restart algorithm write output files and not only
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
+
+# path to condition file
+slicing.conditionFile = "output/AssumptionAutomaton.txt"
+
+# path to condition files plus additional assumption guiding automaton when
+# condition itself is in propriertary format and not in witness format
+slicing.conditionFiles = [
+          Paths.get("output/AssumptionAutomaton.txt"),
+          Paths.get("config/specification/AssumptionGuiding.spc")]
+
+# which type of extractor for slicing criteria to use
+slicing.extractor = ALL
+  enum:     [ALL, REDUCER, SYNTAX]
 
 # Extract and cache unsat cores for satisfiability checking
 solver.cacheUnsatCores = true

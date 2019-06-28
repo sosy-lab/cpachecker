@@ -36,13 +36,13 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -280,7 +280,7 @@ public class CProgramScope implements Scope {
 
     functionDeclarations = functionDcls.index(GET_ORIGINAL_QUALIFIED_NAME);
 
-    Map<String, CSimpleDeclaration> artificialRetValDeclarations = Maps.newHashMap();
+    Map<String, CSimpleDeclaration> artificialRetValDeclarations = new HashMap<>();
     for (CFunctionDeclaration functionDeclaration : functionDeclarations.values()) {
       if (!(functionDeclaration.getType().getReturnType().getCanonicalType()
           instanceof CVoidType)) {
@@ -487,7 +487,7 @@ public class CProgramScope implements Scope {
   }
 
   private static boolean equals(CType pA, CType pB) {
-    return equals(pA, pB, Sets.newHashSet());
+    return equals(pA, pB, new HashSet<>());
   }
 
   private static boolean equals(@Nullable CType pA, @Nullable CType pB, Set<Pair<CType, CType>> pResolved) {
@@ -581,7 +581,7 @@ public class CProgramScope implements Scope {
             .index(CComplexType::getQualifiedName);
 
     // Get unique types
-    Map<String, CComplexType> uniqueTypes = Maps.newHashMap();
+    Map<String, CComplexType> uniqueTypes = new HashMap<>();
 
     for (Map.Entry<String, Collection<CComplexType>> typeEntry : typesMap.asMap().entrySet()) {
       String qualifiedName = typeEntry.getKey();
@@ -600,7 +600,7 @@ public class CProgramScope implements Scope {
         plainTypeDefs.index(CTypeDefDeclaration::getQualifiedName);
 
     // Get unique type defs
-    Map<String, CType> uniqueTypeDefs = Maps.newHashMap();
+    Map<String, CType> uniqueTypeDefs = new HashMap<>();
 
     for (Map.Entry<String, Collection<CTypeDefDeclaration>> typeDefEntry : typeDefDeclarationsMap.asMap().entrySet()) {
       String qualifiedName = typeDefEntry.getKey();
@@ -709,7 +709,7 @@ public class CProgramScope implements Scope {
   }
 
   private static <T> T lookupQualifiedComplexType(String pName, Map<String, T> pStorage) {
-    Set<T> potentialResults = Sets.newHashSet();
+    Set<T> potentialResults = new HashSet<>();
     for (ComplexTypeKind kind : ComplexTypeKind.values()) {
       T potentialResult = pStorage.get(kind.toASTString() + " " + pName);
       if (potentialResult != null) {
@@ -727,7 +727,7 @@ public class CProgramScope implements Scope {
     private final Set<CType> collectedTypes;
 
     public TypeCollector() {
-      this(Sets.newHashSet());
+      this(new HashSet<>());
     }
 
     public TypeCollector(Set<CType> pCollectedTypes) {
