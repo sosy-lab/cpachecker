@@ -80,7 +80,6 @@ public class BOMParser {
    *     the code
    */
   public static String filterAndDecode(String pFilename) throws IOException, CParserException {
-    InputStreamReader reader = null;
     try (BufferedInputStream in =
         new BufferedInputStream(MoreFiles.asByteSource(Paths.get(pFilename)).openStream())) {
       List<Integer> codeBeginning = new ArrayList<>();
@@ -96,7 +95,6 @@ public class BOMParser {
           break;
         }
       }
-      //bufferedReader = new BufferedReader(new InputStreamReader(in, bom.charset));
       switch (bom) {
         case NO_BOM:
           // Reset the stream to read the file from the beginning again
@@ -107,17 +105,15 @@ public class BOMParser {
         default:
           break;
       }
-      reader = new InputStreamReader(in, bom.charset);
-      String code = CharStreams.toString(reader);
+      String code;
+      try (InputStreamReader reader = new InputStreamReader(in, bom.charset)) {
+        code = CharStreams.toString(reader);
+      }
       // If we have a BOM we need to check whether it contains only ascii values
       if (bom != ByteOrderMark.NO_BOM && !CharMatcher.ascii().matchesAllOf(code)) {
         throw new CParserException(bom.charset + " encoded file has non-ascii values");
       }
       return code;
-    } finally {
-      if (reader != null) {
-        reader.close();
-      }
     }
   }
 
