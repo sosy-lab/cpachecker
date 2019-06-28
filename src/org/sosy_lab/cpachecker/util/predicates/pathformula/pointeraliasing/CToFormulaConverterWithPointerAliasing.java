@@ -245,7 +245,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final PointerTargetSet pts)
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
-    checkBackward();
+    // checkBackward();
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
       if(!options.useMemoryRegions()) {
         assert symbolName.equals(typeHandler.getPointerAccessNameForType(symbolType));
@@ -700,7 +700,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
-    checkBackward();
+    // checkBackward();
     return new RealPointerTargetSetBuilder(pts, fmgr, typeHandler, ptsMgr, options, regionMgr);
   }
 
@@ -716,7 +716,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
       PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSsa) throws InterruptedException {
-    checkBackward();
+    // checkBackward();
     return ptsMgr.mergePointerTargetSets(pPts1, pPts2, pSsa);
   }
 
@@ -768,7 +768,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
-    checkBackward();
+    // checkBackward();
     BooleanFormula result = super.makeReturn(assignment, returnEdge, function, ssa, pts, constraints, errorConditions);
 
     if (assignment.isPresent()) {
@@ -818,7 +818,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
-    checkBackward();
+    // checkBackward();
     // This corresponds to an argument passed as function parameter of array type
     // (this is the only case when arrays can be "assigned" explicitly, not as structure members)
     // In this case the parameter is treated as pointer
@@ -840,8 +840,34 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       rhs = makeCastFromArrayToPointerIfNecessary((CExpression) rhs, lhsType);
     }
 
-    AssignmentHandler assignmentHandler = new AssignmentHandler(this, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
-    return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false);
+    // Probably a new methods handleAssignmentBw is needed here where first the lhs is handled and
+    // than the rhs
+
+    if (direction == AnalysisDirection.BACKWARD) {
+      AssignmentHandlerBackwards assignmentHandler =
+          new AssignmentHandlerBackwards(
+              this,
+              edge,
+              function,
+              ssa,
+              pts,
+              constraints,
+              errorConditions,
+              regionMgr);
+      return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false);
+    } else {
+      AssignmentHandler assignmentHandler =
+          new AssignmentHandler(
+              this,
+              edge,
+              function,
+              ssa,
+              pts,
+              constraints,
+              errorConditions,
+              regionMgr);
+      return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false);
+    }
   }
 
   /** Is the left-hand-side an array and do we allow to assign a value to it? */
@@ -910,12 +936,35 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
-    // TODO merge with super-class method
-    checkBackward();
     if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
       // function declaration, typedef etc.
       logDebug("Ignoring declaration", declarationEdge);
       return bfmgr.makeTrue();
+    }
+
+    // TODO merge with super-class method
+    // checkBackward();
+    // For Bw just like a normal assignment??
+    BooleanFormula result = bfmgr.makeTrue();
+    if (direction == AnalysisDirection.BACKWARD) {
+      for (CAssignment assignment : CInitializers.convertToAssignments(
+          (CVariableDeclaration) declarationEdge.getDeclaration(),
+          declarationEdge)) {
+        result =
+            bfmgr.and(
+                result,
+                makeAssignment(
+                    assignment.getLeftHandSide(),
+                    assignment.getLeftHandSide(),
+                    assignment.getRightHandSide(),
+                    declarationEdge,
+                    function,
+                    ssa,
+                    pts,
+                    constraints,
+                    errorConditions));
+      }
+      return result;
     }
 
     CVariableDeclaration declaration = (CVariableDeclaration) declarationEdge.getDeclaration();
@@ -993,7 +1042,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final CIdExpression lhs =
         new CIdExpression(declaration.getFileLocation(), declaration);
     final AssignmentHandler assignmentHandler = new AssignmentHandler(this, declarationEdge, function, ssa, pts, constraints, errorConditions, regionMgr);
-    final BooleanFormula result;
     if (initializer instanceof CInitializerExpression || initializer == null) {
 
       if (initializer != null) {
@@ -1063,7 +1111,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
-    checkBackward();
+    // checkBackward();
     final CType expressionType = typeHandler.getSimplifiedType(e);
     CExpressionVisitorWithPointerAliasing ev = new CExpressionVisitorWithPointerAliasing(this, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
     BooleanFormula result = toBooleanFormula(ev.asValueFormula(e.accept(ev), expressionType));
@@ -1110,7 +1158,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
-    checkBackward();
+    // checkBackward();
     final CFunctionEntryNode entryNode = edge.getSuccessor();
 
     for (CParameterDeclaration formalParameter : entryNode.getFunctionParameters()) {
@@ -1163,7 +1211,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
-    checkBackward();
+    // checkBackward();
     final BooleanFormula result = super.makeExitFunction(summaryEdge, calledFunction, ssa, pts, constraints, errorConditions);
 
     DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(this, summaryEdge, ssa, pts, constraints, errorConditions, regionMgr);
@@ -1242,8 +1290,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   public Formula makeFormulaForUninstantiatedVariable(
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
-
-    checkBackward();
+    // sollte auch gehen? in superclass auch keine Unterscheidung zw bw und fw?
+    // checkBackward();
 
     final Formula address;
 
@@ -1279,19 +1327,21 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
 
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
-    checkBackward();
+    // checkBackward();
     final Formula formula;
     final SSAMapBuilder ssa = pContextSSA.builder();
+    // SSAMapBuilder wird in superclass auch fuer bw und fw benutzt
 
     if (pContextPTS.isActualBase(pVarName)
         || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
-
+      // sollte auch so funktionieren??
       final Formula address = makeBaseAddress(pVarName, pType);
       final MemoryRegion region = regionMgr.makeMemoryRegion(pType);
       formula = makeSafeDereference(pType, address, ssa, region);
 
     } else {
       formula = makeVariable(pVarName, pType, ssa);
+      // das sollte laut superclass auch fuer bw so gehen
     }
 
     if (!ssa.build().equals(pContextSSA)) {
