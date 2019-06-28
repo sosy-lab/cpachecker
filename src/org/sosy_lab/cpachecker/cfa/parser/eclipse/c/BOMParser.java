@@ -24,9 +24,8 @@ import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.CharStreams;
 import com.google.common.io.MoreFiles;
-import java.io.BufferedReader;
+import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -51,7 +50,7 @@ public class BOMParser {
     UTF32_LE_BOM(
         Charset.forName("UTF-32LE"),
         ImmutableList.of(0xFF, 0xFE, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00)),
-    UNKNOWN_BOM(null, ImmutableList.of());
+    UNKNOWN_BOM(Charset.defaultCharset(), ImmutableList.of());
 
     private final ImmutableList<Integer> sequence;
     private final Charset charset;
@@ -81,12 +80,14 @@ public class BOMParser {
    *     the code
    */
   public static String filterAndDecode(String pFilename) throws IOException, CParserException {
-    BufferedReader bufferedReader = null;
-    try (InputStream in = MoreFiles.asByteSource(Paths.get(pFilename)).openStream()) {
+    InputStreamReader reader = null;
+    try (BufferedInputStream in =
+        new BufferedInputStream(MoreFiles.asByteSource(Paths.get(pFilename)).openStream())) {
       List<Integer> codeBeginning = new ArrayList<>();
       int c = 0;
       int counter = 0;
       ByteOrderMark bom = ByteOrderMark.NO_BOM;
+      in.mark(MAX_BOM_LENGTH);
       while ((c = in.read()) > -1 && counter < MAX_BOM_LENGTH) {
         codeBeginning.add(c);
         counter++;
@@ -95,6 +96,7 @@ public class BOMParser {
           break;
         }
       }
+      //bufferedReader = new BufferedReader(new InputStreamReader(in, bom.charset));
       switch (bom) {
         case NO_BOM:
           // Reset the stream to read the file from the beginning again
@@ -105,16 +107,16 @@ public class BOMParser {
         default:
           break;
       }
-      bufferedReader = new BufferedReader(new InputStreamReader(in, bom.charset));
-      String code = CharStreams.toString(bufferedReader);
+      reader = new InputStreamReader(in, bom.charset);
+      String code = CharStreams.toString(reader);
       // If we have a BOM we need to check whether it contains only ascii values
       if (bom != ByteOrderMark.NO_BOM && !CharMatcher.ascii().matchesAllOf(code)) {
         throw new CParserException(bom.charset + " encoded file has non-ascii values");
       }
       return code;
     } finally {
-      if (bufferedReader != null) {
-        bufferedReader.close();
+      if (reader != null) {
+        reader.close();
       }
     }
   }
