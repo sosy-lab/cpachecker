@@ -583,7 +583,6 @@ public class CoreComponentsFactory {
       specification = pSpecification;
     }
 
-
     return cpaFactory.buildCPAs(cfa, specification, aggregatedReachedSets);
   }
 
