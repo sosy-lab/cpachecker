@@ -316,9 +316,11 @@ public class ConfigurationFileChecks {
   @SuppressWarnings("deprecation") // for tests this usage is ok
   private void checkOption(Configuration config, String option) {
     if (config.hasProperty(option)) {
-      expect.fail(
-          "Configuration has value for option %s with value '%s', which should usually not be present in config files",
-          option, config.getProperty(option));
+      expect
+          .withMessage(
+              "Configuration has value for option %s with value '%s', which should usually not be present in config files",
+              option, config.getProperty(option))
+          .fail();
     }
   }
 
