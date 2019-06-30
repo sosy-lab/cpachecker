@@ -1017,9 +1017,19 @@ class WebInterface:
 
     def _run_failed(self, run_id):
         run_result_future = self._unfinished_runs.pop(run_id, None)
+
+        def getErrorForRun(run_id):
+            headers = {"Accept": "text/plain"}
+            path = "runs/" + run_id + "/failurecause"
+            (error_msg, _) = self._request("GET", path, headers=headers)
+            return error_msg
+
         if run_result_future:
-            logging.warning("Execution of run %s failed.", run_id)
-            run_result_future.set_exception(WebClientError("Execution failed."))
+            error_msg = getErrorForRun(run_id)
+            logging.warning("Execution of run %s failed. Error(%s)", run_id, error_msg)
+            run_result_future.set_exception(
+                WebClientError("Execution failed. Error({})".format(error_msg))
+            )
 
     def shutdown(self):
         """
