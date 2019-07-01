@@ -974,6 +974,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     CType declarationType = typeHandler.getSimplifiedType(declaration);
 
+    // also ok for bw
     if (!isRelevantVariable(declaration) &&
         !isAddressedVariable(declaration)) {
       // The variable is unused
@@ -981,8 +982,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       return bfmgr.makeTrue();
     }
 
+    // also ok for bw
     checkForLargeArray(declarationEdge, declarationType);
 
+    // also ok?
     if (errorConditions.isEnabled()) {
       final Formula address = makeBaseAddress(declaration.getQualifiedName(), declarationType);
       constraints.addConstraint(fmgr.makeEqual(makeBaseAddressOfTerm(address), address));
