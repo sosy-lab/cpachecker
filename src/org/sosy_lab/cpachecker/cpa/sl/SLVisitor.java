@@ -288,6 +288,8 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
 
     if (fctNameExp.getName().equals("malloc")) {
+      // TODO handle types other than char
+      // CType tmp = ((CPointerType) lhSide.getExpressionType()).getType();
       final String varName = ((CIdExpression) lhSide).getName();
       CExpression allocationSize = fctExp.getParameterExpressions().get(0);
       BigInteger size = delegate.getAllocationSize(allocationSize);

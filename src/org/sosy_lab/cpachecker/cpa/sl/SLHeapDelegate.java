@@ -55,7 +55,7 @@ public interface SLHeapDelegate {
    * @param pOffset - optional array offset, null otherwise.
    * @param pVal - optional value to be updated, null otherwise.
    *
-   * @return The formula on the heap if allocated.
+   * @return The formula on the heap if allocated, null otherwise.
    * @throws Exception - Either PathFormulaManager can't convert expression(s) to formulae or solver
    *         exception.
    */
