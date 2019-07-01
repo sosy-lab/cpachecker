@@ -84,7 +84,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 /**
  * Implements a handler for assignments.
  */
-class AssignmentHandler {
+class AssignmentHandler implements AssignmentHandlerInterface {
 
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
@@ -142,7 +142,8 @@ class AssignmentHandler {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
-  BooleanFormula handleAssignment(
+  @Override
+  public BooleanFormula handleAssignment(
       final CLeftHandSide lhs,
       final CLeftHandSide lhsForChecking,
       final CType lhsType,
@@ -279,7 +280,8 @@ class AssignmentHandler {
         conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
   }
 
-  BooleanFormula handleAssignment(
+  @Override
+  public BooleanFormula handleAssignment(
       final CLeftHandSide lhs,
       final CLeftHandSide lhsForChecking,
       final @Nullable CRightHandSide rhs,
@@ -299,7 +301,8 @@ class AssignmentHandler {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException It the execution was interrupted.
    */
-  BooleanFormula handleInitializationAssignments(
+  @Override
+  public BooleanFormula handleInitializationAssignments(
       final CIdExpression variable, final CType declarationType, final List<CExpressionAssignmentStatement> assignments) throws UnrecognizedCodeException, InterruptedException {
     if (options.useQuantifiersOnArrays()
         && (declarationType instanceof CArrayType)

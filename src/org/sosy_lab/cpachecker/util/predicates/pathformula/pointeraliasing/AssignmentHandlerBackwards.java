@@ -84,7 +84,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 /**
  * Implements a handler for assignments.
  */
-class AssignmentHandlerBackwards {
+class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
 
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
@@ -148,7 +148,8 @@ class AssignmentHandlerBackwards {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
-  BooleanFormula handleAssignment(
+  @Override
+  public BooleanFormula handleAssignment(
       final CLeftHandSide lhs,
       final CLeftHandSide lhsForChecking,
       final CType lhsType,
@@ -330,7 +331,9 @@ class AssignmentHandlerBackwards {
         regionMgr);
   }
 
-  BooleanFormula handleAssignment(
+
+  @Override
+  public BooleanFormula handleAssignment(
       final CLeftHandSide lhs,
       final CLeftHandSide lhsForChecking,
       final @Nullable CRightHandSide rhs,
@@ -354,7 +357,8 @@ class AssignmentHandlerBackwards {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException It the execution was interrupted.
    */
-  BooleanFormula handleInitializationAssignments(
+  @Override
+  public BooleanFormula handleInitializationAssignments(
       final CIdExpression variable,
       final CType declarationType,
       final List<CExpressionAssignmentStatement> assignments)
@@ -461,6 +465,7 @@ class AssignmentHandlerBackwards {
               pAssignments.size(),
               false);
 
+      // hier oldIndex fuer bw?
       final Formula newDereference =
           conv.ptsMgr.makePointerDereference(targetName, targetType, newIndex, counter);
       final Formula rhs =
@@ -468,6 +473,7 @@ class AssignmentHandlerBackwards {
 
       final BooleanFormula assignNewValue = fmgr.assignment(newDereference, rhs);
 
+      // einfach oldindex und newIndex tauschen?
       final BooleanFormula copyOldValue;
       if (options.useArraysForHeap()) {
         final ArrayFormulaManagerView afmgr = fmgr.getArrayFormulaManager();
