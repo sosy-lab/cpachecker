@@ -241,16 +241,6 @@ class AssignmentHandlerBackwards {
     Set<MemoryRegion> updatedRegions =
         useOldSSAIndices || options.useArraysForHeap() ? null : new HashSet<>();
 
-    final BooleanFormula result =
-        makeDestructiveAssignment(
-            lhsType,
-            rhsType,
-            lhsLocation,
-            lhsFormula,
-            rhsExpression,
-            useOldSSAIndices,
-            updatedRegions);
-
     if (lhsLocation.isUnaliasedLocation() && lhs instanceof CFieldReference) {
       CFieldReference fieldReference = (CFieldReference) lhs;
       CExpression fieldOwner = fieldReference.getFieldOwner();
@@ -299,6 +289,17 @@ class AssignmentHandlerBackwards {
     for (final CompositeField field : rhsAddressedFields) {
       pts.addField(field);
     }
+
+    final BooleanFormula result =
+        makeDestructiveAssignment(
+            lhsType,
+            rhsType,
+            lhsLocation,
+            lhsFormula,
+            rhsExpression,
+            useOldSSAIndices,
+            updatedRegions);
+
     return result;
   }
 
