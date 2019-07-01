@@ -203,8 +203,7 @@ public class SLTransferRelation
   }
 
   // -------------------------------------------------------------------------------------------------
-  // Delegate methods starting
-  // here.------------------------------------------------------------------
+  // Delegate methods starting here.
   // -------------------------------------------------------------------------------------------------
   @Override
   public void addToHeap(String pVarName, BigInteger size) {
@@ -230,9 +229,7 @@ public class SLTransferRelation
             bvfm.add((BitvectorFormula) pAddrFormula, bvfm.makeBitvector(size.bitLength(), i));
         heap.remove(tmp);
       }
-
     }
-
   }
 
   /**
