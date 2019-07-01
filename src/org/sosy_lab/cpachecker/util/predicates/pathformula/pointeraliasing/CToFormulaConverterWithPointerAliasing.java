@@ -842,9 +842,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     // Probably a new methods handleAssignmentBw is needed here where first the lhs is handled and
     // than the rhs
-
+    AssignmentHandlerInterface assignmentHandler;
     if (direction == AnalysisDirection.BACKWARD) {
-      AssignmentHandlerBackwards assignmentHandler =
+      assignmentHandler =
           new AssignmentHandlerBackwards(
               this,
               edge,
@@ -854,9 +854,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
               constraints,
               errorConditions,
               regionMgr);
-      return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false);
     } else {
-      AssignmentHandler assignmentHandler =
+      assignmentHandler =
           new AssignmentHandler(
               this,
               edge,
@@ -866,8 +865,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
               constraints,
               errorConditions,
               regionMgr);
-      return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false);
     }
+    return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false);
   }
 
   /** Is the left-hand-side an array and do we allow to assign a value to it? */
