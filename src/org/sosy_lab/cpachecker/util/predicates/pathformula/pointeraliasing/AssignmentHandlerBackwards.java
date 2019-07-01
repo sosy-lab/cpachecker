@@ -864,7 +864,7 @@ class AssignmentHandlerBackwards {
             conv.ptsMgr.makePointerAssignment(
                 targetName,
                 targetType,
-                oldIndex,
+                oldIndex + 1,
                 oldIndex,
                 address,
                 rhs);
