@@ -943,28 +943,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     // TODO merge with super-class method
     // checkBackward();
-    // For Bw just like a normal assignment??
-    BooleanFormula result = bfmgr.makeTrue();
-    if (direction == AnalysisDirection.BACKWARD) {
-      for (CAssignment assignment : CInitializers.convertToAssignments(
-          (CVariableDeclaration) declarationEdge.getDeclaration(),
-          declarationEdge)) {
-        result =
-            bfmgr.and(
-                result,
-                makeAssignment(
-                    assignment.getLeftHandSide(),
-                    assignment.getLeftHandSide(),
-                    assignment.getRightHandSide(),
-                    declarationEdge,
-                    function,
-                    ssa,
-                    pts,
-                    constraints,
-                    errorConditions));
-      }
-      return result;
-    }
 
     CVariableDeclaration declaration = (CVariableDeclaration) declarationEdge.getDeclaration();
 
@@ -1041,9 +1019,56 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       globalDeclarations.add(declaration);
     }
 
+    // hier erst bwAssighnment?
+    // For Bw just like a normal assignment?? - Not really? Has to allocate memory??
+    BooleanFormula result = bfmgr.makeTrue();
+    // if (direction == AnalysisDirection.BACKWARD) {
+    // for (CAssignment assignment : CInitializers.convertToAssignments(
+    // (CVariableDeclaration) declarationEdge.getDeclaration(),
+    // declarationEdge)) {
+    // result =
+    // bfmgr.and(
+    // result,
+    // makeAssignment(
+    // assignment.getLeftHandSide(),
+    // assignment.getLeftHandSide(),
+    // assignment.getRightHandSide(),
+    // declarationEdge,
+    // function,
+    // ssa,
+    // pts,
+    // constraints,
+    // errorConditions));
+    // }
+    // return result;
+    // }
+
     final CIdExpression lhs =
         new CIdExpression(declaration.getFileLocation(), declaration);
-    final AssignmentHandler assignmentHandler = new AssignmentHandler(this, declarationEdge, function, ssa, pts, constraints, errorConditions, regionMgr);
+    final AssignmentHandlerInterface assignmentHandler;
+    if (direction == AnalysisDirection.BACKWARD) {
+      assignmentHandler =
+          new AssignmentHandlerBackwards(
+              this,
+              declarationEdge,
+              function,
+              ssa,
+              pts,
+              constraints,
+              errorConditions,
+              regionMgr);
+    } else {
+      assignmentHandler =
+          new AssignmentHandler(
+              this,
+              declarationEdge,
+              function,
+              ssa,
+              pts,
+              constraints,
+              errorConditions,
+              regionMgr);
+    }
     if (initializer instanceof CInitializerExpression || initializer == null) {
 
       if (initializer != null) {
