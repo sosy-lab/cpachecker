@@ -1406,7 +1406,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       throws SMGInconsistentException {
     // Not necessary if merge_SEP and stop_SEP is used.
 
-    SMGJoin join = new SMGJoin(this.heap, reachedState.getHeap(), this, reachedState);
+    SMGJoin join = new SMGJoin(this.heap, reachedState.getHeap(), this, reachedState, true);
 
     if (!(join.getStatus() == SMGJoinStatus.INCOMPARABLE && join.isDefined())) {
       return reachedState;
@@ -1446,7 +1446,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
 
     if (options.isHeapAbstractionEnabled()) {
-      SMGJoin join = new SMGJoin(heap, reachedState.getHeap(), this, reachedState);
+      SMGJoin join = new SMGJoin(heap, reachedState.getHeap(), this, reachedState, false);
 
       if (!join.isDefined()) {
         return false;

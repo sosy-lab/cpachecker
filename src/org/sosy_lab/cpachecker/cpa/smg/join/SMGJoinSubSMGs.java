@@ -136,6 +136,7 @@ final class SMGJoinSubSMGs {
 
       inputSMG1 = joinValues.getInputSMG1();
       inputSMG2 = joinValues.getInputSMG2();
+      //TODO join: replace
       destSMG = joinValues.getDestinationSMG();
 
       if (joinValues.isDefined()) {
@@ -149,6 +150,7 @@ final class SMGJoinSubSMGs {
               joinValues.getValue());
         }
 
+        //TODO join: write
         destSMG.addHasValueEdge(newHV);
 
         if(joinValues.subSmgHasAbstractionsCandidates()) {

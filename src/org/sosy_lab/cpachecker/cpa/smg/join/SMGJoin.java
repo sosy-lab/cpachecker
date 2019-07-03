@@ -46,6 +46,7 @@ public final class SMGJoin {
   private boolean defined = false;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
   private final CLangSMG smg;
+  private final boolean constructSMG;
 
   // the mapping collects all visited nodes and is used for terminating the algorithms.
   private final SMGNodeMapping mapping1 = new SMGNodeMapping();
@@ -64,9 +65,11 @@ public final class SMGJoin {
       UnmodifiableCLangSMG opSMG1,
       UnmodifiableCLangSMG opSMG2,
       UnmodifiableSMGState pStateOfSmg1,
-      UnmodifiableSMGState pStateOfSmg2)
+      UnmodifiableSMGState pStateOfSmg2,
+      boolean pConstructSMG)
       throws SMGInconsistentException {
 
+    constructSMG = pConstructSMG;
     smg = new CLangSMG(opSMG1.getMachineModel());
 
     // FIT-TR-2012-04, Alg 10, line 2
@@ -79,6 +82,7 @@ public final class SMGJoin {
 
     // FIT-TR-2012-04, Alg 10, line 3
     // join heap for globally pointed objects, global variable names are already joined
+    //TODO join: read
     for (Entry<String, SMGRegion> entry : smg.getGlobalObjects().entrySet()) {
       SMGObject globalInSMG1 = opSMG1.getGlobalObjects().get(entry.getKey());
       SMGObject globalInSMG2 = opSMG2.getGlobalObjects().get(entry.getKey());
@@ -94,6 +98,7 @@ public final class SMGJoin {
     // join heap for locally pointed objects, variable names per stackframe are already joined
     Iterator<CLangStackFrame> smg1stackIterator = opSMG1.getStackFrames().iterator();
     Iterator<CLangStackFrame> smg2stackIterator = opSMG2.getStackFrames().iterator();
+    //TODO join: read
     Iterator<CLangStackFrame> destSmgStackIterator = smg.getStackFrames().iterator();
     while (smg1stackIterator.hasNext() && smg2stackIterator.hasNext()) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
@@ -142,6 +147,7 @@ public final class SMGJoin {
       Map<String, SMGRegion> globals_in_smg2) {
     Set<String> globals1 = globals_in_smg1.keySet();
     Set<String> globals2 = globals_in_smg2.keySet();
+    //TODO join: move up
     for (String globalVar : Sets.intersection(globals1, globals2)) {
       SMGRegion globalInSMG1 = globals_in_smg1.get(globalVar);
       SMGRegion globalInSMG2 = globals_in_smg2.get(globalVar);
@@ -181,6 +187,7 @@ public final class SMGJoin {
       if (!frameInSMG1.getFunctionDeclaration().equals(frameInSMG2.getFunctionDeclaration())) {
         return SMGJoinStatus.INCOMPARABLE;
       }
+      //TODO join: move up
       smg.addStackFrame(frameInSMG1.getFunctionDeclaration());
       Set<String> locals1 = frameInSMG1.getVariables().keySet();
       Set<String> locals2 = frameInSMG2.getVariables().keySet();

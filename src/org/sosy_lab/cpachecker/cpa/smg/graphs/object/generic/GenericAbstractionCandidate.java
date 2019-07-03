@@ -91,6 +91,7 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
 
     int c = 0;
     for (SMGValue pointer : abstractToConcretePointerMap.values()) {
+      //TODO join: read
       assert pSMG.isPointer(pointer);
 
       SMGEdgePointsTo pointerEdge = pSMG.getPointer(pointer);
@@ -113,6 +114,7 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
     /*Third, remove all object and edges that are represented by this abstraction.*/
     for (SMGObject obj : objectsToBeRemoved) {
       assert pSMG.getObjects().contains(obj);
+      //TODO join: write
       pSMG.removeObjectAndEdges(obj);
     }
 
@@ -125,6 +127,7 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
   private void connect(SMG pSMG, GenericAbstraction pGenericAbstraction,
       Set<SMGEdgePointsTo> pAbstractAddresses, Set<SMGEdgeHasValue> pAbstractFields) {
 
+    //TODO join: write
     pSMG.addObject(pGenericAbstraction);
 
     for (SMGEdgePointsTo pte : pAbstractAddresses) {

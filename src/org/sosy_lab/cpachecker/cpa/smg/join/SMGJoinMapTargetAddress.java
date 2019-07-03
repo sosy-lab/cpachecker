@@ -78,6 +78,7 @@ final class SMGJoinMapTargetAddress {
       tg = pt2.getTargetSpecifier();
     }
 
+    //TODO join: read
     // Algorithm 7 from FIT-TR-2012-04, line 4
     Set<SMGEdgePointsTo> edges =
         smg.getPtEdges(
@@ -96,6 +97,7 @@ final class SMGJoinMapTargetAddress {
       value = SMGKnownSymValue.of();
     }
 
+    //TODO join: write
     // Algorithm 7 from FIT-TR-2012-04, line 5
     smg.addValue(value);
 
