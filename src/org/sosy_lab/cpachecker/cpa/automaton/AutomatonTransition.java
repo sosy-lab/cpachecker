@@ -122,6 +122,24 @@ class AutomatonTransition {
       List<AutomatonBoolExpr> pAssertions,
       List<AExpression> pAssumptions,
       List<AutomatonAction> pActions,
+      AutomatonInternalState pFollowState) {
+
+    this(
+        pTrigger,
+        pAssertions,
+        pAssumptions,
+        ExpressionTrees.<AExpression>getTrue(),
+        pActions,
+        pFollowState.getName(),
+        pFollowState,
+        null);
+  }
+
+  public AutomatonTransition(
+      AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<AExpression> pAssumptions,
+      List<AutomatonAction> pActions,
       String pFollowStateName) {
     this(
         pTrigger,
@@ -389,6 +407,10 @@ class AutomatonTransition {
 
   public ExpressionTree<AExpression> getCandidateInvariants() {
     return candidateInvariants;
+  }
+
+  public boolean isTransitionWithAssumptions() {
+    return assumptions.size() > 0;
   }
 
   public boolean nontriviallyMatches(final CFAEdge pEdge, final LogManager pLogger) {

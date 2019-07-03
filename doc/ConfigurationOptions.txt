@@ -1732,6 +1732,9 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
   enum:     [DISABLE, INT2BV, BV2INT]
 
+# initial predicates are added as atomic predicates
+cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
+
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 
@@ -3875,6 +3878,11 @@ witness.checkProgramHash = true
 
 # Consider assumptions that are provided with the path automaton?
 witness.considerAssumptions = true
+
+# Validate correctness witness by specifying an invariants specification
+# automaton
+witness.invariantsSpecificationAutomaton = NO_ISA
+  enum:     [NO_ISA, WITNESSBASED_ISA, TWOSTATES_ISA, CFABASED_ISA]
 
 # Match the branching information at a branching location.
 witness.matchAssumeCase = true
