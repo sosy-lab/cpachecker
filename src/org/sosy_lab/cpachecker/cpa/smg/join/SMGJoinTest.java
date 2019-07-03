@@ -210,7 +210,7 @@ public class SMGJoinTest {
   public void simpleGlobalVarJoinTest() throws SMGInconsistentException {
     String varName = "variableName";
     addGlobalWithoutValueToBoth(varName);
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null, true);
+    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
@@ -226,7 +226,7 @@ public class SMGJoinTest {
     smg2.addStackFrame(functionDeclaration);
     addLocalWithoutValueToBoth(varName);
 
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null, true);
+    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
@@ -239,7 +239,7 @@ public class SMGJoinTest {
   public void globalVarWithValueJoinTest() throws SMGInconsistentException {
     String varName = "variableName";
     addGlobalWithValueToBoth(varName);
-    SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState, true);
+    SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
@@ -259,7 +259,7 @@ public class SMGJoinTest {
     smg1.addStackFrame(functionDeclaration);
     smg2.addStackFrame(functionDeclaration);
     addLocalWithValueToBoth(varName);
-    SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState, true);
+    SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
@@ -314,7 +314,7 @@ public class SMGJoinTest {
     Pair<SMGRegion, SMGRegion> c3 = addLocalWithoutValueToBoth("c", 32);
     addValueToBoth(c3, 0, 104, 32);
 
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null, true);
+    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
   }
@@ -359,7 +359,7 @@ public class SMGJoinTest {
     Pair<SMGRegion, SMGRegion> global = addGlobalWithoutValueToBoth("global", 128);
     addPointerValueToBoth(global, 0, 100, 32, objs, 0);
 
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null, true);
+    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.RIGHT_ENTAIL);
 
@@ -371,7 +371,7 @@ public class SMGJoinTest {
     smg1.addValue(un);
     smg1.addHasValueEdge(new SMGEdgeHasValue(smg1.getMachineModel(), mockType4b, 32, objs.getFirst(), un));
 
-    SMGJoin join2 = new SMGJoin(smg1, smg2, null, null, true);
+    SMGJoin join2 = new SMGJoin(smg1, smg2, null, null);
     Assert.assertFalse(join2.isDefined());
     assertThat(join2.getStatus()).isEqualTo(SMGJoinStatus.INCOMPARABLE);
   }

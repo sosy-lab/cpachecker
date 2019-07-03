@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.Map;
@@ -36,6 +38,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 
 /**
@@ -46,12 +50,12 @@ public final class SMGJoin {
   private boolean defined = false;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
   private final CLangSMG smg;
-  private final boolean constructSMG;
 
   // the mapping collects all visited nodes and is used for terminating the algorithms.
   private final SMGNodeMapping mapping1 = new SMGNodeMapping();
   private final SMGNodeMapping mapping2 = new SMGNodeMapping();
   final SMGLevelMapping levelMap = SMGLevelMapping.createDefaultLevelMap();
+  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> mergedExplicitValues = HashBiMap.create();
 
   /**
    * Algorithm 10 from FIT-TR-2012-04.
@@ -65,11 +69,9 @@ public final class SMGJoin {
       UnmodifiableCLangSMG opSMG1,
       UnmodifiableCLangSMG opSMG2,
       UnmodifiableSMGState pStateOfSmg1,
-      UnmodifiableSMGState pStateOfSmg2,
-      boolean pConstructSMG)
+      UnmodifiableSMGState pStateOfSmg2)
       throws SMGInconsistentException {
 
-    constructSMG = pConstructSMG;
     smg = new CLangSMG(opSMG1.getMachineModel());
 
     // FIT-TR-2012-04, Alg 10, line 2
@@ -134,6 +136,35 @@ public final class SMGJoin {
     }
 
     defined = true;
+
+    //Merge explicit values, if mapping contradicts with explicit values then mark join as failed
+    //TODO: add strategy to remove some explicit values on join
+    for (Entry<SMGKnownSymbolicValue, SMGKnownExpValue> entry : pStateOfSmg1.getExplicitValues()) {
+      SMGKnownSymbolicValue value = (SMGKnownSymbolicValue)mapping1.get(entry.getKey());
+      if (value != null) {
+        mergedExplicitValues.put(value, entry.getValue());
+      } else {
+        mergedExplicitValues.put(entry.getKey(), entry.getValue());
+      }
+    }
+
+    for (Entry<SMGKnownSymbolicValue, SMGKnownExpValue> entry : pStateOfSmg2.getExplicitValues()) {
+      SMGKnownSymbolicValue value = (SMGKnownSymbolicValue)mapping2.get(entry.getKey());
+      if (mergedExplicitValues.containsValue(entry.getValue())&& !mergedExplicitValues.inverse().get(entry.getValue()).equals(value)) {
+        defined = false;
+        return;
+      }
+
+      if (value == null) {
+        value = entry.getKey();
+      }
+
+      if (mergedExplicitValues.containsKey(value) && !mergedExplicitValues.get(value).equals(entry.getValue())) {
+        defined = false;
+        return;
+      }
+      mergedExplicitValues.put(value, entry.getValue());
+    }
   }
 
   /**
@@ -219,5 +250,9 @@ public final class SMGJoin {
 
   public CLangSMG getJointSMG() {
     return smg;
+  }
+
+  public Map<SMGKnownSymbolicValue, SMGKnownExpValue> getMergedExplicitValues() {
+    return mergedExplicitValues;
   }
 }
