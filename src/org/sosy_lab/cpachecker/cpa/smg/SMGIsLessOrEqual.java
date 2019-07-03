@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.join;
+package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.Iterables;
 import java.util.Iterator;
@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -241,33 +240,36 @@ public class SMGIsLessOrEqual {
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pSMGObject1);
     SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pSMGObject2);
 
+    SMGHasValueEdges HVE1 = pSMG1.getHVEdges(filterForSMG1);
     SMGHasValueEdges HVE2 = pSMG2.getHVEdges(filterForSMG2);
 
-    // TODO Merge Zero.
-    for (SMGEdgeHasValue edge1 : pSMG1.getHVEdges(filterForSMG1)) {
-      filterForSMG2.filterAtOffset(edge1.getOffset()).filterByType(edge1.getType()).filterHavingValue(edge1.getValue());
+    if (!HVE1.equals(HVE2)) {
+      for (SMGEdgeHasValue edge1 : HVE1) {
+        filterForSMG2.filterAtOffset(edge1.getOffset()).filterByType(edge1.getType())
+            .filterHavingValue(edge1.getValue());
 
-      if (!Iterables.any(HVE2, filterForSMG2::holdsFor)) {
-        return false;
-      }
-
-      SMGValue value = edge1.getValue();
-
-      if (pSMG1.isPointer(value)) {
-        if (!pSMG2.isPointer(value)) {
+        if (!Iterables.any(HVE2, filterForSMG2::holdsFor)) {
           return false;
         }
 
-        SMGEdgePointsTo ptE1 = pSMG1.getPointer(value);
-        SMGEdgePointsTo ptE2 = pSMG2.getPointer(value);
-        String label1 = ptE1.getObject().getLabel();
-        String label2 = ptE2.getObject().getLabel();
-        long offset1 = ptE1.getOffset();
-        long offset2 = ptE2.getOffset();
+        SMGValue value = edge1.getValue();
 
-        //TODO How does one check, if two pointers point to the same region? You would have to recover the stack frame.
-        if (!(offset1 == offset2 && label1.equals(label2))) {
-          return false;
+        if (pSMG1.isPointer(value)) {
+          if (!pSMG2.isPointer(value)) {
+            return false;
+          }
+
+          SMGEdgePointsTo ptE1 = pSMG1.getPointer(value);
+          SMGEdgePointsTo ptE2 = pSMG2.getPointer(value);
+          String label1 = ptE1.getObject().getLabel();
+          String label2 = ptE2.getObject().getLabel();
+          long offset1 = ptE1.getOffset();
+          long offset2 = ptE2.getOffset();
+
+          //TODO How does one check, if two pointers point to the same region? You would have to recover the stack frame.
+          if (!(offset1 == offset2 && label1.equals(label2))) {
+            return false;
+          }
         }
       }
     }

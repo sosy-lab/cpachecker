@@ -90,7 +90,7 @@ public class SMGCPA
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for the SMGCPA")
-  private String mergeType = "SEP";
+  private String mergeType = "JOIN";
 
   private final SMGPredicateManager smgPredicateManager;
   private final BlockOperator blockOperator;

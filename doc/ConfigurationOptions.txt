@@ -2512,6 +2512,10 @@ cpa.smg.handleUnknownDereferenceAsSafe = false
 cpa.smg.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
+# Perform merge SMGStates by SMGJoin on ends of code block. Works with
+# 'merge=JOIN'
+cpa.smg.joinOnBlockEnd = true
+
 # Memory allocation functions
 cpa.smg.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "realloc"}
 
@@ -2528,7 +2532,7 @@ cpa.smg.memoryArrayAllocationFunctionsNumParameter = 0
 cpa.smg.memoryErrors = true
 
 # which merge operator to use for the SMGCPA
-cpa.smg.merge = "SEP"
+cpa.smg.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
 # export interpolant smgs for every path interpolation to this path template

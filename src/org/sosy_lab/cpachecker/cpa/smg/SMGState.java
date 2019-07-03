@@ -83,7 +83,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
@@ -1406,6 +1405,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       throws SMGInconsistentException {
     // Not necessary if merge_SEP and stop_SEP is used.
 
+    if (options.getJoinOnBlockEnd() && !reachedState.isBlockEnded()) {
+      return reachedState;
+    }
+
     SMGJoin join = new SMGJoin(this.heap, reachedState.getHeap(), this, reachedState, true);
 
     if (!(join.getStatus() == SMGJoinStatus.INCOMPARABLE && join.isDefined())) {
@@ -1414,7 +1417,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     CLangSMG destHeap = join.getJointSMG();
 
-    // join explicit values
+    //FIXME: fix join explicit values
     Map<SMGKnownSymbolicValue, SMGKnownExpValue> mergedExplicitValues = new HashMap<>();
     for (Entry<SMGKnownSymbolicValue, SMGKnownExpValue> entry : explicitValues.entrySet()) {
       if (destHeap.getValues().contains(entry.getKey())) {
@@ -1445,30 +1448,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return false;
     }
 
-    if (options.isHeapAbstractionEnabled()) {
-      SMGJoin join = new SMGJoin(heap, reachedState.getHeap(), this, reachedState, false);
-
-      if (!join.isDefined()) {
-        return false;
-      }
-
-      SMGJoinStatus jss = join.getStatus();
-      if (jss != SMGJoinStatus.EQUAL && jss != SMGJoinStatus.RIGHT_ENTAIL) {
-        return false;
-      }
-
-      // Only stop if either reached has memleak or this state has no memleak
-      // to avoid losing memleak information.
-      SMGState s1 = reachedState.copyOf();
-      SMGState s2 = this.copyOf();
-      s1.pruneUnreachable();
-      s2.pruneUnreachable();
-      logger.log(Level.ALL, this.getId(), " is Less or Equal ", reachedState.getId());
-      return s1.errorInfo.hasMemoryLeak() == s2.errorInfo.hasMemoryLeak();
-
-    } else {
+    //FIXME: check whether state is covered by another with abstraction
       return SMGIsLessOrEqual.isLessOrEqual(reachedState.getHeap(), heap);
-    }
   }
 
   @Override
