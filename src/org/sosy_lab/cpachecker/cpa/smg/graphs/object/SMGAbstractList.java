@@ -117,7 +117,7 @@ public abstract class SMGAbstractList<S> extends SMGObject implements SMGAbstrac
     if (obj == null || !(obj instanceof SMGAbstractList)) {
       return false;
     }
-    return (minimumLength == ((SMGAbstractList)obj).minimumLength) && super.equals(obj);
+    return (minimumLength == ((SMGAbstractList<?>)obj).minimumLength) && super.equals(obj);
 
   }
 }

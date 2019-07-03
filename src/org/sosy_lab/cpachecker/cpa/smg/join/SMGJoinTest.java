@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -210,7 +211,9 @@ public class SMGJoinTest {
   public void simpleGlobalVarJoinTest() throws SMGInconsistentException {
     String varName = "variableName";
     addGlobalWithoutValueToBoth(varName);
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
+    SMGState smgState1 = mock(SMGState.class);
+    SMGState smgState2 = mock(SMGState.class);
+    SMGJoin join = new SMGJoin(smg1, smg2, smgState1, smgState2);
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
@@ -226,7 +229,9 @@ public class SMGJoinTest {
     smg2.addStackFrame(functionDeclaration);
     addLocalWithoutValueToBoth(varName);
 
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
+    SMGState smgState1 = mock(SMGState.class);
+    SMGState smgState2 = mock(SMGState.class);
+    SMGJoin join = new SMGJoin(smg1, smg2, smgState1, smgState2);
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
@@ -314,7 +319,9 @@ public class SMGJoinTest {
     Pair<SMGRegion, SMGRegion> c3 = addLocalWithoutValueToBoth("c", 32);
     addValueToBoth(c3, 0, 104, 32);
 
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
+    SMGState smgState1 = mock(SMGState.class);
+    SMGState smgState2 = mock(SMGState.class);
+    SMGJoin join = new SMGJoin(smg1, smg2, smgState1, smgState2);
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
   }
@@ -359,7 +366,10 @@ public class SMGJoinTest {
     Pair<SMGRegion, SMGRegion> global = addGlobalWithoutValueToBoth("global", 128);
     addPointerValueToBoth(global, 0, 100, 32, objs, 0);
 
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
+
+    SMGState smgState1 = mock(SMGState.class);
+    SMGState smgState2 = mock(SMGState.class);
+    SMGJoin join = new SMGJoin(smg1, smg2, smgState1, smgState2);
     Assert.assertTrue(join.isDefined());
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.RIGHT_ENTAIL);
 
