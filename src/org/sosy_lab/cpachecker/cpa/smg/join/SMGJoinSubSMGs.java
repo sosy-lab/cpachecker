@@ -25,14 +25,15 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -103,61 +104,133 @@ final class SMGJoinSubSMGs {
 
     int prevLevel = pLevelMap.get(SMGJoinLevel.valueOf(pObj1.getLevel(), pObj2.getLevel()));
 
-    for (SMGEdgeHasValue hvIn1 : inputSMG1.getHVEdges(filterOnSMG1)) {
-      filterOnSMG2.filterAtOffset(hvIn1.getOffset());
-      SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
+    SMGHasValueEdges hvEdgesIn1 = inputSMG1.getHVEdges(filterOnSMG1);
+    SMGHasValueEdges hvEdgesIn2 = inputSMG2.getHVEdges(filterOnSMG2);
+    if (hvEdgesIn1.size() > 0 && hvEdgesIn1.equals(hvEdgesIn2) && pObj1.equals(pNewObject)) {
+      //TODO: copy to SMG and perform join
+      destSMG.addHasValueEdges(hvEdgesIn1);
+      for (SMGEdgeHasValue hvIn1: hvEdgesIn1) {
+        filterOnSMG2.filterAtOffset(hvIn1.getOffset());
+        Iterator<SMGEdgeHasValue> iterator = hvEdgesIn2.filter(filterOnSMG2).iterator();
+        SMGEdgeHasValue hvIn2 = iterator.next();
+        assert (!iterator.hasNext());
 
-      int value1Level = getValueLevel(pObj1, hvIn1.getValue(), inputSMG1);
-      int value2Level = getValueLevel(pObj2, hvIn2.getValue(), inputSMG2);
-      int levelDiff1 = value1Level - pObj1.getLevel();
-      int levelDiff2 = value2Level - pObj2.getLevel();
-      int lDiff = pLDiff + (levelDiff1 - levelDiff2);
+        int value1Level = getValueLevel(pObj1, hvIn1.getValue(), inputSMG1);
+        int value2Level = getValueLevel(pObj2, hvIn2.getValue(), inputSMG2);
+        int levelDiff1 = value1Level - pObj1.getLevel();
+        int levelDiff2 = value2Level - pObj2.getLevel();
+        int lDiff = pLDiff + (levelDiff1 - levelDiff2);
 
-      SMGLevelMapping levelMap =
-          updateLevelMap(value1Level, value2Level, pLevelMap, pObj1.getLevel(), pObj2.getLevel());
+        SMGLevelMapping levelMap =
+            updateLevelMap(value1Level, value2Level, pLevelMap, pObj1.getLevel(), pObj2.getLevel());
 
-      if (levelMap == null) {
-        defined = false;
-        status = SMGJoinStatus.INCOMPARABLE;
-        return;
-      }
+        if (levelMap == null) {
+          defined = false;
+          status = SMGJoinStatus.INCOMPARABLE;
+          return;
+        }
 
-      SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
-          mapping1, mapping2, levelMap, hvIn1.getValue(), hvIn2.getValue(), lDiff, identicalInputSmg, value1Level, value2Level, prevLevel, pSmgState1, pSmgState2);
-      status = joinValues.getStatus();
+        SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
+            mapping1, mapping2, levelMap, hvIn1.getValue(), hvIn2.getValue(), lDiff,
+            identicalInputSmg, value1Level, value2Level, prevLevel, pSmgState1, pSmgState2);
+        status = joinValues.getStatus();
 
-      /* If the join of the values is not defined and can't be
-       * recovered through abstraction, the join fails.*/
-      if (!joinValues.isDefined() && !joinValues.isRecoverable()) {
-        // subSmgAbstractionCandidates = ImmutableList.of();
-        status = SMGJoinStatus.INCOMPARABLE;
-        return;
-      }
+        /* If the join of the values is not defined and can't be
+         * recovered through abstraction, the join fails.*/
+        if (!joinValues.isDefined() && !joinValues.isRecoverable()) {
+          // subSmgAbstractionCandidates = ImmutableList.of();
+          status = SMGJoinStatus.INCOMPARABLE;
+          return;
+        }
 
-      inputSMG1 = joinValues.getInputSMG1();
-      inputSMG2 = joinValues.getInputSMG2();
-      //TODO join: replace
-      destSMG = joinValues.getDestinationSMG();
+        inputSMG1 = joinValues.getInputSMG1();
+        inputSMG2 = joinValues.getInputSMG2();
+        //TODO join: replace
+        destSMG = joinValues.getDestinationSMG();
 
-      if (joinValues.isDefined()) {
+        if (joinValues.isDefined()) {
 
-        SMGEdgeHasValue newHV;
-        if (hvIn1.getObject().equals(pNewObject)
-            && joinValues.getValue().equals(hvIn1.getValue())) {
-          newHV = hvIn1;
+          if (!hvIn1.getObject().equals(pNewObject)
+              || !joinValues.getValue().equals(hvIn1.getValue())) {
+                SMGEdgeHasValue newHV =
+                    new SMGEdgeHasValue(destSMG.getMachineModel(), hvIn1.getType(), hvIn1.getOffset(),
+                        pNewObject,
+                        joinValues.getValue());
+                destSMG.removeHasValueEdge(hvIn1);
+                destSMG.addHasValueEdge(newHV);
+              }
+
+          if (joinValues.subSmgHasAbstractionsCandidates()) {
+            valueAbstractionCandidates
+                .put(joinValues.getValue(), joinValues.getAbstractionCandidates());
+          }
         } else {
-          newHV = new SMGEdgeHasValue(destSMG.getMachineModel(), hvIn1.getType(), hvIn1.getOffset(), pNewObject,
-              joinValues.getValue());
+          allValuesDefined = false;
+        }
+      }
+    } else {
+      for (SMGEdgeHasValue hvIn1 : hvEdgesIn1) {
+        filterOnSMG2.filterAtOffset(hvIn1.getOffset());
+        Iterator<SMGEdgeHasValue> iterator = hvEdgesIn2.filter(filterOnSMG2).iterator();
+        SMGEdgeHasValue hvIn2 = iterator.next();
+        assert (!iterator.hasNext());
+
+        int value1Level = getValueLevel(pObj1, hvIn1.getValue(), inputSMG1);
+        int value2Level = getValueLevel(pObj2, hvIn2.getValue(), inputSMG2);
+        int levelDiff1 = value1Level - pObj1.getLevel();
+        int levelDiff2 = value2Level - pObj2.getLevel();
+        int lDiff = pLDiff + (levelDiff1 - levelDiff2);
+
+        SMGLevelMapping levelMap =
+            updateLevelMap(value1Level, value2Level, pLevelMap, pObj1.getLevel(), pObj2.getLevel());
+
+        if (levelMap == null) {
+          defined = false;
+          status = SMGJoinStatus.INCOMPARABLE;
+          return;
         }
 
-        //TODO join: write
-        destSMG.addHasValueEdge(newHV);
+        SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
+            mapping1, mapping2, levelMap, hvIn1.getValue(), hvIn2.getValue(), lDiff,
+            identicalInputSmg, value1Level, value2Level, prevLevel, pSmgState1, pSmgState2);
+        status = joinValues.getStatus();
 
-        if(joinValues.subSmgHasAbstractionsCandidates()) {
-          valueAbstractionCandidates.put(joinValues.getValue(), joinValues.getAbstractionCandidates());
+        /* If the join of the values is not defined and can't be
+         * recovered through abstraction, the join fails.*/
+        if (!joinValues.isDefined() && !joinValues.isRecoverable()) {
+          // subSmgAbstractionCandidates = ImmutableList.of();
+          status = SMGJoinStatus.INCOMPARABLE;
+          return;
         }
-      } else {
-        allValuesDefined = false;
+
+        inputSMG1 = joinValues.getInputSMG1();
+        inputSMG2 = joinValues.getInputSMG2();
+        //TODO join: replace
+        destSMG = joinValues.getDestinationSMG();
+
+        if (joinValues.isDefined()) {
+
+          SMGEdgeHasValue newHV;
+          if (hvIn1.getObject().equals(pNewObject)
+              && joinValues.getValue().equals(hvIn1.getValue())) {
+            newHV = hvIn1;
+          } else {
+            newHV =
+                new SMGEdgeHasValue(destSMG.getMachineModel(), hvIn1.getType(), hvIn1.getOffset(),
+                    pNewObject,
+                    joinValues.getValue());
+          }
+
+          //TODO join: write most used
+          destSMG.addHasValueEdge(newHV);
+
+          if (joinValues.subSmgHasAbstractionsCandidates()) {
+            valueAbstractionCandidates
+                .put(joinValues.getValue(), joinValues.getAbstractionCandidates());
+          }
+        } else {
+          allValuesDefined = false;
+        }
       }
     }
 

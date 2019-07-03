@@ -1704,7 +1704,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public void pruneUnreachable() throws SMGInconsistentException {
     Set<SMGObject> unreachable = heap.pruneUnreachable();
     if (!unreachable.isEmpty()) {
-      StringBuffer error = new StringBuffer();
+      StringBuilder error = new StringBuilder();
       for (SMGObject obj : unreachable) {
         error.append(obj.getLabel());
       }
