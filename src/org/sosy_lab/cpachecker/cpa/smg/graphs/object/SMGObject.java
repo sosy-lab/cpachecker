@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
@@ -111,5 +112,27 @@ public abstract class SMGObject implements Comparable<SMGObject> {
   @Override
   public int compareTo(SMGObject o) {
     return Integer.compare(getId(), o.getId());
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (pO == null || !(pO instanceof SMGObject)) {
+      return false;
+    }
+    SMGObject smgObject = (SMGObject) pO;
+    //FIXME: should we consider objects with different id as same?
+    return size == smgObject.size &&
+        level == smgObject.level &&
+        id == smgObject.id &&
+        kind == smgObject.kind &&
+        Objects.equals(label, smgObject.label);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(size, label, level, kind, id);
   }
 }

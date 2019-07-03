@@ -1445,11 +1445,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public boolean isLessOrEqual(UnmodifiableSMGState reachedState) throws SMGInconsistentException {
 
     if(!getErrorPredicateRelation().isEmpty() || !reachedState.getErrorPredicateRelation().isEmpty()) {
-      return false;
+      if (!getErrorPredicateRelation().isLessOrEqual(reachedState.getPathPredicateRelation())) {
+        return false;
+      }
     }
 
     //FIXME: check whether state is covered by another with abstraction
-      return SMGIsLessOrEqual.isLessOrEqual(reachedState.getHeap(), heap);
+    return SMGIsLessOrEqual.isLessOrEqual(heap, reachedState.getHeap());
   }
 
   @Override

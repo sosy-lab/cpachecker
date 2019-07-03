@@ -58,7 +58,7 @@ public class SMGIsLessOrEqual {
   private SMGIsLessOrEqual() {} // Utility class.
 
   /**
-   * Checks, if smg2 is less or equal to smg1.
+   * Checks, if smg1 is less or equal to smg2.
    *
    * @return true, iff smg1 is less or equal to smg2, false otherwise.
    */
@@ -74,9 +74,9 @@ public class SMGIsLessOrEqual {
       }
 
       // if smg1 has not allocated the same number of SMGObjects in the heap, it is not equal to smg2
-      if (pSMG1.getHeapObjects().size() != pSMG2.getHeapObjects().size()) {
-        return false;
-      }
+//      if (pSMG1.getHeapObjects().size() != pSMG2.getHeapObjects().size()) {
+//        return false;
+//      }
 
       if (pSMG1.getStackFrames().size() != pSMG2.getStackFrames().size()) {
         return false;
@@ -228,6 +228,16 @@ public class SMGIsLessOrEqual {
       UnmodifiableCLangSMG pSMG2,
       SMGObject pSMGObject1,
       SMGObject pSMGObject2) {
+
+    if (pSMGObject1.isAbstract() || pSMGObject2.isAbstract()) {
+      if (pSMGObject1.isMoreGeneral(pSMGObject2)) {
+        return false;
+      }
+      if (!pSMGObject1.equals(pSMGObject2)) {
+        //FIXME: add analysis of covered objects
+        assert false;
+      }
+    }
 
     if (pSMGObject1.getSize() != pSMGObject2.getSize()) {
       throw new IllegalArgumentException("SMGJoinFields object arguments need to have identical size");
