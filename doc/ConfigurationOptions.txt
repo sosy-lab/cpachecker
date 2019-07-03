@@ -201,10 +201,6 @@ analysis.alwaysStoreCounterexamples = false
 # Construct a residual program from condition and verify residual program
 analysis.asConditionalVerifier = false
 
-# validate correctness witness by building an invariants specification
-# automaton as additional specification
-analysis.buildInvariantsSpecificationAutomaton = false
-
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples
 analysis.checkCounterexamples = false
@@ -223,9 +219,6 @@ analysis.constructResidualProgram = false
 
 # continue analysis after a unsupported code was found on one path
 analysis.continueAfterUnsupportedCode = false
-
-# correctness witness file to validate
-analysis.correctnessWitnessFile = no default value
 
 # Maximum number of counterexamples to be created.
 analysis.counterexampleLimit = 0
