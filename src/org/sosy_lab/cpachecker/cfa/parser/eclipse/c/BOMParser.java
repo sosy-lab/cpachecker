@@ -120,19 +120,13 @@ public class BOMParser {
   private static ByteOrderMark getBOM(List<Integer> codeBeginning) {
     if (isPureAscii(codeBeginning)) {
       return ByteOrderMark.NO_BOM;
-    } else if (codeBeginning.equals(ByteOrderMark.UTF8_BOM.sequence)) {
-      return ByteOrderMark.UTF8_BOM;
-    } else if (codeBeginning.equals(ByteOrderMark.UTF16_LE_BOM.sequence)) {
-      return ByteOrderMark.UTF16_LE_BOM;
-    } else if (codeBeginning.equals(ByteOrderMark.UTF16_BE_BOM.sequence)) {
-      return ByteOrderMark.UTF16_BE_BOM;
-    } else if (codeBeginning.equals(ByteOrderMark.UTF32_LE_BOM.sequence)) {
-      return ByteOrderMark.UTF32_LE_BOM;
-    } else if (codeBeginning.equals(ByteOrderMark.UTF32_BE_BOM.sequence)) {
-      return ByteOrderMark.UTF32_BE_BOM;
-    } else {
-      return ByteOrderMark.UNKNOWN_BOM;
     }
+    for(ByteOrderMark bom : ByteOrderMark.values()) {
+      if (codeBeginning.equals(bom.sequence)) {
+        return bom;
+      }
+    }
+    return ByteOrderMark.UNKNOWN_BOM;
   }
 
   private static boolean isPureAscii(List<Integer> code) {
