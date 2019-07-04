@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -72,6 +73,17 @@ public class LockCPA extends AbstractCPA
   @Option(description = "Enable refinement procedure", secure = true)
   private boolean refinement = false;
 
+  @Option(
+    secure = true,
+    name = "merge",
+    toUppercase = true,
+    values = {"SEP", "JOIN"},
+    description = "which merge operator to use for LockCPA")
+  private String mergeType = "SEP";
+
+  @Option(description = "Consider or not lock guards", secure = true)
+  private boolean considerLockGuards = true;
+
   private final LockReducer reducer;
 
   private LockCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
@@ -109,7 +121,17 @@ public class LockCPA extends AbstractCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    return MergeSepOperator.getInstance();
+    switch (mergeType) {
+      case "SEP":
+        return MergeSepOperator.getInstance();
+
+      case "JOIN":
+        return new MergeJoinOperator(getAbstractDomain());
+
+      default:
+        // The analysis should fail at CPA creation
+        throw new UnsupportedOperationException("Unsupported merge type");
+    }
   }
 
   @Override

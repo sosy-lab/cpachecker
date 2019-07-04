@@ -432,4 +432,20 @@ public class LockState extends AbstractLockState {
     }
     return true;
   }
+
+  @Override
+  public AbstractLockState join(AbstractLockState pOther) {
+    Map<LockIdentifier, Integer> overlappedMap = new TreeMap<>();
+    Map<LockIdentifier, Integer> otherMap = ((LockState) pOther).locks;
+
+    for (Entry<LockIdentifier, Integer> entry : this.locks.entrySet()) {
+      LockIdentifier id = entry.getKey();
+      Integer value = entry.getValue();
+      if (otherMap.containsKey(id)) {
+        Integer otherVal = otherMap.get(id);
+        overlappedMap.put(id, Integer.min(value, otherVal));
+      }
+    }
+    return new LockState(overlappedMap, (LockState) this.toRestore);
+  }
 }
