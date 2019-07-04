@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -44,7 +45,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-public abstract class VariableTrackingPrecision implements Precision, Serializable {
+public abstract class VariableTrackingPrecision implements AdjustablePrecision, Serializable {
 
   private static final long serialVersionUID = 1L;
 
@@ -169,6 +170,7 @@ public abstract class VariableTrackingPrecision implements Precision, Serializab
    *
    * @return indicates whether there are variables that should be tracked or not
    */
+  @Override
   public abstract boolean isEmpty();
 
   /**
@@ -203,5 +205,15 @@ public abstract class VariableTrackingPrecision implements Precision, Serializab
     private RefinablePrecisionOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
+  }
+
+  @Override
+  public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
+    return join((VariableTrackingPrecision) otherPrecision);
+  }
+
+  @Override
+  public AdjustablePrecision subtract(AdjustablePrecision otherPrecision) {
+    throw new UnsupportedOperationException("Not yet supported");
   }
 }
