@@ -36,6 +36,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
@@ -402,5 +403,21 @@ public class LockState extends AbstractLockState {
   @Override
   protected Set<LockIdentifier> getLocks() {
     return locks.keySet();
+  }
+
+  @Override
+  public AbstractLockState join(AbstractLockState pOther) {
+    SortedMap<LockIdentifier, Integer> overlappedMap = new TreeMap<>();
+    SortedMap<LockIdentifier, Integer> otherMap = ((LockState) pOther).locks;
+
+    for (Entry<LockIdentifier, Integer> entry : this.locks.entrySet()) {
+      LockIdentifier id = entry.getKey();
+      Integer value = entry.getValue();
+      if (otherMap.containsKey(id)) {
+        Integer otherVal = otherMap.get(id);
+        overlappedMap.put(id, Integer.min(value, otherVal));
+      }
+    }
+    return new LockState(overlappedMap, (LockState) this.toRestore);
   }
 }
