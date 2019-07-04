@@ -23,8 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.thread;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Optional;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
@@ -39,9 +46,8 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStateBuilder;
+import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStatus;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 
 
 public class ThreadTransferRelation extends SingleEdgeTransferRelation {
@@ -57,59 +63,128 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
 
     threadStatistics.transfer.start();
     ThreadState tState = (ThreadState)pState;
+    ThreadState newState = tState;
 
-    ThreadStateBuilder builder = tState.getBuilder();
     try {
       if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-        if (!handleFunctionCall((CFunctionCallEdge) pCfaEdge, builder)) {
-          // Try to join non-created thread
-          return Collections.emptySet();
-        }
+        newState = handleFunctionCall(tState, (CFunctionCallEdge) pCfaEdge);
       } else if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
         CFunctionCall functionCall = ((CFunctionSummaryStatementEdge) pCfaEdge).getFunctionCall();
         if (isThreadCreateFunction(functionCall)) {
-          builder.handleParentThread((CThreadCreateStatement) functionCall);
+          newState = handleParentThread(tState, (CThreadCreateStatement) functionCall);
         }
       } else if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
         CStatement stmnt = ((CStatementEdge) pCfaEdge).getStatement();
         if (stmnt instanceof CThreadJoinStatement) {
           threadStatistics.threadJoins.inc();
-          if (!builder.joinThread((CThreadJoinStatement) stmnt)) {
-            return Collections.emptySet();
-          }
+          newState = joinThread(tState, (CThreadJoinStatement) stmnt);
         }
       } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
         CFunctionCall functionCall =
             ((CFunctionReturnEdge) pCfaEdge).getSummaryEdge().getExpression();
         if (isThreadCreateFunction(functionCall)) {
-          return Collections.emptySet();
+          newState = null;
         }
       }
-      return Collections.singleton(builder.build());
-    } catch (HandleCodeException e) {
+      if (newState != null) {
+        return Collections.singleton(newState);
+      } else {
+        return Collections.emptySet();
+      }
+    } catch (CPATransferException e) {
       return Collections.emptySet();
     } finally {
       threadStatistics.transfer.stop();
     }
   }
 
-  private boolean handleFunctionCall(CFunctionCallEdge pCfaEdge,
-      ThreadStateBuilder builder) throws HandleCodeException {
+  private ThreadState handleFunctionCall(
+      ThreadState state,
+      CFunctionCallEdge pCfaEdge)
+      throws CPATransferException {
 
-    boolean success = true;
+    ThreadState newState = state;
     CFunctionCall fCall = pCfaEdge.getSummaryEdge().getExpression();
     if (isThreadCreateFunction(fCall)) {
-      builder.handleChildThread((CThreadCreateStatement) fCall);
+      newState = handleChildThread(state, (CThreadCreateStatement) fCall);
       if (threadStatistics.createdThreads.add(pCfaEdge.getSuccessor().getFunctionName())) {
         threadStatistics.threadCreates.inc();
         // Just to statistics
-        threadStatistics.maxNumberOfThreads.setNextValue(builder.getThreadSize());
+        threadStatistics.maxNumberOfThreads.setNextValue(state.getThreadSize());
       }
     } else if (isThreadJoinFunction(fCall)) {
       threadStatistics.threadJoins.inc();
-      success = builder.joinThread((CThreadJoinStatement)fCall);
+      newState = joinThread(state, (CThreadJoinStatement) fCall);
     }
-    return success;
+    return newState;
+  }
+
+  private ThreadState handleParentThread(ThreadState state, CThreadCreateStatement tCall)
+      throws CPATransferException {
+    return createThread(state, tCall, ThreadStatus.PARENT_THREAD);
+  }
+
+  private ThreadState handleChildThread(ThreadState state, CThreadCreateStatement tCall)
+      throws CPATransferException {
+    return createThread(
+        state,
+        tCall,
+        tCall.isSelfParallel() ? ThreadStatus.SELF_PARALLEL_THREAD : ThreadStatus.CREATED_THREAD);
+  }
+
+  private ThreadState
+      createThread(ThreadState state, CThreadCreateStatement tCall, ThreadStatus pParentThread)
+          throws CPATransferException {
+    final String pVarName = tCall.getVariableName();
+    // Just to info
+    final String pFunctionName =
+        tCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
+
+    Map<String, ThreadStatus> tSet = state.getThreadSet();
+    List<ThreadLabel> order = state.getOrder();
+    if (tSet.containsKey(pVarName)) {
+      throw new CPATransferException(
+          "Can not create thread " + pFunctionName + ", it was already created");
+    }
+
+    ThreadStatus status = pParentThread;
+    if (!tSet.isEmpty()) {
+      ThreadLabel last = order.get(order.size() - 1);
+      if (tSet.get(last.getVarName()) == ThreadStatus.SELF_PARALLEL_THREAD) {
+        // Can add only the same status
+        status = ThreadStatus.SELF_PARALLEL_THREAD;
+      }
+    }
+    ThreadLabel label = new ThreadLabel(pFunctionName, pVarName);
+    Map<String, ThreadStatus> newSet = new TreeMap<>(tSet);
+    List<ThreadLabel> newOrder = new ArrayList<>(order);
+    newSet.put(pVarName, status);
+    newOrder.add(label);
+    return new ThreadState(newSet, state.getRemovedSet(), newOrder);
+  }
+
+  public ThreadState joinThread(ThreadState state, CThreadJoinStatement jCall) {
+    // If we found several labels for different functions
+    // it means, that there are several thread created for one thread variable.
+    // Not a good situation, but it is not forbidden, so join the last assigned thread
+    List<ThreadLabel> order = state.getOrder();
+    Map<String, ThreadStatus> tSet = state.getThreadSet();
+
+    Optional<ThreadLabel> result =
+        from(order).filter(l -> l.getVarName().equals(jCall.getVariableName())).last();
+    // Do not self-join
+    if (result.isPresent()) {
+      ThreadLabel toRemove = result.get();
+      String var = toRemove.getVarName();
+      if (tSet.containsKey(var) && tSet.get(var) != ThreadStatus.CREATED_THREAD) {
+        Map<String, ThreadStatus> newSet = new TreeMap<>(tSet);
+        List<ThreadLabel> newOrder = new ArrayList<>(order);
+        newSet.remove(var);
+        newOrder.remove(toRemove);
+        return new ThreadState(newSet, state.getRemovedSet(), newOrder);
+      }
+    }
+    return state;
   }
 
   private boolean isThreadCreateFunction(CFunctionCall statement) {

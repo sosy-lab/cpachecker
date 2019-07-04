@@ -29,20 +29,15 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.TreeMap;
-import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
-import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 
 public class ThreadState implements LatticeAbstractState<ThreadState>, CompatibleNode {
 
@@ -52,100 +47,13 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     SELF_PARALLEL_THREAD;
   }
 
-  public class ThreadStateBuilder {
-    private Map<String, ThreadStatus> tSet;
-    private List<ThreadLabel> bOrder;
-    private boolean changed = false;
-
-    private ThreadStateBuilder(ThreadState state) {
-      tSet = state.threadSet;
-      bOrder = state.order;
-    }
-
-    private void cloneIfNecessary() {
-      if (!changed) {
-        tSet = new TreeMap<>(tSet);
-        bOrder = new ArrayList<>(bOrder);
-        changed = true;
-      }
-    }
-
-    public void handleParentThread(CThreadCreateStatement tCall) throws HandleCodeException {
-      createThread(tCall, ThreadStatus.PARENT_THREAD);
-    }
-
-    public void handleChildThread(CThreadCreateStatement tCall) throws HandleCodeException {
-      createThread(
-          tCall,
-          tCall.isSelfParallel() ? ThreadStatus.SELF_PARALLEL_THREAD : ThreadStatus.CREATED_THREAD);
-    }
-
-    private void createThread(CThreadCreateStatement tCall, ThreadStatus pParentThread)
-        throws HandleCodeException {
-      final String pVarName = tCall.getVariableName();
-      //Just to info
-      final String pFunctionName = tCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
-
-      if (tSet.containsKey(pVarName)) {
-        throw new HandleCodeException(
-            "Can not create thread " + pFunctionName + ", it was already created");
-      }
-
-      ThreadStatus status = pParentThread;
-      if (!tSet.isEmpty()) {
-        ThreadLabel last = bOrder.get(bOrder.size() - 1);
-        if (tSet.get(last.getVarName()) == ThreadStatus.SELF_PARALLEL_THREAD) {
-          // Can add only the same status
-          status = ThreadStatus.SELF_PARALLEL_THREAD;
-        }
-      }
-      ThreadLabel label = new ThreadLabel(pFunctionName, pVarName);
-      cloneIfNecessary();
-      tSet.put(pVarName, status);
-      bOrder.add(label);
-    }
-
-    public ThreadState build() {
-      if (changed) {
-        return new ThreadState(tSet, removedSet, bOrder);
-      } else {
-        return ThreadState.this;
-      }
-    }
-
-    public boolean joinThread(CThreadJoinStatement jCall) {
-      // If we found several labels for different functions
-      // it means, that there are several thread created for one thread variable.
-      // Not a good situation, but it is not forbidden, so join the last assigned thread
-      Optional<ThreadLabel> result =
-          from(bOrder).filter(l -> l.getVarName().equals(jCall.getVariableName())).last();
-      // Do not self-join
-      if (result.isPresent()) {
-        ThreadLabel toRemove = result.get();
-        String var = toRemove.getVarName();
-        cloneIfNecessary();
-        if (tSet.containsKey(var) && tSet.get(var) != ThreadStatus.CREATED_THREAD) {
-          tSet.remove(var);
-          bOrder.remove(toRemove);
-        }
-        changed = true;
-      }
-      return false;
-    }
-
-    public int getThreadSize() {
-      //Only for statistics
-      return tSet.size();
-    }
-  }
-
   private final Map<String, ThreadStatus> threadSet;
   // The removedSet is useless now, but it will be used in future in more complicated cases
   // Do not remove it now
   private final ImmutableMap<ThreadLabel, ThreadStatus> removedSet;
   private final List<ThreadLabel> order;
 
-  private ThreadState(
+  public ThreadState(
       Map<String, ThreadStatus> Tset,
       ImmutableMap<ThreadLabel, ThreadStatus> Rset,
       List<ThreadLabel> pOrder) {
@@ -235,10 +143,6 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
         Collections.emptyList());
   }
 
-  public ThreadStateBuilder getBuilder() {
-    return new ThreadStateBuilder(this);
-  }
-
   public static ThreadState emptyState() {
     return new ThreadState(
         ImmutableMap.of(),
@@ -281,5 +185,22 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     }
     b &= pOther.threadSet.entrySet().containsAll(threadSet.entrySet());
     return b;
+  }
+
+  Map<String, ThreadStatus> getThreadSet() {
+    return threadSet;
+  }
+
+  ImmutableMap<ThreadLabel, ThreadStatus> getRemovedSet() {
+    return removedSet;
+  }
+
+  List<ThreadLabel> getOrder() {
+    return order;
+  }
+
+  int getThreadSize() {
+    // Only for statistics
+    return threadSet.size();
   }
 }
