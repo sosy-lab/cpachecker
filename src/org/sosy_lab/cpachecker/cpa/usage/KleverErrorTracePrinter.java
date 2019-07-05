@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.RaceGraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
+import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Element;
@@ -356,6 +357,11 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
   @Override
   protected String createUniqueName(SingleIdentifier id) {
-    return id.getType().toASTString(id.toString());
+    String declaration = id.getType().toASTString(id.toString());
+    if (id instanceof LocalVariableIdentifier) {
+      // To avoid matching the same variables from different functions
+      declaration = ((LocalVariableIdentifier) id).getFunction() + "::" + declaration;
+    }
+    return declaration;
   }
 }
