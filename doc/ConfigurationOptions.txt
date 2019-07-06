@@ -2945,14 +2945,18 @@ custominstructions.definitionFile = "ci_def.txt"
 # analysis
 custominstructions.dumpCIRequirements = "ci%d.smt"
 
-# Try to remove informations from requirements which is irrelevant for custom
-# instruction behavior
-custominstructions.enableRequirementSlicing = false
+# Try to remove parts of requirements that are not related to custom
+# instruction and are, thus, irrelevant for custom instruction behavior
+custominstructions.enableRequirementsSlicing = false
 
 # Specifies the mode how custom instruction applications in program are
 # identified.
 custominstructions.mode = OPERATOR
   enum:     [MANUAL, OPERATOR]
+
+# Try to remove requirements that are covered by another requirment and are,
+# thus, irrelevant for custom instruction behavior
+custominstructions.removeCoveredRequirements = false
 
 # Qualified name of class for abstract state which provides custom
 # instruction requirements.

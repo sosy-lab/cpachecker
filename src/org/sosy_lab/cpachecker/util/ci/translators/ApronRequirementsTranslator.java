@@ -125,7 +125,6 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
 
   private Collection<String> getConvexHullRequiredVars(final ApronState pRequirement,
       final @Nullable Collection<String> requiredVars) {
-    Set<String> seenRequired = new HashSet<>();
     Set<String> required;
     if (requiredVars == null) {
       required = new HashSet<>();
@@ -142,23 +141,18 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
 
     Iterator<Set<String>> it = constraintVars.iterator();
 
-    int setSize;
     Set<String> intermediate;
 
     while(it.hasNext()) {
       intermediate = it.next();
       if(!Sets.intersection(required, intermediate).isEmpty()) {
-        setSize = seenRequired.size();
-        seenRequired.addAll(intermediate);
-        required.addAll(intermediate);
-
-        if(setSize != seenRequired.size()) {
+        if (required.addAll(intermediate)) {
           it = constraintVars.iterator();
         }
       }
     }
 
-    return seenRequired;
+    return required;
   }
 
   private Collection<String> getAllVarsUsed(final ApronState pRequirement) {
