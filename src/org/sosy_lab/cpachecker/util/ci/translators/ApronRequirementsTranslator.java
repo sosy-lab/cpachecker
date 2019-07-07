@@ -34,6 +34,7 @@ import apron.Texpr0CstNode;
 import apron.Texpr0DimNode;
 import apron.Texpr0Node;
 import apron.Texpr0UnNode;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.math.DoubleMath;
 import gmp.Mpfr;
@@ -70,6 +71,9 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
 
   @Override
   protected List<String> getVarsInRequirements(final ApronState pRequirement, final @Nullable Collection<String> pRequiredVars) {
+    if (pRequiredVars == null) {
+      return getVarsInRequirements(pRequirement);
+    }
     Collection<String> result = getConvexHullRequiredVars(pRequirement, pRequiredVars);
     stateToRequiredVars = Pair.of(pRequirement, result);
     return new ArrayList<>(result);
@@ -122,15 +126,10 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
     return result;
   }
 
-
-  private Collection<String> getConvexHullRequiredVars(final ApronState pRequirement,
-      final @Nullable Collection<String> requiredVars) {
-    Set<String> required;
-    if (requiredVars == null) {
-      required = new HashSet<>();
-    } else {
-      required = new HashSet<>(requiredVars);
-    }
+  private Collection<String> getConvexHullRequiredVars(
+      final ApronState pRequirement, final Collection<String> requiredVars) {
+    Preconditions.checkNotNull(requiredVars);
+    Set<String> required = new HashSet<>(requiredVars);
     List<String> varNames = getAllVarNames(pRequirement);
     Tcons0[] constraints = pRequirement.getApronNativeState().toTcons(pRequirement.getManager().getManager());
     List<Set<String>> constraintVars = new ArrayList<>(constraints.length);
