@@ -414,36 +414,13 @@ def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
 
 
 def parseCloudRunResultFile(filePath):
-    values = collections.OrderedDict()
+    def read_items():
+        with open(filePath, "rt") as file:
+            for line in file:
+                key, value = line.split("=", 1)
+                yield key, value
 
-    def parseTimeValue(s):
-        if s[-1] != "s":
-            raise ValueError('Cannot parse "{0}" as a time value.'.format(s))
-        return float(s[:-1])
-
-    with open(filePath, "rt") as file:
-        for line in file:
-            (key, value) = line.split("=", 1)
-            value = value.strip()
-            if key == "cputime":
-                values["cputime"] = parseTimeValue(value)
-            elif key == "walltime":
-                values["walltime"] = parseTimeValue(value)
-            elif key == "memory":
-                values["memory"] = int(value.strip("B"))
-            elif key == "exitcode":
-                values["exitcode"] = int(value)
-            elif (
-                key in ["host", "terminationreason", "cpuCores", "memoryNodes"]
-                or key.startswith("blkio-")
-                or key.startswith("cpuenergy")
-                or key.startswith("energy-")
-                or key.startswith("cputime-cpu")
-            ):
-                values[key] = value
-            elif key not in util.VCLOUD_REDUNDANT_RESULT_VALUES:
-                values["vcloud-" + key] = value
-    return values
+    return util.parse_vcloud_run_result(read_items())
 
 
 def bytes_to_mb(mb):

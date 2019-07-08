@@ -22,16 +22,48 @@ CPAchecker web page:
   http://cpachecker.sosy-lab.org
 """
 
+import collections
 import os
 import sys
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
 
-VCLOUD_REDUNDANT_RESULT_VALUES = set(
-    ["command", "timeLimit", "coreLimit", "memoryLimit", "returnvalue", "exitsignal"]
-)
-"""result values that can be ignored because they are redundant"""
+def parse_vcloud_run_result(values):
+    result_values = collections.OrderedDict()
+
+    def parse_time_value(s):
+        if s[-1] != "s":
+            raise ValueError('Cannot parse "{0}" as a time value.'.format(s))
+        return float(s[:-1])
+
+    for key, value in values:
+        value = value.strip()
+        if key in ["cputime", "walltime"]:
+            result_values[key] = parse_time_value(value)
+        elif key == "memory":
+            result_values["memory"] = int(value.strip("B"))
+        elif key == "exitcode":
+            result_values["exitcode"] = int(value)
+        elif (
+            key in ["host", "terminationreason", "cpuCores", "memoryNodes"]
+            or key.startswith("blkio-")
+            or key.startswith("cpuenergy")
+            or key.startswith("energy-")
+            or key.startswith("cputime-cpu")
+        ):
+            result_values[key] = value
+        elif key not in [
+            "command",
+            "timeLimit",
+            "coreLimit",
+            "memoryLimit",
+            "returnvalue",
+            "exitsignal",
+        ]:
+            result_values["vcloud-" + key] = value
+
+    return result_values
 
 
 def parse_frequency_value(s):
