@@ -379,7 +379,7 @@ def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
                 osName = file.readline().split("=")[-1].strip()
                 memory = file.readline().split("=")[-1].strip()
                 cpuName = file.readline().split("=")[-1].strip()
-                frequency = file.readline().split("=")[-1].strip()
+                frequency = util.parse_frequency_value(file.readline().split("=")[-1])
                 cores = file.readline().split("=")[-1].strip()
                 turboBoostSupported = False
                 turboBoostEnabled = False

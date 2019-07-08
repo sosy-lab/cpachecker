@@ -41,6 +41,7 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
 import benchexec
+from . import util
 from .webclient import *  # @UnusedWildImport
 
 """
@@ -300,7 +301,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             values.get("os", "-"),
             values.get("cpuModel", "-"),
             values.get("cores", "-"),
-            values.get("frequency", "-"),
+            util.parse_frequency_value(values.get("frequency")) or "-",
             values.get("memory", "-"),
             host,
             runSet=run.runSet,

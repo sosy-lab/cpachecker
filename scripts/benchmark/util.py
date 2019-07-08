@@ -28,6 +28,29 @@ import sys
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
 
+def parse_frequency_value(s):
+    if not s:
+        return s
+    s = s.strip()
+    pos = len(s)
+    while pos and not s[pos - 1].isdigit():
+        pos -= 1
+    number = float(s[:pos])
+    unit = s[pos:].strip()
+    if not unit or unit == "Hz":
+        return int(number)
+    elif unit == "KHz":
+        return int(number * 1000)
+    elif unit == "MHz":
+        return int(number * 1000 * 1000)
+    elif unit == "GHz":
+        return int(number * 1000 * 1000 * 1000)
+    else:
+        raise ValueError(
+            "unknown unit: {} (allowed are Hz, KHz, MHz, and GHz)".format(unit)
+        )
+
+
 def is_windows():
     return os.name == "nt"
 
