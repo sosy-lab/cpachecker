@@ -159,10 +159,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
-  @Option(secure = true, description = "Evil hack for printing coverage with BAM")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path subcoverageFile = Paths.get("subcoverage.info");
-
   @Option(
     secure = true,
     name = "combineARGsAfterRestart",
