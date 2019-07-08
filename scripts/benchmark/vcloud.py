@@ -430,7 +430,7 @@ def parseCloudRunResultFile(filePath):
             elif key == "walltime":
                 values["walltime"] = parseTimeValue(value)
             elif key == "memory":
-                values["memory"] = int(value)
+                values["memory"] = int(value.strip("B"))
             elif key == "exitcode":
                 values["exitcode"] = int(value)
             elif (
