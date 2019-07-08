@@ -42,6 +42,7 @@ import benchexec.benchexec
 import benchexec.model
 import benchexec.tools
 import benchexec.util
+import benchmark.util
 
 # Add ./benchmark/tools to __path__ of benchexec.tools package
 # such that additional tool-wrapper modules can be placed in this directory.
@@ -168,7 +169,7 @@ class Benchmark(benchexec.benchexec.BenchExec):
                     and subprocess.call(
                         ["ant", "-q", "jar"],
                         cwd=cpachecker_dir,
-                        shell=benchexec.util.is_windows(),
+                        shell=benchmark.util.is_windows(),
                     )
                 ):
                     sys.exit("Failed to build CPAchecker, please fix the build first.")

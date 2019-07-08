@@ -37,7 +37,8 @@ import subprocess
 import time
 
 from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
-import benchexec.util as util
+import benchexec.util
+import benchmark.util as util
 
 
 DEFAULT_CLOUD_TIMELIMIT = 300  # s
@@ -79,7 +80,7 @@ def execute_benchmark(benchmark, output_handler):
         (cloudInput, numberOfRuns) = getCloudInput(benchmark)
         if benchmark.config.debug:
             cloudInputFile = os.path.join(benchmark.log_folder, "cloudInput.txt")
-            util.write_file(cloudInput, cloudInputFile)
+            benchexec.util.write_file(cloudInput, cloudInputFile)
             output_handler.all_created_files.add(cloudInputFile)
         meta_information = json.dumps(
             {
@@ -197,7 +198,7 @@ def getCloudInput(benchmark):
     absWorkingDir = os.path.abspath(workingDir)
     absToolpaths = list(map(os.path.abspath, toolpaths))
     absSourceFiles = list(map(os.path.abspath, sourceFiles))
-    absBaseDir = util.common_base_dir(absSourceFiles + absToolpaths)
+    absBaseDir = benchexec.util.common_base_dir(absSourceFiles + absToolpaths)
 
     if absBaseDir == "":
         sys.exit("No common base dir found.")
