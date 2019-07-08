@@ -90,12 +90,14 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
       return result;
     }
 
-    Iterator<String> thisIterator = this.threadSet.keySet().iterator();
-    Iterator<String> otherIterator = other.threadSet.keySet().iterator();
+    Iterator<Entry<String, ThreadStatus>> thisIterator = this.threadSet.entrySet().iterator();
+    Iterator<Entry<String, ThreadStatus>> otherIterator = other.threadSet.entrySet().iterator();
 
     while (thisIterator.hasNext() && otherIterator.hasNext()) {
-      String thisLabel = thisIterator.next();
-      String otherLabel = otherIterator.next();
+      Entry<String, ThreadStatus> thisEntry = thisIterator.next();
+      Entry<String, ThreadStatus> otherEntry = otherIterator.next();
+      String thisLabel = thisEntry.getKey();
+      String otherLabel = otherEntry.getKey();
       result = thisLabel.compareTo(otherLabel);
       if (result != 0) {
         return result;

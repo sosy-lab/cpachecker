@@ -81,9 +81,6 @@ public class LockCPA extends AbstractCPA
     description = "which merge operator to use for LockCPA")
   private String mergeType = "SEP";
 
-  @Option(description = "Consider or not lock guards", secure = true)
-  private boolean considerLockGuards = true;
-
   private final LockReducer reducer;
 
   private LockCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
