@@ -297,18 +297,18 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
 
     def _handle_host_info(values):
         host = values.pop("name", "-")
-        memory = values.get("memory")
+        memory = values.pop("memory", None)
         if memory.endswith("byte"):
             memory = int(memory[:-4].strip())
         elif memory:
             memory = benchexec.util.parse_memory_value(memory)
-        turboboost_supported = values.get("turboboost-supported") == "true"
-        turboboost_enabled = values.get("turboboost-enabled") == "true"
+        turboboost_supported = values.pop("turboboost-supported", None) == "true"
+        turboboost_enabled = values.pop("turboboost-enabled", None) == "true"
         output_handler.store_system_info(
-            values.get("os", "-"),
-            values.get("cpuModel", "-"),
-            values.get("cores", "-"),
-            util.parse_frequency_value(values.get("frequency")) or "-",
+            values.pop("os", "-"),
+            values.pop("cpuModel", "-"),
+            values.pop("cores", "-"),
+            util.parse_frequency_value(values.pop("frequency", None)) or "-",
             memory or "-",
             host,
             runSet=run.runSet,
