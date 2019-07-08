@@ -438,8 +438,7 @@ def parseCloudRunResultFile(filePath):
             elif key == "exitcode":
                 values["exitcode"] = int(value)
             elif (
-                key == "host"
-                or key == "terminationreason"
+                key in ["host", "terminationreason", "cpuCores", "memoryNodes"]
                 or key.startswith("blkio-")
                 or key.startswith("cpuenergy")
                 or key.startswith("energy-")

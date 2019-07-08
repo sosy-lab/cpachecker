@@ -283,7 +283,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             elif key == "exitcode":
                 result_values["exitcode"] = int(value)
             elif (
-                key == "terminationreason"
+                key in ["terminationreason", "cpuCores", "memoryNodes"]
                 or key.startswith("blkio-")
                 or key.startswith("cpuenergy")
                 or key.startswith("energy-")
