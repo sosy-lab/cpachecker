@@ -94,7 +94,7 @@ final class SMGJoinValues {
 
   private boolean joinValuesNonPointers(
       SMGValue pV1, SMGValue pV2, int pLevelV1, int pLevelV2, int lDiff) {
-    if ((!inputSMG1.isPointer(pV1)) && (!inputSMG2.isPointer(pV2))) {
+    if (!inputSMG1.isPointer(pV1) && !inputSMG2.isPointer(pV2)) {
       if (mapping1.containsKey(pV1) || mapping2.containsKey(pV2)) {
         return true;
       }

@@ -144,27 +144,33 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         final CallstackState returnElement;
 
           assert calledFunction.equals(e.getCurrentFunction())
-              || isWildcardState(e, AnalysisDirection.FORWARD);
+                  || isWildcardState(e, AnalysisDirection.FORWARD)
+              : String.format(
+                  "not in scope of called function \"%s\" when leaving function \"%s\" in state \"%s\"",
+                  calledFunction, e.getCurrentFunction(), e);
 
           if (isWildcardState(e, AnalysisDirection.FORWARD)) {
-          returnElement = e;
+            returnElement = new CallstackState(null, callerFunction, e.getCallNode());
 
-        } else {
-          if (!callNode.equals(e.getCallNode())) {
-            // this is not the right return edge
-            return Collections.emptySet();
-          }
+          } else {
+            if (!callNode.equals(e.getCallNode())) {
+              // this is not the right return edge
+              return Collections.emptySet();
+            }
 
-          // we are in a function return:
-          //    remove the current function from the stack;
-          //    the new abstract state is the predecessor state in the stack
-          returnElement = e.getPreviousState();
+            // we are in a function return:
+            //    remove the current function from the stack;
+            //    the new abstract state is the predecessor state in the stack
+            returnElement = e.getPreviousState();
 
             assert callerFunction.equals(returnElement.getCurrentFunction())
-                || isWildcardState(returnElement, AnalysisDirection.FORWARD);
-        }
+                    || isWildcardState(returnElement, AnalysisDirection.FORWARD)
+                : String.format(
+                    "calling function \"%s\" not available after function return into function scope \"%s\" in state \"%s\"",
+                    callerFunction, returnElement.getCurrentFunction(), returnElement);
+          }
 
-        return Collections.singleton(returnElement);
+          return Collections.singleton(returnElement);
       }
 
     default:
@@ -184,6 +190,8 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
    * {@code false} otherwise.
    */
   protected boolean isWildcardState(final CallstackState pState, AnalysisDirection direction) {
+    // TODO: Maybe it would be better to have designated wildcard states (without a call node)
+    // instead of this heuristic.
     String function = pState.getCurrentFunction();
     CFANode callNode = pState.getCallNode();
 

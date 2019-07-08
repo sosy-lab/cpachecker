@@ -155,11 +155,11 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
 
     statistics.transferForEdgeTimer.start();
     Collection<AbstractState> result = new ArrayList<>();
-    CFAEdge currentEdge = pCfaEdge;
+
     UsageState oldState = (UsageState) pState;
 
     statistics.checkForSkipTimer.start();
-    currentEdge = changeIfNeccessary(pCfaEdge);
+    CFAEdge currentEdge = changeIfNeccessary(pCfaEdge);
     statistics.checkForSkipTimer.stop();
 
     if (currentEdge == null) {

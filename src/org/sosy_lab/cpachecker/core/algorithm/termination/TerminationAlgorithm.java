@@ -38,11 +38,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -51,6 +49,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -305,13 +304,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     if (cfa.getLanguage() != Language.C) {
       logger.log(WARNING, "Termination analysis supports only C.");
-      return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+      return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
     }
 
     CFANode initialLocation = AbstractStates.extractLocation(pReachedSet.getFirstState());
-    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(false);
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_IMPRECISE;
 
-    List<Loop> allLoops = Lists.newArrayList(cfa.getLoopStructure().get().getAllLoops());
+    List<Loop> allLoops = new ArrayList<>(cfa.getLoopStructure().get().getAllLoops());
     Collections.sort(allLoops, comparingInt(l -> l.getInnerLoopEdges().size()));
 
     if (considerRecursion) {
@@ -359,7 +358,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
 
     logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
-    Set<RankingRelation> rankingRelations = Sets.newHashSet();
+    Set<RankingRelation> rankingRelations = new HashSet<>();
     int totalRepeatedRankingFunctions = 0;
     int repeatedRankingFunctionsSinceSuccessfulIteration = 0;
 
@@ -720,6 +719,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private void setExplicitAbstractionNodes(final ImmutableSet<CFANode> newAbsLocs) {
+    @SuppressWarnings("resource")
     PredicateCPA predCPA = CPAs.retrieveCPA(safetyCPA, PredicateCPA.class);
     if (predCPA != null) {
       predCPA.changeExplicitAbstractionNodes(newAbsLocs);
@@ -728,7 +728,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private static class DeclarationCollectionCFAVisitor extends DefaultCFAVisitor {
 
-    private final Set<CVariableDeclaration> globalDeclarations = Sets.newLinkedHashSet();
+    private final Set<CVariableDeclaration> globalDeclarations = new LinkedHashSet<>();
 
     private final Multimap<String, CVariableDeclaration> localDeclarations =
         MultimapBuilder.hashKeys().linkedHashSetValues().build();

@@ -21,17 +21,20 @@
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
     <exclude>../programs/benchmarks/floats-cdfpl/*</exclude> <!-- mostly timeouts or close to timeout -->
-    <exclude>../programs/benchmarks/floats-cbmc-regression/float-no-simp2_true-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
-    <exclude>../programs/benchmarks/float-benchs/sqrt*true-unreach*</exclude> <!-- mostly timeouts or close to timeout -->
+    <exclude>../programs/benchmarks/float-benchs/sqrt*</exclude> <!-- mostly timeouts or close to timeout -->
+    <exclude>../programs/benchmarks/float-benchs/filter*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/float-benchs/zonotope*</exclude> <!-- mostly timeouts or close to timeout -->
+    <exclude>../programs/benchmarks/floats-cbmc-regression/float-no-simp2.yml</exclude> <!-- flapping timeout / unknown -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
     <exclude>../programs/benchmarks/ntdrivers-simplified/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_*</exclude> <!-- mostly timeouts -->
-    <exclude>../programs/benchmarks/locks/test_locks_1*true-unreach-call*</exclude> <!-- timeouts -->
-    <exclude>../programs/benchmarks/locks/test_locks_7_true-unreach-call_true-valid-memsafety_false-termination.c</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/locks/test_locks_12.yml</exclude> <!-- timeouts -->
+    <exclude>../programs/benchmarks/locks/test_locks_13.yml</exclude> <!-- timeouts -->
+    <exclude>../programs/benchmarks/locks/test_locks_14-1.yml</exclude> <!-- timeouts -->
+    <exclude>../programs/benchmarks/locks/test_locks_15-2.yml</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/ntdrivers/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/ssh/s3_srvr.*</exclude> <!-- infeasible cex can't be removed -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
@@ -39,34 +42,36 @@
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
     <exclude>../programs/benchmarks/loops/trex*</exclude> <!-- timeouts -->
-    <exclude>../programs/benchmarks/loops/veris.*</exclude> <!-- timeouts -->
+    <exclude>../programs/benchmarks/loops-crafted-1/*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/loop-crafted/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/loop-invgen/*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/loop-invariants/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/loop-lit/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/loop-new/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/loop-industry-pattern/*</exclude> <!-- mostly timeouts -->
-    <exclude>../programs/benchmarks/loops/ludcmp_false-unreach-call.i</exclude> <!-- flapping timeout / out of memory -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-    <exclude>../programs/benchmarks/systemc/token_ring.1*</exclude> <!-- timeouts -->
-    <exclude>../programs/benchmarks/systemc/token_ring.*true-unreach-call*</exclude> <!-- timeouts -->
-    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- timeouts -->
-    <exclude>../programs/benchmarks/seq-pthread/cs_time_var_mutex_true-unreach-call.i</exclude> <!-- flapping timeout -->
-    <exclude>../programs/benchmarks/seq-pthread/cs_queue_false-unreach-call.i</exclude> <!-- flapping timeout -->
-    <exclude>../programs/benchmarks/seq-pthread/cs_stack_false-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
-    <exclude>../programs/benchmarks/seq-pthread/cs_stack_true-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
-    <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock_false-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
-    <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock_true-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
-    <exclude>../programs/benchmarks/seq-pthread/cs_sync_true-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/systemc/token_ring.*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/seq-pthread/*</exclude> <!-- mostly timeouts / unknown -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
   <tasks>
-    <includesfile>integration-DeviceDriversLinux64.set</includesfile>
-    <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-*false-unreach-call*</exclude> <!-- timeouts -->
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_false-unreach-call_ok_linux-43_1a-drivers--scsi--megaraid--megaraid_mm_true-termination.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / unknown -->
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--watchdog--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--staging--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--rtc--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--hid--*</exclude>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>
     <option name="-64"/>

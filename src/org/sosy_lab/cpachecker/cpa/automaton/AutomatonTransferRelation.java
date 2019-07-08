@@ -37,12 +37,12 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -52,9 +52,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
@@ -64,10 +64,11 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
-/** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
- * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
+/**
+ * The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState} and
+ * strengthens an {@link AutomatonState.AutomatonUnknownState}.
  */
-class AutomatonTransferRelation extends SingleEdgeTransferRelation {
+class AutomatonTransferRelation implements TransferRelation {
 
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
@@ -111,6 +112,13 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         getAbstractSuccessors0((AutomatonState) pElement, pCfaEdge, pPrecision);
     automatonSuccessors.setNextValue(result.size());
     return result;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pState, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    return Collections.singleton(((AutomatonState) pState).getAutomatonCPA().getTopState());
   }
 
   private Collection<AutomatonState> getAbstractSuccessors0(
@@ -329,7 +337,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     }
 
     AutomatonState state = (AutomatonState) pElement;
-    if ("WitnessAutomaton".equals(state.getOwningAutomatonName())) {
+    if (AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME.equals(state.getOwningAutomatonName())) {
       /* In case of concurrent tasks, we need to go two steps:
        * The first step is the createThread edge of the witness.
        * The second step is the enterFunction edge of the witness.
@@ -399,12 +407,12 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException {
-    Collection<List<AbstractState>> strengtheningCombinations = new HashSet<>();
+    Set<List<AbstractState>> strengtheningCombinations = new LinkedHashSet<>();
     strengtheningCombinations.add(pOtherElements);
     boolean changed = from(pOtherElements).anyMatch(instanceOf(AutomatonUnknownState.class));
     while (changed) {
       changed = false;
-      Collection<List<AbstractState>> newCombinations = new HashSet<>();
+      Set<List<AbstractState>> newCombinations = new LinkedHashSet<>();
       for (List<AbstractState> otherStates : strengtheningCombinations) {
         Collection<List<AbstractState>> newPartialCombinations = new ArrayList<>();
         newPartialCombinations.add(new ArrayList<>());
@@ -450,7 +458,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // For each list of other states, do the strengthening
-    Collection<AbstractState> successors = new HashSet<>();
+    Collection<AbstractState> successors = new LinkedHashSet<>();
     for (List<AbstractState> otherStates : strengtheningCombinations) {
       successors.addAll(
           getFollowStates(

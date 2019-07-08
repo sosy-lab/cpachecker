@@ -6,7 +6,7 @@
   <option name="-heap">2000M</option>
 
   <rundefinition>
-    <option name="-config">config/components/kInduction/pdr.properties</option>
+    <option name="-config">config/unmaintained/components/kInduction/pdr.properties</option>
     <option name="-setprop">pdr.abstractionStrategy=ALLSAT_BASED_PREDICATE_ABSTRACTION</option>
     <option name="-setprop">pdr.liftingStrategy=ABSTRACTION_BASED_LIFTING</option>
     <option name="-setprop">pdr.invariantRefinementStrategy=UNSAT_CORE_BASED_STRENGTHENING</option>
@@ -21,14 +21,11 @@
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
 
-    <!-- Timeout even after 90s -->
-    <exclude>../programs/benchmarks/ssh/*_false-unreach-call*.i.cil.c</exclude>
-    <exclude>../programs/benchmarks/ssh/*_true-unreach-call*.i.cil.c</exclude>
-
     <!-- Instable: sometimes timeout, sometimes not -->
-    <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1_false-unreach-call_true-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_13_false-unreach-call_false-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1a_true-unreach-call_false-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/ssh/*</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1*</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_13*</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1a*</exclude>
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
@@ -39,8 +36,7 @@
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
 
     <!-- Timeout even after 90s -->
-    <exclude>../programs/benchmarks/list-properties/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/list-properties/*_true-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/list-properties/*</exclude>
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
@@ -51,11 +47,9 @@
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
-    <exclude>../programs/benchmarks/loops/sum01_bug02_sum01_bug02_base.case_false-unreach-call_true-termination.i</exclude>
-    <exclude>../programs/benchmarks/loops/sum04_false-unreach-call_true-termination.i</exclude>
-    <exclude>../programs/benchmarks/loop-acceleration/diamond_true-unreach-call2.i</exclude>
-    <exclude>../programs/benchmarks/loop-invgen/id_build_true-unreach-call_true-termination.i</exclude>
-    <exclude>../programs/benchmarks/loop-lit/cggmp2005_true-unreach-call_true-termination.c.i</exclude>
+    <exclude>../programs/benchmarks/loops/sum0*</exclude>
+    <exclude>../programs/benchmarks/loop-acceleration/diamond_*</exclude>
+    <exclude>../programs/benchmarks/loop-lit/cggmp2005_*</exclude>
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
@@ -63,31 +57,17 @@
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-
-    <!-- Timeout even after 90s -->
-    <exclude>../programs/benchmarks/systemc/token_ring.*_false-unreach-call*.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/token_ring.*_true-unreach-call*.cil.c</exclude>
-    <exclude>../programs/benchmarks/seq-pthread/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/seq-pthread/*_true-unreach-call*.i</exclude>
-
-    <!-- Almost all timeout even after 90s -->
-    <exclude>../programs/benchmarks/seq-mthreaded/*_false-unreach-call.*.c</exclude>
-    <exclude>../programs/benchmarks/seq-mthreaded/*_true-unreach-call.*.c</exclude>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
-    <exclude>../programs/benchmarks/systemc/pc_sfifo_3_true-unreach-call_false-termination.cil.c</exclude>
-
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-  </tasks>
-
-  <tasks>
-    <includesfile>integration-DeviceDriversLinux64.set</includesfile>
-
-    <!-- Instable: sometimes timeout, sometimes not -->
-    <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-ppp_generic.ko_false-unreach-call.cil.out.i.pp.i</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.0/*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--mtd*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--net*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--staging*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--r*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb*</exclude>
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>

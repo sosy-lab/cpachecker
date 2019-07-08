@@ -97,13 +97,13 @@ public class UsageCPA extends AbstractSingleWrapperCPA
     pConfig.inject(this);
     config = pConfig;
     this.cfa = pCfa;
-    LockCPA LockCPA = CPAs.retrieveCPA(this, LockCPA.class);
+    LockCPA lockCPA = CPAs.retrieveCPA(this, LockCPA.class);
     this.statistics =
         new UsageCPAStatistics(
             pConfig,
             pLogger,
             pCfa,
-            LockCPA != null ? (LockTransferRelation) LockCPA.getTransferRelation() : null);
+            lockCPA != null ? (LockTransferRelation) lockCPA.getTransferRelation() : null);
     this.stopOperator = new UsageStopOperator(pCpa.getStopOperator(), statistics);
     this.mergeOperator = new UsageMergeOperator(pCpa.getMergeOperator(), statistics);
 

@@ -104,6 +104,7 @@ public class ProofCheckAndExtractCIRequirementsAlgorithm extends ProofCheckAlgor
     }
 
     if (ciExtractor.getRequirementsStateClass().equals(PredicateAbstractState.class)) {
+      @SuppressWarnings("resource")
       PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
       if (predCPA == null) {
         logger.log(Level.SEVERE,

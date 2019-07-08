@@ -24,12 +24,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
-import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -53,11 +52,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -79,24 +80,22 @@ public class TestCaseExporter {
         return strB.toString();
       };
 
-  public static void writeTestInputNondetValues(
+  public static Optional<String> writeTestInputNondetValues(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
       final CounterexampleInfo pCounterexampleInfo,
-      final Appendable pAppendable,
       final CFA pCfa,
-      final TestValuesToFormat formatter)
-      throws IOException {
+      final TestValuesToFormat formatter) {
 
     Preconditions.checkArgument(pCounterexampleInfo.isPreciseCounterExample());
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap =
         pCounterexampleInfo.getExactVariableValues();
 
     List<String> values = new ArrayList<>();
-    Set<ARGState> visited = Sets.newHashSet();
-    Deque<ARGState> stack = Queues.newArrayDeque();
-    Deque<CFAEdge> lastEdgeStack = Queues.newArrayDeque();
+    Set<ARGState> visited = new HashSet<>();
+    Deque<ARGState> stack = new ArrayDeque<>();
+    Deque<CFAEdge> lastEdgeStack = new ArrayDeque<>();
     stack.push(pRootState);
     visited.addAll(stack);
     Optional<String> value;
@@ -110,7 +109,7 @@ public class TestCaseExporter {
         // end of cex path reached, write test values
         assert lastEdge != null
             : "Expected target state to be different from root state, but was not";
-        pAppendable.append(formatter.convertToOutput(values));
+        return Optional.of(formatter.convertToOutput(values));
       }
       ARGState parent = previous;
       Iterable<CFANode> parentLocs = AbstractStates.extractLocations(parent);
@@ -148,6 +147,7 @@ public class TestCaseExporter {
         }
       }
     }
+    return Optional.empty();
   }
 
   public static Optional<String> getReturnValueForExternalFunction(
@@ -207,6 +207,11 @@ public class TestCaseExporter {
             Type returnType = functionDeclaration.getType().getReturnType();
             if (returnType instanceof CType) {
               returnType = ((CType) returnType).getCanonicalType();
+
+              if (returnType instanceof CSimpleType
+                  && ((CSimpleType) returnType).getType() == CBasicType.CHAR) {
+                return Optional.of(" ");
+              }
 
               if (!(returnType instanceof CCompositeType
                   || returnType instanceof CArrayType

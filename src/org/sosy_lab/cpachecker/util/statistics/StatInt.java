@@ -98,10 +98,12 @@ public class StatInt extends AbstractStatValue implements IntConsumer {
     }
   }
 
+  @Deprecated
   public long getMax() {
     return maxValue.get();
   }
 
+  @Deprecated
   public long getMin() {
     return minValue.get();
   }

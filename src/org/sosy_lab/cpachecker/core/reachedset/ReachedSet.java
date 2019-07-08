@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 
 /**
  * Interface representing a set of reached states, including storing a
@@ -80,4 +82,8 @@ public interface ReachedSet extends UnmodifiableReachedSet {
   AbstractState popFromWaitlist();
 
   default void finalize(@SuppressWarnings("unused") @Nullable ConfigurableProgramAnalysis pCpa) {}
+
+  default ImmutableMap<String, ? extends AbstractStatValue> getStatistics() {
+    return ImmutableMap.of();
+  }
 }

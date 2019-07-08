@@ -27,7 +27,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,12 +58,11 @@ public class AssignmentToPathAllocatorTest {
             MachineModel.LINUX32);
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void testFindFirstOccurrenceOfVariable() {
 
     SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
-    List<SSAMap> ssaMaps = Lists.newArrayList();
+    List<SSAMap> ssaMaps = new ArrayList<>();
 
     ssaMaps.add(SSAMap.emptySSAMap());
 
@@ -102,10 +101,6 @@ public class AssignmentToPathAllocatorTest {
             FormulaManagerView.instantiateVariableName("z", ssaMap),
             1,
             ImmutableList.of());
-
-    assertEquals(1, allocator.findFirstOccurrenceOfVariable(varX, ssaMaps));
-    assertEquals(2, allocator.findFirstOccurrenceOfVariable(varY, ssaMaps));
-    assertEquals(2, allocator.findFirstOccurrenceOfVariable(varZ, ssaMaps));
 
     assertEquals(1, allocator.findFirstOccurrenceOf(varX, ssaMaps));
     assertEquals(2, allocator.findFirstOccurrenceOf(varY, ssaMaps));

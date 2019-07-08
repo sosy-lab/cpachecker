@@ -24,12 +24,11 @@
 package org.sosy_lab.cpachecker.util;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -38,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -114,10 +115,14 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   @Option(description = "Track overflows in binary expressions involving pointers.")
   private boolean trackPointers = false;
 
+  @Option(description = "Simplify overflow assumptions.")
+  private boolean simplifyExpressions = true;
+
   private final Map<CType, CLiteralExpression> upperBounds;
   private final Map<CType, CLiteralExpression> lowerBounds;
   private final Map<CType, CLiteralExpression> width;
   private final CBinaryExpressionBuilder cBinaryExpressionBuilder;
+  private final ExpressionSimplificationVisitor simplificationVisitor;
   private final CFA cfa;
   private final LogManager logger;
 
@@ -150,17 +155,19 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     cBinaryExpressionBuilder = new CBinaryExpressionBuilder(
         cfa.getMachineModel(),
         logger);
+    simplificationVisitor =
+        new ExpressionSimplificationVisitor(
+            cfa.getMachineModel(), new LogManagerWithoutDuplicates(logger));
   }
 
   /**
+   * Returns assumptions required for proving that none of the expressions contained in {@code
+   * pEdge} result in overflows.
    *
    * @param pEdge Input CFA edge.
-   * @return Assumptions required for proving that none of the expressions
-   * contained in {@code pEdge} result in overflows.
    */
   @Override
-  public List<CExpression> assumptionsForEdge(CFAEdge pEdge)
-      throws UnrecognizedCodeException {
+  public Set<CExpression> assumptionsForEdge(CFAEdge pEdge) throws UnrecognizedCodeException {
     Set<CExpression> result = new LinkedHashSet<>();
 
     // Node is used for liveness calculation, and predecessor will contain
@@ -208,7 +215,14 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       default:
         throw new UnsupportedOperationException("Unexpected edge type");
     }
-    return ImmutableList.copyOf(result);
+
+    if (simplifyExpressions) {
+      return result
+          .stream()
+          .map(x -> x.accept(simplificationVisitor))
+          .collect(ImmutableSet.toImmutableSet());
+    }
+    return result;
   }
 
   private void trackType(CSimpleType type) {
@@ -230,8 +244,8 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   }
 
   /**
-   * Compute and conjunct the assumption for the given expression,
-   * stating that it does not overflow the allowed bound of its type.
+   * Compute assumptions whose conjunction states that the expression does not overflow the allowed
+   * bound of its type.
    */
   private void addAssumptionOnBounds(CExpression exp, Set<CExpression> result, CFANode node)
       throws UnrecognizedCodeException {
@@ -275,8 +289,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
         }
       } else if (trackLeftShifts && binop.equals(BinaryOperator.SHIFT_LEFT)) {
         if (upperBounds.get(calculationType) != null && width.get(calculationType) != null) {
-          addLeftShiftAssumptions(
-              op1, op2, upperBounds.get(calculationType), width.get(calculationType), result);
+          addLeftShiftAssumptions(op1, op2, upperBounds.get(calculationType), result);
         }
       }
     } else if (exp instanceof CUnaryExpression) {
@@ -500,7 +513,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     // -1
     CExpression term2 = new CUnaryExpression(FileLocation.DUMMY, CNumericTypes.INT,
         CIntegerLiteralExpression.ZERO, UnaryOperator.MINUS);
-    // operand2 != 0
+    // operand2 != -1
     CExpression term3 =
         cBinaryExpressionBuilder.buildBinaryExpression(operand2, term2, BinaryOperator.NOT_EQUALS);
     // (operand1 != INT_MIN) | (operand2 != -1)
@@ -513,14 +526,12 @@ public final class ArithmeticOverflowAssumptionBuilder implements
    * @param operand1 first operand in the C Expression for which the assumption should be generated
    * @param operand2 second operand in the C Expression for which the assumption should be generated
    * @param limit the largest value in the expression's type
-   * @param pWidth the width of the type as defined in ISO-C11 (6.2.6.2 #6)
    * @param result the set to which the generated assumptions are added
    */
   private void addLeftShiftAssumptions(
       CExpression operand1,
       CExpression operand2,
       CLiteralExpression limit,
-      CLiteralExpression pWidth,
       Set<CExpression> result)
       throws UnrecognizedCodeException {
 

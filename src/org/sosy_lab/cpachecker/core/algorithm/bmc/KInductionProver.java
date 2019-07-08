@@ -39,7 +39,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -67,6 +66,10 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.FormulaInContext;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.InvariantStrengthening.NextCti;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
@@ -143,7 +146,7 @@ class KInductionProver implements AutoCloseable {
 
   private BooleanFormula loopHeadInvariants;
 
-  private final Map<CandidateInvariant, BooleanFormula> violationFormulas = Maps.newHashMap();
+  private final Map<CandidateInvariant, BooleanFormula> violationFormulas = new HashMap<>();
 
   private int previousK = -1;
 
@@ -175,6 +178,7 @@ class KInductionProver implements AutoCloseable {
         new UnrolledReachedSet(
             algorithm, cpa, pLoopHeads, reachedSetFactory.create(), this::ensureK);
 
+    @SuppressWarnings("resource")
     PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     if (pUnsatCoreGeneration) {
       prover =
@@ -704,7 +708,7 @@ class KInductionProver implements AutoCloseable {
       CandidateInvariant pCandidateInvariant,
       int pK) {
 
-    Map<String, CType> types = Maps.newHashMap();
+    Map<String, CType> types = new HashMap<>();
 
     FluentIterable<AbstractState> inputStates =
         filterIteration(pCandidateInvariant.filterApplicable(pReached), pK, loopHeads);

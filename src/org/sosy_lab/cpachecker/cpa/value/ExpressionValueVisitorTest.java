@@ -183,7 +183,7 @@ public class ExpressionValueVisitorTest {
   /** this test checks casting, we assume long_int == int == int32 */
   @Test
   public void checkIntegerCasts32() throws Exception {
-    assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX32);
+    assume().that(machineModel).isSameInstanceAs(MachineModel.LINUX32);
 
     for (long i = -(MAX_INT / 2L); i < MAX_INT; i += 10L * 1000L * 1000L) {
 
@@ -226,7 +226,7 @@ public class ExpressionValueVisitorTest {
   /** this test checks casting, we assume long_int == long_long_int == int64 */
   @Test
   public void checkIntegerCasts64() throws Exception {
-    assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX64);
+    assume().that(machineModel).isSameInstanceAs(MachineModel.LINUX64);
 
     for (long i = -(MAX_INT / 2L); i < MAX_INT; i += 10L * 1000L * 1000L) {
 
@@ -283,21 +283,21 @@ public class ExpressionValueVisitorTest {
 
   @Test
   public void checkFloatCasts32() {
-    assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX32);
+    assume().that(machineModel).isSameInstanceAs(MachineModel.LINUX32);
 
     performMachineModelAgnosticChecksForFloats();
   }
 
   @Test
   public void checkFloatCasts64() {
-    assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX64);
+    assume().that(machineModel).isSameInstanceAs(MachineModel.LINUX64);
 
     performMachineModelAgnosticChecksForFloats();
   }
 
   @Test
   public void checkFloatToIntCasts32() {
-    assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX32);
+    assume().that(machineModel).isSameInstanceAs(MachineModel.LINUX32);
 
     for (long i = -MAX_INT; i < MAX_INT; i += 10L * 1000L * 1000L) {
       double d;
@@ -312,7 +312,7 @@ public class ExpressionValueVisitorTest {
 
   @Test
   public void checkFloatToIntCasts64() {
-    assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX64);
+    assume().that(machineModel).isSameInstanceAs(MachineModel.LINUX64);
 
     for (long i = -MAX_INT; i < MAX_INT; i += 10L * 1000L * 1000L) {
       double d;

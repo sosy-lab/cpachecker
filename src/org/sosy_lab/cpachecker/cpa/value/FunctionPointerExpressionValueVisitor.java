@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.PointerToMemoryLocation;
 
-public class FunctionPointerExpressionValueVisitor extends ExpressionValueVisitor {
+class FunctionPointerExpressionValueVisitor extends ExpressionValueVisitor {
 
   public FunctionPointerExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
       MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {

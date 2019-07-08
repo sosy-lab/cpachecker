@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.Builder;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
 
 class FunctionPointerReducer extends GenericReducer<FunctionPointerState, Precision> {
@@ -38,7 +37,7 @@ class FunctionPointerReducer extends GenericReducer<FunctionPointerState, Precis
   @Override
   protected FunctionPointerState getVariableReducedState0(
       FunctionPointerState pExpandedState, Block pContext, CFANode pCallNode) {
-    Builder builder = pExpandedState.createBuilder();
+    FunctionPointerState.Builder builder = pExpandedState.createBuilder();
     for (String trackedVar : pExpandedState.getTrackedVariables()) {
       if (!pContext.getVariables().contains(trackedVar)) {
         builder.setTarget(trackedVar, UnknownTarget.getInstance());
@@ -54,7 +53,7 @@ class FunctionPointerReducer extends GenericReducer<FunctionPointerState, Precis
     // - all variables of the reduced state -> copy the state
     // - all non-block variables of the rootState -> copy those values
     // - not the variables of rootState used in the block -> just ignore those values
-    Builder diffElement = pReducedState.createBuilder();
+    FunctionPointerState.Builder diffElement = pReducedState.createBuilder();
     for (String trackedVar : pRootState.getTrackedVariables()) {
       if (!pReducedContext.getVariables().contains(trackedVar)) {
         diffElement.setTarget(trackedVar, pRootState.getTarget(trackedVar));
@@ -96,7 +95,7 @@ class FunctionPointerReducer extends GenericReducer<FunctionPointerState, Precis
     // - the local return variable from expandedState.
     // we copy callState and override all global values and the return variable.
 
-    Builder rebuildState = pCallState.createBuilder();
+    FunctionPointerState.Builder rebuildState = pCallState.createBuilder();
 
     // first forget all global information
     for (String trackedVar : pCallState.getTrackedVariables()) {

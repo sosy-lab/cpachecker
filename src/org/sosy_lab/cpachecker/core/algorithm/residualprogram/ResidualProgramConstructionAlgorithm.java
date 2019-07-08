@@ -36,6 +36,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -179,7 +180,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     shutdown = pShutdown;
     spec = pSpec;
     configuration = pConfig;
-    translator = new ARGToCTranslator(logger, pConfig);
+    translator = new ARGToCTranslator(logger, pConfig, cfa.getMachineModel());
 
     checkConfiguration();
 
@@ -197,9 +198,6 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
         "CONDITION, CONDITION_PLUS_FOLD, and COMBINATION strategy require assumption automaton (condition) and assumption guiding automaton in specification");
     Preconditions.checkNotNull(cpaAlgorithm);
 
-    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
-    status = status.withPrecise(false);
-
     logger.log(Level.INFO, "Start construction of residual program.");
     try {
       statistic.modelBuildTimer.start();
@@ -216,7 +214,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     if (pReachedSet.hasWaitingState()) {
       logger.log(Level.SEVERE, "Analysis run to get structure of residual program is incomplete. ",
           "Ensure that you use cpa.automaton.breakOnTargetState=-1 in your configuration.");
-      return status.withSound(false);
+      throw new CPAException("Failed to construct residual program");
     }
 
     Set<ARGState> addPragma;
@@ -248,7 +246,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     logger.log(Level.INFO, "Finished construction of residual program. ",
         "If the selected strategy is SLICING or COMBINATION, please continue with the slicing tool (Frama-C)");
 
-    return status;
+    return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
   protected Set<ARGState> getAllTargetStates(final ReachedSet pReachedSet) {
@@ -290,7 +288,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
           new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
 
       Specification constrSpec = spec;
-      List<Path> specList = Lists.newArrayList(constrSpec.getSpecFiles());
+      List<Path> specList = new ArrayList<>(constrSpec.getSpecFiles());
       specList.add(conditionSpec);
       specList.add(condition);
       constrSpec = Specification.fromFiles(spec.getProperties(),

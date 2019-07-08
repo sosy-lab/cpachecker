@@ -341,9 +341,8 @@ public class LockState extends AbstractLockState {
   @Override
   public int compareTo(CompatibleState pOther) {
     LockState other = (LockState) pOther;
-    int result = 0;
 
-    result = other.getSize() - this.getSize(); // decreasing queue
+    int result = other.getSize() - this.getSize(); // decreasing queue
 
     if (result != 0) {
       return result;

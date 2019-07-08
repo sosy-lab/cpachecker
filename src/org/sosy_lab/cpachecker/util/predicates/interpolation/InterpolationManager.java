@@ -1126,7 +1126,7 @@ public final class InterpolationManager {
         } else {
           myInterpolants = null;
         }
-        if (myInterpolants != null && !(myInterpolants.isEmpty())) {
+        if (myInterpolants != null && !myInterpolants.isEmpty()) {
           List<BooleanFormula> interpolantList = new ArrayList<>(myInterpolants.size());
           for (BooleanFormula f : myInterpolants) {
             BooleanFormula interpolant = fmgr.translateFrom(f, newFmgr);
@@ -1134,7 +1134,7 @@ public final class InterpolationManager {
           }
 
           // mySolver.close();
-          if (!(interpolantList.isEmpty())) {
+          if (!interpolantList.isEmpty()) {
             return interpolantList;
           } else {
             // mySolver.close();

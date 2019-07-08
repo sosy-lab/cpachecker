@@ -27,7 +27,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Iterables;
 import java.util.Iterator;
 
@@ -83,7 +82,7 @@ public class And<LeafType> extends AbstractExpressionTree<LeafType>
   public static <LeafType> ExpressionTree<LeafType> of(
       Iterable<ExpressionTree<LeafType>> pOperands) {
     // Filter out trivial operands and flatten the hierarchy
-    Builder<ExpressionTree<LeafType>> builder = ImmutableSet.builder();
+    ImmutableSet.Builder<ExpressionTree<LeafType>> builder = ImmutableSet.builder();
     for (ExpressionTree<LeafType> operand : pOperands) {
       if (ExpressionTrees.getFalse().equals(operand)) {
         // If one of the operands is false, return false

@@ -36,7 +36,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -52,6 +51,7 @@ import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -123,6 +123,8 @@ public class ReportGenerator {
   private final Map<String, Object> argRelevantEdges;
   private final Map<Integer, Object> argRelevantNodes;
 
+  private final String producer; // HTML-escaped producer string
+
   public ReportGenerator(
       Configuration pConfig,
       LogManager pLogger,
@@ -138,6 +140,7 @@ public class ReportGenerator {
     argEdges = new HashMap<>();
     argRelevantEdges = new HashMap<>();
     argRelevantNodes = new HashMap<>();
+    producer = htmlEscaper().escape(CPAchecker.getVersion(pConfig));
   }
 
   public void generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
@@ -326,11 +329,7 @@ public class ReportGenerator {
 
   private void insertMetaTags(Writer writer) {
     try {
-      writer.write(
-          "<meta name='generator'"
-              + " content='CPAchecker "
-              + CPAchecker.getCPAcheckerVersion()
-              + "'>\n");
+      writer.write("<meta name='generator'" + " content='" + producer + "'>\n");
     } catch (IOException e) {
       logger.logUserException(WARNING, e, "Could not create report: Inserting metatags failed.");
     }
@@ -340,9 +339,8 @@ public class ReportGenerator {
     try {
       String generated =
           String.format(
-              "Generated on %s by CPAchecker %s",
-              new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()),
-              CPAchecker.getCPAcheckerVersion());
+              "Generated on %s by %s",
+              new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()), producer);
       writer.write(generated);
     } catch (IOException e) {
       logger.logUserException(
@@ -373,7 +371,7 @@ public class ReportGenerator {
         "<table  id=\"statistics_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th scope=\"col\"><th>Additional Value</th></tr></thead><tbody>\n";
     writer.write(insertTableLine);
     for (String line : LINE_SPLITTER.split(statistics)) {
-      if (!line.contains(":") && !(line.trim().isEmpty()) && !line.contains("----------")) {
+      if (!line.contains(":") && !line.trim().isEmpty() && !line.contains("----------")) {
         String insertTableHead =
             "<tr class=\"table_head\" id=\"statistics-"
                 + counter
@@ -617,7 +615,7 @@ public class ReportGenerator {
   private void insertFunctionNames(Writer writer, CFA cfa) {
     try {
       writer.write("\"functionNames\":");
-      Set<String> allFunctionsEntryFirst = Sets.newLinkedHashSet();
+      Set<String> allFunctionsEntryFirst = new LinkedHashSet<>();
       allFunctionsEntryFirst.add(cfa.getMainFunction().getFunctionName());
       allFunctionsEntryFirst.addAll(cfa.getAllFunctionNames());
       JSON.writeJSONString(allFunctionsEntryFirst, writer);

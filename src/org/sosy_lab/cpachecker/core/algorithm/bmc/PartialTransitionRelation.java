@@ -30,10 +30,10 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,6 +49,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -324,7 +326,7 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
     ReachedSet reached = reachedSet.getReachedSet();
     Set<AbstractState> states =
         filterIterationsUpTo(
-                pStateFilter.apply((pAssertion.filterApplicable(reached))), getDesiredK())
+                pStateFilter.apply(pAssertion.filterApplicable(reached)), getDesiredK())
             .toSet();
 
     BooleanFormula stateAssertionFormula = bfmgr.makeTrue();
@@ -407,7 +409,7 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
   }
 
   public CtiWithInputs getCtiWithInputs(List<ValueAssignment> pModelAssignments) {
-    Map<String, CType> types = Maps.newHashMap();
+    Map<String, CType> types = new HashMap<>();
     Multimap<String, Integer> inputs =
         extractInputs(
             filterIterationsUpTo(getReachedSet().getReachedSet(), getDesiredK() + 1), types);
@@ -451,7 +453,7 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
       Iterable<ValueAssignment> pModelAssignments) {
     BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
     BooleanFormula inputAssignments = bfmgr.makeTrue();
-    Map<String, CType> types = Maps.newHashMap();
+    Map<String, CType> types = new HashMap<>();
     Multimap<String, Integer> inputs = extractInputs(pReached, types);
     if (inputs.isEmpty()) {
       return inputAssignments;

@@ -966,28 +966,6 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static interface OnRelevantEdgesBoolExpr extends AutomatonBoolExpr {
-
-    // Marker interface
-
-  }
-
-  static enum MatchPathRelevantEdgesBoolExpr implements OnRelevantEdgesBoolExpr {
-    INSTANCE;
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      return AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge())
-          ? CONST_FALSE
-          : CONST_TRUE;
-    }
-
-    @Override
-    public String toString() {
-      return "MATCH PATH RELEVANT EDGE";
-    }
-  }
-
   static enum MatchSplitDeclaration implements AutomatonBoolExpr {
     INSTANCE;
 
@@ -1328,14 +1306,14 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   /** Tests the equality of the values of two instances of {@link AutomatonIntExpr}. */
   static class IntEqTest extends IntBinaryTest {
     public IntEqTest(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      super(pA, pB, ((a, b) -> a.equals(b)), "==");
+      super(pA, pB, (a, b) -> a.equals(b), "==");
     }
   }
 
   /** Tests whether two instances of {@link AutomatonIntExpr} evaluate to different integers. */
   static class IntNotEqTest extends IntBinaryTest {
     public IntNotEqTest(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      super(pA, pB, ((a, b) -> !a.equals(b)), "!=");
+      super(pA, pB, (a, b) -> !a.equals(b), "!=");
     }
   }
 
@@ -1356,7 +1334,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       ResultValue<Boolean> resA = a.eval(pArgs);
       if (resA.canNotEvaluate()) {
         ResultValue<Boolean> resB = b.eval(pArgs);
-        if ((!resB.canNotEvaluate()) && resB.getValue().equals(Boolean.TRUE)) {
+        if (!resB.canNotEvaluate() && resB.getValue().equals(Boolean.TRUE)) {
           return resB;
         } else {
           return resA;
@@ -1397,7 +1375,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       ResultValue<Boolean> resA = a.eval(pArgs);
       if (resA.canNotEvaluate()) {
         ResultValue<Boolean> resB = b.eval(pArgs);
-        if ((!resB.canNotEvaluate()) && resB.getValue().equals(Boolean.FALSE)) {
+        if (!resB.canNotEvaluate() && resB.getValue().equals(Boolean.FALSE)) {
           return resB;
         } else {
           return resA;
@@ -1506,7 +1484,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return String.format("(%s %s %s)", a, repr, b);
+      return "(" + a + " " + repr + " " + b + ")";
     }
 
     @Override
@@ -1530,14 +1508,14 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   /** Boolean Equality */
   static class BoolEqTest extends BoolBinaryTest {
     public BoolEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      super(pA, pB, ((a, b) -> a.equals(b)), "==");
+      super(pA, pB, (a, b) -> a.equals(b), "==");
     }
   }
 
   /** Boolean != */
   static class BoolNotEqTest extends BoolBinaryTest {
     public BoolNotEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      super(pA, pB, ((a, b) -> !a.equals(b)), "!=");
+      super(pA, pB, (a, b) -> !a.equals(b), "!=");
     }
   }
 }

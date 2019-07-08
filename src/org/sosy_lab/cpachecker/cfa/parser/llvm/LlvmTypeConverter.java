@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -69,10 +70,6 @@ public class LlvmTypeConverter {
   }
 
   public CType getCType(final TypeRef pLlvmType) {
-    return getCType(pLlvmType, true);
-  }
-
-  public CType getCType(final TypeRef pLlvmType, final boolean pIsSigned) {
     final boolean isConst = false;
     final boolean isVolatile = false;
     TypeKind typeKind = pLlvmType.getTypeKind();
@@ -89,7 +86,7 @@ public class LlvmTypeConverter {
         return getFloatType(typeKind);
       case Integer:
         int integerWidth = pLlvmType.getIntTypeWidth();
-        return getIntegerType(integerWidth, isConst, isVolatile, pIsSigned);
+        return getIntegerType(integerWidth);
 
       case Function:
         return getFunctionType(pLlvmType);
@@ -213,57 +210,8 @@ public class LlvmTypeConverter {
     return new CFunctionType(returnType, parameterTypes, takesVarArgs);
   }
 
-  private CType getIntegerType(
-      final int pIntegerWidth,
-      final boolean pIsConst,
-      final boolean pIsVolatile,
-      final boolean pIsSigned
-  ) {
-    final boolean isComplex = false;
-    final boolean isImaginary = false;
-    final boolean isUnsigned = !pIsSigned;
-
-    final boolean isLong = false;
-    boolean isShort = false;
-    boolean isLongLong = false;
-
-    CBasicType basicType;
-
-    switch (pIntegerWidth) {
-      case 1:
-        basicType = CBasicType.BOOL;
-        break;
-      case 8:
-        basicType = CBasicType.CHAR;
-        break;
-      case 16:
-        basicType = CBasicType.INT;
-        isShort = true;
-        break;
-      case 32:
-        basicType = CBasicType.INT;
-        // keep everything set to 'false' for default int
-        break;
-      case 64:
-        basicType = CBasicType.INT;
-        // We use long long since it is 8 bytes for both 32 and 64 bit machines
-        isLongLong = true;
-        break;
-      default:
-        throw new AssertionError("Unhandled integer bitwidth " + pIntegerWidth);
-    }
-
-    return new CSimpleType(
-        pIsConst,
-        pIsVolatile,
-        basicType,
-        isLong,
-        isShort,
-        pIsSigned,
-        isUnsigned,
-        isComplex,
-        isImaginary,
-        isLongLong);
+  private CType getIntegerType(final int pIntegerWidth) {
+    return new CBitFieldType(CNumericTypes.INT, pIntegerWidth);
   }
 
   private CType getFloatType(final TypeKind pType) {

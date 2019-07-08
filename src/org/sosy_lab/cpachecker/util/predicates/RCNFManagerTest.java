@@ -61,12 +61,12 @@ public class RCNFManagerTest extends SolverViewBasedTest0 {
     return super.createTestConfigBuilder().setOption("rcnf.boundVarsHandling", "drop");
   }
 
-  private RCNFManager RCNFManager;
+  private RCNFManager rcnfManager;
   private BooleanFormulaManager bfmgr;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    RCNFManager = new RCNFManager(config);
+    rcnfManager = new RCNFManager(config);
     bfmgr = bmgrv;
   }
 
@@ -82,7 +82,7 @@ public class RCNFManagerTest extends SolverViewBasedTest0 {
     );
     BooleanFormula c = bfmgr.or(a, b);
 
-    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(c, mgrv));
+    BooleanFormula converted = bfmgr.and(rcnfManager.toLemmas(c, mgrv));
     assertThatFormula(converted).isEquivalentTo(c);
     assertThat(bfmgr.toConjunctionArgs(converted, false))
         .containsExactly(
@@ -101,7 +101,7 @@ public class RCNFManagerTest extends SolverViewBasedTest0 {
             )
         )
     );
-    Set<BooleanFormula> lemmas = RCNFManager.toLemmas(input, mgrv);
+    Set<BooleanFormula> lemmas = rcnfManager.toLemmas(input, mgrv);
     assertThatFormula(bmgr.and(lemmas)).isEquivalentTo(input);
     Truth.assertThat(lemmas).containsExactly(v("a"), v("b"), v("c"), v("d"));
   }
@@ -112,7 +112,7 @@ public class RCNFManagerTest extends SolverViewBasedTest0 {
         bfmgr.and(v("a"), v("b"), v("c")),
         bfmgr.and(v("d"), v("e"), v("f"))
     );
-    Set<BooleanFormula> lemmas = RCNFManager.toLemmas(input, mgrv);
+    Set<BooleanFormula> lemmas = rcnfManager.toLemmas(input, mgrv);
     assertThatFormula(bfmgr.and(lemmas)).isEquivalentTo(input);
     Truth.assertThat(lemmas)
         .containsExactly(

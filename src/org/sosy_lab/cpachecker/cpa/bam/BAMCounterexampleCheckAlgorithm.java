@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.Counterexample
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
@@ -71,14 +70,14 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
       throws CPAException, InterruptedException {
 
     ARGReachedSet mainReachedSet =
-        new ARGReachedSet(reached, (ARGCPA) cpa.getWrappedCpa(), 0 /* irrelevant number */);
+        new ARGReachedSet(reached, cpa.getWrappedCpa(), 0 /* irrelevant number */);
 
     assert mainReachedSet.asReachedSet().contains(errorState);
     assert errorState == reached.getLastState();
 
     // compute BAM-reachedset for the reachable states,
     // it contains all error-paths and is sufficient to check counterexample.
-    BAMSubgraphComputer graphComputer = new BAMSubgraphComputer(cpa);
+    BAMSubgraphComputer graphComputer = new BAMSubgraphComputer(cpa, false);
     Pair<BackwardARGState, BackwardARGState> rootAndTargetOfSubgraph =
         graphComputer.computeCounterexampleSubgraph(errorState, mainReachedSet);
     ARGState rootState = rootAndTargetOfSubgraph.getFirst();

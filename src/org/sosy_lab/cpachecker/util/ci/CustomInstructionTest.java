@@ -63,7 +63,7 @@ public class CustomInstructionTest {
   private Constructor<?extends AbstractState> locConstructor;
   private CFA cfa;
   private CFANode startNode;
-  private Collection<CFANode> endNodes;
+  private Set<CFANode> endNodes;
   private ARGState start;
   private ARGState end;
 

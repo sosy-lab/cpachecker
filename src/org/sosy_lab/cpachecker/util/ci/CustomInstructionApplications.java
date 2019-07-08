@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
@@ -139,7 +138,7 @@ public class CustomInstructionApplications {
   }
 
   public ImmutableSet<CFANode> getStartAndEndLocationsOfCIApplications() {
-    Builder<CFANode> result = ImmutableSet.builder();
+    ImmutableSet.Builder<CFANode> result = ImmutableSet.builder();
 
     for (AppliedCustomInstruction aci : cis.values()) {
       result.addAll(aci.getStartAndEndNodes());

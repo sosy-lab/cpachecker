@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.collect.ImmutableList.copyOf;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -358,7 +358,7 @@ public class ExceptionHandlingAlgorithm
     }
 
     // this includes the errorState and its siblings
-    List<ARGState> siblings = copyOf(parent.getChildren());
+    List<ARGState> siblings = ImmutableList.copyOf(parent.getChildren());
     for (ARGState toRemove : siblings) {
 
       assert toRemove.getChildren().isEmpty();
@@ -370,7 +370,7 @@ public class ExceptionHandlingAlgorithm
       toRemove.removeFromARG();
     }
 
-    List<ARGState> coveredByParent = copyOf(parent.getCoveredByThis());
+    List<ARGState> coveredByParent = ImmutableList.copyOf(parent.getCoveredByThis());
     for (ARGState covered : coveredByParent) {
       assert covered.getChildren().isEmpty();
       assert covered.getCoveredByThis().isEmpty();

@@ -60,6 +60,8 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -152,6 +154,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     config = pConfig;
     cfa = pCFA;
 
+    @SuppressWarnings("resource")
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, BMCAlgorithm.class);
     solver = predCpa.getSolver();
     fmgr = solver.getFormulaManager();
@@ -346,6 +349,11 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           @Override
           public void printStatistics(
               PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+            // apparently there is nothing to do here.
+          }
+
+          @Override
+          public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
             if (pResult == Result.FALSE) {
               return;
             }

@@ -6,7 +6,7 @@
   <option name="-heap">2000M</option>
 
   <rundefinition>
-    <option name="-predicateAnalysis--overflow"/>
+    <option name="-default--overflow"/>
   </rundefinition>
 
   <tasks name="Overflows-BitVectors">

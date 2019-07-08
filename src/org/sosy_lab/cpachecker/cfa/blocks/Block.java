@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.blocks;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ImmutableSortedSet;
 import java.util.Collections;
 import java.util.Set;
@@ -80,7 +79,7 @@ public class Block {
    * For soundness this must be a superset of the actually used variables. */
   public Set<String> getVariables() {
     if (variables == null) {
-      Builder<String> builder = ImmutableSet.builder();
+      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
       for (ReferencedVariable referencedVar : getReferencedVariables()) {
         builder.add(referencedVar.getName());
       }
@@ -111,5 +110,26 @@ public class Block {
             "(CallNodes: " + callNodes + ") " +
             "(Nodes: " + (nodes.size() < 10 ? nodes : "[#=" + nodes.size() + "]") + ") " +
             "(ReturnNodes: " + returnNodes + ")";
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof Block)) {
+      return false;
+    }
+    Block other = (Block) o;
+    // optimization: first compare the smaller collections like call- or return-nodes
+    return callNodes.equals(other.callNodes)
+        && returnNodes.equals(other.returnNodes)
+        && nodes.equals(other.nodes)
+        && referencedVariables.equals(other.referencedVariables);
+  }
+
+  @Override
+  public int hashCode() {
+    return nodes.hashCode();
   }
 }

@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcr
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -223,7 +224,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       // Create a new base address for the object if necessary
       if (!objectAddressMap.containsKey(pObject)) {
         objectAddressMap.put(pObject, nextAlloc);
-        IDExpression lhs = pSMGState.getHeap().createIDExpression(pObject);
+        IDExpression lhs = createIDExpression(pSMGState.getHeap(), pObject);
         if (lhs != null) {
           variableAddressMap.put(lhs, nextAlloc);
         }
@@ -240,5 +241,22 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     public Map<LeftHandSide, Address> getAddressMap() {
       return ImmutableMap.copyOf(variableAddressMap);
     }
+  }
+
+  private static IDExpression createIDExpression(UnmodifiableCLangSMG smg, SMGObject pObject) {
+
+    if (smg.getGlobalObjects().containsValue(pObject)) {
+      // TODO Breaks if label is changed
+      return new IDExpression(pObject.getLabel());
+    }
+
+    for (CLangStackFrame frame : smg.getStackFrames()) {
+      if (frame.getVariables().containsValue(pObject)) {
+        // TODO Breaks if label is changed
+        return new IDExpression(pObject.getLabel(), frame.getFunctionDeclaration().getName());
+      }
+    }
+
+    return null;
   }
 }

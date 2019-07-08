@@ -4,79 +4,46 @@
 
   <!--
   Generate the test-set definition file to validate the witnesses
-  produced by this test-set definition using ../../scripts/generate_validation_testdef.py
+  produced by this test-set definition using ../util/generate_witness_validation_testdef.py
   -->
 
   <option name="-heap">6000M</option>
+
+  <resultfiles>**.graphml*</resultfiles>
+  <option name="-setprop">cpa.arg.compressWitness=true</option>
   <option name="-setprop">counterexample.export.compressWitness=true</option>
 
   <rundefinition>
-    <option name="-svcomp18"/>
+    <option name="-svcomp19"/>
   </rundefinition>
 
-  <resultfiles>**.graphml.gz</resultfiles>
-
-  <tasks name="BitVectorsReach">
-    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
   <tasks name="BitVectorsOverflows">
     <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-no-overflow*</exclude>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     <option name="-64"/>
   </tasks>
     <tasks name="HeapReach">
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-valid-memsafety*</exclude>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <!-- exclude files where several properties are available -->
+    <exclude>../programs/benchmarks/list-ext-properties/list-ext.yml</exclude>
+    <exclude>../programs/benchmarks/list-ext-properties/list-ext_flag.yml</exclude>
   </tasks>
   <tasks name="Floats">
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="ECA">
-    <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="Loops">
-    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Recursive">
     <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-setprop">cpa.callstack.skipVoidRecursion=false</option>
-  </tasks>
-  <tasks name="ProductLines">
-    <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="Sequentialized">
-    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="DeviceDriversLinux64">
-    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <option name="-64"/>
   </tasks>
 </benchmark>

@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -156,7 +156,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
       // merging after functioncall with different callstates is ugly.
       // this is also guaranteed by the abstraction-locations at function-entries
       // (--> no merge of states with different latest abstractions).
-      assert Sets.newHashSet(currentStacks).size() <= 1
+      assert new HashSet<>(currentStacks).size() <= 1
           : "function with multiple entry-states not supported";
 
       callStacks.put(currentState, currentStacks.get(0));

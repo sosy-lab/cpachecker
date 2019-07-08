@@ -1,0 +1,3 @@
+[tool.black]
+include = '(scripts|test/util).*\.py$'
+target-version = ['py34']

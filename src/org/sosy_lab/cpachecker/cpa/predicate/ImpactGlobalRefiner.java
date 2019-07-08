@@ -30,13 +30,13 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -114,9 +114,9 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
     }
   }
 
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  public static ImpactGlobalRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  @SuppressWarnings({"unchecked", "rawtypes", "resource"})
+  public static ImpactGlobalRefiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     PredicateCPA predicateCpa =
         CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, ImpactRefiner.class);
     return new ImpactGlobalRefiner(predicateCpa.getConfiguration(),
@@ -195,7 +195,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
       throws CPAException, InterruptedException, SolverException {
     logger.log(Level.FINE, "Starting refinement for", targets.size(), "elements.");
 
-    Map<ARGState, ARGState> predecessors = Maps.newHashMap();
+    Map<ARGState, ARGState> predecessors = new HashMap<>();
     SetMultimap<ARGState, ARGState> successors = HashMultimap.create();
 
     Deque<AbstractState> todo = new ArrayDeque<>(targets);
@@ -342,8 +342,8 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
     pathsRefined++;
     totalPathLengthToInfeasibility += itpStack.size();
 
-    itpStack = Lists.newArrayList(itpStack); // copy because we will modify it
-    List<ARGState> affectedStates = Lists.newArrayList();
+    itpStack = new ArrayList<>(itpStack); // copy because we will modify it
+    List<ARGState> affectedStates = new ArrayList<>();
 
     // going upwards from unreachableState refining states with interpolants
     ARGState currentState = unreachableState;

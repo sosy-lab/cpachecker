@@ -607,6 +607,7 @@ public class CtoFormulaConverter {
         formula =
             fmgr.getBitvectorFormulaManager()
                 .extract((BitvectorFormula) formula, targetSize - 1, 0, false);
+
       } else if (sourceSize < targetSize) {
         return null; // TODO extend with nondet bits
       }
@@ -775,8 +776,11 @@ public class CtoFormulaConverter {
     if (pType instanceof CPointerType) {
       return machineModel.getPointerEquivalentSimpleType();
     }
-    if (pType instanceof CEnumType
-        || (pType instanceof CElaboratedType && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM)) {
+    if (pType instanceof CEnumType) {
+      return ((CEnumType) pType).getEnumerators().get(0).getType();
+    }
+    if (pType instanceof CElaboratedType
+        && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM) {
       return CNumericTypes.INT;
     }
     return pType;
@@ -795,8 +799,7 @@ public class CtoFormulaConverter {
   private static CExpression makeCastFromArrayToPointer(CExpression arrayExpression) {
     // array-to-pointer conversion
     CArrayType arrayType = (CArrayType)arrayExpression.getExpressionType().getCanonicalType();
-    CPointerType pointerType = new CPointerType(arrayType.isConst(),
-        arrayType.isVolatile(), arrayType.getType());
+    CPointerType pointerType = arrayType.asPointerType();
 
     return new CUnaryExpression(arrayExpression.getFileLocation(), pointerType,
         arrayExpression, UnaryOperator.AMPER);
@@ -831,23 +834,23 @@ public class CtoFormulaConverter {
       ret = pFormula;
 
     } else if (fromType.isBitvectorType() && toType.isBitvectorType()) {
+
       int toSize = ((FormulaType.BitvectorType)toType).getSize();
       int fromSize = ((FormulaType.BitvectorType) fromType).getSize();
 
       // Cf. C-Standard 6.3.1.2 (1)
-      if (pToCType.getCanonicalType().equals(CNumericTypes.BOOL)) {
+      if (pToCType.getCanonicalType().equals(CNumericTypes.BOOL)
+          || (pToCType instanceof CBitFieldType
+              && ((CBitFieldType) pToCType).getType().equals(CNumericTypes.BOOL))) {
         Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0l);
         Formula zeroToSize = efmgr.makeBitvector(toSize, 0l);
         Formula oneToSize = efmgr.makeBitvector(toSize, 1l);
-
         ret = bfmgr.ifThenElse(fmgr.makeEqual(zeroFromSize, pFormula), zeroToSize, oneToSize);
       } else {
         if (fromSize > toSize) {
           ret = fmgr.makeExtract(pFormula, toSize - 1, 0, isSigned.test(pFromCType));
-
         } else if (fromSize < toSize) {
           ret = fmgr.makeExtend(pFormula, (toSize - fromSize), isSigned.test(pFromCType));
-
         } else {
           ret = pFormula;
         }
@@ -1553,7 +1556,6 @@ public class CtoFormulaConverter {
         return bfmgr.not(parts.getFirst());
       }
     }
-
     return bfmgr.not(fmgr.makeEqual(pF, zero));
   }
 
@@ -1704,7 +1706,7 @@ public class CtoFormulaConverter {
       offset = 0;
       break;
     case STRUCT:
-      offset = getFieldOffset(structType, fExp.getFieldName());
+        offset = getBitFieldOffset(structType, fExp.getFieldName());
       break;
     default:
         throw new UnrecognizedCodeException("Unexpected field access", fExp);
@@ -1734,9 +1736,9 @@ public class CtoFormulaConverter {
   /**
    * Returns the offset of the given field in the given struct in bits.
    *
-   * This function does not handle UNIONs or ENUMs!
+   * <p>This function does not handle UNIONs or ENUMs!
    */
-  private int getFieldOffset(CCompositeType structType, String fieldName) {
+  private int getBitFieldOffset(CCompositeType structType, String fieldName) {
     int off = 0;
     for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
       if (member.getName().equals(fieldName)) {

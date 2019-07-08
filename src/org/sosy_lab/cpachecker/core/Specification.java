@@ -139,6 +139,18 @@ public final class Specification {
     return new Specification(pProperties, multiplePropertiesBuilder.build());
   }
 
+  public static Specification combine(final Specification pSpec1, final Specification pSpec2) {
+    return new Specification(
+        ImmutableSet.<SpecificationProperty>builder()
+            .addAll(pSpec1.properties)
+            .addAll(pSpec2.properties)
+            .build(),
+        ImmutableListMultimap.<Path, Automaton>builder()
+            .putAll(pSpec1.pathToSpecificationAutomata)
+            .putAll(pSpec2.pathToSpecificationAutomata)
+            .build());
+  }
+
   private Specification(Iterable<Automaton> pSpecificationAutomata) {
     properties = ImmutableSet.of();
     ImmutableListMultimap.Builder<Path, Automaton> multiplePropertiesBuilder =

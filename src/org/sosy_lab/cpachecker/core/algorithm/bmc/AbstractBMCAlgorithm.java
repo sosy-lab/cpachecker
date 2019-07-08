@@ -75,6 +75,10 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ConditionAdjustmentEventSubscriber;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
@@ -302,6 +306,7 @@ abstract class AbstractBMCAlgorithm
     }
     invariantGeneratorHeadStart = invariantGeneratorHeadStartStrategy.createFor(this);
 
+    @SuppressWarnings("resource")
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, BMCAlgorithm.class);
     solver = predCpa.getSolver();
     fmgr = solver.getFormulaManager();
@@ -341,9 +346,7 @@ abstract class AbstractBMCAlgorithm
     AlgorithmStatus status;
 
     try (ProverEnvironmentWithFallback prover =
-            new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS);
-        @SuppressWarnings("resource")
-            KInductionProver kInductionProver = createInductionProver()) {
+        new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS)) {
       invariantGeneratorHeadStart.waitForInvariantGenerator();
 
       do {
@@ -411,8 +414,11 @@ abstract class AbstractBMCAlgorithm
                 ctiBlockingClauses.clear();
               }
             }
+            try (@SuppressWarnings("resource")
+                KInductionProver kInductionProver = createInductionProver()) {
             sound =
                 checkStepCase(reachedSet, candidateGenerator, kInductionProver, ctiBlockingClauses);
+            }
           }
           if (invariantGenerator.isProgramSafe()
               || (sound && !candidateGenerator.produceMoreCandidates())) {
@@ -779,20 +785,19 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
-  protected @Nullable KInductionProver createInductionProver() {
-    return induction
-        ? new KInductionProver(
-            cfa,
-            logger,
-            stepCaseAlgorithm,
-            stepCaseCPA,
-            invariantGenerator,
-            stats,
-            reachedSetFactory,
-            shutdownNotifier,
-            getLoopHeads(),
-            usePropertyDirection)
-        : null;
+  protected KInductionProver createInductionProver() {
+    assert induction;
+    return new KInductionProver(
+        cfa,
+        logger,
+        stepCaseAlgorithm,
+        stepCaseCPA,
+        invariantGenerator,
+        stats,
+        reachedSetFactory,
+        shutdownNotifier,
+        getLoopHeads(),
+        usePropertyDirection);
   }
 
   /**

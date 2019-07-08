@@ -27,7 +27,6 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
@@ -37,19 +36,21 @@ import com.google.common.io.MoreFiles;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -59,6 +60,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
@@ -100,7 +102,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
@@ -243,7 +244,7 @@ public class AutomatonGraphmlCommon {
       this.key = key;
     }
 
-    private final static Map<String, NodeFlag> stringToFlagMap = Maps.newHashMap();
+    private static final Map<String, NodeFlag> stringToFlagMap = new HashMap<>();
 
     static {
       for (NodeFlag f : NodeFlag.values()) {
@@ -375,7 +376,7 @@ public class AutomatonGraphmlCommon {
     private final Document doc;
     protected final Element graph;
     private final Set<KeyDef> definedKeys = EnumSet.noneOf(KeyDef.class);
-    private final Map<KeyDef, Node> keyDefsToAppend = Maps.newEnumMap(KeyDef.class);
+    private final Map<KeyDef, Node> keyDefsToAppend = new EnumMap<>(KeyDef.class);
 
     public GraphMlBuilder(
         WitnessType pGraphType,
@@ -406,7 +407,7 @@ public class AutomatonGraphmlCommon {
       graph.appendChild(
           createDataElement(KeyDef.SOURCECODELANGUAGE, pCfa.getLanguage().toString()));
       graph.appendChild(
-          createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
+          createDataElement(KeyDef.PRODUCER, pVerificationTaskMetaData.getProducerString()));
 
       int nSpecs = 0;
       for (SpecificationProperty property : pVerificationTaskMetaData.getProperties()) {
@@ -439,7 +440,7 @@ public class AutomatonGraphmlCommon {
 
       graph.appendChild(
           createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pCfa.getMachineModel())));
-      ZonedDateTime now = ZonedDateTime.now().withNano(0);
+      ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
       graph.appendChild(
           createDataElement(
               KeyDef.CREATIONTIME, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));
@@ -573,7 +574,9 @@ public class AutomatonGraphmlCommon {
       if (edge.getSuccessor() instanceof FunctionExitNode) {
         return isEmptyStub(((FunctionExitNode) edge.getSuccessor()).getEntryNode());
       }
-      if (AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
+      if (AutomatonGraphmlCommon.treatAsTrivialAssume(edge)) {
+        return false;
+      } if (AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
         return false;
       }
       return true;
@@ -1147,5 +1150,22 @@ public class AutomatonGraphmlCommon {
         && CFAUtils.enteringEdges(pred)
             .filter(BlankEdge.class)
             .anyMatch(e -> e.getDescription().equals("while"));
+  }
+
+  private static boolean treatAsTrivialAssume(CFAEdge pEdge) {
+    CFANode pred = pEdge.getPredecessor();
+    if (pred.getNumLeavingEdges() != 1) {
+      return false;
+    }
+    if (!(pEdge instanceof BlankEdge)) {
+      return false;
+    }
+    BlankEdge edge = (BlankEdge) pEdge;
+    if (!edge.getDescription().isEmpty()) {
+      return false;
+    }
+    return !edge.getRawStatement().isEmpty()
+        && !treatAsWhileTrue(pEdge)
+        && !isFunctionStartDummyEdge(pEdge);
   }
 }

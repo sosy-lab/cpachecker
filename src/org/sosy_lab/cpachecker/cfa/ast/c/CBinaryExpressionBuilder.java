@@ -181,7 +181,7 @@ public class CBinaryExpressionBuilder {
       throws UnrecognizedCodeException {
 
     if (expr instanceof CBinaryExpression) {
-      final CBinaryExpression binExpr = (CBinaryExpression)expr;
+      final CBinaryExpression binExpr = (CBinaryExpression) expr;
       BinaryOperator binOp = binExpr.getOperator();
       // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
       if (binExpr.getOperator().isLogicalOperator()) {
@@ -196,12 +196,20 @@ public class CBinaryExpressionBuilder {
           final CBinaryExpression binExpr2 = (CBinaryExpression) binExpr.getOperand2();
           if (binExpr1.getOperator().isLogicalOperator()
               && binExpr2.getOperator().isLogicalOperator()) {
-            BinaryOperator negatedOperator = binOp.equals(BinaryOperator.BINARY_AND)
-                ? BinaryOperator.BINARY_OR : BinaryOperator.BINARY_AND;
-            CBinaryExpression newOp1 = buildBinaryExpression(binExpr1.getOperand1(),
-                binExpr1.getOperand2(), binExpr1.getOperator().getOppositLogicalOperator());
-            CBinaryExpression newOp2 = buildBinaryExpression(binExpr2.getOperand1(),
-                binExpr2.getOperand2(), binExpr2.getOperator().getOppositLogicalOperator());
+            BinaryOperator negatedOperator =
+                binOp.equals(BinaryOperator.BINARY_AND)
+                    ? BinaryOperator.BINARY_OR
+                    : BinaryOperator.BINARY_AND;
+            CBinaryExpression newOp1 =
+                buildBinaryExpression(
+                    binExpr1.getOperand1(),
+                    binExpr1.getOperand2(),
+                    binExpr1.getOperator().getOppositLogicalOperator());
+            CBinaryExpression newOp2 =
+                buildBinaryExpression(
+                    binExpr2.getOperand1(),
+                    binExpr2.getOperand2(),
+                    binExpr2.getOperator().getOppositLogicalOperator());
             return buildBinaryExpression(newOp1, newOp2, negatedOperator);
           }
         }

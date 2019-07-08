@@ -3,7 +3,7 @@
 <benchmark tool="cpachecker" timelimit="10 s" memlimit="100 MB" cpuCores="1">
 
   <option name="-noout"/>
-  <option name="-heap">10M</option>
+  <option name="-heap">50M</option>
 
   <rundefinition>
     <option name="-config">test/config/alwaysTopAnalysis.properties</option>

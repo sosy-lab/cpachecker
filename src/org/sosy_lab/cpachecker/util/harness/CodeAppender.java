@@ -24,9 +24,9 @@
 package org.sosy_lab.cpachecker.util.harness;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -267,7 +267,7 @@ class CodeAppender implements Appendable {
       List<? extends AParameterDeclaration> pParameters) {
     Set<String> usedNames = Sets.newHashSetWithExpectedSize(pParameters.size());
     int i = 0;
-    List<AParameterDeclaration> result = Lists.newArrayListWithCapacity(pParameters.size());
+    List<AParameterDeclaration> result = new ArrayList<>(pParameters.size());
     for (AParameterDeclaration parameter : pParameters) {
       AParameterDeclaration declaration = parameter;
       if (!declaration.getName().isEmpty()) {

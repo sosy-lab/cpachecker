@@ -151,8 +151,10 @@ public class AbstractionFormula implements Serializable {
 
   /**
    * javadoc to remove unused parameter warning
+   *
    * @param in an input stream
    */
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }

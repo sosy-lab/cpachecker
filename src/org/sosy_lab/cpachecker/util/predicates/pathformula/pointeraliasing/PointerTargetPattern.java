@@ -193,7 +193,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     @Nullable
     Long getRemainingOffset(TypeHandlerWithPointerAliasing typeHandler) {
       if (containerType != null && containerOffset != null && properOffset != null) {
-        return typeHandler.getBitSizeof(containerType) - properOffset;
+        return typeHandler.getSizeof(containerType) - properOffset;
       } else {
         return null;
       }

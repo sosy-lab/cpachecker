@@ -36,7 +36,7 @@ STATE USEALL G0_C1_H0 :
 
   // Create class twice.
   MATCH {$1=class_interface_register($?)} -> ASSUME {((int)$1) == 0} ERROR("linux:class::double registration");
-  
+
   MATCH {$1=class_interface_register($?)} -> ASSUME {((int)$1) <  0} GOTO G0_C1_H0;
   // Cut paths, on which function returns positive value.
   MATCH {$1=class_interface_register($?)} -> ASSUME {((int)$1) >  0} STOP;

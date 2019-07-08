@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
 <project name="CPAchecker" basedir="." default="build"
+         xmlns:unless="ant:unless"
          xmlns:ivy="antlib:org.apache.ivy.ant">
     <!-- Include a file in which all properties can be overridden.
          This file won't get checked in and can be used to change properties
@@ -8,7 +9,7 @@
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="1.7-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="1.8-svn"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
@@ -20,9 +21,21 @@
     <property name="ivy.configurations" value="build, runtime, test, format-source, spotbugs, checkstyle"/>
     <property name="documentation.options.file" value="doc/ConfigurationOptions.txt"/>
 
-    <!-- TODO: disable reference-equality check because commonly used in CPAchecker -->
+    <!-- The following error-prone checks are disabled:
+         BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
+         ReferenceEquality: TODO enable this and fix alarms
+         EqualsGetClass: TODO enable this and fix alarms?
+         GuardedBy: crashes current error-prone
+         Finally: crashes current error-prone
+         MixedMutabilityReturnType: too many warnings, need to fix them first
+         -->
     <property name="errorprone.options" value="
+        -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
+        -Xep:EqualsGetClass:OFF
+        -Xep:GuardedBy:OFF
+        -Xep:Finally:OFF
+        -Xep:MixedMutabilityReturnType:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>
@@ -100,6 +113,25 @@
 
     <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
 
+    <target name="build-project-ecj" depends="build-dependencies" description="Build project with the Eclipse JDT compiler">
+        <condition property="java8">
+            <equals arg1="${ant.java.version}" arg2="1.8"/>
+        </condition>
+        <replace
+            dir="${source.dir}" includes="**/*Scanner.java **/*Parser.java"
+            preserveLastModified="true"
+            token="@javax.annotation.Generated"
+            value="@javax.annotation.processing.Generated"
+            unless:set="java8"/>
+        <antcall target="compile.build-project-ecj"/>
+        <replace
+            dir="${source.dir}" includes="**/*Scanner.java **/*Parser.java"
+            preserveLastModified="true"
+            token="@javax.annotation.processing.Generated"
+            value="@javax.annotation.Generated"
+            unless:set="java8"/>
+    </target>
+
     <available file=".factorypath" property="factorypath.present"/>
     <target name="-warn-factorypath" unless="factorypath.present">
         <echo level="warning">If you use Eclipse, please copy .factorypath.template to .factorypath and (if necessary) adjust the path to your CPAchecker directory in it.</echo>
@@ -116,21 +148,4 @@
             <arg line="-m unittest discover scripts"/>
         </exec>
     </target>
-
-    <!-- Targets for downloading CPAchecker instead of building it.
-         This downloads CPAchecker from the VerifierCloud and is used by the BuildBot.
-         Warning: this might overwrite local changes. -->
-    <target name="download-cpachecker" depends="determine-version-revision, resolve-dependencies">
-        <script language="javascript"><![CDATA[
-            var revision = project.getProperty("version.revision");
-            project.setProperty("version.revision.without-suffix", revision.replaceAll("[A-Za-z]*$", ''));
-        ]]></script>
-        <get src="https://vcloud.sosy-lab.org/cpachecker/webclient/tool/archive?revision=${version.revision.without-suffix}" dest="CPAchecker.zip" verbose="false"/>
-        <unzip src="CPAchecker.zip" dest="." failOnEmptyArchive="true" overwrite="true">
-            <patternset>
-                <include name="cpachecker.jar"/>
-            </patternset>
-        </unzip>
-    </target>
-
 </project>

@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 /**
  * Merge operator for symbolic predicate abstraction.
@@ -45,12 +46,14 @@ public class PredicateMergeOperator implements MergeOperator {
   private final LogManager logger;
   private final PathFormulaManager formulaManager;
   private final PredicateStatistics statistics;
+  private final TimerWrapper totalMergeTimer;
 
   public PredicateMergeOperator(
       LogManager pLogger, PathFormulaManager pPfmgr, PredicateStatistics pStatistics) {
     logger = pLogger;
     formulaManager = pPfmgr;
     statistics = pStatistics;
+    totalMergeTimer = statistics.totalMergeTime.getNewTimer();
   }
 
   @Override
@@ -73,7 +76,7 @@ public class PredicateMergeOperator implements MergeOperator {
         merged = elem2;
 
       } else {
-        statistics.totalMergeTime.start();
+        totalMergeTimer.start();
         assert elem1.getAbstractionLocationsOnPath().equals(elem2.getAbstractionLocationsOnPath());
         // create a new state
 
@@ -88,7 +91,7 @@ public class PredicateMergeOperator implements MergeOperator {
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);
 
-        statistics.totalMergeTime.stop();
+        totalMergeTimer.stop();
       }
     }
 

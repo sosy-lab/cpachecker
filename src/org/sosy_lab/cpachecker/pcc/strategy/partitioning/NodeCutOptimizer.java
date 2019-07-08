@@ -28,15 +28,15 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedEdge;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
 
-
 public class NodeCutOptimizer implements FiducciaMattheysesOptimizer {
 
   @Override
   public int computeGain(int node, int toPartition, int[] nodeToPartition,
       WeightedGraph wGraph) {
-    int gain = 0;
-    gain = computeExternalDegree(node, toPartition, nodeToPartition, wGraph)
-        - computeInternalDegree(node, nodeToPartition, wGraph);
+
+    int gain =
+        computeExternalDegree(node, toPartition, nodeToPartition, wGraph)
+            - computeInternalDegree(node, nodeToPartition, wGraph);
     return gain;
   }
 

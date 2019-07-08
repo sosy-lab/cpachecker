@@ -206,12 +206,7 @@ public class TranslatorTest {
 
     // Test method writeVarDefinition()
     List<String> varDefinition =
-        CartesianRequirementsTranslator.writeVarDefinition(
-            Arrays.asList(varNames), ssaTest, Collections.emptyList());
-    Truth.assertThat(varDefinition).isEmpty();
-
-    varDefinition =
-        CartesianRequirementsTranslator.writeVarDefinition(Arrays.asList(varNames), ssaTest, null);
+        CartesianRequirementsTranslator.writeVarDefinition(Arrays.asList(varNames), ssaTest);
     content = new ArrayList<>();
     content.add("(declare-fun var1@1 () Int)");
     content.add("(declare-fun var2 () Int)");
@@ -221,14 +216,6 @@ public class TranslatorTest {
     content.add("(declare-fun |fun::varC| () Int)");
     Truth.assertThat(varDefinition).containsExactlyElementsIn(content);
 
-    varDefinition =
-        CartesianRequirementsTranslator.writeVarDefinition(
-            Arrays.asList(varNames), ssaTest, requiredVars);
-    List<String> content2 = new ArrayList<>();
-    content2.add("(declare-fun var1@1 () Int)");
-    content2.add("(declare-fun var3@1 () Int)");
-    content2.add("(declare-fun |fun::varB@1| () Int)");
-    Truth.assertThat(varDefinition).containsExactlyElementsIn(content2);
 
     // Test method convertToFormula()
     Pair<List<String>, String> convertedToFormula =
@@ -243,6 +230,11 @@ public class TranslatorTest {
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
 
     convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, requiredVars);
+    List<String> content2 = new ArrayList<>();
+    content2.add("(declare-fun var1@1 () Int)");
+    content2.add("(declare-fun var3@1 () Int)");
+    content2.add("(declare-fun |fun::varB@1| () Int)");
+
     Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content2);
     s = "(define-fun req () Bool (and (>= |fun::varB@1| 8)(and (<= var1@1 5)(<= var3@1 -2))))";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);

@@ -111,9 +111,7 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
   @Option(secure=true, name="statestocheck", toUppercase=true, description="which states shall be checked")
   private int statestocheck=0;
 
-  @Option(secure=true, description="defines security classes of entities")
 
-  private Path initialmapfile = null;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyEnforcementCPA.class);
@@ -171,7 +169,7 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
         Field f;
         //Get Policy
         f=PredefinedPolicies.class.getField(policyname);
-        ConglomeratePolicy<SecurityClasses> policy=(ConglomeratePolicy<SecurityClasses>)(f.get(null));
+        ConglomeratePolicy<SecurityClasses> policy=(ConglomeratePolicy<SecurityClasses>)f.get(null);
         initialstate.setPolicy(policy);
 
         //Initial Systemmap & History Map
@@ -197,7 +195,7 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
 
         //Attacker-Level
         f=PredefinedPolicies.class.getField(defaultSC);
-        initialstate.setDefaultlevel((SecurityClasses)(f.get(null)));
+        initialstate.setDefaultlevel((SecurityClasses)f.get(null));
       } catch (NoSuchFieldException e) {
         logger.log(Level.WARNING, e);
       } catch (SecurityException e) {

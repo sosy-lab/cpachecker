@@ -148,9 +148,9 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       return isTracking(pVariable);
     } else {
       return !((pType instanceof CSimpleType
-                  && (((CSimpleType) pType).getType().isFloatingPointType()))
+                  && ((CSimpleType) pType).getType().isFloatingPointType())
               || (pType instanceof JSimpleType
-                  && (((JSimpleType) pType).getType().isFloatingPointType())))
+                  && ((JSimpleType) pType).getType().isFloatingPointType()))
           && isTracking(pVariable);
     }
   }
@@ -337,6 +337,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
         .toString();
   }
 
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     vc = GlobalInfo.getInstance().getCFAInfo().get().getCFA().getVarClassification();

@@ -26,12 +26,16 @@ package org.sosy_lab.cpachecker.cmdline;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.truth.StreamSubject.streams;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 import static java.lang.Boolean.parseBoolean;
+import static org.junit.Assume.assumeNoException;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -112,6 +116,10 @@ public class ConfigurationFileChecks {
           ".*Skipping one analysis because the configuration file .* could not be read.*",
           Pattern.DOTALL);
 
+  private static final Pattern UNMAINTAINED_CPA_WARNING =
+      Pattern.compile(
+          "Using ConfigurableProgramAnalysis .*, which is unmaintained and may not work correctly\\.");
+
   private static final ImmutableSet<String> UNUSED_OPTIONS =
       ImmutableSet.of(
           // always set by this test
@@ -119,6 +127,7 @@ public class ConfigurationFileChecks {
           "differential.program",
           // handled by code outside of CPAchecker class
           "output.disable",
+          "report.export",
           "statistics.print",
           "limits.time.cpu",
           "limits.time.cpu::required",
@@ -225,8 +234,9 @@ public class ConfigurationFileChecks {
     try {
       parse(configFile).build();
     } catch (InvalidConfigurationException | IOException e) {
-      assert_()
-          .fail("Error during parsing of configuration file %s : %s", configFile, e.getMessage());
+      assertWithMessage(
+              "Error during parsing of configuration file %s : %s", configFile, e.getMessage())
+          .fail();
     }
   }
 
@@ -251,8 +261,8 @@ public class ConfigurationFileChecks {
     try {
       config = parse(configFile).build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
-      assume().fail(e.getMessage());
-      throw new AssertionError();
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
     assume()
         .withMessage("Test configs (which are loaded from URL resources) may contain any option")
@@ -306,10 +316,20 @@ public class ConfigurationFileChecks {
   @SuppressWarnings("deprecation") // for tests this usage is ok
   private void checkOption(Configuration config, String option) {
     if (config.hasProperty(option)) {
-      expect.fail(
-          "Configuration has value for option %s with value '%s', which should usually not be present in config files",
-          option, config.getProperty(option));
+      expect
+          .withMessage(
+              "Configuration has value for option %s with value '%s', which should usually not be present in config files",
+              option, config.getProperty(option))
+          .fail();
     }
+  }
+
+  private boolean isUnmaintainedConfig() {
+    if (!(configFile instanceof Path)) {
+      return false;
+    }
+    Path basePath = CONFIG_DIR.relativize((Path) configFile);
+    return basePath.getName(0).equals(Paths.get("unmaintained"));
   }
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -342,17 +362,6 @@ public class ConfigurationFileChecks {
         Writer w =
             IO.openOutputFile(
                 Paths.get(tempFolder.newFolder("output").getAbsolutePath()+"/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r =
-            Files.newBufferedReader(
-                Paths.get("config/specification/SplitterGuidingAutomaton.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/SplitterGuidingAutomaton.spc"),
-                StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
     try (Reader r =
@@ -401,7 +410,10 @@ public class ConfigurationFileChecks {
   @Test
   public void checkDefaultSpecification() throws InvalidConfigurationException {
     assume().that(configFile).isInstanceOf(Path.class);
-    final Iterable<Path> basePath = CONFIG_DIR.relativize((Path) configFile);
+    Iterable<Path> basePath = CONFIG_DIR.relativize((Path) configFile);
+    if (isUnmaintainedConfig()) {
+      basePath = Iterables.skip(basePath, 1);
+    }
     assume().that(basePath).hasSize(1);
     final Configuration config = createConfigurationForTestInstantiation();
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
@@ -411,6 +423,8 @@ public class ConfigurationFileChecks {
     final String spec = config.getProperty("specification");
     @SuppressWarnings("deprecation")
     final String cpas = firstNonNull(config.getProperty("CompositeCPA.cpas"), "");
+    @SuppressWarnings("deprecation")
+    final String cpaBelowArgCpa = firstNonNull(config.getProperty("ARGCPA.cpa"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
     final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
@@ -434,12 +448,13 @@ public class ConfigurationFileChecks {
 
     } else if (cpas.contains("cpa.uninitvars.UninitializedVariablesCPA")) {
       assertThat(spec).endsWith("specification/UninitializedVariables.spc");
+    } else if (cpaBelowArgCpa.contains(
+        "cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA")) {
+      assertThat(spec)
+          .isAnyOf("specification/multiPropertyCex.spc", "../specification/default.spc");
     } else if (cpas.contains("cpa.smg.SMGCPA")) {
       if (isSvcompConfig) {
-        assertThat(spec)
-            .isAnyOf(
-                "specification/sv-comp-memorysafety.spc",
-                "specification/sv-comp-memorycleanup.spc");
+        assertThat(spec).matches(".*specification/sv-comp-memory(cleanup|safety).spc$");
       } else {
         if (!spec.contains("specification/sv-comp-memorycleanup.spc")) {
           assertThat(spec).contains("specification/memorysafety.spc");
@@ -456,7 +471,9 @@ public class ConfigurationFileChecks {
     } else if (isTestGenerationConfig) {
       assertThat(spec).isAnyOf(null, "");
     } else if (isDifferentialConfig) {
-      assertThat(spec).isAnyOf(null, "", "specification/modifications-present.spc");
+      if (!Strings.isNullOrEmpty(spec)) {
+        assertThat(spec).endsWith("specification/modifications-present.spc");
+      }
     } else if (spec != null) {
       // TODO should we somehow restrict which configs may specify "no specification"?
       assertThat(spec).endsWith("specification/default.spc");
@@ -491,8 +508,9 @@ public class ConfigurationFileChecks {
     try {
       cpachecker = new CPAchecker(config, logger, ShutdownManager.create());
     } catch (InvalidConfigurationException e) {
-      assert_()
-          .fail("Invalid configuration in configuration file %s : %s", configFile, e.getMessage());
+      assertWithMessage(
+              "Invalid configuration in configuration file %s : %s", configFile, e.getMessage())
+          .fail();
       return;
     }
 
@@ -501,24 +519,24 @@ public class ConfigurationFileChecks {
       result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
     } catch (IllegalArgumentException e) {
       if (isJava) {
-        assume().fail("Java frontend has a bug and cannot be run twice");
+        assume().withMessage("Java frontend has a bug and cannot be run twice").fail();
       }
       throw e;
-    } catch (UnsatisfiedLinkError e) {
-      assume().fail(e.getMessage());
-      return;
+    } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
 
     assert_()
         .withMessage(
-            "Failure in CPAchecker run with following log\n%s\n",
+            "Failure in CPAchecker run with following log\n%s\n\nlog with level WARNING or higher",
             formatLogRecords(logHandler.getStoredLogRecords()))
         .about(streams())
         .that(getSevereMessages(options, logHandler))
-        .named("log with level WARNING or higher")
         .isEmpty();
 
     assume()
+        .withMessage("messages indicating missing input files")
         .about(streams())
         .that(
             logHandler
@@ -526,7 +544,6 @@ public class ConfigurationFileChecks {
                 .stream()
                 .map(LogRecord::getMessage)
                 .filter(s -> INDICATES_MISSING_INPUT_FILE.matcher(s).matches()))
-        .named("messages indicating missing input files")
         .isEmpty();
 
     if (!isOptionEnabled(config, "analysis.disable")) {
@@ -535,7 +552,6 @@ public class ConfigurationFileChecks {
               "Failure in CPAchecker run with following log\n%s\n",
               formatLogRecords(logHandler.getStoredLogRecords()))
           .that(result.getResult())
-          .named("analysis result '%s'", result.getResultString())
           .isNotEqualTo(CPAcheckerResult.Result.NOT_YET_STARTED);
     }
 
@@ -545,10 +561,9 @@ public class ConfigurationFileChecks {
       // RestartAlgorithm
       assert_()
           .withMessage(
-              "Failure in CPAchecker run with following log\n%s\n",
+              "Failure in CPAchecker run with following log\n%s\n\nlist of unused options",
               formatLogRecords(logHandler.getStoredLogRecords()))
           .that(Sets.difference(config.getUnusedProperties(), UNUSED_OPTIONS))
-          .named("list of unused options")
           .isEmpty();
     }
   }
@@ -568,8 +583,8 @@ public class ConfigurationFileChecks {
           .setOption("differential.program", createEmptyProgram(false))
           .build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
-      assume().fail(e.getMessage());
-      throw new AssertionError();
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
   }
 
@@ -577,7 +592,7 @@ public class ConfigurationFileChecks {
     return TestDataTools.getEmptyProgram(tempFolder, pIsJava);
   }
 
-  private static Stream<String> getSevereMessages(OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {
+  private Stream<String> getSevereMessages(OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {
     // After one component of a parallel algorithm finishes successfully,
     // other components are interrupted, potentially causing warnings that can be ignored.
     // One such example is if another component uses a RestartAlgorithm that is interrupted
@@ -613,11 +628,16 @@ public class ConfigurationFileChecks {
       };
       logRecords = Streams.stream(logRecordIterator);
     }
-    return logRecords
+    Stream<String> result = logRecords
             .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
             .map(LogRecord::getMessage)
             .filter(s -> !INDICATES_MISSING_INPUT_FILE.matcher(s).matches())
             .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
+
+    if (isUnmaintainedConfig()) {
+      result = result.filter(s -> !UNMAINTAINED_CPA_WARNING.matcher(s).matches());
+    }
+    return result;
   }
 
   private static String formatLogRecords(Collection<? extends LogRecord> log) {

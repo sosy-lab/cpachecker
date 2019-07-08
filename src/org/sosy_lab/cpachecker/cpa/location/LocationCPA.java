@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
@@ -73,8 +74,12 @@ public class LocationCPA extends AbstractCPA
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return pSuccessors.equals(
-        getTransferRelation()
-            .getAbstractSuccessorsForEdge(pElement, SingletonPrecision.getInstance(), pCfaEdge));
+    ImmutableSet<? extends AbstractState> successors = ImmutableSet.copyOf(pSuccessors);
+    ImmutableSet<? extends AbstractState> actualSuccessors =
+        ImmutableSet.copyOf(
+            getTransferRelation()
+                .getAbstractSuccessorsForEdge(
+                    pElement, SingletonPrecision.getInstance(), pCfaEdge));
+    return successors.equals(actualSuccessors);
   }
 }

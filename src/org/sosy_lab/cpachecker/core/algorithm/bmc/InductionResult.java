@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import ap.Prover.ProofResult;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
 
 public class InductionResult<T extends CandidateInvariant> extends ProofResult {
 
@@ -40,6 +41,7 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
   private final int k;
 
   private InductionResult(T pInvariantAbstraction) {
+    super(true);
     invariantAbstraction = Objects.requireNonNull(pInvariantAbstraction);
     badStateBlockingClauses = Collections.emptySet();
     k = -1;
@@ -48,6 +50,7 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
   private InductionResult(
       Iterable<? extends SymbolicCandiateInvariant> pBadStateBlockingClauses,
       int pK) {
+    super(false);
     if (Iterables.isEmpty(pBadStateBlockingClauses)) {
       throw new IllegalArgumentException(
           "Bad-state blocking invariants should be present if (and only if) induction failed.");
@@ -61,7 +64,9 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
     k = pK;
   }
 
+  @Override
   public boolean isSuccessful() {
+    assert super.isSuccessful() == (invariantAbstraction != null);
     return invariantAbstraction != null;
   }
 

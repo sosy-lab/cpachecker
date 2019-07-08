@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.Sets;
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Set;
 
 /** Represents a local variable of the automaton. So far only integer variables are supported. */
@@ -39,7 +39,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
   public static AutomatonVariable createAutomatonVariable(
       String pType, String pName, String... args) {
-    if (pType.toLowerCase().equals("int") || (pType.toLowerCase().equals("integer"))) {
+    if (pType.toLowerCase().equals("int") || pType.toLowerCase().equals("integer")) {
       return new AutomatonIntVariable(pName);
     } else if (pType.toLowerCase().equals("set")) {
       if (args.length > 0) {
@@ -163,12 +163,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
     private AutomatonSetVariable(String pName) {
       super(pName);
-      set = Sets.newHashSet();
+      set = new HashSet<>();
     }
 
     private AutomatonSetVariable(String pName, Set<T> pSet) {
       super(pName);
-      set = Sets.newHashSet(pSet);
+      set = new HashSet<>(pSet);
     }
 
     public boolean contains(Object obj) {
@@ -212,7 +212,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
         return false;
       }
       AutomatonSetVariable<?> otherVar = (AutomatonSetVariable<?>) pObj;
-      return (this.set.equals(otherVar.set)) && this.name.equals(otherVar.name);
+      return this.set.equals(otherVar.set) && this.name.equals(otherVar.name);
     }
 
     @Override

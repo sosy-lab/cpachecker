@@ -117,8 +117,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
             + "  EDGE : Based on Pathformulas of every edge in ARGPath\n"
             + "  BLOCK: Based on Pathformulas at Abstractionstates"
   )
-  private PathFormulaAbstractionLevel abstractionLevel =
-      PathFormulaAbstractionLevel.BLOCK;
+  private PathFormulaAbstractionLevel abstractionLevel = PathFormulaAbstractionLevel.EDGE;
 
   public enum PathFormulaAbstractionLevel {
     BLOCK, //Abstracts the whole Block(between abstraction states) at once
@@ -247,7 +246,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     }
 
     // Calculate Strongest Post Condition of all pathLocations
-    return calculateStrongestPostCondition(pathLocations, unsatCore, pPath);
+    return calculateStrongestPostCondition(pathLocations, unsatCore);
   }
 
   /**
@@ -299,14 +298,13 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pPathLocations A list with the necessary information to all path locations
    * @param pUnsatCore An optional holding the unsatisfiable core in the form of a list of Formulas.
    *     If no list of formulas is applied it computes the regular postCondition
-   * @param pPath The path to the Error(Needed for RefinementFailedException)
    * @return A list of Formulas, each Formula represents an assertion at the corresponding
    *     abstraction state, the last formula should be unsatisfiable(representing Error state)
    * @throws InterruptedException In case of interruption
    * @throws RefinementFailedException In case an exception in the solver.
    */
   private List<BooleanFormula> calculateStrongestPostCondition(
-      List<PathLocation> pPathLocations, Optional<List<BooleanFormula>> pUnsatCore, ARGPath pPath)
+      List<PathLocation> pPathLocations, Optional<List<BooleanFormula>> pUnsatCore)
       throws InterruptedException, RefinementFailedException {
     logger.log(Level.FINE, "Calculate Strongest Postcondition for the error trace.");
     stats.postConditionTimer.start();

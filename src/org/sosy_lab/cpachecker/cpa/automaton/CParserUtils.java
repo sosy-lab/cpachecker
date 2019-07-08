@@ -30,7 +30,6 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -442,7 +441,7 @@ class CParserUtils {
   private static ExpressionTree<AExpression> asExpressionTree(FunctionEntryNode pEntry,
       ParserTools pParserTools) {
     ExpressionTreeFactory<AExpression> factory = pParserTools.expressionTreeFactory;
-    Map<CFANode, ExpressionTree<AExpression>> memo = Maps.newHashMap();
+    Map<CFANode, ExpressionTree<AExpression>> memo = new HashMap<>();
     memo.put(pEntry, ExpressionTrees.<AExpression> getTrue());
     Set<CFANode> ready = new HashSet<>();
     ready.add(pEntry);

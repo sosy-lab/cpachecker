@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.LabelAdder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -106,6 +107,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraphBuilder;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -174,6 +176,13 @@ public class CFACreator {
   @Option(secure=true, name="cfa.exportPerFunction",
       description="export individual CFAs for function as .dot files")
   private boolean exportCfaPerFunction = true;
+
+  @Option(secure = true, name = "cfa.exportToC", description = "export CFA as C file")
+  private boolean exportCfaToC = false;
+
+  @Option(secure = true, name = "cfa.exportToC.file", description = "export CFA as C file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path exportCfaToCFile = Paths.get("cfa.c");
 
   @Option(secure=true, name="cfa.callgraph.export",
       description="dump a simple call graph")
@@ -262,11 +271,17 @@ public class CFACreator {
   )
   private boolean createDependenceGraph = false;
 
-  @Option(secure=true, name="cfa.classifyNodes",
-      description="This option enables the computation of a classification of CFA nodes.")
-private boolean classifyNodes = false;
+  @Option(
+      secure = true,
+      name = "cfa.addLabels",
+      description = "Add custom labels to the CFA"
+  )
+  private boolean addLabels = false;
 
-  @Option(secure=true, description="C, Java, or LLVM IR?")
+  @Option(secure=true,
+      description="Programming language of the input program. If not given explicitly, "
+          + "auto-detection will occur")
+  // keep option name in sync with {@link CPAMain#language}, value might differ
   private Language language = Language.C;
 
   private final LogManager logger;
@@ -458,7 +473,8 @@ private boolean classifyNodes = false;
 
     // check the CFA of each function
     for (String functionName : cfa.getAllFunctionNames()) {
-      assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName));
+      assert CFACheck.check(
+          cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), machineModel);
     }
     stats.checkTime.stop();
 
@@ -470,7 +486,8 @@ private boolean classifyNodes = false;
     // Check CFA again after post-processings
     stats.checkTime.start();
     for (String functionName : cfa.getAllFunctionNames()) {
-      assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName));
+      assert CFACheck.check(
+          cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), machineModel);
     }
     stats.checkTime.stop();
 
@@ -487,6 +504,9 @@ private boolean classifyNodes = false;
     if (useLoopStructure) {
       addLoopStructure(cfa);
     }
+
+    // instrument the cfa, if any configuration regarding that is set (needs loop structure)
+    instrumentCfa(cfa);
 
     // FOURTH, insert call and return edges and build the supergraph
     if (interprocedural) {
@@ -553,19 +573,35 @@ private boolean classifyNodes = false;
 
     // check the super CFA starting at the main function
     stats.checkTime.start();
-    assert CFACheck.check(mainFunction, null);
+    assert CFACheck.check(mainFunction, null, machineModel);
     stats.checkTime.stop();
 
     if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
         || ((exportFunctionCallsFile != null) && exportFunctionCalls)
         || ((serializeCfaFile != null) && serializeCfa)
-        || (exportCfaPixelFile != null)) {
+        || (exportCfaPixelFile != null)
+        || (exportCfaToCFile != null && exportCfaToC)) {
       exportCFAAsync(immutableCFA);
     }
 
     logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
 
     return immutableCFA;
+  }
+
+  private void instrumentCfa(MutableCFA pCfa) throws InvalidConfigurationException {
+    if (addLabels) {
+      // add a block label at the beginning of each basic block.
+      // This may require the CFA's loop structure, and thus should be done
+      // after computing and adding that.
+      new LabelAdder(config).addLabels(pCfa);
+
+      // Re-compute postorder ids to include newly added label nodes
+      for (FunctionEntryNode function : pCfa.getAllFunctionHeads()) {
+        CFAReversePostorder sorter = new CFAReversePostorder();
+        sorter.assignSorting(function);
+      }
+    }
   }
 
   /**
@@ -1008,7 +1044,18 @@ v.addInitializer(initializer);
           oos.writeObject(cfa);
         }
       } catch (IOException e) {
-        logger.logException(Level.WARNING, e, "Could not serialize CFA to file.");
+        logger.logUserException(Level.WARNING, e, "Could not serialize CFA to file.");
+      }
+    }
+
+    if (exportCfaToC && exportCfaToCFile != null) {
+      try {
+        String code = new CFAToCTranslator().translateCfa(cfa);
+        try (Writer writer = IO.openOutputFile(exportCfaToCFile, Charset.defaultCharset())) {
+          writer.write(code);
+        }
+      } catch (CPAException | IOException | InvalidConfigurationException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write CFA to C file.");
       }
     }
 

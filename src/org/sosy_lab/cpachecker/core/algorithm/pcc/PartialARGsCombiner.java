@@ -31,7 +31,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -76,7 +75,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-
 
 public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
@@ -147,7 +145,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           checkArgument(AbstractStates.extractLocation(usedReached.getFirstState()) != null,
               "Require that all restart configurations consider a location aware state");
 
-          for (AbstractState errorState : from(usedReached).filter((IS_TARGET_STATE))) {
+          for (AbstractState errorState : from(usedReached).filter(IS_TARGET_STATE)) {
             logger.log(Level.INFO, "Error state found in reached set ", usedReached,
                 "but not by last configuration. Error state must be infeasible.");
             logger.log(Level.FINE, "Remove infeasible error state", errorState);
@@ -210,7 +208,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     List<List<ARGState>> successorsForEdge = new ArrayList<>(initialStates.size());
     EdgeSuccessor edgeSuccessorIdentifier = new EdgeSuccessor();
 
-    Map<Pair<List<AbstractState>, List<ARGState>>, ARGState> constructedCombinedStates = Maps.newHashMap();
+    Map<Pair<List<AbstractState>, List<ARGState>>, ARGState> constructedCombinedStates =
+        new HashMap<>();
     Deque<Pair<List<ARGState>, ARGState>> toVisit = new ArrayDeque<>();
     toVisit.add(Pair.of(roots, combinedRoot));
 

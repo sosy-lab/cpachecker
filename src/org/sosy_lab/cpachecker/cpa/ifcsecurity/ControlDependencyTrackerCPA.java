@@ -194,7 +194,7 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
               : ((first instanceof CExpression) ? ((CExpression) first).toASTString()
                   : first.toString()))
           + "," + ((second == null) ? "Null" : ((second instanceof CExpression)
-              ? ((CExpression) second).toASTString() : (second.toString())))
+              ? ((CExpression) second).toASTString() : second.toString()))
           + "]";
     }
 

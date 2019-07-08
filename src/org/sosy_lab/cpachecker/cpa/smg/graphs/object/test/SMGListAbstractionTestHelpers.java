@@ -470,7 +470,7 @@ public final class SMGListAbstractionTestHelpers {
     Assert.assertTrue(pSegment.isAbstract());
     Truth.assertThat(pSegment.getSize()).isEqualTo(pRegionSize);
     Truth.assertThat(pSegment.getLevel()).isEqualTo(pLevel);
-    Truth.assertThat(pSegment.getKind()).isSameAs(pListKind);
+    Truth.assertThat(pSegment.getKind()).isSameInstanceAs(pListKind);
     Truth.assertThat(pSegment).isInstanceOf(SMGAbstractList.class);
     SMGAbstractList<?> segmentAsList = (SMGAbstractList<?>) pSegment;
     Truth.assertThat(segmentAsList.getMinimumLength()).isAtMost(pListLength);

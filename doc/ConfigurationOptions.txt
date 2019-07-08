@@ -82,6 +82,9 @@ solver.princess.minAtomsForAbbreviation = 100
 # Random seed for SMT solver.
 solver.randomSeed = 42
 
+# If logging from the same application, avoid conflicting logfile names.
+solver.renameLogfileToAvoidConflicts = true
+
 # Double check generated results like interpolants and models whether they
 # are correct
 solver.smtinterpol.checkResults = false
@@ -271,6 +274,9 @@ analysis.matchAssignedFunctionPointers.ignoreUnknownAssignments = false
 # analysis
 analysis.memorizeReachedAfterRestart = false
 
+# Name of the used analysis, defaults to the name of the used configuration
+analysis.name = no default value
+
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
 analysis.partitionInitialStates = false
@@ -288,6 +294,9 @@ analysis.programNames = []
 # and stop_sep
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
+
+# track more statistics about the reachedset
+analysis.reachedSet.withStatistics = false
 
 # Use if you are going to change function with function pionter parameter
 analysis.replaceFunctionWithParameterPointer = false
@@ -603,6 +612,15 @@ cegar.refiner = no default value
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 
+# Add custom labels to the CFA
+cfa.addLabels = false
+
+# Add a unique label for each basic block
+cfa.addLabels.atBlocks = true
+
+# Add a unique label before each program exit
+cfa.addLabels.atProgramExit = false
+
 # Which functions should be interpreted as encoding assumptions
 cfa.assumeFunctions = {"__VERIFIER_assume"}
 
@@ -623,9 +641,6 @@ cfa.checkNullPointers = false
 # pointer dereferences or to have separate nodes for each dereference
 cfa.checkNullPointers.singleTargetPerFunction = true
 
-# This option enables the computation of a classification of CFA nodes.
-cfa.classifyNodes = false
-
 # Whether to create dependence graph for the CFA of the program
 cfa.createDependenceGraph = false
 
@@ -638,6 +653,10 @@ cfa.export = true
 
 # export individual CFAs for function as .dot files
 cfa.exportPerFunction = true
+
+# export CFA as C file
+cfa.exportToC = false
+cfa.exportToC.file = "cfa.c"
 
 # export CFA as .dot file
 cfa.file = "cfa.dot"
@@ -951,6 +970,11 @@ cpa.arg.CTranslation.file = "ARG.c"
 # minimum ratio of branch compared to whole program to be exported
 cpa.arg.automaton.branchRatio = 0.5
 
+# what data should be exported from the ARG nodes? A different strategy might
+# result in a smaller automaton.
+cpa.arg.automaton.dataStrategy = LOCATION
+  enum:     [LOCATION, CALLSTACK]
+
 # translate final ARG into an automaton
 cpa.arg.automaton.export = false
 
@@ -958,12 +982,16 @@ cpa.arg.automaton.export = false
 cpa.arg.automaton.exportCompressed = true
 
 # translate final ARG into an automaton, depends on 'automaton.export=true'
-cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%03d.spc.dot"
-cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%03d.spc"
+cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%06d.spc.dot"
+cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%06d.spc"
+cpa.arg.automaton.exportSpcZipFile = "ARG_parts.zip"
+
+# export all automata into one zip-file, depends on 'automaton.export=true'
+cpa.arg.automaton.exportZipped = true
 
 # after determining branches, which one of them should be exported?
-cpa.arg.automaton.selectionStrategy = LEAFS
-  enum:     [NONE, ALL, LEAFS, WEIGHTED, FIRST_BFS]
+cpa.arg.automaton.selectionStrategy = LEAVES
+  enum:     [NONE, ALL, LEAVES, WEIGHTED, FIRST_BFS]
 
 # minimum ratio of siblings such that one of them will be exported
 cpa.arg.automaton.siblingRatio = 0.4
@@ -973,8 +1001,8 @@ cpa.arg.automaton.siblingRatio = 0.4
 cpa.arg.automaton.skipFirstNum = 10
 
 # which coarse strategy should be applied when analyzing the ARG?
-cpa.arg.automaton.strategy = GLOBAL_CONDITIONS
-  enum:     [NONE, GLOBAL_CONDITIONS]
+cpa.arg.automaton.splitStrategy = TARGETS
+  enum:     [NONE, GLOBAL_CONDITIONS, LEAVES, TARGETS]
 
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
@@ -998,7 +1026,7 @@ cpa.arg.export.code.blockAtFunctionEnd = KEEPBLOCK
 
 # How to deal with target states during code generation
 cpa.arg.export.code.handleTargetStates = NONE
-  enum:     [NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA]
+  enum:     [NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA, VERIFIERERROR]
 
 # write include directives
 cpa.arg.export.code.header = true
@@ -1013,6 +1041,13 @@ cpa.arg.inCPAEnabledAnalysis = false
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
+
+# write the ARG at various stages during execution into dot files whose name
+# is specified by this option. Only works if 'cpa.arg.logARGs=true'
+cpa.arg.log.fileTemplate = "ARG_log/ARG_%04d.dot"
+
+# Enable logging of ARGs at various positions
+cpa.arg.logARGs = false
 
 # If this option is enabled, ARG states will also be merged if the first
 # wrapped state is subsumed by the second wrapped state (and the parents are
@@ -1136,6 +1171,9 @@ cpa.bam.blockHeuristic.functionPartitioning.minFunctionCalls = 0
 # similar to 'inlining' small functions, when using BAM.
 cpa.bam.blockHeuristic.functionPartitioning.minFunctionSize = 0
 
+# file for exporting detailed statistics about blocks
+cpa.bam.blockStatisticsFile = "block_statistics.txt"
+
 # abort current analysis when finding a missing block abstraction
 cpa.bam.breakForMissingBlock = true
 
@@ -1244,10 +1282,6 @@ cpa.chc.firingRelation = "Always"
 # generalization operator to be used in the precision adjustment operator
 cpa.chc.generalizationOperator = "Widen"
   allowed values: [Top, Widen, WidenMax, WidenSum]
-
-# merge operator to be used
-cpa.chc.merge = "SEP"
-  allowed values: [SEP, JOIN]
 
 # By enabling this option the CompositeTransferRelation will compute abstract
 # successors for as many edges as possible in one call. For any chain of
@@ -1397,9 +1431,6 @@ cpa.ifcsecurity.defaultsc = "LOW"
 # which immediatechecksfile to use for PolicyEnforcementCPA
 cpa.ifcsecurity.immediatechecksfile = "immediatechecks.conf"
 
-# defines security classes of entities
-cpa.ifcsecurity.initialmapfile = no default value
-
 # which merge operator to use for ControlDependencyTrackerCPA
 # which merge operator to use for DependencyTrackerCPA
 # which merge operator to use for PolicyEnforcementCPA
@@ -1515,7 +1546,7 @@ cpa.lock.analysisMode = RACE
 cpa.lock.annotate = no default value
 
 # contains all lock names
-cpa.lock.lockinfo = Sets.newHashSet()
+cpa.lock.lockinfo = {}
 
 # reduce recursive locks to a single access
 cpa.lock.reduceLockCounters = BLOCK
@@ -1701,6 +1732,9 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 # or reverse.
 cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
   enum:     [DISABLE, INT2BV, BV2INT]
+
+# initial predicates are added as atomic predicates
+cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
 
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
@@ -1999,18 +2033,18 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
 # ignoreIrrelevantVariables is set to true)
 cpa.predicate.overflowVariablesAreRelevant = false
 
+# Which path-formula builder to use.Depending on this setting additional
+# terms are added to the path formulas,e.g. SYMBOLICLOCATIONS will add track
+# the program counter symbolically with a special variable %pc
+cpa.predicate.pathFormulaBuilderVariant = DEFAULT
+  enum:     [DEFAULT, SYMBOLICLOCATIONS]
+
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
   enum:     [GLOBAL, SCOPE, FUNCTION, LOCATION, LOCATION_INSTANCE]
 
 # generate statistics about precisions (may be slow)
 cpa.predicate.precisionStatistics = true
-
-# Export the weakest precondition?
-cpa.predicate.precondition.export = false
-
-# File for exporting the weakest precondition.
-cpa.predicate.precondition.file = "precondition.txt"
 
 # export final predicate map
 cpa.predicate.predmap.export = true
@@ -2044,10 +2078,6 @@ cpa.predicate.refinement.abstractInterpolantOnly = false
 # use only the atoms from the interpolantsas predicates, and not the whole
 # interpolant
 cpa.predicate.refinement.atomicInterpolants = true
-
-# use only atoms from generated invariantsas predicates, and not the whole
-# invariant
-cpa.predicate.refinement.atomicInvariants = false
 
 # Direction for doing counterexample analysis: from start of trace, from end
 # of trace, or alternatingly from start and end of the trace towards the
@@ -2113,7 +2143,7 @@ cpa.predicate.refinement.maxRefinementSize = 0
 # sets the level of the pathformulas to use for abstraction. 
 #   EDGE : Based on Pathformulas of every edge in ARGPath
 #   BLOCK: Based on Pathformulas at Abstractionstates
-cpa.predicate.refinement.newtonrefinement.abstractionLevel = BLOCK
+cpa.predicate.refinement.newtonrefinement.abstractionLevel = EDGE
   enum:     [BLOCK, EDGE]
 
 # Activate fallback to interpolation. Typically in case of a repeated
@@ -2210,14 +2240,6 @@ cpa.predicate.refinement.useUCBRefinement = false
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
 
-# enable export of all relations that were collected to synthecise the
-# abstract precision?
-cpa.predicate.relations.export = false
-
-# file that consists all relations that were collected to synthecise the
-# abstract precision
-cpa.predicate.relations.file = "relations.txt"
-
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
 cpa.predicate.revealAllocationTypeFromLhs = true
@@ -2235,12 +2257,19 @@ cpa.predicate.satCheckAtAbstraction = false
 # Call 'simplify' on generated formulas.
 cpa.predicate.simplifyGeneratedPathFormulas = false
 
+# Whether to perform dynamic block encoding as part of each refinement
+# iteration
+cpa.predicate.slicingabstractions.dynamicBlockEncoding = false
+
 # Only slices the minimal amount of edges to guarantuee progress
 cpa.predicate.slicingabstractions.minimalslicing = false
 
 # Reduces the amount of solver calls by directely slicing some edgesthat are
 # mathematically proven to be infeasible in any case
 cpa.predicate.slicingabstractions.optimizeslicing = true
+
+# Whether to remove parts fo the ARG from which no target state is reachable
+cpa.predicate.slicingabstractions.removeSafeRegions = true
 
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
@@ -2415,6 +2444,9 @@ cpa.slicing.weakeningStrategy = CEX
 # Enable GCC extension 'Arrays of Length Zero'.
 cpa.smg.GCCZeroLengthArray = false
 
+# Allocate memory on declaration of external variable
+cpa.smg.allocateExternalVariables = true
+
 # Array allocation functions
 cpa.smg.arrayAllocationFunctions = {"calloc"}
 
@@ -2450,9 +2482,9 @@ cpa.smg.guessSize = 2
 # Size of memory that cannot be calculated will be guessed.
 cpa.smg.guessSizeOfUnknownMemorySize = false
 
-# Handle extern variables with incomplete type (extern int array[]) as
+# Handle external variables with incomplete type (extern int array[]) as
 # external allocation
-cpa.smg.handleExternVariableAsExternalAllocation = false
+cpa.smg.handleIncompleteExternalVariableAsExternalAllocation = false
 
 # with this option enabled, memory that is not freed before the end of main
 # is reported as memleak even if it is reachable from local variables in main
@@ -2921,14 +2953,18 @@ custominstructions.definitionFile = "ci_def.txt"
 # analysis
 custominstructions.dumpCIRequirements = "ci%d.smt"
 
-# Try to remove informations from requirements which is irrelevant for custom
-# instruction behavior
-custominstructions.enableRequirementSlicing = false
+# Try to remove parts of requirements that are not related to custom
+# instruction and are, thus, irrelevant for custom instruction behavior
+custominstructions.enableRequirementsSlicing = false
 
 # Specifies the mode how custom instruction applications in program are
 # identified.
 custominstructions.mode = OPERATOR
   enum:     [MANUAL, OPERATOR]
+
+# Try to remove requirements that are covered by another requirment and are,
+# thus, irrelevant for custom instruction behavior
+custominstructions.removeCoveredRequirements = false
 
 # Qualified name of class for abstract state which provides custom
 # instruction requirements.
@@ -3014,9 +3050,6 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
 
-# Usage of an preliminary algorithm analysis.
-heuristicSelection.usePreAnalysisAlgorithm = false
-
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
@@ -3042,6 +3075,9 @@ interleavedAlgorithm.initCondition = false
 # directly after the component's computation is finished
 interleavedAlgorithm.intermediateStatistics = NONE
   enum:     [EXECUTE, NONE, PRINT]
+
+# Enable when interleaved algorithm is used to check a specification
+interleavedAlgorithm.propertyChecked = true
 
 # let each analysis part of the interleaved algorithm write output files and
 # not only the last one that is executed
@@ -3089,7 +3125,13 @@ java.typeHierarchyFile = "typeHierarchy.dot"
 # Specifies the java version of source code accepted
 java.version = JavaCore.VERSION_1_7
 
+# Programming language of the input program. If not given explicitly,
+# auto-detection will occur
 # C, Java, or LLVM IR?
+language = C
+  enum:     [C, JAVA, LLVM]
+language = no default value
+  enum:     [C, JAVA, LLVM]
 language = C
   enum:     [C, JAVA, LLVM]
 
@@ -3200,6 +3242,9 @@ mpv.propertySeparator = FILE
 # When checking for the overflow property, use this configuration file
 # instead of the current one.
 overflow.config = no default value
+
+# Simplify overflow assumptions.
+overflow.simplifyExpressions = true
 
 # Track overflows in additive(+/-) operations.
 overflow.trackAdditiveOperations = true
@@ -3629,6 +3674,19 @@ restartAlgorithm.subcoverageFile = "subcoverage.info"
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
 
+# path to condition file
+slicing.conditionFile = "output/AssumptionAutomaton.txt"
+
+# path to condition files plus additional assumption guiding automaton when
+# condition itself is in propriertary format and not in witness format
+slicing.conditionFiles = [
+          Paths.get("output/AssumptionAutomaton.txt"),
+          Paths.get("config/specification/AssumptionGuiding.spc")]
+
+# which type of extractor for slicing criteria to use
+slicing.extractor = ALL
+  enum:     [ALL, REDUCER, SYNTAX]
+
 # Extract and cache unsat cores for satisfiability checking
 solver.cacheUnsatCores = true
 
@@ -3785,6 +3843,10 @@ testcase.inStats = false
 # property specification
 testcase.reportCoveredErrorCallAsError = false
 
+# Which strategy to use to optimize set of test target edges
+testcase.targets.optimization.strategy = NONE
+  enum:     [NONE, COVERED_NEXT_EDGE, TESTCOMP]
+
 # Which CFA edges to use as test targets
 testcase.targets.type = ASSUME
   enum:     [ASSUME, ERROR_CALL, STATEMENT]
@@ -3831,6 +3893,11 @@ witness.checkProgramHash = true
 
 # Consider assumptions that are provided with the path automaton?
 witness.considerAssumptions = true
+
+# Validate correctness witness by specifying an invariants specification
+# automaton
+witness.invariantsSpecificationAutomaton = NO_ISA
+  enum:     [NO_ISA, WITNESSBASED_ISA, TWOSTATES_ISA, CFABASED_ISA]
 
 # Match the branching information at a branching location.
 witness.matchAssumeCase = true

@@ -138,7 +138,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
   }
 
   public String getAsSimpleString() {
-    String variableName = isOnFunctionStack() ? (functionName + "::" + identifier) : (identifier);
+    String variableName = isOnFunctionStack() ? (functionName + "::" + identifier) : identifier;
     if (offset == null) {
       return variableName;
     }
@@ -176,8 +176,17 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
    * @return the offset of a reference.
    */
   public long getOffset() {
-    checkState(offset != null);
+    checkState(offset != null, "memory location '" + this + "' has no offset");
     return offset;
+  }
+
+  public MemoryLocation getReferenceStart() {
+    checkState(isReference(), "Memory location is no reference: %s", this);
+    if (functionName != null) {
+      return new MemoryLocation(functionName, identifier, null);
+    } else {
+      return new MemoryLocation(identifier, null);
+    }
   }
 
   @Override

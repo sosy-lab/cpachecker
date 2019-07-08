@@ -19,7 +19,7 @@
 	  <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
 	  <option name="-setprop">analysis.algorithm.CEGAR=false</option>
 	  <option name="-setprop">pcc.sliceProof=false</option>
-	  <option name="-valueAnalysis-resultcheck"/>
+	  <option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
     <tasks>
 <include>../../../benchmarks/eca/Problem01_00_true.c</include>
 <include>../../../benchmarks/eca/Problem01_10_true.c</include>
@@ -423,7 +423,7 @@
 	  <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
 	  <option name="-setprop">pcc.sliceProof=true</option>
 	  <option name="-setprop">analysis.algorithm.CEGAR=false</option>
-	  <option name="-valueAnalysis-resultcheck"/>
+	  <option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
 	  <tasks>
 	  <include>../../../benchmarks/eca/Problem01_00_true.c</include>
 <include>../../../benchmarks/eca/Problem01_10_true.c</include>
@@ -827,7 +827,7 @@
     <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
 	<option name="-setprop">pcc.sliceProof=false</option>
 	<option name="-setprop">analysis.algorithm.CEGAR=true</option>
-	<option name="-valueAnalysis-resultcheck"/>
+	<option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
 
     <tasks>
 <include>../../../benchmarks/eca/Problem01_00_true.c</include>
@@ -1232,7 +1232,7 @@
 	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
 	<option name="-setprop">pcc.sliceProof=true</option>
 	<option name="-setprop">analysis.algorithm.CEGAR=true</option>
-	<option name="-valueAnalysis-resultcheck"/>
+	<option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
 <tasks>
 <include>../../../benchmarks/eca/Problem01_00_true.c</include>
 <include>../../../benchmarks/eca/Problem01_10_true.c</include>
@@ -1636,7 +1636,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	<option name="-setprop">pcc.sliceProof=false</option>
 	<option name="-setprop">analysis.algorithm.CEGAR=false</option>
-	<option name="-valueAnalysis-resultcheck"/>
+	<option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
 
     <tasks>
 <include>../../../benchmarks/eca/Problem01_00_true.c</include>
@@ -2041,7 +2041,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <option name="-setprop">pcc.sliceProof=true</option>
 	  <option name="-setprop">analysis.algorithm.CEGAR=false</option>
-	  <option name="-valueAnalysis-resultcheck"/>
+	  <option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
     <tasks>
 <include>../../../benchmarks/eca/Problem01_00_true.c</include>
 <include>../../../benchmarks/eca/Problem01_10_true.c</include>
@@ -2445,7 +2445,7 @@
     <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <option name="-setprop">pcc.sliceProof=false</option>
 	  <option name="-setprop">analysis.algorithm.CEGAR=true</option>
-	  <option name="-valueAnalysis-resultcheck"/>
+	  <option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
     <tasks>
 <include>../../../benchmarks/eca/Problem01_00_true.c</include>
 <include>../../../benchmarks/eca/Problem01_10_true.c</include>
@@ -2849,7 +2849,7 @@
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <option name="-setprop">pcc.sliceProof=true</option>
 	  <option name="-setprop">analysis.algorithm.CEGAR=true</option>
-	  <option name="-valueAnalysis-resultcheck"/>
+	  <option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
 	  
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <option name="-setprop">pcc.sliceProof=true</option>
@@ -3258,7 +3258,7 @@
 	  <option name="-setprop">pcc.sliceProof=false</option>
 	  <option name="-setprop">cpa.value.abstraction.doLivenessAbstraction=true</option>
 	  <option name="-setprop">cfa.findLiveVariables=true</option>
-	  <option name="-valueAnalysis-resultcheck"/>
+	  <option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
     <tasks>
 <include>../../../benchmarks/eca/Problem01_00_true.c</include>
 <include>../../../benchmarks/eca/Problem01_10_true.c</include>
@@ -3664,7 +3664,7 @@
 	  <option name="-setprop">analysis.algorithm.CEGAR=false</option>
 	  <option name="-setprop">cpa.value.abstraction.doLivenessAbstraction=true</option>
 	  <option name="-setprop">cfa.findLiveVariables=true</option>
-	  <option name="-valueAnalysis-resultcheck"/>
+	  <option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
 	  <tasks>
 	  <include>../../../benchmarks/eca/Problem01_00_true.c</include>
 <include>../../../benchmarks/eca/Problem01_10_true.c</include>
@@ -4070,7 +4070,7 @@
 	<option name="-setprop">analysis.algorithm.CEGAR=true</option>
 	<option name="-setprop">cpa.value.abstraction.doLivenessAbstraction=true</option>
 	<option name="-setprop">cfa.findLiveVariables=true</option>
-	<option name="-valueAnalysis-resultcheck"/>
+	<option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
 
     <tasks>
 <include>../../../benchmarks/eca/Problem01_00_true.c</include>
@@ -4477,7 +4477,7 @@
 	<option name="-setprop">analysis.algorithm.CEGAR=true</option>
 	<option name="-setprop">cpa.value.abstraction.doLivenessAbstraction=true</option>
 	<option name="-setprop">cfa.findLiveVariables=true</option>
-	<option name="-valueAnalysis-resultcheck"/>
+	<option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
 <tasks>
 <include>../../../benchmarks/eca/Problem01_00_true.c</include>
 <include>../../../benchmarks/eca/Problem01_10_true.c</include>
@@ -4883,7 +4883,7 @@
 	<option name="-setprop">analysis.algorithm.CEGAR=false</option>
 	<option name="-setprop">cpa.value.abstraction.doLivenessAbstraction=true</option>
 	<option name="-setprop">cfa.findLiveVariables=true</option>
-	<option name="-valueAnalysis-resultcheck"/>
+	<option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
 
     <tasks>
 <include>../../../benchmarks/eca/Problem01_00_true.c</include>
@@ -5290,7 +5290,7 @@
 	  <option name="-setprop">analysis.algorithm.CEGAR=false</option>
 	  <option name="-setprop">cpa.value.abstraction.doLivenessAbstraction=true</option>
 	  <option name="-setprop">cfa.findLiveVariables=true</option>
-	  <option name="-valueAnalysis-resultcheck"/>
+	  <option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
     <tasks>
 <include>../../../benchmarks/eca/Problem01_00_true.c</include>
 <include>../../../benchmarks/eca/Problem01_10_true.c</include>
@@ -5696,7 +5696,7 @@
 	  <option name="-setprop">analysis.algorithm.CEGAR=true</option>
 	  <option name="-setprop">cpa.value.abstraction.doLivenessAbstraction=true</option>
 	  <option name="-setprop">cfa.findLiveVariables=true</option>
-	  <option name="-valueAnalysis-resultcheck"/>
+	  <option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
     <tasks>
 <include>../../../benchmarks/eca/Problem01_00_true.c</include>
 <include>../../../benchmarks/eca/Problem01_10_true.c</include>
@@ -6102,7 +6102,7 @@
 	  <option name="-setprop">analysis.algorithm.CEGAR=true</option>
 	  <option name="-setprop">cpa.value.abstraction.doLivenessAbstraction=true</option>
 	  <option name="-setprop">cfa.findLiveVariables=true</option>
-	  <option name="-valueAnalysis-resultcheck"/>
+	  <option name="-config">config/unmaintained/valueAnalysis-resultcheck.properties</option>
 	  
 	  <option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingOnlyInterleavedStrategy</option>
 	  <option name="-setprop">pcc.sliceProof=true</option>

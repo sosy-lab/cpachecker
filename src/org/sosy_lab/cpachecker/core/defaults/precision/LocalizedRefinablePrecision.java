@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.TreeMultimap;
@@ -149,10 +148,12 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
     }
   }
 
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     CFAInfo cfa = GlobalInfo.getInstance().getCFAInfo().get();
-    Builder<CFANode, MemoryLocation> precisionBuilder = ImmutableMultimap.builder();
+    ImmutableMultimap.Builder<CFANode, MemoryLocation> precisionBuilder =
+        ImmutableMultimap.builder();
     for (int i = 0; i < in.readInt(); i++) {
       precisionBuilder.put(cfa.getNodeByNodeNumber(in.readInt()), (MemoryLocation) in.readObject());
     }

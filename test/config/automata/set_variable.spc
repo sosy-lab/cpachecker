@@ -1,5 +1,5 @@
 // This automaton checks correct usage of mutex locks (simplified version):
-// it is forbidden to acquire or release the same mutex twice in the same process and 
+// it is forbidden to acquire or release the same mutex twice in the same process and
 // all acquired mutexes should be released at finalization.
 // In order to differentiate mutexes a set automata variable is used.
 
@@ -15,7 +15,7 @@ STATE USEALL Init :
   MATCH {mutex_lock($1)} -> ASSUME {$$acquired_mutexes[$1]} ERROR("mutex_lock:double lock");
   // Acquire this mutex (add element '$1' to the 'acquired_mutexes' set).
   MATCH {mutex_lock($1)} -> DO acquired_mutexes[$1]=true GOTO Init;
-  
+
   // Check if this mutex was acquired before (element '$1' is contained in the 'acquired_mutexes' set).
   MATCH {mutex_unlock($1)} -> ASSUME {!$$acquired_mutexes[$1]} ERROR("mutex_lock:double unlock");
   // Release this mutex (remove element '$1' from the 'acquired_mutexes' set).

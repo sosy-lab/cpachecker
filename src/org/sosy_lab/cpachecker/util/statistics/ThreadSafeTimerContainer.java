@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.statistics;
 
-import com.google.common.collect.Maps;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -45,10 +45,10 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
   /**
    * This map contains all usable timers.
    *
-   * <p>We use WeakReferences to avoid memory leak when deleting timers.
-   * WeakReference allows us to access the wrapped Timer before GC.
+   * <p>We use WeakReferences to avoid memory leak when deleting timers. WeakReference allows us to
+   * access the wrapped Timer before GC.
    */
-  private final Map<WeakReference<TimerWrapper>, Timer> activeTimers = Maps.newIdentityHashMap();
+  private final Map<WeakReference<TimerWrapper>, Timer> activeTimers = new IdentityHashMap<>();
 
   private final ReferenceQueue<TimerWrapper> referenceQueue = new ReferenceQueue<>();
 

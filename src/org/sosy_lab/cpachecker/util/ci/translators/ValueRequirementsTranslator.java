@@ -62,9 +62,9 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
       MemoryLocation memLoc = e.getKey();
       Value integerValue = e.getValue().getValue();
       if (!integerValue.isNumericValue()
-          || !((integerValue.asNumericValue().getNumber() instanceof Integer
+          || !(integerValue.asNumericValue().getNumber() instanceof Integer
               || integerValue.asNumericValue().getNumber() instanceof Long
-              || integerValue.asNumericValue().getNumber() instanceof BigInteger))) {
+              || integerValue.asNumericValue().getNumber() instanceof BigInteger)) {
         logger.log(
             Level.SEVERE,
             "The value "

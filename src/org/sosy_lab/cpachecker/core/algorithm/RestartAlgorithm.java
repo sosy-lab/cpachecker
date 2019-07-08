@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
@@ -34,15 +33,13 @@ import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
+import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.Writer;
 import java.nio.channels.ClosedByInterruptException;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -61,12 +58,10 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -97,14 +92,9 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
-import org.sosy_lab.cpachecker.util.coverage.CoverageData;
-import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
-@Options(prefix="restartAlgorithm")
-public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedSetUpdater {
+@Options(prefix = "restartAlgorithm")
+public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpdater {
 
   private static class RestartAlgorithmStatistics extends MultiStatistics {
 
@@ -214,20 +204,15 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
   )
   private boolean alwaysRestart = false;
 
-  private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
   private final ShutdownRequestListener logShutdownListener;
   private final RestartAlgorithmStatistics stats;
-  private final CFA cfa;
-  private final Configuration globalConfig;
-  private final Specification specification;
-
   private Algorithm currentAlgorithm;
 
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =
       new CopyOnWriteArrayList<>();
 
-  private final Collection<ReachedSetUpdateListener> reachedSetUpdateListenersAdded = Lists.newArrayList();
+  private final Collection<ReachedSetUpdateListener> reachedSetUpdateListenersAdded =
+      new ArrayList<>();
 
   private RestartAlgorithm(
       Configuration config,
@@ -236,6 +221,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException {
+    super(config, pLogger, pShutdownNotifier, pSpecification, pCfa);
     config.inject(this);
 
     if (configFiles.isEmpty()) {
@@ -243,11 +229,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     }
 
     this.stats = new RestartAlgorithmStatistics(configFiles.size(), pLogger);
-    this.logger = pLogger;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.cfa = pCfa;
-    this.globalConfig = config;
-    specification = checkNotNull(pSpecification);
 
     logShutdownListener =
         reason ->
@@ -386,7 +367,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
           } else if (!(from(currentReached).anyMatch(IS_TARGET_STATE) && !status.isPrecise())) {
 
             if (!(alwaysRestart && configFilesIterator.hasNext())) {
-              dumpSubcoverage(currentReached, currentCpa);
               // sound analysis and completely finished, terminate
               return status;
             }
@@ -533,27 +513,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       ReachedSet pCurrentReached)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
 
-    ReachedSet reached;
-    ConfigurableProgramAnalysis cpa;
-    Algorithm algorithm;
-
-    ConfigurationBuilder singleConfigBuilder = Configuration.builder();
-    singleConfigBuilder.copyFrom(globalConfig);
-    singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
-    singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
-
-    // TODO next line overrides existing options with options loaded from file.
-    // Perhaps we want to keep some global options like 'specification'?
-    singleConfigBuilder.loadFromFile(singleConfigFileName);
-
-    Configuration singleConfig = singleConfigBuilder.build();
-    LogManager singleLogger = logger.withComponentName("Analysis" + (stats.noOfAlgorithmsUsed + 1));
-    RestartAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
-
-    ResourceLimitChecker singleLimits = ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
-    singleLimits.start();
-    singleShutdownManager.getNotifier().register(logShutdownListener);
-
     AggregatedReachedSets aggregateReached;
     if (pProvideReachedForNextAlgorithm && pCurrentReached != null) {
       aggregateReached = new AggregatedReachedSets(Collections.singleton(pCurrentReached));
@@ -561,46 +520,13 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       aggregateReached = new AggregatedReachedSets();
     }
 
-    CoreComponentsFactory coreComponents =
-        new CoreComponentsFactory(
-            singleConfig, singleLogger, singleShutdownManager.getNotifier(), aggregateReached);
-    cpa = coreComponents.createCPA(cfa, specification);
-
-    if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
-    }
-
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
-    algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
-    if (algorithm instanceof RestartAlgorithm) {
-      // To avoid accidental infinitely-recursive nesting.
-      throw new InvalidConfigurationException(
-          "Sequential analysis parts may not be sequential analyses theirselves.");
-    }
-    reached = createInitialReachedSetForRestart(cpa, mainFunction, coreComponents, singleLogger);
-
-    return Triple.of(algorithm, cpa, reached);
-  }
-
-  private void dumpSubcoverage(ReachedSet reached, ConfigurableProgramAnalysis currentCpa) {
-
-    if (currentCpa instanceof AbstractBAMCPA) {
-      FluentIterable<AbstractState> reachedStates = FluentIterable.from(reached);
-      Collection<ReachedSet> otherReachedSets =
-          ((AbstractBAMCPA) currentCpa).getData().getCache().getAllCachedReachedStates();
-      reachedStates = reachedStates.append(FluentIterable.concat(otherReachedSets));
-
-      CoverageData infosPerFile = CoverageCollector.fromReachedSet(reachedStates, cfa);
-
-      if (subcoverageFile != null) {
-        try (Writer gcovOut = IO.openOutputFile(subcoverageFile, Charset.defaultCharset())) {
-          CoverageReportGcov.write(infosPerFile, gcovOut);
-        } catch (IOException e) {
-          logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
-        }
-      }
-    }
+    return super.createAlgorithm(
+        singleConfigFileName,
+        mainFunction,
+        singleShutdownManager,
+        aggregateReached,
+        Sets.newHashSet("restartAlgorithm.configFiles", "analysis.restartAfterUnknown"),
+        stats.getSubStatistics());
   }
 
   static ReachedSet createInitialReachedSetForRestart(

@@ -1,5 +1,5 @@
 describe('Report.js test', function() {
-  it('title test', function() {
+  it('Title test', function() {
     var dirname =  __dirname + '/Counterexample.1.html';
     dirname = dirname.replace(/\\/g, "/");
     browser.waitForAngularEnabled(false);

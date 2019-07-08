@@ -91,6 +91,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -477,13 +478,10 @@ public abstract class AbstractExpressionValueVisitor
    * @param r right hand side value
    * @param op the binary operator
    * @param calculationType The type the result of the calculation should have
-   * @param machineModel the machine model
-   * @param logger logging
    * @return the resulting value
    */
-  private static double arithmeticOperation(final double l, final double r,
-      final BinaryOperator op, final CType calculationType,
-      final MachineModel machineModel, final LogManager logger) {
+  private static double arithmeticOperation(
+      final double l, final double r, final BinaryOperator op, final CType calculationType) {
 
     checkArgument(calculationType.getCanonicalType() instanceof CSimpleType
             && !((CSimpleType) calculationType.getCanonicalType()).isLong(),
@@ -517,15 +515,9 @@ public abstract class AbstractExpressionValueVisitor
    *
    * @param l left hand side value
    * @param r right hand side value
-   * @param op the binary operator
-   * @param calculationType The type the result of the calculation should have
-   * @param machineModel the machine model
-   * @param logger logging
    * @return the resulting value
    */
-  private static float arithmeticOperation(final float l, final float r,
-      final BinaryOperator op, final CType calculationType,
-      final MachineModel machineModel, final LogManager logger) {
+  private static float arithmeticOperation(final float l, final float r, final BinaryOperator op) {
 
     switch (op) {
     case PLUS:
@@ -589,14 +581,14 @@ public abstract class AbstractExpressionValueVisitor
           double lVal = lNum.doubleValue();
           double rVal = rNum.doubleValue();
           double result =
-              arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+              arithmeticOperation(lVal, rVal, op, calculationType);
           return new NumericValue(result);
         }
       }
       case FLOAT: {
         float lVal = lNum.floatValue();
         float rVal = rNum.floatValue();
-        float result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+        float result = arithmeticOperation(lVal, rVal, op);
         return new NumericValue(result);
       }
       default: {
@@ -1468,7 +1460,7 @@ public abstract class AbstractExpressionValueVisitor
       return numericValue.negate();
 
     case TILDE:
-      return new NumericValue(~(numericValue).longValue());
+        return new NumericValue(~numericValue.longValue());
 
     default:
       throw new AssertionError("unknown operator: " + unaryOperator);
@@ -2286,26 +2278,52 @@ public abstract class AbstractExpressionValueVisitor
     }
     NumericValue numericValue = (NumericValue) value;
 
-    final CType type = targetType.getCanonicalType();
+    CType type = targetType.getCanonicalType();
+    final int size;
     if (type instanceof CSimpleType) {
       final CSimpleType st = (CSimpleType) type;
-      final int size = machineModel.getSizeofInBits(st);
+      size = machineModel.getSizeofInBits(st);
+    } else if (type instanceof CBitFieldType) {
+      size = ((CBitFieldType) type).getBitFieldSize();
+      type = ((CBitFieldType) type).getType();
 
-      switch (st.getType()) {
-        case BOOL:
-        case INT:
-        case CHAR: {
+    } else {
+      return value;
+    }
+
+    return castNumeric(numericValue, type, machineModel, size);
+  }
+
+  private static Value castNumeric(
+      @NonNull final NumericValue numericValue,
+      final CType type,
+      final MachineModel machineModel,
+      final int size) {
+
+    if (!(type instanceof CSimpleType)) {
+      return numericValue;
+    }
+
+    final CSimpleType st = (CSimpleType) type;
+
+    switch (st.getType()) {
+      case BOOL:
+        return convertToBool(numericValue);
+
+      case INT:
+      case CHAR:
+        {
           if (isNan(numericValue)) {
             // result of conversion of NaN to integer is undefined
             return UnknownValue.getInstance();
 
-            } else if ((numericValue.getNumber() instanceof Float
-                    || numericValue.getNumber() instanceof Double)
-                && Math.abs(numericValue.doubleValue() - numericValue.longValue()) >= 1) {
-              // if number is a float and float can not be exactly represented as integer, the
-              // result of the conversion of float to integer is undefined
-              return UnknownValue.getInstance();
-          }
+          } else if ((numericValue.getNumber() instanceof Float
+                  || numericValue.getNumber() instanceof Double)
+              && Math.abs(numericValue.doubleValue() - numericValue.longValue()) >= 1) {
+            // if number is a float and float can not be exactly represented as integer, the
+            // result of the conversion of float to integer is undefined
+            return UnknownValue.getInstance();
+        }
 
           final BigInteger valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
           final boolean targetIsSigned = machineModel.isSigned(st);
@@ -2339,55 +2357,65 @@ public abstract class AbstractExpressionValueVisitor
 
           } else {
             return new NumericValue(result);
-          }
+        }
         }
 
-        case FLOAT:
-        case DOUBLE:
-          {
-            // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
-            // TODO: check for overflow(source larger than the highest number we can store in target
-            // etc.)
+      case FLOAT:
+      case DOUBLE:
+        {
+          // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
+          // TODO: check for overflow(source larger than the highest number we can store in target
+          // etc.)
 
-            // casting to DOUBLE, if value is INT or FLOAT. This is sound, if we would also do this
-            // cast in C.
-            Value result;
+          // casting to DOUBLE, if value is INT or FLOAT. This is sound, if we would also do this
+          // cast in C.
+          Value result;
 
-            final int bitPerByte = machineModel.getSizeofCharInBits();
+          final int bitPerByte = machineModel.getSizeofCharInBits();
 
-            if (isNan(numericValue) || isInfinity(numericValue)) {
-              result = numericValue;
-            } else if (size == SIZE_OF_JAVA_FLOAT) {
-              // 32 bit means Java float
-              result = new NumericValue(numericValue.floatValue());
-            } else if (size == SIZE_OF_JAVA_DOUBLE) {
-              // 64 bit means Java double
+          if (isNan(numericValue) || isInfinity(numericValue)) {
+            result = numericValue;
+          } else if (size == SIZE_OF_JAVA_FLOAT) {
+            // 32 bit means Java float
+            result = new NumericValue(numericValue.floatValue());
+          } else if (size == SIZE_OF_JAVA_DOUBLE) {
+            // 64 bit means Java double
+            result = new NumericValue(numericValue.doubleValue());
+
+          } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
+
+            if (numericValue.bigDecimalValue().doubleValue() == numericValue.doubleValue()) {
               result = new NumericValue(numericValue.doubleValue());
-
-            } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
-
-              if (numericValue.bigDecimalValue().doubleValue() == numericValue.doubleValue()) {
-                result = new NumericValue(numericValue.doubleValue());
-              } else if (numericValue.bigDecimalValue().floatValue()
-                  == numericValue.floatValue()) {
-                result = new NumericValue(numericValue.floatValue());
-              } else {
-                result = UnknownValue.getInstance();
-              }
+            } else if (numericValue.bigDecimalValue().floatValue() == numericValue.floatValue()) {
+              result = new NumericValue(numericValue.floatValue());
             } else {
-              throw new AssertionError("Unhandled floating point type: " + targetType);
+              result = UnknownValue.getInstance();
+            }
+          } else {
+            throw new AssertionError("Unhandled floating point type: " + type);
+          }
+        return result;
         }
 
-        return result;
-      }
-
-        default:
-          throw new AssertionError("Unhandled type: " + targetType);
-      }
-
-    } else {
-      return value; // pointer like (void)*, (struct s)*, ...
+      default:
+        throw new AssertionError("Unhandled type: " + type);
     }
+  }
+
+  private static Value convertToBool(final NumericValue pValue) {
+    Number n = pValue.getNumber();
+    if (isBooleanFalseRepresentation(n)) {
+      return new NumericValue(0);
+    } else {
+      return new NumericValue(1);
+    }
+  }
+
+  private static boolean isBooleanFalseRepresentation(final Number n) {
+    return ((n instanceof Float || n instanceof Double) && 0 == n.doubleValue())
+        || (n instanceof BigInteger && BigInteger.ZERO.equals(n))
+        || (n instanceof BigDecimal && ((BigDecimal) n).compareTo(BigDecimal.ZERO) == 0)
+        || 0 == n.longValue();
   }
 
   private static boolean isNan(NumericValue pValue) {

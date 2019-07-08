@@ -24,7 +24,7 @@
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>../programs/benchmarks/floats-cbmc-regression/float4_true-unreach-call.i</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/floats-cbmc-regression/float4.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/newton_*</exclude> <!-- mostly timeout -->
   </tasks>
   <tasks>
@@ -32,11 +32,12 @@
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>../programs/benchmarks/ntdrivers/cdaudio_false-unreach-call.i.cil.c</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/ntdrivers/cdaudio.i.cil-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/systemc/transmitter.*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/systemc/token_ring.*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/ssh/s3_srvr.*</exclude> <!-- infeasible cex can't be removed -->
   </tasks>
-  <tasks>https://buildbot.sosy.ifi.lmu.de/cpachecker/results/programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--rc--keymaps--rc-adstech-dvb-t-pci.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c
+  <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
@@ -48,10 +49,13 @@
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- only timeouts -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/*</exclude> <!-- only timeouts and unknowns -->
     <exclude>../programs/benchmarks/seq-pthread/cs_s*</exclude> <!-- only timeouts and unknowns -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock-1.yml</exclude> <!-- flapping timeout/unknown -->
   </tasks>
   <tasks>
-    <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>
     <option name="-64"/>
@@ -59,9 +63,13 @@
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <!-- exclude some files that are nearly identical in complexity and runtime, some of them are timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-*</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--input--*</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--*</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--watchdog--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--staging--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--rtc--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--hid--*</exclude>
   </tasks>
 
   <columns>

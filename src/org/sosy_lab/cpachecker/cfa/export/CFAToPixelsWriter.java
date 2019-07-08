@@ -27,7 +27,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.pixelexport.GraphLevel.Builder;
+import org.sosy_lab.cpachecker.util.pixelexport.GraphLevel;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter;
 import org.sosy_lab.cpachecker.util.pixelexport.SimpleGraphLevel;
 
@@ -38,7 +38,7 @@ public class CFAToPixelsWriter extends GraphToPixelsWriter<CFANode> {
   }
 
   @Override
-  public Builder<CFANode> getLevelBuilder() {
+  public GraphLevel.Builder<CFANode> getLevelBuilder() {
     return new SimpleGraphLevel.Builder<>();
   }
 

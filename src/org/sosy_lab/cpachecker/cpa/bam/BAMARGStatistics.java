@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Optional;
@@ -49,10 +50,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BAMARGStatistics extends ARGStatistics {
+
+  private static final String ERROR_PREFIX =
+      "some output or statistics might be missing, could not compute full reached set graph";
 
   private final AbstractBAMCPA bamCpa;
 
@@ -82,10 +87,7 @@ public class BAMARGStatistics extends ARGStatistics {
 
     if (frontierStates.isEmpty()) {
       if (pResult.equals(Result.FALSE)) {
-        logger.log(
-            Level.INFO,
-            "could not compute full reached set graph (missing block), "
-                + "some output or statistics might be missing");
+        logger.log(Level.INFO, ERROR_PREFIX, "(no frontier states)");
         // invalid ARG, ignore output.
       } else if (pResult.equals(Result.TRUE)) {
         // In case of TRUE verdict we do not need a target to print super statistics
@@ -94,7 +96,8 @@ public class BAMARGStatistics extends ARGStatistics {
       return;
     }
 
-    final UnmodifiableReachedSet bamReachedSetView = createReachedSetView(pReached, frontierStates);
+    final UnmodifiableReachedSet bamReachedSetView =
+        createReachedSetViewWithoutExceptions(pReached, frontierStates, pResult);
     if (bamReachedSetView == null) {
       return;
     } else {
@@ -112,10 +115,7 @@ public class BAMARGStatistics extends ARGStatistics {
 
     if (frontierStates.isEmpty()) {
       if (pResult.equals(Result.FALSE)) {
-        logger.log(
-            Level.INFO,
-            "could not compute full reached set graph (missing block), "
-                + "some output or statistics might be missing");
+        logger.log(Level.INFO, ERROR_PREFIX, "(no frontier states)");
         // invalid ARG, ignore output.
       } else if (pResult.equals(Result.TRUE)) {
         // In case of TRUE verdict we do not need a target to print super statistics
@@ -124,7 +124,8 @@ public class BAMARGStatistics extends ARGStatistics {
       return;
     }
 
-    final UnmodifiableReachedSet bamReachedSetView = createReachedSetView(pReached, frontierStates);
+    final UnmodifiableReachedSet bamReachedSetView =
+        createReachedSetViewWithoutExceptions(pReached, frontierStates, pResult);
     if (bamReachedSetView == null) {
       return;
     } else {
@@ -132,8 +133,60 @@ public class BAMARGStatistics extends ARGStatistics {
     }
   }
 
+  /**
+   * Create a view on all reached states that looks like a real complete reached-set.
+   *
+   * <p>This method catches all internal exceptions and return <code>Null</code> if needed.
+   */
+  private @Nullable UnmodifiableReachedSet createReachedSetViewWithoutExceptions(
+      UnmodifiableReachedSet pReached, final Collection<ARGState> frontierStates, Result pResult) {
+    try {
+      return createReachedSetViewWithFallback(pReached, frontierStates, pResult);
+
+    } catch (MissingBlockException e) {
+      logger.log(
+          Level.INFO,
+          ERROR_PREFIX,
+          String.format(
+              "(%s)", logger.wouldBeLogged(Level.FINE) ? e.getMessage() : "missing block"));
+      return null; // invalid ARG, ignore output.
+
+    } catch (InterruptedException e) {
+      logger.log(Level.WARNING, "could not compute full reached set graph:", e);
+      return null; // invalid ARG, ignore output
+    }
+  }
+
+  /**
+   * Create a view on all reached states that looks like a real complete reached-set.
+   *
+   * <p>If a block is missing in the cache, we fall back to at least trying to provide a view on all
+   * error-paths, because the underlying analysis might be based on a full counterexample anyway.
+   */
+  private @Nullable UnmodifiableReachedSet createReachedSetViewWithFallback(
+      UnmodifiableReachedSet pReached, final Collection<ARGState> frontierStates, Result pResult)
+      throws MissingBlockException, InterruptedException {
+    try { // initially try to export the whole reached-set
+      return createReachedSetView(pReached, frontierStates);
+
+    } catch (MissingBlockException e) {
+      final Collection<ARGState> targetStates =
+          Collections2.filter(frontierStates, AbstractStates.IS_TARGET_STATE);
+
+      if (pResult.equals(Result.FALSE) && !targetStates.isEmpty()) {
+        // fallback: if there is a missing block and we have a target state,
+        // maybe at least a direct counterexample path can be exported
+        logger.log(Level.INFO, ERROR_PREFIX, "(fallback to counterexample traces)");
+        return createReachedSetView(pReached, targetStates);
+      }
+
+      throw e; // fallback failed, re-throw the exception
+    }
+  }
+
   private @Nullable UnmodifiableReachedSet createReachedSetView(
-      UnmodifiableReachedSet pReached, final Collection<ARGState> frontierStates) {
+      UnmodifiableReachedSet pReached, final Collection<ARGState> frontierStates)
+      throws MissingBlockException, InterruptedException {
     if (!(pReached instanceof ReachedSet)) {
       return null;
     }
@@ -146,24 +199,12 @@ public class BAMARGStatistics extends ARGStatistics {
     //   pReached.getLastState(), pReached.getFirstState(), targets);
     ARGReachedSet pMainReachedSet =
         new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
-    assert pMainReachedSet.asReachedSet().asCollection().containsAll(frontierStates);
-    final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
-
-    Pair<BackwardARGState, Collection<BackwardARGState>> rootAndTargetsOfSubgraph = null;
-    try {
-      rootAndTargetsOfSubgraph =
-          cexSubgraphComputer.computeCounterexampleSubgraph(frontierStates, pMainReachedSet);
-    } catch (MissingBlockException e) {
-      logger.log(
-          Level.INFO,
-          "could not compute full reached set graph (missing block), "
-              + "some output or statistics might be missing");
-      return null; // invalid ARG, ignore output.
-
-    } catch (InterruptedException e) {
-      logger.log(Level.WARNING, "could not compute full reached set graph:", e);
-      return null; // invalid ARG, ignore output
-    }
+    assert pMainReachedSet.asReachedSet().asCollection().containsAll(frontierStates)
+        : "The following states are frontier states, but not part of the reachedset: "
+            + Iterables.filter(frontierStates, s -> !pMainReachedSet.asReachedSet().contains(s));
+    final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa, false);
+    final Pair<BackwardARGState, Collection<BackwardARGState>> rootAndTargetsOfSubgraph =
+        cexSubgraphComputer.computeCounterexampleSubgraph(frontierStates, pMainReachedSet);
 
     ARGPath path = ARGUtils.getRandomPath(rootAndTargetsOfSubgraph.getFirst());
     StatTimer dummyTimer = new StatTimer("dummy");

@@ -26,45 +26,45 @@
 
   <!-- analysis of recursive programs -->
   <tasks name="value">
-    <include>../programs/benchmarks/recursive-simple/a*.c</include>
-    <include>../programs/benchmarks/recursive-simple/f*.c</include>
+    <include>../programs/benchmarks/recursive-simple/a*.yml</include>
+    <include>../programs/benchmarks/recursive-simple/f*.yml</include>
     <option name="-valueAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="interval">
-    <include>../programs/benchmarks/recursive-simple/i*.c</include>
+    <include>../programs/benchmarks/recursive-simple/i*.yml</include>
     <option name="-intervalAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="valuePredicate">
-    <include>../programs/benchmarks/recursive-simple/s*.c</include>
+    <include>../programs/benchmarks/recursive-simple/s*.yml</include>
     <option name="-valueAnalysis-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree">
-    <include>../programs/benchmarks/recursive/*.c</include>
-    <exclude>../programs/benchmarks/recursive/*1_*.c</exclude>
-    <exclude>../programs/benchmarks/recursive/*2_*.c</exclude>
-    <exclude>../programs/benchmarks/recursive/*3_*.c</exclude>
+    <include>../programs/benchmarks/recursive/*.yml</include>
+    <exclude>../programs/benchmarks/recursive/*01*.yml</exclude>
+    <exclude>../programs/benchmarks/recursive/*02*.yml</exclude>
+    <exclude>../programs/benchmarks/recursive/*03*.yml</exclude>
     <option name="-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_nested">
-    <include>../programs/benchmarks/recursive/*3_*.c</include>
+    <include>../programs/benchmarks/recursive/*03*.c</include>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_nested</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_cpachecker">
-    <include>../programs/benchmarks/recursive/*2_*.c</include>
+    <include>../programs/benchmarks/recursive/*02*.c</include>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_cpachecker</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_wellscoped">
-    <include>../programs/benchmarks/recursive/*1_*.c</include>
+    <include>../programs/benchmarks/recursive/*01*.yml</include>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_wellscoped</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
@@ -75,14 +75,12 @@
   <tasks name="VA-parallelBam-noCegar">
     <option name="-valueAnalysis-parallelBam"/>
     <option name='-setprop'>algorithm.parallelBam.numberOfThreads=8</option>
-    <include>../programs/benchmarks/eca-rers2012/Problem03*true-unreach-call*.c</include>
-    <include>../programs/benchmarks/eca-rers2012/Problem03*false-unreach-call*.c</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem03*.yml</include>
   </tasks>
   <tasks name="VA-parallelBam-Cegar">
     <option name="-valueAnalysis-parallelBam-Cegar"/>
     <option name='-setprop'>algorithm.parallelBam.numberOfThreads=8</option>
-    <include>../programs/benchmarks/eca-rers2012/Problem02*true-unreach-call*.c</include>
-    <include>../programs/benchmarks/eca-rers2012/Problem02*false-unreach-call*.c</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem02*.yml</include>
   </tasks>
 
 
@@ -130,14 +128,9 @@
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
     <exclude>../programs/benchmarks/seq-pthread/*</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_2_true-unreach-call_true-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_8_true-unreach-call_false-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-call_false-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_13_false-unreach-call_false-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.1_true-unreach-call_false-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/token_ring.*_false*</exclude>
-    <exclude>../programs/benchmarks/systemc/toy1_false-unreach-call_false-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/transmitter.1*_false*</exclude>
+    <exclude>../programs/benchmarks/systemc/token_ring.*</exclude>
+    <exclude>../programs/benchmarks/systemc/toy1.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/transmitter.1*</exclude>
   </tasks>
   <tasks>
     <option name="-predicateAnalysis-bam"/>
@@ -146,15 +139,13 @@
     <option name="-64"/>
     <option name="-setprop">analysis.checkCounterexamples=true</option>
     <option name="-setprop">counterexample.checker=CBMC</option>
-    <includesfile>integration-DeviceDriversLinux64.set</includesfile>
-    <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-scsi-dc395x.ko_true-unreach-call.cil.out.i.pp.i</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-wan-farsync.ko_false-unreach-call.cil.out.i.pp.i</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-input-misc-keyspan_remote.ko_false-unreach-call.cil.out.i.pp.i</exclude>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <!-- exclude some files that are nearly identical in complexity and runtime, some of them are timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-*</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--input--*</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--*</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
   </tasks>
 
 </benchmark>

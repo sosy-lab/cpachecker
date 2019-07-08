@@ -115,7 +115,7 @@ public class SMGRegionsWithListsTest {
 
     SMGObject segment = smg.getObjectPointedBy(addresses[0]);
     Assert.assertFalse(segment.isAbstract());
-    Truth.assertThat(segment.getKind()).isSameAs(SMGObjectKind.REG);
+    Truth.assertThat(segment.getKind()).isSameInstanceAs(SMGObjectKind.REG);
     Truth.assertThat(segment.getLevel()).isEqualTo(LEVEL_ZERO);
     Truth.assertThat(segment.getSize()).isEqualTo(nodeSize);
   }

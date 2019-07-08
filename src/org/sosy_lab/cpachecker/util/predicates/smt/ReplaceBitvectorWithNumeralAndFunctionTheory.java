@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
@@ -123,10 +124,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     return wrap(realreturn, functionManager.callUF(decl, args));
   }
 
-  private final Map<Integer[], FunctionDeclaration<T>> extractMethods = new HashMap<>();
+  private final Map<Pair<Integer, Integer>, FunctionDeclaration<T>> extractMethods =
+      new HashMap<>();
 
   private FunctionDeclaration<T> getExtractDecl(int pMsb, int pLsb) {
-    Integer[] hasKey = new Integer[]{pMsb, pLsb};
+    Pair<Integer, Integer> hasKey = Pair.of(pMsb, pLsb);
     FunctionDeclaration<T> value = extractMethods.get(hasKey);
     if (value == null) {
       value = createUnaryFunction("_extract("+ pMsb + "," + pLsb + ")_");
@@ -135,10 +137,10 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     return value;
   }
 
-  private Map<Integer[], FunctionDeclaration<T>> concatMethods = new HashMap<>();
+  private Map<Pair<Integer, Integer>, FunctionDeclaration<T>> concatMethods = new HashMap<>();
 
   private FunctionDeclaration<T> getConcatDecl(int firstSize, int secoundSize) {
-    Integer[] hasKey = new Integer[]{firstSize, secoundSize};
+    Pair<Integer, Integer> hasKey = Pair.of(firstSize, secoundSize);
     FunctionDeclaration<T> value = concatMethods.get(hasKey);
     if (value == null) {
       value = createUnaryFunction("_concat("+ firstSize + "," + secoundSize + ")_");
@@ -383,5 +385,21 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   public BitvectorFormula xor(BitvectorFormula pBits1, BitvectorFormula pBits2) {
     assert getLength(pBits1) == getLength(pBits2) : "Expect operators to have the same size";
     return makeUf(getFormulaType(pBits1), bitwiseXorUfDecl, pBits1, pBits2);
+  }
+
+  @Override
+  public BitvectorFormula makeBitvector(int pLength, IntegerFormula pI) {
+    // INT to BV -> just wrap
+    return wrap(getBitvectorTypeWithSize(pLength), unwrap(pI));
+  }
+
+  @Override
+  public IntegerFormula toIntegerFormula(BitvectorFormula pI, boolean pSigned) {
+    final T unwrapped = unwrap(pI);
+    if (numericFormulaManager.getFormulaType().equals(FormulaType.IntegerType)) {
+      return (IntegerFormula) unwrapped;
+    } else {
+      return numericFormulaManager.floor(unwrapped);
+    }
   }
 }

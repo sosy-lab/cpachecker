@@ -140,7 +140,7 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
 
     // Algorithm is never meant to prove or falsify a property, only does splitting for later
     // (parallel) conditional model checking
-    return AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(false);
+    return AlgorithmStatus.SOUND_AND_IMPRECISE;
   }
 
   private void extractSplitConditions(final ReachedSet pReached) throws InterruptedException {
@@ -154,8 +154,8 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
               FluentIterable.from(pReached)
                   .filter(
                       state ->
-                          (AbstractStates.extractStateByType(state, SplitInfoState.class)
-                              .isInSplit(index)))
+                          AbstractStates.extractStateByType(state, SplitInfoState.class)
+                              .isInSplit(index))
                   .filter(ARGState.class)
                   .toSet()));
     }

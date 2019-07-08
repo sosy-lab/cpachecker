@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public final class CEnumType implements CComplexType {
 
@@ -140,8 +141,9 @@ public final class CEnumType implements CComplexType {
         final FileLocation pFileLocation,
         final String pName,
         final String pQualifiedName,
+        final @Nullable CType pType,
         final @Nullable Long pValue) {
-      super(pFileLocation, CNumericTypes.SIGNED_INT, pName);
+      super(pFileLocation, pType, pName);
 
       checkNotNull(pName);
       value = pValue;
@@ -167,7 +169,7 @@ public final class CEnumType implements CComplexType {
 
       CEnumerator other = (CEnumerator) obj;
 
-      return Objects.equals(value, other.value) && (qualifiedName.equals(other.qualifiedName));
+      return Objects.equals(value, other.value) && qualifiedName.equals(other.qualifiedName);
       // do not compare the enumType, comparing it with == is wrong because types which
       // are the same but not identical would lead to wrong results
       // comparing it with equals is no good choice, too. This would lead to a stack
@@ -186,6 +188,11 @@ public final class CEnumType implements CComplexType {
     public void setEnum(CEnumType pEnumType) {
       checkState(enumType == null);
       enumType = checkNotNull(pEnumType);
+    }
+
+    @Override
+    public void setType(Type pType) {
+      super.setType(checkNotNull(pType));
     }
 
     @Override

@@ -28,7 +28,10 @@ CPAchecker web page:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
-sys.dont_write_bytecode = True # prevent creation of .pyc files
 
-if __name__ == '__main__':
-    sys.exit("This script is not necessary anymore because CPAchecker now directly generates HTML reports. Please look for HTML files in the output directory.")
+sys.dont_write_bytecode = True  # prevent creation of .pyc files
+
+if __name__ == "__main__":
+    sys.exit(
+        "This script is not necessary anymore because CPAchecker now directly generates HTML reports. Please look for HTML files in the output directory."
+    )

@@ -322,7 +322,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       pReachedSet.add(
           new DummyErrorState(pReachedSet.getFirstState()), SingletonPrecision.getInstance());
       pReachedSet.popFromWaitlist();
-      return AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(false);
+      return AlgorithmStatus.SOUND_AND_IMPRECISE;
     } finally {
       statistics.totalVal.stop();
     }

@@ -1246,9 +1246,14 @@ private void handleTernaryExpression(ConditionalExpression condExp,
             fileLocation, prevNode, lastNode);
         addToCFA(edge);
       } else if (exp instanceof JMethodInvocationExpression) {
-        edge = new JStatementEdge(condExp.toString(),
-            (new JMethodInvocationStatement(astCreator.getFileLocation(condExp), (JMethodInvocationExpression) exp)),
-            fileLocation, prevNode, lastNode);
+        edge =
+            new JStatementEdge(
+                condExp.toString(),
+                new JMethodInvocationStatement(
+                    astCreator.getFileLocation(condExp), (JMethodInvocationExpression) exp),
+                fileLocation,
+                prevNode,
+                lastNode);
         addToCFA(edge);
       } else {
         CFANode middle = new CFANode(cfa.getFunctionName());

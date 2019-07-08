@@ -34,10 +34,9 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
-import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -123,7 +122,7 @@ public class TerminationLoopInformation {
   private List<CFANode> relevantVariablesInitializationIntermediateLocations =
       Collections.emptyList();
 
-  private Set<CFAEdge> createdCfaEdges = Sets.newLinkedHashSet();
+  private Set<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
 
   private Optional<CFANode> targetNode = Optional.empty();
 
@@ -196,7 +195,7 @@ public class TerminationLoopInformation {
 
     String functionName = pLoop.getLoopHeads().iterator().next().getFunctionName();
     ImmutableList.Builder<CFANode> intermediateStates = ImmutableList.builder();
-    Builder<CExpression, CVariableDeclaration> builder = ImmutableMap.builder();
+    ImmutableMap.Builder<CExpression, CVariableDeclaration> builder = ImmutableMap.builder();
 
     for (CVariableDeclaration relevantVariable : pRelevantVariables) {
       CExpression unprimedVariable = new CIdExpression(DUMMY, relevantVariable);

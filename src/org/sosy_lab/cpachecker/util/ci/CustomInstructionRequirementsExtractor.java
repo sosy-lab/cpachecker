@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -53,9 +52,18 @@ import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRe
 public class CustomInstructionRequirementsExtractor {
 
   @Option(
-      secure = true,
-      description = "Try to remove informations from requirements which is irrelevant for custom instruction behavior")
-  private boolean enableRequirementSlicing = false;
+    secure = true,
+    description =
+        "Try to remove requirements that are covered by another requirment and are, thus, irrelevant for custom instruction behavior"
+  )
+  private boolean removeCoveredRequirements = false;
+
+  @Option(
+    secure = true,
+    description =
+        "Try to remove parts of requirements that are not related to custom instruction and are, thus, irrelevant for custom instruction behavior"
+  )
+  private boolean enableRequirementsSlicing = false;
 
   @Option(
       secure = true,
@@ -104,8 +112,8 @@ public class CustomInstructionRequirementsExtractor {
   public void extractRequirements(final ARGState root, final CustomInstructionApplications cia)
       throws InterruptedException, CPAException {
     CustomInstructionRequirementsWriter writer =
-        new CustomInstructionRequirementsWriter(dumpCIRequirements,
-            requirementsStateClass, logger, cpa, enableRequirementSlicing);
+        new CustomInstructionRequirementsWriter(
+            dumpCIRequirements, requirementsStateClass, logger, cpa, enableRequirementsSlicing);
     Collection<ARGState> ciStartNodes = getCustomInstructionStartNodes(root, cia);
 
     List<Pair<ARGState, Collection<ARGState>>> requirements = new ArrayList<>(ciStartNodes.size());
@@ -118,7 +126,7 @@ public class CustomInstructionRequirementsExtractor {
               .getOutputVariables()));
     }
 
-    if (enableRequirementSlicing) {
+    if (removeCoveredRequirements) {
       requirements =
           RedundantRequirementsRemover.removeRedundantRequirements(requirements, signatures,
               requirementsStateClass);
@@ -151,7 +159,7 @@ public class CustomInstructionRequirementsExtractor {
       final CustomInstructionApplications pCustomIA)
       throws InterruptedException, CPAException {
 
-    Builder<ARGState> set = new ImmutableSet.Builder<>();
+    ImmutableSet.Builder<ARGState> set = new ImmutableSet.Builder<>();
     Set<ARGState> visitedNodes = new HashSet<>();
     Queue<ARGState> queue = new ArrayDeque<>();
 

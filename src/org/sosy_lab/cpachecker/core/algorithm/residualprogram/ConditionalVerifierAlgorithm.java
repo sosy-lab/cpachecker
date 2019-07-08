@@ -182,8 +182,9 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         logger.log(Level.FINE, "Run algorithm for residual program construction");
         AlgorithmStatus status = algorithm.run(reachedSet);
         collectStatistics(algorithm);
+        Preconditions.checkState(!status.wasPropertyChecked());
 
-        if (!status.isSound() || reachedSet.hasWaitingState()) {
+        if (reachedSet.hasWaitingState()) {
           logger.log(Level.SEVERE, "Residual program construction failed.");
           return false;
         }
@@ -256,7 +257,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         shutdown.shutdownIfNecessary();
 
         logger.log(Level.FINE, "Run verification algorithm");
-        AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+        AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         try {
           stats.residAnalysis.start();
           status = algorithm.run(reachedSet);

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -64,11 +65,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cmdline.CPAMain;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -133,13 +136,6 @@ public class CPAchecker {
     description = "stop after the first error has been found"
   )
   private boolean stopAfterError = true;
-
-  @Option(
-    secure = true,
-    name = "analysis.disable",
-    description = "stop CPAchecker after startup (internal option, not intended for users)"
-  )
-  private boolean disableAnalysis = false;
 
   public static enum InitialStatesFor {
     /**
@@ -246,7 +242,6 @@ public class CPAchecker {
   private final ShutdownNotifier shutdownNotifier;
   private final CoreComponentsFactory factory;
 
-
   // The content of this String is read from a file that is created by the
   // ant task "init".
   // To change the version, update the property in build.xml.
@@ -267,14 +262,55 @@ public class CPAchecker {
     version = v;
   }
 
-  public static String getVersion() {
-    return getCPAcheckerVersion()
-        + " (" + StandardSystemProperty.JAVA_VM_NAME.value()
-        +  " " + StandardSystemProperty.JAVA_VERSION.value() + ")";
+  /**
+   * This class is responsible for retrieving the name of the approach CPAchecker was configured to
+   * run with from the {@link Configuration}.
+   */
+  @Options
+  private static final class ApproachNameInformation {
+    @Option(
+        secure = true,
+        name = CPAMain.APPROACH_NAME_OPTION,
+        description = "Name of the used analysis, defaults to the name of the used configuration")
+    private String approachName;
+
+    private ApproachNameInformation(Configuration pConfig) throws InvalidConfigurationException {
+      pConfig.inject(this);
+    }
+
+    private String getApproachName() {
+      return approachName;
+    }
   }
 
-  public static String getCPAcheckerVersion() {
+  /**
+   * Returns a string that contains the version of CPAchecker as well as information on which
+   * analysis is executed.
+   */
+  public static String getVersion(Configuration pConfig) {
+    StringJoiner joiner = new StringJoiner(" / ");
+    joiner.add("CPAchecker " + getPlainVersion());
+    try {
+      String analysisName = new ApproachNameInformation(pConfig).getApproachName();
+      if (analysisName != null) {
+        joiner.add(analysisName);
+      }
+    } catch (InvalidConfigurationException e) {
+      // Injecting a non-required "secure" String option without restrictions on allowed values
+      // actually never fails, and avoiding a throws clause simplifies callers of this method.
+      throw new AssertionError(e);
+    }
+    return joiner.toString();
+  }
+
+  public static String getPlainVersion() {
     return version;
+  }
+
+  public static String getJavaInformation() {
+    return StandardSystemProperty.JAVA_VM_NAME.value()
+        + " "
+        + StandardSystemProperty.JAVA_VERSION.value();
   }
 
   public CPAchecker(
@@ -295,7 +331,7 @@ public class CPAchecker {
       List<String> programDenotation, Set<SpecificationProperty> properties) {
     checkArgument(!programDenotation.isEmpty());
 
-    logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
+    logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
     MainCPAStatistics stats = null;
     Algorithm algorithm = null;
@@ -369,35 +405,34 @@ public class CPAchecker {
 
       stats.creationTime.stop();
       shutdownNotifier.shutdownIfNecessary();
-      // now everything necessary has been instantiated
 
-      if (disableAnalysis) {
-        return new CPAcheckerResult(
-            Result.NOT_YET_STARTED, violatedPropertyDescription, null, cfa, stats);
-      }
+      // now everything necessary has been instantiated: run analysis
 
-      // run analysis
       result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
       AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
 
-      stats.resultAnalysisTime.start();
-      Collection<Property> violatedProperties = reached.getViolatedProperties();
-      if (!violatedProperties.isEmpty()) {
-        violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
+      if (status.wasPropertyChecked()) {
+        stats.resultAnalysisTime.start();
+        Collection<Property> violatedProperties = reached.getViolatedProperties();
+        if (!violatedProperties.isEmpty()) {
+          violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
 
-        if (!status.isPrecise()) {
-          result = Result.UNKNOWN;
+          if (!status.isPrecise()) {
+            result = Result.UNKNOWN;
+          } else {
+            result = Result.FALSE;
+          }
         } else {
-          result = Result.FALSE;
+          result = analyzeResult(reached, status.isSound());
+          if (unknownAsTrue && result == Result.UNKNOWN) {
+            result = Result.TRUE;
+          }
         }
+        stats.resultAnalysisTime.stop();
       } else {
-        result = analyzeResult(reached, status.isSound());
-        if (unknownAsTrue && result == Result.UNKNOWN) {
-          result = Result.TRUE;
-        }
+        result = Result.DONE;
       }
-      stats.resultAnalysisTime.stop();
 
     } catch (IOException e) {
       logger.logUserException(Level.SEVERE, e, "Could not read file");
@@ -459,17 +494,21 @@ public class CPAchecker {
     final CFA cfa;
     if (serializedCfaFile == null) {
       // parse file and create CFA
+      logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
       CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
       stats.setCFACreator(cfaCreator);
       cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
 
     } else {
       // load CFA from serialization file
+      logger.logf(Level.INFO, "Reading CFA from file \"%s\"", serializedCfaFile);
       try (InputStream inputStream = Files.newInputStream(serializedCfaFile);
           InputStream gzipInputStream = new GZIPInputStream(inputStream);
           ObjectInputStream ois = new ObjectInputStream(gzipInputStream)) {
         cfa = (CFA) ois.readObject();
       }
+
+      assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel());
     }
 
     stats.setCFA(cfa);
@@ -618,7 +657,7 @@ public class CPAchecker {
     }
 
     if (!pReached.hasWaitingState()
-        && !(initialStatesFor.equals(Collections.singleton(InitialStatesFor.TARGET)))) {
+        && !initialStatesFor.equals(Collections.singleton(InitialStatesFor.TARGET))) {
       throw new InvalidConfigurationException("Initialization of the set of initial states failed: No analysis target found!");
     } else {
       logger.logf(

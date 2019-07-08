@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -210,6 +209,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     shouldVisitParameterDeclarations = true;
     shouldVisitProblems = true;
     shouldVisitStatements = true;
+    shouldVisitExpressions = true;
     sideAssignmentStack = pSideAssignmentStack;
   }
   FunctionEntryNode getStartNode() {
@@ -1108,7 +1108,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         true,
         true,
         false,
-        Sets.newHashSet());
+        new HashSet<>());
   }
 
   /** @category conditions */

@@ -29,14 +29,13 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -161,7 +160,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
       throws CPAException, InterruptedException, SolverException {
     logger.log(Level.FINE, "Starting refinement for", targets.size(), "elements.");
 
-    Map<ARGState, ARGState> predecessors = Maps.newHashMap();
+    Map<ARGState, ARGState> predecessors = new HashMap<>();
     SetMultimap<ARGState, ARGState> successors = HashMultimap.create();
 
     Deque<AbstractState> todo = new ArrayDeque<>(targets);
@@ -326,7 +325,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
     assert bfmgr.isFalse(itpProver.getInterpolant(itpStack)); // last interpolant is False
 
     pAbstractionStatesTrace = FluentIterable.from(pAbstractionStatesTrace).skip(1).toList();
-    List<BooleanFormula> interpolants = Lists.newArrayList();
+    List<BooleanFormula> interpolants = new ArrayList<>();
 
     boolean visitedUnreachable = false;
     int sublistCounter = 1;

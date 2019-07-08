@@ -28,6 +28,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 
 /** Represents a State in the automaton.
@@ -179,5 +181,25 @@ public class AutomatonInternalState {
   @Override
   public String toString() {
     return this.name;
+  }
+
+  public boolean nontriviallyMatches(final CFAEdge pEdge, final LogManager pLogger) {
+    for(AutomatonTransition trans : transitions) {
+      if (trans.nontriviallyMatches(pEdge, pLogger)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean nontriviallyMatchesAndEndsIn(
+      final CFAEdge pEdge, final String pSuccessorName, final LogManager pLogger) {
+    for (AutomatonTransition trans : transitions) {
+      if (trans.getFollowState().getName().equals(pSuccessorName)
+          && trans.nontriviallyMatches(pEdge, pLogger)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

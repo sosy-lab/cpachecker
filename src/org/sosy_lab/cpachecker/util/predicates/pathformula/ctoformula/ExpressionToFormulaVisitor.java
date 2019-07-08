@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -125,8 +124,10 @@ public class ExpressionToFormulaVisitor
     return mgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
 
-  private CType getPromotedCType(CType t) {
+  private CType getPromotedTypeForArithmetic(CExpression exp) {
+    CType t = exp.getExpressionType();
     t = t.getCanonicalType();
+    t = CTypes.adjustFunctionOrArrayType(t);
     if (CTypes.isIntegerType(t)) {
       // Integer types smaller than int are promoted when an operation is performed on them.
       return conv.machineModel.applyIntegerPromotion(t);
@@ -182,10 +183,8 @@ public class ExpressionToFormulaVisitor
     }
 
     // to INT or bigger
-    final CType t1 = exp.getOperand1().getExpressionType();
-    final CType t2 = exp.getOperand2().getExpressionType();
-    final CType promT1 = getPromotedCType(t1).getCanonicalType();
-    final CType promT2 = getPromotedCType(t2).getCanonicalType();
+    CType promT1 = getPromotedTypeForArithmetic(exp.getOperand1());
+    CType promT2 = getPromotedTypeForArithmetic(exp.getOperand2());
 
     final Formula ret;
 
@@ -486,7 +485,11 @@ public class ExpressionToFormulaVisitor
     case TILDE: {
       // Handle Integer Promotion
       CType t = operand.getExpressionType();
-      CType promoted = getPromotedCType(t.getCanonicalType());
+      CType promoted = t.getCanonicalType();
+      if (CTypes.isIntegerType(promoted)) {
+        // Integer types smaller than int are promoted when an operation is performed on them.
+        promoted = conv.machineModel.applyIntegerPromotion(promoted);
+      }
       Formula operandFormula = toFormula(operand);
       operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
       Formula ret;
@@ -520,6 +523,9 @@ public class ExpressionToFormulaVisitor
       CType lCType = exp.getOperand().getExpressionType();
       return handleSizeof(exp, lCType);
 
+      case ALIGNOF:
+        return handleAlignOf(exp,  exp.getOperand().getExpressionType());
+
     default:
         throw new UnrecognizedCodeException("Unknown unary operator", edge, exp);
     }
@@ -527,12 +533,15 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public Formula visit(CTypeIdExpression tIdExp) throws UnrecognizedCodeException {
+    CType lCType = tIdExp.getType();
 
-    if (tIdExp.getOperator() == TypeIdOperator.SIZEOF) {
-      CType lCType = tIdExp.getType();
-      return handleSizeof(tIdExp, lCType);
-    } else {
-      return visitDefault(tIdExp);
+    switch (tIdExp.getOperator()) {
+      case SIZEOF:
+        return handleSizeof(tIdExp, lCType);
+      case ALIGNOF:
+        return handleAlignOf(tIdExp, lCType);
+      default:
+        return visitDefault(tIdExp);
     }
   }
 
@@ -541,6 +550,12 @@ public class ExpressionToFormulaVisitor
         conv
           .getFormulaTypeFromCType(pExp.getExpressionType()),
         conv.getSizeof(pCType));
+  }
+
+  private Formula handleAlignOf(CExpression pExp, CType pCType) {
+    return mgr.makeNumber(
+        conv.getFormulaTypeFromCType(pExp.getExpressionType()),
+        conv.machineModel.getAlignof(pCType));
   }
 
   @Override

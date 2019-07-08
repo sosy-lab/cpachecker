@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
-import java.util.Set;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.TestHelpers;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 public class SMGJoinSubSMGsForAbstractionTest {
 
@@ -103,7 +103,7 @@ public class SMGJoinSubSMGsForAbstractionTest {
     Assert.assertEquals(2, resultSll.getMinimumLength());
 
     UnmodifiableCLangSMG resultSMG = join.getResultSMG();
-    Set<SMGObject> resultHeapObjects = resultSMG.getHeapObjects();
+    PersistentSet<SMGObject> resultHeapObjects = resultSMG.getHeapObjects();
     Assert.assertTrue(resultHeapObjects.contains(joinResult));
     Assert.assertTrue(resultHeapObjects.contains(firstObject));
     Assert.assertTrue(resultHeapObjects.contains(secondObject));

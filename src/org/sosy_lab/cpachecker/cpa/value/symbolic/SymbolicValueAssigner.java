@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -205,8 +206,13 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
 
     for (CCompositeType.CCompositeTypeMemberDeclaration d : memberDeclarations) {
       String memberName = d.getName();
-      MemoryLocation memberLocation = pValueVisitor.evaluateRelativeMemLocForStructMember(
-          pStructLocation, memberName, pStructType);
+      @Nullable
+      MemoryLocation memberLocation =
+          pValueVisitor.evaluateRelativeMemLocForStructMember(
+              pStructLocation, memberName, pStructType);
+      if (memberLocation == null) {
+        continue; // TODO this ignores values of bit fields
+      }
       CType memberType = d.getType().getCanonicalType();
 
       if (memberType instanceof CCompositeType) {

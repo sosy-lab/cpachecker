@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -280,7 +279,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
             .getUseDefStates();
 
     ArrayDeque<Pair<FunctionCallEdge, Boolean>> functionCalls = new ArrayDeque<>();
-    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(pErrorPathPrefix.getInnerEdges());
+    ArrayList<CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());
 
     PathIterator iterator = pErrorPathPrefix.pathIterator();
     while (iterator.hasNext()) {
@@ -317,8 +316,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
           boolean isAbstractEdgeFunctionCall =
               abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.FunctionCallEdge;
 
-          functionCalls.push(
-              (Pair.of((FunctionCallEdge) originalEdge, isAbstractEdgeFunctionCall)));
+          functionCalls.push(Pair.of((FunctionCallEdge) originalEdge, isAbstractEdgeFunctionCall));
         }
 
         // when returning from a function, ...
@@ -349,10 +347,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
     ARGPath slicedErrorPathPrefix = new ARGPath(pErrorPathPrefix.asStatesList(), abstractEdges);
 
-    return (isFeasible(slicedErrorPathPrefix))
-        ? pErrorPathPrefix
-        : slicedErrorPathPrefix;
-
+    return isFeasible(slicedErrorPathPrefix) ? pErrorPathPrefix : slicedErrorPathPrefix;
   }
 
   @Override

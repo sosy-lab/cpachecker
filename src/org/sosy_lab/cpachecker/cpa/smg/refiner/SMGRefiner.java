@@ -245,7 +245,7 @@ public class SMGRefiner implements Refiner {
       // we use the imprecise version of the CounterexampleInfo, due to the possible
       // merges which are done in the used CPAs, but if we can compute a path with assignments,
       // it is probably precise.
-      CFAPathWithAssumptions assignments = createModel(feasiblePath);
+      CFAPathWithAssumptions assignments = createModel();
       if (!assignments.isEmpty()) {
         return CounterexampleInfo.feasiblePrecise(feasiblePath, assignments);
       } else {
@@ -259,10 +259,9 @@ public class SMGRefiner implements Refiner {
   /**
    * This method creates a model for the given error path.
    *
-   * @param errorPath the error path for which to create the model
    * @return the model for the given error path
    */
-  private CFAPathWithAssumptions createModel(ARGPath errorPath) {
+  private CFAPathWithAssumptions createModel() {
 
     //TODO Fix creating a model.
     return CFAPathWithAssumptions.empty();

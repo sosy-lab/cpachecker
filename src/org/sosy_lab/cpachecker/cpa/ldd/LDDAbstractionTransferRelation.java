@@ -441,8 +441,8 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
           int denom = denom1 * denom2;
           num1 = num1 * denom2;
           num2 = num2 * denom1;
-          int num = 0;
-          num = num1 + num2 * multiplier;
+
+          int num = num1 + num2 * multiplier;
           variableCoeffs.put(coeff.getKey(), normalizeRational(num, denom));
         }
         // Add all from second that were not in second

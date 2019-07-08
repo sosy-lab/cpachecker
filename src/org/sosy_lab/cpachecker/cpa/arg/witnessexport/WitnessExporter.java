@@ -82,7 +82,7 @@ public class WitnessExporter {
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  protected final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
+  protected final ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
   protected final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
   protected final VerificationTaskMetaData verificationTaskMetaData;
@@ -129,7 +129,7 @@ public class WitnessExporter {
         pIsRelevantEdge,
         Predicates.alwaysFalse(),
         Optional.empty(),
-        Optional.of(pCounterExample),
+        Optional.ofNullable(pCounterExample),
         GraphBuilder.ARG_PATH);
   }
 

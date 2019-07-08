@@ -31,7 +31,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -75,10 +74,8 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    */
   private int interpolationCounter = 0;
 
-  /**
-   * the predecessor relation of the states contained in this tree
-   */
-  private final Map<ARGState, ARGState> predecessorRelation = Maps.newLinkedHashMap();
+  /** the predecessor relation of the states contained in this tree */
+  private final Map<ARGState, ARGState> predecessorRelation = new LinkedHashMap<>();
 
   /**
    * the successor relation of the states contained in this tree
@@ -231,7 +228,16 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
         sb.append("itp is " + interpolants.get(current.getKey()));
 
-        result.append(current.getKey().getStateId() + " [label=\"" + (current.getKey().getStateId() + " / " + AbstractStates.extractLocation(current.getKey())) + " has itp " + (sb.toString()) + "\"]" + "\n");
+        result.append(
+            current.getKey().getStateId()
+                + " [label=\""
+                + (current.getKey().getStateId()
+                    + " / "
+                    + AbstractStates.extractLocation(current.getKey()))
+                + " has itp "
+                + sb.toString()
+                + "\"]"
+                + "\n");
         result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
 
       } else {

@@ -27,11 +27,12 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +48,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -98,6 +100,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Which path-formula builder to use."
+              + "Depending on this setting additional terms are added to the path formulas,"
+              + "e.g. SYMBOLICLOCATIONS will add track the program counter symbolically with a special variable %pc")
+  private PathFormulaBuilderVariants pathFormulaBuilderVariant = PathFormulaBuilderVariants.DEFAULT;
+
+  private enum PathFormulaBuilderVariants {
+    DEFAULT,
+    SYMBOLICLOCATIONS
+  }
+
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
@@ -111,6 +126,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final BooleanFormulaManagerView bfmgr;
   private final CtoFormulaConverter converter;
   private final @Nullable CtoWpConverter wpConverter;
+  private final PathFormulaBuilderFactory pfbFactory;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -194,6 +210,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               pDirection);
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
+    }
+
+    switch (pathFormulaBuilderVariant) {
+      case DEFAULT:
+        pfbFactory = new DefaultPathFormulaBuilder.Factory();
+        break;
+      case SYMBOLICLOCATIONS:
+        pfbFactory =
+            new SymbolicLocationPathFormulaBuilder.Factory(
+                new CBinaryExpressionBuilder(pMachineModel, pLogger));
+        break;
+      default:
+        throw new InvalidConfigurationException("Invalid type of path formula builder specified!");
     }
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
@@ -341,6 +370,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PointerTargetSet mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSSA)
+      throws InterruptedException {
+    return converter.mergePointerTargetSets(pPts1, pPts2, pSSA).getResult();
+  }
+
+  @Override
   public PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
     SSAMap ssa = pPathFormula.getSsa();
     BooleanFormula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
@@ -408,7 +443,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     // build the branching formula that will help us find the real error path
     List<BooleanFormula> branchingFormula = new ArrayList<>();
     for (final ARGState pathElement : elementsOnPath) {
-      Set<ARGState> children = Sets.newHashSet(pathElement.getChildren());
+      Set<ARGState> children = new HashSet<>(pathElement.getChildren());
       Set<ARGState> childrenOnPath = Sets.intersection(children, elementsOnPath).immutableCopy();
 
       if (childrenOnPath.size() > 1) {
@@ -496,7 +531,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       return Collections.emptyMap();
     }
 
-    Map<Integer, Boolean> preds = Maps.newHashMap();
+    Map<Integer, Boolean> preds = new HashMap<>();
     for (ValueAssignment entry : model) {
       String canonicalName = entry.getName();
 
@@ -555,6 +590,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
 
     return pMainFormula;
+  }
+
+  @Override
+  public PathFormulaBuilder createNewPathFormulaBuilder() {
+    return pfbFactory.create();
   }
 
   @Override

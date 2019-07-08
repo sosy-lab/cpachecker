@@ -108,7 +108,7 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
     checkNotNull(pVisibility);
     checkArgument((isAbstract() && !isStatic() && !isNative()
         && !isFinal() && !isSynchronized() && !isStrictfp())
-        || (!isAbstract())
+        || !isAbstract()
         , "Abstract Method may only have one Modifier , either public or protected");
   }
 

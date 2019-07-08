@@ -73,10 +73,6 @@ public class CtoFormulaTypeHandler {
     return size;
   }
 
-  public int getBitsPerByte() {
-    return machineModel.getSizeofCharInBits();
-  }
-
   /**
    * Returns the size in bits of the given type.
    * Always use this method instead of machineModel.getSizeOf,

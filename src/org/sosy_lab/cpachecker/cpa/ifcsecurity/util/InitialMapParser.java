@@ -23,11 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.util;
 
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.policies.PredefinedPolicies;
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.policies.SecurityClasses;
-
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
@@ -37,6 +32,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.policies.PredefinedPolicies;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.policies.SecurityClasses;
+
 /**
  * Used for Parsing the allowed SecurityClass-Mapping.
  */
@@ -74,7 +74,7 @@ public class InitialMapParser {
         Variable var=new Variable(strLine.substring(0, eqsign));
         try {
           Field f = PredefinedPolicies.class.getField(strLine.substring(eqsign+1, sem));
-          SecurityClasses clas=(SecurityClasses)(f.get(null));
+          SecurityClasses clas = (SecurityClasses) f.get(null);
           if(!map.containsKey(var)){
             map.put(var, clas);
           }
