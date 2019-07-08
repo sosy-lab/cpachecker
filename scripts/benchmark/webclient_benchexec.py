@@ -302,6 +302,8 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             memory = int(memory[:-4].strip())
         elif memory:
             memory = benchexec.util.parse_memory_value(memory)
+        turboboost_supported = values.get("turboboost-supported") == "true"
+        turboboost_enabled = values.get("turboboost-enabled") == "true"
         output_handler.store_system_info(
             values.get("os", "-"),
             values.get("cpuModel", "-"),
@@ -310,6 +312,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             memory or "-",
             host,
             runSet=run.runSet,
+            cpu_turboboost=turboboost_enabled if turboboost_supported else None,
         )
 
         for key, value in values.items():
