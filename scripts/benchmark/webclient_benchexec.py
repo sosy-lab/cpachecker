@@ -250,10 +250,6 @@ def _handle_results(result_futures, output_handler, benchmark, run_set):
     executor.shutdown(wait=True)
 
 
-IGNORED_VALUES = set(["command", "timeLimit", "coreLimit", "returnvalue", "exitsignal"])
-"""result values that are ignored because they are redundant"""
-
-
 def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
     """
     Call handle_result with appropriate parameters to fit into the BenchExec expectations.
@@ -290,7 +286,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
                 or key.startswith("cputime-cpu")
             ):
                 result_values[key] = value
-            elif key not in IGNORED_VALUES:
+            elif key not in util.VCLOUD_REDUNDANT_RESULT_VALUES:
                 result_values["vcloud-" + key] = value
 
         return None

@@ -28,6 +28,12 @@ import sys
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
 
+VCLOUD_REDUNDANT_RESULT_VALUES = set(
+    ["command", "timeLimit", "coreLimit", "memoryLimit", "returnvalue", "exitsignal"]
+)
+"""result values that can be ignored because they are redundant"""
+
+
 def parse_frequency_value(s):
     if not s:
         return s

@@ -413,10 +413,6 @@ def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
         logging.warning("Host information file not found: " + filePath)
 
 
-IGNORED_VALUES = set(["command", "timeLimit", "coreLimit", "returnvalue", "exitsignal"])
-"""result values that are ignored because they are redundant"""
-
-
 def parseCloudRunResultFile(filePath):
     values = collections.OrderedDict()
 
@@ -445,7 +441,7 @@ def parseCloudRunResultFile(filePath):
                 or key.startswith("cputime-cpu")
             ):
                 values[key] = value
-            elif key not in IGNORED_VALUES:
+            elif key not in util.VCLOUD_REDUNDANT_RESULT_VALUES:
                 values["vcloud-" + key] = value
     return values
 
