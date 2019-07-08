@@ -297,12 +297,17 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
 
     def _handle_host_info(values):
         host = values.pop("name", "-")
+        memory = values.get("memory")
+        if memory.endswith("byte"):
+            memory = int(memory[:-4].strip())
+        elif memory:
+            memory = benchexec.util.parse_memory_value(memory)
         output_handler.store_system_info(
             values.get("os", "-"),
             values.get("cpuModel", "-"),
             values.get("cores", "-"),
             util.parse_frequency_value(values.get("frequency")) or "-",
-            values.get("memory", "-"),
+            memory or "-",
             host,
             runSet=run.runSet,
         )
