@@ -21,69 +21,91 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-function CreateTableFromJSON() {
-    var myData = [
-        {
-            "e": "Current:  StepChildren: [6, 7] StepParents: [4] StateID: 5",
-            "e ~> e'": "Storage:  [Current:  StepChildren: [] StepParents: [5] StateID: 6, "
-                       + "Current:  StepChildren: [] StepParents: [5] StateID: 7]",
-            "e new = merge (e', e'')": "2-1",
-            "stop": "3-1"
-        },
-        {
-            "e": "Current:  StepChildren: [10] StepParents: [8, 11] StateID: 13",
-            "e ~> e'": "Storage:  [Current:  StepChildren: [] StepParents: [13] StateID: 14",
-            "e new = merge (e', e'')": "Storage:  [Current:  StepChildren: [10] StepParents: [8] StateID: 9,"
-                                       + " Current:  StepChildren: [] StepParents: [11] StateID: 12"
-                                       + ", Current:  StepChildren: [10] StepParents: [8, 11] StateID: 13"
-                                       + "]",
-            "stop": "3-2"
-        },
-        {
-            "e": "3",
-            "e ~> e'": "1-3",
-            "e new = merge (e', e'')": "2-3",
-            "stop": "3-3"
-        }
-    ]
 
-    // EXTRACT VALUE FOR HTML HEADER.
-    // ('Book ID', 'Book Name', 'Category' and 'Price')
-    var col = [];
-    for (var i = 0; i < myData.length; i++) {
-        for (var key in myData[i]) {
-            if (col.indexOf(key) === -1) {
-                col.push(key);
-            }
-        }
-    }
 
-    // CREATE DYNAMIC TABLE.
-    var table = document.createElement("table");
+function dagretest() {
 
-    // CREATE HTML TABLE HEADER ROW USING THE EXTRACTED HEADERS ABOVE.
+    var myData = {}; //ARG_JSON_INPUT
+    myJSON = JSON.stringify(myData);
+    localStorage.setItem("localStoredJSON", myJSON);
+    text = localStorage.getItem("localStoredJSON");
+    states = JSON.parse(text);
 
-    var row = table.insertRow(-1);                   // TABLE ROW.
 
-    for (var i = 0; i < col.length; i++) {
-        var th = document.createElement("th");      // TABLE HEADER.
-        th.innerHTML = col[i];
-        row.appendChild(th);
-    }
+    // Create the input graph
+    var g = new dagreD3.graphlib.Graph()
+        .setGraph({})
+        .setDefaultEdgeLabel(function() { return {}; });
 
-    // ADD JSON DATA TO THE TABLE AS ROWS.
-    for (var i = 0; i < myData.length; i++) {
 
-        row = table.insertRow(-1);
+//for testing purposes
+  /** var myshit = {"nodes":[{"func":"mainbullshit","index":32,"label":"32 @ N5\nmainbullshit\nValueAnalysisState: []\\","type":"not-expanded"},
+            {"func":"main","index":33,"label":"33 @ N5\nmain\nValueAnalysisState: [main::x=NumericValue [number=1] (int), main::y=NumericValue [number=1] (int), main::z=NumericValue [number=0] (int)]\\","type":""},
+            {"func":"main","index":36,"label":"36 @ N0\nmain exit\nValueAnalysisState: []\\","type":"not-expanded"},
+            {"func":"main","index":39,"label":"39 @ N0\nmain exit\nValueAnalysisState: []\\","type":"not-expanded"},
+            {"func":"main","index":40,"label":"40 @ N0\nmain exit\nValueAnalysisState: []\\","type":""},
+            {"func":"main","index":21,"label":"21 @ N1\nmain entry\nValueAnalysisState: []\\","type":""},
+            {"func":"main","index":22,"label":"22 @ N12\nmain\nValueAnalysisState: []\\","type":""},
+            {"func":"main","index":23,"label":"23 @ N2\nmain\nValueAnalysisState: []\\","type":""},
+            {"func":"main","index":24,"label":"24 @ N3\nmain\nValueAnalysisState: [main::x=NumericValue [number=0] (int)]\\","type":""},
+            {"func":"main","index":25,"label":"25 @ N4\nmain\nValueAnalysisState: [main::x=NumericValue [number=0] (int), main::z=NumericValue [number=0] (int)]\\","type":""},
+            {"func":"main","index":26,"label":"26 @ N6\nmain\nValueAnalysisState: [main::x=NumericValue [number=0] (int), main::y=NumericValue [number=1] (int), main::z=NumericValue [number=0] (int)]\\","type":""},
+            {"func":"main","index":27,"label":"27 @ N7\nmain\nValueAnalysisState: [main::x=NumericValue [number=0] (int), main::z=NumericValue [number=0] (int)]\\","type":""},
+            {"func":"main","index":28,"label":"28 @ N9\nmain\nValueAnalysisState: [main::x=NumericValue [number=0] (int), main::z=NumericValue [number=1] (int)]\\","type":""},
+            {"func":"main","index":29,"label":"29 @ N8\nmain\nValueAnalysisState: [main::x=NumericValue [number=1] (int), main::y=NumericValue [number=1] (int), main::z=NumericValue [number=0] (int)]\\","type":""}],
+        "edges":[{"file":"doc\/examples\/exampleSM.c","line":"2","source":23,"label":"Line 2\nint x = 0;","type":"DeclarationEdge","target":24},
+            {"file":"<none>","source":21,"label":"Lines 0 - 1:\nINIT GLOBAL VARS\nint main(int y);","type":"BlankEdge","lines":"0 - 1:","target":22},
+            {"file":"doc\/examples\/exampleSM.c","line":"5","source":25,"label":"Line 5\n[y == 1]","type":"AssumeEdge","target":26},
+            {"file":"<none>","line":"0","source":28,"label":"Line 0\n","type":"BlankEdge","target":32},
+            {"file":"doc\/examples\/exampleSM.c","line":"5","source":25,"label":"Line 5\n[!(y == 1)]","type":"AssumeEdge","target":27},
+            {"file":"doc\/examples\/exampleSM.c","line":"10","source":32,"label":"Line 10\nreturn 10 \/ (x - y);","type":"ReturnStatementEdge","target":39},
+            {"file":"doc\/examples\/exampleSM.c","line":"10","source":32,"label":"Line 10\nreturn 10 \/ (x - y);","type":"ReturnStatementEdge","target":36},
+            {"file":"doc\/examples\/exampleSM.c","line":"10","source":32,"label":"Line 10\nreturn 10 \/ (x - y);","type":"ReturnStatementEdge","target":40},
+            {"file":"doc\/examples\/exampleSM.c","line":"3","source":24,"label":"Line 3\nint z = 0;","type":"DeclarationEdge","target":25},
+            {"file":"doc\/examples\/exampleSM.c","line":"8","source":27,"label":"Line 8\nz = 1;","type":"StatementEdge","target":28},
+            {"file":"<none>","line":"0","source":29,"label":"Line 0\n","type":"BlankEdge","target":33},
+            {"file":"<none>","line":"0","source":22,"label":"Line 0\nFunction start dummy edge","type":"BlankEdge","target":23},
+            {"file":"doc\/examples\/exampleSM.c","line":"6","source":26,"label":"Line 6\nx = 1;","type":"StatementEdge","target":29},
+            {"file":"doc\/examples\/exampleSM.c","line":"10","source":33,"label":"Line 10\nreturn 10 \/ (x - y);","type":"ReturnStatementEdge","target":39},
+            {"file":"<none>","line":"0","source":29,"label":"Line 0\n","type":"BlankEdge","target":32}] }**/
 
-        for (var j = 0; j < col.length; j++) {
-            var tabCell = row.insertCell(-1);
-            tabCell.innerHTML = myData[i][col[j]];
-        }
-    }
+// Set up nodes
+   states["nodes"].forEach(function(v) { g.setNode(v["index"], { label: v["label"], class:v["type"] }); });
 
-    // FINALLY ADD THE NEWLY CREATED TABLE WITH JSON DATA TO A CONTAINER.
-    var divContainer = document.getElementById("showData");
-    divContainer.innerHTML = "";
-    divContainer.appendChild(table);
+
+    g.nodes().forEach(function(v) {
+        var node = g.node(v);
+        // Round the corners of the nodes
+        node.rx = node.ry = 5;
+    });
+
+// Set up edges
+
+  states["edges"].forEach(function(v) { g.setEdge(v["source"], v["target"],{label: v["label"]})});
+
+
+// Create the renderer
+    var render = new dagreD3.render();
+
+// Set up an SVG group so that we can translate the final graph.
+    var svg = d3.select("svg"),
+        svgGroup = svg.append("g");
+
+    // Set up zoom support
+    var zoom = d3.zoom().on("zoom", function() {
+        svgGroup.attr("transform", d3.event.transform);
+    });
+    svg.call(zoom);
+
+// Run the renderer. This is what draws the final graph.
+    render(svgGroup, g);
+
+// Center the graph
+    var xCenterOffset = svg.attr("width",width="100%");
+
+    svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
+
+    svg.attr("height", g.graph().height + 40)
+        .style("border", "1px solid black");
 }
+

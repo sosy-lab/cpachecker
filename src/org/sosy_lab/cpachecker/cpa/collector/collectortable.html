@@ -25,54 +25,36 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Sonja test html</title>
     <!--REPORT_CSS-->
     <script>
         <!-- REPORT_JS -->
     </script>
 </head>
 <body>
+<h3>This is a DagreGraph Test</h3>
+<script src='https://d3js.org/d3.v4.min.js'></script>
+<script>    d3.select('h3').style('color', 'darkblue');
+d3.select('h3').style('font-size', '24px');
+d3.select('h3').style('font-family', 'sans-serif');
+</script>
+</body></html>
 
-<table class="steelBlueCols">
-    <thead>
-    <tr>
-        <th>e</th>
-        <th>e ~> e'</th>
-        <th>e <sub>new</sub> = merge (e', e'')</th>
-        <th>stop</th>
-    </tr>
-    </thead>
 
-    <tbody>
-    <tr>
-        <td>cell1_1</td>
-        <td>cell2_1</td>
-        <td>cell3_1</td>
-        <td>cell4_1</td>
-    </tr>
-    <tr>
-        <td>cell1_2</td>
-        <td>cell2_2</td>
-        <td>cell3_2</td>
-        <td>cell4_2</td>
-    </tr>
-    <tr>
-        <td>cell1_3</td>
-        <td>cell2_3</td>
-        <td>cell3_3</td>
-        <td>cell4_3</td>
-    </tr>
-    <tr>
-        <td>cell1_4</td>
-        <td>cell2_4</td>
-        <td>cell3_4</td>
-        <td>cell4_4</td>
-    </tr>
-    </tbody>
-</table>
+<body>
+<div id="option">
+    <input name="updateButton"
+           type="button"
+           value="Update"
+           onclick="dagretest()" />
+</div>
+<svg id="canvas"></svg>
+<script src="https://d3js.org/d3.v5.js"></script>
+<script src="https://www.sosy-lab.org/lib/dagre-d3/0.5.0/dagre-d3.min.js"></script>
+<script>
+    //dagretest()
 
-<input type="button" onclick="CreateTableFromJSON()" value="Create Table From JSON" />
-<p id="showData"></p>
+</script>
+</body></html>
 
-</body>
-</html>
+

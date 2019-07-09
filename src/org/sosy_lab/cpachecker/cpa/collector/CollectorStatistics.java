@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Splitter;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -39,8 +40,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,13 +54,22 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix="cpa.collector")
@@ -93,6 +108,8 @@ public class CollectorStatistics implements Statistics {
   private ARGState convertedARGStatetransfer;
   private ARGState convertedparenttransfer;
   private ARGState newarg3;
+  private final Map<Integer, Object> argNodes;
+  private final Map<String, Object> argEdges;
 
 
   public CollectorStatistics(CollectorCPA ccpa, Configuration config,LogManager pLogger) throws InvalidConfigurationException {
@@ -100,6 +117,9 @@ public class CollectorStatistics implements Statistics {
     this.logger=pLogger;
 
     config.inject(this, CollectorStatistics.class);
+
+    argNodes = new HashMap<>();
+    argEdges = new HashMap<>();
   }
 
   @Override
@@ -153,7 +173,7 @@ public class CollectorStatistics implements Statistics {
           }
         }
         reachedcollectionARG.add(newarg);
-        makeFiles(reachedcollectionARG);
+        //makeFiles(reachedcollectionARG);
 
       }
 
@@ -182,10 +202,10 @@ public class CollectorStatistics implements Statistics {
 
             newarg1 = new ARGState(wrappedmyARG1, current1);
             reachedcollectionARG.add(newarg1);
-            makeFiles(reachedcollectionARG);
+            //makeFiles(reachedcollectionARG);
             newarg2 = new ARGState(wrappedmyARG2, current2);
             reachedcollectionARG.add(newarg2);
-            makeFiles(reachedcollectionARG);
+            //makeFiles(reachedcollectionARG);
 
             boolean destroyed1 = convertedARGState1.isDestroyed();
             boolean destroyed2 = convertedARGState2.isDestroyed();
@@ -202,15 +222,19 @@ public class CollectorStatistics implements Statistics {
             newarg3 = new ARGState(c, current2);
             newarg3.addParent(current1);
 
+
             linkedparents.put(mergedstate, newarg3);
 
             reachedcollectionARG.add(newarg3);
-            makeFiles(reachedcollectionARG);
+            //makeFiles(reachedcollectionARG);
+
           }
         }
       }
   }
 
+      buildArgGraphData(reachedcollectionARG);
+      makeFiles(reachedcollectionARG);
   }
 
   private void insertCss(BufferedWriter pWriter) {
@@ -248,7 +272,7 @@ public class CollectorStatistics implements Statistics {
       BufferedWriter bwhtml = new BufferedWriter(writerhtml);
       String line2;
       while (null != (line2 = reader.readLine())){
-        logger.log(Level.INFO, "sonja will lesen " + line2);
+       // logger.log(Level.INFO, "sonja will lesen " + line2);
         //bwhtml.write(line2);
         if (line2.contains("REPORT_CSS")) {
           //insertCss(writer);
@@ -258,9 +282,10 @@ public class CollectorStatistics implements Statistics {
           bwhtml.write("</style>");
         } else if (line2.contains("REPORT_JS")){
           logger.log(Level.INFO, "sonja will javascript " );
-          //insertJs(writer, cfa, dotBuilder, counterExample);
-          Resources.asCharSource(Resources.getResource(getClass(), JS_TEMPLATE), Charsets.UTF_8)
-              .copyTo(bwhtml);
+          //insertArgJson(bwhtml);
+          /**Resources.asCharSource(Resources.getResource(getClass(), JS_TEMPLATE), Charsets.UTF_8)
+              .copyTo(bwhtml);**/
+          insertJs(bwhtml);
         } else {
           bwhtml.write(line2 + "\n");
         }
@@ -288,4 +313,169 @@ private void makeASonjaFileDirectory () {
      }
     }
 }
+//!!!!!Ab hier code aus ReportGenerator:
+
+
+  private void insertJs(
+      Writer writer)
+      throws IOException {
+    try (BufferedReader reader =
+             Resources.asCharSource(Resources.getResource(getClass(), JS_TEMPLATE), Charsets.UTF_8)
+                 .openBufferedStream();) {
+      String line;
+      while (null != (line = reader.readLine())) {
+         if (line.contains("ARG_JSON_INPUT")) {
+          insertArgJson(writer);
+        }  else {
+          writer.write(line + "\n");
+        }
+      }
+    }
+  }
+
+  private void insertArgJson(Writer writer) {
+    try {
+      // Achtung für die HTML-Tabelle Klammern {} weg und write "nodes" auskommentieren
+      writer.write("var myData = { ");
+      if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
+        writer.write("\n\"nodes\":");
+        JSON.writeJSONString(argNodes.values(), writer);
+        writer.write(",\n\"edges\":");
+        JSON.writeJSONString(argEdges.values(), writer);
+        writer.write("\n");
+      }
+      writer.write("}\n");
+    } catch (IOException e) {
+      logger.logUserException(WARNING, e, "Could not create report: Inserting ARG Json failed.");
+    }
+  }
+
+
+  private void buildArgGraphData(Collection<ARGState> reached) {
+    for (AbstractState entry : reached) {
+      int parentStateId = ((ARGState) entry).getStateId();
+      for (CFANode node : AbstractStates.extractLocations(entry)) {
+        if (!argNodes.containsKey(parentStateId)) {
+          argNodes.put(parentStateId, createArgNode(parentStateId, node, (ARGState) entry));
+          if (!((ARGState) entry).getChildren().isEmpty()) {
+            for (ARGState child : ((ARGState) entry).getChildren()) {
+              int childStateId = child.getStateId();
+              // Covered state is not contained in the reached set
+              if (child.isCovered()) {
+                String label = child.toDOTLabel();
+                label = label.length() > 2 ? label.substring(0, label.length() - 2) : "";
+                //createCoveredArgNode(childStateId, child, label);
+                //createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
+              }
+              argEdges.put(
+                  parentStateId + "->" + childStateId,
+                  createArgEdge(
+                      parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child)));
+            }
+          }
+        }}}
+    logger.log(Level.INFO, "sonja argnodes " +"\n" + argNodes.toString());
+    logger.log(Level.INFO, "sonja argedges " +"\n" + argEdges.toString());
+  }
+
+  private Map<String, Object> createArgNode(int parentStateId, CFANode node, ARGState argState) {
+    String dotLabel =
+        argState.toDOTLabel().length() > 2
+        ? argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2)
+        : "";
+    Map<String, Object> argNode = new HashMap<>();
+    argNode.put("index", parentStateId);
+    argNode.put("func", node.getFunctionName());
+    argNode.put(
+        "label",
+        parentStateId
+            + " @ "
+            + node
+            + "\n"
+            + node.getFunctionName()
+            + nodeTypeInNodeLabel(node)
+            + "\n"
+            + dotLabel);
+    argNode.put("type", determineNodeType(argState));
+    return argNode;
+  }
+  private String determineNodeType(ARGState argState) {
+    if (argState.isTarget()) {
+      return "target";
+    }
+    if (!argState.wasExpanded()) {
+      return "not-expanded";
+    }
+    if (argState.shouldBeHighlighted()) {
+      return "highlighted";
+    }
+    return "";
+  }
+  // Add the node type (if it is entry or exit) to the node label
+  private String nodeTypeInNodeLabel(CFANode node) {
+    if (node instanceof FunctionEntryNode) {
+      return " entry";
+    } else if (node instanceof FunctionExitNode) {
+      return " exit";
+    }
+    return "";
+  }
+  private Map<String, Object> createArgEdge(
+      int parentStateId, int childStateId, List<CFAEdge> edges) {
+    Map<String, Object> argEdge = new HashMap<>();
+    argEdge.put("source", parentStateId);
+    argEdge.put("target", childStateId);
+    StringBuilder edgeLabel = new StringBuilder();
+    if (edges.isEmpty()) {
+      edgeLabel.append("dummy edge");
+      argEdge.put("type", "dummy type");
+    } else {
+      argEdge.put("type", edges.get(0).getEdgeType().toString());
+      if (edges.size() > 1) {
+        edgeLabel.append("Lines ");
+        edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append(" - ");
+        edgeLabel.append(edges.get(edges.size() - 1).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append(":");
+        argEdge.put("lines", edgeLabel.substring(6));
+      } else {
+        edgeLabel.append("Line ");
+        edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append("");
+        argEdge.put("line", edgeLabel.substring(5));
+      }
+      for (CFAEdge edge : edges) {
+        if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+          edgeLabel.append("\n");
+          List<String> edgeText = Splitter.on(':').limit(2).splitToList(getEdgeText(edge));
+          edgeLabel.append(edgeText.get(0));
+          if (edgeText.size() > 1) {
+            edgeLabel.append("\n");
+            edgeLabel.append(edgeText.get(1));
+          }
+        } else {
+          edgeLabel.append("\n");
+          edgeLabel.append(getEdgeText(edge));
+        }
+      }
+      argEdge.put("file", edges.get(0).getFileLocation().getFileName());
+    }
+    argEdge.put("label", edgeLabel.toString());
+    return argEdge;
+  }
+  // Similar to the getEdgeText method in DOTBuilder2
+  private static String getEdgeText(CFAEdge edge) {
+    return edge.getDescription()
+        .replaceAll("\\\"", "\\\\\\\"")
+        .replaceAll("\n", " ")
+        .replaceAll("\\s+", " ")
+        .replaceAll(" ;", ";");
+  }
+
+
+
+
+
+
+
 }
