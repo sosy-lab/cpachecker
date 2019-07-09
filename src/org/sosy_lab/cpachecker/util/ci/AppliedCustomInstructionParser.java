@@ -174,6 +174,10 @@ public class AppliedCustomInstructionParser {
 
     while ((line = br.readLine()) != null) {
       shutdownNotifier.shutdownIfNecessary();
+      line = line.trim();
+      if (line.isEmpty()) {
+        continue;
+      }
       startNode = getCFANode(line, cfaInfo);
       if (startNode == null) {
         continue;
