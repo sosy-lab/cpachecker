@@ -284,16 +284,6 @@ public class CtoFormulaConverter {
   }
 
   protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
-    if (options.useHavocAbstraction()) {
-      if (var instanceof CVariableDeclaration) {
-        CVariableDeclaration vDecl = (CVariableDeclaration) var;
-        if (vDecl.isGlobal()) {
-          return false;
-        } else if (vDecl.getType() instanceof CPointerType) {
-          return false;
-        }
-      }
-    }
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
       boolean isRelevantVariable = var.getName().equals(RETURN_VARIABLE_NAME) ||
           variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());
@@ -305,6 +295,21 @@ public class CtoFormulaConverter {
       return isRelevantVariable;
     }
     return true;
+  }
+
+  protected final boolean isAbstractedVariable(final CSimpleDeclaration var) {
+    // Variable which is relevant in general, but currently we abstracted from its value
+    if (options.useHavocAbstraction()) {
+      if (var instanceof CVariableDeclaration) {
+        CVariableDeclaration vDecl = (CVariableDeclaration) var;
+        if (vDecl.isGlobal()) {
+          return true;
+        } else if (vDecl.getType() instanceof CPointerType) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   protected boolean isAddressedVariable(@SuppressWarnings("unused") CSimpleDeclaration pVar) {
@@ -1184,7 +1189,7 @@ public class CtoFormulaConverter {
     CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
     final String varName = decl.getQualifiedName();
 
-    if (!isRelevantVariable(decl)) {
+    if (!isRelevantVariable(decl) || isAbstractedVariable(decl)) {
       logger.logfOnce(Level.FINEST, "%s: Ignoring declaration of unused variable: %s",
           decl.getFileLocation(), decl.toASTString());
       return bfmgr.makeTrue();

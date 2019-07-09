@@ -984,6 +984,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         constraints,
         errorConditions);
 
+    if (isAbstractedVariable(declaration)) {
+      // It is important to have abstracted variable after declareSharedBase!
+      // That is why it is extracted from isRelevant
+      logDebug("Abstracted from variable ", declarationEdge);
+      return bfmgr.makeTrue();
+    }
+
     if (options.useParameterVariablesForGlobals() && declaration.isGlobal()) {
       globalDeclarations.add(declaration);
     }
