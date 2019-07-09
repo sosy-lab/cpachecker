@@ -32,7 +32,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
@@ -50,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStatus;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+@Options(prefix = "cpa.thread")
 public class ThreadTransferRelation extends SingleEdgeTransferRelation {
   @Option(
     secure = true,
@@ -68,7 +72,8 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
 
   private final ThreadCPAStatistics threadStatistics;
 
-  public ThreadTransferRelation() {
+  public ThreadTransferRelation(Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
     threadStatistics = new ThreadCPAStatistics();
   }
 
