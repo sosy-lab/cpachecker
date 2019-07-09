@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
@@ -49,8 +50,22 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStatus;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-
 public class ThreadTransferRelation extends SingleEdgeTransferRelation {
+  @Option(
+    secure = true,
+    description = "The case when the same thread is created several times we do not support."
+        + "We may skip or fail in this case.")
+  private boolean skipTheSameThread = false;
+
+  @Option(
+    secure = true,
+    description = "The case when the same thread is created several times we do not support."
+        + "We may try to support it with self-parallelizm.")
+  private boolean supportSelfCreation = false;
+
+  @Option(secure = true, description = "Simple thread analysis from theory paper")
+  private boolean simpleMode = false;
+
   private final ThreadCPAStatistics threadStatistics;
 
   public ThreadTransferRelation() {
@@ -92,7 +107,11 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
         return Collections.emptySet();
       }
     } catch (CPATransferException e) {
-      return Collections.emptySet();
+      if (skipTheSameThread) {
+        return Collections.emptySet();
+      } else {
+        throw e;
+      }
     } finally {
       threadStatistics.transfer.stop();
     }
@@ -142,12 +161,17 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
 
     Map<String, ThreadStatus> tSet = state.getThreadSet();
     List<ThreadLabel> order = state.getOrder();
+    ThreadStatus status = pParentThread;
     if (tSet.containsKey(pVarName)) {
-      throw new CPATransferException(
-          "Can not create thread " + pFunctionName + ", it was already created");
+      if (supportSelfCreation) {
+        status = ThreadStatus.SELF_PARALLEL_THREAD;
+
+      } else {
+        throw new CPATransferException(
+            "Can not create thread " + pFunctionName + ", it was already created");
+      }
     }
 
-    ThreadStatus status = pParentThread;
     if (!tSet.isEmpty()) {
       ThreadLabel last = order.get(order.size() - 1);
       if (tSet.get(last.getVarName()) == ThreadStatus.SELF_PARALLEL_THREAD) {
@@ -156,8 +180,16 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     ThreadLabel label = new ThreadLabel(pFunctionName, pVarName);
-    Map<String, ThreadStatus> newSet = new TreeMap<>(tSet);
-    List<ThreadLabel> newOrder = new ArrayList<>(order);
+    Map<String, ThreadStatus> newSet;
+    List<ThreadLabel> newOrder;
+    if (simpleMode) {
+      // Store only current creation
+      newSet = new TreeMap<>();
+      newOrder = new ArrayList<>();
+    } else {
+      newSet = new TreeMap<>(tSet);
+      newOrder = new ArrayList<>(order);
+    }
     newSet.put(pVarName, status);
     newOrder.add(label);
     return new ThreadState(newSet, state.getRemovedSet(), newOrder);

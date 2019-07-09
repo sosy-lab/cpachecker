@@ -47,6 +47,30 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     SELF_PARALLEL_THREAD;
   }
 
+  public static class SimpleThreadState extends ThreadState {
+
+    public SimpleThreadState(
+        Map<String, ThreadStatus> Tset,
+        ImmutableMap<ThreadLabel, ThreadStatus> Rset,
+        List<ThreadLabel> pOrder) {
+      super(Tset, Rset, pOrder);
+    }
+
+    @Override
+    public boolean isCompatibleWith(CompatibleState state) {
+      return !Objects.equals(this.getThreadSet(), ((ThreadState) state).getThreadSet());
+    }
+
+    @Override
+    public ThreadState prepareToStore() {
+      return new SimpleThreadState(this.getThreadSet(), ImmutableMap.of(), Collections.emptyList());
+    }
+
+    public static ThreadState emptyState() {
+      return new SimpleThreadState(ImmutableMap.of(), ImmutableMap.of(), Collections.emptyList());
+    }
+  }
+
   private final Map<String, ThreadStatus> threadSet;
   // The removedSet is useless now, but it will be used in future in more complicated cases
   // Do not remove it now
