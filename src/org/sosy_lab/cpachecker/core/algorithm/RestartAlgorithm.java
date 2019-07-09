@@ -39,7 +39,9 @@ import com.google.common.io.ByteStreams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
 import java.nio.channels.ClosedByInterruptException;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -62,6 +64,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -92,6 +95,9 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.CoverageData;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 
 @Options(prefix = "restartAlgorithm")
 public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpdater {
@@ -158,6 +164,10 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
+
+  @Option(secure = true, description = "Evil hack for printing coverage with BAM")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path subcoverageFile = Paths.get("subcoverage.info");
 
   @Option(
     secure = true,
@@ -363,6 +373,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           } else if (!(from(currentReached).anyMatch(IS_TARGET_STATE) && !status.isPrecise())) {
 
             if (!(alwaysRestart && configFilesIterator.hasNext())) {
+              dumpSubcoverage(currentReached, currentCpa);
               // sound analysis and completely finished, terminate
               return status;
             }
@@ -499,6 +510,26 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     // no further configuration available, and analysis has not finished
     logger.log(Level.INFO, "No further configuration available.");
     return status;
+  }
+
+  private void dumpSubcoverage(ReachedSet reached, ConfigurableProgramAnalysis currentCpa) {
+
+     if (currentCpa instanceof AbstractBAMCPA) {
+       FluentIterable<AbstractState> reachedStates = FluentIterable.from(reached);
+       Collection<ReachedSet> otherReachedSets =
+           ((AbstractBAMCPA) currentCpa).getData().getCache().getAllCachedReachedStates();
+       reachedStates = reachedStates.append(FluentIterable.concat(otherReachedSets));
+
+       CoverageData infosPerFile = CoverageCollector.fromReachedSet(reachedStates, cfa);
+
+       if (subcoverageFile != null) {
+         try (Writer gcovOut = IO.openOutputFile(subcoverageFile, Charset.defaultCharset())) {
+           CoverageReportGcov.write(infosPerFile, gcovOut);
+         } catch (IOException e) {
+           logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
+         }
+       }
+     }
   }
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(
