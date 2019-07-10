@@ -2,6 +2,7 @@
 
 void test(int x) {
 	if (!x) {
+__VERIFIER_error();
 ERROR: goto ERROR;
 	}
 }
