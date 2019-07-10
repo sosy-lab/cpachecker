@@ -175,7 +175,7 @@ public class ARGState extends AbstractSingleWrapperState
         }
       }
     }
-
+    // check for bw
     // there is no edge
     return null;
   }
@@ -190,6 +190,7 @@ public class ARGState extends AbstractSingleWrapperState
     // no direct connection, this is only possible for ARG holes during dynamic
     // multiedges, it is guaranteed that there is exactly one path and no other
     // leaving edges from the parent to the child
+    // check for bw (run pabw10)
     if (singleEdge == null) {
       List<CFAEdge> allEdges = new ArrayList<>();
       CFANode currentLoc = AbstractStates.extractLocation(this);
