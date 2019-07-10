@@ -149,6 +149,13 @@ public class ARGState extends AbstractSingleWrapperState
       for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
         if (ingoingEdgesOfChild.contains(edge)) { return edge; }
       }
+      // check for backwardsARG - here the edges are directed parent <- child
+      Collection<CFAEdge> edgesToChild = Sets.newHashSet(currentLocs.getIngoingEdges());
+      for (CFAEdge edge : childLocs.getOutgoingEdges()) {
+        if (edgesToChild.contains(edge)) {
+          return edge;
+        }
+      }
 
       // then try to get a special edge, just to have some edge.
       for (CFANode currentLoc : currentLocs.getLocationNodes()) {
