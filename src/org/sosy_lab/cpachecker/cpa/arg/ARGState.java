@@ -199,23 +199,48 @@ public class ARGState extends AbstractSingleWrapperState
     // leaving edges from the parent to the child
     // check for bw (run pabw10)
     if (singleEdge == null) {
+
       List<CFAEdge> allEdges = new ArrayList<>();
       CFANode currentLoc = AbstractStates.extractLocation(this);
-      CFANode childLoc = AbstractStates.extractLocation(pChild);
+
+      // for backwards multiedge the children are in opposite traversion direction
+      List<CFAEdge> allEdgesBw = new ArrayList<>();
+      CFANode currentLocBw = AbstractStates.extractLocation(this);
+
+      final CFANode childLoc = AbstractStates.extractLocation(pChild);
+
 
       if (currentLoc != null && childLoc != null) {
-        while (!currentLoc.equals(childLoc)) {
+        while (!currentLoc.equals(childLoc) && !currentLocBw.equals(childLoc)) {
           // we didn't find a proper connection to the child so we return an empty list
           if (currentLoc.getNumLeavingEdges() != 1) {
             return Collections.emptyList();
           }
 
-          final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
-          allEdges.add(leavingEdge);
-          currentLoc = leavingEdge.getSuccessor();
+          if (currentLoc.getNumEnteringEdges() >= 1) {
+            final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
+            allEdges.add(leavingEdge);
+            currentLoc = leavingEdge.getSuccessor();
+          }
+
+          if (currentLocBw.getNumEnteringEdges() >= 1) {
+            // reached root state
+            final CFAEdge ingoingEdge = currentLocBw.getEnteringEdge(0);
+            allEdgesBw.add(ingoingEdge);
+            currentLocBw = ingoingEdge.getPredecessor();
+          }
+
+          if (currentLoc.getNumEnteringEdges() < 1 && currentLocBw.getNumEnteringEdges() < 1) {
+            // Come to root and last state in both direction - don't know if this can ever happen
+            return Collections.emptyList();
+          }
         }
       }
-      return allEdges;
+      if (currentLoc.equals(childLoc)) {
+        return allEdges;
+      } else {
+        return allEdgesBw;
+      }
     } else {
       return Collections.singletonList(singleEdge);
     }
