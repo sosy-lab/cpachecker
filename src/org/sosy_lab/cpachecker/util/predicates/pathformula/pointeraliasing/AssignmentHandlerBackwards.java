@@ -743,6 +743,8 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
         }
         final Formula offsetFormula =
             fmgr.makeNumber(conv.voidPointerFormulaType, offset.getAsLong());
+
+        // Handle new LHS
         final Location newLvalue;
         if (lvalue.isAliased()) {
           final MemoryRegion region =
@@ -758,6 +760,32 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
                   getFieldAccessName(lvalue.asUnaliased().getVariableName(), memberDeclaration));
         }
 
+        // making new variable
+        final String targetName;
+        final int oldIndex;
+        if (!newLvalue.isAliased()) { // Unaliased LHS
+          assert !useOldSSAIndices;
+          targetName = newLvalue.asUnaliased().getVariableName();
+        } else {
+          MemoryRegion region = newLvalue.asAliased().getMemoryRegion();
+          if (region == null) {
+            // should never happen as memory region is already made above
+            region = regionMgr.makeMemoryRegion(newLvalueType);
+          }
+          targetName = regionMgr.getPointerAccessName(region);
+        }
+        oldIndex = conv.getIndex(targetName, newLvalueType, ssa);
+        final FormulaType<?> targetType = conv.getFormulaTypeFromCType(newLvalueType);
+        final Formula newlhsFormula;
+        if (!newLvalue.isAliased()) {
+          newlhsFormula = conv.makeFreshVariable(targetName, newLvalueType, ssa);
+          // final Formula lhsFormula = fmgr.makeVariable(targetType, targetName, oldIndex);
+          int newIndex = conv.getFreshIndex(targetName, newLvalueType, ssa);
+        } else {
+          newlhsFormula = null;
+        }
+
+        // handle new RHS
         final CType newRvalueType;
         final Expression newRvalue;
         if (rvalue.isLocation()) {
@@ -792,7 +820,7 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
                     newLvalueType,
                     newRvalueType,
                     newLvalue,
-                    lhsFormula,
+                    newlhsFormula,
                     newRvalue,
                     useOldSSAIndices,
                     updatedRegions));
