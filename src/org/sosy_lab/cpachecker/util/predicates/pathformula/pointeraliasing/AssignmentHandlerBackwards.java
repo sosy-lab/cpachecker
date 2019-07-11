@@ -989,6 +989,13 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
       final Location newLhsLocation = newLhs.accept(lhsVisitor).asLocation();
       assert newLhsLocation.isUnaliasedLocation();
 
+      // Here create new lhsFormula and make new variable?
+      final String targetName = newLhsLocation.asUnaliased().getVariableName();
+      final int oldIndex = conv.getIndex(targetName, newLhsType, ssa);
+      // final FormulaType<?> targetType = conv.getFormulaTypeFromCType(newLhsType);
+      final Formula newLhsFormula = conv.makeFreshVariable(targetName, newLhsType, ssa);
+      int newIndex = conv.getFreshIndex(targetName, newLhsType, ssa);
+
       if (CTypeUtils.isSimpleType(newLhsType)) {
         final Expression newRhsExpression;
         final CType newRhsType = newLhsType;
@@ -1081,7 +1088,7 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
                 newLhsType,
                 newRhsType,
                 newLhsLocation,
-                lhsFormula,
+                newLhsFormula,
                 newRhsExpression,
                 useOldSSAIndices,
                 updatedRegions));
@@ -1152,12 +1159,21 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
           final Location innerMemberLocation =
               innerMemberCFieldReference.accept(lhsVisitor).asLocation();
 
+          // hier nochmal neue lhsFormula?
+          // Here create new lhsFormula and make new variable?
+          final String innerTargetName = innerMemberLocation.asUnaliased().getVariableName();
+          final int innerOldIndex = conv.getIndex(innerTargetName, innerMember.getType(), ssa);
+          // final FormulaType<?> targetType = conv.getFormulaTypeFromCType(newLhsType);
+          final Formula innerLhsFormula =
+              conv.makeFreshVariable(innerTargetName, innerMember.getType(), ssa);
+          int innerNewIndex = conv.getFreshIndex(innerTargetName, innerMember.getType(), ssa);
+
           constraints.addConstraint(
               makeDestructiveAssignment(
                   innerMember.getType(),
                   innerMember.getType(),
                   innerMemberLocation,
-                  lhsFormula,
+                  innerLhsFormula,
                   newRhsExpression,
                   useOldSSAIndices,
                   updatedRegions));
