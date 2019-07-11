@@ -664,6 +664,20 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
           AliasedLocation.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(), offsetFormula));
       final Expression newRvalue;
 
+      // here crate new lhsFormula and make new variable
+      MemoryRegion region = newLvalue.getMemoryRegion();
+      if (region == null) {
+        region = regionMgr.makeMemoryRegion(lvalueElementType);
+      }
+      final String targetName = regionMgr.getPointerAccessName(region);
+      // making new variable
+      final int oldIndex = conv.getIndex(targetName, lvalueElementType, ssa);
+      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueElementType);
+      final Formula newLhsFormula;
+      newLhsFormula = conv.makeFreshVariable(targetName, lvalueElementType, ssa);
+      // final Formula lhsFormula = fmgr.makeVariable(targetType, targetName, oldIndex);
+      int newIndex = conv.getFreshIndex(targetName, lvalueElementType, ssa);
+
       // Support both initialization (with a value or nondet) and assignment (from another array
       // location)
       if (rvalue.isValue()) {
