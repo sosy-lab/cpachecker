@@ -1123,8 +1123,10 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
             rhsFormula = conv.makeCast(rhsType, rhsCasted, rhsFormula, constraints, edge);
             rhsFormula = conv.makeValueReinterpretation(rhsType, rhsCasted, rhsFormula);
           } else {
-            rhsFormula = conv.makeCast(rhsType, memberType, rhsFormula, constraints, edge);
-            rhsFormula = conv.makeValueReinterpretation(rhsType, memberType, rhsFormula);
+            // cast before was to memberType - but does this make sence?
+            rhsFormula =
+                conv.makeCast(rhsType, innerMember.getType(), rhsFormula, constraints, edge);
+            rhsFormula = conv.makeValueReinterpretation(rhsType, innerMember.getType(), rhsFormula);
           }
           assert rhsFormula == null || rhsFormula instanceof BitvectorFormula;
 
