@@ -19,6 +19,7 @@ int main(void)
 { 
   gsmi_dev.name_buf = __VERIFIER_alloc(sizeof(struct gsmi_buf));
   if (gsmi_dev.param_buf != 0) {
+__VERIFIER_error();
     ERROR: goto ERROR;
   }
   return (0);

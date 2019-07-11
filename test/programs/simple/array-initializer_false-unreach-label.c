@@ -30,6 +30,7 @@ int main(void) {
 
   if (p != &a) return 0;
 
+__VERIFIER_error();
 ERROR:
   return 1;
 }
