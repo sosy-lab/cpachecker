@@ -32,11 +32,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -134,6 +136,17 @@ public class SLTransferRelation
       logger.log(Level.SEVERE, e.getMessage());
     }
     return ImmutableList.of(new SLState(pathFormula, heap, isTarget));
+  }
+
+  @Override
+  protected Collection<SLState> handleFunctionCallEdge(
+      CFunctionCallEdge pCfaEdge,
+      List<CExpression> pArguments,
+      List<CParameterDeclaration> pParameters,
+      String pCalledFunctionName)
+      throws CPATransferException {
+    // TODO Auto-generated method stub. Not yet implemented.
+    return super.handleFunctionCallEdge(pCfaEdge, pArguments, pParameters, pCalledFunctionName);
   }
 
   @Override
@@ -240,8 +253,8 @@ public class SLTransferRelation
   @Override
   public BigInteger getAllocationSize(CExpression pExp) throws Exception {
     Formula f = pfm.expressionToFormula(pathFormulaPrev, pExp, edge);
-    final String tmpVarName = "0_allocationSize";
-    f = fm.makeEqual(bvfm.makeVariable(32, tmpVarName), f);
+    final String dummyVarName = "0_allocationSize";
+    f = fm.makeEqual(bvfm.makeVariable(32, dummyVarName), f);
 
     ProverEnvironment env = null;
     try {
@@ -251,7 +264,7 @@ public class SLTransferRelation
       if (!env.isUnsat()) {
         List<ValueAssignment> assignments = env.getModelAssignments();
         for (ValueAssignment a : assignments) {
-          if (a.getKey().toString().equals(tmpVarName)) {
+          if (a.getKey().toString().equals(dummyVarName)) {
             return (BigInteger) a.getValue();
           }
         }
