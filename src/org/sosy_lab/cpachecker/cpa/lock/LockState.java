@@ -205,49 +205,30 @@ public class LockState extends AbstractLockState {
     }
 
     @Override
-    public void reduce() {
+    public void reduce(Set<LockIdentifier> removeCounters, Set<LockIdentifier> totalRemove) {
       mutableToRestore = null;
-    }
-
-    @Override
-    public void removeLocksExcept(Set<LockIdentifier> locksToProcess) {
+      assert Sets.intersection(removeCounters, totalRemove).isEmpty();
       cloneIfNecessary();
+      removeCounters.forEach(l -> mutableLocks.replace(l, 1));
       Iterator<Entry<LockIdentifier, Integer>> iterator = mutableLocks.entrySet().iterator();
       while (iterator.hasNext()) {
         LockIdentifier lockId = iterator.next().getKey();
-        if (!locksToProcess.contains(lockId)) {
+        if (totalRemove.contains(lockId)) {
           iterator.remove();
         }
       }
     }
 
     @Override
-    public void reduceLockCounters(Set<LockIdentifier> locksToProcess) {
-      cloneIfNecessary();
-      locksToProcess.forEach(l -> mutableLocks.replace(l, 1));
-    }
-
-    public void expand(LockState rootState) {
+    public void expand(
+        AbstractLockState rootState,
+        Set<LockIdentifier> expandCounters,
+        Set<LockIdentifier> totalExpand) {
       mutableToRestore = rootState.toRestore;
-    }
-
-    @Override
-    public void returnLocksExcept(AbstractLockState pRootState, Set<LockIdentifier> usedLocks) {
+      assert Sets.intersection(expandCounters, totalExpand).isEmpty();
       cloneIfNecessary();
-      for (Entry<LockIdentifier, Integer> entry : ((LockState) pRootState).locks.entrySet()) {
-        LockIdentifier lockId = entry.getKey();
-        if (!usedLocks.contains(lockId)) {
-          mutableLocks.put(lockId, entry.getValue());
-        }
-      }
-    }
-
-    @Override
-    public void expandLockCounters(
-        AbstractLockState pRootState,
-        Set<LockIdentifier> locksToProcess) {
-      Map<LockIdentifier, Integer> rootLocks = ((LockState) pRootState).locks;
-      for (LockIdentifier lock : locksToProcess) {
+      Map<LockIdentifier, Integer> rootLocks = ((LockState) rootState).locks;
+      for (LockIdentifier lock : expandCounters) {
         if (rootLocks.containsKey(lock)) {
           Integer size = mutableLocks.get(lock);
           Integer rootSize = rootLocks.get(lock);
@@ -267,6 +248,12 @@ public class LockState extends AbstractLockState {
           }
         }
       }
+      for (LockIdentifier lockId : totalExpand) {
+        if (rootLocks.containsKey(lockId)) {
+          mutableLocks.put(lockId, rootLocks.get(lockId));
+        }
+      }
+
     }
 
     @Override

@@ -58,24 +58,12 @@ public abstract class AbstractLockStateBuilder {
 
   public abstract void resetAll();
 
-  public void reduce() {
-    mutableToRestore = null;
-  }
+  public abstract void reduce(Set<LockIdentifier> removeCounters, Set<LockIdentifier> totalRemove);
 
-  public abstract void removeLocksExcept(Set<LockIdentifier> usedLocks);
-
-  public abstract void reduceLockCounters(Set<LockIdentifier> exceptLocks);
-
-  public void expand(AbstractLockState rootState) {
-    mutableToRestore = rootState.getRestoredState();
-  }
-
-  public abstract void
-      returnLocksExcept(AbstractLockState pRootState, Set<LockIdentifier> usedLocks);
-
-  public abstract void expandLockCounters(
-      AbstractLockState pRootState,
-      Set<LockIdentifier> pRestrictedLocks);
+  public abstract void expand(
+      AbstractLockState rootState,
+      Set<LockIdentifier> expandCounters,
+      Set<LockIdentifier> totalExpand);
 
   public void setRestoreState() {
     mutableToRestore = parentState;

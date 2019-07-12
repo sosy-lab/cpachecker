@@ -28,7 +28,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -118,33 +119,16 @@ public class LockReducer implements Reducer, StatisticsProvider {
   @Override
   public AbstractLockState
       getVariableReducedState(AbstractState pExpandedElement, Block pContext, CFANode pCallNode) {
+    assert pContext.getCallNode().equals(pCallNode);
     AbstractLockState expandedElement = (AbstractLockState) pExpandedElement;
     stats.lockReducing.start();
     AbstractLockStateBuilder builder = expandedElement.builder();
-    Set<LockIdentifier> locksToProcess = expandedElement.getLocks();
+    Pair<Set<LockIdentifier>, Set<LockIdentifier>> lockSets =
+        getLockSetsFor(expandedElement, pContext);
+    Set<LockIdentifier> locksToProcess = lockSets.getFirst();
+    Set<LockIdentifier> uselessLocks = lockSets.getSecond();
 
-    builder.reduce();
-    stats.reduceUselessLocksTimer.start();
-    if (reduceUselessLocks) {
-      Set<LockIdentifier> notReduce = new HashSet<>(notReducedLocks.get(pCallNode));
-      builder.removeLocksExcept(Sets.union(pContext.getCapturedLocks(), notReduce));
-      // All other locks are successfully removed
-      locksToProcess = Sets.intersection(locksToProcess, pContext.getCapturedLocks());
-    }
-    stats.reduceUselessLocksTimer.stop();
-
-    stats.reduceLockCountersTimer.start();
-    switch (reduceLockCounters) {
-      case BLOCK:
-        locksToProcess = Sets.difference(locksToProcess, pContext.getCapturedLocks());
-        //$FALL-THROUGH$
-      case ALL:
-        builder.reduceLockCounters(locksToProcess);
-        break;
-      case NONE:
-        break;
-    }
-    stats.reduceLockCountersTimer.stop();
+    builder.reduce(locksToProcess, uselessLocks);
     AbstractLockState reducedState = builder.build();
     assert getVariableExpandedState(pExpandedElement, pContext, reducedState)
         .equals(pExpandedElement);
@@ -163,32 +147,13 @@ public class LockReducer implements Reducer, StatisticsProvider {
     AbstractLockState reducedElement = (AbstractLockState) pReducedElement;
     AbstractLockStateBuilder builder = reducedElement.builder();
     // Restore only what we reduced
-    Set<LockIdentifier> locksToProcess = rootElement.getLocks();
+    Pair<Set<LockIdentifier>, Set<LockIdentifier>> lockSets =
+        getLockSetsFor(rootElement, pReducedContext);
+    Set<LockIdentifier> locksToProcess = lockSets.getFirst();
+    Set<LockIdentifier> uselessLocks = lockSets.getSecond();
 
-    stats.expandUselessLocksTimer.start();
-    builder.expand(rootElement);
-    if (reduceUselessLocks) {
-      Set<LockIdentifier> notReduce =
-          new HashSet<>(notReducedLocks.get(pReducedContext.getCallNode()));
-      builder.returnLocksExcept(
-          (AbstractLockState) pRootElement,
-          Sets.union(pReducedContext.getCapturedLocks(), notReduce));
-      locksToProcess = Sets.intersection(locksToProcess, pReducedContext.getCapturedLocks());
-    }
-    stats.expandUselessLocksTimer.stop();
+    builder.expand(rootElement, locksToProcess, uselessLocks);
 
-    stats.expandLockCountersTimer.start();
-    switch (reduceLockCounters) {
-      case BLOCK:
-        locksToProcess = Sets.difference(locksToProcess, pReducedContext.getCapturedLocks());
-        //$FALL-THROUGH$
-      case ALL:
-        builder.expandLockCounters(rootElement, locksToProcess);
-        break;
-      case NONE:
-        break;
-    }
-    stats.expandLockCountersTimer.stop();
     stats.lockExpanding.stop();
     return builder.build();
   }
@@ -231,5 +196,31 @@ public class LockReducer implements Reducer, StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+  }
+
+  private Pair<Set<LockIdentifier>, Set<LockIdentifier>>
+      getLockSetsFor(AbstractLockState rootState, Block pContext) {
+    Set<LockIdentifier> locksToProcess = Collections.emptySet();
+    Set<LockIdentifier> uselessLocks = Collections.emptySet();
+
+    if (reduceUselessLocks) {
+      uselessLocks =
+          Sets.filter(
+              rootState.getLocks(),
+              l -> !pContext.getCapturedLocks().contains(l)
+                  && !notReducedLocks.get(pContext.getCallNode()).contains(l));
+    }
+    switch (reduceLockCounters) {
+      case BLOCK:
+        locksToProcess = Sets.difference(rootState.getLocks(), uselessLocks);
+        locksToProcess = Sets.difference(locksToProcess, pContext.getCapturedLocks());
+        break;
+      case ALL:
+        locksToProcess = Sets.difference(rootState.getLocks(), uselessLocks);
+        break;
+      case NONE:
+        break;
+    }
+    return Pair.of(locksToProcess, uselessLocks);
   }
 }
