@@ -219,7 +219,6 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   @Override
   public Boolean visit(CFunctionDeclaration pDecl) throws Exception {
-    delegate.setFunctionScope(pDecl.getName());
     for (CParameterDeclaration dec : pDecl.getParameters()) {
       if (dec.accept(this)) {
         return true;
@@ -236,8 +235,7 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   @Override
   public Boolean visit(CTypeDefDeclaration pDecl) throws Exception {
-    throw new UnsupportedOperationException(
-        CTypeDefDeclaration.class.getSimpleName() + "is not implemented yet.");
+    return false;
   }
 
   @Override

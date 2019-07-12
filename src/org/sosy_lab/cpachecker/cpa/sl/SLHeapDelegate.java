@@ -42,13 +42,6 @@ public interface SLHeapDelegate {
   public void removeFromHeap(Formula pAddrFormula);
 
   /**
-   * Updates the function name of the current scope.
-   *
-   * @param scope - The name of the function.
-   */
-  public void setFunctionScope(String scope);
-
-  /**
    * Checks whether the given address is allocated on the heap. The associated value can be updated.
    *
    * @param pAddrExp - the address to be checked.

@@ -32,6 +32,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -39,6 +40,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -73,7 +76,6 @@ public class SLTransferRelation
   private Solver solver;
   private final SLVisitor slVisitor;
 
-  private String currentFunctionScope;
   private PathFormula pathFormula;
   private PathFormula pathFormulaPrev;
 
@@ -146,7 +148,20 @@ public class SLTransferRelation
       String pCalledFunctionName)
       throws CPATransferException {
     // TODO Auto-generated method stub. Not yet implemented.
-    return super.handleFunctionCallEdge(pCfaEdge, pArguments, pParameters, pCalledFunctionName);
+    // return super.handleFunctionCallEdge(pCfaEdge, pArguments, pParameters, pCalledFunctionName);
+    return Collections.singleton(new SLState(pathFormula, heap, false));
+  }
+
+  @Override
+  protected Collection<SLState> handleFunctionReturnEdge(
+      CFunctionReturnEdge pCfaEdge,
+      CFunctionSummaryEdge pFnkCall,
+      CFunctionCall pSummaryExpr,
+      String pCallerFunctionName)
+      throws CPATransferException {
+    // TODO Auto-generated method stub. Not yet implemented.
+    // return super.handleFunctionReturnEdge(pCfaEdge, pFnkCall, pSummaryExpr, pCallerFunctionName);
+    return Collections.singleton(new SLState(pathFormula, heap, false));
   }
 
   @Override
@@ -179,7 +194,6 @@ public class SLTransferRelation
   @Override
   protected Collection<SLState> handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
-    setFunctionScope(null);
     return ImmutableList.of(new SLState(pathFormula, heap, false));
   }
 
@@ -205,7 +219,7 @@ public class SLTransferRelation
   }
 
   private String getSSAVarName(String pVarName) {
-    return currentFunctionScope + "::" + pVarName;
+    return functionName + "::" + pVarName;
   }
 
   private Formula getFormulaForVarName(String pVarName) {
@@ -280,11 +294,6 @@ public class SLTransferRelation
         Level.SEVERE,
         "Numeric value of expression " + pExp.toString() + " could not be determined.");
     return null;
-  }
-
-  @Override
-  public void setFunctionScope(String pScope) {
-    currentFunctionScope = pScope;
   }
 
   @SuppressWarnings("resource")
