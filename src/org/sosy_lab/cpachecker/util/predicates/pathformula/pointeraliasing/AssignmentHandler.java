@@ -894,7 +894,7 @@ class AssignmentHandler {
       Formula rhsFormula = getValueFormula(rhsType, rhsExpression).get();
       rhsFormula = conv.makeCast(rhsType, lhsType, rhsFormula, constraints, edge);
       rhsFormula = conv.makeValueReinterpretation(lhsType, newLhsType, rhsFormula);
-      newRhsExpression = rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
+      newRhsExpression = Value.ofValueOrNondet(rhsFormula);
     } else if (rhsType instanceof CCompositeType) {
       // reinterpret compositetype as bitvector; concatenate its fields appropriately in case of
       // struct
@@ -958,7 +958,7 @@ class AssignmentHandler {
           rhsFormula = conv.makeValueReinterpretation(fromType, newLhsType, rhsFormula);
         }
         // make rhsexpression from constructed bitvector; perhaps cast to lhsType in advance?
-        newRhsExpression = rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
+        newRhsExpression = Value.ofValueOrNondet(rhsFormula);
 
         // make assignment to lhs
       } else {
@@ -1024,16 +1024,13 @@ class AssignmentHandler {
       }
       assert rhsFormula == null || rhsFormula instanceof BitvectorFormula;
 
-      boolean rhsSigned = false;
-      if (!(rhsType instanceof CPointerType)) {
-        rhsSigned = ((CSimpleType) rhsType).isSigned();
-      }
+      boolean rhsSigned = !(rhsType instanceof CPointerType) && ((CSimpleType) rhsType).isSigned();
+
       // "AndExtractInnerMemberValue"
       if (rhsFormula != null) {
         rhsFormula = fmgr.makeExtract(rhsFormula, endIndex, startIndex, rhsSigned);
       }
-      Expression newRhsExpression =
-          rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
+      Expression newRhsExpression = Value.ofValueOrNondet(rhsFormula);
 
       // we need innerMember as location for the lvalue of makeDestructiveAssignment:
       final CExpression innerMemberCFieldReference =

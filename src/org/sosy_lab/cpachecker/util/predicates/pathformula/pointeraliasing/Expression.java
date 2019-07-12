@@ -177,6 +177,10 @@ abstract class Expression {
 
   static class Value extends Expression {
 
+    static Value ofValueOrNondet(@Nullable final Formula value) {
+      return value == null ? nondetValue() : ofValue(value);
+    }
+
     static Value ofValue(final Formula value) {
       return new Value(checkNotNull(value));
     }
