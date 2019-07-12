@@ -2201,7 +2201,8 @@ class ASTConverter {
         // that are not simplified and evaluated when parsing the expression.
       }
     }
-    Preconditions.checkState(!values.isEmpty());
+    Preconditions.checkState(
+        !values.isEmpty(), "enumeration does not provide any values: " + enumType);
     Collections.sort(values);
     final BigInteger minValue = BigInteger.valueOf(values.get(0));
     final BigInteger maxValue = BigInteger.valueOf(values.get(values.size() - 1));
