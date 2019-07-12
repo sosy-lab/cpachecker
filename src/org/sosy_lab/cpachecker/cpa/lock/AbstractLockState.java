@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.cpa.lock;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier.LockType;
@@ -69,7 +71,13 @@ public abstract class AbstractLockState
   public boolean isCompatibleWith(CompatibleState state) {
     Preconditions.checkArgument(state instanceof AbstractLockState);
     AbstractLockState pLocks = (AbstractLockState) state;
-    return !Sets.intersection(getLocks(), pLocks.getLocks()).isEmpty();
+    return Sets.intersection(getLocks(), pLocks.getLocks()).isEmpty();
+  }
+
+  public Collection<LockIdentifier> getIntersection(CompatibleState state) {
+    Preconditions.checkArgument(state instanceof AbstractLockState);
+    AbstractLockState pLocks = (AbstractLockState) state;
+    return ImmutableSet.copyOf(Sets.intersection(getLocks(), pLocks.getLocks()));
   }
 
   public abstract AbstractLockStateBuilder builder();

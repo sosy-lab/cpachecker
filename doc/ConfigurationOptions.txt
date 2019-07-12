@@ -1538,9 +1538,6 @@ cpa.local.localvariables = Collections.emptySet()
 # following function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
 
-# reduce recursive locks to a single access
-cpa.lock.aggressiveReduction = false
-
 # What are we searching for: race or deadlock
 cpa.lock.analysisMode = RACE
   enum:     [RACE, DEADLOCK]
@@ -1551,8 +1548,22 @@ cpa.lock.annotate = no default value
 # contains all lock names
 cpa.lock.lockinfo = {}
 
+# which merge operator to use for LockCPA
+cpa.lock.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# reduce recursive locks to a single access
+cpa.lock.reduceLockCounters = BLOCK
+  enum:     [NONE, BLOCK, ALL]
+
 # reduce unused locks
 cpa.lock.reduceUselessLocks = false
+
+# Enable refinement procedure
+cpa.lock.refinement = false
+
+# stop path exploration if a lock limit is reached
+cpa.lock.stopAfterLockLimit = false
 
 # Consider or not special cases with empty lock sets
 cpa.lock.stopMode = DEFAULT
