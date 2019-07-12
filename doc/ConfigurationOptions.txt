@@ -2633,6 +2633,17 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
+# Simple thread analysis from theory paper
+cpa.thread.simpleMode = false
+
+# The case when the same thread is created several times we do not support.We
+# may skip or fail in this case.
+cpa.thread.skipTheSameThread = false
+
+# The case when the same thread is created several times we do not support.We
+# may try to support it with self-parallelizm.
+cpa.thread.supportSelfCreation = false
+
 # allow assignments of a new thread to the same left-hand-side as an existing
 # thread.
 cpa.threading.allowMultipleLHS = false
