@@ -35,6 +35,7 @@ public class Block {
 
   private final ImmutableSet<ReferencedVariable> referencedVariables;
   private ImmutableSet<String> variables; // lazy initialization
+  private ImmutableSet<String> functions; // lazy initialization
   private final ImmutableSet<CFANode> callNodes;
   private final ImmutableSet<CFANode> returnNodes;
   private final ImmutableSet<CFANode> nodes;
@@ -79,6 +80,19 @@ public class Block {
     return variables;
   }
 
+  /** returns a collection of function names used in the block. */
+  public Set<String> getFunctions() {
+    if (functions == null) {
+      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+      for (CFANode node : getNodes()) {
+        builder.add(node.getFunctionName());
+      }
+      functions = builder.build();
+    }
+    return functions;
+  }
+
+  /** get all nodes that are part of this block, including transitive function blocks. */
   public Set<CFANode> getNodes() {
     return nodes;
   }

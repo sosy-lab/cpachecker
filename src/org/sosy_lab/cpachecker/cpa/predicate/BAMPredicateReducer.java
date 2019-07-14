@@ -247,8 +247,10 @@ public class BAMPredicateReducer implements Reducer {
       final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicates =
           ImmutableSetMultimap.builder();
       for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
+        if (context.getFunctions().contains(functionname)) {
         functionPredicates.putAll(functionname, getRelevantPredicates(
             context, expandedPredicatePrecision.getFunctionPredicates().get(functionname)));
+        }
       }
 
       // we only need local predicates with used variables and with nodes from the block
