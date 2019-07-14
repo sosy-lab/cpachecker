@@ -26,26 +26,23 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class MultiGoalMergeOperator implements MergeOperator {
 
-  @Override
-  public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision)
-      throws CPAException, InterruptedException {
-
-    MultiGoalState state1 = (MultiGoalState) pState1;
-    MultiGoalState state2 = (MultiGoalState) pState2;
-    // no need to merge if they are equal states
-    if (state1.equals(state2)) {
-      return state2;
-    }
-
+  private MultiGoalState merge(MultiGoalState state1, MultiGoalState state2) {
     // merge only, if there is no difference in covered goals and weaving states
     if (state1.getCoveredGoal().equals(state2.getCoveredGoal())
-        && state1.getWeavedEdges().equals(state2.getWeavedEdges())
-        && state1.getEdgesToWeave().equals(state2.getEdgesToWeave())) {
+        && (state1.getWeavedEdges().equals(state2.getWeavedEdges())
+            && state1.getEdgesToWeave().equals(state2.getEdgesToWeave()))) {
       MultiGoalState merged = MultiGoalState.createMergedState(state1, state2);
       return merged;
     }
     return state2;
-
   }
 
+  @Override
+  public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision)
+      throws CPAException, InterruptedException {
+    if (pState1.equals(pState2)) {
+      return pState2;
+    }
+    return merge((MultiGoalState) pState1, (MultiGoalState) pState2);
+  }
 }

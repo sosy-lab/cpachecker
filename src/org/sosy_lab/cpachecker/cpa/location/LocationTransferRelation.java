@@ -65,14 +65,6 @@ public class LocationTransferRelation implements TransferRelation {
     return CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
   }
 
-  public enum WeavingType {
-    DECLARATION,
-    ASSIGNMENT,
-    ASSUMPTION
-  }
-
-  private WeaveEdgeFactory weaveFactory;
-
 
   @Override
   public Collection<? extends AbstractState> strengthen(
@@ -91,10 +83,7 @@ public class LocationTransferRelation implements TransferRelation {
     if (mgState == null || !mgState.needsWeaving()) {
       return Collections.singleton(pState);
     }
-    if (weaveFactory == null) {
-      weaveFactory = new WeaveEdgeFactory();
-    }
-    return Collections.singleton(weaveFactory.create(mgState, pCfaEdge));
+    return Collections.singleton(WeaveEdgeFactory.getSingleton().create(mgState, pCfaEdge));
   }
 
 

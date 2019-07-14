@@ -35,46 +35,79 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.cpa.location.LocationTransferRelation.WeavingType;
+import org.sosy_lab.cpachecker.cpa.location.WeavingType;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class MultiGoalState implements AbstractState, Targetable, Graphable {
 
-
-  private boolean hasFinishedGoal;
-  private ImmutableSet<Pair<CFAEdge, WeavingType>> edgesToWeave;
+  protected boolean hasFinishedGoal;
+  protected ImmutableSet<Pair<CFAEdge, WeavingType>> edgesToWeave;
   // TODO handle regions
-  ImmutableMap<CFAEdgesGoal, Integer> goals;
-  Set<CFAEdge> weavedEdges;
-  boolean isInitialState;
+  protected ImmutableMap<CFAEdgesGoal, Integer> goals;
+  protected ImmutableMap<CFAEdgesGoal, ImmutableSet<ImmutableSet<CFAEdge>>> unlockedNegatedEdgesPerGoal;
+  protected Set<CFAEdge> weavedEdges;
+  protected boolean isInitialState;
   private int hash = 0;
 
   public static MultiGoalState createInitialState() {
     return new MultiGoalState();
   }
 
-  private MultiGoalState() {
+  protected MultiGoalState() {
     isInitialState = true;
     hasFinishedGoal = false;
     goals = ImmutableMap.copyOf(Collections.emptyMap());
+    unlockedNegatedEdgesPerGoal = ImmutableMap.copyOf(Collections.emptyMap());
     edgesToWeave = ImmutableSet.copyOf(Collections.emptySet());
-    weavedEdges = new HashSet<>();
+    weavedEdges = Collections.emptySet();
+  }
+
+  private static ImmutableSet<ImmutableSet<CFAEdge>> setsToImmutable(Set<Set<CFAEdge>> sets) {
+    HashSet<ImmutableSet<CFAEdge>> immutable = new HashSet<>();
+    for (Set<CFAEdge> set : sets) {
+      immutable.add(ImmutableSet.copyOf(set));
+    }
+    return ImmutableSet.copyOf(immutable);
+  }
+
+  private static ImmutableMap<CFAEdgesGoal, ImmutableSet<ImmutableSet<CFAEdge>>>
+      unlockedEdgesTo(Map<CFAEdgesGoal, Set<Set<CFAEdge>>> pUnlockedNegatedEdges) {
+    HashMap<CFAEdgesGoal, ImmutableSet<ImmutableSet<CFAEdge>>> map = new HashMap<>();
+    for (Entry<CFAEdgesGoal, Set<Set<CFAEdge>>> entry : pUnlockedNegatedEdges.entrySet()) {
+      HashSet<ImmutableSet<CFAEdge>> immutable = new HashSet<>();
+      for (Set<CFAEdge> set : entry.getValue()) {
+        immutable.add(ImmutableSet.copyOf(set));
+      }
+      map.put(entry.getKey(), ImmutableSet.copyOf(immutable));
+    }
+    return ImmutableMap.copyOf(map);
   }
 
   public MultiGoalState(
       Map<CFAEdgesGoal, Integer> pGoals,
       LinkedHashSet<Pair<CFAEdge, WeavingType>> pEdgesToWeave,
-      Set<CFAEdge> pWeavedEdges) {
+      Set<CFAEdge> pWeavedEdges,
+      Map<CFAEdgesGoal, Set<Set<CFAEdge>>> pUnlockedNegatedEdges) {
     hasFinishedGoal = false;
     goals =
         pGoals == null ? ImmutableMap.copyOf(Collections.emptySet()) : ImmutableMap.copyOf(pGoals);
+    unlockedNegatedEdgesPerGoal =
+        pUnlockedNegatedEdges == null
+            ? ImmutableMap.copyOf(Collections.emptySet())
+            : unlockedEdgesTo(pUnlockedNegatedEdges);
     for (Entry<CFAEdgesGoal, Integer> goal : goals.entrySet()) {
       if (goal.getValue() >= goal.getKey().getEdges().size()) {
-        hasFinishedGoal = true;
+        if (!getUnlockedNegatedEdgesPerGoal().containsKey(goal.getKey())
+            || getUnlockedNegatedEdgesPerGoal().get(goal.getKey()).isEmpty()) {
+          hasFinishedGoal = true;
+        }
         break;
       }
     }
-    weavedEdges = pWeavedEdges == null ? new HashSet<>() : new HashSet<>(pWeavedEdges);
+    weavedEdges =
+        pWeavedEdges == null
+            ? Collections.emptySet()
+            : new HashSet<>(pWeavedEdges);
     edgesToWeave =
         pEdgesToWeave == null
             ? ImmutableSet.copyOf(Collections.emptySet())
@@ -109,6 +142,21 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     for (CFAEdge edge : getWeavedEdges()) {
       builder.append(edge.toString() + "\n");
     }
+
+    builder.append("\nEdges needing unlock:\n");
+    for (Entry<CFAEdgesGoal, ImmutableSet<ImmutableSet<CFAEdge>>> entry : getUnlockedNegatedEdgesPerGoal()
+        .entrySet()) {
+      for (Set<CFAEdge> edges : entry.getValue()) {
+        builder.append("{");
+        for (CFAEdge edge : edges) {
+          builder.append(edge.toString());
+          builder.append(",");
+        }
+        builder.append("}\n");
+      }
+    }
+
+
     return builder.toString();
   }
 
@@ -140,7 +188,9 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     }
     Set<CFAEdgesGoal> coveredGoals = new HashSet<>();
     for (Entry<CFAEdgesGoal, Integer> entry : goals.entrySet()) {
-      if (entry.getValue() >= entry.getKey().getEdges().size()) {
+      if (entry.getValue() >= entry.getKey().getEdges().size()
+          && (unlockedNegatedEdgesPerGoal.get(entry.getKey()) == null
+              || unlockedNegatedEdgesPerGoal.get(entry.getKey()).isEmpty())) {
         coveredGoals.add(entry.getKey());
       }
     }
@@ -166,6 +216,12 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
 
     if (other.goals == null && this.goals == null
         || !other.goals.entrySet().equals(this.goals.entrySet())) {
+      return false;
+    }
+
+    if (other.unlockedNegatedEdgesPerGoal == null && this.unlockedNegatedEdgesPerGoal == null
+        || !other.unlockedNegatedEdgesPerGoal.entrySet()
+            .equals(this.unlockedNegatedEdgesPerGoal.entrySet())) {
       return false;
     }
 
@@ -195,12 +251,8 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     weavedEdges.add(pWeaveEdge);
   }
 
-  public Set<CFAEdge> getWeavedEdges() {
-    return weavedEdges;
-  }
-
-  public void removeWeavedEdge(CFAEdge pCfaEdge) {
-    weavedEdges.remove(pCfaEdge);
+  public ImmutableSet<CFAEdge> getWeavedEdges() {
+    return ImmutableSet.copyOf(weavedEdges);
   }
 
   public boolean isInitialState() {
@@ -225,7 +277,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     return hash;
   }
 
-  private static <T> Set<T> union(Set<T> set1, Set<T> set2) {
+  protected static <T> Set<T> union(Set<T> set1, Set<T> set2) {
     if (set1 == null && set2 == null) {
       return Collections.emptySet();
     } else if (set1 != null && set2 == null) {
@@ -239,7 +291,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     }
   }
 
-  private static ImmutableMap<CFAEdgesGoal, Integer>
+  protected static ImmutableMap<CFAEdgesGoal, Integer>
       mergeGoals(MultiGoalState pState1, MultiGoalState pState2) {
     if (pState1.goals == null && pState2.goals == null) {
       return ImmutableMap.copyOf(Collections.emptyMap());
@@ -260,13 +312,76 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     mergedState.hasFinishedGoal = pState1.hasFinishedGoal || pState2.hasFinishedGoal;
     mergedState.isInitialState = false;
 
+
     mergedState.edgesToWeave =
         ImmutableSet.copyOf(union(pState1.edgesToWeave, pState2.edgesToWeave));
 
     mergedState.weavedEdges = union(pState1.weavedEdges, pState2.weavedEdges);
 
+
     mergedState.goals = mergeGoals(pState1, pState2);
 
+    mergedState.unlockedNegatedEdgesPerGoal = mergeUnlockedNegatedEdges(pState1, pState2);
+
     return mergedState;
+  }
+
+  protected static ImmutableMap<CFAEdgesGoal, ImmutableSet<ImmutableSet<CFAEdge>>>
+      mergeUnlockedNegatedEdges(MultiGoalState pState1, MultiGoalState pState2) {
+    if (pState1.unlockedNegatedEdgesPerGoal == null && pState2.unlockedNegatedEdgesPerGoal == null) {
+      return ImmutableMap.copyOf(Collections.emptyMap());
+    } else if (pState1.unlockedNegatedEdgesPerGoal != null
+        && pState2.unlockedNegatedEdgesPerGoal == null) {
+      return ImmutableMap.copyOf(pState1.unlockedNegatedEdgesPerGoal);
+    } else if (pState1.unlockedNegatedEdgesPerGoal == null && pState2.unlockedNegatedEdgesPerGoal != null) {
+      return ImmutableMap.copyOf(pState2.unlockedNegatedEdgesPerGoal);
+    } else {
+      HashMap<CFAEdgesGoal, ImmutableSet<ImmutableSet<CFAEdge>>> newGoals = new HashMap<>();
+      for (Entry<CFAEdgesGoal, ImmutableSet<ImmutableSet<CFAEdge>>> entry : pState1.unlockedNegatedEdgesPerGoal
+          .entrySet()) {
+        if (pState2.unlockedNegatedEdgesPerGoal.containsKey(entry.getKey())) {
+          HashSet<Set<CFAEdge>> newSet = new HashSet<>(entry.getValue());
+          newSet.retainAll(pState2.unlockedNegatedEdgesPerGoal.get(entry.getKey()));
+
+          newGoals.put(entry.getKey(), setsToImmutable(newSet));
+        }
+      }
+      return ImmutableMap.copyOf(newGoals);
+    }
+  }
+
+  public Map<CFAEdgesGoal, ImmutableSet<ImmutableSet<CFAEdge>>> getUnlockedNegatedEdgesPerGoal() {
+    return unlockedNegatedEdgesPerGoal;
+  }
+
+  public MultiGoalState(
+      ImmutableMap<CFAEdgesGoal, Integer> pGoals,
+      LinkedHashSet<Pair<CFAEdge, WeavingType>> pEdgesToWeave,
+      Set<CFAEdge> pWeavedEdges,
+      Map<CFAEdgesGoal, ImmutableSet<ImmutableSet<CFAEdge>>> pUnlockedNegatedEdgesPerGoal) {
+
+    isInitialState = false;
+    hasFinishedGoal = false;
+
+    goals =
+        pGoals == null ? ImmutableMap.copyOf(Collections.emptySet()) : ImmutableMap.copyOf(pGoals);
+    unlockedNegatedEdgesPerGoal = ImmutableMap.copyOf(pUnlockedNegatedEdgesPerGoal);
+    for (Entry<CFAEdgesGoal, Integer> goal : goals.entrySet()) {
+      if (goal.getValue() >= goal.getKey().getEdges().size()) {
+        if (!getUnlockedNegatedEdgesPerGoal().containsKey(goal.getKey())
+            || getUnlockedNegatedEdgesPerGoal().get(goal.getKey()).isEmpty()) {
+          hasFinishedGoal = true;
+        }
+        break;
+      }
+    }
+    weavedEdges =
+        pWeavedEdges == null
+            ? Collections.emptySet()
+            : new HashSet<>(pWeavedEdges);
+    edgesToWeave =
+        pEdgesToWeave == null
+            ? ImmutableSet.copyOf(Collections.emptySet())
+            : ImmutableSet.copyOf(pEdgesToWeave);
   }
 }

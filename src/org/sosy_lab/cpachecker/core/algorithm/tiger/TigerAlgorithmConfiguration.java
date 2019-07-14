@@ -66,6 +66,13 @@ public class TigerAlgorithmConfiguration {
 
   @Option(
       secure = true,
+    name = "numberOfTestCasesPerGoal",
+    description = "Number of test-cases per goal, WARNING! currently only works if there is a single goal...")
+  private int numberOfTestCasesPerGoal = 1; // default is basic block coverage
+  // TODO fix for multiple test goals
+
+  @Option(
+    secure = true,
       name = "fqlQuery",
       description = "Coverage criterion given as an FQL query")
   private String fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE; // default is basic block coverage
@@ -182,6 +189,10 @@ public class TigerAlgorithmConfiguration {
     name = "goalReduction",
     description = "")
   private GoalReduction goalReduction = GoalReduction.COMPLEX;
+
+  public int getNumberOfTestCasesPerGoal() {
+    return numberOfTestCasesPerGoal;
+  }
 
   public boolean shouldUseTestCompOutput() {
     return useTestCompOutput;

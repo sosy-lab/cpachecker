@@ -22,8 +22,8 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import com.google.common.base.Predicate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -41,12 +41,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithmConfiguration.CoverageCheck;
@@ -63,13 +59,16 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.location.WeaveEdgeFactory;
 import org.sosy_lab.cpachecker.cpa.multigoal.CFAEdgesGoal;
 import org.sosy_lab.cpachecker.cpa.multigoal.MultiGoalCPA;
 import org.sosy_lab.cpachecker.cpa.multigoal.MultiGoalState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
@@ -86,12 +85,6 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
   @Option(secure = true, name = "partitionSize", description = "")
   private int partitionSize = 25;
 
-  private final String StatementCoverage = "COVER EDGES(@BASICBLOCKENTRY)";
-  private final String ErrorCoverage = "COVER EDGES(@CALL(__VERIFIER_error))";
-  private final String conditionCoverage = "COVER EDGES(@CONDITIONEDGE)";
-  private final String decisionCoverage = "COVER EDGES(@DECISIONEDGE)";
-  private final String assumeCoverage = "COVER EDGES(@DECISIONEDGE)";
-  private final String goalPrefix = "Goals:";
   private MultiGoalCPA multiGoalCPA;
 
   public TigerMultiGoalAlgorithm(
@@ -118,124 +111,9 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     return null;
   }
 
-  private Predicate<CFAEdge> getStatementCriterion() {
-    return edge -> edge.getEdgeType() == CFAEdgeType.DeclarationEdge
-        || edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
-        || edge.getEdgeType() == CFAEdgeType.StatementEdge;
-  }
 
-  private Predicate<CFAEdge> getErrorCriterion() {
-    return edge -> edge instanceof CStatementEdge
-        && ((CStatementEdge) edge).getStatement() instanceof CFunctionCall
-        && ((CFunctionCall) ((CStatementEdge) edge).getStatement()).getFunctionCallExpression()
-            .getFunctionNameExpression()
-            .toASTString()
-            .equals("__VERIFIER_error");
-  }
 
-  private Predicate<CFAEdge> getAssumeEdgeCriterion() {
-    return edge -> edge instanceof AssumeEdge;
-  }
 
-  private Set<CFAEdge> extractEdgesByCriterion(final Predicate<CFAEdge> criterion) {
-    Set<CFAEdge> edges = new HashSet<>();
-    for (CFANode node : cfa.getAllNodes()) {
-      edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
-    }
-    return edges;
-  }
-
-  private LinkedList<CFAGoal> tryExtractPredefinedFQL() {
-    // check if its an predefined FQL Statement
-    String fql = tigerConfig.getFqlQuery();
-    Predicate<CFAEdge> edgeCriterion = null;
-    if (fql.equalsIgnoreCase(StatementCoverage)) {
-      edgeCriterion = getStatementCriterion();
-    } else if (fql.equalsIgnoreCase(ErrorCoverage)) {
-      edgeCriterion = getErrorCriterion();
-    } else if (fql.equalsIgnoreCase(decisionCoverage)
-        || fql.equalsIgnoreCase(conditionCoverage)
-        || fql.equalsIgnoreCase(assumeCoverage)) {
-      edgeCriterion = getAssumeEdgeCriterion();
-    }
-    if (edgeCriterion != null) {
-      Set<CFAEdge> edges = extractEdgesByCriterion(edgeCriterion);
-      LinkedList<CFAGoal> goals = new LinkedList<>();
-      for (CFAEdge edge : edges) {
-        goals.add(new CFAGoal(edge));
-      }
-      return goals;
-    }
-    return null;
-  }
-
-  private void reduceGoals(LinkedList<CFAGoal> goals) {
-    // TODO only for test-comp remove afterwards
-    Set<CFAGoal> keptGoals = new HashSet<>(goals);
-    boolean allSuccessorsGoals;
-    for (CFAGoal goal : goals) {
-      if (goal.getCFAEdgesGoal().getEdges().size() != 1) {
-        continue;
-      }
-      CFAEdge edge = goal.getCFAEdgesGoal().getEdges().get(0);
-      if (edge.getSuccessor().getNumEnteringEdges() == 1) {
-        allSuccessorsGoals = true;
-        for (CFAEdge leaving : CFAUtils.leavingEdges(edge.getSuccessor())) {
-          if (!keptGoals.stream()
-              .filter(g -> g.getCFAEdgesGoal().getEdges().get(0) == leaving)
-              .findFirst()
-              .isPresent()) {
-            allSuccessorsGoals = false;
-            break;
-          }
-        }
-        if (allSuccessorsGoals) {
-          keptGoals.remove(goal);
-        }
-      }
-    }
-    goals.clear();
-    goals.addAll(keptGoals);
-  }
-
-  private LinkedList<CFAGoal> extractGoalSyntax() {
-    if (!tigerConfig.getFqlQuery().startsWith(goalPrefix)) {
-      throw new RuntimeException("Could not parse FQL Query");
-    }
-    String query = tigerConfig.getFqlQuery().substring(goalPrefix.length());
-    String[] goals = query.split(",");
-    Set<CFAEdge> edges = new HashSet<>();
-    for (CFANode node : cfa.getAllNodes()) {
-      edges.addAll(CFAUtils.allLeavingEdges(node).toSet());
-    }
-    LinkedList<CFAGoal> cfaGoals = new LinkedList<>();
-    for (String goal : goals) {
-      String[] edgeLabels = goal.split("->");
-      List<CFAEdge> goalEdges = new ArrayList<>();
-      for (String edgeLabel : edgeLabels) {
-        for (CFAEdge edge : edges) {
-          if (edge.getDescription().contains("Label: " + edgeLabel.trim())) {
-            goalEdges.add(edge);
-            break;
-          }
-        }
-      }
-      if (goalEdges.size() >= 1) {
-        cfaGoals.add(new CFAGoal(goalEdges));
-      }
-    }
-    return cfaGoals;
-  }
-
-  private LinkedList<CFAGoal> initializeTestGoalSet() {
-    LinkedList<CFAGoal> goals = tryExtractPredefinedFQL();
-    if (goals == null) {
-      goals = extractGoalSyntax();
-    }
-    // TODO reduce goals for variable output might be wrong?
-    reduceGoals(goals);
-    return goals;
-  }
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet)
@@ -245,9 +123,18 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
         "We will not use the provided reached set since it violates the internal structure of Tiger's CPAs");
     logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
 
-    goalsToCover = initializeTestGoalSet();
-    logger.log(Level.INFO, "trying to cover: " + goalsToCover.size() + " goals");
+    goalsToCover =
+        TestGoalProvider.getInstace(logger).initializeTestGoalSet(tigerConfig.getFqlQuery(), cfa);
+
     testsuite = new TestSuite<>(bddUtils, goalsToCover, tigerConfig);
+
+    //TODO might need to remove after testcomp
+    // because of presence conditinos
+    if(testsuite.getTestGoals() != null) {
+      goalsToCover.removeAll(testsuite.getTestGoals());
+    }
+
+    logger.log(Level.INFO, "trying to cover: " + goalsToCover.size() + " goals");
 
     boolean wasSound = true;
     if (!testGeneration(pReachedSet)) {
@@ -259,12 +146,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
     logger.log(
         Level.INFO,
-        "covered "
-            + testsuite.getNumberOfFeasibleGoals()
-            + " of "
-            + (testsuite.getNumberOfInfeasibleTestGoals()
-                + testsuite.getNumberOfTimedoutTestGoals()
-                + testsuite.getNumberOfFeasibleGoals()));
+        "covered " + testsuite.getNumberOfFeasibleGoals() + " of " + goalsToCover.size());
 
     if (wasSound) {
       return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -273,17 +155,16 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     }
   }
 
-  private boolean testGeneration(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException {
+  private boolean testGeneration(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     boolean wasSound = true;
     // run reachability analsysis for each partition
     logger.logf(Level.FINE, "Starting Tiger MGA with " + goalsToCover.size() + " goals.");
-    Set<Set<CFAGoal>> partitions = createPartition(goalsToCover);
-    for (Set<CFAGoal> partition : partitions) {
-
+    List<Set<CFAGoal>> partitions = createPartition(goalsToCover);
+    for (int i = 0; i < partitions.size(); i++) {
+      Set<CFAGoal> partition = partitions.get(i);
       // remove covered goals from previous runs
       ReachabilityAnalysisResult result =
-          runReachabilityAnalysis(partition, pReachedSet, partitions.size());
+          runReachabilityAnalysis(partition, pReachedSet, partitions.size(), partitions);
 
       if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
         logger.logf(Level.WARNING, "Analysis run was unsound!");
@@ -322,17 +203,22 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     return null;
   }
 
-  private ReachabilityAnalysisResult
-      runReachabilityAnalysis(
-          Set<CFAGoal> partition,
-          ReachedSet pReachedSet,
-          int numberOfPartitions)
-          throws CPAException, InterruptedException {
+  private ReachabilityAnalysisResult runReachabilityAnalysis(
+      Set<CFAGoal> partition,
+      ReachedSet pReachedSet,
+      int numberOfPartitions,
+      List<Set<CFAGoal>> partitions)
+      throws CPAException, InterruptedException {
     boolean sound = true;
     boolean timedout = false;
     assert (cpa instanceof ARGCPA);
     initializeReachedSet(pReachedSet, (ARGCPA) cpa);
-
+    // TODO check for presence condition
+    // TODO enable after the check if correct
+    // if (testsuite.getTestGoals() != null) {
+    // partition.removeAll(testsuite.getTestGoals());
+    // }
+    long elapsedTime = -1;
     ShutdownManager algNotifier =
         ShutdownManager.createWithParent(startupConfig.getShutdownNotifier());
 
@@ -348,110 +234,45 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
         partition.stream().map(goal -> goal.getCFAEdgesGoal()).collect(Collectors.toSet()));
 
     while (pReachedSet.hasWaitingState() && !partition.isEmpty()) {
-
-      Pair<Boolean, Boolean> analysisWasSound_hasTimedOut = runAlgorithm(algorithm, pReachedSet);
-
-      if (analysisWasSound_hasTimedOut.getSecond()) {
-        // timeout, do not retry for other goals
-        timedout = true;
-        break;
-      }
-      if (!analysisWasSound_hasTimedOut.getFirst()) {
-        sound = false;
-      }
-
-      assert ARGUtils.checkARG(pReachedSet);
-      assert (from(pReachedSet).filter(IS_TARGET_STATE).size() < 2);
-      AbstractState reachedState = from(pReachedSet).firstMatch(IS_TARGET_STATE).orNull();
-      if (reachedState != null) {
-
-        ARGState targetState = (ARGState) reachedState;
-
-        Optional<CounterexampleInfo> cexi = targetState.getCounterexampleInformation();
-        assert cexi.isPresent();
-        CounterexampleInfo cex = cexi.get();
-        logger.log(Level.INFO, "Found Counterexample");
-        Region testCasePresenceCondition = bddUtils.getRegionFromWrappedBDDstate(targetState);
-
-        if (cex.isSpurious()) {
-          logger.logf(Level.WARNING, "Counterexample is spurious!");
-        } else {
-          // HashMap<String, Boolean> features =
-          // for null goal get the presencecondition without the validProduct method
-          AbstractState multiGoalState = getMGState(targetState);
-          assert (multiGoalState != null);
-          Set<CFAEdgesGoal> edgesGoals = ((MultiGoalState) multiGoalState).getCoveredGoal();// getGoal();
-          Set<CFAGoal> coveredGoals =
-              partition.stream()
-                  .filter(g -> edgesGoals.contains(g.getCFAEdgesGoal()))
-                  .collect(Collectors.toSet());
-          assert (coveredGoals != null && coveredGoals.size() > 0);
-          partition.removeAll(coveredGoals);
-
-          // TODO do we need presence conditions for goals?
-          testCasePresenceCondition = getPresenceConditionFromCex(cex);
-          for (CFAGoal goal : coveredGoals) {
-            multiGoalCPA.addCoveredGoal(goal.getCFAEdgesGoal());
-            TestCase testcase = createTestcase(cex, testCasePresenceCondition);
-            // only add new Testcase and check for coverage if it does not already exist
-
-            testsuite.addTestCase(testcase, goal);
-            tsWriter.writePartialTestSuite(testsuite);
-            if (testcase.getInputs() != null) {
-              StringBuilder builder = new StringBuilder();
-              builder.append("Wrote testcase with inputs: ");
-              for (TestCaseVariable input : testcase.getInputs()) {
-                builder.append(input.getName() + ":" + input.getValue() + ";\t");
-              }
-              logger
-                  .log(Level.INFO, builder.toString());
-            } else {
-              logger.log(Level.INFO, "Wrote testcase without inputs");
-            }
-
-            if (tigerConfig.getCoverageCheck() == CoverageCheck.SINGLE
-                || tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
-
-              // remove covered goals from goalstocover if
-              // we want only one featureconfiguration per goal
-              // or do not want variability at all
-              // otherwise we need to keep the goals, to cover them for each possible configuration
-              boolean removeGoalsToCover =
-                  !bddUtils.isVariabilityAware()
-                      || tigerConfig.shouldUseSingleFeatureGoalCoverage();
-              HashSet<CFAGoal> goalsToCheckCoverage = new HashSet<>(goalsToCover);
-              if (tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
-                goalsToCheckCoverage.addAll(testsuite.getTestGoals());
-              }
-              goalsToCheckCoverage.remove(goal);
-              Set<CFAGoal> newlyCoveredGoals =
-                  checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover);
-              for (CFAGoal newlyCoveredGoal : newlyCoveredGoals) {
-                partition.remove(newlyCoveredGoal);
-                multiGoalCPA.addCoveredGoal(newlyCoveredGoal.getCFAEdgesGoal());
-              }
-            }
-          }
+      shutdownNotifier.shutdownIfNecessary();
+      boolean exceptionOccured = false;
+      try {
+        long nanoTime = System.nanoTime();
+        Pair<Boolean, Boolean> analysisWasSound_hasTimedOut = runAlgorithm(algorithm, pReachedSet);
+        elapsedTime = System.nanoTime() - nanoTime;
+        if (analysisWasSound_hasTimedOut.getSecond()) {
+          // timeout, do not retry for other goals
+          timedout = true;
+          break;
         }
-
-        removeStateAndWeavedParents(targetState, pReachedSet);
-
-        assert ARGUtils.checkARG(pReachedSet);
-      } else {
-        logger.log(Level.FINE, "There was no target state in the reached set.");
+        if (!analysisWasSound_hasTimedOut.getFirst()) {
+          sound = false;
+        }
+      } catch (CPAException e) {
+        // precaution always set precision to false, thus last target state not handled in case of
+        // exception
+        exceptionOccured = true;
+        logger.logUserException(Level.WARNING, e, "Analysis not completed.");
+        if (!(e instanceof CounterexampleAnalysisFailed
+            || e instanceof RefinementFailedException
+            || e instanceof InfeasibleCounterexampleException)) {
+          throw e;
+        }
+      } catch (InterruptedException e1) {
+        // may be thrown only be counterexample check, if not will be thrown again in finally
+        // block due to respective shutdown notifier call)
+        exceptionOccured = true;
+      } catch (Exception e2) {
+        // TODO for Testcomp continue, might need to remove later
+        exceptionOccured = true;
+      } finally {
+        handleAnalysisResult(pReachedSet, elapsedTime, exceptionOccured, partition, partitions);
       }
-
+      shutdownNotifier.shutdownIfNecessary();
     }
-
     for (CFAGoal goal : partition) {
       testsuite.addInfeasibleGoal(goal, testsuite.getRemainingPresenceCondition(goal));
     }
-
-    // int uncoveredGoalsAtStart = partition.size();
-    // status = testGen(pReachedSet, uncoveredGoalsAtStart, partition);
-    // if (!status.isPrecise() || !status.isSound()) {
-    // return status;
-    // }
     if (!sound) {
       return ReachabilityAnalysisResult.UNSOUND;
     }
@@ -460,6 +281,142 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     }
     return ReachabilityAnalysisResult.SOUND;
 
+  }
+
+  private void handleCoveredGoal(
+      CFAGoal goal,
+      CounterexampleInfo cex,
+      long elapsedTime,
+      Region testCasePresenceCondition,
+      Set<CFAGoal> partition) {
+    multiGoalCPA.addCoveredGoal(goal.getCFAEdgesGoal());
+    TestCase testcase = createTestcase(cex, testCasePresenceCondition);
+    testcase.setElapsedTime(elapsedTime);
+    // only add new Testcase and check for coverage if it does not already exist
+
+    testsuite.addTestCase(testcase, goal);
+    tsWriter.writePartialTestSuite(testsuite);
+    if (testcase.getInputs() != null) {
+      StringBuilder builder = new StringBuilder();
+      builder.append("Wrote testcase with inputs: ");
+      for (TestCaseVariable input : testcase.getInputs()) {
+        builder.append(input.getName() + ":" + input.getValue() + ";\t");
+      }
+      logger.log(Level.INFO, builder.toString());
+    } else {
+      logger.log(Level.INFO, "Wrote testcase without inputs");
+    }
+
+    if (tigerConfig.getCoverageCheck() == CoverageCheck.SINGLE
+        || tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
+
+      // remove covered goals from goalstocover if
+      // we want only one featureconfiguration per goal
+      // or do not want variability at all
+      // otherwise we need to keep the goals, to cover them for each possible
+      // configuration
+      boolean removeGoalsToCover =
+          !bddUtils.isVariabilityAware() || tigerConfig.shouldUseSingleFeatureGoalCoverage();
+      HashSet<CFAGoal> goalsToCheckCoverage = new HashSet<>(goalsToCover);
+      if (tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
+        goalsToCheckCoverage.addAll(testsuite.getTestGoals());
+      }
+      goalsToCheckCoverage.remove(goal);
+      Set<CFAGoal> newlyCoveredGoals =
+          checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover);
+      for (CFAGoal newlyCoveredGoal : newlyCoveredGoals) {
+        partition.remove(newlyCoveredGoal);
+        multiGoalCPA.addCoveredGoal(newlyCoveredGoal.getCFAEdgesGoal());
+      }
+    }
+  }
+
+  private void handleAnalysisResult(
+      ReachedSet pReachedSet,
+      long elapsedTime,
+      boolean exceptionOccured,
+      Set<CFAGoal> partition,
+      List<Set<CFAGoal>> partitions) {
+    assert ARGUtils.checkARG(pReachedSet);
+    assert (from(pReachedSet).filter(IS_TARGET_STATE).size() < 2);
+    AbstractState reachedState = from(pReachedSet).firstMatch(IS_TARGET_STATE).orNull();
+    if (reachedState != null) {
+      ARGState targetState = (ARGState) reachedState;
+
+      if (exceptionOccured) {
+        handleException(partition, targetState);
+      } else {
+        Optional<CounterexampleInfo> cexi = targetState.getCounterexampleInformation();
+        assert cexi.isPresent();
+        CounterexampleInfo cex = cexi.get();
+        handleCounterExample(cex, partition, partitions, targetState, elapsedTime);
+      }
+      removeStateAndWeavedParents(targetState, pReachedSet);
+
+      assert ARGUtils.checkARG(pReachedSet);
+    } else {
+      logger.log(Level.FINE, "There was no target state in the reached set.");
+    }
+  }
+
+  private void handleCounterExample(
+      CounterexampleInfo cex,
+      Set<CFAGoal> partition,
+      List<Set<CFAGoal>> partitions,
+      ARGState targetState,
+      long elapsedTime) {
+    Region testCasePresenceCondition = bddUtils.getRegionFromWrappedBDDstate(targetState);
+    if (cex.isSpurious()) {
+      logger.logf(Level.WARNING, "Counterexample is spurious!");
+    } else {
+      logger.log(Level.INFO, "Found Counterexample");
+      // HashMap<String, Boolean> features =
+      // for null goal get the presencecondition without the validProduct method
+      AbstractState multiGoalState = getMGState(targetState);
+      assert (multiGoalState != null);
+      Set<CFAEdgesGoal> edgesGoals = ((MultiGoalState) multiGoalState).getCoveredGoal();// getGoal();
+      Set<CFAGoal> coveredGoals =
+          partition.stream()
+              .filter(g -> edgesGoals.contains(g.getCFAEdgesGoal()))
+              .collect(Collectors.toSet());
+      assert (coveredGoals != null && coveredGoals.size() > 0);
+
+      // TODO do we need presence conditions for goals?
+      testCasePresenceCondition = getPresenceConditionFromCex(cex);
+      for (CFAGoal goal : coveredGoals) {
+        handleCoveredGoal(goal, cex, elapsedTime, testCasePresenceCondition, partition);
+      }
+
+      assert coveredGoals.size() == 1;
+      CFAGoal goal = coveredGoals.iterator().next();
+      int tcSize = testsuite.getCoveringTestCases(goal).size();
+      if (tigerConfig.getNumberOfTestCasesPerGoal() > 1
+          && tigerConfig.getNumberOfTestCasesPerGoal() > tcSize) {
+        HashSet<CFAEdge> negatedEdges = extractAssumeEdges(cex);
+        // cannot continue with current exploration, since for weaving we need to restart
+        goal.getCFAEdgesGoal().addNegatedEdges(negatedEdges);
+        partitions.add(new HashSet<>(Arrays.asList(goal)));
+      }
+      partition.removeAll(coveredGoals);
+    }
+  }
+
+  private void handleException(Set<CFAGoal> partition, ARGState targetState) {
+    // TODO check if this always works after Testcomp...
+    AbstractState multiGoalState = getMGState(targetState);
+    assert (multiGoalState != null);
+    Set<CFAEdgesGoal> edgesGoals = ((MultiGoalState) multiGoalState).getCoveredGoal();// getGoal();
+    Set<CFAGoal> coveredGoals =
+        partition.stream()
+            .filter(g -> edgesGoals.contains(g.getCFAEdgesGoal()))
+            .collect(Collectors.toSet());
+    assert (coveredGoals != null && coveredGoals.size() > 0);
+
+    partition.removeAll(coveredGoals);
+    for (CFAEdgesGoal edgeGoal : edgesGoals) {
+      multiGoalCPA.addCoveredGoal(edgeGoal);
+    }
+    logger.logf(Level.WARNING, "Counterexample is not precise!");
   }
 
 
@@ -484,8 +441,30 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
     pReachedSet.reAddToWaitlist(parentArgState);
   }
-  private <T> Set<Set<T>> createPartition(LinkedList<T> allEdges) {
-    HashSet<Set<T>> partitioning = new HashSet<>();
+
+  private HashSet<CFAEdge> extractAssumeEdges(CounterexampleInfo cex) {
+    HashSet<CFAEdge> assumeEdges = new HashSet<>();
+    for (CFAEdge edge : cex.getTargetPath().asEdgesList()) {
+
+      if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+        String edgeRawStatement = edge.getRawStatement();
+        if (!edgeRawStatement.startsWith("[weaved")) {
+          if (WeaveEdgeFactory.getSingleton()
+              .getWeavedEdgesToOriginalEdgesMap()
+              .containsKey(edge)) {
+            assumeEdges
+                .add(WeaveEdgeFactory.getSingleton().getWeavedEdgesToOriginalEdgesMap().get(edge));
+          } else {
+            assumeEdges.add(edge);
+          }
+        }
+      }
+    }
+    return assumeEdges;
+  }
+
+  private <T> List<Set<T>> createPartition(LinkedList<T> allEdges) {
+    List<Set<T>> partitioning = new ArrayList<>();
     HashSet<T> partition = new HashSet<>();
     int size = 0;
     if (partitionSizeDistribution == PartitionSizeDistribution.TOTAL) {
@@ -513,6 +492,10 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
   public void shutdownRequested(String pArg0) {
     // TODO Auto-generated method stub
 
+  }
+
+  public boolean allGoalsCovered() {
+    return testsuite.getTestGoals().containsAll(goalsToCover);
   }
 
   // @Override

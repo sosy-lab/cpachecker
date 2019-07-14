@@ -81,4 +81,9 @@ public class MultiGoalCPA extends AbstractCPA {
     return new MultiGoalMergeOperator();
   }
 
+  public void addGoal(CFAEdgesGoal goal) {
+    transferRelation.addGoal(goal);
+
+  }
+
 }

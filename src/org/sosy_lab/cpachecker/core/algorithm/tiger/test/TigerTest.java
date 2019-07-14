@@ -33,7 +33,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.test.CombinedVariableProperty.Combinators;
@@ -72,23 +74,28 @@ public class TigerTest {
 
   private static List<ExpectedGoalProperties> exampleGoalProperties_ifCombinations;
 
+  @Rule
+  public Timeout globalTimeout = Timeout.seconds(90);
+
   @BeforeClass
   public static void initializeExpectedGoalProperties() {
-
     //example.c
     exampleGoalProperties = Lists.newLinkedList();
     ExpectedGoalProperties g1 = new ExpectedGoalProperties("G1", true);
     List<String> addXandY = Lists.newLinkedList();
-    addXandY.add("relevant: x");
-    addXandY.add("relevant: y");
+    addXandY.add("x");
+    addXandY.add("y");
     exampleGoalProperties.add(g1);
     ExpectedGoalProperties g2 = new ExpectedGoalProperties("G2", true);
-    g2.addVariableProperty(new RelativeVariableProperty("relevant: x", "relevant: y",
+    g2.addVariableProperty(
+        new RelativeVariableProperty(
+            "x",
+            "y",
         Comparators.LT, GoalPropertyType.INPUT));
     g2.addVariableProperty(
         new RelativeVariableProperty(
             "tmp",
-            "relevant: x",
+            "x",
             Comparators.EQ,
             GoalPropertyType.INPUTANDOUTPUT));
     exampleGoalProperties.add(g2);
@@ -96,14 +103,14 @@ public class TigerTest {
     ExpectedGoalProperties g3 = new ExpectedGoalProperties("G3", true);
     g3.addVariableProperty(
         new RelativeVariableProperty(
-            "relevant: x",
-            "relevant: y",
+            "x",
+            "y",
             Comparators.GE,
             GoalPropertyType.INPUT));
     g3.addVariableProperty(
         new RelativeVariableProperty(
             "tmp",
-            "relevant: y",
+            "y",
             Comparators.EQ,
             GoalPropertyType.INPUTANDOUTPUT));
     exampleGoalProperties.add(g3);
@@ -113,8 +120,8 @@ public class TigerTest {
     g1 = new ExpectedGoalProperties("G1", true);
     g1.addVariableProperty(
         new RelativeVariableProperty(
-            "relevant: x",
-            "relevant: y",
+            "x",
+            "y",
             Comparators.LT,
             GoalPropertyType.INPUT));
     g1.addVariableProperty(new CombinedRelativeVariableProperty("tmp", addXandY,
@@ -123,16 +130,25 @@ public class TigerTest {
     g2 = new ExpectedGoalProperties("G2", false);
     exampleGoalProperties_v1.add(g2);
     g3 = new ExpectedGoalProperties("G3", true);
-    g3.addVariableProperty(new RelativeVariableProperty("relevant: x", "relevant: y",
+    g3.addVariableProperty(
+        new RelativeVariableProperty(
+            "x",
+            "y",
         Comparators.GT, GoalPropertyType.INPUT));
-    g3.addVariableProperty(new RelativeVariableProperty("tmp", "relevant: y",
+    g3.addVariableProperty(
+        new RelativeVariableProperty(
+            "tmp",
+            "y",
         Comparators.EQ, GoalPropertyType.INPUTANDOUTPUT));
     exampleGoalProperties_v1.add(g3);
 
     //example_loop.c
     exampleGoalProperties_loop = Lists.newLinkedList();
     g1 = new ExpectedGoalProperties("G1", true);
-    g1.addVariableProperty(new RelativeVariableProperty("relevant: x", "relevant: y",
+    g1.addVariableProperty(
+        new RelativeVariableProperty(
+            "x",
+            "y",
         Comparators.LT, GoalPropertyType.INPUT));
     exampleGoalProperties_loop.add(g1);
 
@@ -144,24 +160,33 @@ public class TigerTest {
     //example_ifCombinations.c
     exampleGoalProperties_ifCombinations = Lists.newLinkedList();
     g1 = new ExpectedGoalProperties("G1", true);
-    g1.addVariableProperty(new RelativeVariableProperty("relevant: x", "relevant: y",
+    g1.addVariableProperty(
+        new RelativeVariableProperty(
+            "x",
+            "y",
         Comparators.LT, GoalPropertyType.INPUT));
-    g1.addVariableProperty(new RelativeVariableProperty("relevant: y", "relevant: z",
+    g1.addVariableProperty(
+        new RelativeVariableProperty(
+            "y",
+            "z",
         Comparators.LT, GoalPropertyType.INPUT));
     addXandY = Lists.newLinkedList();
-    addXandY.add("relevant: x");
-    addXandY.add("relevant: y");
+    addXandY.add("x");
+    addXandY.add("y");
     g1.addVariableProperty(new CombinedRelativeVariableProperty("tmp", addXandY,
         Combinators.ADD, Comparators.LE, GoalPropertyType.INPUTANDOUTPUT));
     exampleGoalProperties_ifCombinations.add(g1);
     g2 = new ExpectedGoalProperties("G2", true);
-    g2.addVariableProperty(new RelativeVariableProperty("relevant: x", "relevant: y",
+    g2.addVariableProperty(
+        new RelativeVariableProperty(
+            "x",
+            "y",
         Comparators.LT, GoalPropertyType.INPUT));
     g2.addVariableProperty(new CombinedRelativeVariableProperty("tmp", addXandY,
         Combinators.ADD, Comparators.LE, GoalPropertyType.INPUTANDOUTPUT));
     List<String> addXandYandZ = Lists.newLinkedList();
     addXandYandZ.addAll(addXandY);
-    addXandYandZ.add("relevant: z");
+    addXandYandZ.add("z");
     g2.addVariableProperty(new CombinedRelativeVariableProperty("tmp", addXandYandZ,
         Combinators.ADD, Comparators.EQ, GoalPropertyType.INPUTANDOUTPUT));
     exampleGoalProperties_ifCombinations.add(g2);
@@ -242,6 +267,7 @@ public class TigerTest {
     prop.put("tiger.outputInterface", "tmp");
     prop.put("tiger.coverageCheck", "All");
     prop.put("tiger.fqlQuery", "Goals: G1, G2, G3");
+    prop.put("cpa.predicate.merge", "SEP");
 
     TestResults results = CPATestRunner.run(prop, EXAMPLE_C);
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -263,20 +289,6 @@ public class TigerTest {
     assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
     for (ExpectedGoalProperties exp : exampleGoalProperties) {
       assertTrue(exp.checkProperties(testSuite));
-    }
-    List<String> goalsToBeCovered = Lists.newLinkedList();
-    goalsToBeCovered.add("G1");
-    goalsToBeCovered.add("G2");
-    for(TestCase t : testSuite.getMapping().keySet()){
-      Set<? extends Goal> coveredGoals = testSuite.getTestGoalsForTestcase(t);
-      List<String> goalLabels = Lists.newLinkedList();
-      for(Goal g : coveredGoals) {
-        goalLabels.add(g.getName());
-      }
-      assertThat(goalsToBeCovered.size()==goalLabels.size());
-      for(String goal : goalsToBeCovered) {
-        assertThat(goalLabels.contains(goal));
-      }
     }
   }
 
@@ -303,7 +315,6 @@ public class TigerTest {
     }
   }
 
-  @Test
   public void testPredicateEmailSimulatorForTimeout() throws Exception {
     Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
@@ -365,7 +376,7 @@ public class TigerTest {
     }
   }
 
-  @Test
+  @Test()
   public void testPredicateExample_ifCombinations() throws Exception {
     Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));

@@ -30,6 +30,10 @@ public class CFAGoal extends Goal {
 
   CFAEdgesGoal cfaEdgesGoal;
 
+  public CFAGoal(CFAEdgesGoal cfaEdgesGoal) {
+    this.cfaEdgesGoal = cfaEdgesGoal;
+  }
+
   public CFAGoal(List<CFAEdge> pEdges) {
     cfaEdgesGoal = new CFAEdgesGoal(pEdges);
   }

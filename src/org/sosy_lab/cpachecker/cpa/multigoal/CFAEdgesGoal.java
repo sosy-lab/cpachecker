@@ -19,12 +19,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.multigoal;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class CFAEdgesGoal {
 
   private List<CFAEdge> edges;
+  private Set<Set<CFAEdge>> negatedEdges;
+
 
   public CFAEdgesGoal(List<CFAEdge> pEdges) {
     edges = pEdges;
@@ -40,6 +46,20 @@ public class CFAEdgesGoal {
       }
     }
     return false;
+  }
+
+  public void addNegatedEdges(Set<CFAEdge> pEdges) {
+    if (negatedEdges == null) {
+      negatedEdges = new HashSet<>();
+    }
+    negatedEdges.add(pEdges);
+  }
+
+  public Set<Set<CFAEdge>> getNegatedEdges() {
+    if (negatedEdges == null) {
+      return Collections.emptySet();
+    }
+    return negatedEdges;
   }
 
   public List<CFAEdge> getEdges() {
@@ -67,6 +87,41 @@ public class CFAEdgesGoal {
 
   public void addEdge(CFAEdge pEdge) {
     edges.add(pEdge);
+  }
+
+  public boolean containsNegatedEdge(CFAEdge pCfaEdge) {
+    for (Collection<CFAEdge> negatedEdges : getNegatedEdges()) {
+      for (CFAEdge edge : negatedEdges) {
+        if (edge.equals(pCfaEdge)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("Edges:\n{");
+    for (CFAEdge edge : edges) {
+      builder.append(edge.toString());
+      builder.append(",");
+    }
+    builder.append("}\n");
+
+    if (negatedEdges != null) {
+      builder.append("Negated Edges:\n");
+      for (Set<CFAEdge> nedges : negatedEdges) {
+        builder.append("{");
+        for (CFAEdge edge : nedges) {
+          builder.append(edge.toString());
+          builder.append(",");
+        }
+        builder.append("}\n");
+      }
+    }
+    return builder.toString();
   }
 
 }
