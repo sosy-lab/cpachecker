@@ -87,6 +87,17 @@ public class AbstractionFormula implements Serializable {
     this.idsOfStoredAbstractionReused = ImmutableSet.copyOf(pIdOfStoredAbstractionReused);
   }
 
+  /**
+   * create a copy with the same formula information, but a new unique object-id.
+   *
+   * <p>As we do not override {@link Object#equals} in AbstractionFormula, the new copy will not be
+   * "equal" to the old instance.
+   */
+  public AbstractionFormula copyOf() {
+    return new AbstractionFormula(
+        fMgr, region, formula, instantiatedFormula, blockFormula, idsOfStoredAbstractionReused);
+  }
+
   public boolean isReusedFromStoredAbstraction() {
     return !idsOfStoredAbstractionReused.isEmpty();
   }

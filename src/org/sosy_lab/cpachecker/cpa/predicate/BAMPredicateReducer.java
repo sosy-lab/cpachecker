@@ -116,7 +116,7 @@ public class BAMPredicateReducer implements Reducer {
     }
 
     return PredicateAbstractState.mkAbstractionState(
-        pathFormula, abstraction, abstractionLocations);
+        pathFormula, abstraction.copyOf(), abstractionLocations);
   }
 
   @Override
@@ -177,7 +177,7 @@ public class BAMPredicateReducer implements Reducer {
     pathFormula = pmgr.makeNewPathFormula(pathFormula, ssa, newPts);
 
     return PredicateAbstractState.mkAbstractionState(
-        pathFormula, abstractionFormula, abstractionLocations);
+        pathFormula, abstractionFormula.copyOf(), abstractionLocations);
   }
 
   @Override
@@ -338,7 +338,7 @@ public class BAMPredicateReducer implements Reducer {
     PersistentMap<CFANode, Integer> abstractionLocations = rootState.getAbstractionLocationsOnPath();
 
     return PredicateAbstractState.mkAbstractionState(
-        newPathFormula, newAbstractionFormula, abstractionLocations);
+        newPathFormula, newAbstractionFormula.copyOf(), abstractionLocations);
   }
 
   @Override
