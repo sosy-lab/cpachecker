@@ -899,8 +899,8 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
             conv.ptsMgr.makePointerAssignment(
                 targetName,
                 targetType,
-                oldIndex + 1,
                 oldIndex,
+                oldIndex + 1,
                 address,
                 rhs);
       } else {
