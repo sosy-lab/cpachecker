@@ -24,15 +24,59 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.java_smt.api.Formula;
 
 public interface SLHeapDelegate {
-  public BigInteger getAllocationSize(CExpression pExp) throws Exception;
+
+  /**
+   * Evaluates a CEpression's numeric value.
+   *
+   * @param pExp - The expression to be evaluated.
+   * @return numeric value
+   * @throws Exception
+   */
+  public BigInteger getValueForCExpression(CExpression pExp) throws Exception;
+
+  /**
+   * Manipulates the heap concerning malloc().
+   *
+   * @param pPtrName - name of the pointer to the allocated memory.
+   * @param pSize - size of range.
+   */
+  public void handleMalloc(String pPtrName, CExpression pSize) throws Exception;
+
+  /**
+   * Manipulates the heap concerning realloc().
+   *
+   * @param pNewPtrName - name of the pointer of the new allocated memory.
+   * @param pOldPtrName - name of the pointer of the reallocated memory.
+   * @param pSize - size of range.
+   * @return true if memory was reallocated successfully, false otherwise.
+   */
+  public boolean handleRealloc(String pNewPtrName, CExpression pOldPtrName, CExpression pSize)
+      throws Exception;
+
+  /**
+   * Manipulates the heap concerning calloc().
+   *
+   * @param pPtrName - name of the pointer to the allocated memory.
+   * @param pNum - number of objects.
+   * @param pSize - size of objects.
+   */
+  public void handleCalloc(String pPtrName, CExpression pNum, CExpression pSize) throws Exception;
+
+  /**
+   * Frees allocated memory.
+   *
+   * @param pPtrName - name of the pointer to the allocated memory.
+   * @return true if memory was freed successfully, false otherwise.
+   */
+  public boolean handleFree(CExpression pPtrName) throws Exception;
 
   /**
    * A new range of consecutive fresh cells is allocated on the heap.
    *
-   * @param pVarName - pointer name.
-   * @param size - size of range.
+   * @param pPtrName - name of the pointer to the allocated memory.
+   * @param pSize - size of range.
    */
-  public void addToHeap(String pVarName, BigInteger size);
+  public void addToHeap(String pPtrName, BigInteger pSize) throws Exception;
 
   /**
    * The range associated with the given pointer is deallocated i.e. removed from the heap.

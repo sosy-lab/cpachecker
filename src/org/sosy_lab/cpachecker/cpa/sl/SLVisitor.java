@@ -19,7 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.sl;
 
-import java.math.BigInteger;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.java_smt.api.Formula;
 
 /**
  * Keeps the separation logic heap up-to-date.
@@ -114,11 +113,7 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
     CExpression fctExp = pIastFunctionCallExpression.getFunctionNameExpression();
     if (((CIdExpression) fctExp).getName().equals("free")) {
       CExpression addrExp = pIastFunctionCallExpression.getParameterExpressions().get(0);
-      Formula addrFormula = delegate.checkAllocation(addrExp);
-      if (addrFormula == null) {
-        return true;
-      }
-      delegate.removeFromHeap(addrFormula);
+      return !delegate.handleFree(addrExp);
     }
     return false;
   }
@@ -278,21 +273,39 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   public Boolean visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement)
       throws Exception {
     final CFunctionCallExpression fctExp = pIastFunctionCallAssignmentStatement.getRightHandSide();
-    final boolean rightIsTarget = fctExp.accept(this);
+    boolean rightIsTarget = fctExp.accept(this);
     final CIdExpression fctNameExp = (CIdExpression) fctExp.getFunctionNameExpression();
 
     final CLeftHandSide lhSide = pIastFunctionCallAssignmentStatement.getLeftHandSide();
     final boolean leftIsTarget = lhSide.accept(this);
 
+    final String fctName = fctNameExp.getName();
+    final List<CExpression> params = fctExp.getParameterExpressions();
 
-    if (fctNameExp.getName().equals("malloc")) {
+    if (fctName.equals("malloc")) {
+      final String ptrName = ((CIdExpression) lhSide).getName();
+      final CExpression allocationSize = params.get(0);
+      delegate.handleMalloc(ptrName, allocationSize);
+    } else if (fctName.equals("calloc")) {
+      final String ptrName = ((CIdExpression) lhSide).getName();
+      final CExpression num = params.get(0);
+      final CExpression size = params.get(1);
+      delegate.handleCalloc(ptrName, num, size);
+    } else if (fctName.equals("realloc")) {
+      final String ptrName = ((CIdExpression) lhSide).getName();
+      final CExpression oldPtr = params.get(0);
+      final CExpression size = params.get(1);
+      rightIsTarget = !delegate.handleRealloc(ptrName, oldPtr, size);
+    }
+
+
+
+      // BigInteger size = delegate.getAllocationSize(allocationSize);
+      // delegate.addToHeap(varName, size);
       // TODO handle types other than char
       // CType tmp = ((CPointerType) lhSide.getExpressionType()).getType();
-      final String varName = ((CIdExpression) lhSide).getName();
-      CExpression allocationSize = fctExp.getParameterExpressions().get(0);
-      BigInteger size = delegate.getAllocationSize(allocationSize);
-      delegate.addToHeap(varName, size);
-    }
+
+
 
     checkPtrAssignment(lhSide, fctExp);
 

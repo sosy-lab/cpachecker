@@ -233,7 +233,32 @@ public class SLTransferRelation
   // Delegate methods starting here.
   // -------------------------------------------------------------------------------------------------
   @Override
-  public void addToHeap(String pVarName, BigInteger size) {
+  public void handleMalloc(String pPtrName, CExpression pSize) throws Exception {
+    BigInteger size = getValueForCExpression(pSize);
+    addToHeap(pPtrName, size);
+  }
+
+  @Override
+  public boolean handleRealloc(String pNewPtrName, CExpression pOldPtrName, CExpression pSize)
+      throws Exception {
+    Formula addrFormula = checkAllocation(pOldPtrName);
+    if (addrFormula == null) {
+      return false;
+    }
+    removeFromHeap(addrFormula);
+    BigInteger size = getValueForCExpression(pSize);
+    addToHeap(pNewPtrName, size);
+    return true;
+  }
+
+  @Override
+  public void handleCalloc(String pPtrName, CExpression pNum, CExpression pSize) throws Exception {
+    BigInteger size = getValueForCExpression(pNum).multiply(getValueForCExpression(pSize));
+    addToHeap(pPtrName, size);
+  }
+
+  @Override
+  public void addToHeap(String pVarName, BigInteger size) throws Exception {
     for (int i = 0; i < size.intValueExact(); i++) {
       Formula f = getFormulaForVarName(pVarName);
       if (i > 0) {
@@ -265,7 +290,7 @@ public class SLTransferRelation
    */
   @SuppressWarnings("resource")
   @Override
-  public BigInteger getAllocationSize(CExpression pExp) throws Exception {
+  public BigInteger getValueForCExpression(CExpression pExp) throws Exception {
     Formula f = pfm.expressionToFormula(pathFormulaPrev, pExp, edge);
     final String dummyVarName = "0_allocationSize";
     f = fm.makeEqual(bvfm.makeVariable(32, dummyVarName), f);
@@ -315,11 +340,11 @@ public class SLTransferRelation
       return null;
     }
 
+    // Syntactical check for performance.
     if (heap.containsKey(fAddr)) {
       if (fVal != null) {
         heap.put(fAddr, fVal);
       }
-      // Syntactical check for performance.
       return fAddr;
     }
 
@@ -339,6 +364,16 @@ public class SLTransferRelation
       env.close();
     }
     return null;
+  }
+
+  @Override
+  public boolean handleFree(CExpression pPtrName) throws Exception {
+    Formula addrFormula = checkAllocation(pPtrName);
+    if (addrFormula == null) {
+      return false;
+    }
+    removeFromHeap(addrFormula);
+    return true;
   }
 
 }
