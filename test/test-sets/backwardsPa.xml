@@ -29,6 +29,7 @@
     <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
   </tasks>
   <tasks name="ReachSafety-BitVectorsReach">
+		aehnlich zum controlflow
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
   </tasks>
   -->
@@ -40,17 +41,20 @@
     <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
   </tasks>
   <tasks name="ReachSafety-Floats">
+		einfach, aber komplizierter
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
   </tasks>
+ -->
   <tasks name="ReachSafety-HeapReach">
+		<!-- mit mehr array und pointer -->
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
   </tasks>
-  -->
   <tasks name="ReachSafety-Loops">
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
   </tasks>
   <!--
   <tasks name="ReachSafety-ProductLines">
+    wenig pointer, aber viel branches
     <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
   </tasks>
   <tasks name="ReachSafety-Recursive">
@@ -59,9 +63,10 @@
   <tasks name="ReachSafety-Sequentialized">
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
   </tasks>
+  -->
   <tasks name="Systems_DeviceDriversLinux64_ReachSafety">
+		<!-- vll besser bw, aber viele pointer und structs -->
     <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
     <option name="-64"/>
   </tasks>
-  -->
 </benchmark>
