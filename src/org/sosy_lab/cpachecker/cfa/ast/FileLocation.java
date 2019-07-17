@@ -50,6 +50,8 @@ public class FileLocation implements Serializable {
   private final int startingLineInOrigin;
   private final int endingLineInOrigin;
 
+  private final boolean offsetRelatedToOrigin;
+
   public FileLocation(
       String pFileName, int pOffset, int pLength, int pStartingLine, int pEndingLine) {
     this(
@@ -60,7 +62,8 @@ public class FileLocation implements Serializable {
         pStartingLine,
         pEndingLine,
         pStartingLine,
-        pEndingLine);
+        pEndingLine,
+        true);
   }
 
   public FileLocation(
@@ -71,7 +74,8 @@ public class FileLocation implements Serializable {
       int pStartingLine,
       int pEndingLine,
       int pStartingLineInOrigin,
-      int pEndingLineInOrigin) {
+      int pEndingLineInOrigin,
+      boolean pOffsetRelatedToOrigin) {
     fileName = checkNotNull(pFileName);
     niceFileName = checkNotNull(pNiceFileName);
     offset = pOffset;
@@ -80,6 +84,7 @@ public class FileLocation implements Serializable {
     endingLine = pEndingLine;
     startingLineInOrigin = pStartingLineInOrigin;
     endingLineInOrigin = pEndingLineInOrigin;
+    offsetRelatedToOrigin = pOffsetRelatedToOrigin;
   }
 
   public static final FileLocation DUMMY =
@@ -113,6 +118,7 @@ public class FileLocation implements Serializable {
     int endingLine = Integer.MIN_VALUE;
     int endingLineInOrigin = Integer.MIN_VALUE;
     int endOffset = Integer.MIN_VALUE;
+    boolean offsetRelatedToOrigin = true;
     for (FileLocation loc : locations) {
       if (loc == DUMMY) {
         continue;
@@ -130,6 +136,7 @@ public class FileLocation implements Serializable {
       endingLine = Math.max(endingLine, loc.getEndingLineNumber());
       endingLineInOrigin = Math.max(endingLineInOrigin, loc.getEndingLineInOrigin());
       endOffset = Math.max(endOffset, loc.getNodeOffset() + loc.getNodeLength());
+      offsetRelatedToOrigin &= loc.offsetRelatedToOrigin;
     }
 
     if (fileName == null) {
@@ -144,7 +151,8 @@ public class FileLocation implements Serializable {
         startingLine,
         endingLine,
         startingLineInOrigin,
-        endingLineInOrigin);
+        endingLineInOrigin,
+        offsetRelatedToOrigin);
   }
 
   public String getFileName() {
@@ -178,6 +186,10 @@ public class FileLocation implements Serializable {
 
   public int getEndingLineInOrigin() {
     return endingLineInOrigin;
+  }
+
+  public boolean isOffsetRelatedToOrigin() {
+    return offsetRelatedToOrigin;
   }
 
   /* (non-Javadoc)

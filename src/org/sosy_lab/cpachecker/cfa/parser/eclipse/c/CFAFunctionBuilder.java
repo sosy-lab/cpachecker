@@ -1310,7 +1310,8 @@ class CFAFunctionBuilder extends ASTVisitor {
               fileLocation.getStartingLineNumber(),
               loc.getEndingLineNumber(),
               fileLocation.getStartingLineInOrigin(),
-              loc.getEndingLineInOrigin());
+              loc.getEndingLineInOrigin(),
+              fileLocation.isOffsetRelatedToOrigin() && loc.isOffsetRelatedToOrigin());
     }
 
     CExpression expression = exp;
@@ -1628,7 +1629,8 @@ class CFAFunctionBuilder extends ASTVisitor {
         f.getStartingLineNumber(),
         f.getStartingLineNumber(),
         f.getStartingLineInOrigin(),
-        f.getStartingLineInOrigin());
+        f.getStartingLineInOrigin(),
+        f.isOffsetRelatedToOrigin());
   }
 
   /////////////////////////////////////////////////////////////////////////////
