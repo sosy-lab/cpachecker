@@ -21,6 +21,7 @@ package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.java_smt.api.Formula;
 
 public interface SLHeapDelegate {
@@ -30,7 +31,6 @@ public interface SLHeapDelegate {
    *
    * @param pExp - The expression to be evaluated.
    * @return numeric value
-   * @throws Exception
    */
   public BigInteger getValueForCExpression(CExpression pExp) throws Exception;
 
@@ -74,9 +74,10 @@ public interface SLHeapDelegate {
    * A new range of consecutive fresh cells is allocated on the heap.
    *
    * @param pPtrName - name of the pointer to the allocated memory.
-   * @param pSize - size of range.
+   * @param pSize - size of the range.
+   * @param pType - type of the value to be stored on the heap.
    */
-  public void addToHeap(String pPtrName, BigInteger pSize) throws Exception;
+  public void addToHeap(String pPtrName, BigInteger pSize, CType pType) throws Exception;
 
   /**
    * The range associated with the given pointer is deallocated i.e. removed from the heap.

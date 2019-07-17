@@ -238,7 +238,7 @@ public class SLTransferRelation
   @Override
   public void handleMalloc(String pPtrName, CExpression pSize) throws Exception {
     BigInteger size = getValueForCExpression(pSize);
-    addToHeap(pPtrName, size);
+    addToHeap(pPtrName, size, pSize.getExpressionType());
   }
 
   @Override
@@ -250,18 +250,18 @@ public class SLTransferRelation
     }
     removeFromHeap(addrFormula);
     BigInteger size = getValueForCExpression(pSize);
-    addToHeap(pNewPtrName, size);
+    addToHeap(pNewPtrName, size, pSize.getExpressionType());
     return true;
   }
 
   @Override
   public void handleCalloc(String pPtrName, CExpression pNum, CExpression pSize) throws Exception {
     BigInteger size = getValueForCExpression(pNum).multiply(getValueForCExpression(pSize));
-    addToHeap(pPtrName, size);
+    addToHeap(pPtrName, size, pSize.getExpressionType());
   }
 
   @Override
-  public void addToHeap(String pVarName, BigInteger size) throws Exception {
+  public void addToHeap(String pVarName, BigInteger size, CType pType) throws Exception {
     for (int i = 0; i < size.intValueExact(); i++) {
       Formula f = getFormulaForVarName(pVarName);
       if (i > 0) {
