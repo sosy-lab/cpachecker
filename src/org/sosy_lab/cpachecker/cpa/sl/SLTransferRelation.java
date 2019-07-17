@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -86,12 +87,14 @@ public class SLTransferRelation
 
   private Map<Formula, BigInteger> allocationSizes;
   private CFAEdge edge;
+  private final MachineModel machineModel;
 
 
-  public SLTransferRelation(LogManager pLogger) {
+  public SLTransferRelation(LogManager pLogger, MachineModel pMachineModel) {
     logger = pLogger;
     slVisitor = new SLVisitor(this);
     allocationSizes = new HashMap<>();
+    machineModel = pMachineModel;
   }
 
   @Override

@@ -67,7 +67,11 @@ public class SLCPA extends AbstractCPA {
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
-    super("sep", "sep", new FlatLatticeDomain(), new SLTransferRelation(pLogger));
+    super(
+        "sep",
+        "sep",
+        new FlatLatticeDomain(),
+        new SLTransferRelation(pLogger, pCfa.getMachineModel()));
 
     Solver solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     fm = solver.getFormulaManager();
