@@ -39,6 +39,15 @@ def parse_vcloud_run_result(values):
             raise ValueError('Cannot parse "{0}" as a time value.'.format(s))
         return float(s[:-1])
 
+    def set_exitcode(new):
+        if "exitcode" in result_values:
+            old = result_values["exitcode"]
+            assert (
+                old == new
+            ), "Inconsistent exit codes {} and {} from VerifierCloud".format(old, new)
+        else:
+            result_values["exitcode"] = new
+
     for key, value in values:
         value = value.strip()
         if key in ["cputime", "walltime"]:
@@ -46,9 +55,11 @@ def parse_vcloud_run_result(values):
         elif key == "memory":
             result_values["memory"] = int(value.strip("B"))
         elif key == "exitcode":
-            result_values["exitcode"] = benchexec.util.ProcessExitCode.from_raw(
-                int(value)
-            )
+            set_exitcode(benchexec.util.ProcessExitCode.from_raw(int(value)))
+        elif key == "returnvalue":
+            set_exitcode(benchexec.util.ProcessExitCode.create(value=int(value)))
+        elif key == "exitsignal":
+            set_exitcode(benchexec.util.ProcessExitCode.create(signal=int(value)))
         elif (
             key in ["host", "terminationreason", "cpuCores", "memoryNodes"]
             or key.startswith("blkio-")
@@ -57,14 +68,7 @@ def parse_vcloud_run_result(values):
             or key.startswith("cputime-cpu")
         ):
             result_values[key] = value
-        elif key not in [
-            "command",
-            "timeLimit",
-            "coreLimit",
-            "memoryLimit",
-            "returnvalue",
-            "exitsignal",
-        ]:
+        elif key not in ["command", "timeLimit", "coreLimit", "memoryLimit"]:
             result_values["vcloud-" + key] = value
 
     return result_values
