@@ -26,6 +26,8 @@ import collections
 import os
 import sys
 
+import benchexec.util
+
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
 
@@ -44,7 +46,9 @@ def parse_vcloud_run_result(values):
         elif key == "memory":
             result_values["memory"] = int(value.strip("B"))
         elif key == "exitcode":
-            result_values["exitcode"] = int(value)
+            result_values["exitcode"] = benchexec.util.ProcessExitCode.from_raw(
+                int(value)
+            )
         elif (
             key in ["host", "terminationreason", "cpuCores", "memoryNodes"]
             or key.startswith("blkio-")
