@@ -96,9 +96,10 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 @RunWith(Parameterized.class)
 public class ConfigurationFileChecks {
 
-  private static final Pattern INDICATES_MISSING_INPUT_FILE =
+  private static final Pattern INDICATES_MISSING_FILES =
       Pattern.compile(
-          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Could not read precision from file.*",
+          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Could not read precision from file.*"
+              + "|.*The SMT solver MATHSAT5 is not available on this machine because of missing libraries \\(no optimathsat5j in java\\.library\\.path.*",
           Pattern.DOTALL);
 
   private static final Pattern ALLOWED_WARNINGS =
@@ -543,7 +544,7 @@ public class ConfigurationFileChecks {
                 .getStoredLogRecords()
                 .stream()
                 .map(LogRecord::getMessage)
-                .filter(s -> INDICATES_MISSING_INPUT_FILE.matcher(s).matches()))
+                .filter(s -> INDICATES_MISSING_FILES.matcher(s).matches()))
         .isEmpty();
 
     if (!isOptionEnabled(config, "analysis.disable")) {
@@ -632,7 +633,7 @@ public class ConfigurationFileChecks {
     Stream<String> result = logRecords
             .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
             .map(LogRecord::getMessage)
-            .filter(s -> !INDICATES_MISSING_INPUT_FILE.matcher(s).matches())
+            .filter(s -> !INDICATES_MISSING_FILES.matcher(s).matches())
             .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
 
     if (isUnmaintainedConfig()) {
