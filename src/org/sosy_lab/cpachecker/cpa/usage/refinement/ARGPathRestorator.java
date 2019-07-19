@@ -29,7 +29,7 @@ public class ARGPathRestorator implements PathRestorator {
 
   @Override
   public ARGPath computePath(ARGState pLastElement) {
-    return ARGUtils.getOnePathFromTo((s -> s.getParents().isEmpty()), pLastElement);
+    return ARGUtils.getOnePathFromTo(s -> s.getParents().isEmpty(), pLastElement);
   }
 
   @Override
