@@ -581,6 +581,7 @@ public class ConfigurationFileChecks {
           .addConverter(FileOption.class, fileTypeConverter)
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
           .setOption("differential.program", createEmptyProgram(false))
+          .setOption("statistics.memory", "false")
           .build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
       assumeNoException(e);
