@@ -66,9 +66,7 @@ def _generate_validation_file(testdef_path):
     )
     if input_rundef_name:
         witness_file = witness_file + input_rundef_name + "."
-    witness_file = (
-        witness_file + "${taskdef_name}.files/" + "output/witness.graphml.gz"
-    )
+    witness_file = witness_file + "${taskdef_name}.files/" + "output/witness.graphml.gz"
     test_dir = _get_test_directory()
     rundef.set("name", "witnessValidation")
     analysis_option = etree.Element("option")
