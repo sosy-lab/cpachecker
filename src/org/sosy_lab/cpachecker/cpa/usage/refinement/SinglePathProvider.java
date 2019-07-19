@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -44,7 +43,7 @@ public class SinglePathProvider extends
   private final Set<List<Integer>> refinedStates = new HashSet<>();
   private final Map<UsageInfo, ExtendedARGPath> cachedPaths = new HashMap<>();
   private final Set<UsageInfo> skippedUsages;
-  private final BAMMultipleCEXSubgraphComputer subgraphComputer;
+  private final PathRestorator subgraphComputer;
 
   private final Function<ARGState, Integer> idExtractor;
 
@@ -56,7 +55,7 @@ public class SinglePathProvider extends
 
   public SinglePathProvider(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
-      BAMMultipleCEXSubgraphComputer pComputer,
+      PathRestorator pComputer,
       Function<ARGState, Integer> pExtractor) {
 
     super(pWrapper);

@@ -37,8 +37,6 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
-import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphIterator;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -50,8 +48,8 @@ public class PathPairIterator extends
 
   private final Set<List<Integer>> refinedStates = new HashSet<>();
   //private final BAMCPA bamCpa;
-  private BAMMultipleCEXSubgraphComputer subgraphComputer;
-  private final Map<UsageInfo, BAMSubgraphIterator> targetToPathIterator;
+  private PathRestorator subgraphComputer;
+  private final Map<UsageInfo, PathIterator> targetToPathIterator;
   private final Set<UsageInfo> skippedUsages;
 
   //Statistics
@@ -77,7 +75,7 @@ public class PathPairIterator extends
 
   public PathPairIterator(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
-      BAMMultipleCEXSubgraphComputer pComputer,
+      PathRestorator pComputer,
       Function<ARGState, Integer> pExtractor,
       ShutdownNotifier pNotifier,
       int pInterationLimit) {
@@ -280,7 +278,7 @@ public class PathPairIterator extends
 
     computingPath.start();
     //try to compute more paths
-    BAMSubgraphIterator pathIterator;
+    PathIterator pathIterator;
     if (targetToPathIterator.containsKey(info)) {
       pathIterator = targetToPathIterator.get(info);
     } else {

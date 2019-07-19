@@ -167,8 +167,10 @@ public class UsageReachedSet extends PartitionedReachedSet {
   @Override
   public void finalize(ConfigurableProgramAnalysis pCpa) {
     BAMCPA bamCpa = CPAs.retrieveCPA(pCpa, BAMCPA.class);
-    manager = bamCpa.getData();
-    UsageCPA usageCpa = CPAs.retrieveCPA(bamCpa, UsageCPA.class);
+    if (bamCpa != null) {
+      manager = bamCpa.getData();
+    }
+    UsageCPA usageCpa = CPAs.retrieveCPA(pCpa, UsageCPA.class);
     usageProcessor = usageCpa.getUsageProcessor();
   }
 
@@ -277,14 +279,14 @@ public class UsageReachedSet extends PartitionedReachedSet {
           }
 
           // Search state in the BAM cache
-          if (manager.hasInitialState(state)) {
+          if (manager != null && manager.hasInitialState(state)) {
             for (ARGState child : ((ARGState) state).getChildren()) {
               AbstractState reducedChild = manager.getReducedStateForExpandedState(child);
               ReachedSet innerReached = manager.getReachedSetForInitialState(state, reducedChild);
 
               process(state, innerReached, waitlist, processedSets, currentEffects);
             }
-          } else if (manager.hasInitialStateWithoutExit(state)) {
+          } else if (manager != null && manager.hasInitialStateWithoutExit(state)) {
             ReachedSet innerReached = manager.getReachedSetForInitialState(state);
 
             process(state, innerReached, waitlist, processedSets, currentEffects);

@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.usage.refinement.PathRestorator;
 
 /**
  * The subgraph computer is used to restore paths not to target states, but to any other.
@@ -51,7 +52,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
  * The feature is extremely important for refinement optimization: we do not refine and even not compute the similar paths
  */
 
-public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
+public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer implements PathRestorator {
 
   private Set<ArrayDeque<Integer>> remainingStates = new HashSet<>();
   private final Function<ARGState, Integer> getStateId;
@@ -216,10 +217,12 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
     }
   }
 
+  @Override
   public ARGPath computePath(ARGState pLastElement) {
     return computePath(pLastElement, Collections.emptySet());
   }
 
+  @Override
   public ARGPath computePath(ARGState pLastElement, Set<List<Integer>> pRefinedStates) {
     return restorePathFrom(new BackwardARGState(pLastElement), pRefinedStates);
   }

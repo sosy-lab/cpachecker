@@ -37,9 +37,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
+import org.sosy_lab.cpachecker.cpa.usage.refinement.PathIterator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class BAMSubgraphIterator {
+public class BAMSubgraphIterator implements PathIterator {
 
   private final ARGState targetState;
   private final BAMMultipleCEXSubgraphComputer subgraphComputer;
@@ -222,6 +223,7 @@ public class BAMSubgraphIterator {
     return potentialForkStates;
   }
 
+  @Override
   public ARGPath nextPath(Set<List<Integer>> pRefinedStatesIds) {
     ARGPath path;
     if (!hasNextPath) {

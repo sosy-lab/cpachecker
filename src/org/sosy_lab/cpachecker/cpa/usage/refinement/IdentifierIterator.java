@@ -134,7 +134,10 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     config.inject(this);
     cpa = pCpa;
     UsageCPA uCpa = CPAs.retrieveCPA(pCpa, UsageCPA.class);
-    uCpa.getStats().setBAMCPA((BAMCPA) cpa);
+    BAMCPA bamCPA = CPAs.retrieveCPA(pCpa, BAMCPA.class);
+    if (bamCPA != null) {
+      uCpa.getStats().setBAMCPA(bamCPA);
+    }
     logger = uCpa.getLogger();
     transfer = pTransfer;
     stats = new Stats();
@@ -241,7 +244,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       }
       ARGState.clearIdGenerator();
       // Note the following clean should be done always independently from option disableAllCaching
-      if (totalARGCleaning) {
+      if (totalARGCleaning && transfer != null) {
         transfer.cleanCaches();
       } else {
         /* MultipleARGSubtreeRemover subtreesRemover = transfer.getMultipleARGSubtreeRemover();

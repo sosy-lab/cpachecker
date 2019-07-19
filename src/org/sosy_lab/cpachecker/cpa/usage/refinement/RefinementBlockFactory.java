@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
-import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
 import org.sosy_lab.cpachecker.cpa.lock.LockReducer;
@@ -141,7 +140,12 @@ public class RefinementBlockFactory {
 
     }
 
-    BAMMultipleCEXSubgraphComputer computer = bamCpa.createBAMMultipleSubgraphComputer(idExtractor);
+    PathRestorator computer;
+    if (bamCpa != null) {
+      computer = bamCpa.createBAMMultipleSubgraphComputer(idExtractor);
+    } else {
+      computer = new ARGPathRestorator();
+    }
 
     for (int i = RefinementChain.size() - 1; i >= 0; i--) {
 
@@ -154,7 +158,7 @@ public class RefinementBlockFactory {
                     (ConfigurableRefinementBlock<SingleIdentifier>) currentBlock,
                     config,
                     cpa,
-                    bamCpa.getTransferRelation(),
+                    bamCpa == null ? null : bamCpa.getTransferRelation(),
                     disableAllCaching);
             currentBlockType = currentInnerBlockType.ReachedSet;
             break;

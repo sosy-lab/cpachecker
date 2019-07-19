@@ -50,6 +50,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefinerFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -65,7 +67,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   ARGBasedRefiner refiner;
   LogManager logger;
 
-  private final UsageStatisticsRefinementStrategy strategy;
+  private final UsageStrategy strategy;
   private ARGReachedSet ARGReached;
 
   // Statistics
@@ -83,28 +85,40 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     if (!(pCpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
+    logger = pLogger;
 
     @SuppressWarnings("resource")
-    BAMPredicateCPA predicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
-    if (predicateCpa == null) {
+    BAMPredicateCPA bamPredicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
+    PredicateCPA predicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(PredicateCPA.class);
+
+    if (bamPredicateCpa != null) {
+      strategy =
+          new BAMUsageStatisticsRefinementStrategy(
+              bamPredicateCpa.getConfiguration(),
+              logger,
+              bamPredicateCpa,
+              bamPredicateCpa.getSolver(),
+              bamPredicateCpa.getPredicateManager());
+    } else if (predicateCpa != null) {
+      strategy =
+          new UsageStatisticsRefinementStrategy(
+              predicateCpa.getConfiguration(),
+              logger,
+              predicateCpa.getSolver(),
+              predicateCpa.getPredicateManager());
+    } else {
       throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
     }
 
-    logger = pLogger;
-    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
+    predicateCpa = (predicateCpa == null) ? bamPredicateCpa : predicateCpa;
 
+    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
     BlockFormulaStrategy blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr);
 
-    strategy = new UsageStatisticsRefinementStrategy(
-                                          predicateCpa.getConfiguration(),
-                                          logger,
-                                          predicateCpa,
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getPredicateManager());
 
     refiner = new PredicateCPARefinerFactory(pCpa)
         .setBlockFormulaStrategy(blockFormulaStrategy)
-        .create(strategy);
+            .create((PredicateAbstractionRefinementStrategy) strategy);
   }
 
   @Override
@@ -125,11 +139,11 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
         result = RefinementResult.createTrue();
       } else {
         result = RefinementResult.createFalse();
-        List<ARGState> affectedStates = getLastAffectedStates();
+        List<ARGState> affectedStates = strategy.getLastAffectedStates();
         if (!affectedStates.isEmpty()) {
           // it may be, if there are no valuable interpolants: ..., true, false, ...
           result.addInfo(PredicateRefinerAdapter.class, affectedStates);
-          PredicatePrecision lastPrecision = getLastPrecision();
+          PredicatePrecision lastPrecision = strategy.getLastPrecision();
           assert (lastPrecision != null);
           result.addPrecision(lastPrecision);
         }
@@ -165,8 +179,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   protected void handleFinishSignal(Class<? extends RefinementInterface> pCallerClass) {
     if (pCallerClass.equals(IdentifierIterator.class)) {
       ARGReached = null;
-      strategy.lastAffectedStates.clear();
-      strategy.lastAddedPrecision = null;
+      strategy.flush();
     }
   }
 
@@ -185,24 +198,28 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     super.collectStatistics(pStats);
   }
 
-  private List<ARGState> getLastAffectedStates() {
-    return strategy.lastAffectedStates;
-  }
-
-  private PredicatePrecision getLastPrecision() {
-    return strategy.lastAddedPrecision;
-  }
-
   private void updateReachedSet(ReachedSet pReached) {
     ARGReached = new ARGReachedSet(pReached);
   }
 
-  protected static class UsageStatisticsRefinementStrategy extends BAMPredicateAbstractionRefinementStrategy {
+  protected static interface UsageStrategy {
+
+    List<ARGState> getLastAffectedStates();
+
+    PredicatePrecision getLastPrecision();
+
+    void flush();
+  }
+
+  protected static class BAMUsageStatisticsRefinementStrategy
+      extends BAMPredicateAbstractionRefinementStrategy implements UsageStrategy {
 
     private List<ARGState> lastAffectedStates = new ArrayList<>();
     private PredicatePrecision lastAddedPrecision;
 
-    public UsageStatisticsRefinementStrategy(final Configuration config, final LogManager logger,
+    public BAMUsageStatisticsRefinementStrategy(
+        final Configuration config,
+        final LogManager logger,
         final BAMPredicateCPA predicateCpa,
         final Solver pSolver,
         final PredicateAbstractionManager pPredAbsMgr) throws InvalidConfigurationException {
@@ -258,6 +275,105 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       }
       return result;
     }
+
+    @Override
+    public List<ARGState> getLastAffectedStates() {
+      return lastAffectedStates;
+    }
+
+    @Override
+    public PredicatePrecision getLastPrecision() {
+      return lastAddedPrecision;
+    }
+
+    @Override
+    public void flush() {
+      lastAddedPrecision = null;
+      lastAffectedStates.clear();
+    }
   }
 
+  protected static class UsageStatisticsRefinementStrategy
+      extends PredicateAbstractionRefinementStrategy implements UsageStrategy {
+
+    private List<ARGState> lastAffectedStates = new ArrayList<>();
+    private PredicatePrecision lastAddedPrecision;
+
+    public UsageStatisticsRefinementStrategy(
+        final Configuration config,
+        final LogManager logger,
+        final Solver pSolver,
+        final PredicateAbstractionManager pPredAbsMgr)
+        throws InvalidConfigurationException {
+      super(config, logger, pPredAbsMgr, pSolver);
+    }
+
+    @Override
+    protected void finishRefinementOfPath(
+        ARGState pUnreachableState,
+        List<ARGState> pAffectedStates,
+        ARGReachedSet pReached,
+        List<ARGState> abstractionStatesTrace,
+        boolean pRepeatedCounterexample)
+        throws CPAException, InterruptedException {
+
+      super.finishRefinementOfPath(
+          pUnreachableState,
+          pAffectedStates,
+          pReached,
+          abstractionStatesTrace,
+          pRepeatedCounterexample);
+
+      lastAffectedStates.clear();
+      from(pAffectedStates).transform(s -> ((BackwardARGState) s).getARGState())
+          .forEach(lastAffectedStates::add);
+    }
+
+    @Override
+    protected PredicatePrecision addPredicatesToPrecision(PredicatePrecision basePrecision) {
+      PredicatePrecision newPrecision = super.addPredicatesToPrecision(basePrecision);
+      lastAddedPrecision = (PredicatePrecision) newPrecision.subtract(basePrecision);
+      return newPrecision;
+    }
+
+    @Override
+    protected void updateARG(
+        PredicatePrecision pNewPrecision,
+        ARGState pRefinementRoot,
+        ARGReachedSet pReached)
+        throws InterruptedException {
+      // Do not update ARG for race analysis
+    }
+
+    @Override
+    public List<ARGState> filterAbstractionStates(ARGPath pPath) {
+      List<ARGState> result =
+          from(pPath.asStatesList()).skip(1)
+              .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
+              .toList();
+
+      if (pPath.getLastState() != result.get(result.size() - 1)) {
+        List<ARGState> newResult = new ArrayList<>(result);
+        newResult.add(pPath.getLastState());
+        return newResult;
+      }
+      return result;
+    }
+
+    @Override
+    public List<ARGState> getLastAffectedStates() {
+      return lastAffectedStates;
+    }
+
+    @Override
+    public PredicatePrecision getLastPrecision() {
+      return lastAddedPrecision;
+    }
+
+    @Override
+    public void flush() {
+      lastAddedPrecision = null;
+      lastAffectedStates.clear();
+    }
+  }
 }

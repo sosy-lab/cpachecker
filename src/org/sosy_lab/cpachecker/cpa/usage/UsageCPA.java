@@ -70,7 +70,6 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   private final UsageTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
   private final ShutdownNotifier shutdownNotifier;
-  private final Reducer reducer;
   private final UsageCPAStatistics statistics;
   private final CFA cfa;
   private final Configuration config;
@@ -109,12 +108,6 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
     this.precisionAdjustment =
         new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment(), statistics);
-    if (pCpa instanceof ConfigurableProgramAnalysisWithBAM) {
-      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
-      reducer = new UsageReducer(wrappedReducer);
-    } else {
-      reducer = null;
-    }
     logger = pLogger;
     this.transferRelation =
         new UsageTransferRelation(pCpa.getTransferRelation(), pConfig, pLogger, statistics);
@@ -162,8 +155,9 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   }
 
   @Override
-  public Reducer getReducer() {
-    return reducer;
+  public Reducer getReducer() throws InvalidConfigurationException {
+    Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) getWrappedCpa()).getReducer();
+    return new UsageReducer(wrappedReducer);
   }
 
   @Override
