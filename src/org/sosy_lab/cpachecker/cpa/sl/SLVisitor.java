@@ -65,7 +65,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   private final SLHeapDelegate delegate;
-  private CLeftHandSide currentLHS;
+  private CLeftHandSide curLHS;
+  private CRightHandSide curRHS;
 
   public SLVisitor(SLHeapDelegate pDelegate) {
     delegate = pDelegate;
@@ -111,10 +112,37 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   @Override
   public Boolean visit(CFunctionCallExpression pIastFunctionCallExpression) throws Exception {
-    CExpression fctExp = pIastFunctionCallExpression.getFunctionNameExpression();
-    if (((CIdExpression) fctExp).getName().equals("free")) {
-      CExpression addrExp = pIastFunctionCallExpression.getParameterExpressions().get(0);
-      return !delegate.handleFree(addrExp);
+    CIdExpression fctExp = (CIdExpression) pIastFunctionCallExpression.getFunctionNameExpression();
+    final List<CExpression> params = pIastFunctionCallExpression.getParameterExpressions();
+    String ptrName;
+    CExpression allocationSize;
+
+    switch (SLHeapFunction.get(fctExp.getName())) {
+      case MALLOC:
+        ptrName = ((CIdExpression) curLHS).getName();
+        allocationSize = params.get(0);
+        delegate.handleMalloc(ptrName, allocationSize);
+        break;
+
+      case CALLOC:
+        ptrName = ((CIdExpression) curLHS).getName();
+        final CExpression num = params.get(0);
+        allocationSize = params.get(1);
+        delegate.handleCalloc(ptrName, num, allocationSize);
+        break;
+
+      case REALLOC:
+        ptrName = ((CIdExpression) curLHS).getName();
+        final CExpression oldPtr = params.get(0);
+        final CExpression size = params.get(1);
+        return !delegate.handleRealloc(ptrName, oldPtr, size);
+
+      case FREE:
+        CExpression addrExp = params.get(0);
+        return !delegate.handleFree(addrExp);
+
+      default:
+        break;
     }
     return false;
   }
@@ -201,10 +229,12 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   @Override
   public Boolean visit(CPointerExpression pPointerExpression) throws Exception {
     CExpression operand = pPointerExpression.getOperand();
-    if(operand.accept(this)) {
-      return true;
+    if (curLHS == pPointerExpression) {
+      if (delegate.checkAllocation(operand, null, (CExpression) curRHS) == null) {
+        return true;
+      }
     }
-    return delegate.checkAllocation(operand) == null;
+    return operand.accept(this);
   }
 
   @Override
@@ -260,58 +290,25 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   @Override
   public Boolean visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement)
       throws Exception {
-    final CRightHandSide rhSide = pIastExpressionAssignmentStatement.getRightHandSide();
-    final boolean rightIsTarget = rhSide.accept(this);
-
-    final CLeftHandSide lhSide = pIastExpressionAssignmentStatement.getLeftHandSide();
-    final boolean leftIsTarget = lhSide.accept(this);
-
-    checkPtrAssignment(lhSide, rhSide);
-
-    return leftIsTarget || rightIsTarget;
+    curLHS = pIastExpressionAssignmentStatement.getLeftHandSide();
+    curRHS = pIastExpressionAssignmentStatement.getRightHandSide();
+    final boolean isTarget = curLHS.accept(this) || curRHS.accept(this);
+    curLHS = null;
+    curRHS = null;
+    return isTarget;
+    // checkPtrAssignment(curLHS, curRHS);
+    // return leftIsTarget || rightIsTarget;
   }
 
   @Override
   public Boolean visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement)
       throws Exception {
-    final CFunctionCallExpression fctExp = pIastFunctionCallAssignmentStatement.getRightHandSide();
-    boolean rightIsTarget = fctExp.accept(this);
-    final CIdExpression fctNameExp = (CIdExpression) fctExp.getFunctionNameExpression();
-
-    final CLeftHandSide lhSide = pIastFunctionCallAssignmentStatement.getLeftHandSide();
-    final boolean leftIsTarget = lhSide.accept(this);
-
-    final String fctName = fctNameExp.getName();
-    final List<CExpression> params = fctExp.getParameterExpressions();
-
-    if (fctName.equals("malloc")) {
-      final String ptrName = ((CIdExpression) lhSide).getName();
-      final CExpression allocationSize = params.get(0);
-      delegate.handleMalloc(ptrName, allocationSize);
-    } else if (fctName.equals("calloc")) {
-      final String ptrName = ((CIdExpression) lhSide).getName();
-      final CExpression num = params.get(0);
-      final CExpression size = params.get(1);
-      delegate.handleCalloc(ptrName, num, size);
-    } else if (fctName.equals("realloc")) {
-      final String ptrName = ((CIdExpression) lhSide).getName();
-      final CExpression oldPtr = params.get(0);
-      final CExpression size = params.get(1);
-      rightIsTarget = !delegate.handleRealloc(ptrName, oldPtr, size);
-    }
-
-
-
-      // BigInteger size = delegate.getAllocationSize(allocationSize);
-      // delegate.addToHeap(varName, size);
-      // TODO handle types other than char
-      // CType tmp = ((CPointerType) lhSide.getExpressionType()).getType();
-
-
-
-    checkPtrAssignment(lhSide, fctExp);
-
-    return leftIsTarget || rightIsTarget;
+    curLHS = pIastFunctionCallAssignmentStatement.getLeftHandSide();
+    curRHS = pIastFunctionCallAssignmentStatement.getRightHandSide();
+    final boolean isTarget = curLHS.accept(this) || curRHS.accept(this);
+    curLHS = null;
+    curRHS = null;
+    return isTarget;
   }
 
   @Override
@@ -323,20 +320,6 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   public Boolean visit(CReturnStatement pNode) throws Exception {
     throw new UnsupportedOperationException(
         CReturnStatement.class.getSimpleName() + "is not implemented yet.");
-  }
-
-  private void checkPtrAssignment(CLeftHandSide pLhs, CRightHandSide pRhs)
-      throws Exception {
-    if (pLhs instanceof CPointerExpression) {
-      CPointerExpression addrExp = (CPointerExpression) pLhs;
-      delegate.checkAllocation(addrExp.getOperand(), null, (CExpression) pRhs);
-    } else if (pLhs instanceof CArraySubscriptExpression) {
-      CArraySubscriptExpression subscriptExp = (CArraySubscriptExpression) pLhs;
-      delegate.checkAllocation(
-          subscriptExp.getArrayExpression(),
-          subscriptExp.getSubscriptExpression(),
-          (CExpression) pRhs);
-    }
   }
 }
 
