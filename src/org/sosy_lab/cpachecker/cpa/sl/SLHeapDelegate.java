@@ -100,6 +100,11 @@ public interface SLHeapDelegate {
   public Formula checkAllocation(CExpression pAddrExp, CExpression pOffset, CExpression pVal)
       throws Exception;
 
+  /**
+   * Checks whether the given address is allocated on the heap.
+   *
+   * @see SLHeapDelegate#checkAllocation(CExpression, CExpression, CExpression)
+   */
   default public Formula checkAllocation(CExpression pAddrExp) throws Exception {
     return checkAllocation(pAddrExp, null, null);
   }

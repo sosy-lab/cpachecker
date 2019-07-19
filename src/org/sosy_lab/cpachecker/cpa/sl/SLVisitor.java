@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   private final SLHeapDelegate delegate;
+  private CLeftHandSide currentLHS;
 
   public SLVisitor(SLHeapDelegate pDelegate) {
     delegate = pDelegate;
@@ -235,6 +236,7 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   @Override
   public Boolean visit(CVariableDeclaration pDecl) throws Exception {
+    // TODO add to heap
     CInitializer i = pDecl.getInitializer();
     return i != null ? i.accept(this) : false;
   }
