@@ -247,6 +247,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer implemen
    * As the Pseudo-ARG is build backwards starting at its end-state, we count the ID backwards.
    */
 
+  @Override
   public BAMSubgraphIterator iterator(ARGState target) {
     return new BAMSubgraphIterator(target, this, data);
   }
