@@ -14,6 +14,7 @@ variables:
   artifacts:
     paths:
       - "ConfigurationChecks.html"
+      - "core"
       - "hs_err_pid*.log"
     when: always
 
