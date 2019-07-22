@@ -115,10 +115,7 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof DCAState)) {
       return false;
     }
     DCAState other = (DCAState) obj;

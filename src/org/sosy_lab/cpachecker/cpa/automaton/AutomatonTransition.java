@@ -244,10 +244,7 @@ class AutomatonTransition {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof AutomatonTransition)) {
       return false;
     }
     AutomatonTransition other = (AutomatonTransition) obj;
