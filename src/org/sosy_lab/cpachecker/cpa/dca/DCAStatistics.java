@@ -33,16 +33,12 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 class DCAStatistics extends LassoAnalysisStatistics {
 
   @SuppressWarnings("unused")
-  private final DCACPA dynamicCompositeAutomatonCPA;
+  private final DCACPA dcaCpa;
 
   final Timer refinementTotalTimer = new Timer();
 
-  public DCAStatistics(DCACPA pDynamicCompositeAutomatonCPA) {
-    dynamicCompositeAutomatonCPA = pDynamicCompositeAutomatonCPA;
-  }
-
-  public DCAStatistics() {
-    dynamicCompositeAutomatonCPA = null;
+  public DCAStatistics(DCACPA pCpa) {
+    dcaCpa = pCpa;
   }
 
   @Override

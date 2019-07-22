@@ -115,7 +115,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final DCAStatistics statistics = new DCAStatistics();
+  private final DCAStatistics statistics;
 
   private final PathFormulaManager pathFormulaManager;
   private final ClassVariables variables;
@@ -161,6 +161,8 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     cfa = checkNotNull(pCfa);
     logger = checkNotNull(pLogger);
     shutdownNotifier = checkNotNull(pNotifier);
+
+    statistics = new DCAStatistics(pDcaCpa);
 
     variables = ClassVariables.collectDeclarations(cfa);
 
