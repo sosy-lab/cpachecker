@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBA
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-
 /**
  * Implements an BAM-based predicate CPA.
  */
@@ -60,13 +59,8 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
       AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
     super(config, logger, pBlk, pCfa, pShutdownNotifier, pSpecification, pAggregatedReachedSets);
-
     config.inject(this, BAMPredicateCPA.class);
-    blk = pBlk;
-  }
-
-  BlockPartitioning getPartitioning() {
-    return blk.getPartitioning();
+    blk = pBlk; // keep reference to later inject the BlockPartitioning
   }
 
   @Override
