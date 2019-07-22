@@ -1548,12 +1548,22 @@ cpa.lock.annotate = no default value
 # contains all lock names
 cpa.lock.lockinfo = {}
 
+# which merge operator to use for LockCPA
+cpa.lock.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
 # reduce recursive locks to a single access
 cpa.lock.reduceLockCounters = BLOCK
   enum:     [NONE, BLOCK, ALL]
 
 # reduce unused locks
 cpa.lock.reduceUselessLocks = false
+
+# Enable refinement procedure
+cpa.lock.refinement = false
+
+# stop path exploration if a lock limit is reached
+cpa.lock.stopAfterLockLimit = false
 
 # Consider or not special cases with empty lock sets
 cpa.lock.stopMode = DEFAULT
@@ -1758,17 +1768,6 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # 'MIN<=X<=MAX', where MIN and MAX are computed from the type of the method
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
-
-# which strategy/heuristic should be used to compute relevant predicates for
-# a block-reduction?
-# AUXILIARY: dependencies between variables.
-# OCCURENCE: occurence of variables in the block.
-# ALL: all variables are relevant.
-cpa.predicate.bam.predicateComputer = "AUXILIARY"
-  allowed values: [AUXILIARY, OCCURRENCE, ALL]
-
-# Enable/disable precision reduction using RelevantPredicateComputer
-cpa.predicate.bam.reduceIrrelevantPrecision = true
 
 # Enable/disable abstraction reduction at the BAM block entry
 cpa.predicate.bam.useAbstractionReduction = true
@@ -2085,6 +2084,9 @@ cpa.predicate.refinement.atomicInterpolants = true
 cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
+
+# Path checking takes a lot of time, sometimes we need a quick result
+cpa.predicate.refinement.checkPath = true
 
 # Actually compute an abstraction, otherwise just convert the interpolants to
 # BDDs as they are.
@@ -2627,6 +2629,17 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
+# Simple thread analysis from theory paper
+cpa.thread.simpleMode = false
+
+# The case when the same thread is created several times we do not support.We
+# may skip or fail in this case.
+cpa.thread.skipTheSameThread = false
+
+# The case when the same thread is created several times we do not support.We
+# may try to support it with self-parallelizm.
+cpa.thread.supportSelfCreation = false
+
 # allow assignments of a new thread to the same left-hand-side as an existing
 # thread.
 cpa.threading.allowMultipleLHS = false
@@ -2670,8 +2683,8 @@ cpa.usage.abortfunctions = {}
 # to list variable)
 cpa.usage.binderFunctions = {}
 
-# add identifier name to the witness file name
-cpa.usage.export.encodeIdentifier = false
+# a list of functions, which do not produce notes
+cpa.usage.disableNotesFor = {}
 
 # export counterexample core as text file
 cpa.usage.export.witnessTemplate = "witness.%s.graphml"
@@ -2681,6 +2694,9 @@ cpa.usage.falseUnsafesOutput = "FalseUnsafes"
 
 # if a file do not exist, do not include the corresponding edge
 cpa.usage.filterMissedFiles = false
+
+# filter unsafes, which are too similar
+cpa.usage.filterSimilarUnsafes = false
 
 # filtered unsafes, which can not be removed using precision, may be hidden
 cpa.usage.hideFilteredUnsafes = false
@@ -2695,12 +2711,11 @@ cpa.usage.output = "unsafe_rawdata"
 cpa.usage.outputType = KLEVER
   enum:     [ETV, KLEVER, KLEVER_OLD]
 
-# The way how to identify two paths as equal
-cpa.usage.pathEquality = CFANodeId
-  enum:     [ARGStateId, CFANodeId]
-
 # The value of marked unsafes, after which the precision should be cleaned
 cpa.usage.precisionReset = Integer.MAX_VALUE
+
+# print unsafes with empty lock states
+cpa.usage.printEmptyLockStates = true
 
 # print all unsafe cases in report
 cpa.usage.printFalseUnsafes = false
@@ -2711,8 +2726,18 @@ cpa.usage.printOnlyTrueUnsafes = false
 # print found unsafes in case of unknown verdict
 cpa.usage.printUnsafesIfUnknown = true
 
+# Disable all caching into all internal refinement blocks
+cpa.usage.refinement.disableAllCaching = false
+
+# Limit for unique iterations of iterators
+cpa.usage.refinement.iterationLimit = Integer.MAX_VALUE
+
+# The way how to identify two paths as equal
+cpa.usage.refinement.pathEquality = CFANodeId
+  enum:     [ARGStateId, CFANodeId]
+
 # The order of refinement blocks
-cpa.usage.refinementChain = no default value
+cpa.usage.refinement.refinementChain = no default value
 
 # use single file for output or dump every error trace to its own file
 cpa.usage.singleFileOutput = false
@@ -3883,6 +3908,9 @@ undefinedFunctionsCollector.externAllocFunction = "external_alloc"
 
 # export undefined functions as C file
 undefinedFunctionsCollector.stubsFile = "stubs.c"
+
+# Should we process the same blocks with covered sets of locks
+usage.processCoveredUsages = true
 
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value

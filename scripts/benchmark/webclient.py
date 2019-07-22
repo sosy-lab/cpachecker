@@ -1141,8 +1141,6 @@ def _open_output_log(output_path):
 
 
 def _handle_run_info(values):
-    values["memUsage"] = int(values.pop("memory").strip("B"))
-
     # remove irrelevant columns
     values.pop("command", None)
     values.pop("returnvalue", None)

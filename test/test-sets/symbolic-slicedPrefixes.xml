@@ -6,7 +6,7 @@
   <option name="-setprop">log.consoleLevel=WARNING</option>
   <option name="-skipRecursion" />
 
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+  <propertyfile>${inputfile_path}/ALL.prp</propertyfile>
   <tasks name="BitVectors">
     <includesfile>../../../svcomp15/BitVectorsReach.set</includesfile>
   </tasks>

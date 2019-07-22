@@ -96,7 +96,6 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
           new BAMUsageStatisticsRefinementStrategy(
               bamPredicateCpa.getConfiguration(),
               logger,
-              bamPredicateCpa,
               bamPredicateCpa.getSolver(),
               bamPredicateCpa.getPredicateManager());
     } else if (predicateCpa != null) {
@@ -114,7 +113,6 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
     PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
     BlockFormulaStrategy blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr);
-
 
     refiner = new PredicateCPARefinerFactory(pCpa)
         .setBlockFormulaStrategy(blockFormulaStrategy)
@@ -220,10 +218,9 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     public BAMUsageStatisticsRefinementStrategy(
         final Configuration config,
         final LogManager logger,
-        final BAMPredicateCPA predicateCpa,
         final Solver pSolver,
         final PredicateAbstractionManager pPredAbsMgr) throws InvalidConfigurationException {
-      super(config, logger, predicateCpa, pSolver, pPredAbsMgr);
+      super(config, logger, pSolver, pPredAbsMgr);
     }
 
     @Override

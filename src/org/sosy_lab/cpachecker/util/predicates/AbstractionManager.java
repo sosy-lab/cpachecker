@@ -47,7 +47,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -485,7 +484,7 @@ public final class AbstractionManager {
         });
   }
 
-  public RegionCreator getRegionCreator() {
+  public RegionManager getRegionCreator() {
     return rmgr;
   }
 

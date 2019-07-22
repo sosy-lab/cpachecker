@@ -266,29 +266,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
         return log_file
 
     def _handle_run_info(values):
-        def parseTimeValue(s):
-            if s[-1] != "s":
-                raise ValueError('Cannot parse "{0}" as a time value.'.format(s))
-            return float(s[:-1])
-
-        for key, value in values.items():
-            if key == "memory":
-                result_values["memory"] = int(value.strip("B"))
-            elif key in ["walltime", "cputime"]:
-                result_values[key] = parseTimeValue(value)
-            elif key == "exitcode":
-                result_values["exitcode"] = int(value)
-            elif (
-                key in ["terminationreason", "cpuCores", "memoryNodes"]
-                or key.startswith("blkio-")
-                or key.startswith("cpuenergy")
-                or key.startswith("energy-")
-                or key.startswith("cputime-cpu")
-            ):
-                result_values[key] = value
-            elif key not in util.VCLOUD_REDUNDANT_RESULT_VALUES:
-                result_values["vcloud-" + key] = value
-
+        result_values.update(util.parse_vcloud_run_result(values.items()))
         return None
 
     def _handle_host_info(values):
