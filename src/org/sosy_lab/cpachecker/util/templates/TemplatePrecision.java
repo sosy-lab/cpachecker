@@ -700,8 +700,8 @@ public class TemplatePrecision implements Precision {
       // Do not add templates whose coefficients are already overflowing.
       if (templateToFormulaConversionManager.isOverflowing(t, e.getValue())) {
         return false;
-      } else if (templateConstantThreshold != -1 &&
-          e.getValue().abs().compareTo(Rational.ofLong(templateConstantThreshold)) >= 1) {
+      } else if (templateConstantThreshold != -1
+          && e.getValue().abs().compareTo(Rational.ofLong(templateConstantThreshold)) > 0) {
         return false;
       }
     }

@@ -386,4 +386,20 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     assert getLength(pBits1) == getLength(pBits2) : "Expect operators to have the same size";
     return makeUf(getFormulaType(pBits1), bitwiseXorUfDecl, pBits1, pBits2);
   }
+
+  @Override
+  public BitvectorFormula makeBitvector(int pLength, IntegerFormula pI) {
+    // INT to BV -> just wrap
+    return wrap(getBitvectorTypeWithSize(pLength), unwrap(pI));
+  }
+
+  @Override
+  public IntegerFormula toIntegerFormula(BitvectorFormula pI, boolean pSigned) {
+    final T unwrapped = unwrap(pI);
+    if (numericFormulaManager.getFormulaType().equals(FormulaType.IntegerType)) {
+      return (IntegerFormula) unwrapped;
+    } else {
+      return numericFormulaManager.floor(unwrapped);
+    }
+  }
 }

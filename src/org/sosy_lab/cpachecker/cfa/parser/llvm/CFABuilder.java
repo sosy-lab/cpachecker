@@ -876,6 +876,8 @@ public class CFABuilder {
     CType currentType = baseType;
     CExpression currentExpression = getExpression(accessed, currentType, pFileName);
     for (Integer indexValue : pItem.getIndices()) {
+      // it's safe to assume `int` as a type for the index - if the number of elements in the array
+      // exceeds INT_MAX, we might have different problems, nonetheless
       CIntegerLiteralExpression index =
           new CIntegerLiteralExpression(
               fileLocation, CNumericTypes.INT, BigInteger.valueOf(indexValue));
@@ -1177,12 +1179,13 @@ public class CFABuilder {
       throws LLVMException {
     FileLocation location = getLocation(pItem, pFileName);
     if (pItem.isConstantInt()) {
-      long constantValue = pItem.constIntGetSExtValue();
+      BigInteger constantValue = BigInteger.valueOf(pItem.constIntGetSExtValue());
+      CType type = getTypeForInteger(constantValue);
       return new CIntegerLiteralExpression(
-          getLocation(pItem, pFileName), pExpectedType, BigInteger.valueOf(constantValue));
+          getLocation(pItem, pFileName), type, constantValue);
 
     } else if (pItem.isConstantPointerNull()) {
-      return new CPointerExpression(location, pExpectedType, getNull(location, pExpectedType));
+      return new CPointerExpression(location, pExpectedType, getNull(location));
 
     } else if (pItem.isConstantExpr()) {
       return getExpression(pItem, pExpectedType, pFileName);
@@ -1222,8 +1225,28 @@ public class CFABuilder {
     }
   }
 
-  private CExpression getNull(final FileLocation pLocation, final CType pType) {
-    return new CIntegerLiteralExpression(pLocation, pType, BigInteger.ZERO);
+  private CType getTypeForInteger(BigInteger pConstantValue) throws LLVMException{
+    // While clang-3.9 translates C integers larger than 'signed long long int' to negative values,
+    // literals of arbitrary size can be given in LLVM when written by hand,
+    // so we use the largest types available in C and throw an exception if the values are too large.
+    if (machineModel.getMaximalIntegerValue(CNumericTypes.SIGNED_LONG_LONG_INT).compareTo(pConstantValue) < 0) {
+      if (machineModel.getMaximalIntegerValue(CNumericTypes.UNSIGNED_LONG_LONG_INT).compareTo(pConstantValue) < 0) {
+        throw new LLVMException("Value not representable in CPAchecker's CFA representation of LLVM (too large): " + pConstantValue);
+      }
+
+      return CNumericTypes.UNSIGNED_LONG_LONG_INT;
+    }
+
+    if (machineModel.getMinimalIntegerValue(CNumericTypes.SIGNED_LONG_LONG_INT).compareTo(pConstantValue) > 0) {
+      throw new LLVMException("Value not representable in CPAchecker's CFA representation of LLVM (too small): " + pConstantValue);
+    }
+
+    return CNumericTypes.SIGNED_LONG_LONG_INT;
+  }
+
+  private CExpression getNull(final FileLocation pLocation) {
+    // it's safe to assume integer as type for a constant NULL
+    return new CIntegerLiteralExpression(pLocation, CNumericTypes.INT, BigInteger.ZERO);
   }
 
   private CInitializer getConstantAggregateInitializer(

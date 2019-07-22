@@ -29,7 +29,10 @@ import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.MODULO;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
+import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
@@ -39,11 +42,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
-
-import java.util.Collection;
-import java.util.List;
-
-import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
 
 class DivAndModElimination extends BooleanFormulaTransformationVisitor {
 
@@ -83,7 +81,7 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
 
     private DivAndModTransformation(FormulaManagerView pFmgrView) {
       fmgrView = pFmgrView;
-      additionalAxioms = Lists.newArrayList();
+      additionalAxioms = new ArrayList<>();
     }
 
     public Collection<BooleanFormula> getAdditionalAxioms() {

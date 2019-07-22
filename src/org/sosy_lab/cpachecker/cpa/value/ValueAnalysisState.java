@@ -140,15 +140,17 @@ public class ValueAnalysisState
    * @param value value to be assigned.
    */
   void assignConstant(String variableName, Value value) {
-    if (blacklist.contains(MemoryLocation.valueOf(variableName))) {
-      return;
-    }
-
     addToConstantsMap(MemoryLocation.valueOf(variableName), value, null);
   }
 
   private void addToConstantsMap(
       final MemoryLocation pMemLoc, final Value pValue, final @Nullable Type pType) {
+
+    if (blacklist.contains(pMemLoc)
+        || (pMemLoc.isReference() && blacklist.contains(pMemLoc.getReferenceStart()))) {
+      return;
+    }
+
     Value valueToAdd = pValue;
 
     if (valueToAdd instanceof SymbolicValue) {
@@ -172,10 +174,6 @@ public class ValueAnalysisState
    * @param pType the type of <code>value</code>.
    */
   public void assignConstant(MemoryLocation pMemoryLocation, Value value, Type pType) {
-    if (blacklist.contains(pMemoryLocation)) {
-      return;
-    }
-
     addToConstantsMap(pMemoryLocation, value, pType);
   }
 

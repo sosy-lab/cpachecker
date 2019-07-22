@@ -180,6 +180,15 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     return offset;
   }
 
+  public MemoryLocation getReferenceStart() {
+    checkState(isReference(), "Memory location is no reference: %s", this);
+    if (functionName != null) {
+      return new MemoryLocation(functionName, identifier, null);
+    } else {
+      return new MemoryLocation(identifier, null);
+    }
+  }
+
   @Override
   public String toString() {
     return getAsSimpleString();

@@ -24,9 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 
@@ -75,6 +80,19 @@ public abstract class SMGAbstractObjectAndState<T> {
     public static SMGAddressValueAndState of(SMGState pState) {
       return new SMGAddressValueAndState(pState, SMGUnknownValue.INSTANCE);
     }
+
+    public static SMGAddressValueAndState of(SMGState pState, SMGEdgePointsTo pAddressValue) {
+      return new SMGAddressValueAndState(pState, SMGKnownAddressValue.valueOf(pAddressValue));
+    }
+
+    public static SMGAddressValueAndState of(
+        SMGState pSmgState,
+        SMGKnownSymbolicValue pValue,
+        SMGObject pTarget,
+        SMGKnownExpValue pOffset) {
+      return SMGAddressValueAndState.of(
+          pSmgState, new SMGEdgePointsTo(pValue, pTarget, pOffset.getAsLong()));
+    }
   }
 
   public static class SMGAddressAndState extends SMGAbstractObjectAndState<SMGAddress> {
@@ -84,7 +102,7 @@ public abstract class SMGAbstractObjectAndState<T> {
     }
 
     public static SMGAddressAndState of(SMGState pState) {
-      return new SMGAddressAndState(pState, SMGAddress.getUnknownInstance());
+      return new SMGAddressAndState(pState, SMGAddress.UNKNOWN);
     }
 
     public static SMGAddressAndState of(SMGState pState, SMGAddress pAddress) {

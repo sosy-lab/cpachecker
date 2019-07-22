@@ -39,7 +39,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -147,7 +146,7 @@ class KInductionProver implements AutoCloseable {
 
   private BooleanFormula loopHeadInvariants;
 
-  private final Map<CandidateInvariant, BooleanFormula> violationFormulas = Maps.newHashMap();
+  private final Map<CandidateInvariant, BooleanFormula> violationFormulas = new HashMap<>();
 
   private int previousK = -1;
 
@@ -709,7 +708,7 @@ class KInductionProver implements AutoCloseable {
       CandidateInvariant pCandidateInvariant,
       int pK) {
 
-    Map<String, CType> types = Maps.newHashMap();
+    Map<String, CType> types = new HashMap<>();
 
     FluentIterable<AbstractState> inputStates =
         filterIteration(pCandidateInvariant.filterApplicable(pReached), pK, loopHeads);

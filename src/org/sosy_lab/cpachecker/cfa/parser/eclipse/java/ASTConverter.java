@@ -31,7 +31,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -87,7 +86,6 @@ import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.ThisExpression;
 import org.eclipse.jdt.core.dom.Type;
-import org.eclipse.jdt.core.dom.TypeLiteral;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
@@ -879,7 +877,7 @@ class ASTConverter {
     case ASTNode.SUPER_FIELD_ACCESS :
       return convert(((SuperFieldAccess) e));
     case ASTNode.TYPE_LITERAL :
-      return convert((TypeLiteral)e);
+      return convert();
     case ASTNode.SUPER_METHOD_INVOCATION :
       return convert((SuperMethodInvocation) e);
     default:
@@ -965,10 +963,7 @@ class ASTConverter {
       return miv;
   }
 
-  /**
-   * @param pE the node to convert
-   */
-  private JAstNode convert(TypeLiteral pE) {
+  private JAstNode convert() {
     throw new CFAGenerationRuntimeException("Standard Library support not yet implemented.\n"
       +  "Cannot use Type Literals which would return a class Object.");
   }
@@ -1117,7 +1112,7 @@ class ASTConverter {
       subClassTypeSet.add(classType);
     }
 
-    return Lists.newArrayList(subClassTypeSet);
+    return new ArrayList<>(subClassTypeSet);
   }
 
   private JExpression createInstanceOfDisjunction(JIdExpression pLeftOperand,

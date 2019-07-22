@@ -68,6 +68,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -151,10 +152,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private final Timer safetyAnalysisTime = new Timer();
 
-  private final Map<Loop, AtomicInteger> safetyAnalysisRunsPerLoop = Maps.newConcurrentMap();
+  private final Map<Loop, AtomicInteger> safetyAnalysisRunsPerLoop = new ConcurrentHashMap<>();
 
-  private final Multimap<Loop, TerminationArgument> terminationArguments =
-      MultimapBuilder.linkedHashKeys().arrayListValues().build();
 
   private final LogManager logger;
 
@@ -391,7 +390,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             + loopsWithMaxTerminationArguments);
 
     pOut.println();
-    Map<String, Integer> terminationArguementTypes = Maps.newHashMap();
+    Map<String, Integer> terminationArguementTypes = new HashMap<>();
     for (TerminationArgument terminationArgument : terminationArguments.values()) {
       String name = terminationArgument.getRankingFunction().getName();
       terminationArguementTypes.merge(name, 1, Integer::sum);

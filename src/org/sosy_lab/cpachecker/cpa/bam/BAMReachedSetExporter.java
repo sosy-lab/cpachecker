@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -37,6 +37,7 @@ import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -109,16 +110,16 @@ class BAMReachedSetExporter implements Statistics {
     if (superArgFile != null) {
 
       final Set<UnmodifiableReachedSet> allReachedSets =
-          new HashSet<>(bamcpa.getData().getCache().getAllCachedReachedStates());
+          new LinkedHashSet<>(bamcpa.getData().getCache().getAllCachedReachedStates());
       allReachedSets.add(mainReachedSet);
 
-      final Set<ARGState> rootStates = new HashSet<>();
-      final Multimap<ARGState, ARGState> connections = HashMultimap.create();
+      final Set<ARGState> rootStates = new LinkedHashSet<>();
+      final Multimap<ARGState, ARGState> connections = LinkedHashMultimap.create();
 
       for (final UnmodifiableReachedSet reachedSet : allReachedSets) {
         ARGState rootState = (ARGState) reachedSet.getFirstState();
         rootStates.add(rootState);
-        Multimap<ARGState, ARGState> localConnections = HashMultimap.create();
+        Multimap<ARGState, ARGState> localConnections = LinkedHashMultimap.create();
         getConnections(rootState, localConnections);
         connections.putAll(localConnections);
 
@@ -140,7 +141,7 @@ class BAMReachedSetExporter implements Statistics {
 
     if (superArgFile != null) {
 
-      final Multimap<ARGState, ARGState> connections = HashMultimap.create();
+      final Multimap<ARGState, ARGState> connections = LinkedHashMultimap.create();
       final Set<ARGState> rootStates = getUsedRootStates(mainReachedSet, connections);
       writeArg(superArgFile, connections, rootStates);
     }
@@ -166,7 +167,7 @@ class BAMReachedSetExporter implements Statistics {
 
   private Set<ARGState> getUsedRootStates(
       final UnmodifiableReachedSet mainReachedSet, final Multimap<ARGState, ARGState> connections) {
-    final Set<UnmodifiableReachedSet> finished = new HashSet<>();
+    final Set<UnmodifiableReachedSet> finished = new LinkedHashSet<>();
     final Deque<UnmodifiableReachedSet> waitlist = new ArrayDeque<>();
     waitlist.add(mainReachedSet);
     while (!waitlist.isEmpty()) {
@@ -179,7 +180,7 @@ class BAMReachedSetExporter implements Statistics {
       waitlist.addAll(referencedReachedSets);
     }
 
-    final Set<ARGState> rootStates = new HashSet<>();
+    final Set<ARGState> rootStates = new LinkedHashSet<>();
     for (UnmodifiableReachedSet reachedSet : finished) {
       rootStates.add((ARGState) reachedSet.getFirstState());
     }
@@ -196,7 +197,7 @@ class BAMReachedSetExporter implements Statistics {
   private Set<ReachedSet> getConnections(
       final ARGState rootState, final Multimap<ARGState, ARGState> connections) {
     final BAMDataManager data = bamcpa.getData();
-    final Set<ReachedSet> referencedReachedSets = new HashSet<>();
+    final Set<ReachedSet> referencedReachedSets = new LinkedHashSet<>();
     final Set<ARGState> finished = new HashSet<>();
     final Deque<ARGState> waitlist = new ArrayDeque<>();
     waitlist.add(rootState);

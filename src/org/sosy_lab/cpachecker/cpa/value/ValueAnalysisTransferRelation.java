@@ -101,7 +101,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
@@ -699,9 +698,7 @@ public class ValueAnalysisTransferRelation
       memoryLocation = MemoryLocation.valueOf(functionName, varName);
     }
 
-    if (addressedVariables.contains(decl.getQualifiedName())
-        && declarationType instanceof CType
-        && ((CType) declarationType).getCanonicalType() instanceof CPointerType) {
+    if (addressedVariables.contains(decl.getQualifiedName()) && declarationType instanceof CType) {
       ValueAnalysisState.addToBlacklist(memoryLocation);
     }
 
@@ -1061,9 +1058,8 @@ public class ValueAnalysisTransferRelation
     long offset = 0L;
     for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
       MemoryLocation assignedField = createFieldMemoryLocation(pAssignedVar, offset);
-      CExpression owner = null;
 
-      owner = pExp;
+      CExpression owner = pExp;
 
       CExpression fieldReference =
           new CFieldReference(pExp.getFileLocation(), memberType.getType(), memberType.getName(), owner, false);

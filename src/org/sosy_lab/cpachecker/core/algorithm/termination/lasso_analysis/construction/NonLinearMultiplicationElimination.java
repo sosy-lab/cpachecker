@@ -29,6 +29,7 @@ import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.UF;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -79,7 +80,7 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
 
     private NonLinearMultiplicationTransformation(FormulaManagerView pFmgrView) {
       fmgrView = pFmgrView;
-      additionalAxioms = Lists.newArrayList();
+      additionalAxioms = new ArrayList<>();
     }
 
     public Collection<BooleanFormula> getAdditionalAxioms() {
@@ -160,7 +161,7 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
               formulaType,
               TERMINATION_AUX_VARS_PREFIX + "MULT_AUX_VAR_" + ID_GENERATOR.getFreshId());
 
-      List<BooleanFormula> cases = Lists.newArrayList();
+      List<BooleanFormula> cases = new ArrayList<>();
       Formula one = fmgrView.makeNumber(formulaType, 1);
       Formula minusOne = fmgrView.makeNumber(formulaType, -1);
       Formula zero = fmgrView.makeNumber(formulaType, 0);

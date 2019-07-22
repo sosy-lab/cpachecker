@@ -31,8 +31,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -70,7 +70,7 @@ public class TerminationARGPath extends ARGPath {
 
     ImmutableList.Builder<CFAEdge> fullPathBuilder = ImmutableList.builder();
     PathIterator it = pathIterator();
-    Set<CFAEdge> intermediateTermiantionEdges = Sets.newHashSet();
+    Set<CFAEdge> intermediateTermiantionEdges = new HashSet<>();
 
     while (it.hasNext()) {
       ARGState prev = it.getAbstractState();

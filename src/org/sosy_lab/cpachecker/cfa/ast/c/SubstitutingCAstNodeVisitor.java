@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -97,8 +97,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, No
       return result;
     }
     boolean initChanged = false;
-    List<CInitializer> newInitializerList =
-        Lists.newArrayListWithExpectedSize(pNode.getInitializers().size());
+    List<CInitializer> newInitializerList = new ArrayList<>(pNode.getInitializers().size());
     for (CInitializer oldInit : pNode.getInitializers()) {
       CInitializer newInit = (CInitializer) oldInit.accept(this);
       if (newInit != oldInit) {

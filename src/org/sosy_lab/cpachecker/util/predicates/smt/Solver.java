@@ -30,7 +30,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.List;
@@ -104,7 +103,7 @@ public final class Solver implements AutoCloseable {
   private final SolverContext solvingContext;
   private final SolverContext interpolatingContext;
 
-  private final Map<BooleanFormula, Boolean> unsatCache = Maps.newHashMap();
+  private final Map<BooleanFormula, Boolean> unsatCache = new HashMap<>();
 
   /**
    * More complex unsat cache, grouped by an arbitrary key.

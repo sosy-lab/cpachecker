@@ -27,12 +27,12 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
 
 public class LoopInvariantsWriter {
 
@@ -76,7 +75,7 @@ public class LoopInvariantsWriter {
       return null;
     }
 
-    Map<CFANode, Region> regions = Maps.newHashMap();
+    Map<CFANode, Region> regions = new HashMap<>();
 
     for (AbstractState state : reached) {
       CFANode loc = extractLocation(state);

@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
  * A transition in the automaton implements one of the pattern matching methods.
  * This determines if the transition matches on a certain {@link CFAEdge}.
  */
-public class AutomatonTransition {
+class AutomatonTransition {
 
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
 
@@ -127,37 +127,37 @@ public class AutomatonTransition {
       followState = pFollowState;
     }
 
-    public Builder withAssertion(AutomatonBoolExpr pAssertion) {
+    Builder withAssertion(AutomatonBoolExpr pAssertion) {
       this.assertions = ImmutableList.of(pAssertion);
       return this;
     }
 
-    public Builder withAssertions(List<AutomatonBoolExpr> pAssertions) {
+    Builder withAssertions(List<AutomatonBoolExpr> pAssertions) {
       this.assertions = pAssertions;
       return this;
     }
 
-    public Builder withAssumptions(List<AExpression> pAssumptions) {
+    Builder withAssumptions(List<AExpression> pAssumptions) {
       this.assumptions = pAssumptions;
       return this;
     }
 
-    public Builder withActions(List<AutomatonAction> pActions) {
+    Builder withActions(List<AutomatonAction> pActions) {
       this.actions = pActions;
       return this;
     }
 
-    public Builder withCandidateInvariants(ExpressionTree<AExpression> pCandidateInvariants) {
+    Builder withCandidateInvariants(ExpressionTree<AExpression> pCandidateInvariants) {
       this.candidateInvariants = pCandidateInvariants;
       return this;
     }
 
-    public Builder withViolatedPropertyDescription(@Nullable StringExpression pViolatedPropertyDescription) {
+    Builder withViolatedPropertyDescription(StringExpression pViolatedPropertyDescription) {
       this.violatedPropertyDescription = pViolatedPropertyDescription;
       return this;
     }
 
-    public AutomatonTransition build() {
+    AutomatonTransition build() {
       return new AutomatonTransition(
           trigger,
           assertions,
@@ -186,8 +186,8 @@ public class AutomatonTransition {
       AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions,
       List<AExpression> pAssumptions,
-      List<AutomatonAction> pActions,
       ExpressionTree<AExpression> pCandidateInvariants,
+      List<AutomatonAction> pActions,
       String pFollowStateName,
       AutomatonInternalState pFollowState,
       StringExpression pViolatedPropertyDescription) {
@@ -472,5 +472,24 @@ public class AutomatonTransition {
 
   public ExpressionTree<AExpression> getCandidateInvariants() {
     return candidateInvariants;
+  }
+
+  public boolean isTransitionWithAssumptions() {
+    return assumptions.size() > 0;
+  }
+
+  public boolean nontriviallyMatches(final CFAEdge pEdge, final LogManager pLogger) {
+    if (trigger != AutomatonBoolExpr.TRUE) {
+      try {
+        ResultValue<Boolean> match =
+            trigger.eval(new AutomatonExpressionArguments(null, null, null, pEdge, pLogger));
+        // be conservative and also return true if trigger cannot be evaluated
+        return match.canNotEvaluate() || match.getValue();
+      } catch (CPATransferException e) {
+        // be conservative and assume that it would match
+        return true;
+      }
+    }
+    return false;
   }
 }

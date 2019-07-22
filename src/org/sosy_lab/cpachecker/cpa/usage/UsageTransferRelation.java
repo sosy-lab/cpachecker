@@ -170,7 +170,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
 
     statistics.transferRelationTimer.start();
     Collection<AbstractState> result = new ArrayList<>();
-    CFAEdge currentEdge = pCfaEdge;
+
     UsageState oldState = (UsageState) pState;
 
     /*if (oldState.isExitState()) {
@@ -178,7 +178,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       return Collections.emptySet();
     }*/
 
-    currentEdge = changeIfNeccessary(pCfaEdge);
+    CFAEdge currentEdge = changeIfNeccessary(pCfaEdge);
 
     AbstractState oldWrappedState = oldState.getWrappedState();
     newState = oldState.copy();

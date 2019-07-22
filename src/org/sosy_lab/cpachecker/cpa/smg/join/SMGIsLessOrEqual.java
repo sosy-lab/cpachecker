@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
@@ -199,8 +200,8 @@ public class SMGIsLessOrEqual {
   /** returns whether two heaps are "maybe LEQ" or "definitely not LEQ". */
   private static boolean maybeHeapLessOrEqual(
       UnmodifiableCLangSMG pSMG1, UnmodifiableCLangSMG pSMG2) {
-    Set<SMGObject> heap_in_smg1 = pSMG1.getHeapObjects();
-    Set<SMGObject> heap_in_smg2 = pSMG2.getHeapObjects();
+    PersistentSet<SMGObject> heap_in_smg1 = pSMG1.getHeapObjects();
+    PersistentSet<SMGObject> heap_in_smg2 = pSMG2.getHeapObjects();
 
     for (SMGObject object_in_smg1 : heap_in_smg1) {
 

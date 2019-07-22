@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -60,13 +61,15 @@ public class BAMSubgraphComputer {
   protected final BAMDataManager data;
   private final LogManager logger;
   private final boolean useCopyOnWriteRefinement;
+  private final boolean cleanupOnMissingBlock;
 
-  BAMSubgraphComputer(AbstractBAMCPA bamCpa) {
+  BAMSubgraphComputer(AbstractBAMCPA bamCpa, boolean pCleanupOnMissingBlock) {
     this.partitioning = bamCpa.getBlockPartitioning();
     this.reducer = bamCpa.getReducer();
     this.data = bamCpa.getData();
     this.logger = bamCpa.getLogger();
     useCopyOnWriteRefinement = bamCpa.useCopyOnWriteRefinement();
+    cleanupOnMissingBlock = pCleanupOnMissingBlock;
   }
 
   /**
@@ -169,8 +172,13 @@ public class BAMSubgraphComputer {
         } catch (MissingBlockException e) {
           assert !useCopyOnWriteRefinement
               : "CopyOnWrite-refinement should never cause missing blocks: " + e;
-          ARGInPlaceSubtreeRemover.removeSubtree(reachedSet, currentState);
-          throw new MissingBlockException();
+          if (cleanupOnMissingBlock) {
+            if (!currentState.isDestroyed()) {
+              // TODO Why is the state (and subtree) already removed before?
+              ARGInPlaceSubtreeRemover.removeSubtree(reachedSet, currentState);
+            }
+          }
+          throw e;
         }
 
       } else {
@@ -225,7 +233,7 @@ public class BAMSubgraphComputer {
       if (!data.hasExpandedState(newExpandedTarget.getARGState())) {
         logger.log(Level.FINE,
             "Target state refers to a missing ARGState, i.e., the cached subtree was deleted. Updating it.");
-        throw new MissingBlockException();
+        throw new MissingBlockException(expandedRoot, newExpandedTarget.getWrappedState());
       }
 
       final ARGState reducedTarget =
@@ -235,7 +243,7 @@ public class BAMSubgraphComputer {
       if (reducedTarget.isDestroyed()) {
         logger.log(Level.FINE,
             "Target state refers to a destroyed ARGState, i.e., the cached subtree is outdated. Updating it.");
-        throw new MissingBlockException();
+        throw new MissingBlockException(expandedRoot, newExpandedTarget.getWrappedState());
       }
 
       final ReachedSet reachedSet = data.getReachedSetForInitialState(expandedRoot, reducedTarget);
@@ -280,7 +288,7 @@ public class BAMSubgraphComputer {
           // TODO do we need this check? Maybe there is a bug, if the entry is not available?
           cacheEntry.deleteInfo();
         }
-        throw new MissingBlockException();
+        throw e;
       }
 
       // reconnect ARG: replace the root of the inner block
@@ -339,8 +347,23 @@ public class BAMSubgraphComputer {
 
     private static final long serialVersionUID = 123L;
 
-    public MissingBlockException() {
-      super("missing block");
+    private final AbstractState initialState;
+    private final AbstractState exitState;
+
+    public MissingBlockException(AbstractState pInitialState, AbstractState pExitState) {
+      super(String.format(
+          "missing block for non-reduced initial state %n%s and expanded exit state %n%s",
+          pInitialState, pExitState));
+      initialState = Preconditions.checkNotNull(pInitialState);
+      exitState = Preconditions.checkNotNull(pExitState);
+    }
+
+    AbstractState getInitialState() {
+      return initialState;
+    }
+
+    AbstractState getExitState() {
+      return exitState;
     }
   }
 }

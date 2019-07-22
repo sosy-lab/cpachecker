@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -65,7 +64,7 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
           final InterpolationManager.Interpolator<T> interpolator,
           final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
           throws InterruptedException, SolverException {
-    List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(formulasWithStatesAndGroupdIds.size() - 1);
+    List<BooleanFormula> interpolants = new ArrayList<>(formulasWithStatesAndGroupdIds.size() - 1);
     BooleanFormula lastItp = bfmgr.makeTrue(); // PSI_0 = True
     final Deque<Pair<BooleanFormula, BooleanFormula>> callstack = new ArrayDeque<>();
     for (int positionOfA = 0; positionOfA < formulasWithStatesAndGroupdIds.size() - 1; positionOfA++) {

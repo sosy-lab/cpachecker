@@ -32,11 +32,15 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.SetMultimap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -45,6 +49,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -63,13 +68,17 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -103,6 +112,9 @@ import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -163,7 +175,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private final LassoAnalysis lassoAnalysis;
   private final TerminationLoopInformation terminationInformation;
-  private final ClassVariables declarations;
+  private final Set<CVariableDeclaration> globalDeclaration;
+  private final SetMultimap<String, CVariableDeclaration> localDeclarations;
 
   private final AggregatedReachedSetManager aggregatedReachedSetManager;
 
@@ -200,7 +213,12 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         CPAs.retrieveCPAOrFail(pSafetyCPA, TerminationCPA.class, TerminationAlgorithm.class);
     terminationInformation = terminationCpa.getTerminationInformation();
 
-    declarations = ClassVariables.collectDeclarations(cfa);
+    DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
+    for (CFANode function : cfa.getAllFunctionHeads()) {
+      CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(function, visitor);
+    }
+    localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);
+    globalDeclaration = ImmutableSet.copyOf(visitor.globalDeclarations);
 
     LoopStructure loopStructure =
         cfa.getLoopStructure()
@@ -292,7 +310,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     CFANode initialLocation = AbstractStates.extractLocation(pReachedSet.getFirstState());
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_IMPRECISE;
 
-    List<Loop> allLoops = Lists.newArrayList(cfa.getLoopStructure().get().getAllLoops());
+    List<Loop> allLoops = new ArrayList<>(cfa.getLoopStructure().get().getAllLoops());
     Collections.sort(allLoops, comparingInt(l -> l.getInnerLoopEdges().size()));
 
     if (considerRecursion) {
@@ -340,12 +358,12 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
 
     logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
-    Set<RankingRelation> rankingRelations = Sets.newHashSet();
+    Set<RankingRelation> rankingRelations = new HashSet<>();
     int totalRepeatedRankingFunctions = 0;
     int repeatedRankingFunctionsSinceSuccessfulIteration = 0;
 
     // Pass current loop and relevant variables to TerminationCPA.
-    Set<CVariableDeclaration> relevantVariables = declarations.getDeclarations(pLoop);
+    Set<CVariableDeclaration> relevantVariables = getRelevantVariables(pLoop);
     terminationInformation.setProcessedLoop(pLoop, relevantVariables);
 
     if (considerRecursion) {
@@ -496,6 +514,29 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         .forEach(s -> dummy.add(s, SingletonPrecision.getInstance()));
 
     aggregatedReachedSetManager.addReachedSet(dummy);
+  }
+
+  private Set<CVariableDeclaration> getRelevantVariables(Loop pLoop) {
+    CFANode firstLoopHead = pLoop.getLoopHeads().iterator().next();
+    if (firstLoopHead instanceof FunctionEntryNode) {
+      ImmutableSet.Builder<CVariableDeclaration> relVarBuilder =
+          ImmutableSet.<CVariableDeclaration>builder();
+      relVarBuilder.addAll(globalDeclaration);
+      for (CFANode entryNode :
+          FluentIterable.from(pLoop.getLoopNodes())
+              .filter(Predicates.instanceOf(FunctionEntryNode.class))) {
+        relVarBuilder.addAll(localDeclarations.get(entryNode.getFunctionName()));
+      }
+      return relVarBuilder.build();
+    } else {
+      String function = firstLoopHead.getFunctionName();
+      Set<CVariableDeclaration> relevantVariabels =
+          ImmutableSet.<CVariableDeclaration>builder()
+              .addAll(globalDeclaration)
+              .addAll(localDeclarations.get(function))
+              .build();
+      return relevantVariabels;
+    }
   }
 
   private void removeIntermediateStates(ReachedSet pReachedSet, AbstractState pTargetState) {
@@ -682,6 +723,49 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     PredicateCPA predCPA = CPAs.retrieveCPA(safetyCPA, PredicateCPA.class);
     if (predCPA != null) {
       predCPA.changeExplicitAbstractionNodes(newAbsLocs);
+    }
+  }
+
+  private static class DeclarationCollectionCFAVisitor extends DefaultCFAVisitor {
+
+    private final Set<CVariableDeclaration> globalDeclarations = new LinkedHashSet<>();
+
+    private final Multimap<String, CVariableDeclaration> localDeclarations =
+        MultimapBuilder.hashKeys().linkedHashSetValues().build();
+
+    @Override
+    public TraversalProcess visitNode(CFANode pNode) {
+
+      if (pNode instanceof CFunctionEntryNode) {
+        String functionName = pNode.getFunctionName();
+        List<CParameterDeclaration> parameters =
+            ((CFunctionEntryNode) pNode).getFunctionParameters();
+        parameters
+            .stream()
+            .map(CParameterDeclaration::asVariableDeclaration)
+            .forEach(localDeclarations.get(functionName)::add);
+      }
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitEdge(CFAEdge pEdge) {
+
+      if (pEdge instanceof CDeclarationEdge) {
+        CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
+        if (declaration instanceof CVariableDeclaration) {
+          CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
+
+          if (variableDeclaration.isGlobal()) {
+            globalDeclarations.add(variableDeclaration);
+
+          } else {
+            String functionName = pEdge.getPredecessor().getFunctionName();
+            localDeclarations.put(functionName, variableDeclaration);
+          }
+        }
+      }
+      return TraversalProcess.CONTINUE;
     }
   }
 }

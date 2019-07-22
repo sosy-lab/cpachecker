@@ -32,11 +32,9 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
@@ -44,10 +42,10 @@ import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -69,10 +67,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.ShutdownManager;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -96,7 +92,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -115,7 +110,6 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateI
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.EdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant.ManagerKey;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -126,20 +120,15 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
-import org.sosy_lab.cpachecker.util.expressions.And;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
@@ -150,8 +139,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
-  @Options(prefix="invariantGeneration.kInduction")
-  private static class KInductionInvariantGeneratorOptions {
+  @Options(prefix = "invariantGeneration.kInduction")
+  public static class KInductionInvariantGeneratorOptions {
 
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     @Option(
@@ -310,7 +299,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     CandidateGenerator statisticsCandidateGenerator =
         new CandidateGenerator() {
 
-          private final Set<CandidateInvariant> confirmedCandidates = Sets.newHashSet();
+          private final Set<CandidateInvariant> confirmedCandidates = new HashSet<>();
 
           @Override
           public boolean produceMoreCandidates() {
@@ -516,7 +505,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
 
-    final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
+    final Set<CandidateInvariant> candidates = new LinkedHashSet<>();
 
     for (CandidateInvariant candidate : pOptions.guessCandidatesFromCFA.create(pCFA, pSpecification, pTargetLocationProvider, pLogger)) {
       candidates.add(candidate);
@@ -524,10 +513,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
     final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
     if (pOptions.invariantsAutomatonFile != null) {
-      ReachedSet reachedSet =
-          analyzeWitness(pConfig, pSpecification, pLogger, pCFA, pShutdownManager, pOptions);
-      extractCandidatesFromReachedSet(pShutdownManager, candidates, candidateGroupLocations,
-          reachedSet);
+      WitnessInvariantsExtractor extractor =
+          new WitnessInvariantsExtractor(
+              pConfig,
+              pSpecification,
+              pLogger,
+              pCFA,
+              pShutdownManager.getNotifier(),
+              pOptions.invariantsAutomatonFile);
+      extractor.extractCandidatesFromReachedSet(candidates, candidateGroupLocations);
     }
 
     candidates.add(TargetLocationCandidateInvariant.INSTANCE);
@@ -592,131 +586,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     return new StaticCandidateProvider(candidates);
   }
 
-  private static ReachedSet analyzeWitness(
-      Configuration pConfig,
-      Specification pSpecification,
-      LogManager pLogger,
-      CFA pCFA,
-      final ShutdownManager pShutdownManager,
-      KInductionInvariantGeneratorOptions options)
-      throws InvalidConfigurationException, CPAException {
-    ConfigurationBuilder configBuilder =
-        Configuration.builder()
-            .loadFromResource(KInductionInvariantGenerator.class, "witness-analysis.properties");
-    List<String> copyOptions = Arrays.asList(
-        "analysis.machineModel",
-        "analysis.programNames",
-        "cpa.callstack.skipRecursion",
-        "cpa.callstack.skipVoidRecursion",
-        "cpa.callstack.skipFunctionPointerRecursion",
-        "witness.strictChecking",
-        "witness.checkProgramHash");
-    for (String copyOption : copyOptions) {
-      configBuilder.copyOptionFromIfPresent(pConfig, copyOption);
-    }
-    Configuration config = configBuilder.build();
-    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, pLogger);
-    ShutdownNotifier notifier = pShutdownManager.getNotifier();
-    ReachedSet reachedSet = reachedSetFactory.create();
-    CPABuilder builder = new CPABuilder(config, pLogger, notifier, reachedSetFactory);
-    Specification automatonAsSpec =
-        Specification.fromFiles(
-            pSpecification.getProperties(),
-            ImmutableList.of(options.invariantsAutomatonFile),
-            pCFA,
-            config,
-            pLogger);
-    ConfigurableProgramAnalysis cpa =
-        builder.buildCPAs(pCFA, automatonAsSpec, new AggregatedReachedSets());
-    CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, notifier);
-    CFANode rootNode = pCFA.getMainFunction();
-    StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
-
-    try {
-      reachedSet.add(
-          cpa.getInitialState(rootNode, partition),
-          cpa.getInitialPrecision(rootNode, partition));
-      algorithm.run(reachedSet);
-    } catch (InterruptedException e) {
-      // Candidate collection was interrupted,
-      // but instead of throwing the exception here,
-      // let it be thrown by the invariant generator.
-    }
-    return reachedSet;
-  }
-
-  private static void extractCandidatesFromReachedSet(final ShutdownManager pShutdownManager,
-      final Set<CandidateInvariant> candidates,
-      final Multimap<String, CFANode> candidateGroupLocations, ReachedSet reachedSet) {
-    Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
-    Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
-    Set<CFANode> visited = Sets.newHashSet();
-    Multimap<CFANode, ExpressionTreeLocationInvariant> potentialAdditionalCandidates =
-        HashMultimap.create();
-    Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
-    for (AbstractState abstractState : reachedSet) {
-      if (pShutdownManager.getNotifier().shouldShutdown()) {
-        return;
-      }
-      Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
-      Iterables.addAll(visited, locations);
-      for (AutomatonState automatonState :
-          AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
-        ExpressionTree<AExpression> candidate = automatonState.getCandidateInvariants();
-        String groupId = automatonState.getInternalStateName();
-        candidateGroupLocations.putAll(groupId, locations);
-        if (!candidate.equals(ExpressionTrees.getTrue())) {
-          ExpressionTree<AExpression> previous = expressionTrees.get(groupId);
-          if (previous == null) {
-            previous = ExpressionTrees.getTrue();
-          }
-          expressionTrees.put(groupId, And.of(previous, candidate));
-          for (CFANode location : locations) {
-            potentialAdditionalCandidates.removeAll(location);
-            ExpressionTreeLocationInvariant candidateInvariant =
-                new ExpressionTreeLocationInvariant(groupId, location, candidate, toCodeVisitorCache);
-            expressionTreeLocationInvariants.add(candidateInvariant);
-            // Check if there are any leaving return edges:
-            // The predecessors are also potential matches for the invariant
-            for (FunctionReturnEdge returnEdge :
-                CFAUtils.leavingEdges(location).filter(FunctionReturnEdge.class)) {
-              CFANode successor = returnEdge.getSuccessor();
-              if (!candidateGroupLocations.containsEntry(groupId, successor)
-                  && !visited.contains(successor)) {
-                potentialAdditionalCandidates.put(
-                    successor,
-                    new ExpressionTreeLocationInvariant(
-                        groupId, successor, candidate, toCodeVisitorCache));
-              }
-            }
-          }
-        }
-      }
-    }
-    for (Map.Entry<CFANode, Collection<ExpressionTreeLocationInvariant>> potentialCandidates :
-        potentialAdditionalCandidates.asMap().entrySet()) {
-      if (!visited.contains(potentialCandidates.getKey())) {
-        for (ExpressionTreeLocationInvariant candidateInvariant :
-            potentialCandidates.getValue()) {
-          candidateGroupLocations.put(
-              candidateInvariant.getGroupId(), potentialCandidates.getKey());
-          expressionTreeLocationInvariants.add(candidateInvariant);
-        }
-      }
-    }
-    for (ExpressionTreeLocationInvariant expressionTreeLocationInvariant : expressionTreeLocationInvariants) {
-      for (CFANode location :
-          candidateGroupLocations.get(expressionTreeLocationInvariant.getGroupId())) {
-        candidates.add(
-            new ExpressionTreeLocationInvariant(
-                expressionTreeLocationInvariant.getGroupId(),
-                location,
-                expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
-                toCodeVisitorCache));
-      }
-    }
-  }
-
   /**
    * Gets the relevant assume edges.
    *
@@ -725,8 +594,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
    * @return the relevant assume edges.
    */
   private static Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
-    final Set<AssumeEdge> assumeEdges = Sets.newLinkedHashSet();
-    Set<CFANode> visited = Sets.newHashSet(pTargetLocations);
+    final Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
+    Set<CFANode> visited = new HashSet<>(pTargetLocations);
     Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();

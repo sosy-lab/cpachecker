@@ -171,12 +171,7 @@ public class CFAEdgeWithAssumptions {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + comment.hashCode();
-    result = prime * result + edge.hashCode();
-    result = prime * result + expressionStmts.hashCode();
-    return result;
+    return Objects.hash(comment, edge, expressionStmts);
   }
 
   @Override

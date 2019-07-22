@@ -129,7 +129,7 @@ public class SMGRegionsWithRegionsTest {
 
     SMGObject segment = smg.getObjectPointedBy(addresses[0]);
     Assert.assertFalse(segment.isAbstract());
-    Truth.assertThat(segment.getKind()).isSameAs(SMGObjectKind.REG);
+    Truth.assertThat(segment.getKind()).isSameInstanceAs(SMGObjectKind.REG);
     Truth.assertThat(segment.getLevel()).isEqualTo(0);
     Truth.assertThat(segment.getSize()).isEqualTo(regionSize);
   }
@@ -159,7 +159,7 @@ public class SMGRegionsWithRegionsTest {
     Truth.assertThat(subobject).isNotNull();
 
     Truth.assertThat(subobject.getSize()).isEqualTo(subregionSize);
-    Truth.assertThat(subobject.getKind()).isSameAs(SMGObjectKind.REG);
+    Truth.assertThat(subobject.getKind()).isSameInstanceAs(SMGObjectKind.REG);
 
     SMGListAbstractionTestHelpers.assertStoredDataOfAbstractList(smg, values, subobject, subDfo);
   }

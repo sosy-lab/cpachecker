@@ -31,7 +31,7 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -70,7 +70,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   private boolean recursionSeen = false;
   private boolean resultStatesChanged = false;
   private boolean targetFound = false;
-  private final Collection<AbstractState> potentialRecursionUpdateStates = new HashSet<>();
+  private final Collection<AbstractState> potentialRecursionUpdateStates = new LinkedHashSet<>();
 
   public BAMTransferRelationWithFixPointForRecursion(
       Configuration pConfig,

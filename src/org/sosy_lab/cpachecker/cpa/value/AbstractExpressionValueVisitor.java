@@ -478,13 +478,10 @@ public abstract class AbstractExpressionValueVisitor
    * @param r right hand side value
    * @param op the binary operator
    * @param calculationType The type the result of the calculation should have
-   * @param machineModel the machine model
-   * @param logger logging
    * @return the resulting value
    */
-  private static double arithmeticOperation(final double l, final double r,
-      final BinaryOperator op, final CType calculationType,
-      final MachineModel machineModel, final LogManager logger) {
+  private static double arithmeticOperation(
+      final double l, final double r, final BinaryOperator op, final CType calculationType) {
 
     checkArgument(calculationType.getCanonicalType() instanceof CSimpleType
             && !((CSimpleType) calculationType.getCanonicalType()).isLong(),
@@ -518,15 +515,9 @@ public abstract class AbstractExpressionValueVisitor
    *
    * @param l left hand side value
    * @param r right hand side value
-   * @param op the binary operator
-   * @param calculationType The type the result of the calculation should have
-   * @param machineModel the machine model
-   * @param logger logging
    * @return the resulting value
    */
-  private static float arithmeticOperation(final float l, final float r,
-      final BinaryOperator op, final CType calculationType,
-      final MachineModel machineModel, final LogManager logger) {
+  private static float arithmeticOperation(final float l, final float r, final BinaryOperator op) {
 
     switch (op) {
     case PLUS:
@@ -590,14 +581,14 @@ public abstract class AbstractExpressionValueVisitor
           double lVal = lNum.doubleValue();
           double rVal = rNum.doubleValue();
           double result =
-              arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+              arithmeticOperation(lVal, rVal, op, calculationType);
           return new NumericValue(result);
         }
       }
       case FLOAT: {
         float lVal = lNum.floatValue();
         float rVal = rNum.floatValue();
-        float result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+        float result = arithmeticOperation(lVal, rVal, op);
         return new NumericValue(result);
       }
       default: {

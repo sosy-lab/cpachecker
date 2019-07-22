@@ -34,7 +34,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
 import de.uni_freiburg.informatik.ultimate.lassoranker.LinearInequality;
@@ -43,6 +42,7 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -176,8 +176,8 @@ public class LassoBuilder {
       throws CPATransferException, InterruptedException {
     PathIterator path = pCounterexampleInfo.getTargetPath().fullPathIterator();
 
-    List<CFAEdge> stemEdges = Lists.newArrayList();
-    List<CFAEdge> loopEdges = Lists.newArrayList();
+    List<CFAEdge> stemEdges = new ArrayList<>();
+    List<CFAEdge> loopEdges = new ArrayList<>();
     boolean loopStarted = false;
     path.advance(); // the first state has no incoming edge
 
@@ -303,7 +303,7 @@ public class LassoBuilder {
       throws TermException {
     Set<BooleanFormula> clauses = bfmrView.toDisjunctionArgs(pathInDnf, true);
 
-    List<List<LinearInequality>> polyhedra = Lists.newArrayListWithCapacity(clauses.size());
+    List<List<LinearInequality>> polyhedra = new ArrayList<>(clauses.size());
     for (BooleanFormula clause : clauses) {
       Term term = fmgr.extractInfo(clause);
       polyhedra.add(InequalityConverter.convert(term, EXCEPTION));

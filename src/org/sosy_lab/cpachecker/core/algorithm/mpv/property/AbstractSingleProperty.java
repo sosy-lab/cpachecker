@@ -19,7 +19,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpv.property;
 
-import com.google.common.collect.Sets;
+import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -48,7 +48,7 @@ public abstract class AbstractSingleProperty {
     violations = 0;
     allViolationsFound = false;
     result = Result.NOT_YET_STARTED;
-    violatedPropertyDescription = Sets.newHashSet();
+    violatedPropertyDescription = new HashSet<>();
     reasonOfUnknown = "";
   }
 

@@ -27,11 +27,12 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -442,7 +443,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     // build the branching formula that will help us find the real error path
     List<BooleanFormula> branchingFormula = new ArrayList<>();
     for (final ARGState pathElement : elementsOnPath) {
-      Set<ARGState> children = Sets.newHashSet(pathElement.getChildren());
+      Set<ARGState> children = new HashSet<>(pathElement.getChildren());
       Set<ARGState> childrenOnPath = Sets.intersection(children, elementsOnPath).immutableCopy();
 
       if (childrenOnPath.size() > 1) {
@@ -530,7 +531,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       return Collections.emptyMap();
     }
 
-    Map<Integer, Boolean> preds = Maps.newHashMap();
+    Map<Integer, Boolean> preds = new HashMap<>();
     for (ValueAssignment entry : model) {
       String canonicalName = entry.getName();
 

@@ -56,9 +56,9 @@
     rundefinition_name
     logfile_path
     logfile_path_abs
-    sourcefile_name
-    sourcefile_path
-    sourcefile_path_abs
+    inputfile_name
+    inputfile_path
+    inputfile_path_abs
     C.f. benchmark-cpachecker.xml for an example of variable usage.
 
     Furthermore, a <columns> tag may appear as a top-level tag

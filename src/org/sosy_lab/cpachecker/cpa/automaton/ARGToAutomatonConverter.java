@@ -57,13 +57,13 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -154,12 +154,11 @@ public class ARGToAutomatonConverter {
   private int skipFirstNum = 10;
   private final CBinaryExpressionBuilder cBinaryExpressionBuilder;
 
-  public ARGToAutomatonConverter(@Nullable Configuration config, CFA cfa,LogManager logger)
+  public ARGToAutomatonConverter(
+      @Nullable Configuration config, MachineModel machinemodel, LogManager logger)
       throws InvalidConfigurationException {
     config.inject(this);
-    cBinaryExpressionBuilder = new CBinaryExpressionBuilder(
-        cfa.getMachineModel(),
-        logger);
+    cBinaryExpressionBuilder = new CBinaryExpressionBuilder(machinemodel, logger);
   }
 
   /**
@@ -758,7 +757,7 @@ public class ARGToAutomatonConverter {
 
   private static Iterable<ARGState> getLeaves(ARGState pRoot, boolean targetsOnly) {
     FluentIterable<ARGState> leaves =
-        from(pRoot.getSubgraph()).filter(s -> s.getChildren().size() == 0);
+        from(pRoot.getSubgraph()).filter(s -> (s.getChildren().size() == 0) && !s.isCovered());
     return targetsOnly ? leaves.filter(ARGState::isTarget) : leaves;
   }
 

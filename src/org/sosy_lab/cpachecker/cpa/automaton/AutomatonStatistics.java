@@ -75,5 +75,14 @@ class AutomatonStatistics implements Statistics {
             - automatonSuccessors.getTimesWithValue(1);
     put(out, 0, "Automaton transfers with branching", stateBranchings);
     put(out, 0, automatonSuccessors);
+
+    int statesWithAssumptionTransitions = 0;
+    for (AutomatonInternalState state : mCpa.getAutomaton().getStates()) {
+      if (state.getTransitions().stream().filter(p -> p.isTransitionWithAssumptions()).count()
+          > 0) {
+        statesWithAssumptionTransitions++;
+      }
+    }
+    put(out, 0, "Number of states with assumption transitions", statesWithAssumptionTransitions);
   }
 }
