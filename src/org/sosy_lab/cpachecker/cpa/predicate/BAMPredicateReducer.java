@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -70,6 +71,7 @@ public class BAMPredicateReducer
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final RegionManager rmgr;
+  private final ShutdownNotifier shutdownNotifier;
 
   /** A meaning of the following options is a number of problems in BAM:
    *  sometimes it is more efficient not to reduce precision, than to have a
@@ -93,6 +95,7 @@ public class BAMPredicateReducer
     this.bfmgr = cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
     this.rmgr = cpa.getAbstractionManager().getRegionCreator();
     this.logger = cpa.getLogger();
+    this.shutdownNotifier = cpa.getShutdownNotifier();
   }
 
   @Override
@@ -136,6 +139,8 @@ public class BAMPredicateReducer
 
     Region conjunction = rmgr.makeTrue();
     for (AbstractionPredicate predicate : irrelevantPredicates) {
+      shutdownNotifier.shutdownIfNecessary();
+
       // check whether ABS=>PRED, because only then we can guarantee that
       // ( ( exists PRED: f(ABS,PRED) ) and PRED ) == f(ABS,PRED),
       // which is required for a valid (and precise) reduction and expansion afterwards
@@ -156,7 +161,7 @@ public class BAMPredicateReducer
   }
 
   /**
-   * Conservatively compute only the predicates that are relevant for the given context and follfill
+   * Conservatively compute only the predicates that are relevant for the given context and fulfill
    * the following requirements:
    *
    * <ul>
@@ -168,7 +173,7 @@ public class BAMPredicateReducer
    * reduce internal parts of a boolean combination)
    */
   private Set<AbstractionPredicate> getRelevantPredicates(
-      Block pContext, Collection<AbstractionPredicate> predicates) {
+      Block pContext, Collection<AbstractionPredicate> predicates) throws InterruptedException {
 
     final Set<AbstractionPredicate> relevantPredicates = new LinkedHashSet<>();
     Set<String> relevantVariables = new LinkedHashSet<>();
@@ -189,6 +194,7 @@ public class BAMPredicateReducer
     // predicates that are important because they contain variables used in relevant predicates.
     Set<String> newRelevantVariables = new LinkedHashSet<>();
     while (!relevantVariables.isEmpty()) {
+      shutdownNotifier.shutdownIfNecessary();
       Set<AbstractionPredicate> newIrrelevantPredicates = new LinkedHashSet<>();
       for (AbstractionPredicate predicate : irrelevantPredicates) { // shrinking with each iteration
         Set<String> variables = fmgr.extractVariableNames(predicate.getSymbolicAtom());
