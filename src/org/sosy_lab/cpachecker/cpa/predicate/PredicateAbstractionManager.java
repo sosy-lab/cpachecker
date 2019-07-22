@@ -29,7 +29,6 @@ import static com.google.common.base.Predicates.equalTo;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -45,6 +44,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1247,14 +1247,14 @@ public class PredicateAbstractionManager {
    * @param pFormula The formula with the atoms (with SSA indices).
    * @return A (possibly empty) collection of AbstractionPredicates without duplicates.
    */
-  public Collection<AbstractionPredicate> getPredicatesForAtomsOf(BooleanFormula pFormula) {
+  public Set<AbstractionPredicate> getPredicatesForAtomsOf(BooleanFormula pFormula) {
     if (bfmgr.isFalse(pFormula)) {
-      return ImmutableList.of(amgr.makeFalsePredicate());
+      return ImmutableSet.of(amgr.makeFalsePredicate());
     }
 
     Set<BooleanFormula> atoms = fmgr.extractAtoms(pFormula, splitItpAtoms);
 
-    List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
+    Set<AbstractionPredicate> preds = new LinkedHashSet<>(atoms.size());
 
     for (BooleanFormula atom : atoms) {
       preds.add(amgr.makePredicate(fmgr.uninstantiate(atom)));
