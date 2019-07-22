@@ -201,7 +201,8 @@ public class BAMPredicateReducer
   }
 
   /**
-   * Conservatively compute only the predicates that
+   * Conservatively compute only the predicates that are relevant for the given context and follfill
+   * the following requirements:
    *
    * <ul>
    *   <li>contain variables never used outside of the block, also transitively.
@@ -289,15 +290,8 @@ public class BAMPredicateReducer
         pathFormula.getFormula());
     SSAMap ssa = pathFormula.getSsa();
 
-    //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
-    //there still should be at least _some_ index for each variable of the abstraction formula.
-    PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
-    PointerTargetSet reducedPts = reducedState.getPathFormula().getPointerTargetSet();
-
     AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
     AbstractionFormula abstractionFormula = reducedState.getAbstractionFormula();
-    PersistentMap<CFANode, Integer> abstractionLocations =
-        reducedState.getAbstractionLocationsOnPath();
 
     if (useAbstractionReduction) {
       Set<AbstractionPredicate> rootPredicates =
@@ -314,11 +308,13 @@ public class BAMPredicateReducer
               abstractionFormula.getBlockFormula());
     }
 
+    PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
+    PointerTargetSet reducedPts = reducedState.getPathFormula().getPointerTargetSet();
     PointerTargetSet newPts = pmgr.mergePts(rootPts, reducedPts, ssa);
     pathFormula = pmgr.makeNewPathFormula(pathFormula, ssa, newPts);
 
     return PredicateAbstractState.mkAbstractionState(
-        pathFormula, abstractionFormula.copyOf(), abstractionLocations);
+        pathFormula, abstractionFormula.copyOf(), reducedState.getAbstractionLocationsOnPath());
   }
 
   @Override
