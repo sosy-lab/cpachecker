@@ -54,7 +54,7 @@ public abstract class LassoAnalysisStatistics implements Statistics {
 
   protected final AtomicInteger lassosCurrentIteration = new AtomicInteger();
 
-  private final Multimap<Loop, TerminationArgument> terminationArguments =
+  protected final Multimap<Loop, TerminationArgument> terminationArguments =
       MultimapBuilder.linkedHashKeys().arrayListValues().build();
 
   protected final Map<Loop, NonTerminationArgument> nonTerminationArguments =

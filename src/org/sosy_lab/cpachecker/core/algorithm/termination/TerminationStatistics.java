@@ -38,8 +38,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.GeometricNonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.InfiniteFixpointRepetition;
@@ -153,7 +151,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private final Timer safetyAnalysisTime = new Timer();
 
   private final Map<Loop, AtomicInteger> safetyAnalysisRunsPerLoop = new ConcurrentHashMap<>();
-
 
   private final LogManager logger;
 

@@ -1780,13 +1780,11 @@ public class AutomatonGraphmlParser {
       AutomatonBoolExpr pTriggers, List<AExpression> pAssumptions) {
     StringExpression violatedPropertyDesc = new StringExpression("Invariant not valid");
     AutomatonInternalState followErrorState = AutomatonInternalState.ERROR;
-    return new AutomatonTransition(
-        pTriggers,
-        Collections.<AutomatonBoolExpr>emptyList(),
-        pAssumptions,
-        Collections.<AutomatonAction>emptyList(),
-        followErrorState,
-        violatedPropertyDesc);
+
+    return new AutomatonTransition.Builder(pTriggers, followErrorState)
+        .withAssumptions(pAssumptions)
+        .withViolatedPropertyDescription(violatedPropertyDesc)
+        .build();
   }
 
   private void createAutomatonInvariantsTransitions(

@@ -895,7 +895,7 @@ public class ARGUtils {
 
     int index = 0;
 
-    Deque<ARGState> dfsStack = new ArrayDeque<>(); // TODO: eventually replace this with a LinkedHashSet
+    Deque<ARGState> dfsStack = new ArrayDeque<>();
     Map<ARGState, Integer> stateIndex = new HashMap<>();
 
     // Map to store the topmost reachable ancestor with the minimum possible index value

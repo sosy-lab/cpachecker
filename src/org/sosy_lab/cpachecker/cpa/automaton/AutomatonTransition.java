@@ -162,8 +162,8 @@ class AutomatonTransition {
           trigger,
           assertions,
           assumptions,
-          actions,
           candidateInvariants,
+          actions,
           followStateName,
           followState,
           violatedPropertyDescription);
@@ -175,8 +175,8 @@ class AutomatonTransition {
         b.trigger,
         b.assertions,
         b.assumptions,
-        b.actions,
         b.candidateInvariants,
+        b.actions,
         b.followStateName,
         b.followState,
         b.violatedPropertyDescription);
