@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -226,17 +227,8 @@ class AutomatonTransition {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((actions == null) ? 0 : actions.hashCode());
-    result = prime * result + ((assertion == null) ? 0 : assertion.hashCode());
-    result = prime * result + ((assumptions == null) ? 0 : assumptions.hashCode());
-    result = prime * result + ((followStateName == null) ? 0 : followStateName.hashCode());
-    result = prime * result + ((trigger == null) ? 0 : trigger.hashCode());
-    result =
-        prime * result
-            + ((violatedPropertyDescription == null) ? 0 : violatedPropertyDescription.hashCode());
-    return result;
+    return Objects.hash(
+        actions, assertion, assumptions, followStateName, trigger, violatedPropertyDescription);
   }
 
   @Override
@@ -247,50 +239,15 @@ class AutomatonTransition {
     if (!(obj instanceof AutomatonTransition)) {
       return false;
     }
+
     AutomatonTransition other = (AutomatonTransition) obj;
-    if (actions == null) {
-      if (other.actions != null) {
-        return false;
-      }
-    } else if (!actions.equals(other.actions)) {
-      return false;
-    }
-    if (assertion == null) {
-      if (other.assertion != null) {
-        return false;
-      }
-    } else if (!assertion.equals(other.assertion)) {
-      return false;
-    }
-    if (assumptions == null) {
-      if (other.assumptions != null) {
-        return false;
-      }
-    } else if (!assumptions.equals(other.assumptions)) {
-      return false;
-    }
-    if (followStateName == null) {
-      if (other.followStateName != null) {
-        return false;
-      }
-    } else if (!followStateName.equals(other.followStateName)) {
-      return false;
-    }
-    if (trigger == null) {
-      if (other.trigger != null) {
-        return false;
-      }
-    } else if (!trigger.equals(other.trigger)) {
-      return false;
-    }
-    if (violatedPropertyDescription == null) {
-      if (other.violatedPropertyDescription != null) {
-        return false;
-      }
-    } else if (!violatedPropertyDescription.equals(other.violatedPropertyDescription)) {
-      return false;
-    }
-    return true;
+
+    return Objects.equals(actions, other.actions)
+        && Objects.equals(assertion, other.assertion)
+        && Objects.equals(assumptions, other.assumptions)
+        && Objects.equals(followStateName, other.followStateName)
+        && Objects.equals(trigger, other.trigger)
+        && Objects.equals(violatedPropertyDescription, other.violatedPropertyDescription);
   }
 
   /**
