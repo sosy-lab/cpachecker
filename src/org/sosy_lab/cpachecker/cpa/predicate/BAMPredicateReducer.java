@@ -43,9 +43,9 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -61,8 +61,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="cpa.predicate.bam")
-public class BAMPredicateReducer implements Reducer {
+@Options(prefix = "cpa.predicate.bam")
+public class BAMPredicateReducer
+    extends GenericReducer<PredicateAbstractState, PredicatePrecision> {
 
   private final PathFormulaManager pmgr;
   private final PredicateAbstractionManager pamgr;
@@ -96,11 +97,10 @@ public class BAMPredicateReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedState(
-      AbstractState pExpandedState, Block pContext,
-      CFANode pLocation) throws InterruptedException {
+  public PredicateAbstractState getVariableReducedState0(
+      PredicateAbstractState predicateElement, Block pContext, CFANode pLocation)
+      throws InterruptedException {
 
-    PredicateAbstractState predicateElement = (PredicateAbstractState) pExpandedState;
     PathFormula pathFormula = predicateElement.getPathFormula();
     PersistentMap<CFANode, Integer> abstractionLocations =
         predicateElement.getAbstractionLocationsOnPath().empty();
@@ -275,12 +275,9 @@ public class BAMPredicateReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableExpandedState(
-      AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) throws InterruptedException {
-
-    PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
-    PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;
+  public PredicateAbstractState getVariableExpandedState0(
+      PredicateAbstractState rootState, Block pReducedContext, PredicateAbstractState reducedState)
+      throws InterruptedException {
 
     Preconditions.checkState(reducedState.isAbstractionState());
     Preconditions.checkState(rootState.isAbstractionState());
@@ -336,34 +333,27 @@ public class BAMPredicateReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
-    PredicateAbstractState element = (PredicateAbstractState) pElementKey;
-    PredicatePrecision precision = (PredicatePrecision) pPrecisionKey;
-    return Pair.of(element.getAbstractionFormula().asRegion(), precision);
+  public Object getHashCodeForState0(PredicateAbstractState state, PredicatePrecision precision) {
+    return Pair.of(state.getAbstractionFormula().asRegion(), precision);
   }
 
   @Override
-  public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
-      Precision pReducedPrecision) {
-
+  public PredicatePrecision getVariableExpandedPrecision0(
+      PredicatePrecision rootPrecision, Block pRootContext, PredicatePrecision reducedPrecision) {
     if (usePrecisionReduction) {
-      PredicatePrecision rootPrecision = (PredicatePrecision) pRootPrecision;
-      PredicatePrecision reducedPrecision = (PredicatePrecision) pReducedPrecision;
-      if (rootPrecision == reducedPrecision) { return pRootPrecision; }
       return rootPrecision.mergeWith(reducedPrecision);
     } else {
-      return pReducedPrecision;
+      return reducedPrecision;
     }
   }
 
   @Override
-  public Precision getVariableReducedPrecision(Precision pPrecision, Block context) {
+  public Precision getVariableReducedPrecision0(PredicatePrecision pPrecision, Block context) {
 
     if (usePrecisionReduction) {
-      PredicatePrecision expandedPredicatePrecision = (PredicatePrecision) pPrecision;
 
-      assert expandedPredicatePrecision.getLocationInstancePredicates().isEmpty() :
-        "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
+      assert pPrecision.getLocationInstancePredicates().isEmpty()
+          : "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
       /* LocationInstancePredicates is useless, because a block can be visited
        * several times along a error path and the index would always start from 0 again.
        * Thus we ignore LocationInstancePredicates and hope nobody is using them.
@@ -373,27 +363,26 @@ public class BAMPredicateReducer implements Reducer {
       // create reduced precision
 
       // we only need global predicates with used variables
-      final Collection<AbstractionPredicate> globalPredicates =
-          expandedPredicatePrecision.getGlobalPredicates();
+      final Collection<AbstractionPredicate> globalPredicates = pPrecision.getGlobalPredicates();
 
       // we only need function predicates with used variables
       final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicates =
           ImmutableSetMultimap.builder();
-      for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
+      for (String functionname : pPrecision.getFunctionPredicates().keySet()) {
         if (context.getFunctions().contains(functionname)) {
           functionPredicates.putAll(
-              functionname, expandedPredicatePrecision.getFunctionPredicates().get(functionname));
+              functionname, pPrecision.getFunctionPredicates().get(functionname));
         }
       }
 
       // we only need local predicates with used variables and with nodes from the block
       final ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> localPredicates =
           ImmutableSetMultimap.builder();
-      for (CFANode node : expandedPredicatePrecision.getLocalPredicates().keySet()) {
+      for (CFANode node : pPrecision.getLocalPredicates().keySet()) {
         if (context.getNodes().contains(node)) {
           // TODO handle location-instance-specific predicates
           // Without support for them, we can just pass 0 as locInstance parameter
-          localPredicates.putAll(node, expandedPredicatePrecision.getPredicates(node, 0));
+          localPredicates.putAll(node, pPrecision.getPredicates(node, 0));
         }
       }
 
@@ -408,11 +397,9 @@ public class BAMPredicateReducer implements Reducer {
   }
 
   @Override
-  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    PredicatePrecision precision = (PredicatePrecision) pPrecision;
-    PredicatePrecision otherPrecision = (PredicatePrecision) pOtherPrecision;
-
-    return precision.calculateDifferenceTo(otherPrecision);
+  public int measurePrecisionDifference0(
+      PredicatePrecision pPrecision, PredicatePrecision pOtherPrecision) {
+    return pPrecision.calculateDifferenceTo(pOtherPrecision);
   }
 
   @Override
@@ -477,12 +464,11 @@ public class BAMPredicateReducer implements Reducer {
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pEntryState,
-                                                     AbstractState pExpandedState,
-                                                     FunctionExitNode exitLocation) {
-    final PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
-    final PredicateAbstractState entryState = (PredicateAbstractState) pEntryState;
-    final PredicateAbstractState expandedState = (PredicateAbstractState) pExpandedState;
+  public PredicateAbstractState rebuildStateAfterFunctionCall0(
+      PredicateAbstractState rootState,
+      PredicateAbstractState entryState,
+      PredicateAbstractState expandedState,
+      FunctionExitNode exitLocation) {
     Preconditions.checkState(rootState.isAbstractionState());
     Preconditions.checkState(entryState.isAbstractionState());
     Preconditions.checkState(expandedState.isAbstractionState());
