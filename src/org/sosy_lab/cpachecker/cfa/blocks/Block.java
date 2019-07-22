@@ -63,6 +63,9 @@ public class Block {
 
   /** returns a collection of variables used in the block.
    * For soundness this must be a superset of the actually used variables. */
+  @Deprecated
+  // TODO unused method, potentially dangerous,
+  // because dependencies between variables are potentially incomplete.
   public Set<ReferencedVariable> getReferencedVariables() {
     return referencedVariables;
   }
