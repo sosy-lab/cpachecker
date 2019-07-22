@@ -26,10 +26,10 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.PARAM_VARIABLE_NAME;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.FreshValueProvider;
@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 @Options(prefix="cpa.predicate.bam")
@@ -61,8 +62,10 @@ public class BAMPredicateReducer implements Reducer {
 
   private final PathFormulaManager pmgr;
   private final PredicateAbstractionManager pamgr;
+  @SuppressWarnings("unused")
   private final BAMPredicateCPA cpa;
   private final LogManager logger;
+  private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
 
   /** A meaning of the following options is a number of problems in BAM:
@@ -78,14 +81,12 @@ public class BAMPredicateReducer implements Reducer {
   @Option(description = "Enable/disable abstraction reduction at the BAM block entry", secure = true)
   private boolean useAbstractionReduction = true;
 
-  @Option(description = "Enable/disable precision reduction using RelevantPredicateComputer", secure = true)
-  private boolean reduceIrrelevantPrecision = true;
-
   public BAMPredicateReducer(BAMPredicateCPA cpa, Configuration pConfig)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
+    this.fmgr = cpa.getSolver().getFormulaManager();
     this.bfmgr = cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
     this.logger = cpa.getLogger();
     this.cpa = cpa;
@@ -109,14 +110,86 @@ public class BAMPredicateReducer implements Reducer {
     if (useAbstractionReduction) {
       Set<AbstractionPredicate> predicates = pamgr.extractPredicates(abstraction.asRegion());
       Set<AbstractionPredicate> removePredicates =
-          Sets.difference(
-              predicates,
-              cpa.getRelevantPredicatesComputer().getRelevantPredicates(pContext, predicates));
+          Sets.difference(predicates, getRelevantPredicates(pContext, predicates));
       abstraction = pamgr.reduce(abstraction, removePredicates, pathFormula.getSsa());
     }
 
     return PredicateAbstractState.mkAbstractionState(
         pathFormula, abstraction.copyOf(), abstractionLocations);
+  }
+
+  /**
+   * Conservatively compute only the predicates that
+   *
+   * <ul>
+   *   <li>contain variables never used outside of the block, also transitively.
+   *   <li>do not encode pointers, addresses, return variables.
+   * </ul>
+   *
+   * <p>We later may only remove those predicates that are implied by the abstraction (i.e. never
+   * reduce internal parts of a boolean combination)
+   */
+  private Set<AbstractionPredicate> getRelevantPredicates(
+      Block pContext, Collection<AbstractionPredicate> predicates) {
+
+    final Set<AbstractionPredicate> relevantPredicates = new LinkedHashSet<>();
+    Set<String> relevantVariables = new LinkedHashSet<>();
+    Set<AbstractionPredicate> irrelevantPredicates = new LinkedHashSet<>();
+
+    // get predicates that are directly relevant
+    for (AbstractionPredicate predicate : predicates) {
+      Set<String> variables = fmgr.extractVariableNames(predicate.getSymbolicAtom());
+      if (isAnyVariableRelevant(pContext.getVariables(), variables)) {
+        relevantPredicates.add(predicate);
+        relevantVariables.addAll(variables);
+      } else {
+        irrelevantPredicates.add(predicate);
+      }
+    }
+
+    // get transitive hull, i.e.,
+    // predicates that are important because they contain variables used in relevant predicates.
+    Set<String> newRelevantVariables = new LinkedHashSet<>();
+    while (!relevantVariables.isEmpty()) {
+      Set<AbstractionPredicate> newIrrelevantPredicates = new LinkedHashSet<>();
+      for (AbstractionPredicate predicate : irrelevantPredicates) { // shrinking with each iteration
+        Set<String> variables = fmgr.extractVariableNames(predicate.getSymbolicAtom());
+        if (isAnyVariableRelevant(relevantVariables, variables)) {
+          relevantPredicates.add(predicate);
+          newRelevantVariables.addAll(Sets.difference(variables, relevantVariables));
+        } else {
+          newIrrelevantPredicates.add(predicate);
+        }
+      }
+      relevantVariables = newRelevantVariables;
+      irrelevantPredicates = newIrrelevantPredicates;
+    }
+
+    return relevantPredicates;
+  }
+
+  /** return whether any new variable is relevant for the existing variables. */
+  private boolean isAnyVariableRelevant(Set<String> relevantVariables, Set<String> newVariables) {
+    for (String var : relevantVariables) {
+
+      // short cut
+      if (newVariables.contains(var)) {
+        return true;
+      }
+
+      // here we have to handle some imprecise information,
+      // because the encoding of variables in predicates and referencedVariables might differ.
+      // Examples: "__ADDRESS_OF_xyz" vs "xyz", "ssl3_accept::s->state" vs "ssl3_accept::s"
+      // This handling causes an over-approximation of the set of variables, because
+      // a predicate-variable "f" is relevant, if "foo" is one of the referenced variables.
+      for (String variable : newVariables) {
+        if (variable.contains(var)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   @Override
@@ -150,9 +223,11 @@ public class BAMPredicateReducer implements Reducer {
         reducedState.getAbstractionLocationsOnPath();
 
     if (useAbstractionReduction) {
-      Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asRegion());
+      Set<AbstractionPredicate> rootPredicates =
+          pamgr.extractPredicates(rootAbstraction.asRegion());
       Collection<AbstractionPredicate> relevantRootPredicates =
-          cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
+          getRelevantPredicates(pReducedContext, rootPredicates);
+
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
       for (String var : rootSSA.allVariables()) {
@@ -182,23 +257,9 @@ public class BAMPredicateReducer implements Reducer {
 
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
-
     PredicateAbstractState element = (PredicateAbstractState) pElementKey;
     PredicatePrecision precision = (PredicatePrecision) pPrecisionKey;
-
-    /*
-    Normally a getHashCodeForState is just the pair of state and precision.
-    For PredicateAnalysis, we need to refine the RelevantPredicatesComputer (in some cases),
-    thus the reduce-operator changes and we should clear the cache completely after such a refinement.
-    Instead of doing this, we use the RelevantPredicatesComputer as (third) part of the cache-key,
-    such that after refining the RelevantPredicatesComputer, each new access results in a cache-miss.
-    The benefit is that we keep existing ARGs for statistics or other usage.
-    The drawback is the memory-usage through some cached states,
-    that will never be visited again, because the reduce-operator has changed.
-    */
-    // TODO is Object-equality for RelevantPredicatesComputer enough or should we implement RelevantPredicatesComputer.equals()?
-
-    return Triple.of(element.getAbstractionFormula().asRegion(), precision, cpa.getRelevantPredicatesComputer());
+    return Pair.of(element.getAbstractionFormula().asRegion(), precision);
   }
 
   @Override
@@ -233,15 +294,15 @@ public class BAMPredicateReducer implements Reducer {
 
       // we only need global predicates with used variables
       final Collection<AbstractionPredicate> globalPredicates =
-          getRelevantPredicates(context, expandedPredicatePrecision.getGlobalPredicates());
+          expandedPredicatePrecision.getGlobalPredicates();
 
       // we only need function predicates with used variables
       final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicates =
           ImmutableSetMultimap.builder();
       for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
         if (context.getFunctions().contains(functionname)) {
-        functionPredicates.putAll(functionname, getRelevantPredicates(
-            context, expandedPredicatePrecision.getFunctionPredicates().get(functionname)));
+          functionPredicates.putAll(
+              functionname, expandedPredicatePrecision.getFunctionPredicates().get(functionname));
         }
       }
 
@@ -252,8 +313,7 @@ public class BAMPredicateReducer implements Reducer {
         if (context.getNodes().contains(node)) {
           // TODO handle location-instance-specific predicates
           // Without support for them, we can just pass 0 as locInstance parameter
-          localPredicates.putAll(node, getRelevantPredicates(
-              context, expandedPredicatePrecision.getPredicates(node, 0)));
+          localPredicates.putAll(node, expandedPredicatePrecision.getPredicates(node, 0));
         }
       }
 
@@ -264,14 +324,6 @@ public class BAMPredicateReducer implements Reducer {
               globalPredicates);
     } else {
       return pPrecision;
-    }
-  }
-
-  private Collection<AbstractionPredicate> getRelevantPredicates(Block context, ImmutableSet<AbstractionPredicate> predicates) {
-    if (reduceIrrelevantPrecision) {
-      return cpa.getRelevantPredicatesComputer().getRelevantPredicates(context, predicates);
-    } else {
-      return predicates;
     }
   }
 
@@ -310,7 +362,7 @@ public class BAMPredicateReducer implements Reducer {
 
     Collection<AbstractionPredicate> rootPredicates = pamgr.getPredicatesForAtomsOf(rootAbstraction.asInstantiatedFormula());
     Collection<AbstractionPredicate> relevantRootPredicates =
-        cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
+        getRelevantPredicates(pReducedContext, rootPredicates);
     //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
     PathFormula oldPathFormula = reducedState.getPathFormula();

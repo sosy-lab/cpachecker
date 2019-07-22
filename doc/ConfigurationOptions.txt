@@ -1769,17 +1769,6 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
-# which strategy/heuristic should be used to compute relevant predicates for
-# a block-reduction?
-# AUXILIARY: dependencies between variables.
-# OCCURENCE: occurence of variables in the block.
-# ALL: all variables are relevant.
-cpa.predicate.bam.predicateComputer = "AUXILIARY"
-  allowed values: [AUXILIARY, OCCURRENCE, ALL]
-
-# Enable/disable precision reduction using RelevantPredicateComputer
-cpa.predicate.bam.reduceIrrelevantPrecision = true
-
 # Enable/disable abstraction reduction at the BAM block entry
 cpa.predicate.bam.useAbstractionReduction = true
 
