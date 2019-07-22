@@ -291,8 +291,6 @@ public class BAMPredicateReducer
 
     //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
     //there still should be at least _some_ index for each variable of the abstraction formula.
-    SSAMapBuilder builder = ssa.builder();
-    SSAMap rootSSA = rootState.getPathFormula().getSsa();
     PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
     PointerTargetSet reducedPts = reducedState.getPathFormula().getPointerTargetSet();
 
@@ -306,16 +304,7 @@ public class BAMPredicateReducer
           pamgr.extractPredicates(rootAbstraction.asRegion());
       Set<AbstractionPredicate> removedRootPredicates =
           Sets.difference(rootPredicates, getRelevantPredicates(pReducedContext, rootPredicates));
-
-      for (String var : rootSSA.allVariables()) {
-        //if we do not have the index in the reduced map..
-        if (!ssa.containsVariable(var)) {
-          //add an index (with the value of rootSSA)
-          builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
-        }
-      }
-      ssa = builder.build();
-
+      ssa = copyMissingIndizes(rootState.getPathFormula().getSsa(), ssa);
       abstractionFormula =
           expandAbstraction(
               abstractionFormula.asRegion(),
@@ -437,16 +426,7 @@ public class BAMPredicateReducer
 
     //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
     //there still should be at least _some_ index for each variable of the abstraction formula.
-    SSAMapBuilder builder = oldSSA.builder();
-    SSAMap rootSSA = rootState.getPathFormula().getSsa();
-    for (String var : rootSSA.allVariables()) {
-      //if we do not have the index in the reduced map..
-      if (!oldSSA.containsVariable(var)) {
-        //add an index (with the value of rootSSA)
-        builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
-      }
-    }
-    SSAMap newSSA = builder.build();
+    SSAMap newSSA = copyMissingIndizes(rootState.getPathFormula().getSsa(), oldSSA);
     @SuppressWarnings("deprecation") // TODO: seems buggy because it ignores PointerTargetSet
     PathFormula newPathFormula = pmgr.makeNewPathFormula(pmgr.makeEmptyPathFormula(), newSSA);
 
@@ -551,6 +531,23 @@ public class BAMPredicateReducer
     );
 
     return rebuildState;
+  }
+
+  /**
+   * copy over all indices from FROM-SSA that are missing in TO-SSA.
+   *
+   * @return a new SSAMap with the merged indices
+   */
+  private static SSAMap copyMissingIndizes(SSAMap from, SSAMap to) {
+    SSAMapBuilder builder = to.builder();
+    for (String var : from.allVariables()) {
+      // if we do not have the index in the TO map.
+      if (!to.containsVariable(var)) {
+        // add an index (with the value of FROM map)
+        builder.setIndex(var, from.getType(var), from.getIndex(var));
+      }
+    }
+    return builder.build();
   }
 
   /**
