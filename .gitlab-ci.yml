@@ -113,6 +113,12 @@ javascript-unit-tests:
     when: always
 
 
+build-docker:test:java-node:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.java-node
+    IMAGE: test:java-node
+
 javascript-e2e-tests:
   stage: checks
   dependencies:
