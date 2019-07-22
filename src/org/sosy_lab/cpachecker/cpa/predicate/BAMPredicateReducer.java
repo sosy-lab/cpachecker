@@ -197,9 +197,9 @@ public class BAMPredicateReducer
 
     // get transitive hull, i.e.,
     // predicates that are important because they contain variables used in relevant predicates.
-    Set<String> newRelevantVariables = new LinkedHashSet<>();
     while (!relevantVariables.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
+      Set<String> newRelevantVariables = new LinkedHashSet<>();
       Set<AbstractionPredicate> newIrrelevantPredicates = new LinkedHashSet<>();
       for (AbstractionPredicate predicate : irrelevantPredicates) { // shrinking with each iteration
         Set<String> variables = getVariables(predicate);
