@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import org.checkerframework.checker.nullness.qual.NonNull;
+import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -58,16 +56,16 @@ public class CallstackState
   protected final @Nullable CallstackState previousState;
   protected final String currentFunction;
   protected transient CFANode callerNode;
-  private final int depth;
+  protected final int depth;
 
   public CallstackState(
       @Nullable CallstackState pPreviousElement,
-      @NonNull String pFunction,
-      @NonNull CFANode pCallerNode) {
+      @Nullable String pFunction,
+      @Nullable CFANode pCallerNode) {
 
     previousState = pPreviousElement;
-    currentFunction = checkNotNull(pFunction);
-    callerNode = checkNotNull(pCallerNode);
+    currentFunction = pFunction;
+    callerNode = pCallerNode;
 
     if (pPreviousElement == null) {
       depth = 1;
@@ -156,4 +154,40 @@ public class CallstackState
     int nodeNumber = in.readInt();
     callerNode = GlobalInfo.getInstance().getCFAInfo().get().getNodeByNodeNumber(nodeNumber);
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == this) {
+      return true;
+    }
+    if (!(o instanceof CallstackState)) {
+      return false;
+    }
+    CallstackState other = (CallstackState) o;
+    CallstackState tmp = this;
+    if (other.getDepth() != tmp.getDepth()) {
+      return false;
+    }
+
+    // check the whole stack
+    while (tmp != null) {
+      if (other == tmp) {
+        return true;
+      }
+      if (!other.getCallNode().equals(tmp.getCallNode())
+          || !other.getCurrentFunction().equals(tmp.getCurrentFunction())) {
+        return false;
+      }
+      other = other.getPreviousState();
+      tmp = tmp.getPreviousState();
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(callerNode, currentFunction, depth);
+  }
+
 }

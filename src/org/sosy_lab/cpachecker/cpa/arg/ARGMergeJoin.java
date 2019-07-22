@@ -100,6 +100,11 @@ public class ARGMergeJoin implements MergeOperator {
     // ARGElement1 will only be removed from ARG if stop(e1, reached) returns true.
     // So we can't actually remove it now, but we need to remember this later.
     argElement1.setMergedWith(mergedElement);
+    if (mergedElement.getProjectedFrom() != null && argElement1.getProjectedFrom() != null) {
+      for (ARGState projection : argElement1.getProjectedFrom()) {
+        mergedElement.addProjectedFrom(projection);
+      }
+    }
     return mergedElement;
   }
 }

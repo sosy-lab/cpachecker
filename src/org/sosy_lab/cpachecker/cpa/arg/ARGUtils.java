@@ -693,6 +693,7 @@ public class ARGUtils {
         // But in this case its parent is in the waitlist.
 
         if (!pReached.contains(child)) {
+
           assert (child.isCovered() && child.getChildren().isEmpty()) // 1)
               || pReached.getWaitlist().containsAll(child.getParents()) // 2)
               : "Referenced child is missing in reached set.";

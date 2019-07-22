@@ -122,7 +122,7 @@ public class ValueAnalysisState
     hashCode = constantsMap.hashCode();
   }
 
-  private ValueAnalysisState(ValueAnalysisState state) {
+  protected ValueAnalysisState(ValueAnalysisState state) {
     machineModel = state.machineModel;
     constantsMap = checkNotNull(state.constantsMap);
     hashCode = state.hashCode;
@@ -130,7 +130,12 @@ public class ValueAnalysisState
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
-    return new ValueAnalysisState(state);
+    if (state.getClass() == ValueAnalysisStateWithEdge.class) {
+      ValueAnalysisStateWithEdge edgeState = (ValueAnalysisStateWithEdge) state;
+      return new ValueAnalysisStateWithEdge(edgeState, edgeState.getAbstractEdge());
+    } else {
+      return new ValueAnalysisState(state);
+    }
   }
 
   /**

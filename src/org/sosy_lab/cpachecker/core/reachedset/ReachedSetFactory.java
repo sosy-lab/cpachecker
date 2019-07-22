@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.waitlist.LoopstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.SMGSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.ThreadModularSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ThreadingSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -54,7 +55,12 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
 public class ReachedSetFactory {
 
   private enum ReachedSetType {
-    NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE
+    NORMAL,
+    LOCATIONMAPPED,
+    PARTITIONED,
+    PSEUDOPARTITIONED,
+    USAGE,
+    THREADMODULAR
   }
 
   @Option(
@@ -180,6 +186,12 @@ public class ReachedSetFactory {
 
   @Option(
     secure = true,
+    name = "traversal.useThreadModularOrdering",
+    description = "use thread-modular ordering: thread transitions first, then environment transitions")
+  private boolean useThreadModularOrdering = false;
+
+  @Option(
+    secure = true,
     name = "reachedSet",
     description =
         "which reached set implementation to use?"
@@ -266,9 +278,15 @@ public class ReachedSetFactory {
     if (useBlocks) {
       waitlistFactory = BlockWaitlist.factory(waitlistFactory, blockConfig, logger);
     }
+    if (useThreadModularOrdering) {
+      waitlistFactory = ThreadModularSortedWaitlist.factory(waitlistFactory);
+    }
 
     ReachedSet reached;
     switch (reachedSet) {
+      case THREADMODULAR:
+        reached = new ThreadModularReachedSet(waitlistFactory);
+        break;
     case PARTITIONED:
         reached = new PartitionedReachedSet(waitlistFactory);
         break;

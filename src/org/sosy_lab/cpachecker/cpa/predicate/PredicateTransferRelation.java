@@ -27,28 +27,39 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -81,6 +92,11 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   private final TimerWrapper strengthenTimer;
   private final TimerWrapper strengthenCheckTimer;
   private final TimerWrapper abstractionCheckTimer;
+  private final TimerWrapper prepareTimer;
+  private final TimerWrapper convertingTimer;
+  private final TimerWrapper makeOrTimer;
+  private final TimerWrapper environmentTimer;
+  private final TimerWrapper relevanceTimer;
 
   public PredicateTransferRelation(
       LogManager pLogger,
@@ -106,6 +122,11 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     strengthenTimer = statistics.strengthenTimer.getNewTimer();
     strengthenCheckTimer = statistics.strengthenCheckTimer.getNewTimer();
     abstractionCheckTimer = statistics.abstractionCheckTimer.getNewTimer();
+    prepareTimer = statistics.prepareTimer.getNewTimer();
+    convertingTimer = statistics.convertingTimer.getNewTimer();
+    makeOrTimer = statistics.makeOrTimer.getNewTimer();
+    environmentTimer = statistics.environmentTimer.getNewTimer();
+    relevanceTimer = statistics.environmentTimer.getNewTimer();
   }
 
   @Override
@@ -532,5 +553,150 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     }
 
     return result;
+  }
+
+  @Override
+  public Collection<? extends AbstractState>
+      getAbstractSuccessors(AbstractState pElement, Precision pPrecision)
+          throws CPATransferException, InterruptedException {
+
+    AbstractStateWithEdge state = (AbstractStateWithEdge) pElement;
+    AbstractEdge edge = state.getAbstractEdge();
+    if (edge instanceof WrapperCFAEdge) {
+      return getAbstractSuccessorsForEdge(
+          pElement,
+          pPrecision,
+          ((WrapperCFAEdge) edge).getCFAEdge());
+    } else if (edge == EmptyEdge.getInstance()) {
+      // Empty environment action
+      // Need to omit edge part, so return the same state, but without edge
+      PredicateAbstractState predecessor = (PredicateAbstractState) pElement;
+
+      PredicateAbstractState newState =
+          PredicateAbstractState
+              .mkAbstractionState(
+                  predecessor.getPathFormula(),
+                  predecessor.getAbstractionFormula(),
+                  predecessor.getAbstractionLocationsOnPath());
+      return Collections.singleton(newState);
+    } else if (edge instanceof PredicateAbstractEdge) {
+      environmentTimer.start();
+      PredicateAbstractState predecessor = (PredicateAbstractState) pElement;
+
+      PathFormula oldFormula = predecessor.getPathFormula();
+      AbstractionFormula oldAbstraction = predecessor.getAbstractionFormula();
+      PersistentMap<CFANode, Integer> abstractionLocations =
+          predecessor.getAbstractionLocationsOnPath();
+
+      PredicatePrecision prec = (PredicatePrecision) pPrecision;
+      PathFormula currentFormula = pathFormulaManager.makeEmptyPathFormula(oldFormula);
+      BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+
+      if (bfmgr.isTrue(oldAbstraction.asFormula())) {
+        // Need to omit edge part, so return the same state, but without edge
+        PredicateAbstractState newState =
+            PredicateAbstractState
+                .mkAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
+        environmentTimer.stop();
+        return Collections.singleton(newState);
+      }
+
+      boolean changed = false;
+
+      Pair<Set<String>, Set<String>> extractedPredicateInfo = null;
+
+      if (options.applyRelevantEffects()) {
+        prepareTimer.start();
+        extractedPredicateInfo = preparePredicates(prec.getLocalPredicates().values());
+        prepareTimer.stop();
+      }
+
+      for (CAssignment c : ((PredicateAbstractEdge) edge).getAssignments()) {
+        CFAEdge fakeEdge =
+            new CStatementEdge(
+                "environment",
+                c,
+                c.getFileLocation(),
+                new CFANode("dummy"),
+                new CFANode("dummy"));
+
+        boolean needToApply = true;
+
+        if (options.applyRelevantEffects()) {
+          PathFormula emptyFormula = pathFormulaManager.makeEmptyPathFormula(oldFormula);
+          convertingTimer.start();
+          PathFormula testFormula = convertEdgeToPathFormula(emptyFormula, fakeEdge);
+          convertingTimer.stop();
+
+          needToApply = isRelevant(testFormula.getFormula(), extractedPredicateInfo);
+        }
+
+        if (needToApply) {
+          convertingTimer.start();
+          PathFormula edgeFormula = convertEdgeToPathFormula(oldFormula, fakeEdge);
+          convertingTimer.stop();
+          makeOrTimer.start();
+          currentFormula = pathFormulaManager.makeOr(currentFormula, edgeFormula);
+          makeOrTimer.stop();
+          changed = true;
+        }
+      }
+
+      environmentTimer.stop();
+      if (changed) {
+        PredicateAbstractState newState =
+            PredicateAbstractState
+                .mkNonAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
+        return Collections.singleton(newState);
+      } else {
+        // Need to omit edge part, so return the same state, but without edge
+        PredicateAbstractState newState =
+            PredicateAbstractState
+                .mkAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
+        return Collections.singleton(newState);
+      }
+    } else {
+      throw new CPATransferException("Unsupported edge: " + edge.getClass());
+    }
+  }
+
+  private boolean isRelevant(BooleanFormula formula, Pair<Set<String>, Set<String>> predicates) {
+    relevanceTimer.start();
+    Set<String> vars = fmgr.extractVariableNames(fmgr.uninstantiate(formula));
+    Set<String> funcs = fmgr.extractFunctionNames(fmgr.uninstantiate(formula));
+    Set<String> onlyUFs = Sets.difference(funcs, vars);
+    if (vars.isEmpty() && onlyUFs.isEmpty()) {
+      relevanceTimer.stop();
+      return true;
+    }
+    Set<String> predVars = predicates.getFirst();
+    Set<String> predFuncs = predicates.getSecond();
+    if (!Sets.intersection(vars, predVars).isEmpty()
+        || !Sets.intersection(onlyUFs, predFuncs).isEmpty()) {
+      relevanceTimer.stop();
+      return true;
+    }
+    relevanceTimer.stop();
+    return false;
+  }
+
+  private Pair<Set<String>, Set<String>>
+      preparePredicates(Collection<AbstractionPredicate> predicates) {
+    Set<String> resultingVars = new HashSet<>();
+    Set<String> resultingFuncs = new HashSet<>();
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+
+    for (AbstractionPredicate pred : predicates) {
+      if (bfmgr.isFalse(pred.getSymbolicAtom())) {
+        // Ignore predicate "false", it means "check for satisfiability".
+        continue;
+      }
+      Set<String> predVars = fmgr.extractVariableNames(pred.getSymbolicAtom());
+      Set<String> predFuncs = fmgr.extractFunctionNames(pred.getSymbolicAtom());
+      Set<String> predOnlyUFs = Sets.difference(predFuncs, predVars);
+      resultingVars.addAll(predVars);
+      resultingFuncs.addAll(predOnlyUFs);
+    }
+    return Pair.of(resultingVars, resultingFuncs);
   }
 }

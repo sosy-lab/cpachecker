@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ThreadModularReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
@@ -505,6 +506,15 @@ class MainCPAStatistics implements Statistics {
       } else {
         out.println();
       }
+    }
+
+    if (reached instanceof ThreadModularReachedSet) {
+      ThreadModularReachedSet p = (ThreadModularReachedSet) reached;
+      int projections = p.getProjectioinsNum();
+      int threads = p.getThreadTransitionsNum();
+      out.println("  ");
+      out.println("  Number of projections:          " + projections);
+      out.println("  Number of thread transitions:   " + threads);
     }
     out.println("  Number of target states:       " + from(reached).filter(IS_TARGET_STATE).size());
   }

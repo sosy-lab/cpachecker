@@ -41,18 +41,28 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.EnvironmentActionEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class ARGState extends AbstractSingleWrapperState
-    implements Comparable<ARGState>, Graphable, Splitable{
+    implements Comparable<ARGState>, Graphable, Splitable, AbstractStateWithEdge {
 
   private static final long serialVersionUID = 2608287648397165040L;
 
@@ -64,6 +74,10 @@ public class ARGState extends AbstractSingleWrapperState
   private final Collection<ARGState> parents = new ArrayList<>(1);
 
   private ARGState mCoveredBy = null;
+  private Collection<ARGState> projectedFrom = null;
+  private ARGState projectedTo = null;
+  private Pair<ARGState, ARGState> appliedFrom = null;
+  private Collection<ARGState> appliedTo = null;
   private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
 
   // boolean which keeps track of which elements have already had their successors computed
@@ -120,6 +134,17 @@ public class ARGState extends AbstractSingleWrapperState
   public Collection<ARGState> getChildren() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     return Collections.unmodifiableCollection(children);
+  }
+
+  public Collection<ARGState> getSuccessors() {
+    List<ARGState> result = new ArrayList<>(getChildren());
+    if (projectedTo != null) {
+      result.add(projectedTo);
+    }
+    if (appliedTo != null) {
+      result.addAll(appliedTo);
+    }
+    return result;
   }
 
   /**
@@ -206,6 +231,55 @@ public class ARGState extends AbstractSingleWrapperState
           allEdges.add(leavingEdge);
           currentLoc = leavingEdge.getSuccessor();
         }
+
+        // Can not check transition in environment by apply, because it can be removed due to
+        // coverage
+
+        if (this.appliedTo != null && this.appliedTo.contains(pChild)) {
+          return Collections.singletonList(
+              new BlankEdge(
+                  "application",
+                  FileLocation.DUMMY,
+                  currentLoc,
+                  childLoc,
+                  "application"));
+        } else if (this.appliedFrom != null) {
+          // Origin edge may be not enough as it may be merged with something else
+          ARGState projection = this.appliedFrom.getSecond();
+          assert projection.getProjectedFrom() != null;
+          Collection<ARGState> edgeParts = projection.getProjectedFrom();
+          List<CFAEdge> result = new ArrayList<>();
+
+          for (ARGState edgePart : edgeParts) {
+            AbstractEdge edge =
+                ((AbstractStateWithEdge) AbstractStates
+                    .extractStateByType(edgePart, AbstractStateWithLocations.class))
+                        .getAbstractEdge();
+            assert edge instanceof WrapperCFAEdge;
+            CFAEdge realEdge = ((WrapperCFAEdge) edge).getCFAEdge();
+            // Need to replace locations for correct path
+            CFAEdge newEdge;
+            if (realEdge instanceof CStatementEdge) {
+              CStatementEdge oldStatement = (CStatementEdge) realEdge;
+              newEdge =
+                  new EnvironmentActionEdge(
+                      realEdge.getRawStatement(),
+                      oldStatement.getStatement(),
+                      realEdge.getFileLocation(),
+                      currentLoc,
+                      childLoc);
+            } else if (realEdge instanceof CFunctionReturnEdge) {
+              newEdge = realEdge;
+            } else if (realEdge instanceof CAssumeEdge) {
+              newEdge = realEdge;
+            } else {
+              throw new UnsupportedOperationException(
+                  "Edge is not supported: " + realEdge.getClass());
+            }
+            result.add(newEdge);
+          }
+          return result;
+        }
       }
       return allEdges;
     } else {
@@ -215,7 +289,7 @@ public class ARGState extends AbstractSingleWrapperState
 
   public Set<ARGState> getSubgraph() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    return Sets.newHashSet(Traverser.forGraph(ARGState::getChildren).breadthFirst(this));
+    return Sets.newHashSet(Traverser.forGraph(ARGState::getSuccessors).breadthFirst(this));
   }
 
   // coverage
@@ -285,6 +359,58 @@ public class ARGState extends AbstractSingleWrapperState
 
   public ARGState getMergedWith() {
     return mergedWith;
+  }
+
+  void addProjectedFrom(ARGState pState) {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+
+    if (projectedFrom == null) {
+      projectedFrom = new ArrayList<>();
+    }
+
+    projectedFrom.add(pState);
+  }
+
+  public Collection<ARGState> getProjectedFrom() {
+    return projectedFrom;
+  }
+
+  void setProjectedTo(ARGState pState) {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+    if (projectedTo != null) {
+      // Means we reexplore the state due to refinement,
+      // Moreover, the projection can be different from previous one sue to precision.
+    }
+
+    projectedTo = pState;
+  }
+
+  public ARGState getProjectedTo() {
+    return projectedTo;
+  }
+
+  void setAppliedFrom(ARGState pLeftState, ARGState pRightState) {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+    assert appliedFrom == null : "Second applied of element " + this;
+
+    appliedFrom = Pair.of(pLeftState, pRightState);
+  }
+
+  public Pair<ARGState, ARGState> getAppliedFrom() {
+    return appliedFrom;
+  }
+
+  void setAppliedTo(ARGState pState) {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+
+    if (appliedTo == null) {
+      appliedTo = new ArrayList<>();
+    }
+    appliedTo.add(pState);
+  }
+
+  public Collection<ARGState> getAppliedTo() {
+    return appliedTo == null ? Collections.emptyList() : appliedTo;
   }
 
   // was-expanded marker so we can identify open leafs
@@ -488,6 +614,44 @@ public class ARGState extends AbstractSingleWrapperState
       parent.children.remove(this);
     }
     parents.clear();
+
+    if (appliedTo != null) {
+      for (ARGState applied : appliedTo) {
+        Pair<ARGState, ARGState> oldAppliedFrom = applied.appliedFrom;
+        if (oldAppliedFrom.getFirst() == this) {
+          applied.appliedFrom = Pair.of(null, oldAppliedFrom.getSecond());
+        } else if (oldAppliedFrom.getSecond() == this) {
+          applied.appliedFrom = Pair.of(oldAppliedFrom.getFirst(), null);
+        } else {
+          throw new UnsupportedOperationException("Missed state: " + applied);
+        }
+      }
+      appliedTo = null;
+    }
+
+    if (appliedFrom != null) {
+      ARGState first = appliedFrom.getFirst();
+      ARGState second = appliedFrom.getSecond();
+      if (first != null) {
+        first.appliedTo.remove(this);
+      }
+      if (second != null) {
+        second.appliedTo.remove(this);
+      }
+      appliedFrom = null;
+    }
+
+    if (projectedFrom != null && !projectedFrom.isEmpty()) {
+      for (ARGState projection : projectedFrom) {
+        projection.projectedTo = null;
+      }
+      projectedFrom = null;
+    }
+
+    if (projectedTo != null) {
+      projectedTo.projectedFrom.remove(this);
+      projectedTo = null;
+    }
   }
 
   /**
@@ -535,6 +699,48 @@ public class ARGState extends AbstractSingleWrapperState
 
       mCoveredByThis.clear();
       mCoveredByThis = null;
+    }
+
+    if (appliedTo != null) {
+      replacement.appliedTo = new ArrayList<>();
+      for (ARGState applied : appliedTo) {
+        Pair<ARGState, ARGState> oldAppliedFrom = applied.appliedFrom;
+        if (oldAppliedFrom.getFirst() == this) {
+          applied.appliedFrom = Pair.of(replacement, oldAppliedFrom.getSecond());
+        } else if (oldAppliedFrom.getSecond() == this) {
+          applied.appliedFrom = Pair.of(oldAppliedFrom.getFirst(), replacement);
+        } else {
+          throw new UnsupportedOperationException("Missed state: " + applied);
+        }
+        replacement.appliedTo.add(applied);
+      }
+      appliedTo = null;
+    }
+
+    if (appliedFrom != null) {
+      ARGState first = appliedFrom.getFirst();
+      ARGState second = appliedFrom.getSecond();
+      first.appliedTo.remove(this);
+      first.appliedTo.add(replacement);
+      second.appliedTo.remove(this);
+      second.appliedTo.add(replacement);
+      replacement.appliedFrom = Pair.of(first, second);
+      appliedFrom = null;
+    }
+
+    if (projectedFrom != null) {
+      for (ARGState projection : this.projectedFrom) {
+        projection.projectedTo = replacement;
+      }
+      replacement.projectedFrom = this.projectedFrom;
+      this.projectedFrom = null;
+    }
+
+    if (projectedTo != null) {
+      this.projectedTo.projectedFrom.remove(this);
+      this.projectedTo.projectedFrom.add(replacement);
+      replacement.projectedTo = this.projectedTo;
+      this.projectedTo = null;
     }
 
     destroyed = true;
@@ -587,5 +793,25 @@ public class ARGState extends AbstractSingleWrapperState
 
   public static void clearIdGenerator() {
     idGenerator = new UniqueIdGenerator();
+  }
+
+  @Override
+  public AbstractEdge getAbstractEdge() {
+    return ((AbstractStateWithEdge) getWrappedState()).getAbstractEdge();
+  }
+
+  @Override
+  public boolean hasEmptyEffect() {
+    return ((AbstractStateWithEdge) getWrappedState()).hasEmptyEffect();
+  }
+
+  @Override
+  public boolean isProjection() {
+    AbstractState wrapped = getWrappedState();
+    if (wrapped instanceof AbstractStateWithEdge) {
+      return projectedFrom != null;
+    } else {
+      return false;
+    }
   }
 }

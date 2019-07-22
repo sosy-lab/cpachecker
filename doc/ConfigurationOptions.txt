@@ -293,7 +293,8 @@ analysis.programNames = []
 # states' lattice (maybe faster for some special analyses which use merge_sep
 # and stop_sep
 analysis.reachedSet = PARTITIONED
-  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
+  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE,
+             THREADMODULAR]
 
 # track more statistics about the reachedset
 analysis.reachedSet.withStatistics = false
@@ -400,6 +401,10 @@ analysis.traversal.useReverseLoopstack = false
 # reverse postorder id. The secondary strategy is selected with
 # 'analysis.traversal.order'.
 analysis.traversal.useReversePostorder = false
+
+# use thread-modular ordering: thread transitions first, then environment
+# transitions
+analysis.traversal.useThreadModularOrdering = false
 
 # perform a weighted random selection based on the branching depth
 analysis.traversal.weightedBranches = false
@@ -1533,6 +1538,9 @@ cpa.local.conservativefunctions = {}
 # variables, which are always local
 cpa.local.localvariables = Collections.emptySet()
 
+# Use special states with edges
+cpa.location.enableStatesWithEdges = false
+
 # With this option enabled, function calls that occur in the CFA are
 # followed. By disabling this option one can traverse a function without
 # following function calls (in this case FunctionSummaryEdges are used)
@@ -1544,6 +1552,9 @@ cpa.lock.analysisMode = RACE
 
 #  annotated functions, which are known to works right
 cpa.lock.annotate = no default value
+
+# Consider or not lock guards
+cpa.lock.considerLockGuards = true
 
 # contains all lock names
 cpa.lock.lockinfo = {}
@@ -1757,6 +1768,9 @@ cpa.predicate.abstraction.simplify = false
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]
 
+# Merge only effects with equal abstractions.
+cpa.predicate.abstractionLattice = false
+
 # Export one abstraction formula for each abstraction state into a file?
 cpa.predicate.abstractions.export = true
 
@@ -1768,6 +1782,9 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # 'MIN<=X<=MAX', where MIN and MAX are computed from the type of the method
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
+
+# Apply only relevant effects.
+cpa.predicate.applyRelevantEffects = false
 
 # Enable/disable abstraction reduction at the BAM block entry
 cpa.predicate.bam.useAbstractionReduction = true
@@ -1853,6 +1870,9 @@ cpa.predicate.deferUntypedAllocations = true
 # Direction of the analysis?
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
+
+# do not consider abstraction from inference objects
+cpa.predicate.emptyAbstraction = false
 
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
@@ -2347,6 +2367,9 @@ cpa.predicate.useParameterVariablesForGlobals = false
 # Use quantifiers when encoding heap accesses. This requires an SMT solver
 # that is capable of quantifiers (e.g. Z3 or PRINCESS).
 cpa.predicate.useQuantifiersOnArrays = false
+
+# Use undefined assignments (havoc abstraction)
+cpa.predicate.useUndefFunctions = true
 
 # Do not follow states which can not syntactically lead to a target location
 cpa.property_reachability.noFollowBackwardsUnreachable = true

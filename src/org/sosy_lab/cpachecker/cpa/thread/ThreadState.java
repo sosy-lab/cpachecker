@@ -226,4 +226,8 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     // Only for statistics
     return threadSet.size();
   }
+
+  public boolean hasEmptyEffect() {
+    return true;
+  }
 }
