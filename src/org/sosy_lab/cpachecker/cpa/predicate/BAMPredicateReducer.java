@@ -29,7 +29,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -58,6 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -72,6 +75,8 @@ public class BAMPredicateReducer
   private final BooleanFormulaManager bfmgr;
   private final RegionManager rmgr;
   private final ShutdownNotifier shutdownNotifier;
+
+  private final Map<BooleanFormula, Set<String>> variableCache = new HashMap<>();
 
   /** A meaning of the following options is a number of problems in BAM:
    *  sometimes it is more efficient not to reduce precision, than to have a
@@ -181,7 +186,7 @@ public class BAMPredicateReducer
 
     // get predicates that are directly relevant
     for (AbstractionPredicate predicate : predicates) {
-      Set<String> variables = fmgr.extractVariableNames(predicate.getSymbolicAtom());
+      Set<String> variables = getVariables(predicate);
       if (isAnyVariableRelevant(pContext.getVariables(), variables)) {
         relevantPredicates.add(predicate);
         relevantVariables.addAll(variables);
@@ -197,7 +202,7 @@ public class BAMPredicateReducer
       shutdownNotifier.shutdownIfNecessary();
       Set<AbstractionPredicate> newIrrelevantPredicates = new LinkedHashSet<>();
       for (AbstractionPredicate predicate : irrelevantPredicates) { // shrinking with each iteration
-        Set<String> variables = fmgr.extractVariableNames(predicate.getSymbolicAtom());
+        Set<String> variables = getVariables(predicate);
         if (isAnyVariableRelevant(relevantVariables, variables)) {
           relevantPredicates.add(predicate);
           newRelevantVariables.addAll(Sets.difference(variables, relevantVariables));
@@ -210,6 +215,16 @@ public class BAMPredicateReducer
     }
 
     return relevantPredicates;
+  }
+
+  private Set<String> getVariables(AbstractionPredicate predicate) {
+    BooleanFormula atom = predicate.getSymbolicAtom();
+    Set<String> variables = variableCache.get(atom);
+    if (variables == null) {
+      variables = fmgr.extractVariableNames(atom);
+      variableCache.put(atom, variables);
+    }
+    return variables;
   }
 
   /** return whether any new variable is relevant for the existing variables. */
