@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -768,6 +769,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
     Precision resultPrec = pInitialPrecision;
 
     PredicatePrecision predPrec;
+    LoopBoundPrecision loopPrec;
     VariableTrackingPrecision varPrec =
         Precisions.extractPrecisionByType(resultPrec, VariableTrackingPrecision.class);
     if (varPrec != null) {
@@ -798,6 +800,12 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
     }
 
+    loopPrec = Precisions.extractPrecisionByType(resultPrec, LoopBoundPrecision.class);
+    if (loopPrec != null && pPreviousReachedSets.get(0) != null) {
+      resultPrec =
+          Precisions.replaceByType(
+              resultPrec, loopPrec, Predicates.instanceOf(LoopBoundPrecision.class));
+    }
 
     predPrec = Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
 
