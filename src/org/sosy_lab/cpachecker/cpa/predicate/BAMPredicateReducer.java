@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -111,10 +110,11 @@ public class BAMPredicateReducer
     AbstractionFormula abstraction = predicateElement.getAbstractionFormula();
 
     if (useAbstractionReduction) {
-      Set<AbstractionPredicate> predicates = pamgr.extractPredicates(abstraction.asRegion());
-      Set<AbstractionPredicate> removePredicates =
-          Sets.difference(predicates, getRelevantPredicates(pContext, predicates));
-      abstraction = reduceAbstraction(abstraction, removePredicates, pathFormula.getSsa());
+      Region reducedAbstraction =
+          splitAbstractionForReduction(abstraction.asRegion(), pContext).getFirst();
+      abstraction =
+          pamgr.makeAbstractionFormula(
+              reducedAbstraction, pathFormula.getSsa(), abstraction.getBlockFormula());
     }
 
     return PredicateAbstractState.mkAbstractionState(
@@ -122,66 +122,20 @@ public class BAMPredicateReducer
   }
 
   /**
-   * Remove a set of predicates from an abstraction, such that we can safely readd them later.
+   * Split an abstraction into a reduced abstraction and a conjunction of predicates, which were
+   * removed from the abstraction.
    *
-   * @param oldAbstraction The abstraction to start from.
-   * @param removePredicates The predicate to remove if they are fully implied by the abstraction.
-   * @param ssaMap The SSAMap to use for instantiating the new abstraction.
-   * @return A new abstraction similar to the old one without the predicates.
+   * @return two regions are returned: (1) the reduced abstraction and (2) the removed predicates.
    */
-  private AbstractionFormula reduceAbstraction(
-      AbstractionFormula oldAbstraction,
-      Collection<AbstractionPredicate> removePredicates,
-      SSAMap ssaMap)
+  private Pair<Region, Region> splitAbstractionForReduction(Region abstraction, final Block context)
       throws InterruptedException {
 
-    Region reducedAbstraction =
-        getConjunctedPredicatesAndReducedAbstraction(
-            oldAbstraction.asRegion(), removePredicates, new ArrayList<>());
+    final Set<AbstractionPredicate> predicates = pamgr.extractPredicates(abstraction);
+    final Set<AbstractionPredicate> irrelevantPredicates =
+        Sets.difference(predicates, getRelevantPredicates(context, predicates));
 
-    return pamgr.makeAbstractionFormula(
-        reducedAbstraction, ssaMap, oldAbstraction.getBlockFormula());
-  }
-
-  /**
-   * Extend an abstraction by a set of predicates.
-   *
-   * @param reducedAbstraction The abstraction to extend.
-   * @param sourceAbstraction The abstraction where to take the predicates from.
-   * @param removedRootPredicates The predicates that could be removed from the root abstraction on
-   *     reduction if they are fully implied by the root abstraction.
-   * @param newSSA The SSAMap to use for instantiating the new abstraction.
-   * @param blockFormula block formula of reduced abstraction state
-   * @return A new abstraction similar to the old one with some more predicates.
-   */
-  private AbstractionFormula expandAbstraction(
-      Region reducedAbstraction,
-      Region sourceAbstraction,
-      Collection<AbstractionPredicate> removedRootPredicates,
-      SSAMap newSSA,
-      PathFormula blockFormula)
-      throws InterruptedException {
-
-    // first get the really relevant predicates, that were removed on reduction
-    Collection<AbstractionPredicate> conjunctedPredicates = new ArrayList<>();
-    getConjunctedPredicatesAndReducedAbstraction(
-        sourceAbstraction, removedRootPredicates, conjunctedPredicates);
-
-    // then build abstraction
-    Region expandedAbstraction = reducedAbstraction;
-    for (AbstractionPredicate predicate : conjunctedPredicates) {
-      expandedAbstraction = rmgr.makeAnd(expandedAbstraction, predicate.getAbstractVariable());
-    }
-
-    return pamgr.makeAbstractionFormula(expandedAbstraction, newSSA, blockFormula);
-  }
-
-  private Region getConjunctedPredicatesAndReducedAbstraction(
-      Region abstraction,
-      final Collection<AbstractionPredicate> removedRootPredicates,
-      final Collection<AbstractionPredicate> conjunctedPredicates)
-      throws InterruptedException {
-    for (AbstractionPredicate predicate : removedRootPredicates) {
+    Region conjunction = rmgr.makeTrue();
+    for (AbstractionPredicate predicate : irrelevantPredicates) {
       // check whether ABS=>PRED, because only then we can guarantee that
       // ( ( exists PRED: f(ABS,PRED) ) and PRED ) == f(ABS,PRED),
       // which is required for a valid (and precise) reduction and expansion afterwards
@@ -193,11 +147,12 @@ public class BAMPredicateReducer
             Level.INFO, e, "cannot check implication for predicate, predicate is relevant");
       }
       if (abstractionImpliesPredicate) {
-        conjunctedPredicates.add(predicate);
+        conjunction = rmgr.makeAnd(conjunction, predicate.getAbstractVariable());
         abstraction = rmgr.makeExists(abstraction, predicate.getAbstractVariable());
       }
     }
-    return abstraction;
+
+    return Pair.of(abstraction, conjunction);
   }
 
   /**
@@ -288,24 +243,20 @@ public class BAMPredicateReducer
         bfmgr.isTrue(pathFormula.getFormula()),
         "Formula should be TRUE, but formula is %s",
         pathFormula.getFormula());
-    SSAMap ssa = pathFormula.getSsa();
 
-    AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
+    SSAMap ssa = pathFormula.getSsa();
     AbstractionFormula abstractionFormula = reducedState.getAbstractionFormula();
 
     if (useAbstractionReduction) {
-      Set<AbstractionPredicate> rootPredicates =
-          pamgr.extractPredicates(rootAbstraction.asRegion());
-      Set<AbstractionPredicate> removedRootPredicates =
-          Sets.difference(rootPredicates, getRelevantPredicates(pReducedContext, rootPredicates));
       ssa = copyMissingIndizes(rootState.getPathFormula().getSsa(), ssa);
+      Region removedPredicates =
+          splitAbstractionForReduction(
+                  rootState.getAbstractionFormula().asRegion(), pReducedContext)
+              .getSecond();
+      Region expandedAbstraction = rmgr.makeAnd(abstractionFormula.asRegion(), removedPredicates);
       abstractionFormula =
-          expandAbstraction(
-              abstractionFormula.asRegion(),
-              rootAbstraction.asRegion(),
-              removedRootPredicates,
-              ssa,
-              abstractionFormula.getBlockFormula());
+          pamgr.makeAbstractionFormula(
+              expandedAbstraction, ssa, abstractionFormula.getBlockFormula());
     }
 
     PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
@@ -412,10 +363,9 @@ public class BAMPredicateReducer
     reducedAbstraction =
         pamgr.asAbstraction(reducedAbstraction.asFormula(), reducedAbstraction.getBlockFormula());
 
-    Collection<AbstractionPredicate> rootPredicates = pamgr.getPredicatesForAtomsOf(rootAbstraction.asInstantiatedFormula());
-    Collection<AbstractionPredicate> relevantRootPredicates =
-        getRelevantPredicates(pReducedContext, rootPredicates);
-    //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
+    // TODO why were predicates retrieved from instantiated formula in the past and not directly?
+    // Set<AbstractionPredicate> rootPredicates =
+    // pamgr.getPredicatesForAtomsOf(rootAbstraction.asInstantiatedFormula());
 
     PathFormula oldPathFormula = reducedState.getPathFormula();
     SSAMap oldSSA = oldPathFormula.getSsa();
@@ -425,14 +375,13 @@ public class BAMPredicateReducer
     SSAMap newSSA = copyMissingIndizes(rootState.getPathFormula().getSsa(), oldSSA);
     @SuppressWarnings("deprecation") // TODO: seems buggy because it ignores PointerTargetSet
     PathFormula newPathFormula = pmgr.makeNewPathFormula(pmgr.makeEmptyPathFormula(), newSSA);
+    Region removedPredicates =
+        splitAbstractionForReduction(rootAbstraction.asRegion(), pReducedContext).getSecond();
+    Region expandedAbstraction = rmgr.makeAnd(reducedAbstraction.asRegion(), removedPredicates);
 
     AbstractionFormula newAbstractionFormula =
-        expandAbstraction(
-            reducedAbstraction.asRegion(),
-            rootAbstraction.asRegion(),
-            relevantRootPredicates,
-            newSSA,
-            reducedAbstraction.getBlockFormula());
+        pamgr.makeAbstractionFormula(
+            expandedAbstraction, newSSA, reducedAbstraction.getBlockFormula());
     PersistentMap<CFANode, Integer> abstractionLocations = rootState.getAbstractionLocationsOnPath();
 
     return PredicateAbstractState.mkAbstractionState(
