@@ -171,7 +171,7 @@ class AutomatonTransition {
     }
   }
 
-  protected AutomatonTransition(Builder b) {
+  AutomatonTransition(Builder b) {
     this(
         b.trigger,
         b.assertions,
