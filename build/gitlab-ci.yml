@@ -3,6 +3,7 @@
 # https://gitlab.com/sosy-lab/software/java-project-template
 
 stages:
+  - images
   - dependencies
   - build
   - checks
@@ -19,6 +20,7 @@ variables:
 # Download dependencies and provide them to later stages
 build-dependencies:
   stage: dependencies
+  dependencies: []
   script: "ant build-dependencies"
   cache:
     key: "$CI_JOB_NAME"
@@ -180,3 +182,37 @@ deploy-gh-pages:
   except:
     variables:
       - $GH_TOKEN == null # required for job
+
+
+# Build Docker images
+# following this guideline: https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
+.build-docker:
+  stage: images
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /root/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE/$IMAGE
+  only:
+    - schedules
+    - web
+
+build-docker:test:jdk-8:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-8
+    IMAGE: test:jdk-8
+
+build-docker:test:jdk-11:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-11
+    IMAGE: test:jdk-11
+
+build-docker:test:jdk-12:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-12
+    IMAGE: test:jdk-12

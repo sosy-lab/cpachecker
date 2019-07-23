@@ -29,10 +29,6 @@ configuration-checks:jdk-11:
     - build-dependencies
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
-  before_script:
-    # OptiMathSAT causes segfaults, remove it so tests with it are disabled:
-    # https://github.com/sosy-lab/java-smt/issues/132
-    - "rm lib/java/runtime/liboptimathsat5j.so"
 
 configuration-checks:jdk-12:
   <<: *configuration-checks
@@ -40,10 +36,6 @@ configuration-checks:jdk-12:
     - build-dependencies
     - build:jdk-12
   image: ${CI_REGISTRY_IMAGE}/test:jdk-12
-  before_script:
-    # OptiMathSAT causes segfaults, remove it so tests with it are disabled:
-    # https://github.com/sosy-lab/java-smt/issues/132
-    - "rm lib/java/runtime/liboptimathsat5j.so"
 
 
 configuration-documentation:
@@ -112,6 +104,12 @@ javascript-unit-tests:
       - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report
     when: always
 
+
+build-docker:test:java-node:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.java-node
+    IMAGE: test:java-node
 
 javascript-e2e-tests:
   stage: checks
