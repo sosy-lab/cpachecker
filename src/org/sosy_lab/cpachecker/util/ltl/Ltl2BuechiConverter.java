@@ -29,19 +29,15 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import jhoafparser.consumer.HOAConsumerPrint;
 import jhoafparser.consumer.HOAConsumerStore;
 import jhoafparser.parser.HOAFParser;
 import jhoafparser.parser.generated.ParseException;
@@ -62,8 +58,6 @@ public class Ltl2BuechiConverter {
 
   private final LabelledFormula labelledFormula;
   private final ProcessBuilder builder;
-
-  private final LogManager logger;
 
   /**
    * Entry point to convert a ltl property into an {@link Automaton}.
@@ -91,7 +85,7 @@ public class Ltl2BuechiConverter {
       throws InterruptedException, LtlParseException {
     checkNotNull(pFormula);
 
-    StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula, pLogger).createHoaAutomaton();
+    StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula).createHoaAutomaton();
     return BuechiConverterUtils.convertFromHOAFormat(hoaAutomaton, pConfig, pLogger, pMachineModel, pScope);
   }
 
@@ -99,15 +93,14 @@ public class Ltl2BuechiConverter {
    * Produces an {@link Automaton} from a ltl-property without the necessity of specifying a logger,
    * machine-model and scope.
    *
-   * <p>
-   * This method is mainly used for testing / debugging the transformation of ltl properties to
+   * <p>This method is mainly used for testing / debugging the transformation of ltl properties to
    * automatons outside of CPAchecker.
    */
-  static Automaton convertFormula(LabelledFormula pFormula, LogManager pLogger)
+  static Automaton convertFormula(LabelledFormula pFormula)
       throws InterruptedException, LtlParseException {
     checkNotNull(pFormula);
 
-    StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula, pLogger).createHoaAutomaton();
+    StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula).createHoaAutomaton();
     return BuechiConverterUtils.convertFromHOAFormat(hoaAutomaton);
   }
 
@@ -119,11 +112,9 @@ public class Ltl2BuechiConverter {
    * Constructor setting up the options for the executing the external 'ltl-to-buechi' tool.
    *
    * @param pFormula the ltl property to be transformed
-   * @param pLogger a logger object
    */
-  private Ltl2BuechiConverter(LabelledFormula pFormula, LogManager pLogger) {
+  private Ltl2BuechiConverter(LabelledFormula pFormula) {
     labelledFormula = pFormula;
-    logger = pLogger;
     builder = new ProcessBuilder();
 
     Path nativeLibraryPath = NativeLibraries.getNativeLibraryPath();
@@ -170,10 +161,6 @@ public class Ltl2BuechiConverter {
         throw new RuntimeException(
             "Output from external tool contains APs which are not consistent with the APs from the provided ltl formula");
       }
-
-      ByteArrayOutputStream os = new ByteArrayOutputStream();
-      storedAutomaton.feedToConsumer(new HOAConsumerPrint(os));
-      logger.log(Level.FINE, os.toString(StandardCharsets.UTF_8.name()));
 
       return storedAutomaton;
     } catch (ParseException e) {
