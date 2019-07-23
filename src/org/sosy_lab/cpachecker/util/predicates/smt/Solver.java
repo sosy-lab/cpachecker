@@ -160,18 +160,9 @@ public final class Solver implements AutoCloseable {
     }
   }
 
-  public static Solver create(
-      SolverContextFactory pSolverFactory,
-      Solvers pSolver,
-      SolverContext pSolverContext,
-      Configuration pConfig,
-      LogManager pLogger)
-      throws InvalidConfigurationException {
-    return new Solver(pSolverFactory, pSolver, pSolverContext, pConfig, pLogger);
-  }
-
   /**
-   * Please use {@link #create(Configuration, LogManager, ShutdownNotifier)} if possible.
+   * Please use {@link #create(Configuration, LogManager, ShutdownNotifier)} in normal code. This
+   * constructor is only for test code.
    *
    * <p>Please note that calling {@link #close()} on the returned instance will also close the
    * formula managers created by the passed {@link SolverContextFactory}.
@@ -237,6 +228,26 @@ public final class Solver implements AutoCloseable {
     }
     SolverContextFactory factory = new SolverContextFactory(config, logger, shutdownNotifier);
     return new Solver(factory, config, logger);
+  }
+
+  /**
+   * Load and instantiate an SMT solver. The returned instance should be closed by calling {@link
+   * #close} when it is not used anymore.
+   *
+   * <p>Important: If possible, always use {@link Solver#create(Configuration, LogManager,
+   * ShutdownNotifier)} and refrain from using this method.
+   *
+   * <p>Important: Refrain from calling this method and instead always try to use {@link
+   * Solver#create(Configuration, LogManager, ShutdownNotifier)} first.
+   */
+  public static Solver create(
+      SolverContextFactory pSolverFactory,
+      Solvers pSolver,
+      SolverContext pSolverContext,
+      Configuration pConfig,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
+    return new Solver(pSolverFactory, pSolver, pSolverContext, pConfig, pLogger);
   }
 
   /**
