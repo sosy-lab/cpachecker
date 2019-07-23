@@ -722,7 +722,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     private final int predecessorNodeNumber;
     private final int successorNodeNumber;
-    private final Pattern pattern;
+    private final Pattern pattern; // temp.; will be removed in the future
 
     public MatchCFAEdgeNodes(
         int pPredecessorNodeNumber,
@@ -745,7 +745,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "MATCH LOC ["
+      return "MATCH TRANSITION ["
           + predecessorNodeNumber
           + " -> "
           + successorNodeNumber
