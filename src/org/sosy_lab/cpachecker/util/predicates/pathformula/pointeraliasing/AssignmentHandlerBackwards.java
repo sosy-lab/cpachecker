@@ -205,7 +205,6 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
 
     } else {
 
-      // if aliased alo a new index has to be created?
       lhsFormula = null;
 
       MemoryRegion region = lhsLocation.asAliased().getMemoryRegion();
