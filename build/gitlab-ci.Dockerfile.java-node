@@ -14,4 +14,4 @@ RUN apt-get update && apt-get install -y \
       chromium-browser \
       nodejs \
       npm \
-      openjdk-8-jre-headless
+      openjdk-11-jre-headless

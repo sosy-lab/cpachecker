@@ -22,6 +22,7 @@ configuration-checks:jdk-8:
   dependencies:
     - build-dependencies
     - build:jdk-8
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
 
 configuration-checks:jdk-11:
   <<: *configuration-checks
@@ -46,7 +47,7 @@ configuration-documentation:
     - "diff doc/ConfigurationOptions.txt.old doc/ConfigurationOptions.txt"
   dependencies:
     - build-dependencies
-    - build:jdk-8
+    - build:jdk-11
 
 
 configuration-plot:
@@ -71,6 +72,7 @@ python-unit-tests:jdk-8:
   dependencies:
     - build-dependencies
     - build:jdk-8
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
 
 python-unit-tests:jdk-11:
   <<: *python-unit-tests
@@ -115,7 +117,7 @@ javascript-e2e-tests:
   stage: checks
   dependencies:
     - build-dependencies
-    - build:jdk-8
+    - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:java-node
   before_script:
       # generate example report
