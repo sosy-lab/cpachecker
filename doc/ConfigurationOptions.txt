@@ -1007,6 +1007,10 @@ cpa.arg.automaton.splitStrategy = TARGETS
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
 
+# prevent the stop-operator from aborting the stop-check early when it
+# crosses a target state
+cpa.arg.coverTargetStates = false
+
 # inform merge operator in CPA enabled analysis that it should delete the
 # subgraph of the merged node which is required to get at most one successor
 # per CFA edge.
@@ -1406,6 +1410,15 @@ cpa.constraints.satCheckStrategy = AT_ASSUME
 # Try model of predecessor constraints state before running SMT solver
 cpa.constraints.useLastModel = true
 
+# Set number of refinements for the trace abstraction algorithm
+cpa.dca.refiner.maxRefinementIterations = 0
+
+# Allows to abort the analysis early in order to only produce the ARG
+cpa.dca.refiner.skipAnalysis = false
+
+# Abort the refinement of finite prefixes for the purpose of better debugging
+cpa.dca.refiner.skipFiniteRefinement = false
+
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
@@ -1768,6 +1781,9 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # 'MIN<=X<=MAX', where MIN and MAX are computed from the type of the method
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
+
+# Check satisfiability for plain conjunction of edge and assumptions.
+cpa.predicate.assumptionStrengtheningSatCheck = false
 
 # Enable/disable abstraction reduction at the BAM block entry
 cpa.predicate.bam.useAbstractionReduction = true
