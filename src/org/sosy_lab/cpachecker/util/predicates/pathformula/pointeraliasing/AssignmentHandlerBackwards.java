@@ -787,28 +787,45 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
         // making new variable
         final String targetName;
         final int oldIndex;
-        if (!newLvalue.isAliased()) { // Unaliased LHS
+        final FormulaType<?> targetType = conv.getFormulaTypeFromCType(newLvalueType);
+        final Formula newlhsFormula;
+        if (!newLvalue.isAliased()) {
           assert !useOldSSAIndices;
+
           targetName = newLvalue.asUnaliased().getVariableName();
+          oldIndex = conv.getIndex(targetName, newLvalueType, ssa);
+          newlhsFormula = conv.makeFreshVariable(targetName, newLvalueType, ssa);
+          // final Formula lhsFormula = fmgr.makeVariable(targetType, targetName, oldIndex);
+          int newIndex = conv.getFreshIndex(targetName, newLvalueType, ssa);
         } else {
-          // hier auch noch wie handleAssighnemt
+
+          newlhsFormula = null;
+
           MemoryRegion region = newLvalue.asAliased().getMemoryRegion();
           if (region == null) {
             // should never happen as memory region is already made above
             region = regionMgr.makeMemoryRegion(newLvalueType);
           }
           targetName = regionMgr.getPointerAccessName(region);
-        }
-        oldIndex = conv.getIndex(targetName, newLvalueType, ssa);
-        final FormulaType<?> targetType = conv.getFormulaTypeFromCType(newLvalueType);
-        final Formula newlhsFormula;
-        if (!newLvalue.isAliased()) {
-          newlhsFormula = conv.makeFreshVariable(targetName, newLvalueType, ssa);
-          // final Formula lhsFormula = fmgr.makeVariable(targetType, targetName, oldIndex);
-          int newIndex = conv.getFreshIndex(targetName, newLvalueType, ssa);
-        } else {
-          // hier auch wie handleAssignment
-          newlhsFormula = null;
+          oldIndex = conv.getIndex(targetName, newLvalueType, ssa);
+          final int newIndex;
+          if (useOldSSAIndices) {
+            assert updatedRegions == null : "Returning updated regions is only for new indices";
+            newIndex = oldIndex;
+
+          } else if (options.useArraysForHeap()) {
+            assert updatedRegions == null : "Return updated regions is only for UF encoding";
+            newIndex = conv.makeFreshIndex(targetName, newLvalueType, ssa);
+
+          } else {
+            assert updatedRegions != null : "UF encoding needs to update regions for new indices";
+            newIndex = conv.getFreshIndex(targetName, newLvalueType, ssa);
+            updatedRegions.add(region);
+            // For UFs, we use a new index without storing it such that we use the same index
+            // for multiple writes that are part of the same assignment.
+            // The new index will be stored in the SSAMap later.
+
+          }
         }
 
         // handle new RHS
