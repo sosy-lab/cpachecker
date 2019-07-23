@@ -227,7 +227,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         region = regionMgr.makeMemoryRegion(type);
       }
       return !isSafe ? conv.makeDereference(type, e.asAliasedLocation().getAddress(), ssa, errorConditions, region) :
-                       conv.makeSafeDereference(type, e.asAliasedLocation().getAddress(), ssa, region);
+          conv.makeSafeDereference(type, e.asAliasedLocation().getAddress(), ssa, region, false);
     } else { // Unaliased location
       return conv.makeVariable(e.asUnaliasedLocation().getVariableName(), type, ssa);
     }

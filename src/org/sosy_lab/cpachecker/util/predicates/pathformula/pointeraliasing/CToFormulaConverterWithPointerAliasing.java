@@ -338,7 +338,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       errorConditions.addInvalidDerefCondition(fmgr.makeEqual(address, nullPointer));
       errorConditions.addInvalidDerefCondition(fmgr.makeLessThan(address, makeBaseAddressOfTerm(address), false));
     }
-    return makeSafeDereference(type, address, ssa, region);
+    return makeSafeDereference(type, address, ssa, region, false);
   }
 
   /**
@@ -352,10 +352,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   Formula makeSafeDereference(CType type,
                          final Formula address,
                          final SSAMapBuilder ssa,
-                         final MemoryRegion region) {
+      final MemoryRegion region,
+      final boolean oldIndex) {
     checkIsSimplified(type);
     final String ufName = regionMgr.getPointerAccessName(region);
-    final int index = getIndex(ufName, type, ssa);
+    int index = getIndex(ufName, type, ssa);
+    // if direction == backwards index--;
+    if (oldIndex) {
+      index--;
+    }
     final FormulaType<?> returnType = getFormulaTypeFromCType(type);
     return ptsMgr.makePointerDereference(ufName, returnType, index, address);
   }
@@ -508,10 +513,19 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         if (newRegion == null) {
           newRegion = regionMgr.makeMemoryRegion(baseType);
         }
+        // hier neue Variable fuer bw?
+        // int newIndex = makeFreshIndex(baseName, baseType, ssa);
+        if (direction == AnalysisDirection.BACKWARD) {
         constraints.addConstraint(
             fmgr.makeEqual(
-                makeSafeDereference(baseType, address, ssa, newRegion),
+                makeSafeDereference(baseType, address, ssa, newRegion, true),
                 makeVariable(baseName, baseType, ssa)));
+        } else {
+          constraints.addConstraint(
+              fmgr.makeEqual(
+                  makeSafeDereference(baseType, address, ssa, newRegion, false),
+                  makeVariable(baseName, baseType, ssa)));
+        }
       }
     }
   }
@@ -1364,7 +1378,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       // sollte auch so funktionieren??
       final Formula address = makeBaseAddress(pVarName, pType);
       final MemoryRegion region = regionMgr.makeMemoryRegion(pType);
-      formula = makeSafeDereference(pType, address, ssa, region);
+      formula = makeSafeDereference(pType, address, ssa, region, false);
 
     } else {
       formula = makeVariable(pVarName, pType, ssa);
