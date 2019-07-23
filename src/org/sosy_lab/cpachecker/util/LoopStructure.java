@@ -280,7 +280,7 @@ public final class LoopStructure implements Serializable {
       return "Loop with heads " + loopHeads + "\n"
            + "  incoming: " + incomingEdges + "\n"
            + "  outgoing: " + outgoingEdges + "\n"
-           + "  nodes: " + nodes + "\n";
+           + "  nodes:    " + nodes + "\n";
     }
 
     @Override
