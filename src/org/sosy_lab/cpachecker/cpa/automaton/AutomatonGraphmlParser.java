@@ -1740,13 +1740,22 @@ public class AutomatonGraphmlParser {
       return createAutomatonSinkTransition(
           pTriggers, pAssertions, pActions, pLeadsToViolationNode, pSinkAsBottomNotBreak);
     }
+    AutomatonTransition.Builder builder =
+        new AutomatonTransition.Builder(pTriggers, pTargetState.getId())
+            .withAssertions(
+                pLeadsToViolationNode
+                    ? ImmutableList.<AutomatonBoolExpr>builder()
+                        .addAll(pAssertions)
+                        .add(createViolationAssertion())
+                        .build()
+                    : pAssertions)
+            .withAssumptions(pAssumptions)
+            .withCandidateInvariants(pCandidateInvariants)
+            .withActions(pActions);
     if (pLeadsToViolationNode) {
-      List<AutomatonBoolExpr> assertions = ImmutableList.<AutomatonBoolExpr>builder().addAll(pAssertions).add(createViolationAssertion()).build();
-      return new ViolationCopyingAutomatonTransition(
-          pTriggers, assertions, pAssumptions, pCandidateInvariants, pActions, pTargetState.getId());
+      return new ViolationCopyingAutomatonTransition(builder);
     }
-    return new AutomatonTransition(
-        pTriggers, pAssertions, pAssumptions, pCandidateInvariants, pActions, pTargetState.getId());
+    return builder.build();
   }
 
   private static AutomatonTransition createAutomatonSinkTransition(
@@ -1755,31 +1764,27 @@ public class AutomatonGraphmlParser {
       List<AutomatonAction> pActions,
       boolean pLeadsToViolationNode,
       boolean pSinkAsBottomNotBreak) {
+    AutomatonTransition.Builder builder =
+        new AutomatonTransition.Builder(
+            pTriggers,
+            pSinkAsBottomNotBreak ? AutomatonInternalState.BOTTOM : AutomatonInternalState.BREAK)
+                .withAssertions(pAssertions)
+                .withActions(pActions);
     if (pLeadsToViolationNode) {
-      return new ViolationCopyingAutomatonTransition(
-          pTriggers,
-          pAssertions,
-          pActions,
-          pSinkAsBottomNotBreak ? AutomatonInternalState.BOTTOM : AutomatonInternalState.BREAK);
+      return new ViolationCopyingAutomatonTransition(builder);
     }
-    return new AutomatonTransition(
-        pTriggers,
-        pAssertions,
-        pActions,
-        pSinkAsBottomNotBreak ? AutomatonInternalState.BOTTOM : AutomatonInternalState.BREAK);
+    return builder.build();
   }
 
   private static AutomatonTransition createAutomatonInvariantErrorTransition(
       AutomatonBoolExpr pTriggers, List<AExpression> pAssumptions) {
     StringExpression violatedPropertyDesc = new StringExpression("Invariant not valid");
     AutomatonInternalState followErrorState = AutomatonInternalState.ERROR;
-    return new AutomatonTransition(
-        pTriggers,
-        Collections.<AutomatonBoolExpr>emptyList(),
-        pAssumptions,
-        Collections.<AutomatonAction>emptyList(),
-        followErrorState,
-        violatedPropertyDesc);
+
+    return new AutomatonTransition.Builder(pTriggers, followErrorState)
+        .withAssumptions(pAssumptions)
+        .withViolatedPropertyDescription(violatedPropertyDesc)
+        .build();
   }
 
   private void createAutomatonInvariantsTransitions(
@@ -1819,22 +1824,8 @@ public class AutomatonGraphmlParser {
 
   private static class ViolationCopyingAutomatonTransition extends AutomatonTransition {
 
-    private ViolationCopyingAutomatonTransition(
-        AutomatonBoolExpr pTriggers,
-        List<AutomatonBoolExpr> pAssertions,
-        List<AExpression> pAssumptions,
-        ExpressionTree<AExpression> pCandidateInvariants,
-        List<AutomatonAction> pActions,
-        String pTargetStateId) {
-      super(pTriggers, pAssertions, pAssumptions, pCandidateInvariants, pActions, pTargetStateId);
-    }
-
-    private ViolationCopyingAutomatonTransition(
-        AutomatonBoolExpr pTriggers,
-        List<AutomatonBoolExpr> pAssertions,
-        List<AutomatonAction> pActions,
-        AutomatonInternalState pTargetState) {
-      super(pTriggers, pAssertions, pActions, pTargetState);
+    private ViolationCopyingAutomatonTransition(Builder pBuilder) {
+      super(pBuilder);
     }
 
     @Override

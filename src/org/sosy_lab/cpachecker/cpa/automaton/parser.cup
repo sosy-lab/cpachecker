@@ -105,12 +105,9 @@ parser code {:
   }
 
   Automaton generateSkeletonForAssertion(AutomatonBoolExpr pA) throws InvalidAutomatonException {
-    AutomatonTransition trans = new AutomatonTransition(
-        AutomatonBoolExpr.TRUE, 
-        Collections.singletonList(pA),
-        Collections.emptyList(),
-        Collections.<AutomatonAction>emptyList(),
-        "OK");
+    AutomatonTransition trans = new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, "OK")
+    									.withAssertion(pA)
+    									.build();
     AutomatonInternalState okState = new AutomatonInternalState("OK", 
         Collections.singletonList(trans));
     Automaton ret = new Automaton("AnonymousAutomaton" + anonymousCounter++,
@@ -277,15 +274,37 @@ Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :
             ;
 
 Transition   ::= Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts GOTO IDENTIFIER:follow SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, follow.toString()); :}
+              {: RESULT = new AutomatonTransition.Builder(trigger, follow.toString())
+                  	.withAssertions(ass)
+                  	.withAssumptions(a)
+                  	.withActions(acts)
+                  	.build(); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.ERROR, new AutomatonExpression.StringExpression("")); :}
+              {: RESULT = new AutomatonTransition.Builder(trigger, AutomatonInternalState.ERROR)
+                  	.withAssertions(ass)
+                  	.withAssumptions(a)
+                  	.withActions(acts)
+                  	.withViolatedPropertyDescription(new AutomatonExpression.StringExpression(""))
+                  	.build(); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR OPEN_BRACKETS STRING_LITERAL:property CLOSE_BRACKETS SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.ERROR, new AutomatonExpression.StringExpression(property.toString())); :}
+              {: RESULT = new AutomatonTransition.Builder(trigger, AutomatonInternalState.ERROR)
+                  	.withAssertions(ass)
+                  	.withAssumptions(a)
+                  	.withActions(acts)
+                  	.withViolatedPropertyDescription(new AutomatonExpression.StringExpression(property.toString()))
+                  	.build(); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts STOP SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.BOTTOM, null); :}
+              {: RESULT = new AutomatonTransition.Builder(trigger, AutomatonInternalState.BOTTOM)
+                  	.withAssertions(ass)
+                  	.withAssumptions(a)
+                  	.withActions(acts)
+                  	.build(); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts BREAK SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.BREAK, null); :}
+              {: RESULT = new AutomatonTransition.Builder(trigger, AutomatonInternalState.BREAK)
+                  	.withAssertions(ass)
+                  	.withAssumptions(a)
+                  	.withActions(acts)
+                  	.build(); :}
               ;
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}

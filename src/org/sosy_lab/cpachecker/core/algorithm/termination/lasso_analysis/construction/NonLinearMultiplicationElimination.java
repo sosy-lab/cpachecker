@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.Boo
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
@@ -49,18 +48,16 @@ import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVisitor {
 
   private final FormulaManagerView fmgrView;
-  private final FormulaManager fmgr;
 
-  NonLinearMultiplicationElimination(FormulaManagerView pFmgrView, FormulaManager pFmgr) {
+  NonLinearMultiplicationElimination(FormulaManagerView pFmgrView) {
     super(pFmgrView);
     fmgrView = pFmgrView;
-    fmgr = pFmgr;
   }
 
   @Override
   public BooleanFormula visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
     NonLinearMultiplicationTransformation multiplicationTransformation =
-        new NonLinearMultiplicationTransformation(fmgrView, fmgr);
+        new NonLinearMultiplicationTransformation(fmgrView);
     BooleanFormula result = (BooleanFormula) fmgrView.visit(pAtom, multiplicationTransformation);
 
     BooleanFormulaManagerView booleanFormulaManager = fmgrView.getBooleanFormulaManager();
@@ -78,14 +75,11 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
     private final static UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
 
     private final FormulaManagerView fmgrView;
-    private final FormulaManager fmgr;
 
     private final List<BooleanFormula> additionalAxioms;
 
-    private NonLinearMultiplicationTransformation(
-        FormulaManagerView pFmgrView, FormulaManager pFmgr) {
+    private NonLinearMultiplicationTransformation(FormulaManagerView pFmgrView) {
       fmgrView = pFmgrView;
-      fmgr = pFmgr;
       additionalAxioms = new ArrayList<>();
     }
 
@@ -114,7 +108,7 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
             newArgs.get(0), newArgs.get(1), pFunctionDeclaration.getType());
 
       } else {
-        return fmgr.makeApplication(pFunctionDeclaration, newArgs);
+        return fmgrView.makeApplication(pFunctionDeclaration, newArgs);
       }
     }
 
@@ -163,7 +157,7 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
       BooleanFormulaManagerView bfmgr = fmgrView.getBooleanFormulaManager();
 
       Formula multAux =
-          fmgr.makeVariable(
+          fmgrView.makeVariable(
               formulaType,
               TERMINATION_AUX_VARS_PREFIX + "MULT_AUX_VAR_" + ID_GENERATOR.getFreshId());
 

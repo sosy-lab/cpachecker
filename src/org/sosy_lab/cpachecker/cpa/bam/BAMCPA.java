@@ -119,7 +119,7 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
 
     AlgorithmFactory factory = new CPAAlgorithmFactory(this, logger, config, pShutdownNotifier);
     if (useCEGAR) {
-      factory = new CEGARAlgorithmFactory(factory, this, logger, config);
+      factory = new CEGARAlgorithmFactory(factory, this, logger, config, pShutdownNotifier);
     }
 
     if (handleRecursiveProcedures) {

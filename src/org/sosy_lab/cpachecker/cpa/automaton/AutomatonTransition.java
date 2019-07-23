@@ -28,8 +28,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -102,91 +104,83 @@ class AutomatonTransition {
   private final String followStateName;
   private AutomatonInternalState followState = null;
 
-  public AutomatonTransition(AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
-      AutomatonInternalState pFollowState) {
+  static class Builder {
+    private AutomatonBoolExpr trigger;
+    private List<AutomatonBoolExpr> assertions;
+    private List<AExpression> assumptions;
+    private List<AutomatonAction> actions;
+    private String followStateName;
+    private @Nullable AutomatonInternalState followState;
+    private ExpressionTree<AExpression> candidateInvariants;
+    private @Nullable StringExpression violatedPropertyDescription;
 
-    this(
-        pTrigger,
-        pAssertions,
-        ImmutableList.of(),
-        ExpressionTrees.<AExpression>getTrue(),
-        pActions,
-        pFollowState.getName(),
-        pFollowState,
-        null);
+    Builder(AutomatonBoolExpr pTrigger, String pFollowStateName) {
+      trigger = pTrigger;
+      assertions = ImmutableList.of();
+      assumptions = ImmutableList.of();
+      actions = ImmutableList.of();
+      followStateName = pFollowStateName;
+      candidateInvariants = ExpressionTrees.<AExpression>getTrue();
+    }
+
+    Builder(AutomatonBoolExpr pTrigger, @Nullable AutomatonInternalState pFollowState) {
+      this(pTrigger, pFollowState != null ? pFollowState.getName() : "");
+      followState = pFollowState;
+    }
+
+    Builder withAssertion(AutomatonBoolExpr pAssertion) {
+      this.assertions = ImmutableList.of(pAssertion);
+      return this;
+    }
+
+    Builder withAssertions(List<AutomatonBoolExpr> pAssertions) {
+      this.assertions = pAssertions;
+      return this;
+    }
+
+    Builder withAssumptions(List<AExpression> pAssumptions) {
+      this.assumptions = pAssumptions;
+      return this;
+    }
+
+    Builder withActions(List<AutomatonAction> pActions) {
+      this.actions = pActions;
+      return this;
+    }
+
+    Builder withCandidateInvariants(ExpressionTree<AExpression> pCandidateInvariants) {
+      this.candidateInvariants = pCandidateInvariants;
+      return this;
+    }
+
+    Builder withViolatedPropertyDescription(StringExpression pViolatedPropertyDescription) {
+      this.violatedPropertyDescription = pViolatedPropertyDescription;
+      return this;
+    }
+
+    AutomatonTransition build() {
+      return new AutomatonTransition(
+          trigger,
+          assertions,
+          assumptions,
+          candidateInvariants,
+          actions,
+          followStateName,
+          followState,
+          violatedPropertyDescription);
+    }
   }
 
-  public AutomatonTransition(
-      AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions,
-      List<AExpression> pAssumptions,
-      List<AutomatonAction> pActions,
-      AutomatonInternalState pFollowState) {
-
+  AutomatonTransition(Builder b) {
     this(
-        pTrigger,
-        pAssertions,
-        pAssumptions,
-        ExpressionTrees.<AExpression>getTrue(),
-        pActions,
-        pFollowState.getName(),
-        pFollowState,
-        null);
-  }
-
-  public AutomatonTransition(
-      AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions,
-      List<AExpression> pAssumptions,
-      List<AutomatonAction> pActions,
-      String pFollowStateName) {
-    this(
-        pTrigger,
-        pAssertions,
-        pAssumptions,
-        ExpressionTrees.<AExpression>getTrue(),
-        pActions,
-        pFollowStateName,
-        null,
-        null);
-  }
-
-  public AutomatonTransition(
-      AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions,
-      List<AExpression> pAssumptions,
-      ExpressionTree<AExpression> pCandidateInvariants,
-      List<AutomatonAction> pActions,
-      String pFollowStateName) {
-    this(
-        pTrigger,
-        pAssertions,
-        pAssumptions,
-        pCandidateInvariants,
-        pActions,
-        pFollowStateName,
-        null,
-        null);
-  }
-
-  public AutomatonTransition(
-      AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions,
-      List<AExpression> pAssumptions,
-      List<AutomatonAction> pActions,
-      AutomatonInternalState pFollowState,
-      StringExpression pViolatedPropertyDescription) {
-
-    this(
-        pTrigger,
-        pAssertions,
-        pAssumptions,
-        ExpressionTrees.<AExpression>getTrue(),
-        pActions,
-        pFollowState.getName(),
-        pFollowState,
-        pViolatedPropertyDescription);
+        b.trigger,
+        b.assertions,
+        b.assumptions,
+        b.candidateInvariants,
+        b.actions,
+        b.followStateName,
+        b.followState,
+        b.violatedPropertyDescription);
   }
 
   private AutomatonTransition(
@@ -229,6 +223,31 @@ class AutomatonTransition {
       }
       this.assertion = lAssertion;
     }
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        actions, assertion, assumptions, followStateName, trigger, violatedPropertyDescription);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof AutomatonTransition)) {
+      return false;
+    }
+
+    AutomatonTransition other = (AutomatonTransition) obj;
+
+    return Objects.equals(actions, other.actions)
+        && Objects.equals(assertion, other.assertion)
+        && Objects.equals(assumptions, other.assumptions)
+        && Objects.equals(followStateName, other.followStateName)
+        && Objects.equals(trigger, other.trigger)
+        && Objects.equals(violatedPropertyDescription, other.violatedPropertyDescription);
   }
 
   /**

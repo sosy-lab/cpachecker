@@ -26,21 +26,18 @@ package org.sosy_lab.cpachecker.util.ltl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import jhoafparser.consumer.HOAConsumerPrint;
 import jhoafparser.consumer.HOAConsumerStore;
 import jhoafparser.parser.HOAFParser;
 import jhoafparser.parser.generated.ParseException;
@@ -51,33 +48,33 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.cpa.automaton.LtlParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.BuechiConverterUtils;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Literal;
 
 public class Ltl2BuechiConverter {
 
-  private static final String LTL3BA = "./ltl3ba";
+  private static final Converter EXECUTABLE = Converter.LTL3BA;
 
   private final LabelledFormula labelledFormula;
   private final ProcessBuilder builder;
 
-  private final LogManager logger;
-
   /**
    * Entry point to convert a ltl property into an {@link Automaton}.
    *
-   * <p>This method takes a {@link LabelledFormula} and passes the contained ltl-property to an
+   * <p>
+   * This method takes a {@link LabelledFormula} and passes the contained ltl-property to an
    * external tool, which in turn transforms it into a buechi-automaton.
    *
-   * <p>The output from the external tool is specified to be in 'Hanoi-Omega-Automaton' (HOA)
-   * format, and parsed as such accordingly afterwards. The resulting object will again be
-   * transformed into the final {@link Automaton}.
+   * <p>
+   * The output from the external tool is specified to be in 'Hanoi-Omega-Automaton' (HOA) format,
+   * and parsed as such accordingly afterwards. The resulting object will again be transformed into
+   * the final {@link Automaton}.
    *
    * @param pFormula the ltl-property together with a list of its atomic propositions
    * @return an automaton from the automaton-framework in CPAchecker
    * @throws LtlParseException if the transformation fails either due to some false values in the
-   *     intermediate resulting StoredAutomaton or because of an erroneous config.
+   *         intermediate resulting StoredAutomaton or because of an erroneous config.
    */
   public static Automaton convertFormula(
       LabelledFormula pFormula,
@@ -88,8 +85,8 @@ public class Ltl2BuechiConverter {
       throws InterruptedException, LtlParseException {
     checkNotNull(pFormula);
 
-    StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula, pLogger).createHoaAutomaton();
-    return LtlParserUtils.transform(hoaAutomaton, pConfig, pLogger, pMachineModel, pScope);
+    StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula).createHoaAutomaton();
+    return BuechiConverterUtils.convertFromHOAFormat(hoaAutomaton, pConfig, pLogger, pMachineModel, pScope);
   }
 
   /**
@@ -99,35 +96,39 @@ public class Ltl2BuechiConverter {
    * <p>This method is mainly used for testing / debugging the transformation of ltl properties to
    * automatons outside of CPAchecker.
    */
-  static Automaton convertFormula(LabelledFormula pFormula, LogManager pLogger)
+  static Automaton convertFormula(LabelledFormula pFormula)
       throws InterruptedException, LtlParseException {
     checkNotNull(pFormula);
 
-    StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula, pLogger).createHoaAutomaton();
-    return LtlParserUtils.transform(hoaAutomaton);
+    StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula).createHoaAutomaton();
+    return BuechiConverterUtils.convertFromHOAFormat(hoaAutomaton);
+  }
+
+  public static String getNameOfExecutable() {
+    return EXECUTABLE.getToolName();
   }
 
   /**
    * Constructor setting up the options for the executing the external 'ltl-to-buechi' tool.
    *
    * @param pFormula the ltl property to be transformed
-   * @param pLogger a logger object
    */
-  private Ltl2BuechiConverter(LabelledFormula pFormula, LogManager pLogger) {
+  private Ltl2BuechiConverter(LabelledFormula pFormula) {
     labelledFormula = pFormula;
-    logger = pLogger;
     builder = new ProcessBuilder();
 
     Path nativeLibraryPath = NativeLibraries.getNativeLibraryPath();
     builder.directory(nativeLibraryPath.toFile());
 
-    /*
-     * '-H' to print the resulting output (the buechi-automaton) in HOA format
-     * '-f "formula"' to translate the LTL formula into a never claim
-     */
     String formula =
         LtlStringVisitor.toString(labelledFormula.getFormula(), labelledFormula.getAPs());
-    builder.command(LTL3BA, "-H", "-f", formula);
+    ImmutableList<String> commands =
+        ImmutableList.<String>builder()
+            .add(EXECUTABLE.execTool())
+            .addAll(EXECUTABLE.getArgs())
+            .add("-f", formula)
+            .build();
+    builder.command(commands);
   }
 
   /**
@@ -153,24 +154,20 @@ public class Ltl2BuechiConverter {
       }
       storedAutomaton.getStoredHeader().setAPs(list);
 
-      if (!storedAutomaton
-          .getStoredHeader()
+      if (!storedAutomaton.getStoredHeader()
           .getAPs()
           .stream()
           .anyMatch(x -> labelledFormula.getAPs().contains(Literal.of(x, false)))) {
         throw new RuntimeException(
-            "Output from external tool contains APs that are not consistent with APs from the parsed ltl formula");
+            "Output from external tool contains APs which are not consistent with the APs from the provided ltl formula");
       }
-
-      ByteArrayOutputStream os = new ByteArrayOutputStream();
-      storedAutomaton.feedToConsumer(new HOAConsumerPrint(os));
-      logger.log(Level.FINEST, os.toString(StandardCharsets.UTF_8.name()));
 
       return storedAutomaton;
     } catch (ParseException e) {
       throw new LtlParseException(
           String.format(
-              "An error occured while parsing the output from the external tool '%s'", LTL3BA),
+              "An error occured while parsing the output from the external tool '%s'",
+              EXECUTABLE.getToolName()),
           e);
     } catch (IOException e) {
       throw new LtlParseException(e.getMessage(), e);
@@ -196,7 +193,9 @@ public class Ltl2BuechiConverter {
         throw new LtlParseException(
             String.format(
                 "Tool '%s' exited with error code %d. Message from tool:%n%s",
-                LTL3BA, exitvalue, errMsg));
+                EXECUTABLE.getToolName(),
+                exitvalue,
+                errMsg));
       }
 
       return is;
@@ -217,5 +216,32 @@ public class Ltl2BuechiConverter {
     bufferedReader.lines().forEach(x -> list.add(x));
 
     return list.stream();
+  }
+
+  private static class Converter {
+
+    // '-H' lets 'ltl3ba' print the output as buechi-automaton in HOA-format
+    private static final Converter LTL3BA = new Converter("ltl3ba", "-H");
+
+    private final String toolName;
+    private final ImmutableList<String> commands;
+
+    private Converter(String toolName, String... commands) {
+      this.toolName = toolName;
+      this.commands = ImmutableList.copyOf(commands);
+    }
+
+    public String getToolName() {
+      return toolName;
+    }
+
+    private String execTool() {
+      return "./" + getToolName();
+    }
+
+    public ImmutableList<String> getArgs() {
+      return commands;
+    }
+
   }
 }

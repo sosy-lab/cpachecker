@@ -49,6 +49,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.util.Property;
 import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
+import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 
 /**
  * Class that encapsulates the specification that should be used for an analysis.
@@ -79,6 +81,27 @@ public final class Specification {
     if (Iterables.isEmpty(specFiles)) {
       if (pProperties.stream().anyMatch(p -> p.getProperty() instanceof CommonCoverageType)) {
         return new Specification(pProperties, ImmutableListMultimap.of());
+      }
+      if (pProperties.size() == 1) {
+        Property property = Iterables.getOnlyElement(pProperties).getProperty();
+        if (property instanceof LabelledFormula) {
+          try {
+            LabelledFormula formula = ((LabelledFormula) property).not();
+            Automaton automaton =
+                Ltl2BuechiConverter.convertFormula(
+                    formula, config, logger, cfa.getMachineModel(), new CProgramScope(cfa, logger));
+            return new Specification(
+                pProperties,
+                ImmutableListMultimap.of(Paths.get(""), automaton));
+          } catch (InterruptedException e) {
+            throw new InvalidConfigurationException(
+                String.format(
+                    "Error when executing the external tool '%s': %s",
+                    Ltl2BuechiConverter.getNameOfExecutable(),
+                    e.getMessage()),
+                e);
+          }
+        }
       }
       return Specification.alwaysSatisfied();
     }

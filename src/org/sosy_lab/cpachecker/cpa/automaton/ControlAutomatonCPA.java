@@ -23,13 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.MoreCollectors;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -43,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -213,7 +217,35 @@ public class ControlAutomatonCPA
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0, null);
+    return buildInitStateForAutomaton(automaton);
+  }
+
+  public AutomatonState buildInitStateForAutomaton(Automaton pAutomaton) {
+    AutomatonInternalState initState = pAutomaton.getInitialState();
+    AutomatonSafetyProperty safetyProp = null;
+    if (initState.isTarget()) {
+      for (AutomatonTransition t : initState.getTransitions()) {
+        if (t.getFollowState().isTarget()) {
+          Optional<AExpression> assumptionOpt =
+              t.getAssumptions(null, logger, cfa.getMachineModel())
+                  .stream()
+                  .collect(MoreCollectors.toOptional());
+          safetyProp =
+              assumptionOpt.isPresent()
+                  ? new AutomatonSafetyProperty(pAutomaton, t, assumptionOpt.get().toASTString())
+                  : new AutomatonSafetyProperty(pAutomaton, t);
+          break;
+        }
+      }
+      Verify.verifyNotNull(safetyProp);
+    }
+    return AutomatonState.automatonStateFactory(
+        pAutomaton.getInitialVariables(),
+        pAutomaton.getInitialState(),
+        this,
+        0,
+        0,
+        safetyProp);
   }
 
   @Override

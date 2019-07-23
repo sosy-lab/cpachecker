@@ -34,6 +34,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
@@ -120,8 +121,14 @@ public class CPABuilder {
       cpas.add(factory.createInstance());
     }
 
-    return buildCPAs(
+    ConfigurableProgramAnalysis cpa =
+        buildCPAs(
         cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa, specification, pAggregatedReachedSets);
+    if (!cpas.isEmpty()) {
+      throw new InvalidConfigurationException(
+          "Option specification gave specification automata, but no CompositeCPA was used");
+    }
+    return cpa;
   }
 
   private ConfigurableProgramAnalysis buildCPAs(
@@ -142,6 +149,18 @@ public class CPABuilder {
 
     if (!usedAliases.add(cpaAlias)) {
       throw new InvalidConfigurationException("Alias " + cpaAlias + " used twice for a CPA.");
+    }
+
+    // shortcut for a ControlAutomatonCPA which was already instantiated, but is wrapped in a
+    // cpa other than CompositeCPA (such as e.g. an AbstractSingleWrapperCPA)
+    if (cpaAlias.equals(ControlAutomatonCPA.class.getSimpleName())) {
+      Optional<ConfigurableProgramAnalysis> first =
+          cpas.stream().filter(x -> x instanceof ControlAutomatonCPA).findFirst();
+      if (first.isPresent()) {
+        ConfigurableProgramAnalysis cpa = first.get();
+        cpas.remove(cpa);
+        return cpa;
+      }
     }
 
     // first get instance of appropriate factory
@@ -177,9 +196,6 @@ public class CPABuilder {
             specification,
             pAggregatedReachedSets);
 
-    if (cpas != null && !cpas.isEmpty()) {
-      throw new InvalidConfigurationException("Option specification gave specification automata, but no CompositeCPA was used");
-    }
     if (optionName.equals(CPA_OPTION_NAME)
         && cpaClass.equals(CompositeCPA.class)
         && !hasChildren) {
@@ -345,7 +361,7 @@ public class CPABuilder {
                 currentChildCpaName,
                 childrenOptionName,
                 usedAliases,
-                null,
+                cpas,
                 cfa,
                 specification,
                 pAggregatedReachedSets));

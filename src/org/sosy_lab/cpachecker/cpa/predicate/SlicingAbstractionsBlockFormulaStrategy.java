@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.buildPathFormula;
-
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,12 +31,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * BlockFormulaStrategy for graph-like ARGs where
@@ -67,23 +61,17 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
   @Override
   BlockFormulas getFormulasForPath(final ARGState pRoot, final List<ARGState> pPath)
       throws CPATransferException, InterruptedException {
-
-    final List<BooleanFormula> abstractionFormulas = new ArrayList<>();
-
-    SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
-    PointerTargetSet startPts = PointerTargetSet.emptyPointerTargetSet();
-    PathFormula currentPathFormula = buildPathFormula(pRoot, pPath.get(0), startSSAMap, startPts, solver, pfmgr,includePartialInvariants);
-    abstractionFormulas.add(currentPathFormula.getFormula());
-
-    for(int i = 0; i<pPath.size()-1; i++) {
-      PathFormula oldPathFormula = currentPathFormula;
-      currentPathFormula = buildPathFormula(pPath.get(i), pPath.get(i+1),
-          oldPathFormula.getSsa(), oldPathFormula.getPointerTargetSet(), solver, pfmgr,includePartialInvariants);
-      abstractionFormulas.add(currentPathFormula.getFormula());
-    }
-
-    return new BlockFormulas(abstractionFormulas);
-
+    return new BlockFormulas(
+        SlicingAbstractionsUtils
+            .getFormulasForPath(
+                pfmgr,
+                solver,
+                pRoot,
+                pPath,
+                includePartialInvariants)
+            .stream()
+            .map(x -> x.getFormula())
+            .collect(ImmutableList.toImmutableList()));
   }
 
 }

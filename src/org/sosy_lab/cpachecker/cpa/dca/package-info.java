@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * This package provides util-classes for parsing ltl-properties and transforming them into buechi
- * automata.
+ * The package contains all classes related to perform ltl software model checking by refining the
+ * arg via automatons, which are dynamically created during the refinement using interpolants. DCA
+ * is short for 'Dynamic Composite Automaton'.
  */
-package org.sosy_lab.cpachecker.util.ltl;
+package org.sosy_lab.cpachecker.cpa.dca;

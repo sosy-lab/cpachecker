@@ -86,7 +86,8 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
       throw new InvalidConfigurationException("Option SlicingDelegatingRefiner.refiner not set");
     }
 
-    Refiner delegate = options.delegate.create(pCpa);
+    Refiner delegate =
+        options.delegate.create(pCpa, slicingCPA.getLogger(), slicingCPA.getShutdownNotifier());
     SlicingRefiner slicingRefiner = SlicingRefiner.create(pCpa);
 
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SlicingDelegatingRefiner.class);

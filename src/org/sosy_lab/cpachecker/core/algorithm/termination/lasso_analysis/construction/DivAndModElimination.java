@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.Boo
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
@@ -47,17 +46,15 @@ import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 class DivAndModElimination extends BooleanFormulaTransformationVisitor {
 
   private final FormulaManagerView fmgrView;
-  private final FormulaManager fmgr;
 
-  DivAndModElimination(FormulaManagerView pFmgrView, FormulaManager pFmgr) {
+  DivAndModElimination(FormulaManagerView pFmgrView) {
     super(pFmgrView);
     fmgrView = pFmgrView;
-    fmgr = pFmgr;
   }
 
   @Override
   public BooleanFormula visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
-    DivAndModTransformation divAndModTransformation = new DivAndModTransformation(fmgrView, fmgr);
+    DivAndModTransformation divAndModTransformation = new DivAndModTransformation(fmgrView);
     BooleanFormula result = (BooleanFormula) fmgrView.visit(pAtom, divAndModTransformation);
 
     BooleanFormulaManagerView booleanFormulaManager = fmgrView.getBooleanFormulaManager();
@@ -79,13 +76,11 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
     private final static UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
 
     private final FormulaManagerView fmgrView;
-    private final FormulaManager fmgr;
 
     private final Collection<BooleanFormula> additionalAxioms;
 
-    private DivAndModTransformation(FormulaManagerView pFmgrView, FormulaManager pFmgr) {
+    private DivAndModTransformation(FormulaManagerView pFmgrView) {
       fmgrView = pFmgrView;
-      fmgr = pFmgr;
       additionalAxioms = new ArrayList<>();
     }
 
@@ -116,7 +111,7 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
         return transformModulo(newArgs.get(0), newArgs.get(1), pFunctionDeclaration.getType());
 
       } else {
-        return fmgr.makeApplication(pFunctionDeclaration, newArgs);
+        return fmgrView.makeApplication(pFunctionDeclaration, newArgs);
       }
     }
 
@@ -134,11 +129,11 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
       BooleanFormulaManagerView booleanFormulaManager = fmgrView.getBooleanFormulaManager();
 
       Formula quotientAuxVar =
-          fmgr.makeVariable(
+          fmgrView.makeVariable(
               formulaType,
               TERMINATION_AUX_VARS_PREFIX + "QUOTIENT_AUX_VAR_" + ID_GENERATOR.getFreshId());
       Formula remainderAuxVar =
-          fmgr.makeVariable(
+          fmgrView.makeVariable(
               formulaType,
               TERMINATION_AUX_VARS_PREFIX + "REMAINDER_AUX_VAR_" + ID_GENERATOR.getFreshId());
       /*
@@ -190,7 +185,7 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
       BooleanFormulaManagerView booleanFormulaManager = fmgrView.getBooleanFormulaManager();
 
       Formula quotientAuxVar =
-          fmgr.makeVariable(
+          fmgrView.makeVariable(
               formulaType,
               LassoBuilder.TERMINATION_AUX_VARS_PREFIX
                   + "QUOTIENT_AUX_VAR_"
