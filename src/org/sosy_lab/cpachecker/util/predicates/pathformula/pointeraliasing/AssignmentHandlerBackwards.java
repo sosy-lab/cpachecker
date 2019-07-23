@@ -181,31 +181,59 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
     pts.addEssentialFields(lhsVisitor.getUsedFields());
     // the pattern matching possibly aliased locations
+
+    // making new variable
     final String targetName;
     final int oldIndex;
-    if (!lhsLocation.isAliased()) { // Unaliased LHS
+    final Formula lhsFormula;
+    // final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lhsType);
+    final CType rhsType =
+        rhs != null ? typeHandler.getSimplifiedType(rhs) : CNumericTypes.SIGNED_CHAR;
+    // necessary only for update terms for new UF indices
+    Set<MemoryRegion> updatedRegions =
+        useOldSSAIndices || options.useArraysForHeap() ? null : new HashSet<>();
+
+
+    if (!lhsLocation.isAliased()) {
+
       assert !useOldSSAIndices;
       targetName = lhsLocation.asUnaliased().getVariableName();
+      oldIndex = conv.getIndex(targetName, lhsType, ssa);
+      lhsFormula = conv.makeFreshVariable(targetName, lhsType, ssa);
+      // final Formula lhsFormula = fmgr.makeVariable(targetType, targetName, oldIndex);
+      int newIndex = conv.getFreshIndex(targetName, lhsType, ssa);
+
     } else {
+
+      // if aliased alo a new index has to be created?
+      lhsFormula = null;
+
       MemoryRegion region = lhsLocation.asAliased().getMemoryRegion();
       if (region == null) {
         region = regionMgr.makeMemoryRegion(lhsType);
       }
       targetName = regionMgr.getPointerAccessName(region);
+      oldIndex = conv.getIndex(targetName, lhsType, ssa);
+      final int newIndex;
+      if (useOldSSAIndices) {
+        assert updatedRegions == null : "Returning updated regions is only for new indices";
+        newIndex = oldIndex;
+
+      } else if (options.useArraysForHeap()) {
+        assert updatedRegions == null : "Return updated regions is only for UF encoding";
+        newIndex = conv.makeFreshIndex(targetName, lhsType, ssa);
+
+      } else {
+        assert updatedRegions != null : "UF encoding needs to update regions for new indices";
+        newIndex = conv.getFreshIndex(targetName, lhsType, ssa);
+        updatedRegions.add(region);
+        // For UFs, we use a new index without storing it such that we use the same index
+        // for multiple writes that are part of the same assignment.
+        // The new index will be stored in the SSAMap later.
+
+      }
+
     }
-    // making new variable
-    oldIndex = conv.getIndex(targetName, lhsType, ssa);
-    final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lhsType);
-    final Formula lhsFormula;
-    if (!lhsLocation.isAliased()) {
-      lhsFormula = conv.makeFreshVariable(targetName, lhsType, ssa);
-    // final Formula lhsFormula = fmgr.makeVariable(targetType, targetName, oldIndex);
-    int newIndex = conv.getFreshIndex(targetName, lhsType, ssa);
-    } else {
-      lhsFormula = null;
-    }
-    final CType rhsType =
-        rhs != null ? typeHandler.getSimplifiedType(rhs) : CNumericTypes.SIGNED_CHAR;
 
     // RHS handling
     final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
@@ -237,10 +265,6 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
           lhsLearnedPointerTypes,
           rhsLearnedPointersTypes);
     }
-
-    // necessary only for update terms for new UF indices
-    Set<MemoryRegion> updatedRegions =
-        useOldSSAIndices || options.useArraysForHeap() ? null : new HashSet<>();
 
     if (lhsLocation.isUnaliasedLocation() && lhs instanceof CFieldReference) {
       CFieldReference fieldReference = (CFieldReference) lhs;
@@ -767,6 +791,7 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
           assert !useOldSSAIndices;
           targetName = newLvalue.asUnaliased().getVariableName();
         } else {
+          // hier auch noch wie handleAssighnemt
           MemoryRegion region = newLvalue.asAliased().getMemoryRegion();
           if (region == null) {
             // should never happen as memory region is already made above
@@ -782,6 +807,7 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
           // final Formula lhsFormula = fmgr.makeVariable(targetType, targetName, oldIndex);
           int newIndex = conv.getFreshIndex(targetName, newLvalueType, ssa);
         } else {
+          // hier auch wie handleAssignment
           newlhsFormula = null;
         }
 
@@ -890,22 +916,7 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
         region = regionMgr.makeMemoryRegion(lvalueType);
       }
       final String targetName = regionMgr.getPointerAccessName(region);
-
-      final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
-
-      if (rhs != null) {
-        final Formula address = lvalue.asAliased().getAddress();
-        result =
-            conv.ptsMgr.makePointerAssignment(
-                targetName,
-                targetType,
-                oldIndex,
-                oldIndex + 1,
-                address,
-                rhs);
-      } else {
-        result = bfmgr.makeTrue();
-      }
+      int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
 
       if (useOldSSAIndices) {
         assert updatedRegions == null : "Returning updated regions is only for new indices";
@@ -919,7 +930,7 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
           rhs = conv.makeNondet(nondetName, rvalueType, ssa, constraints);
           rhs = conv.makeCast(rvalueType, lvalueType, rhs, constraints, edge);
         }
-        conv.makeFreshIndex(targetName, lvalueType, ssa);
+        // conv.makeFreshIndex(targetName, lvalueType, ssa);
 
       } else {
         assert updatedRegions != null : "UF encoding needs to update regions for new indices";
@@ -927,7 +938,29 @@ class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
         // For UFs, we use a new index without storing it such that we use the same index
         // for multiple writes that are part of the same assignment.
         // The new index will be stored in the SSAMap later.
-        conv.getFreshIndex(targetName, lvalueType, ssa);
+        // conv.getFreshIndex(targetName, lvalueType, ssa);
+      }
+
+      final int newIndex;
+      if (useOldSSAIndices) {
+        // in backwards analysis the lhs has the lower index than the rhs
+        newIndex = oldIndex;
+      } else {
+        newIndex = oldIndex + 1;
+      }
+
+      if (rhs != null) {
+        final Formula address = lvalue.asAliased().getAddress();
+        result =
+            conv.ptsMgr.makePointerAssignment(
+                targetName,
+                targetType,
+                newIndex - 1,
+                oldIndex - 1,
+                address,
+                rhs);
+      } else {
+        result = bfmgr.makeTrue();
       }
 
     }
