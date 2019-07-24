@@ -137,10 +137,10 @@ public class LassoBuilder {
     bfmrView = fmgrView.getBooleanFormulaManager();
     pathFormulaManager = checkNotNull(pPathFormulaManager);
 
-    divAndModElimination = new DivAndModElimination(fmgrView);
-    nonLinearMultiplicationElimination = new NonLinearMultiplicationElimination(fmgrView);
+    divAndModElimination = new DivAndModElimination(fmgrView, fmgr);
+    nonLinearMultiplicationElimination = new NonLinearMultiplicationElimination(fmgrView, fmgr);
     ufElimination = SolverUtils.ufElimination(pFormulaManager);
-    ifThenElseElimination = new IfThenElseElimination(fmgrView);
+    ifThenElseElimination = new IfThenElseElimination(fmgrView, fmgr);
     equalElimination = new EqualElimination(fmgrView);
     notEqualAndNotInequalityElimination = new NotEqualAndNotInequalityElimination(fmgrView);
     dnfTransformation =

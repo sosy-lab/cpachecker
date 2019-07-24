@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.Boo
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
@@ -43,15 +44,18 @@ import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
 
   private final FormulaManagerView fmgrView;
+  private final FormulaManager fmgr;
 
-  IfThenElseElimination(FormulaManagerView pFmgrView) {
+  IfThenElseElimination(FormulaManagerView pFmgrView, FormulaManager pFmgr) {
     super(pFmgrView);
     fmgrView = pFmgrView;
+    fmgr = pFmgr;
   }
 
   @Override
   public BooleanFormula visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
-    IfThenElseTransformation ifThenElseTransformation = new IfThenElseTransformation(fmgrView);
+    IfThenElseTransformation ifThenElseTransformation =
+        new IfThenElseTransformation(fmgrView, fmgr);
     BooleanFormula result = (BooleanFormula) fmgrView.visit(pAtom, ifThenElseTransformation);
 
     BooleanFormulaManagerView booleanFormulaManager = fmgrView.getBooleanFormulaManager();
@@ -65,11 +69,13 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
     private final static UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
 
     private final FormulaManagerView fmgrView;
+    private final FormulaManager fmgr;
 
     private final Collection<BooleanFormula> additionalAxioms;
 
-    private IfThenElseTransformation(FormulaManagerView pFmgrView) {
+    private IfThenElseTransformation(FormulaManagerView pFmgrView, FormulaManager pFmgr) {
       fmgrView = pFmgrView;
+      fmgr = pFmgr;
       additionalAxioms = new ArrayList<>();
     }
 
@@ -93,7 +99,7 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
             newArgs.get(0), newArgs.get(1), newArgs.get(2), pFunctionDeclaration.getType());
 
       } else {
-        return fmgrView.makeApplication(pFunctionDeclaration, newArgs);
+        return fmgr.makeApplication(pFunctionDeclaration, newArgs);
       }
     }
 
@@ -102,7 +108,7 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
 
       BooleanFormula condition = (BooleanFormula) pCondition;
       Formula auxVar =
-          fmgrView.makeVariable(
+          fmgr.makeVariable(
               pFormulaType,
               TERMINATION_AUX_VARS_PREFIX + "IF_THEN_ELSE_AUX_VAR_" + ID_GENERATOR.getFreshId());
 

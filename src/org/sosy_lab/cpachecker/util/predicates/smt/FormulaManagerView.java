@@ -348,10 +348,6 @@ public class FormulaManagerView {
     }
   }
 
-  public Formula makeApplication(FunctionDeclaration<?> pFunctionDeclaration, List<Formula> pArgs) {
-    return manager.makeApplication(pFunctionDeclaration, pArgs);
-  }
-
   /**
    * Helper method for creating variables of the given type.
    * @param formulaType the type of the variable.
