@@ -47,6 +47,36 @@ public class WellScopedInterpolation<T> extends AbstractTreeInterpolation<T> {
    * <p>INFO: This interpolation strategy might not be sufficient for predicate analysis with an
    * inductive sequence/tree of abstractions. In some cases we cannot exclude counterexamples from
    * re-exploration.
+   *
+   * <p>Example (taken from recursive program "recHanoi01.c"):
+   *
+   * <p>The tree has the structure [0,1,0,0,0,5,0,0,0] and is given in DOT notation with formulae
+   * and interpolants.
+   *
+   * <p>The wellscoped interpolants at E->F and G->F do not contradict each other (transivitely).
+   * This example shows that the idea of the paper "wellscoped interpolants" should not be used.
+   *
+   * <pre>
+   * digraph tree {
+   *   A [label="(and (= c@3 0)\n(= nondet@2 main::n@3)\n(not (< main::n@3 1))\n(not (< 31 main::n@3))\n(= c@4 0))"];
+   *   B [label="(and (= main::n@3 apply::n_p_@2)\n(= c@4 c_p_apply@2))"];
+   *   C [label="(and (= apply::n_p_@2 apply::n@2)\n(= c_p_apply@2 c@5)\n(= apply::n@2 0)\n(= c@5 c_ret_apply@2)"];
+   *   D [label="(= c@6 c_ret_apply@2)"];
+   *   E [label="true"];
+   *   F [label="(and (= main::n@3 h::n_p_@2)\n(= c@6 c_p_h@2))"];
+   *   G [label="(and (= h::n_p_@2 h::n@2)\n(= c_p_h@2 c@7)\n(= h::n@2 1)\n(= h::_ret_@2 1)\n(= c@7 c_ret_h@2))"];
+   *   H [label="(and (= c_ret_h@2 c@8)\n(= h::_ret_@2 main::result@4))"];
+   *   I [label="(not (= c@8 main::result@4))"];
+   *   A->B [label="true"];
+   *   B->D [label="(not (= main::n@3 1))"];
+   *   D->E [label="(not (= main::n@3 1))"];
+   *   E->F [label="(not (= main::n@3 1))"];
+   *   F->H [label="false"];
+   *   H->I [label="false"];
+   *   C->B [label="(not (= apply::n_p_@2 1))"];
+   *   G->F [label="(not (= h::n_p_@2 0))"];
+   * }
+   * </pre>
    */
   public WellScopedInterpolation(
       LogManager pLogger,
