@@ -409,11 +409,6 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     return null;
   }
 
-  /**
-   * Returns the (unmodifiable) stack of frames containing objects. Constant.
-   *
-   * @return Stack of frames
-   */
   @Override
   public PersistentStack<CLangStackFrame> getStackFrames() {
     return stack_objects;
