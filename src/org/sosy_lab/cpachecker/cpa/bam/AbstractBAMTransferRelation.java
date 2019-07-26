@@ -287,7 +287,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState pState,
-      List<AbstractState> pOtherStates,
+      Iterable<AbstractState> pOtherStates,
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {

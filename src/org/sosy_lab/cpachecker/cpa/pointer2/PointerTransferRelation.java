@@ -762,7 +762,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState pState,
-      List<AbstractState> pOtherStates,
+      Iterable<AbstractState> pOtherStates,
       @Nullable CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {

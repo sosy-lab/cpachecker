@@ -639,7 +639,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState state,
-      List<AbstractState> otherStates,
+      Iterable<AbstractState> otherStates,
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {

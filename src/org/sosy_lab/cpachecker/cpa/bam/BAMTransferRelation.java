@@ -409,9 +409,11 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
   @Override
   public Collection<? extends AbstractState> strengthen(
-      AbstractState pElement, List<AbstractState> pOtherElements,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException,
-      InterruptedException {
+      AbstractState pElement,
+      Iterable<AbstractState> pOtherElements,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException, InterruptedException {
     Collection<? extends AbstractState> out =
         super.strengthen(pElement, pOtherElements, pCfaEdge, pPrecision);
     if (bamPccManager.isPCCEnabled()) {

@@ -474,7 +474,10 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   @Override
   public @Nullable Collection<? extends AbstractState> strengthen(
-      AbstractState state, List<AbstractState> otherStates, CFAEdge cfaEdge, Precision precision)
+      AbstractState state,
+      Iterable<AbstractState> otherStates,
+      CFAEdge cfaEdge,
+      Precision precision)
       throws CPATransferException, InterruptedException {
 
     for (AbstractState o : otherStates) {

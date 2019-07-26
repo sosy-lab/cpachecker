@@ -1195,8 +1195,12 @@ public class SMGTransferRelation
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements,
-      CFAEdge cfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState element,
+      Iterable<AbstractState> elements,
+      CFAEdge cfaEdge,
+      Precision pPrecision)
+      throws CPATransferException, InterruptedException {
 
     ArrayList<SMGState> toStrengthen = new ArrayList<>();
     ArrayList<SMGState> result = new ArrayList<>();

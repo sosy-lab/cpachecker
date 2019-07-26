@@ -133,10 +133,13 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
     return state;
   }
 
-
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pState,
+      Iterable<AbstractState> pOtherStates,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException, InterruptedException {
     assert pState instanceof ControlDependencyTrackerState;
 
     ControlDependencyTrackerState trackerState = (ControlDependencyTrackerState) pState;

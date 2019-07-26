@@ -704,7 +704,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   @Override
   public Collection<? extends AbstractState> strengthen(
-      AbstractState pState, List<AbstractState> states, CFAEdge cfaEdge, Precision pPrecision)
+      AbstractState pState, Iterable<AbstractState> states, CFAEdge cfaEdge, Precision pPrecision)
       throws CPATransferException {
     BDDState bddState = (BDDState) pState;
 

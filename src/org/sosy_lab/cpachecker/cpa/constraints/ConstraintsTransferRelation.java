@@ -278,8 +278,9 @@ public class ConstraintsTransferRelation
   @Override
   public Collection<? extends AbstractState> strengthen(
       final AbstractState pStateToStrengthen,
-      final List<AbstractState> pStrengtheningStates,
-      final CFAEdge pCfaEdge, Precision pPrecision)
+      final Iterable<AbstractState> pStrengtheningStates,
+      final CFAEdge pCfaEdge,
+      Precision pPrecision)
       throws CPATransferException, InterruptedException {
     assert pStateToStrengthen instanceof ConstraintsState;
 
@@ -422,29 +423,27 @@ public class ConstraintsTransferRelation
 
     /**
      * Strengthen the given {@link ConstraintsState} with the provided {@link AbstractState}.
-     * <p/>
-     * If the returned {@link Optional} instance is empty, strengthening of the given
-     * <code>ConstraintsState</code>
-     * changed nothing.
-     * <p/>
-     * Otherwise, the returned <code>Collection</code> contained in the <code>Optional</code> has
-     * the same
-     * meaning as the <code>Collection</code> returned by {@link #strengthen(AbstractState, List,
-     * CFAEdge, Precision)}.
+     *
+     * <p>If the returned {@link Optional} instance is empty, strengthening of the given <code>
+     * ConstraintsState</code> changed nothing.
+     *
+     * <p>Otherwise, the returned <code>Collection</code> contained in the <code>Optional</code> has
+     * the same meaning as the <code>Collection</code> returned by {@link #strengthen(AbstractState,
+     * Iterable, CFAEdge, Precision)}.
      *
      * @param stateToStrengthen the state to strengthen
      * @param strengtheningState the strengthening state
      * @param functionName the name of the current location's function
      * @param edge the current {@link CFAEdge} we treat
      * @return an empty <code>Optional</code> instance, if <code>pStateToStrengthen</code> was not
-     *    changed after strengthening. A <code>Optional</code> instance containing a
-     *    <code>Collection</code> with the strengthened state, otherwise
+     *     changed after strengthening. A <code>Optional</code> instance containing a <code>
+     *     Collection</code> with the strengthened state, otherwise
      */
     Optional<Collection<ConstraintsState>> strengthen(
         ConstraintsState stateToStrengthen,
         AbstractState strengtheningState,
         String functionName,
-        CFAEdge edge
-    ) throws CPATransferException, InterruptedException;
+        CFAEdge edge)
+        throws CPATransferException, InterruptedException;
   }
 }

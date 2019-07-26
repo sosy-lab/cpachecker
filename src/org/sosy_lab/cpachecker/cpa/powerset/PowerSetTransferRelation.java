@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.powerset;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -61,7 +60,7 @@ public class PowerSetTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState state,
-      List<AbstractState> otherStates,
+      Iterable<AbstractState> otherStates,
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {

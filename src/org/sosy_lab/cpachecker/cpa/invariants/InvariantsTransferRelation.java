@@ -529,8 +529,11 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> strengthen(
-      AbstractState pElement, List<AbstractState> pOtherElements,
-      CFAEdge pCfaEdge, Precision pPrecision) throws UnrecognizedCodeException {
+      AbstractState pElement,
+      Iterable<AbstractState> pOtherElements,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws UnrecognizedCodeException {
 
     InvariantsState state = (InvariantsState) pElement;
 
@@ -574,7 +577,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   private Collection<? extends AbstractState> pointerAliasStrengthening(
       AbstractState pElement,
-      List<AbstractState> pOtherElements,
+      Iterable<AbstractState> pOtherElements,
       CFAEdge pCfaEdge,
       InvariantsState state)
       throws UnrecognizedCodeException {

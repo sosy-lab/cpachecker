@@ -227,7 +227,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState state,
-      List<AbstractState> otherStates,
+      Iterable<AbstractState> otherStates,
       CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {

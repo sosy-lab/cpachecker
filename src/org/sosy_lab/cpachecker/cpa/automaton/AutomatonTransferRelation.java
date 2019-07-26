@@ -317,12 +317,12 @@ public class AutomatonTransferRelation implements TransferRelation {
   }
 
   /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState, java.util.List, org.sosy_lab.cpachecker.cfa.model.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
+   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState, java.util.Iterable, org.sosy_lab.cpachecker.cfa.model.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
    */
   @Override
   public Collection<AutomatonState> strengthen(
       AbstractState pElement,
-      List<AbstractState> pOtherElements,
+      Iterable<AbstractState> pOtherElements,
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException {
@@ -403,12 +403,13 @@ public class AutomatonTransferRelation implements TransferRelation {
    */
   private Collection<AutomatonState> strengthenAutomatonUnknownState(
       AutomatonUnknownState lUnknownState,
-      List<AbstractState> pOtherElements,
+      Iterable<AbstractState> pOtherElements,
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException {
     Set<List<AbstractState>> strengtheningCombinations = new LinkedHashSet<>();
-    strengtheningCombinations.add(pOtherElements);
+    // need to use lists in set instead of iterable because the latter does not guarantee equals()
+    strengtheningCombinations.add(ImmutableList.copyOf(pOtherElements));
     boolean changed = from(pOtherElements).anyMatch(instanceOf(AutomatonUnknownState.class));
     while (changed) {
       changed = false;

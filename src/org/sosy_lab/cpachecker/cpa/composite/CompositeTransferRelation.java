@@ -447,9 +447,10 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState element,
-      List<AbstractState> otherElements,
+      Iterable<AbstractState> otherElements,
       CFAEdge cfaEdge,
-      Precision precision) throws CPATransferException, InterruptedException {
+      Precision precision)
+      throws CPATransferException, InterruptedException {
 
     CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision) precision;

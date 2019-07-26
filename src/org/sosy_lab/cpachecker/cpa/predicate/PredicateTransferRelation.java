@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNon
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -270,9 +269,12 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pElement,
-      List<AbstractState> otherElements, CFAEdge edge, Precision pPrecision)
-          throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pElement,
+      Iterable<AbstractState> otherElements,
+      CFAEdge edge,
+      Precision pPrecision)
+      throws CPATransferException, InterruptedException {
 
     strengthenTimer.start();
     try {

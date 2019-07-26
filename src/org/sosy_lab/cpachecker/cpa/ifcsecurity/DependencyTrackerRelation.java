@@ -309,8 +309,12 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pState,
+      Iterable<AbstractState> pOtherStates,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException, InterruptedException {
     assert pState instanceof DependencyTrackerState;
     DependencyTrackerState trackerState = (DependencyTrackerState) pState;
 
@@ -371,8 +375,12 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
     return Collections.singleton(pState);
   }
 
-  public void strengthenExpressionAssignementStatement(DependencyTrackerState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException{
+  public void strengthenExpressionAssignementStatement(
+      DependencyTrackerState pState,
+      Iterable<AbstractState> pOtherStates,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException {
     logger.log(Level.FINE,pPrecision);
 
     /*
@@ -405,8 +413,12 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
     }
   }
 
-  public void strengthenFunctionCallAssignmentStatement(DependencyTrackerState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
+  public void strengthenFunctionCallAssignmentStatement(
+      DependencyTrackerState pState,
+      Iterable<AbstractState> pOtherStates,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException {
     logger.log(Level.FINE,pPrecision);
 
     /*
@@ -440,8 +452,12 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
     }
   }
 
-  public void strengthenFunctionCallStatement(DependencyTrackerState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
+  public void strengthenFunctionCallStatement(
+      DependencyTrackerState pState,
+      Iterable<AbstractState> pOtherStates,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException {
     logger.log(Level.FINE,pPrecision);
 
     /*
@@ -475,8 +491,12 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
     }
   }
 
-  public void strengthenReturnStatementEdge(DependencyTrackerState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
+  public void strengthenReturnStatementEdge(
+      DependencyTrackerState pState,
+      Iterable<AbstractState> pOtherStates,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException {
     logger.log(Level.FINE,pPrecision);
     /*
      * CallstackState => CReturnStatementEdge
