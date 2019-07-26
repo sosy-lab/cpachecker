@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -49,8 +50,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Pair;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.VariableDependancy;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.precision.DependencyPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+
+
 
 /**
  * CPA-Transfer-Relation for tracking the Active Control Dependencies
@@ -78,6 +85,33 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
     rcd=pRcd;
   }
 
+  public void addExpr(ControlDependencyTrackerState state, CFANode node, CExpression pExpression)
+      throws UnsupportedCodeException {
+    VariableDependancy visitor=new VariableDependancy();
+    pExpression.accept(visitor);
+    SortedSet<Variable> value=visitor.getResult();
+    if(!state.getContexts().containsKey(node)){
+      state.getContexts().put(node,new TreeSet<>());
+    }
+    state.getuRcontexts().put(node, value);
+  }
+
+
+  public void refine(ControlDependencyTrackerState state, TreeSet<CFANode> pDominators){
+    for( Entry<CFANode, SortedSet<Variable>> entry: state.getuRcontexts().entrySet()){
+      CFANode node=entry.getKey();
+      if(!pDominators.contains(node)){
+        state.getuRcontexts().put(node,new TreeSet<Variable>());
+      }
+    }
+    for( Entry<CFANode, SortedSet<Variable>> entry: state.getContexts().entrySet()){
+      CFANode node=entry.getKey();
+      if(!pDominators.contains(node)){
+        state.getContexts().put(node,new TreeSet<Variable>());
+      }
+    }
+  }
+
   @Override
   protected ControlDependencyTrackerState handleAssumption(CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
       throws CPATransferException {
@@ -85,7 +119,12 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
     ControlDependencyTrackerState result=state.clone();
     CFANode from=pCfaEdge.getPredecessor();
     CFANode to=pCfaEdge.getSuccessor();
-    result.getGuards().addDependancy(from, to, pExpression, pTruthAssumption);
+//    result.getContexts().addDependancy(from, to, pExpression, pTruthAssumption);
+    addExpr(result,from,pExpression);
+
+    TreeSet<CFANode> cd = rcd.get(to);
+    refine(result,cd);
+
     return result;
   }
 
@@ -93,44 +132,151 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
   protected ControlDependencyTrackerState handleFunctionCallEdge(CFunctionCallEdge pCfaEdge,
       List<CExpression> pArguments, List<CParameterDeclaration> pParameters,
       String pCalledFunctionName) throws CPATransferException {
-    return state;
+    ControlDependencyTrackerState result=state.clone();
+    CFANode from=pCfaEdge.getPredecessor();
+    CFANode to=pCfaEdge.getSuccessor();
+
+    TreeSet<CFANode> cdbefore = rcd.get(from);
+    TreeSet<CFANode> cd = rcd.get(to);
+
+    if(cdbefore.containsAll(cd) && cd.containsAll(cdbefore)){
+      return state;
+    }
+
+    refine(result,cd);
+
+
+
+    return result;
   }
 
   @Override
   protected ControlDependencyTrackerState handleFunctionReturnEdge(CFunctionReturnEdge pCfaEdge,
       CFunctionSummaryEdge pFnkCall, CFunctionCall pSummaryExpr, String pCallerFunctionName)
           throws CPATransferException {
-    return state;
+    ControlDependencyTrackerState result=state.clone();
+    CFANode from=pCfaEdge.getPredecessor();
+    CFANode to=pCfaEdge.getSuccessor();
+
+    TreeSet<CFANode> cdbefore = rcd.get(from);
+    TreeSet<CFANode> cd = rcd.get(to);
+
+    if(cdbefore.containsAll(cd) && cd.containsAll(cdbefore)){
+      return state;
+    }
+
+    refine(result,cd);
+
+
+
+    return result;
   }
 
   @Override
   protected ControlDependencyTrackerState handleDeclarationEdge(CDeclarationEdge pCfaEdge, CDeclaration pDecl)
       throws CPATransferException {
-    return state;
+
+    ControlDependencyTrackerState result=state.clone();
+    CFANode from=pCfaEdge.getPredecessor();
+    CFANode to=pCfaEdge.getSuccessor();
+
+    TreeSet<CFANode> cdbefore = rcd.get(from);
+    TreeSet<CFANode> cd = rcd.get(to);
+
+    if(cdbefore.containsAll(cd) && cd.containsAll(cdbefore)){
+      return state;
+    }
+
+    refine(result,cd);
+
+
+
+    return result;
   }
 
   @Override
   protected ControlDependencyTrackerState handleStatementEdge(CStatementEdge pCfaEdge, CStatement pStatement)
       throws CPATransferException {
-    return state;
+    ControlDependencyTrackerState result=state.clone();
+    CFANode from=pCfaEdge.getPredecessor();
+    CFANode to=pCfaEdge.getSuccessor();
+
+    TreeSet<CFANode> cdbefore = rcd.get(from);
+    TreeSet<CFANode> cd = rcd.get(to);
+
+    if(cdbefore.containsAll(cd) && cd.containsAll(cdbefore)){
+      return state;
+    }
+
+    refine(result,cd);
+
+
+
+    return result;
   }
 
   @Override
   protected ControlDependencyTrackerState handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
-    return state;
+    ControlDependencyTrackerState result=state.clone();
+    CFANode from=pCfaEdge.getPredecessor();
+    CFANode to=pCfaEdge.getSuccessor();
+
+    TreeSet<CFANode> cdbefore = rcd.get(from);
+    TreeSet<CFANode> cd = rcd.get(to);
+
+    if(cdbefore.containsAll(cd) && cd.containsAll(cdbefore)){
+      return state;
+    }
+
+    refine(result,cd);
+
+
+
+    return result;
   }
 
   @Override
   @SuppressWarnings("unchecked")
   protected ControlDependencyTrackerState handleBlankEdge(BlankEdge pCfaEdge) {
     //Clone for Merge reasons
-    return state.clone();
+
+    ControlDependencyTrackerState result=state.clone();
+    CFANode from=pCfaEdge.getPredecessor();
+    CFANode to=pCfaEdge.getSuccessor();
+
+    TreeSet<CFANode> cdbefore = rcd.get(from);
+    TreeSet<CFANode> cd = rcd.get(to);
+
+    if(cdbefore.containsAll(cd) && cd.containsAll(cdbefore)){
+      return state;
+    }
+
+    refine(result,cd);
+
+
+
+    return result;
   }
 
   @Override
   protected ControlDependencyTrackerState handleFunctionSummaryEdge(CFunctionSummaryEdge pCfaEdge) throws CPATransferException {
-    return state;
+    ControlDependencyTrackerState result=state.clone();
+    CFANode from=pCfaEdge.getPredecessor();
+    CFANode to=pCfaEdge.getSuccessor();
+
+    TreeSet<CFANode> cdbefore = rcd.get(from);
+    TreeSet<CFANode> cd = rcd.get(to);
+
+    if(cdbefore.containsAll(cd) && cd.containsAll(cdbefore)){
+      return state;
+    }
+
+    refine(result,cd);
+
+
+
+    return result;
   }
 
 
@@ -139,32 +285,61 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
     assert pState instanceof ControlDependencyTrackerState;
 
-    ControlDependencyTrackerState trackerState = (ControlDependencyTrackerState) pState;
+    DependencyPrecision prec = (DependencyPrecision) pPrecision;
+    ControlDependencyTrackerState state=(ControlDependencyTrackerState)pState;
 
-    //Remove Unneeded Control Dependencies
+    /*
+     * Refine ContextStack
+     * Remove unvalid Control Dependencies
+     */
     CFANode currentNode=pCfaEdge.getSuccessor();
-    trackerState.getGuards().changeContextStack(currentNode, rcd.get(currentNode));
+    CFANode preNode=pCfaEdge.getPredecessor();
+    TreeSet<CFANode> cd = rcd.get(currentNode);
 
-    //Assume-Edges
-    //DependencyTrackerCPA strengthens the information contained in Variables of a control branch
+    refine(state,cd);
+
     if(pCfaEdge instanceof CAssumeEdge){
-      for(AbstractState astate: pOtherStates){
-        if(astate instanceof DependencyTrackerState){
-          DependencyTrackerState ostate=(DependencyTrackerState) astate;
-          Map<Variable, SortedSet<Variable>> dependencies = ostate.getDependencies();
-          SortedSet<Variable> newmap=new TreeSet<>();
-          for (Variable var : trackerState.getGuards().getTopVariables()) {
-            if (dependencies.containsKey(var)) {
-              newmap.addAll(dependencies.get(var));
-            } else {
-              newmap.add(var);
+      /*
+       *
+       */
+      Pair<CFANode, CFANode> currentEdge= new Pair<>(pCfaEdge.getPredecessor(), pCfaEdge.getSuccessor());
+
+        for(AbstractState aState: pOtherStates){
+          /*
+           * DependencyTrackerCPA strengthens the information contained in Variables of a control branch
+           */
+          if(aState instanceof DependencyTrackerState){
+
+            DependencyTrackerState dState=(DependencyTrackerState) aState;
+            /*
+             * Deps
+             */
+            Map<Variable, SortedSet<Variable>> deps = dState.getDependencies();
+
+            SortedSet<Variable> context=state.getContexts().get(preNode);
+            SortedSet<Variable> urContext=state.getuRcontexts().get(preNode);
+
+            for(Variable var: urContext){
+              if(deps.containsKey(var)){
+                for(Variable dvar:deps.get(var)){
+                  if(prec.isTracked(pCfaEdge.getSuccessor(),var,dvar)){
+                   context.add(dvar);
+                  }
+                }
+              }
+            else{
+              if(prec.isTracked(pCfaEdge.getSuccessor(),var,var)){
+                context.add(var);
+              }
             }
+            }
+            state.getuRcontexts().put(preNode,new TreeSet<>());
           }
-          trackerState.getGuards().changeTopVariables(newmap);
         }
       }
-    }
 
     return Collections.singleton(pState);
   }
+
+
 }

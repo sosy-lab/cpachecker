@@ -24,25 +24,38 @@
 package org.sosy_lab.cpachecker.pcc.strategy.arg;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeSet;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.ControlDependenceComputer;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.DominanceFrontier;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.LHOreduc;
+import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker;
 
@@ -56,6 +69,7 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
   private List<AbstractState> visitedStates;
   private final StopOperator stop;
   private final TransferRelation transfer;
+  private Configuration config;
 
   public ARG_CPAStrategy(
       final Configuration pConfig,
@@ -66,6 +80,7 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pCpa == null ? new DefaultPropertyChecker() : pCpa.getPropChecker(), pShutdownNotifier, pProofFile);
     pConfig.inject(this);
+    config = pConfig;
     if (pCpa == null) {
       stop = null;
       transfer = null;
@@ -164,4 +179,161 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
       final Precision pPrecision) throws CPAException, InterruptedException {
     return stop.stop(pCovered, pCoverElems, pPrecision);
   }
+
+  @Option(
+    secure = true,
+    name = "pcc.lhoReadFile",
+    description = "file in which lho-Order was stored")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  protected Path lhoOrderFile =
+      Paths.get("D:\\\\eclipse-workspace\\\\CPAchecker-IFC\\\\output\\\\lho.obj");
+
+  private LogManager logger;
+
+  // Reading
+  // Variable for LhoOrder
+  private ArrayList<CFANode> lhoOrder;
+  // Post-Dominators
+  private Map<CFANode, List<CFANode>> rDom;
+  // temporary CFA
+  private CFA cfa;
+
+  // Building
+  // Control-Dependencies
+
+  // Intervals
+  private Map<CFANode, Interval> ancestorRelation;
+
+  private UnmodifiableReachedSet reachSet;
+  private LHOreduc lhoreduc;
+
+  private void initPDCert() {
+    lhoreduc =
+        LHOreduc.readLHOOrder(
+            Paths.get("D:\\eclipse-workspace\\CPAchecker-IFC\\output\\lho.obj"),
+            logger);
+    lhoOrder = lhoreduc.getLHO();
+    rDom = lhoreduc.getRDom();
+    cfa = lhoreduc.getCFA();
+  }
+
+  private boolean checkDomisRootedTree() {
+    if (!(cfa.getMainFunction().getExitNode().equals(lhoOrder.get(0)))) {
+      return false;
+    }
+    if (!(lhoreduc.checkForTreeandCycle(cfa))) {
+      return false;
+    }
+    return true;
+
+  }
+
+
+  private boolean doDFSIntervals() {
+    if (!(lhoreduc.doDFS(cfa))) {
+      return false;
+    }
+    ancestorRelation=lhoreduc.getAncestors();
+    return true;
+  }
+
+  private boolean checkParentProperty() {
+    for (CFANode v : cfa.getAllNodes()) {
+      int vlength = v.getNumLeavingEdges();
+      for (int j = 0; j < vlength; j++) {
+        CFANode w = v.getLeavingEdge(j).getSuccessor();
+        CFANode parentofV = lhoreduc.getDom().get(v);
+        logger.log(Level.FINE, v + "," + w + "," + parentofV);
+        Interval invw = ancestorRelation.get(w);
+        Interval invpv = ancestorRelation.get(parentofV);
+        logger.log(Level.FINE, "[]" + "," + invw + "," + invpv);
+        boolean contained =
+            (invpv.getHigh() >= invw.getHigh()) && (invpv.getLow() <= invw.getLow());
+        if (!contained) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  private boolean checkLHOProperty() {
+    for (CFANode v : cfa.getAllNodes()) {
+      if (!(cfa.getMainFunction().getExitNode().equals(v))) {
+        logger.log(Level.FINE, v);
+        /* (t(v),v) */
+        CFANode parentofV = lhoreduc.getDom().get(v);
+        boolean one = lhoreduc.existsEdge(parentofV, v);
+
+        /* (u,v), (w,v) lh(u)<lh(v)<lh(w) */
+        int vlength = v.getNumLeavingEdges();
+        TreeSet<Integer> positions = new TreeSet<Integer>();
+        for (int j = 0; j < vlength; j++) {
+          CFANode uw = v.getLeavingEdge(j).getSuccessor();
+          positions.add(lhoOrder.indexOf(uw));
+        }
+        LinkedList<Integer> positions2 = new LinkedList<>(positions);
+        boolean two =
+            ((vlength >= 2)
+                && positions2.get(0) != lhoOrder.indexOf(v)
+                && positions2.get(vlength - 1) != lhoOrder.indexOf(v));
+
+        if ((one || two) == false) {
+          logger.log(Level.FINE, one);
+          logger.log(Level.FINE, two);
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  // TODO
+  @Override
+  public boolean checkCertificate(ReachedSet pReachedSet)
+      throws CPAException, InterruptedException {
+
+    // Initialize
+    reachSet = pReachedSet;
+    initPDCert();
+    // Check rDom is a tree rooted in N0
+    if (!checkDomisRootedTree()) {
+      logger.log(Level.FINE, "DomisnotRootedTree");
+      return false;
+    }
+    // Do DFS traversal
+    if (!doDFSIntervals()) {
+      logger.log(Level.FINE, "Intervals");
+      return false;
+    }
+    // CheckParentProperty
+    if (!checkParentProperty()) {
+      logger.log(Level.FINE, "ParentProperty");
+      return false;
+    }
+    // CheckLHOProperty
+    if (!checkLHOProperty()) {
+      logger.log(Level.FINE, "LHOProperty");
+      return false;
+    }
+    // Compute PDF
+    DominanceFrontier domfron = new DominanceFrontier(cfa, lhoreduc.getDom());
+    domfron.execute();
+    Map<CFANode, TreeSet<CFANode>> df = domfron.getDominanceFrontier();
+
+    ControlDependenceComputer cdcom = new ControlDependenceComputer(cfa, df);
+    cdcom.execute();
+    Map<CFANode, TreeSet<CFANode>> cd = cdcom.getControlDependency();
+
+    Map<CFANode, TreeSet<CFANode>> recd = cdcom.getReversedControlDependency();
+
+    // Control Dependencies (Reversed)
+    Map<CFANode, TreeSet<CFANode>> rcd = recd;
+
+    // Check as normal
+    boolean result = super.checkCertificate(pReachedSet);
+    return result;
+  }
+
 }

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.util;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -47,18 +46,9 @@ public final class SetUtil<E extends Comparable<? super E>> {
      * @return Setunion.
      */
     public static <E> SortedSet<E> union(SortedSet<E> pSet1,SortedSet<E> pSet2){
-      SortedSet<E> result=new TreeSet<>();
-      E elem;
-
-    for (E aPSet1 : pSet1) {
-      elem = aPSet1;
-        result.add(elem);
-      }
-    for (E aPSet2 : pSet2) {
-      elem = aPSet2;
-        result.add(elem);
-      }
-      return result;
+      SortedSet<E> resultSet = new TreeSet<>(pSet1);
+      resultSet.addAll(pSet2);
+      return resultSet;
     }
 
     /**
@@ -68,47 +58,13 @@ public final class SetUtil<E extends Comparable<? super E>> {
      * @return Setintersection.
      */
     public static <E extends Comparable<? super E>> SortedSet<E> intersect(SortedSet<E> pSet1,SortedSet<E> pSet2){
-      SortedSet<E> result=new TreeSet<>();
-      Iterator<E> it1 = pSet1.iterator();
-      Iterator<E> it2 = pSet2.iterator();
-
-      if(!it1.hasNext()){
-        return result;
-      }
-      if(!it2.hasNext()){
-        return result;
-      }
-
-      E elem1=pSet1.first();
-      E elem2=pSet2.first();
-
-      while(true){
-        if(elem1.compareTo(elem2)==0){
-          result.add(elem1);
-          if(!it1.hasNext()){
-            break;
-          }
-          if(!it2.hasNext()){
-            break;
-          }
-          elem1=it1.next();
-          elem2=it2.next();
-        }
-        if(elem1.compareTo(elem2)<0){
-          if(!it1.hasNext()){
-            break;
-          }
-          elem1=it1.next();
-        }
-        if(elem1.compareTo(elem2)>0){
-          if(!it2.hasNext()){
-            break;
-          }
-          elem2=it2.next();
+      SortedSet<E> resultSet=new TreeSet<>();
+      for (E element : pSet1){
+        if (pSet2.contains(element)){
+          resultSet.add(element);
         }
       }
-
-      return result;
+      return resultSet;
     }
 
     /**
@@ -118,13 +74,9 @@ public final class SetUtil<E extends Comparable<? super E>> {
      * @return Setminus.
      */
     public static <E> SortedSet<E> setminus(SortedSet<E> pSet1,SortedSet<E> pSet2){
-      SortedSet<E> result=new TreeSet<>();
-    for (E elem : pSet1) {
-      if (!pSet2.contains(elem)) {
-          result.add(elem);
-        }
-      }
-      return result;
+      SortedSet<E> resultSet = new TreeSet<>(pSet1);
+      resultSet.removeAll(pSet2);
+      return resultSet;
     }
 
     /**

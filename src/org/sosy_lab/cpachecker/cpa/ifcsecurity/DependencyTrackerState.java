@@ -30,17 +30,25 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.combetoutputgenerator.lib.values.JsonArray;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.combetoutputgenerator.lib.values.JsonObj;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.combetoutputgenerator.lib.values.StringValue;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies.Edge;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.policies.SecurityClasses;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.precision.DepPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
  * CPA-Abstract-State for tracking which variables/functions are depends on which other variables/functions
  */
 public class DependencyTrackerState
     implements AbstractState, Cloneable, Serializable, LatticeAbstractState<DependencyTrackerState>,
-        Graphable {
+        Graphable,AbstractQueryableState {
 
 
   private static final long serialVersionUID = -9169677539829708995L;
@@ -58,13 +66,38 @@ public class DependencyTrackerState
     dependencies = pDependencies;
   }
 
+  /**
+   * Internal Variable: Precision;
+   */
+  private DepPrecision prec;
+
+  public DepPrecision getPrec() {
+    return prec;
+  }
+
+  public void setPrec(DepPrecision pPrec) {
+    prec = pPrec;
+  }
+
   @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
     sb.append("{");
     sb.append("\\n");
-    sb.append("[Dependencies]=");
-    sb.append(dependencies.toString());
+    sb.append("[Dependencies-SC]={");
+    DepPrecision iPrec = prec;
+    for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
+      Variable var = entry.getKey();
+        SecurityClasses aSC = iPrec.getSC(var);
+        SortedSet<Variable> dep= (entry.getValue());
+        SortedSet<SecurityClasses> cSC = new TreeSet<>();
+        for(Variable varD: dep){
+          cSC.add(iPrec.getSC(varD));
+        }
+        Edge<SecurityClasses> edge = new Edge<>(aSC, cSC);
+        sb.append("("+var+"="+"["+ dep +"]"+","+edge+")");
+    }
+    sb.append("}");
     sb.append("\\n");
     sb.append("}");
     sb.append("\\n");
@@ -72,7 +105,66 @@ public class DependencyTrackerState
   }
 
   @Override
+  public String toString() {
+    return toDOTLabel();
+  }
+
+  public JsonObj toJson(String stateID) {
+    StringBuilder sb = new StringBuilder();
+    JsonObj state=new JsonObj();
+    JsonObj stateDeps=new JsonObj();
+    state.add(new StringValue(stateID), stateDeps);
+    for( Entry<Variable, SortedSet<Variable>> vardep:dependencies.entrySet()){
+      JsonArray stateDepsR = new JsonArray();
+      stateDeps.add(new StringValue(vardep.getKey().toString()), stateDepsR);
+      for(Variable dep:vardep.getValue()){
+        stateDepsR.add(new StringValue(dep.toString()));
+      }
+    }
+    return state;
+  }
+
+  public JsonObj toJson() {
+    StringBuilder sb = new StringBuilder();
+
+    if(dependencies.size()==0){
+      return null;
+    }
+
+    JsonObj stateDeps=new JsonObj();
+    for( Entry<Variable, SortedSet<Variable>> vardep:dependencies.entrySet()){
+      JsonArray stateDepsR = new JsonArray();
+      stateDeps.add(new StringValue(vardep.getKey().toString()), stateDepsR);
+      for(Variable dep:vardep.getValue()){
+        stateDepsR.add(new StringValue(dep.toString()));
+      }
+    }
+    return stateDeps;
+  }
+
+
+
+
+  @Override
   public boolean shouldBeHighlighted() {
+    DepPrecision iPrec = prec;
+    for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
+      Variable var = entry.getKey();
+      // Immediate
+      if (iPrec.isViolable(var)) {
+        SecurityClasses aSC = iPrec.getSC(var);
+        SortedSet<Variable> dep = (entry.getValue());
+        SortedSet<SecurityClasses> cSC = new TreeSet<>();
+        for (Variable varD : dep) {
+          cSC.add(iPrec.getSC(varD));
+        }
+        Edge<SecurityClasses> edge = new Edge<>(aSC, cSC);
+        SortedSet<Edge<SecurityClasses>> violationList = iPrec.getNset();
+        if (violationList.contains(edge)) {
+          return true;
+        }
+      }
+    }
     return false;
   }
 
@@ -82,9 +174,8 @@ public class DependencyTrackerState
     for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (pOther.dependencies.containsKey(var)) {
-        if (!this.dependencies.get(var).containsAll(pOther.dependencies.get(var))) {
-          return false;
-        }
+        if (!(this.dependencies.get(var).containsAll(
+            pOther.dependencies.get(var)))) { return false; }
       } else {
         return false;
       }
@@ -92,9 +183,8 @@ public class DependencyTrackerState
     for (Entry<Variable, SortedSet<Variable>> entry : pOther.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (this.dependencies.containsKey(var)) {
-        if (!pOther.dependencies.get(var).containsAll(this.dependencies.get(var))) {
-          return false;
-        }
+        if (!(pOther.dependencies.get(var).containsAll(
+            this.dependencies.get(var)))) { return false; }
       } else {
         return false;
       }
@@ -132,13 +222,13 @@ public class DependencyTrackerState
       throws CPAException, InterruptedException {
     if (this == pOther) { return true; }
     if (pOther == null) { return false; }
-    //[l]>[l,h]
     for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (pOther.dependencies.containsKey(var)) {
-        if (!this.dependencies.get(var).containsAll(pOther.dependencies.get(var))) {
+        if (!(pOther.dependencies.get(var).containsAll(
+            this.dependencies.get(var)))) {
           return false;
-        }
+          }
       } else {
         return false;
       }
@@ -152,7 +242,7 @@ public class DependencyTrackerState
     try {
       super.clone();
     } catch (CloneNotSupportedException e) {
-      //    logger.logUserException(Level.WARNING, e, "");
+
     }
 
     DependencyTrackerState result = new DependencyTrackerState();
@@ -169,6 +259,60 @@ public class DependencyTrackerState
     }
 
     return result;
+  }
+
+
+  @Override
+  public String getCPAName() {
+    return "DependencyTrackerCPA";
+  }
+
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    //EXIT + Property
+    if (pProperty.equals("noninterference_All")) {
+      DepPrecision iPrec = prec;
+      for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
+        Variable var = entry.getKey();
+        if (iPrec.isViolable(var)) {
+          SecurityClasses aSC = iPrec.getSC(var);
+          SortedSet<Variable> dep= (entry.getValue());
+          SortedSet<SecurityClasses> cSC = new TreeSet<>();
+          for(Variable varD: dep){
+            cSC.add(iPrec.getSC(varD));
+          }
+          Edge<SecurityClasses> edge = new Edge<>(aSC, cSC);
+          SortedSet<Edge<SecurityClasses>> violationList = iPrec.getNset();
+          if (violationList.contains(edge)) {
+            return true;
+          }
+        }
+      }
+    }
+    //Property
+    if (pProperty.equals("noninterference_All_Violables")) {
+      DepPrecision iPrec = prec;
+      SortedSet<Variable> av = iPrec.getAlwaysViolation();
+      for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
+        Variable var = entry.getKey();
+        //Immediate
+        if (av.contains(var) && iPrec.isViolable(var)) {
+          SecurityClasses aSC = iPrec.getSC(var);
+          SortedSet<Variable> dep= (entry.getValue());
+          SortedSet<SecurityClasses> cSC = new TreeSet<>();
+          for(Variable varD: dep){
+            cSC.add(iPrec.getSC(varD));
+          }
+          Edge<SecurityClasses> edge = new Edge<>(aSC, cSC);
+          SortedSet<Edge<SecurityClasses>> violationList = iPrec.getNset();
+          if (violationList.contains(edge)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
 }

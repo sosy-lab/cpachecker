@@ -54,4 +54,46 @@ public class StringSecurityClass extends SecurityClasses{
   public int hashCode() {
     return this.sc.hashCode();
   }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this==pObj) {
+      return true;
+   }
+   if (pObj==null) {
+      return false;
+   }
+   if (!(pObj instanceof StringSecurityClass )) {
+      return false; // different class
+   }
+
+   StringSecurityClass pOther = (StringSecurityClass) pObj;
+   if (this.sc==pOther.sc) {
+      return true;
+   }
+   if (this.sc!=null && pOther.sc==null) {
+      return false;
+   }
+   // this.content can't be null
+   if(this.sc!=null && pOther.sc!= null){
+     return this.sc.equals(pOther.sc);
+   }
+   return true;
+ }
+
+  @Override
+  public int compareTo(SecurityClasses pObj) {
+     if (this==pObj) {
+        return 0;
+     }
+     if (pObj==null) {
+        return 1;
+     }
+     if (!(pObj instanceof StringSecurityClass )) {
+       return (getClass().getName().compareTo(pObj.getClass().getName()));
+     }
+     StringSecurityClass other=(StringSecurityClass) pObj;
+     return ((this.sc).compareTo(other.sc));
+  }
+
 }

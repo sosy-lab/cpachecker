@@ -24,12 +24,18 @@
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
 import java.io.Serializable;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.BlockGuard;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.combetoutputgenerator.lib.values.StringValue;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
  * CPA-Abstract-State for tracking the Active Control Dependencies
@@ -43,15 +49,33 @@ public class ControlDependencyTrackerState
   /**
    * Active Control Dependencies
    */
-  private BlockGuard guards=new BlockGuard();
 
-  public BlockGuard getGuards() {
-    return guards;
+  /**
+   * Internal Variable: Context L -> V
+   */
+  private Map<CFANode, SortedSet<Variable>> contexts = new TreeMap<>();
+
+  public Map<CFANode, SortedSet<Variable>> getContexts() {
+    return contexts;
+  }
+
+  public void setContexts(Map<CFANode, SortedSet<Variable>> pContexts) {
+    contexts = pContexts;
+  }
+
+  /**
+   * Internal Variable: unrefined Context L -> V
+   */
+  private Map<CFANode, SortedSet<Variable>> uRcontexts = new TreeMap<>();
+
+
+  public Map<CFANode, SortedSet<Variable>> getuRcontexts() {
+    return uRcontexts;
   }
 
 
-  public void setGuards(BlockGuard pGuards) {
-    guards = pGuards;
+  public void setuRcontexts(Map<CFANode, SortedSet<Variable>> pURcontexts) {
+    uRcontexts = pURcontexts;
   }
 
   @Override
@@ -60,7 +84,7 @@ public class ControlDependencyTrackerState
 
     sb.append("{");
     sb.append("\\n");
-    sb.append("[Guards]="+guards.toString());
+    sb.append("[Context]="+contexts.toString());
     sb.append("\\n");
     sb.append("}");
     sb.append("\\n");
@@ -69,18 +93,50 @@ public class ControlDependencyTrackerState
   }
 
   @Override
+  public String toString() {
+    return toDOTLabel();
+  }
+
+  public StringValue toJson() {
+    // StringBuilder sb = new StringBuilder();
+    //
+    // if(guards.getSize()==0){
+    // return null;
+    // }
+    //
+    // StringValue stateGuards=new StringValue(guards.toString());
+    //
+    // return stateGuards;
+    return null;
+  }
+
+  @Override
   public boolean shouldBeHighlighted() {
     return false;
   }
 
   public boolean isEqual(ControlDependencyTrackerState pOther) {
-      if (this==pOther) {
-         return true;
+    if (this == pOther) { return true; }
+    if (pOther == null) { return false; }
+    for (Entry<CFANode, SortedSet<Variable>> entry : this.contexts.entrySet()) {
+      CFANode cfaNode=entry.getKey();
+      if (pOther.contexts.containsKey(cfaNode)) {
+        if (!(this.contexts.get(cfaNode).containsAll(
+            pOther.contexts.get(cfaNode)))) { return false; }
+      } else {
+        return false;
       }
-      if (pOther==null) {
-         return false;
+    }
+    for (Entry<CFANode, SortedSet<Variable>> entry : pOther.contexts.entrySet()) {
+      CFANode cfaNode=entry.getKey();
+      if (this.contexts.containsKey(cfaNode)) {
+        if (!(pOther.contexts.get(cfaNode).containsAll(
+            this.contexts.get(cfaNode)))) { return false; }
+      } else {
+        return false;
       }
-      return this.guards.equals(pOther.guards);
+    }
+    return true;
   }
 
 
@@ -88,36 +144,80 @@ public class ControlDependencyTrackerState
 
   @Override
   public ControlDependencyTrackerState join(ControlDependencyTrackerState pOther) {
-      if(this.isEqual(pOther)) {
-        return pOther;
-      }
-      else{
-        //Strongest Post Condition
-        ControlDependencyTrackerState merge=this;
-        try {
-          merge.guards=this.guards.meet(pOther.guards);
-      } catch (UnsupportedCodeException e) {
-          //logger.log(Level.WARNING,e.toString());
+    if (this.isEqual(pOther)) {
+      return pOther;
+    } else {
+      //Strongest Post Condition
+      ControlDependencyTrackerState merge = this;
+      //implicit copy of this
+      //explicit copy of pOther
+      for (CFANode cfaNode : pOther.contexts.keySet()) {
+        SortedSet<Variable> deps = pOther.contexts.get(cfaNode);
+        SortedSet<Variable> ndeps = new TreeSet<>();
+        if (this.contexts.containsKey(cfaNode)) {
+          assert (merge.contexts.containsKey(cfaNode));
+          ndeps = merge.contexts.get(cfaNode);
         }
-        return merge;
+        for (Variable var2 : deps) {
+          ndeps.add(var2);
+        }
+        merge.contexts.put(cfaNode, ndeps);
       }
+      return merge;
+    }
   }
 
   @Override
   public boolean isLessOrEqual(ControlDependencyTrackerState pOther) throws CPAException, InterruptedException {
-    return this.isEqual(pOther);
+    if (this == pOther) { return true; }
+    if (pOther == null) { return false; }
+    for (Entry<CFANode, SortedSet<Variable>> entry : this.contexts.entrySet()) {
+      CFANode var=entry.getKey();
+      if (pOther.contexts.containsKey(var)) {
+        if (!(pOther.contexts.get(var).containsAll(
+            this.contexts.get(var)))) {
+          return false;
+          }
+      } else {
+        return false;
+      }
+    }
+    return true;
   }
 
 
   @Override
   public ControlDependencyTrackerState clone(){
+
     try {
       super.clone();
     } catch (CloneNotSupportedException e) {
-  //    logger.logUserException(Level.WARNING, e, "");
     }
-    ControlDependencyTrackerState result=new ControlDependencyTrackerState();
-    result.guards=this.guards.clone();
+
+    ControlDependencyTrackerState result = new ControlDependencyTrackerState();
+
+    result.contexts = new TreeMap<>();
+    for (Entry<CFANode, SortedSet<Variable>> entry : this.contexts.entrySet()) {
+      CFANode key=entry.getKey();
+      SortedSet<Variable> vars = entry.getValue();
+      SortedSet<Variable> nvars = new TreeSet<>();
+      for (Variable var : vars) {
+        nvars.add(var);
+      }
+      result.contexts.put(key, nvars);
+    }
+
+    result.uRcontexts = new TreeMap<>();
+    for (Entry<CFANode, SortedSet<Variable>> entry : this.uRcontexts.entrySet()) {
+      CFANode key=entry.getKey();
+      SortedSet<Variable> vars = entry.getValue();
+      SortedSet<Variable> nvars = new TreeSet<>();
+      for (Variable var : vars) {
+        nvars.add(var);
+      }
+      result.uRcontexts.put(key, nvars);
+    }
+
     return result;
   }
 }

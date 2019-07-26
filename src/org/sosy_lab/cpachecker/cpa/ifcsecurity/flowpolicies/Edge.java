@@ -93,7 +93,7 @@ public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>
     return "("+from.toString()+","+to.toString()+")";
   }
 
-  protected E getFrom() {
+  public E getFrom() {
     return from;
   }
 
@@ -103,7 +103,7 @@ public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>
   }
 
 
-  protected SortedSet<E> getTo() {
+  public SortedSet<E> getTo() {
     return to;
   }
 

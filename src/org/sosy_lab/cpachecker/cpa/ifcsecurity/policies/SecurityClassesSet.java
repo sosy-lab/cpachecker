@@ -30,5 +30,7 @@ public enum SecurityClassesSet {
   //HiLo
   low,high, any,
   //Military
-  unconfidential,confidential,secret,topsecret
+  unconfidential,confidential,secret,topsecret,
+  //ChineseWall
+  consultant,bank1,bank2
 }

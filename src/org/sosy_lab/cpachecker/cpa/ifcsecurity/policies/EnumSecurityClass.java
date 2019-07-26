@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.policies;
 
-
+import java.io.Serializable;
 
 /**
  * Generic Security Class, that generates a Security Class from an Element of the SecurityClassesSet
  */
-public class EnumSecurityClass extends SecurityClasses{
+public class EnumSecurityClass extends SecurityClasses implements Serializable{
 
+  private static final long serialVersionUID = 6169998272891400367L;
   /**
    * Internal Variable containing the Enum-Identifier of the Security class
    */
@@ -81,7 +82,7 @@ public class EnumSecurityClass extends SecurityClasses{
        return (getClass().getName().compareTo(pObj.getClass().getName()));
      }
      EnumSecurityClass other=(EnumSecurityClass) pObj;
-     return (this.sc.compareTo(other.sc));
+     return ((this.sc).compareTo(other.sc));
   }
 
   @Override

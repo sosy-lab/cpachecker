@@ -40,10 +40,6 @@ public class DominanceFrontier {
   private Map<CFANode, CFANode> dominators;
   private CFANode entry;
   private CFANode exit;
-// @SuppressWarnings("unused")
-// private int mode;
-// @SuppressWarnings("unused")
-// private Collection<CFANode> nodes;
   private Map<CFANode,TreeSet<CFANode>> df=new TreeMap<>();
 
   @SuppressWarnings("unused")
@@ -52,8 +48,6 @@ public class DominanceFrontier {
     this.cfa=pCfa;
     this.entry=pCfa.getMainFunction();
     this.exit=((FunctionEntryNode) entry).getExitNode();
-//    this.mode=pMode;
-//    this.nodes = pCfa.getAllNodes();
     this.df=new TreeMap<>();
   }
 

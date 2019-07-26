@@ -23,17 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
-
+import java.io.Serializable;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 
 
 /**
  * Class, that offers the Algebra for specification of arbitrary (finite) Security Policies.
  * @param <E> Security Class
  */
-public class PolicyAlgebra<E extends Comparable<? super E>> {
+public class PolicyAlgebra<E extends Comparable<? super E>> implements Serializable {
+
+  private static final long serialVersionUID = 8017059730512125198L;
 
   /**
    * Computes the Join-Operation of the Policy-Algebra

@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.policies;
 
+import java.util.SortedSet;
+import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies.AggregationFlow;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies.ConglomeratePolicy;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies.PolicyAlgebra;
-
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 /**
  * Class, that offers some common Policies and SecurityClasses.
@@ -53,6 +52,13 @@ public class PredefinedPolicies{
   final public static SecurityClasses TOPSECRET=new EnumSecurityClass(SecurityClassesSet.topsecret);
   final public static ConglomeratePolicy<SecurityClasses> MILITARY;
 
+  /*
+   * Chinese Wall
+   */
+  final public static SecurityClasses CONSULTANT=new EnumSecurityClass(SecurityClassesSet.consultant);
+  final public static SecurityClasses BANK1=new EnumSecurityClass(SecurityClassesSet.bank1);
+  final public static SecurityClasses BANK2=new EnumSecurityClass(SecurityClassesSet.bank2);
+  final public static ConglomeratePolicy<SecurityClasses> CHINESEWALL;
   /**
    * Utility for computation of Policy-Algebra-Operations.
    */
@@ -67,6 +73,7 @@ public class PredefinedPolicies{
     HILO=createHiloPol();
     HILOANY=createHiloAnyPol();
     MILITARY=createMilitary();
+    CHINESEWALL=createCWPol();
   }
 
   /**
@@ -133,6 +140,35 @@ public class PredefinedPolicies{
     set.add(t);
     tmppol=new AggregationFlow<>(t,set);
     pol=alg.union(pol,tmppol);
+    return pol;
+  }
+
+  /**
+   * Constructs a classical 2-Bank Chinese Wall Policy
+   * @return the  Chinese Wall-Policy
+   */
+  private static ConglomeratePolicy<SecurityClasses> createCWPol(){
+    //Specify Classes
+    SecurityClasses c=new EnumSecurityClass(SecurityClassesSet.consultant);
+    SecurityClasses a=new EnumSecurityClass(SecurityClassesSet.bank1);
+    SecurityClasses b=new EnumSecurityClass(SecurityClassesSet.bank2);
+    //Specify Edges
+    SortedSet<SecurityClasses> set=new TreeSet<>();
+    set.add(c);
+    set.add(a);
+    ConglomeratePolicy<SecurityClasses> pol=new AggregationFlow<>(c,set);
+    set=new TreeSet<>();
+    set.add(c);
+    set.add(b);
+    pol=alg.union(pol,new AggregationFlow<>(c,set));
+    set=new TreeSet<>();
+    set.add(a);
+    pol=alg.union(pol,new AggregationFlow<>(a,set));
+    set=new TreeSet<>();
+    set.add(b);
+    pol=alg.union(pol,new AggregationFlow<>(b,set));
+
+    //Set Policy
     return pol;
   }
 }

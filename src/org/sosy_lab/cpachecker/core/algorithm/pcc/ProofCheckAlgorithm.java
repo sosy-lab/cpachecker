@@ -101,8 +101,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
           "Cannot find proof file. File " + proofFile + " does not exists.");
     }
     checkingStrategy =
-        PCCStrategyBuilder.buildStrategy(
-            pConfig, logger, pShutdownNotifier, proofFile, cpa, pCfa, specification);
+        PCCStrategyBuilder
+            .buildStrategy(pConfig, logger, pShutdownNotifier, proofFile, cpa, pCfa, specification);
 
     this.logger = logger;
 

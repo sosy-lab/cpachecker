@@ -44,52 +44,25 @@ public class Variable implements Comparable<Variable>, Serializable{
   }
 
   @Override
-  public boolean equals(Object obj) {
-   if (this==obj) {
-      return true;
-   }
-   if (obj==null) {
-      return false;
-   }
-    if (!(obj instanceof Variable )) {
-      return super.equals(obj); // different class
-   }
-    Variable other = (Variable) obj;
-    return (this.compareTo(other)==0);
- }
-
-  @Override
   public String toString() {
     return name;
   }
 
   @Override
   public int compareTo(Variable pOther) {
-    if (this==pOther) {
-      return 0;
-   }
-   if (pOther==null) {
-      return -1;
-   }
 
-   if (this.name==null)  {
-      if (this.name==null && pOther.name!=null) {
-         return 1;
-      }
-      return 0;
-   }
+    int v=this.name.trim().compareTo(pOther.name.trim());
 
-   // this.content can't be null
-   return this.name.compareTo(pOther.name);
+    return v;
   }
 
   @Override
-  public int hashCode() {
-    return super.hashCode();
+  public boolean equals(Object pOther) {
+    return (pOther instanceof Variable) && (this.compareTo((Variable) pOther)==0);
   }
 
-//  @Override
-//  public int hashCode(){
-//    return this.name.hashCode();
-//  }
+  @Override
+  public int hashCode(){
+    return this.name.trim().hashCode();
+  }
 }
