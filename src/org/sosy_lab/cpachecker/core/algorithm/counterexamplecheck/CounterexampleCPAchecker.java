@@ -82,7 +82,8 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
           "cpa.predicate.handlePointerAliasing",
           "cpa.predicate.memoryAllocationsAlwaysSucceed",
           "testcase.targets.type",
-          "testcase.targets.optimization.strategy");
+          "testcase.targets.optimization.strategy",
+          "testcase.generate.parallel");
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
