@@ -338,7 +338,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       errorConditions.addInvalidDerefCondition(fmgr.makeEqual(address, nullPointer));
       errorConditions.addInvalidDerefCondition(fmgr.makeLessThan(address, makeBaseAddressOfTerm(address), false));
     }
-    return makeSafeDereference(type, address, ssa, region, false);
+    return makeSafeDereference(type, address, ssa, region);
   }
 
   /**
@@ -352,15 +352,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   Formula makeSafeDereference(CType type,
                          final Formula address,
                          final SSAMapBuilder ssa,
-      final MemoryRegion region,
-      final boolean oldIndex) {
+      final MemoryRegion region) {
     checkIsSimplified(type);
     final String ufName = regionMgr.getPointerAccessName(region);
     int index = getIndex(ufName, type, ssa);
-    // if direction == backwards index--;
-    if (oldIndex) {
-      index--;
-    }
     final FormulaType<?> returnType = getFormulaTypeFromCType(type);
     return ptsMgr.makePointerDereference(ufName, returnType, index, address);
   }
@@ -518,12 +513,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         if (direction == AnalysisDirection.BACKWARD) {
         constraints.addConstraint(
             fmgr.makeEqual(
-                makeSafeDereference(baseType, address, ssa, newRegion, true),
+                  makeSafeDereference(baseType, address, ssa, newRegion),
                 makeVariable(baseName, baseType, ssa)));
         } else {
           constraints.addConstraint(
               fmgr.makeEqual(
-                  makeSafeDereference(baseType, address, ssa, newRegion, false),
+                  makeSafeDereference(baseType, address, ssa, newRegion),
                   makeVariable(baseName, baseType, ssa)));
         }
       }
@@ -1378,7 +1373,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       // sollte auch so funktionieren??
       final Formula address = makeBaseAddress(pVarName, pType);
       final MemoryRegion region = regionMgr.makeMemoryRegion(pType);
-      formula = makeSafeDereference(pType, address, ssa, region, false);
+      formula = makeSafeDereference(pType, address, ssa, region);
 
     } else {
       formula = makeVariable(pVarName, pType, ssa);
