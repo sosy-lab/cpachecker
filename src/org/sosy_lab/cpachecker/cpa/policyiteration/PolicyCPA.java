@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Function;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
