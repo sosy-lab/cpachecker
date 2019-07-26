@@ -28,7 +28,6 @@
          GuardedBy: crashes current error-prone
          Finally: crashes current error-prone
          MixedMutabilityReturnType: too many warnings, need to fix them first
-         FutureReturnValueIgnored: triggers illegal access on Java 11
          -->
     <property name="errorprone.options" value="
         -Xep:BadImport:OFF
@@ -37,7 +36,6 @@
         -Xep:GuardedBy:OFF
         -Xep:Finally:OFF
         -Xep:MixedMutabilityReturnType:OFF
-        -Xep:FutureReturnValueIgnored:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>
