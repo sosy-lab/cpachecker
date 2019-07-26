@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.abe;
 
 import com.google.common.base.Function;
-
+import java.util.Collection;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,10 +56,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Helper CPA for configurable program analyses based on SMT
@@ -187,8 +184,7 @@ public final class ABECPA
   @Override
   @SuppressWarnings("unchecked")
   public Optional<? extends AbstractState> strengthen(
-      AbstractState pState, Precision pPrecision,
-      List<AbstractState> otherStates)
+      AbstractState pState, Precision pPrecision, Iterable<AbstractState> otherStates)
       throws CPAException, InterruptedException {
     return manager.strengthen(
         (ABEState<A>) pState,

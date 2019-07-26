@@ -82,7 +82,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
   }
 
   AssumptionStorageState strengthen(
-      AssumptionStorageState pAsmptStorageElem, List<AbstractState> pOthers, CFAEdge pEdge)
+      AssumptionStorageState pAsmptStorageElem, Iterable<AbstractState> pOthers, CFAEdge pEdge)
       throws UnrecognizedCodeException, InterruptedException {
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
 

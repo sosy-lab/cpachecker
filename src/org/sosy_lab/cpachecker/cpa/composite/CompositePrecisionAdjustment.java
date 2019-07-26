@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
-import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -125,8 +124,8 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   /**
-   * Call {@link #strengthen(AbstractState, Precision, List)} on contained precision adjustments.
-   * Returns identity if all of the strengthening operations are identities.
+   * Call {@link #strengthen(AbstractState, Precision, Iterable)} on contained precision
+   * adjustments. Returns identity if all of the strengthening operations are identities.
    */
   private Optional<CompositeState> callStrengthen(
       CompositeState pCompositeState, CompositePrecision pCompositePrecision)
