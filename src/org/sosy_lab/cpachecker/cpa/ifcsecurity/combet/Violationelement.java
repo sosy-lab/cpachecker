@@ -1,8 +1,8 @@
 //
-// Diese Datei wurde mit der JavaTM Architecture for XML Binding(JAXB) Reference Implementation, v2.2.8-b130911.1802 generiert 
-// Siehe <a href="http://java.sun.com/xml/jaxb">http://java.sun.com/xml/jaxb</a> 
-// Änderungen an dieser Datei gehen bei einer Neukompilierung des Quellschemas verloren. 
-// Generiert: 2018.04.20 um 12:34:41 PM CEST 
+// Diese Datei wurde mit der JavaTM Architecture for XML Binding(JAXB) Reference Implementation, v2.2.8-b130911.1802 generiert
+// Siehe <a href="http://java.sun.com/xml/jaxb">http://java.sun.com/xml/jaxb</a>
+// ï¿½nderungen an dieser Datei gehen bei einer Neukompilierung des Quellschemas verloren.
+// Generiert: 2018.04.20 um 12:34:41 PM CEST
 //
 
 
@@ -16,10 +16,12 @@ import javax.xml.bind.annotation.XmlType;
 
 
 /**
- * <p>Java-Klasse für anonymous complex type.
- * 
- * <p>Das folgende Schemafragment gibt den erwarteten Content an, der in dieser Klasse enthalten ist.
- * 
+ * <p>
+ * Java-Klasse for anonymous complex type.
+ *
+ * <p>
+ * Das folgende Schemafragment gibt den erwarteten Content an, der in dieser Klasse enthalten ist.
+ *
  * <pre>
  * &lt;complexType>
  *   &lt;complexContent>
@@ -32,8 +34,8 @@ import javax.xml.bind.annotation.XmlType;
  *   &lt;/complexContent>
  * &lt;/complexType>
  * </pre>
- * 
- * 
+ *
+ *
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = {
@@ -50,11 +52,11 @@ public class Violationelement {
 
     /**
      * Ruft den Wert der mapitem-Eigenschaft ab.
-     * 
+     *
      * @return
      *     possible object is
      *     {@link Mapitem }
-     *     
+     *
      */
     public Mapitem getMapitem() {
         return mapitem;
@@ -62,11 +64,11 @@ public class Violationelement {
 
     /**
      * Legt den Wert der mapitem-Eigenschaft fest.
-     * 
+     *
      * @param value
      *     allowed object is
      *     {@link Mapitem }
-     *     
+     *
      */
     public void setMapitem(Mapitem value) {
         this.mapitem = value;
@@ -74,11 +76,11 @@ public class Violationelement {
 
     /**
      * Ruft den Wert der mapping-Eigenschaft ab.
-     * 
+     *
      * @return
      *     possible object is
      *     {@link Mapping }
-     *     
+     *
      */
     public Mapping getMapping() {
         return mapping;
@@ -86,11 +88,11 @@ public class Violationelement {
 
     /**
      * Legt den Wert der mapping-Eigenschaft fest.
-     * 
+     *
      * @param value
      *     allowed object is
      *     {@link Mapping }
-     *     
+     *
      */
     public void setMapping(Mapping value) {
         this.mapping = value;

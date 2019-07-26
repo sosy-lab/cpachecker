@@ -1,8 +1,8 @@
 //
-// Diese Datei wurde mit der JavaTM Architecture for XML Binding(JAXB) Reference Implementation, v2.2.8-b130911.1802 generiert 
-// Siehe <a href="http://java.sun.com/xml/jaxb">http://java.sun.com/xml/jaxb</a> 
-// Änderungen an dieser Datei gehen bei einer Neukompilierung des Quellschemas verloren. 
-// Generiert: 2018.04.20 um 12:34:41 PM CEST 
+// Diese Datei wurde mit der JavaTM Architecture for XML Binding(JAXB) Reference Implementation, v2.2.8-b130911.1802 generiert
+// Siehe <a href="http://java.sun.com/xml/jaxb">http://java.sun.com/xml/jaxb</a>
+// ï¿½nderungen an dieser Datei gehen bei einer Neukompilierung des Quellschemas verloren.
+// Generiert: 2018.04.20 um 12:34:41 PM CEST
 //
 
 
@@ -16,10 +16,12 @@ import javax.xml.bind.annotation.XmlType;
 
 
 /**
- * <p>Java-Klasse für anonymous complex type.
- * 
- * <p>Das folgende Schemafragment gibt den erwarteten Content an, der in dieser Klasse enthalten ist.
- * 
+ * <p>
+ * Java-Klasse fÃ¼r anonymous complex type.
+ *
+ * <p>
+ * Das folgende Schemafragment gibt den erwarteten Content an, der in dieser Klasse enthalten ist.
+ *
  * <pre>
  * &lt;complexType>
  *   &lt;complexContent>
@@ -33,8 +35,8 @@ import javax.xml.bind.annotation.XmlType;
  *   &lt;/complexContent>
  * &lt;/complexType>
  * </pre>
- * 
- * 
+ *
+ *
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = {
@@ -50,11 +52,11 @@ public class Info {
 
     /**
      * Ruft den Wert der project-Eigenschaft ab.
-     * 
+     *
      * @return
      *     possible object is
      *     {@link Project }
-     *     
+     *
      */
     public Project getProject() {
         return project;
@@ -62,11 +64,11 @@ public class Info {
 
     /**
      * Legt den Wert der project-Eigenschaft fest.
-     * 
+     *
      * @param value
      *     allowed object is
      *     {@link Project }
-     *     
+     *
      */
     public void setProject(Project value) {
         this.project = value;
@@ -74,11 +76,11 @@ public class Info {
 
     /**
      * Ruft den Wert der analysis-Eigenschaft ab.
-     * 
+     *
      * @return
      *     possible object is
      *     {@link Analysis }
-     *     
+     *
      */
     public Analysis getAnalysis() {
         return analysis;
@@ -86,11 +88,11 @@ public class Info {
 
     /**
      * Legt den Wert der analysis-Eigenschaft fest.
-     * 
+     *
      * @param value
      *     allowed object is
      *     {@link Analysis }
-     *     
+     *
      */
     public void setAnalysis(Analysis value) {
         this.analysis = value;
@@ -98,11 +100,11 @@ public class Info {
 
     /**
      * Ruft den Wert der tool-Eigenschaft ab.
-     * 
+     *
      * @return
      *     possible object is
      *     {@link Tool }
-     *     
+     *
      */
     public Tool getTool() {
         return tool;
@@ -110,11 +112,11 @@ public class Info {
 
     /**
      * Legt den Wert der tool-Eigenschaft fest.
-     * 
+     *
      * @param value
      *     allowed object is
      *     {@link Tool }
-     *     
+     *
      */
     public void setTool(Tool value) {
         this.tool = value;
