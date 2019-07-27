@@ -195,7 +195,10 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       NOREUSE,
       REUSEOWNPRECISION,
       REUSEPREDPRECISION,
-      REUSEOWNANDPREDPRECISION;
+      REUSEOWNANDPREDPRECISION,
+      REUSECPA_OWNPRECISION,
+      REUSECPA_PREDPRECISION,
+      REUSECPA_OWNANDPREDPRECISION;
     }
 
     private final Path configFile;
@@ -253,13 +256,22 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           return REPETITIONMODE.REUSEPREDPRECISION;
         case "reuse-precisions":
           return REPETITIONMODE.REUSEOWNANDPREDPRECISION;
+        case "reuse-cpa-own-precision":
+          return REPETITIONMODE.REUSECPA_OWNPRECISION;
+        case "reuse-cpa-pred-precision":
+          return REPETITIONMODE.REUSECPA_PREDPRECISION;
+        case "reuse-cpa-precisions":
+          return REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
         default:
           return REPETITIONMODE.NOREUSE;
       }
     }
 
     private boolean reuseCPA() {
-      return mode == REPETITIONMODE.CONTINUE || reusePrecision();
+      return mode == REPETITIONMODE.CONTINUE
+          || mode == REPETITIONMODE.REUSECPA_OWNPRECISION
+          || mode == REPETITIONMODE.REUSECPA_PREDPRECISION
+          || mode == REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
     }
 
     private boolean reusePrecision() {
@@ -268,12 +280,16 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
     private boolean reuseOwnPrecision() {
       return mode == REPETITIONMODE.REUSEOWNPRECISION
-          || mode == REPETITIONMODE.REUSEOWNANDPREDPRECISION;
+          || mode == REPETITIONMODE.REUSEOWNANDPREDPRECISION
+          || mode == REPETITIONMODE.REUSECPA_OWNPRECISION
+          || mode == REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
     }
 
     private boolean reusePredecessorPrecision() {
       return mode == REPETITIONMODE.REUSEPREDPRECISION
-          || mode == REPETITIONMODE.REUSEOWNANDPREDPRECISION;
+          || mode == REPETITIONMODE.REUSEOWNANDPREDPRECISION
+          || mode == REPETITIONMODE.REUSECPA_PREDPRECISION
+          || mode == REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
     }
   }
 
@@ -671,6 +687,8 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
             pCurrentContext.localShutdownManager.getNotifier(),
             aggregateReached);
 
+    boolean newReachedSet = false;
+
     if (pCurrentContext.reuseCPA()) {
       if (pCurrentContext.cpa == null) {
         // create cpa only once when not initialized, use global limits (i.e. shutdownNotifier)
@@ -680,43 +698,47 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
         pCurrentContext.cpa = globalCoreComponents.createCPA(cfa, specification);
         if (!pCurrentContext.reusePrecision()) {
           // create reached set only once, continue analysis
-          pCurrentContext.reached =
-              createInitialReachedSet(
-                  pCurrentContext.cpa, pMainFunction, globalCoreComponents, null, null);
+          newReachedSet = true;
         }
       }
-      if (pCurrentContext.reusePrecision()) {
-        // start with new reached set each time, but precision from previous analysis if possible
-        List<ReachedSet> previousResults = new ArrayList<>(2);
-        FormulaManagerView fmgr = null;
 
-        if (pCurrentContext.reuseOwnPrecision()) {
-          previousResults.add(pCurrentContext.reached);
-        }
-        if (pCurrentContext.reusePredecessorPrecision() && pPreviousContext != null) {
-          previousResults.add(pPreviousContext.reached);
-          PredicateCPA predCPA = CPAs.retrieveCPA(pPreviousContext.cpa, PredicateCPA.class);
-          if (predCPA != null) {
-            fmgr = predCPA.getSolver().getFormulaManager();
-          }
-          // TODO add to previousResults, set fmgr
-        }
-
-        pCurrentContext.reached =
-            createInitialReachedSet(
-                pCurrentContext.cpa, pMainFunction, localCoreComponents, previousResults, fmgr);
-      }
     } else {
       // do not reuse cpa, and, thus reached set
       try {
         pCurrentContext.cpa = localCoreComponents.createCPA(cfa, specification);
+        newReachedSet = true;
       } catch (InvalidConfigurationException e) {
         pCurrentContext.cpa = null;
         throw e;
       }
+    }
+
+    if (pCurrentContext.reusePrecision()) {
+      // start with new reached set each time, but precision from previous analysis if possible
+      List<ReachedSet> previousResults = new ArrayList<>(2);
+      FormulaManagerView fmgr = null;
+
+      if (pCurrentContext.reuseOwnPrecision()) {
+        previousResults.add(pCurrentContext.reached);
+      }
+
+      if (pCurrentContext.reusePredecessorPrecision() && pPreviousContext != null) {
+        previousResults.add(pPreviousContext.reached);
+        PredicateCPA predCPA = CPAs.retrieveCPA(pPreviousContext.cpa, PredicateCPA.class);
+        if (predCPA != null) {
+          fmgr = predCPA.getSolver().getFormulaManager();
+        }
+      }
+
       pCurrentContext.reached =
           createInitialReachedSet(
-              pCurrentContext.cpa, pMainFunction, localCoreComponents, null, null);
+              pCurrentContext.cpa, pMainFunction, localCoreComponents, previousResults, fmgr);
+    } else {
+      if (newReachedSet) {
+        pCurrentContext.reached =
+            createInitialReachedSet(
+                pCurrentContext.cpa, pMainFunction, localCoreComponents, null, null);
+      }
     }
 
     // always create algorithm with new "local" shutdown manager
