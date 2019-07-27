@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.waitlist;
 import com.google.common.base.Preconditions;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.TreeMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -164,6 +165,20 @@ public class WeightedRandomWaitlist implements Waitlist {
 
   @Override
   public Iterator<AbstractState> iterator() {
+    if(states.isEmpty()) {
+      return new Iterator<AbstractState>() {
+
+        @Override
+        public boolean hasNext() {
+          return false;
+        }
+
+        @Override
+        public AbstractState next() {
+          throw new NoSuchElementException();
+        }
+      };
+    }
     return new Iterator<AbstractState>() {
 
       private Iterator<AbstractState> currIt = states.firstEntry().getValue().iterator();
