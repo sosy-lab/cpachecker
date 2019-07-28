@@ -99,13 +99,24 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
       // During the counter-example-path-building we already re-added the start-states of all blocks,
       // that lead to the missing block, to the waitlists of those blocks.
       // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
+
+      stats.refinementWithMissingBlocks.inc();
       return CounterexampleInfo.spurious();
     } else {
 
+      stats.startedRefinements.inc();
       // wrap the original reached-set to have a valid "view" on all reached states.
       pReached =
           new BAMReachedSet(bamCpa, pReached, pPath, stats.removeCachedSubtreeTimer.getNewTimer());
-      return super.performRefinementForPath(pReached, pPath);
+      final CounterexampleInfo cexInfo = super.performRefinementForPath(pReached, pPath);
+
+      if (cexInfo.isSpurious()) {
+        stats.spuriousCex.inc();
+      } else if (cexInfo.isPreciseCounterExample()) {
+        stats.preciseCex.inc();
+      }
+
+      return cexInfo;
     }
   }
 

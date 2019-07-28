@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
@@ -63,6 +64,12 @@ class BAMCPAStatistics implements Statistics {
       new ThreadSafeTimerContainer("Searching path to error location");
   final ThreadSafeTimerContainer removeCachedSubtreeTimer =
       new ThreadSafeTimerContainer("Removing cached subtrees");
+
+  final StatCounter refinementWithMissingBlocks =
+      new StatCounter("Number of refinements with a missing block");
+  final StatCounter startedRefinements = new StatCounter("Number of started refinements");
+  final StatCounter spuriousCex = new StatCounter("Number of spurious counterexamples");
+  final StatCounter preciseCex = new StatCounter("Number of precise counterexamples");
 
   @Option(secure = true, description = "file for exporting detailed statistics about blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -113,6 +120,10 @@ class BAMCPAStatistics implements Statistics {
     put(out, 1, computeSubtreeTimer);
     put(out, 1, computeCounterexampleTimer);
     put(out, 1, removeCachedSubtreeTimer);
+    put(out, 1, refinementWithMissingBlocks);
+    put(out, 1, startedRefinements);
+    put(out, 1, spuriousCex);
+    put(out, 1, preciseCex);
 
     writeBlockStatistics(out);
   }
