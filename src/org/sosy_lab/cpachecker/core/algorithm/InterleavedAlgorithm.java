@@ -806,7 +806,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
             }
 
             predPrec = Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
-            if (predPrec != null && pFmgr != null) {
+            if (predPrec != null && pFMgr != null) {
               varPrec = varPrec.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, pFMgr));
             }
           }
