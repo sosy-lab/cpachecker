@@ -2858,6 +2858,10 @@ cpa.value.refinement.avoidSimilarRepeatedRefinement = false
 cpa.value.refinement.basisStrategy = SUBGRAPH
   enum:     [ALL, SUBGRAPH, TARGET, CUTPOINT]
 
+# completely disable the tracking of found error paths in the refiner, i.e.,
+# disable the detection of repeated counterexamples
+cpa.value.refinement.disableErrorPathTracking = false
+
 # whether or not to do lazy-abstraction
 cpa.value.refinement.doLazyAbstraction = true
 
