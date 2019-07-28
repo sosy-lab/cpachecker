@@ -119,6 +119,9 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
 
     AlgorithmFactory factory = new CPAAlgorithmFactory(this, logger, config, pShutdownNotifier);
     if (useCEGAR) {
+      // We will use this single instance of CEGARAlgFactory for the whole analysis.
+      // There will be exactly one Refiner within all nestings of BAM (and one from the surrounding
+      // CEGAR loop), because it is part of the factory.
       factory = new CEGARAlgorithmFactory(factory, this, logger, config, pShutdownNotifier);
     }
 
