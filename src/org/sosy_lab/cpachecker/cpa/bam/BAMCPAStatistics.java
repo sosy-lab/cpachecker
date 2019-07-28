@@ -134,17 +134,18 @@ class BAMCPAStatistics implements Statistics {
     }
 
     // write data
-    put(out, "Analyzed blocks", timeForBlock.size());
-    put(out, "Avg. time for block analysis", ofMillis((long) allTimers.getAvg()));
-    put(out, "Mean time for block analysis", ofMillis(allTimers.getMean()));
-    put(out, "Min time for block analysis", ofMillis(allTimers.getMin()));
-    put(out, "Max time for block analysis", ofMillis(allTimers.getMax()));
-    put(out, "StdDev time for block analysis", ofMillis((long) allTimers.getStdDeviation()));
-    put(out, "Total time for block analysis", ofMillis((long) allTimers.getSum()));
+    put(out, 1, "Analyzed blocks", timeForBlock.size());
+    put(out, 1, "Avg. time for block analysis", ofMillis((long) allTimers.getAvg()));
+    put(out, 1, "Mean time for block analysis", ofMillis(allTimers.getMean()));
+    put(out, 1, "Min time for block analysis", ofMillis(allTimers.getMin()));
+    put(out, 1, "Max time for block analysis", ofMillis(allTimers.getMax()));
+    put(out, 1, "StdDev time for block analysis", ofMillis((long) allTimers.getStdDeviation()));
+    put(out, 1, "Total time for block analysis", ofMillis((long) allTimers.getSum()));
 
     if (timeForBlock.containsKey(cpa.getBlockPartitioning().getMainBlock())) {
       put(
           out,
+          1,
           "Time for main block",
           String.format(
               "%s (%s)",
