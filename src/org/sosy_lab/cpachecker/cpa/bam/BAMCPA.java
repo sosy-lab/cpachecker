@@ -80,7 +80,9 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   )
   private boolean aggressiveCaching = true;
 
-  @Option(description = "Should the nested CPA-algorithm be wrapped with CEGAR within BAM?")
+  @Option(
+      secure = true,
+      description = "Should the nested CPA-algorithm be wrapped with CEGAR within BAM?")
   private boolean useCEGAR = false;
 
   private BAMCPA(
