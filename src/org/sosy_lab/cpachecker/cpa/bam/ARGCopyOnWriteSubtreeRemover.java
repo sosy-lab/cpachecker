@@ -51,13 +51,14 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
 
   private final boolean doPrecisionRefinementForMostInnerBlock;
 
-  public ARGCopyOnWriteSubtreeRemover(AbstractBAMCPA bamCpa, StatTimer pRemoveCachedSubtreeTimer) {
+  public ARGCopyOnWriteSubtreeRemover(
+      AbstractBAMCPA bamCpa, TimerWrapper pRemoveCachedSubtreeTimer) {
     super(bamCpa, pRemoveCachedSubtreeTimer);
     doPrecisionRefinementForMostInnerBlock = bamCpa.doPrecisionRefinementForMostInnerBlock();
   }

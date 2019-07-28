@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
@@ -56,19 +56,15 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
  */
 public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
 
-  final StatTimer computePathTimer = new StatTimer("Compute path for refinement");
-  final StatTimer computeSubtreeTimer = new StatTimer("Constructing flat ARG");
-  final StatTimer computeCounterexampleTimer = new StatTimer("Searching path to error location");
-  final StatTimer removeCachedSubtreeTimer = new StatTimer("Removing cached subtrees");
-
   private final AbstractBAMCPA bamCpa;
+  private final BAMCPAStatistics stats;
 
   private BAMBasedRefiner(
       ARGBasedRefiner pRefiner, ARGCPA pArgCpa, AbstractBAMCPA pBamCpa, LogManager pLogger) {
     super(pRefiner, pArgCpa, pLogger);
 
     bamCpa = pBamCpa;
-    bamCpa.getStatistics().addRefiner(this);
+    stats = bamCpa.getStatistics();
   }
 
   /**
@@ -107,7 +103,8 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
     } else {
 
       // wrap the original reached-set to have a valid "view" on all reached states.
-      pReached = new BAMReachedSet(bamCpa, pReached, pPath, removeCachedSubtreeTimer);
+      pReached =
+          new BAMReachedSet(bamCpa, pReached, pPath, stats.removeCachedSubtreeTimer.getNewTimer());
       return super.performRefinementForPath(pReached, pPath);
     }
   }
@@ -118,6 +115,10 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
     assert pMainReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
     assert BAMReachedSetValidator.validateData(
         bamCpa.getData(), bamCpa.getBlockPartitioning(), pMainReachedSet);
+
+    final TimerWrapper computePathTimer = stats.computePathTimer.getNewTimer();
+    final TimerWrapper computeSubtreeTimer = stats.computeSubtreeTimer.getNewTimer();
+    final TimerWrapper computeCounterexampleTimer = stats.computeCounterexampleTimer.getNewTimer();
 
     computePathTimer.start();
     try {

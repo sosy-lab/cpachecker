@@ -51,7 +51,8 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 public class BAMARGStatistics extends ARGStatistics {
 
@@ -206,7 +207,7 @@ public class BAMARGStatistics extends ARGStatistics {
         cexSubgraphComputer.computeCounterexampleSubgraph(frontierStates, pMainReachedSet);
 
     ARGPath path = ARGUtils.getRandomPath(rootAndTargetsOfSubgraph.getFirst());
-    StatTimer dummyTimer = new StatTimer("dummy");
+    TimerWrapper dummyTimer = new ThreadSafeTimerContainer("dummy").getNewTimer();
     BAMReachedSet bamReachedSet = new BAMReachedSet(bamCpa, pMainReachedSet, path, dummyTimer);
     UnmodifiableReachedSet bamReachedSetView = bamReachedSet.asReachedSet();
     readdCounterexampleInfo(pReached, rootAndTargetsOfSubgraph.getSecond());

@@ -29,9 +29,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -50,10 +48,21 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
 /** Prints some BAM related statistics */
 @Options(prefix = "cpa.bam")
 class BAMCPAStatistics implements Statistics {
+
+  // stats about refinement
+  final ThreadSafeTimerContainer computePathTimer =
+      new ThreadSafeTimerContainer("Compute path for refinement");
+  final ThreadSafeTimerContainer computeSubtreeTimer =
+      new ThreadSafeTimerContainer("Constructing flat ARG");
+  final ThreadSafeTimerContainer computeCounterexampleTimer =
+      new ThreadSafeTimerContainer("Searching path to error location");
+  final ThreadSafeTimerContainer removeCachedSubtreeTimer =
+      new ThreadSafeTimerContainer("Removing cached subtrees");
 
   @Option(secure = true, description = "file for exporting detailed statistics about blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -61,7 +70,6 @@ class BAMCPAStatistics implements Statistics {
 
   private final LogManager logger;
   private final AbstractBAMCPA cpa;
-  private List<BAMBasedRefiner> refiners = new ArrayList<>();
 
   private int maxRecursiveDepth = 0;
   private final Map<Block, Timer> timeForBlock = new LinkedHashMap<>();
@@ -76,10 +84,6 @@ class BAMCPAStatistics implements Statistics {
   @Override
   public String getName() {
     return "BAMCPA";
-  }
-
-  public void addRefiner(BAMBasedRefiner pRefiner) {
-    refiners.add(pRefiner);
   }
 
   void updateBlockNestingLevel(int newLevel) {
@@ -104,15 +108,11 @@ class BAMCPAStatistics implements Statistics {
     put(out, 0, cpa.reducerStatistics.reducePrecisionTime);
     put(out, 0, cpa.reducerStatistics.expandPrecisionTime);
 
-    for (BAMBasedRefiner refiner : refiners) {
-      // TODO We print these statistics also for use-cases of BAM-refiners, that never use timers.
-      // Can we ignore them?
-      out.println("\n" + refiner.getClass().getSimpleName() + ":");
-      put(out, 1, refiner.computePathTimer);
-      put(out, 1, refiner.computeSubtreeTimer);
-      put(out, 1, refiner.computeCounterexampleTimer);
-      put(out, 1, refiner.removeCachedSubtreeTimer);
-    }
+    out.println("\nBAM-based Refinement:");
+    put(out, 1, computePathTimer);
+    put(out, 1, computeSubtreeTimer);
+    put(out, 1, computeCounterexampleTimer);
+    put(out, 1, removeCachedSubtreeTimer);
 
     writeBlockStatistics(out);
   }
