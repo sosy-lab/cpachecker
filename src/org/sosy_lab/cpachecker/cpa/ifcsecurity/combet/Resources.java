@@ -11,12 +11,6 @@ import javax.xml.bind.annotation.XmlType;
 
 
 /**
- * <p>
- * Java-Klasse for anonymous complex type.
- *
- * <p>
- * Das folgende Schemafragment gibt den erwarteten Content an, der in dieser Klasse enthalten ist.
- *
  * <pre>
  * &lt;complexType>
  *   &lt;complexContent>
@@ -65,7 +59,7 @@ public class Resources {
      */
     public List<Resource> getResource() {
         if (resource == null) {
-            resource = new ArrayList<Resource>();
+      resource = new ArrayList<>();
         }
         return this.resource;
     }

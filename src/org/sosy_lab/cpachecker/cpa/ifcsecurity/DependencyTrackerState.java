@@ -110,7 +110,6 @@ public class DependencyTrackerState
   }
 
   public JsonObj toJson(String stateID) {
-    StringBuilder sb = new StringBuilder();
     JsonObj state=new JsonObj();
     JsonObj stateDeps=new JsonObj();
     state.add(new StringValue(stateID), stateDeps);
@@ -125,8 +124,6 @@ public class DependencyTrackerState
   }
 
   public JsonObj toJson() {
-    StringBuilder sb = new StringBuilder();
-
     if(dependencies.size()==0){
       return null;
     }

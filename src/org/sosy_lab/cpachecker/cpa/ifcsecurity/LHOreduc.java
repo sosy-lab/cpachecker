@@ -35,15 +35,16 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
-import java.util.Stack;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -79,14 +80,12 @@ public class LHOreduc implements Statistics, Serializable {
   protected transient Path lhoOrderFile = Paths.get("lho.obj");
 
   private Map<CFANode, CFANode> dom = new TreeMap<>();
-  private ArrayList<CFANode> lhoorderlist=new ArrayList<>();
+  private ArrayList<CFANode> lhoorderlist = new ArrayList<>();
   private Map<CFANode, List<CFANode>> rdom = new TreeMap<>();
 
   private CFANode entry;
   private CFANode exit;
   private int mode;
-  private int n;
-  private Collection<CFANode> nodes;
 
   private transient LogManager logger;
 
@@ -107,21 +106,20 @@ public class LHOreduc implements Statistics, Serializable {
     this.entry = pCfa.getMainFunction();
     this.exit = ((FunctionEntryNode) entry).getExitNode();
     this.mode = pMode;
-    this.nodes = pCfa.getAllNodes();
     this.dom = dom;
     /*
      * this.topOrder=new ArrayList<>(pCfa.getAllNodes().size()); for (int i = 0; i <
      * pCfa.getAllNodes().size() + 1; i++) { topOrder.add(null); }
      */
-    for(Entry<CFANode, CFANode> entry:dom.entrySet()){
-      CFANode child = entry.getKey();
-      CFANode parent=entry.getValue();
+    for (Entry<CFANode, CFANode> entryPair : dom.entrySet()) {
+      CFANode child = entryPair.getKey();
+      CFANode parent = entryPair.getValue();
 
-      if(parent!=null){
-        if(!(rdom.containsKey(parent))){
+      if (parent != null) {
+        if (!(rdom.containsKey(parent))) {
           rdom.put(parent, new ArrayList<CFANode>());
         }
-        List<CFANode> childList=rdom.get(parent);
+        List<CFANode> childList = rdom.get(parent);
         childList.add(child);
       }
     }
@@ -130,12 +128,11 @@ public class LHOreduc implements Statistics, Serializable {
   /**
    * Execute the specified LHO-Order computation.
    */
-  public void execute(){
-    if(mode==0){
+  public void execute() {
+    if (mode == 0) {
       lhoorderlist.add(entry);
       step(entry);
-    }
-    else{
+    } else {
       lhoorderlist.add(exit);
       step(exit);
     }
@@ -143,51 +140,49 @@ public class LHOreduc implements Statistics, Serializable {
 
   private void step(CFANode pNode) {
     logger.log(Level.FINE, pNode);
-    List<CFANode> newN=new ArrayList<>();
-    int pos=lhoorderlist.indexOf(pNode);
-//
-      List<CFANode> sucessors=sucessors(pNode);
-      List<CFANode> childList=new ArrayList<>();
-      if(rdom.containsKey(pNode)){
-        childList=rdom.get(pNode);
-      }
-      for(CFANode succ:sucessors){
-        if(childList.contains(succ)){
-          if(!(lhoorderlist.contains(succ))){
-            /* (t(v),v) */
-            lhoorderlist.add(pos+1,succ);
-            newN.add(succ);
-          }
+    List<CFANode> newN = new ArrayList<>();
+    int pos = lhoorderlist.indexOf(pNode);
+    //
+    List<CFANode> sucessors = sucessors(pNode);
+    List<CFANode> childList = new ArrayList<>();
+    if (rdom.containsKey(pNode)) {
+      childList = rdom.get(pNode);
+    }
+    for (CFANode succ : sucessors) {
+      if (childList.contains(succ)) {
+        if (!(lhoorderlist.contains(succ))) {
+          /* (t(v),v) */
+          lhoorderlist.add(pos + 1, succ);
+          newN.add(succ);
         }
-        else{
-          /* (u,v),(w,v) u<v<w */
-          if(!(lhoorderlist.contains(succ))){
-            List<CFANode> siblings = predecessors(succ);
-            if(siblings.size()>=2){
-              CFANode sibling0=siblings.get(0);
-              CFANode sibling1=siblings.get(1);
-              if(lhoorderlist.indexOf(sibling0)<lhoorderlist.indexOf(sibling1)){
-                int pos2=lhoorderlist.indexOf(sibling1);
-                lhoorderlist.add(pos2-1,succ);
-                newN.add(succ);
-              }
-              else{
-                int pos2=lhoorderlist.indexOf(sibling0);
-                lhoorderlist.add(pos2-1,succ);
-                newN.add(succ);
-              }
+      } else {
+        /* (u,v),(w,v) u<v<w */
+        if (!(lhoorderlist.contains(succ))) {
+          List<CFANode> siblings = predecessors(succ);
+          if (siblings.size() >= 2) {
+            CFANode sibling0 = siblings.get(0);
+            CFANode sibling1 = siblings.get(1);
+            if (lhoorderlist.indexOf(sibling0) < lhoorderlist.indexOf(sibling1)) {
+              int pos2 = lhoorderlist.indexOf(sibling1);
+              lhoorderlist.add(pos2 - 1, succ);
+              newN.add(succ);
+            } else {
+              int pos2 = lhoorderlist.indexOf(sibling0);
+              lhoorderlist.add(pos2 - 1, succ);
+              newN.add(succ);
             }
           }
         }
       }
+    }
 
-      for(CFANode node:newN){
-        step(node);
-      }
+    for (CFANode node : newN) {
+      step(node);
+    }
   }
 
-  private List<CFANode> predecessors(CFANode first){
-    List<CFANode> result=new ArrayList<>();
+  private List<CFANode> predecessors(CFANode first) {
+    List<CFANode> result = new ArrayList<>();
     int m;
     if (mode == 1) {
       m = first.getNumLeavingEdges();
@@ -216,15 +211,15 @@ public class LHOreduc implements Statistics, Serializable {
       } else {
         w = first.getEnteringEdge(i).getPredecessor();
       }
-      if(!(result.contains(w))){
+      if (!(result.contains(w))) {
         result.add(w);
       }
     }
     return result;
   }
 
-  private List<CFANode> sucessors(CFANode first){
-    List<CFANode> result=new ArrayList<>();
+  private List<CFANode> sucessors(CFANode first) {
+    List<CFANode> result = new ArrayList<>();
     int m;
     if (mode == 0) {
       m = first.getNumLeavingEdges();
@@ -288,13 +283,12 @@ public class LHOreduc implements Statistics, Serializable {
         w = first.getEnteringEdge(i).getPredecessor();
       }
       logger.log(Level.FINE, first + "," + second + "," + w);
-      if(w.equals(second)){
+      if (w.equals(second)) {
         return true;
       }
     }
     return false;
   }
-
 
   /**
    * Returns the Low-High-Order
@@ -318,7 +312,7 @@ public class LHOreduc implements Statistics, Serializable {
   }
 
   static class NodeInfo {
-    //CFANode node;
+    // CFANode node;
     public CFANode parent;
     public CFANode ancestor;
     public CFANode label;
@@ -337,7 +331,6 @@ public class LHOreduc implements Statistics, Serializable {
     return "LHO-Order";
   }
 
-
   @SuppressFBWarnings(
     value = "OS_OPEN_STREAM",
     justification = "Do not close stream o because it wraps stream zos/fos which need to remain open and would be closed if o.close() is called.")
@@ -350,11 +343,12 @@ public class LHOreduc implements Statistics, Serializable {
         Files.createDirectories(dir);
       }
 
-      OutputStream o = Files.newOutputStream(lhoOrderFile);
-      ObjectOutputStream out=new ObjectOutputStream(o);
-      out.writeObject(this);
-      out.flush();
-      o.close();
+      try (OutputStream o = Files.newOutputStream(lhoOrderFile);
+          ObjectOutputStream out = new ObjectOutputStream(o);) {
+        out.writeObject(this);
+        out.flush();
+        o.close();
+      }
 
     } catch (NotSerializableException eS) {
       logger.log(
@@ -363,7 +357,7 @@ public class LHOreduc implements Statistics, Serializable {
               + eS.getMessage()
               + " does not implement Serializable interface");
     } catch (IOException e) {
-    throw new RuntimeException(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -375,11 +369,12 @@ public class LHOreduc implements Statistics, Serializable {
         Files.createDirectories(dir);
       }
 
-      InputStream fis = Files.newInputStream(lhoOrderreadFile);
-      ObjectInputStream in = new ObjectInputStream(fis);
-      LHOreduc result = (LHOreduc) in.readObject();
-      fis.close();
-      return result;
+      try (InputStream fis = Files.newInputStream(lhoOrderreadFile);
+          ObjectInputStream in = new ObjectInputStream(fis);) {
+        LHOreduc result = (LHOreduc) in.readObject();
+        fis.close();
+        return result;
+      }
 
     } catch (NotSerializableException eS) {
       pLogger.log(
@@ -395,11 +390,11 @@ public class LHOreduc implements Statistics, Serializable {
     return null;
   }
 
-  public boolean checkForTreeandCycle(CFA cfa) {
-    Set<CFANode> visited=new TreeSet<CFANode>();
+  public boolean checkForTreeandCycle(CFA pCfa) {
+    Set<CFANode> visited = new TreeSet<>();
     Queue<CFANode> queue = new LinkedList<>();
-    CFANode nExit = cfa.getMainFunction().getExitNode();
-    int nNodes = cfa.getAllNodes().size();
+    // CFANode nExit = pCfa.getMainFunction().getExitNode();
+    int nNodes = pCfa.getAllNodes().size();
     queue.add(exit);
     while (queue.size() != 0) {
       CFANode node = queue.poll();
@@ -414,7 +409,7 @@ public class LHOreduc implements Statistics, Serializable {
         }
       }
     }
-    //Contains all nodes
+    // Contains all nodes
     if (!(visited.size() == nNodes)) {
       return false;
     }
@@ -425,33 +420,33 @@ public class LHOreduc implements Statistics, Serializable {
 
   private Map<CFANode, Interval> intervals;
 
-  public boolean doDFS(CFA cfa) {
+  public boolean doDFS(CFA pCfa) {
     intervals = new TreeMap<>();
-    Set<CFANode> visited = new TreeSet<CFANode>();
-    Stack<CFANode> stack = new Stack<>();
-    CFANode nExit = cfa.getMainFunction().getExitNode();
-    int nNodes = cfa.getAllNodes().size();
-    Interval inv = new Interval(new Long(0), new Long(lhoorderlist.size()));
+    Set<CFANode> visited = new TreeSet<>();
+    Deque<CFANode> stack = new ArrayDeque<>();
+    CFANode nExit = pCfa.getMainFunction().getExitNode();
+    int nNodes = pCfa.getAllNodes().size();
+    Interval inv = new Interval((long) 0, (long) lhoorderlist.size());
     intervals.put(nExit, inv);
     stack.add(exit);
-    int i = 0;
+    // int i = 0;
     while (stack.size() != 0) {
 
       CFANode node = stack.pop();
       inv = intervals.get(node);
-      long min = inv.getLow();
+      // long min = inv.getLow();
       long max = inv.getHigh();
       if (visited.contains(node)) {
         return false;
       }
       visited.add(node);
       if (rdom.containsKey(node)) {
-        TreeSet<Integer> positions = new TreeSet<Integer>();
+        TreeSet<Integer> positions = new TreeSet<>();
 
         for (CFANode succ : rdom.get(node)) {
           positions.add(lhoorderlist.indexOf(succ));
         }
-        LinkedList<Integer> positions2 = new LinkedList<>(positions);
+        List<Integer> positions2 = new ArrayList<>(positions);
         long r;
         long l = max; //
         for (Integer j = positions2.size() - 1; j >= 0; j--) {

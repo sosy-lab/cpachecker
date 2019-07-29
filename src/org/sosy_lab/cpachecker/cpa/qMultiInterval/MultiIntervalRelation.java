@@ -515,7 +515,7 @@ public class MultiIntervalRelation
    * @param cfaEdge additionally the edge, which is only used to give details if the
    *        UnrecognizedCCodeException is thrown
    * @return the calculated new Range
-   * @throws UnrecognizedCodeExceptionself explanatory
+   * @throws UnrecognizedCodeException self explanatory
    */
   private Range evaluateInterval(
       MultiIntervalState readableState, CRightHandSide expression, CFAEdge cfaEdge)

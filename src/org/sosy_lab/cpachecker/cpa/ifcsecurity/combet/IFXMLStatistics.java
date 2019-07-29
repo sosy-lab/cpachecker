@@ -44,7 +44,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -346,7 +346,7 @@ public class IFXMLStatistics implements Statistics {
     /* 3. Used-Analyses */
     auxillaryAnalysesToJson(pReached, topContainerR);
 
-    try (Writer writer = MoreFiles.openOutputFile(xmlFile, Charset.defaultCharset())) {
+    try (Writer writer = IO.openOutputFile(xmlFile, Charset.defaultCharset())) {
       writer.write(topContainerR.toString());
     } catch (IOException e) {
       cpa.getLogger().logUserException(Level.WARNING, e,

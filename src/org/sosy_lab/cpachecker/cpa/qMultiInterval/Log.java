@@ -31,8 +31,8 @@ public class Log {
    */
   public static void LogInfo2(Object message) {
     if (info && enable) {
-      String fullClassName = Thread.currentThread().getStackTrace()[2].getClassName();
-      String className = fullClassName.substring(fullClassName.lastIndexOf(".") + 1);
+      // String fullClassName = Thread.currentThread().getStackTrace()[2].getClassName();
+      // String className = fullClassName.substring(fullClassName.lastIndexOf(".") + 1);
     }
   }
 

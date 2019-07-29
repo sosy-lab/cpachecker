@@ -8,18 +8,18 @@ import javax.xml.namespace.QName;
 
 
 /**
- * This object contains factory methods for each 
- * Java content interface and Java element interface 
- * generated in the org.sosy_lab.cpachecker.cpa.ifcsecurity.combet package. 
- * <p>An ObjectFactory allows you to programatically 
- * construct new instances of the Java representation 
- * for XML content. The Java representation of XML 
- * content can consist of schema derived interfaces 
- * and classes representing the binding of schema 
- * type definitions, element declarations and model 
- * groups.  Factory methods for each of these are 
+ * This object contains factory methods for each
+ * Java content interface and Java element interface
+ * generated in the org.sosy_lab.cpachecker.cpa.ifcsecurity.combet package.
+ * <p>An ObjectFactory allows you to programatically
+ * construct new instances of the Java representation
+ * for XML content. The Java representation of XML
+ * content can consist of schema derived interfaces
+ * and classes representing the binding of schema
+ * type definitions, element declarations and model
+ * groups.  Factory methods for each of these are
  * provided in this class.
- * 
+ *
  */
 @XmlRegistry
 public class ObjectFactory {
@@ -38,14 +38,14 @@ public class ObjectFactory {
 
     /**
      * Create a new ObjectFactory that can be used to create new instances of schema derived classes for package: org.sosy_lab.cpachecker.cpa.ifcsecurity.combet
-     * 
+     *
      */
     public ObjectFactory() {
     }
 
     /**
      * Create an instance of {@link Policyitem }
-     * 
+     *
      */
     public Policyitem createPolicyitem() {
         return new Policyitem();
@@ -53,7 +53,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Inferences }
-     * 
+     *
      */
     public Inferences createInferences() {
         return new Inferences();
@@ -61,7 +61,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Securityclasses }
-     * 
+     *
      */
     public Securityclasses createSecurityclasses() {
         return new Securityclasses();
@@ -69,7 +69,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Notallowed }
-     * 
+     *
      */
     public Notallowed createNotallowed() {
         return new Notallowed();
@@ -77,7 +77,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Allowed }
-     * 
+     *
      */
     public Allowed createAllowed() {
         return new Allowed();
@@ -85,7 +85,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Mapitem }
-     * 
+     *
      */
     public Mapitem createMapitem() {
         return new Mapitem();
@@ -93,7 +93,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link AdditionalExtension }
-     * 
+     *
      */
     public AdditionalExtension createAdditionalExtension() {
         return new AdditionalExtension();
@@ -101,7 +101,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Project }
-     * 
+     *
      */
     public Project createProject() {
         return new Project();
@@ -109,7 +109,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Resources }
-     * 
+     *
      */
     public Resources createResources() {
         return new Resources();
@@ -117,7 +117,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Resource }
-     * 
+     *
      */
     public Resource createResource() {
         return new Resource();
@@ -125,7 +125,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Hashes }
-     * 
+     *
      */
     public Hashes createHashes() {
         return new Hashes();
@@ -133,7 +133,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Hash }
-     * 
+     *
      */
     public Hash createHash() {
         return new Hash();
@@ -141,7 +141,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Results }
-     * 
+     *
      */
     public Results createResults() {
         return new Results();
@@ -149,7 +149,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link ResultExtension }
-     * 
+     *
      */
     public ResultExtension createResultExtension() {
         return new ResultExtension();
@@ -157,7 +157,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Case }
-     * 
+     *
      */
     public Case createCase() {
         return new Case();
@@ -165,7 +165,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Info }
-     * 
+     *
      */
     public Info createInfo() {
         return new Info();
@@ -173,7 +173,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Analysis }
-     * 
+     *
      */
     public Analysis createAnalysis() {
         return new Analysis();
@@ -181,7 +181,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Attributes }
-     * 
+     *
      */
     public Attributes createAttributes() {
         return new Attributes();
@@ -189,7 +189,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link AttributeExtension }
-     * 
+     *
      */
     public AttributeExtension createAttributeExtension() {
         return new AttributeExtension();
@@ -197,7 +197,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Tool }
-     * 
+     *
      */
     public Tool createTool() {
         return new Tool();
@@ -205,7 +205,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link ConfigurationExtension }
-     * 
+     *
      */
     public ConfigurationExtension createConfigurationExtension() {
         return new ConfigurationExtension();
@@ -213,7 +213,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Policy }
-     * 
+     *
      */
     public Policy createPolicy() {
         return new Policy();
@@ -221,7 +221,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Mapping }
-     * 
+     *
      */
     public Mapping createMapping() {
         return new Mapping();
@@ -229,7 +229,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Violations }
-     * 
+     *
      */
     public Violations createViolations() {
         return new Violations();
@@ -237,7 +237,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Violation }
-     * 
+     *
      */
     public Violation createViolation() {
         return new Violation();
@@ -245,7 +245,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Violationelement }
-     * 
+     *
      */
     public Violationelement createViolationelement() {
         return new Violationelement();
@@ -253,7 +253,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link Certificates }
-     * 
+     *
      */
     public Certificates createCertificates() {
         return new Certificates();
@@ -261,7 +261,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link AdditionalType }
-     * 
+     *
      */
     public AdditionalType createAdditionalType() {
         return new AdditionalType();
@@ -269,7 +269,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link AttributeType }
-     * 
+     *
      */
     public AttributeType createAttributeType() {
         return new AttributeType();
@@ -277,7 +277,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link ConfigurationType }
-     * 
+     *
      */
     public ConfigurationType createConfigurationType() {
         return new ConfigurationType();
@@ -285,7 +285,7 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link ResultType }
-     * 
+     *
      */
     public ResultType createResultType() {
         return new ResultType();
@@ -293,101 +293,101 @@ public class ObjectFactory {
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
+     *
      */
     @XmlElementDecl(namespace = "", name = "identifier")
     public JAXBElement<String> createIdentifier(String value) {
-        return new JAXBElement<String>(_Identifier_QNAME, String.class, null, value);
+    return new JAXBElement<>(_Identifier_QNAME, String.class, null, value);
     }
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
+     *
      */
     @XmlElementDecl(namespace = "", name = "hashMethod")
     public JAXBElement<String> createHashMethod(String value) {
-        return new JAXBElement<String>(_HashMethod_QNAME, String.class, null, value);
+    return new JAXBElement<>(_HashMethod_QNAME, String.class, null, value);
     }
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
+     *
      */
     @XmlElementDecl(namespace = "", name = "securityclass")
     public JAXBElement<String> createSecurityclass(String value) {
-        return new JAXBElement<String>(_Securityclass_QNAME, String.class, null, value);
+    return new JAXBElement<>(_Securityclass_QNAME, String.class, null, value);
     }
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
+     *
      */
     @XmlElementDecl(namespace = "", name = "file")
     public JAXBElement<String> createFile(String value) {
-        return new JAXBElement<String>(_File_QNAME, String.class, null, value);
+    return new JAXBElement<>(_File_QNAME, String.class, null, value);
     }
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link AdditionalExtension }{@code >}}
-     * 
+     *
      */
     @XmlElementDecl(namespace = "", name = "additional")
     public JAXBElement<AdditionalExtension> createAdditional(AdditionalExtension value) {
-        return new JAXBElement<AdditionalExtension>(_Additional_QNAME, AdditionalExtension.class, null, value);
+    return new JAXBElement<>(_Additional_QNAME, AdditionalExtension.class, null, value);
     }
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
+     *
      */
     @XmlElementDecl(namespace = "", name = "name")
     public JAXBElement<String> createName(String value) {
-        return new JAXBElement<String>(_Name_QNAME, String.class, null, value);
+    return new JAXBElement<>(_Name_QNAME, String.class, null, value);
     }
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
+     *
      */
     @XmlElementDecl(namespace = "", name = "description")
     public JAXBElement<String> createDescription(String value) {
-        return new JAXBElement<String>(_Description_QNAME, String.class, null, value);
+    return new JAXBElement<>(_Description_QNAME, String.class, null, value);
     }
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
+     *
      */
     @XmlElementDecl(namespace = "", name = "location")
     public JAXBElement<String> createLocation(String value) {
-        return new JAXBElement<String>(_Location_QNAME, String.class, null, value);
+    return new JAXBElement<>(_Location_QNAME, String.class, null, value);
     }
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
+     *
      */
     @XmlElementDecl(namespace = "", name = "version")
     public JAXBElement<String> createVersion(String value) {
-        return new JAXBElement<String>(_Version_QNAME, String.class, null, value);
+    return new JAXBElement<>(_Version_QNAME, String.class, null, value);
     }
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
+     *
      */
     @XmlElementDecl(namespace = "", name = "entity")
     public JAXBElement<String> createEntity(String value) {
-        return new JAXBElement<String>(_Entity_QNAME, String.class, null, value);
+    return new JAXBElement<>(_Entity_QNAME, String.class, null, value);
     }
 
     /**
      * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
-     * 
+     *
      */
     @XmlElementDecl(namespace = "", name = "hashValue")
     public JAXBElement<String> createHashValue(String value) {
-        return new JAXBElement<String>(_HashValue_QNAME, String.class, null, value);
+    return new JAXBElement<>(_HashValue_QNAME, String.class, null, value);
     }
 
 }

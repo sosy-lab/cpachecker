@@ -188,7 +188,7 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
   protected Path lhoOrderFile =
       Paths.get("D:\\\\eclipse-workspace\\\\CPAchecker-IFC\\\\output\\\\lho.obj");
 
-  private LogManager logger;
+  private LogManager lLogger;
 
   // Reading
   // Variable for LhoOrder
@@ -211,7 +211,7 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
     lhoreduc =
         LHOreduc.readLHOOrder(
             Paths.get("D:\\eclipse-workspace\\CPAchecker-IFC\\output\\lho.obj"),
-            logger);
+            lLogger);
     lhoOrder = lhoreduc.getLHO();
     rDom = lhoreduc.getRDom();
     cfa = lhoreduc.getCFA();
@@ -243,10 +243,10 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
       for (int j = 0; j < vlength; j++) {
         CFANode w = v.getLeavingEdge(j).getSuccessor();
         CFANode parentofV = lhoreduc.getDom().get(v);
-        logger.log(Level.FINE, v + "," + w + "," + parentofV);
+        lLogger.log(Level.FINE, v + "," + w + "," + parentofV);
         Interval invw = ancestorRelation.get(w);
         Interval invpv = ancestorRelation.get(parentofV);
-        logger.log(Level.FINE, "[]" + "," + invw + "," + invpv);
+        lLogger.log(Level.FINE, "[]" + "," + invw + "," + invpv);
         boolean contained =
             (invpv.getHigh() >= invw.getHigh()) && (invpv.getLow() <= invw.getLow());
         if (!contained) {
@@ -261,14 +261,14 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
   private boolean checkLHOProperty() {
     for (CFANode v : cfa.getAllNodes()) {
       if (!(cfa.getMainFunction().getExitNode().equals(v))) {
-        logger.log(Level.FINE, v);
+        lLogger.log(Level.FINE, v);
         /* (t(v),v) */
         CFANode parentofV = lhoreduc.getDom().get(v);
         boolean one = lhoreduc.existsEdge(parentofV, v);
 
         /* (u,v), (w,v) lh(u)<lh(v)<lh(w) */
         int vlength = v.getNumLeavingEdges();
-        TreeSet<Integer> positions = new TreeSet<Integer>();
+        TreeSet<Integer> positions = new TreeSet<>();
         for (int j = 0; j < vlength; j++) {
           CFANode uw = v.getLeavingEdge(j).getSuccessor();
           positions.add(lhoOrder.indexOf(uw));
@@ -280,8 +280,8 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
                 && positions2.get(vlength - 1) != lhoOrder.indexOf(v));
 
         if ((one || two) == false) {
-          logger.log(Level.FINE, one);
-          logger.log(Level.FINE, two);
+          lLogger.log(Level.FINE, one);
+          lLogger.log(Level.FINE, two);
           return false;
         }
       }
@@ -299,22 +299,22 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
     initPDCert();
     // Check rDom is a tree rooted in N0
     if (!checkDomisRootedTree()) {
-      logger.log(Level.FINE, "DomisnotRootedTree");
+      lLogger.log(Level.FINE, "DomisnotRootedTree");
       return false;
     }
     // Do DFS traversal
     if (!doDFSIntervals()) {
-      logger.log(Level.FINE, "Intervals");
+      lLogger.log(Level.FINE, "Intervals");
       return false;
     }
     // CheckParentProperty
     if (!checkParentProperty()) {
-      logger.log(Level.FINE, "ParentProperty");
+      lLogger.log(Level.FINE, "ParentProperty");
       return false;
     }
     // CheckLHOProperty
     if (!checkLHOProperty()) {
-      logger.log(Level.FINE, "LHOProperty");
+      lLogger.log(Level.FINE, "LHOProperty");
       return false;
     }
     // Compute PDF

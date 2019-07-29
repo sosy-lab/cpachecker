@@ -9,10 +9,7 @@ import javax.xml.bind.annotation.XmlType;
 
 /**
  * <p>
- * Java-Klasse for attributeType complex type.
- *
- * <p>
- * Das folgende Schemafragment gibt den erwarteten Content an, der in dieser Klasse enthalten ist.
+ * Java-Class for "attributeType"-complex type.
  *
  * <pre>
  * &lt;complexType name="attributeType">

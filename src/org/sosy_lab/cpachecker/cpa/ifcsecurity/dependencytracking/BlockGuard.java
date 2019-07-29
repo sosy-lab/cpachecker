@@ -359,7 +359,7 @@ public class BlockGuard implements Cloneable, Serializable{
     if(this==pOther){
       return true;
     }
-    boolean value=true;
+    // boolean value=true;
 
     int thisSize=this.contextStack.size();
     int otherSize=pOther.contextStack.size();

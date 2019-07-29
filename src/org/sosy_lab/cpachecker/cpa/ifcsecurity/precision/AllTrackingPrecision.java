@@ -112,7 +112,15 @@ public class AllTrackingPrecision extends AbstractRefinableDependencyPrecision i
 
 
 
-  public AllTrackingPrecision(LogManager pLogger, String pScMappingFile,String pPolicyname, String pDefaultSCname, String pImmediatechecksfile){
+  public AllTrackingPrecision(
+      Configuration pConfig,
+      LogManager pLogger,
+      String pScMappingFile,
+      String pPolicyname,
+      String pDefaultSCname,
+      String pImmediatechecksfile)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
     this.scMappingFile=Paths.get(pScMappingFile);
     this.defaultSCname=pDefaultSCname;
     this.policyname=pPolicyname;
@@ -120,6 +128,7 @@ public class AllTrackingPrecision extends AbstractRefinableDependencyPrecision i
     construction(pLogger);
   }
 
+  @SuppressWarnings("unchecked")
   private void construction(LogManager pLogger){
     try {
       Field f;
@@ -197,18 +206,19 @@ public class AllTrackingPrecision extends AbstractRefinableDependencyPrecision i
     return sc;
   }
 
-  PolicyAlgebra alg = new PolicyAlgebra();
+  PolicyAlgebra<SecurityClasses> alg = new PolicyAlgebra<>();
 
   private SortedSet<Edge<SecurityClasses>> computeNPol() {
-    ConglomeratePolicy toppolicy = new BottomPolicy<SecurityClasses>(alg.getDomain(policy));
+    ConglomeratePolicy<SecurityClasses> toppolicy = new BottomPolicy<>(alg.getDomain(policy));
     SortedSet<Edge<SecurityClasses>> nset =
         SetUtil.setminus(toppolicy.getEdges(), policy.getEdges());
     return nset;
   }
 
+  @SuppressWarnings("unchecked")
   private List<SecurityClasses> computeLeft(){
     List<SecurityClasses> result=new ArrayList<>();
-    SC: for(SecurityClasses sc: (SortedSet<SecurityClasses>) alg.getDomain(policy)){
+    SC: for(SecurityClasses sc: alg.getDomain(policy)){
       for(Edge<SecurityClasses> vioedge: nset){
         if(vioedge.getFrom().equals(sc)){
           result.add(sc);
@@ -219,6 +229,7 @@ public class AllTrackingPrecision extends AbstractRefinableDependencyPrecision i
     return result;
   }
 
+  @SuppressWarnings("unchecked")
   private List<SecurityClasses> computeRight(){
     SortedSet<SecurityClasses> result=new TreeSet<>();
       for(Edge<SecurityClasses> vioedge: nset){
@@ -230,14 +241,14 @@ public class AllTrackingPrecision extends AbstractRefinableDependencyPrecision i
             SortedSet<SecurityClasses> tmp=new TreeSet<>();
             tmp.add(sc2);
             SortedSet<SecurityClasses> scSet2=SetUtil.setminus(scSet, tmp);
-            Edge<SecurityClasses> testedge=new Edge<SecurityClasses>(sc, scSet2);
+          Edge<SecurityClasses> testedge = new Edge<>(sc, scSet2);
             if(!(nset.contains(testedge))){
               result.add(sc2);
             }
           }
         }
       }
-    return new ArrayList<SecurityClasses>(result);
+    return new ArrayList<>(result);
   }
 
 

@@ -315,8 +315,8 @@ public class DependencyTrackerRelation
     /*
      * f
      */
-    String functionName = pDecl.getQualifiedName();
-    Variable functionVar = new Variable(functionName);
+    String qFunctionName = pDecl.getQualifiedName();
+    Variable functionVar = new Variable(qFunctionName);
 
     /*
      * Dep'(f)=f
@@ -761,6 +761,7 @@ public class DependencyTrackerRelation
           addDep(lhsDeps, pCfaEdge, lhsVar, functionVarDep);
         }
 
+        assert (paramDefs != null);
         for (int i = 0; i < paramDefs.size(); i++) {
 
           /*
@@ -783,6 +784,7 @@ public class DependencyTrackerRelation
            */
           addDep(lhsDeps, pCfaEdge, lhsVar, paramDefVar);
 
+          assert (paramExprs != null);
           CExpression paramExpr = paramExprs.get(i);
           visitor = new FunctionCallStatementDependancy();
           paramExpr.accept(visitor);
@@ -886,6 +888,7 @@ public class DependencyTrackerRelation
        */
       SortedSet<Variable> functionVarDeps = getDeps(stateDeps, pCfaEdge, functionVar);
 
+      assert (paramDefs != null);
       for (int i = 0; i < paramDefs.size(); i++) {
 
         /*
@@ -904,6 +907,7 @@ public class DependencyTrackerRelation
          */
         addDep(functionVarDeps, pCfaEdge, functionVar, paramDefVar);
 
+        assert (paramExprs != null);
         CExpression paramExpr = paramExprs.get(i);
         visitor = new FunctionCallStatementDependancy();
         paramExpr.accept(visitor);
@@ -982,20 +986,20 @@ public class DependencyTrackerRelation
       List<AbstractState> pOtherStates,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
     assert pState instanceof DependencyTrackerState;
-    DependencyTrackerState state = (DependencyTrackerState) pState;
+    DependencyTrackerState dState = (DependencyTrackerState) pState;
 
     for (AbstractState aState : pOtherStates) {
       /*
        * 1. Further Statement Adaptions
        */
-      strengthen_Statements(state, aState, pCfaEdge, pPrecision);
+      strengthen_Statements(dState, aState, pCfaEdge, pPrecision);
       /*
        * 2. Control Context Adaption
        */
-      strengthen_Context(state, aState, pCfaEdge, pPrecision);
+      strengthen_Context(dState, aState, pCfaEdge, pPrecision);
     }
 
-    return Collections.singleton(state);
+    return Collections.singleton(dState);
   }
 
   @SuppressWarnings("unused")
@@ -1449,6 +1453,7 @@ public class DependencyTrackerRelation
              */
             SortedSet<Variable> functionVarDeps = getDeps(prec, stateDeps, pCfaEdge, functionVar);
 
+        assert (paramDefs != null);
             for (int i = 0; i < paramDefs.size(); i++) {
 
               /*
@@ -1547,6 +1552,7 @@ public class DependencyTrackerRelation
        */
       SortedSet<Variable> functionVarDeps = getDeps(prec, stateDeps, pCfaEdge, functionVar);
 
+      assert (paramDefs != null);
       for (int i = 0; i < paramDefs.size(); i++) {
 
         /*
@@ -1597,12 +1603,12 @@ public class DependencyTrackerRelation
       AbstractState aState,
       CFAEdge pCfaEdge, Precision pPrecision) {
     //Step 3
-    DepPrecision precision=null;
+    DepPrecision dPrecision=null;
     if (pPrecision instanceof ImplicitDependencyPrecision) {
-      precision=(ImplicitDependencyPrecision) pPrecision;
+      dPrecision=(ImplicitDependencyPrecision) pPrecision;
     }
     if (pPrecision instanceof AllTrackingPrecision) {
-      precision=(AllTrackingPrecision) pPrecision;
+      dPrecision=(AllTrackingPrecision) pPrecision;
     }
 
     Map<Variable, SortedSet<Variable>> deps = pState.getDependencies();
@@ -1610,7 +1616,8 @@ public class DependencyTrackerRelation
     for (Entry<Variable, SortedSet<Variable>> dep : deps.entrySet()) {
       Variable var = dep.getKey();
       SortedSet<Variable> vars = dep.getValue();
-      if (!(precision.isTrackingNecessary(var, vars))) {
+      assert (dPrecision != null);
+      if (!(dPrecision.isTrackingNecessary(var, vars))) {
         removeset.add(var);
       }
     }

@@ -45,7 +45,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 public class CtoFormulaConverterNI extends CtoFormulaConverter{
 
-  private FormulaEncodingOptions options;
+  // private FormulaEncodingOptions options;
   private int tag=0;
 
   public CtoFormulaConverterNI(FormulaEncodingOptions pOptions, FormulaManagerView pFmgr,
@@ -54,7 +54,7 @@ public class CtoFormulaConverterNI extends CtoFormulaConverter{
       AnalysisDirection pDirection) {
     super(pOptions, pFmgr, pMachineModel, pVariableClassification, pLogger, pShutdownNotifier,
         pTypeHandler, pDirection);
-    this.options=pOptions;
+    // this.options=pOptions;
   }
 
   @Override

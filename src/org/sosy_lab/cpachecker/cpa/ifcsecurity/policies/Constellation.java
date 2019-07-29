@@ -38,15 +38,15 @@ public class Constellation<T extends SecurityClasses, E extends SecurityClasses>
   }
 
   public void addPair(T pFirst, E pSecond) {
-    internalSet.add(new Pair<T, E>(pFirst, pSecond));
+    internalSet.add(new Pair<>(pFirst, pSecond));
   }
 
   public void removePair(T pFirst, E pSecond) {
-    internalSet.remove(new Pair<T, E>(pFirst, pSecond));
+    internalSet.remove(new Pair<>(pFirst, pSecond));
   }
 
   public boolean containsPair(T pFirst, E pSecond) {
-    return internalSet.contains(new Pair<T, E>(pFirst, pSecond));
+    return internalSet.contains(new Pair<>(pFirst, pSecond));
   }
 
   public int size(){
@@ -96,6 +96,7 @@ public class Constellation<T extends SecurityClasses, E extends SecurityClasses>
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public boolean equals(Object pObj) {
       if (this == pObj) { return true; }
       if (pObj instanceof Pair) {

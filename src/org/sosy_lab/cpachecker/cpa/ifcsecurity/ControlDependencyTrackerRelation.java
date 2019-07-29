@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Pair;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.VariableDependancy;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.precision.DependencyPrecision;
@@ -85,29 +84,29 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
     rcd=pRcd;
   }
 
-  public void addExpr(ControlDependencyTrackerState state, CFANode node, CExpression pExpression)
+  public void addExpr(ControlDependencyTrackerState pState, CFANode node, CExpression pExpression)
       throws UnsupportedCodeException {
     VariableDependancy visitor=new VariableDependancy();
     pExpression.accept(visitor);
     SortedSet<Variable> value=visitor.getResult();
-    if(!state.getContexts().containsKey(node)){
-      state.getContexts().put(node,new TreeSet<>());
+    if (!pState.getContexts().containsKey(node)) {
+      pState.getContexts().put(node, new TreeSet<>());
     }
-    state.getuRcontexts().put(node, value);
+    pState.getuRcontexts().put(node, value);
   }
 
 
-  public void refine(ControlDependencyTrackerState state, TreeSet<CFANode> pDominators){
-    for( Entry<CFANode, SortedSet<Variable>> entry: state.getuRcontexts().entrySet()){
+  public void refine(ControlDependencyTrackerState pState, TreeSet<CFANode> pDominators) {
+    for (Entry<CFANode, SortedSet<Variable>> entry : pState.getuRcontexts().entrySet()) {
       CFANode node=entry.getKey();
       if(!pDominators.contains(node)){
-        state.getuRcontexts().put(node,new TreeSet<Variable>());
+        pState.getuRcontexts().put(node, new TreeSet<Variable>());
       }
     }
-    for( Entry<CFANode, SortedSet<Variable>> entry: state.getContexts().entrySet()){
+    for (Entry<CFANode, SortedSet<Variable>> entry : pState.getContexts().entrySet()) {
       CFANode node=entry.getKey();
       if(!pDominators.contains(node)){
-        state.getContexts().put(node,new TreeSet<Variable>());
+        pState.getContexts().put(node, new TreeSet<Variable>());
       }
     }
   }
@@ -286,7 +285,7 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
     assert pState instanceof ControlDependencyTrackerState;
 
     DependencyPrecision prec = (DependencyPrecision) pPrecision;
-    ControlDependencyTrackerState state=(ControlDependencyTrackerState)pState;
+    ControlDependencyTrackerState cState=(ControlDependencyTrackerState)pState;
 
     /*
      * Refine ContextStack
@@ -296,14 +295,12 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
     CFANode preNode=pCfaEdge.getPredecessor();
     TreeSet<CFANode> cd = rcd.get(currentNode);
 
-    refine(state,cd);
+    refine(cState,cd);
 
     if(pCfaEdge instanceof CAssumeEdge){
       /*
        *
        */
-      Pair<CFANode, CFANode> currentEdge= new Pair<>(pCfaEdge.getPredecessor(), pCfaEdge.getSuccessor());
-
         for(AbstractState aState: pOtherStates){
           /*
            * DependencyTrackerCPA strengthens the information contained in Variables of a control branch
@@ -316,8 +313,8 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
              */
             Map<Variable, SortedSet<Variable>> deps = dState.getDependencies();
 
-            SortedSet<Variable> context=state.getContexts().get(preNode);
-            SortedSet<Variable> urContext=state.getuRcontexts().get(preNode);
+            SortedSet<Variable> context=cState.getContexts().get(preNode);
+            SortedSet<Variable> urContext=cState.getuRcontexts().get(preNode);
 
             for(Variable var: urContext){
               if(deps.containsKey(var)){
@@ -333,7 +330,7 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
               }
             }
             }
-            state.getuRcontexts().put(preNode,new TreeSet<>());
+            cState.getuRcontexts().put(preNode,new TreeSet<>());
           }
         }
       }

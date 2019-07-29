@@ -57,8 +57,6 @@ import org.sosy_lab.cpachecker.cpa.ifcsecurity.precision.ImplicitDependencyPreci
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -92,8 +90,7 @@ public class NIRefiner implements Refiner {
 
 
 
-  private boolean isSpurious(ReachedSet pReached, AbstractState state)
-      throws InfeasibleCounterexampleException, RefinementFailedException {
+  private boolean isSpurious(ReachedSet pReached, AbstractState state) {
     boolean result = false;
 
     ARGState argstate = (ARGState) state;
@@ -118,7 +115,7 @@ public class NIRefiner implements Refiner {
     List<ARGState> list = path.asStatesList();
 
     argloop: for (ARGState argstate2 : list) {
-      boolean shallstop = false;
+      // boolean shallstop = false;
       CompositeState wstate = (CompositeState) argstate2.getWrappedState();
       for (AbstractState cstate : wstate.getWrappedStates()) {
         if (cstate instanceof LocationState) {
@@ -172,8 +169,9 @@ public class NIRefiner implements Refiner {
           List<Variable> lvars = new ArrayList<>();
           lvars.add(viovar);
           SortedSet<SecurityClasses> candidateSC = candidate.getTo();
+          assert (dep != null);
           for (Variable lvar : dep.get(viovar)) {
-            SecurityClasses lvarsc = asc.get(lvar);
+            SecurityClasses lvarsc = dprec.getSC(lvar);
             if (candidateSC.contains(lvarsc)) {
               lvars.add(lvar);
             }
@@ -189,6 +187,7 @@ public class NIRefiner implements Refiner {
           //4.2 Evaluate Formula
           boolean solverresult = true;
           try {
+            assert (solver != null);
             solverresult = !solver.isUnsat(formula);
             if (!solverresult) {
 
@@ -209,15 +208,16 @@ public class NIRefiner implements Refiner {
         }
         if (refinementnecessary) {
           SortedSet<Variable> moreprecisedep = new TreeSet<>();
+          assert (dep != null);
           Iterator<Variable> it = dep.get(viovar).iterator();
           while (it.hasNext()) {
             Variable elem = it.next();
-            if (refinementSC.contains(asc.get(elem))) {
+            if (refinementSC.contains(dprec.getSC(elem))) {
               moreprecisedep.add(elem);
             }
           }
           dprec.addRefinementInfo(node, viovar, moreprecisedep);
-          shallstop = true;
+          // shallstop = true;
           result = true;
           break argloop;
         }
@@ -236,7 +236,8 @@ public class NIRefiner implements Refiner {
   }
 
 
-  private Map<Variable, Edge<SecurityClasses>> computeViolations(ConglomeratePolicy policy,
+  private Map<Variable, Edge<SecurityClasses>> computeViolations(
+      ConglomeratePolicy<SecurityClasses> policy,
       Map<Variable, SecurityClasses> allowedsecurityclassmapping,
       Map<Variable, SortedSet<SecurityClasses>> contentsecurityclasslevels) {
     Map<Variable, Edge<SecurityClasses>> result = new TreeMap<>();
@@ -253,10 +254,11 @@ public class NIRefiner implements Refiner {
     return result;
   }
 
-  private List<Variable> computeViolationSet(ConglomeratePolicy policy,
+  private List<Variable> computeViolationSet(
+      ConglomeratePolicy<SecurityClasses> policy,
       Map<Variable, SecurityClasses> allowedsecurityclassmapping,
       Map<Variable, SortedSet<SecurityClasses>> contentsecurityclasslevels) {
-    List<Variable> returnset = new ArrayList<Variable>();
+    List<Variable> returnset = new ArrayList<>();
     for (Entry<Variable, SortedSet<SecurityClasses>> entry : contentsecurityclasslevels
         .entrySet()) {
       Variable var = entry.getKey();
@@ -270,9 +272,10 @@ public class NIRefiner implements Refiner {
     return returnset;
   }
 
+  @SuppressWarnings("unchecked")
   private SortedSet<Edge<SecurityClasses>> computeNPol(ConglomeratePolicy<SecurityClasses> policy) {
-    PolicyAlgebra alg = new PolicyAlgebra();
-    ConglomeratePolicy toppolicy = new BottomPolicy<SecurityClasses>(alg.getDomain(policy));
+    PolicyAlgebra<SecurityClasses> alg = new PolicyAlgebra<>();
+    ConglomeratePolicy<SecurityClasses> toppolicy = new BottomPolicy<>(alg.getDomain(policy));
     SortedSet<Edge<SecurityClasses>> nset =
         SetUtil.setminus(toppolicy.getEdges(), policy.getEdges());
     return nset;

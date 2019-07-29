@@ -50,23 +50,42 @@ import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.ImmediateChecksParser;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InitialMapParser;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 
-@Options(prefix="cpa.ifcsecurity")
-public class ImplicitDependencyPrecision extends AbstractRefinableDependencyPrecision implements DepPrecision,Serializable {
-  //TODO Make Immutable except for Dependency Exceptions (CEGAR)
+@Options(prefix = "cpa.ifcsecurity")
+public class ImplicitDependencyPrecision extends AbstractRefinableDependencyPrecision
+    implements DepPrecision, Serializable {
+  // TODO Make Immutable except for Dependency Exceptions (CEGAR)
 
-  @Option(secure=true, name="scMappingFile", toUppercase=false, description="which betamapfile to use for PolicyEnforcementCPA")
+  private static final long serialVersionUID = 7693049684866786637L;
+
+  @Option(
+    secure = true,
+    name = "scMappingFile",
+    toUppercase = false,
+    description = "which betamapfile to use for PolicyEnforcementCPA")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private transient Path scMappingFile=Paths.get("betamap.conf");
+  private transient Path scMappingFile = Paths.get("betamap.conf");
 
-  @Option(secure=true, name="defaultsc", toUppercase=true, description="which default SecurityClass to use for PolicyEnforcementCPA")
-  private String defaultSCname="LOW";
+  @Option(
+    secure = true,
+    name = "defaultsc",
+    toUppercase = true,
+    description = "which default SecurityClass to use for PolicyEnforcementCPA")
+  private String defaultSCname = "LOW";
 
-  @Option(secure=true, name="policy", toUppercase=true, description="which policy to use for PolicyEnforcementCPA")
-  private String policyname="HILO";
+  @Option(
+    secure = true,
+    name = "policy",
+    toUppercase = true,
+    description = "which policy to use for PolicyEnforcementCPA")
+  private String policyname = "HILO";
 
-  @Option(secure=true, name="immediatechecksfile", toUppercase=false, description="which immediatechecksfile to use for PolicyEnforcementCPA")
+  @Option(
+    secure = true,
+    name = "immediatechecksfile",
+    toUppercase = false,
+    description = "which immediatechecksfile to use for PolicyEnforcementCPA")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private transient Path immediatechecksfile=Paths.get("immediatechecks.conf");
+  private transient Path immediatechecksfile = Paths.get("immediatechecks.conf");
 
   private Map<Variable, SecurityClasses> scmap;
   private SecurityClasses defaultSC;
@@ -75,7 +94,6 @@ public class ImplicitDependencyPrecision extends AbstractRefinableDependencyPrec
   private ConglomeratePolicy<SecurityClasses> policy;
   private SortedSet<Edge<SecurityClasses>> nset;
   private SortedSet<Variable> alwaysViolation;
-
 
   @Override
   public SortedSet<Variable> getAlwaysViolation() {
@@ -107,91 +125,98 @@ public class ImplicitDependencyPrecision extends AbstractRefinableDependencyPrec
     return nset;
   }
 
-  public ImplicitDependencyPrecision(LogManager pLogger, String pScMappingFile,String pPolicyname, String pDefaultSCname, String pImmediatechecksfile){
-    this.scMappingFile=Paths.get(pScMappingFile);
-    this.defaultSCname=pDefaultSCname;
-    this.policyname=pPolicyname;
-    this.immediatechecksfile=Paths.get(pImmediatechecksfile);
+  public ImplicitDependencyPrecision(
+      Configuration pConfig,
+      LogManager pLogger,
+      String pScMappingFile,
+      String pPolicyname,
+      String pDefaultSCname,
+      String pImmediatechecksfile)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
+    this.scMappingFile = Paths.get(pScMappingFile);
+    this.defaultSCname = pDefaultSCname;
+    this.policyname = pPolicyname;
+    this.immediatechecksfile = Paths.get(pImmediatechecksfile);
     construction(pLogger);
   }
 
-  private void construction(LogManager pLogger){
-   try {
+  @SuppressWarnings("unchecked")
+  private void construction(LogManager pLogger) {
+    try {
       Field f;
-      //Get Policy
-      f=PredefinedPolicies.class.getField(policyname);
-      policy=(ConglomeratePolicy<SecurityClasses>)(f.get(null));
-      nset=computeNPol();
-      //Trackable
-      trackingSC=computeLeft();
-      trackableSC=computeRight();
-//      trackableSC=null;
+      // Get Policy
+      f = PredefinedPolicies.class.getField(policyname);
+      policy = (ConglomeratePolicy<SecurityClasses>) (f.get(null));
+      nset = computeNPol();
+      // Trackable
+      trackingSC = computeLeft();
+      trackableSC = computeRight();
+      // trackableSC=null;
 
-      //Initial Systemmap & History Map
-      InitialMapParser imapp=new InitialMapParser(pLogger,scMappingFile);
-          scmap = imapp.getInitialMap();
+      // Initial Systemmap & History Map
+      InitialMapParser imapp = new InitialMapParser(pLogger, scMappingFile);
+      scmap = imapp.getInitialMap();
 
-      //Attacker-Level
-      f=PredefinedPolicies.class.getField(defaultSCname);
-      defaultSC = (SecurityClasses)(f.get(null));
+      // Attacker-Level
+      f = PredefinedPolicies.class.getField(defaultSCname);
+      defaultSC = (SecurityClasses) (f.get(null));
 
-      //Immediate CheckSet
-      ImmediateChecksParser imcp=new ImmediateChecksParser(pLogger,immediatechecksfile);
+      // Immediate CheckSet
+      ImmediateChecksParser imcp = new ImmediateChecksParser(pLogger, immediatechecksfile);
       alwaysViolation = imcp.getSet();
 
-          //Trackable
+      // Trackable
 
-//          trackableSC=new ArrayList<>();
-//          //TODO ADD CONFIGURATION OPTION
-//          trackableSC.add(PredefinedPolicies.HIGH);
+      // trackableSC=new ArrayList<>();
+      // //TODO ADD CONFIGURATION OPTION
+      // trackableSC.add(PredefinedPolicies.HIGH);
 
-        } catch (NoSuchFieldException e) {
-          pLogger.log(Level.WARNING, e);
-        } catch (SecurityException e) {
-          pLogger.log(Level.WARNING, e);
-        } catch (IllegalArgumentException e) {
-          pLogger.log(Level.WARNING, e);
-        }catch (IllegalAccessException e) {
-          pLogger.log(Level.WARNING, e);
-        }
+    } catch (NoSuchFieldException e) {
+      pLogger.log(Level.WARNING, e);
+    } catch (SecurityException e) {
+      pLogger.log(Level.WARNING, e);
+    } catch (IllegalArgumentException e) {
+      pLogger.log(Level.WARNING, e);
+    } catch (IllegalAccessException e) {
+      pLogger.log(Level.WARNING, e);
+    }
   }
 
-  public ImplicitDependencyPrecision(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  public ImplicitDependencyPrecision(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     construction(pLogger);
   }
 
   @Override
-  public boolean isViolable(Variable pVar){
+  public boolean isViolable(Variable pVar) {
     SecurityClasses sc;
-    if(scmap.containsKey(pVar)){
-      sc=scmap.get(pVar);
-    }
-    else{
-      sc=defaultSC;
+    if (scmap.containsKey(pVar)) {
+      sc = scmap.get(pVar);
+    } else {
+      sc = defaultSC;
     }
     return trackingSC.contains(sc);
   }
 
   @Override
-  public boolean isTrackingNecessary(Variable pVar, SortedSet<Variable> pVars){
+  public boolean isTrackingNecessary(Variable pVar, SortedSet<Variable> pVars) {
     SecurityClasses sc;
-    if(scmap.containsKey(pVar)){
-      sc=scmap.get(pVar);
-    }
-    else{
-      sc=defaultSC;
+    if (scmap.containsKey(pVar)) {
+      sc = scmap.get(pVar);
+    } else {
+      sc = defaultSC;
     }
 
-    for(Variable var2:pVars){
+    for (Variable var2 : pVars) {
       SecurityClasses sc2;
-      if(scmap.containsKey(var2)){
-        sc2=scmap.get(var2);
+      if (scmap.containsKey(var2)) {
+        sc2 = scmap.get(var2);
+      } else {
+        sc2 = defaultSC;
       }
-      else{
-        sc2=defaultSC;
-      }
-      if(trackableSC== null || trackableSC.contains(sc2)){
+      if (trackableSC == null || trackableSC.contains(sc2)) {
         return true;
       }
     }
@@ -201,46 +226,45 @@ public class ImplicitDependencyPrecision extends AbstractRefinableDependencyPrec
   @Override
   public boolean isTracked(Variable pVar) {
     SecurityClasses sc;
-    if(scmap.containsKey(pVar)){
-      sc=scmap.get(pVar);
+    if (scmap.containsKey(pVar)) {
+      sc = scmap.get(pVar);
+    } else {
+      sc = defaultSC;
     }
-    else{
-      sc=defaultSC;
-    }
-    if(trackableSC== null || trackableSC.contains(sc)){
-       return true;
-    }
-    else{
+    if (trackableSC == null || trackableSC.contains(sc)) {
+      return true;
+    } else {
       return false;
     }
   }
 
   @Override
-  public SecurityClasses getSC(Variable pVar){
+  public SecurityClasses getSC(Variable pVar) {
     SecurityClasses sc;
-    if(scmap.containsKey(pVar)){
-      sc=scmap.get(pVar);
-    }
-    else{
-      sc=defaultSC;
+    if (scmap.containsKey(pVar)) {
+      sc = scmap.get(pVar);
+    } else {
+      sc = defaultSC;
     }
     return sc;
   }
 
-  PolicyAlgebra alg = new PolicyAlgebra();
+  PolicyAlgebra<SecurityClasses> alg = new PolicyAlgebra<>();
 
+  @SuppressWarnings("unchecked")
   private SortedSet<Edge<SecurityClasses>> computeNPol() {
-    ConglomeratePolicy toppolicy = new BottomPolicy<SecurityClasses>(alg.getDomain(policy));
+    ConglomeratePolicy<SecurityClasses> toppolicy = new BottomPolicy<>(alg.getDomain(policy));
     SortedSet<Edge<SecurityClasses>> nset =
         SetUtil.setminus(toppolicy.getEdges(), policy.getEdges());
     return nset;
   }
 
-  private List<SecurityClasses> computeLeft(){
-    List<SecurityClasses> result=new ArrayList<>();
-    SC: for(SecurityClasses sc: (SortedSet<SecurityClasses>) alg.getDomain(policy)){
-      for(Edge<SecurityClasses> vioedge: nset){
-        if(vioedge.getFrom().equals(sc)){
+  @SuppressWarnings("unchecked")
+  private List<SecurityClasses> computeLeft() {
+    List<SecurityClasses> result = new ArrayList<>();
+    SC: for (SecurityClasses sc : alg.getDomain(policy)) {
+      for (Edge<SecurityClasses> vioedge : nset) {
+        if (vioedge.getFrom().equals(sc)) {
           result.add(sc);
           continue SC;
         }
@@ -249,31 +273,31 @@ public class ImplicitDependencyPrecision extends AbstractRefinableDependencyPrec
     return result;
   }
 
-  private List<SecurityClasses> computeRight(){
-    SortedSet<SecurityClasses> result=new TreeSet<>();
-      for(Edge<SecurityClasses> vioedge: nset){
-        SecurityClasses sc=vioedge.getFrom();
-        SortedSet<SecurityClasses> scSet=vioedge.getTo();
-        //TODO CHECK IS AGGREGATION POLICY
-        for(SecurityClasses sc2:scSet){
-          if(!(result.contains(sc2))){
-            SortedSet<SecurityClasses> tmp=new TreeSet<>();
-            tmp.add(sc2);
-            SortedSet<SecurityClasses> scSet2=SetUtil.setminus(scSet, tmp);
-            Edge<SecurityClasses> testedge=new Edge<SecurityClasses>(sc, scSet2);
-            if(!(nset.contains(testedge))){
-              result.add(sc2);
-            }
+  @SuppressWarnings("unchecked")
+  private List<SecurityClasses> computeRight() {
+    SortedSet<SecurityClasses> result = new TreeSet<>();
+    for (Edge<SecurityClasses> vioedge : nset) {
+      SecurityClasses sc = vioedge.getFrom();
+      SortedSet<SecurityClasses> scSet = vioedge.getTo();
+      // TODO CHECK IS AGGREGATION POLICY
+      for (SecurityClasses sc2 : scSet) {
+        if (!(result.contains(sc2))) {
+          SortedSet<SecurityClasses> tmp = new TreeSet<>();
+          tmp.add(sc2);
+          SortedSet<SecurityClasses> scSet2 = SetUtil.setminus(scSet, tmp);
+          Edge<SecurityClasses> testedge = new Edge<>(sc, scSet2);
+          if (!(nset.contains(testedge))) {
+            result.add(sc2);
           }
         }
       }
-    return new ArrayList<SecurityClasses>(result);
+    }
+    return new ArrayList<>(result);
   }
 
   @Override
   public String toString() {
-    return ""+"("+trackableSC+","+refinementInfo+")";
+    return "" + "(" + trackableSC + "," + refinementInfo + ")";
   }
-
 
 }

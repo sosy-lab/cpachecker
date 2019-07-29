@@ -40,7 +40,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -79,8 +79,12 @@ public class StatisticFile implements Statistics {
   private DependencyPrecision precision;
   private Configuration config;
 
-  public StatisticFile(DependencyTrackerCPA pCpa, Configuration pConfig, CFA pCfa,
-      DependencyPrecision pPrecision) throws InvalidConfigurationException {
+  public StatisticFile(
+      DependencyTrackerCPA pCpa,
+      Configuration pConfig,
+      CFA pCfa,
+      DependencyPrecision pPrecision)
+      throws InvalidConfigurationException {
     this.cpa = pCpa;
     this.cfa = pCfa;
     this.precision = pPrecision;
@@ -93,24 +97,23 @@ public class StatisticFile implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
 
-    //Analysis
+    // Analysis
     if (targetFile != null) {
-      writeFile(pReached,pResult);
+      writeFile(pReached, pResult);
     }
 
   }
 
-  public void writeFile(UnmodifiableReachedSet pReached,Result pResult) {
-
+  public void writeFile(UnmodifiableReachedSet pReached, Result pResult) {
 
     List<AbstractState> targets =
         FluentIterable.from(pReached).filter(AbstractStates.IS_TARGET_STATE).toList();
 
-    StatisiticInfo result=new StatisiticInfo();
+    StatisiticInfo result = new StatisiticInfo();
 
     /* File-Name */
     List<Path> fileName = cfa.getFileNames();
-    result.testcase=(fileName.get(0).getFileName().toString());
+    result.testcase = (fileName.get(0).getFileName().toString());
 
     /* Policy */
     ConglomeratePolicy<SecurityClasses> pol = null;
@@ -120,37 +123,34 @@ public class StatisticFile implements Statistics {
     if (precision instanceof ImplicitDependencyPrecision) {
       pol = ((ImplicitDependencyPrecision) precision).getPolicy();
     }
-    if(pol.equals(PredefinedPolicies.HILOANY)){
+    if (pol.equals(PredefinedPolicies.HILOANY)) {
       result.policy = ("LHI");
-    }
-    else
-    if(pol.equals(PredefinedPolicies.CHINESEWALL)){
+    } else if (pol.equals(PredefinedPolicies.CHINESEWALL)) {
       result.policy = ("CW");
-    }
-    else{
+    } else {
       result.policy = (pol.toString());
     }
 
     /* Mapping */
-    result.mapping=(fileName.get(0).getFileName().toString());
+    result.mapping = (fileName.get(0).getFileName().toString());
 
-    try (Writer writer = MoreFiles.openOutputFile(targetFile, Charset.defaultCharset())) {
+    try (Writer writer = IO.openOutputFile(targetFile, Charset.defaultCharset())) {
       writer.write(result.toString());
     } catch (IOException e) {
-      cpa.getLogger().logUserException(Level.WARNING, e,
-          "Could not write dep-analysis to json-file");
+      cpa.getLogger()
+          .logUserException(Level.WARNING, e, "Could not write dep-analysis to json-file");
     }
 
   }
 
-  private void mainAnalysisToJson(UnmodifiableReachedSet pReached, JsonObj topContainerR,
-      Set<String> vars) {
+  private void
+      mainAnalysisToJson(UnmodifiableReachedSet pReached, JsonObj topContainerR, Set<String> vars) {
     JsonArray usecasesR = new JsonArray();
 
     JsonObj analysis = new JsonObj();
 
     /* 2. 0. Tool-Information */
-    JsonObj toolInfo=new JsonObj();
+    JsonObj toolInfo = new JsonObj();
     toolInfo.add(new StringValue("toolName"), new StringValue("CPAchecker"));
     toolInfo.add(new StringValue("configuration"), new StringValue(config.toString()));
 
@@ -189,14 +189,12 @@ public class StatisticFile implements Statistics {
 
     policyR = new StringValue(pol.toString());
 
-
     analysisSpecificInfo.add(new StringValue("Mapping"), scMapping);
 
     analysis.add(new StringValue("Analysis-Specific"), analysisSpecificInfo);
     /* 2. 2. Uses Analyses */
     JsonArray usedAnalysesInfo = new JsonArray();
     usedAnalysesInfo.add(new StringValue("CFA"));
-
 
     ARGState argState = (ARGState) pReached.getFirstState();
     CompositeState compositState = (CompositeState) argState.getWrappedState();
@@ -215,8 +213,6 @@ public class StatisticFile implements Statistics {
 
     /* 2. 3. Result */
     JsonObj secResult = new JsonObj();
-
-
 
     analysis.add(new StringValue("Violations"), secResult);
 
@@ -247,7 +243,6 @@ public class StatisticFile implements Statistics {
 
     usedAnalyses.add(new StringValue("Dep-Analysis"), depAnalysis);
 
-
     /* Control Dep */
     JsonObj controldepAnalysis = new JsonObj();
 
@@ -261,10 +256,8 @@ public class StatisticFile implements Statistics {
 
     usedAnalyses.add(new StringValue("Control-Dep-Analysis"), controldepAnalysis);
 
-
     topContainerR.add(new StringValue("Auxilliary-Analyses"), usedAnalyses);
   }
-
 
   private void writeDependencyTrackerToJson(JsonObj analysis, AbstractState reachNode) {
     ARGState argState = (ARGState) reachNode;
@@ -281,7 +274,7 @@ public class StatisticFile implements Statistics {
       }
     }
     JsonObj depJSon = depState.toJson();
-    if(depJSon!=null){
+    if (depJSon != null) {
       analysis.add(new StringValue(node.toString()), depJSon);
     }
   }
@@ -300,38 +293,37 @@ public class StatisticFile implements Statistics {
         condepState = (ControlDependencyTrackerState) aState;
       }
     }
-    StringValue condepJSon =condepState.toJson();
-    if(condepJSon!=null){
+    StringValue condepJSon = condepState.toJson();
+    if (condepJSon != null) {
       analysis.add(new StringValue(node.toString()), condepJSon);
     }
   }
 
-  private void writeCFAToJson(JsonObj analysis){
-   JsonArray cfaJson=new JsonArray();
-   Collection<CFANode> nodes = cfa.getAllNodes();
-   for(CFANode source: nodes){
-     for(int i=0;i<source.getNumLeavingEdges();i++){
+  private void writeCFAToJson(JsonObj analysis) {
+    JsonArray cfaJson = new JsonArray();
+    Collection<CFANode> nodes = cfa.getAllNodes();
+    for (CFANode source : nodes) {
+      for (int i = 0; i < source.getNumLeavingEdges(); i++) {
 
-       CFAEdge edge=source.getLeavingEdge(i);
-       CFANode target=edge.getSuccessor();
-       JsonObj cfaEdge=new JsonObj();
-       cfaEdge.add(new StringValue("Source"),new StringValue(source.toString()));
-       cfaEdge.add(new StringValue("Label"),new StringValue(edge.getCode().toString()));
-       cfaEdge.add(new StringValue("Target"),new StringValue(target.toString()));
-       cfaJson.add(cfaEdge);
-     }
-   }
-   analysis.add(new StringValue("Edges"), cfaJson);
+        CFAEdge edge = source.getLeavingEdge(i);
+        CFANode target = edge.getSuccessor();
+        JsonObj cfaEdge = new JsonObj();
+        cfaEdge.add(new StringValue("Source"), new StringValue(source.toString()));
+        cfaEdge.add(new StringValue("Label"), new StringValue(edge.getCode().toString()));
+        cfaEdge.add(new StringValue("Target"), new StringValue(target.toString()));
+        cfaJson.add(cfaEdge);
+      }
+    }
+    analysis.add(new StringValue("Edges"), cfaJson);
   }
 
-  private void writeCDtoJson(){
-    //TODO
+  private void writeCDtoJson() {
+    // TODO
   }
 
   @Override
   public @Nullable String getName() {
     return "DependencyTrackerCPA";
   }
-
 
 }

@@ -47,7 +47,7 @@ public class FileInfo {
     }
 
     public void addVariable(Variable pVariable,String type){
-      Pair<Variable, String> pair = new Pair<Variable, String>(pVariable, type);
+    Pair<Variable, String> pair = new Pair<>(pVariable, type);
       if(!variables.contains(pair)){
         variables.add(pair);
       }

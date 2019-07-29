@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.LHOreduc;
-import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -62,7 +61,7 @@ public class LHOCheck_Strategy extends ARG_CPAStrategy {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   Path lhoOrderFile1 = Paths.get("D:\\\\eclipse-workspace\\\\CPAchecker-IFC\\\\output\\\\lho.obj");
 
-  private LogManager logger;
+  private LogManager lLogger;
   private final StopOperator stop;
   private final TransferRelation transfer;
 
@@ -76,7 +75,7 @@ public class LHOCheck_Strategy extends ARG_CPAStrategy {
   // Control-Dependencies
 
   // Intervals
-  private Map<CFANode, Interval> intervals;
+  // private Map<CFANode, Interval> intervals;
 
   private UnmodifiableReachedSet reachSet;
 
@@ -89,7 +88,7 @@ public class LHOCheck_Strategy extends ARG_CPAStrategy {
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pProofFile, pCpa);
     pConfig.inject(this);
-    logger = pLogger;
+    lLogger = pLogger;
     if (pCpa == null) {
       stop = null;
       transfer = null;
@@ -108,14 +107,14 @@ public class LHOCheck_Strategy extends ARG_CPAStrategy {
     LHOreduc lhoreduc =
         LHOreduc.readLHOOrder(
             Paths.get("D:\\eclipse-workspace\\CPAchecker-IFC\\output\\lho.obj"),
-            logger);
+            lLogger);
     lhoOrder = lhoreduc.getLHO();
     rDom = lhoreduc.getRDom();
   }
 
   private boolean checkDomisRootedTree() {
-    ARGState root= (ARGState) reachSet.getLastState();
-    CFANode cRoot=null;
+    ARGState root = (ARGState) reachSet.getLastState();
+    CFANode cRoot = null;
     CompositeState wstate = (CompositeState) root.getWrappedState();
     for (AbstractState cstate : wstate.getWrappedStates()) {
       if (cstate instanceof LocationState) {
@@ -148,13 +147,13 @@ public class LHOCheck_Strategy extends ARG_CPAStrategy {
   public boolean checkCertificate(ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
 
-    logger.log(Level.FINE, "HERE");
+    lLogger.log(Level.FINE, "HERE");
     // Initialize
     reachSet = pReachedSet;
     initPDCert();
     // Check rDom is a tree rooted in N0
     if (!checkDomisRootedTree()) {
-      logger.log(Level.FINE, "DomisnotRootedTree");
+      lLogger.log(Level.FINE, "DomisnotRootedTree");
       return false;
     }
     // Do DFS traversal
@@ -176,6 +175,16 @@ public class LHOCheck_Strategy extends ARG_CPAStrategy {
     return result;
   }
 
+  private StopOperator getStop() {
+    return stop;
+  }
 
+  private TransferRelation getTransfer() {
+    return transfer;
+  }
+
+  public Map<CFANode, List<CFANode>> getrDom() {
+    return rDom;
+  }
 
 }

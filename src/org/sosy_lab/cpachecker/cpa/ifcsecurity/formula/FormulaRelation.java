@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity.formula;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
@@ -109,8 +108,8 @@ public class FormulaRelation
     return pathFormulaManager;
   }
 
-  private Map<CFANode, PathFormula> computedPathFormulae = new HashMap<>();
-  private Map<CFANode, Boolean> explored = new HashMap<>();
+  // private Map<CFANode, PathFormula> computedPathFormulae = new HashMap<>();
+  // private Map<CFANode, Boolean> explored = new HashMap<>();
 
 
   //
@@ -124,7 +123,7 @@ public class FormulaRelation
   /**
    * Internal Variable: Control Dependencies
    */
-  private Map<CFANode, TreeSet<CFANode>> rcd;
+  // private Map<CFANode, TreeSet<CFANode>> rcd;
 
   public FormulaRelation(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa, Map<CFANode, TreeSet<CFANode>> pRcd) throws InvalidConfigurationException {
 
@@ -145,7 +144,7 @@ public class FormulaRelation
     ssaBuilder = SSAMap.emptySSAMap().builder();
 
     pathFormulaManager = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, pCfa, AnalysisDirection.FORWARD);
-    this.rcd=pRcd;
+    // this.rcd=pRcd;
   }
 
 
