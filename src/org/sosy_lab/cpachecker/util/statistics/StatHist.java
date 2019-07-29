@@ -38,7 +38,7 @@ import java.util.function.BiFunction;
  */
 public class StatHist extends AbstractStatValue {
 
-  private final Multiset<Long> hist = ConcurrentHashMultiset.create();
+  protected final Multiset<Long> hist = ConcurrentHashMultiset.create();
 
   public StatHist(String pTitle) {
     super(StatKind.AVG, pTitle);
