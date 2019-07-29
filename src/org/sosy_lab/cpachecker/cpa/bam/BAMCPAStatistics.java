@@ -71,6 +71,26 @@ class BAMCPAStatistics implements Statistics {
   final StatCounter spuriousCex = new StatCounter("Number of spurious counterexamples");
   final StatCounter preciseCex = new StatCounter("Number of precise counterexamples");
 
+  final StatCounter algorithmInstances = new StatCounter("Number of created nested algortihms");
+  final StatHist depthsOfTargetStates =
+      new StatHist("Nesting level of target states with caching") {
+        @Override
+        public String toString() {
+          return String.format(
+              "%.2f (#=%d, min=%d, max=%d, hist=%s)",
+              getAvg(), getUpdateCount(), getMin(), getMax(), hist);
+        }
+      };
+  final StatHist depthsOfFoundTargetStates =
+      new StatHist("Nesting level of target states without caching") {
+        @Override
+        public String toString() {
+          return String.format(
+              "%.2f (#=%d, min=%d, max=%d, hist=%s)",
+              getAvg(), getUpdateCount(), getMin(), getMax(), hist);
+        }
+      };
+
   @Option(secure = true, description = "file for exporting detailed statistics about blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path blockStatisticsFile = Paths.get("block_statistics.txt");
@@ -114,6 +134,11 @@ class BAMCPAStatistics implements Statistics {
     put(out, 0, cpa.reducerStatistics.expandTime);
     put(out, 0, cpa.reducerStatistics.reducePrecisionTime);
     put(out, 0, cpa.reducerStatistics.expandPrecisionTime);
+    put(out, 0, algorithmInstances);
+    if (depthsOfTargetStates.getUpdateCount() > 0) {
+      put(out, 0, depthsOfTargetStates);
+      put(out, 0, depthsOfFoundTargetStates);
+    }
 
     out.println("\nBAM-based Refinement:");
     put(out, 1, computePathTimer);

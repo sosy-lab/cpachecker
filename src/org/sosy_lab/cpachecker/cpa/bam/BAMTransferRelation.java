@@ -375,6 +375,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       throws InterruptedException, CPAException {
 
     // CPAAlgorithm is not re-entrant due to statistics
+    stats.algorithmInstances.inc();
     final Algorithm algorithm = algorithmFactory.newInstance();
     algorithm.run(reached);
 
@@ -382,8 +383,12 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     final List<AbstractState> returnStates;
     final AbstractState lastState = reached.getLastState();
     if (isTargetState(lastState)) {
-      //found a target state inside a recursive subgraph call
-      //this needs to be propagated to outer subgraph (till main is reached)
+      stats.depthsOfTargetStates.insertValue(stack.size());
+      stats.depthsOfFoundTargetStates.insertValue(
+          stack.size() + data.getExpandedStatesList(lastState).size() - 1);
+
+      // found a target state inside a recursive subgraph call
+      // this needs to be propagated to outer subgraph (till main is reached)
       returnStates = Collections.singletonList(lastState);
 
     } else {
