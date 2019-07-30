@@ -547,11 +547,13 @@ public class CPAchecker {
         status = status.update(algorithm.run(reached));
 
         if (cexLimit > 0) {
-          counterExampleCount = Optionals.presentInstances(
-              from(reached)
-              .filter(IS_TARGET_STATE)
-              .filter(ARGState.class)
-              .transform(ARGState::getCounterexampleInformation)).toList().size();
+          counterExampleCount =
+              Optionals.presentInstances(
+                      from(reached)
+                          .filter(IS_TARGET_STATE)
+                          .filter(ARGState.class)
+                          .transform(ARGState::getCounterexampleInformation))
+                  .size();
         }
         // either run only once (if stopAfterError == true)
         // or until the waitlist is empty
