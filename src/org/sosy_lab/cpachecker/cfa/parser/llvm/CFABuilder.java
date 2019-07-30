@@ -662,7 +662,7 @@ public class CFABuilder {
   protected FunctionEntryNode visitFunction(final Value pItem, final String pFileName) {
     assert pItem.isFunction();
 
-    logger.log(Level.FINE, "Creating function: " + pItem.getValueName());
+    logger.log(Level.FINE, "Creating function:", pItem.getValueName());
 
     return handleFunctionDefinition(pItem, pFileName);
   }
