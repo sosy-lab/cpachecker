@@ -19,7 +19,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.sl;
 
+import java.math.BigInteger;
 import java.util.List;
+import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -57,19 +59,25 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.java_smt.api.Formula;
 
 /**
  * Keeps the separation logic heap up-to-date.
  */
 public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
-  private final SLHeapDelegate delegate;
+  private final SLMemoryDelegate memDelegate;
+  private final SLSolverDelegate solDelegate;
   private CLeftHandSide curLHS;
   private CRightHandSide curRHS;
 
-  public SLVisitor(SLHeapDelegate pDelegate) {
-    delegate = pDelegate;
+  public SLVisitor(SLSolverDelegate pSolDelegate, SLMemoryDelegate pMemDelegate) {
+    solDelegate = pSolDelegate;
+    memDelegate = pMemDelegate;
   }
 
   @Override
@@ -114,32 +122,45 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   public Boolean visit(CFunctionCallExpression pIastFunctionCallExpression) throws Exception {
     CIdExpression fctExp = (CIdExpression) pIastFunctionCallExpression.getFunctionNameExpression();
     final List<CExpression> params = pIastFunctionCallExpression.getParameterExpressions();
-    String ptrName;
-    CExpression allocationSize;
+    CType ptrType;
+    BigInteger length;
+    Formula loc;
 
     switch (SLHeapFunction.get(fctExp.getName())) {
       case MALLOC:
-        ptrName = ((CIdExpression) curLHS).getName();
-        allocationSize = params.get(0);
-        delegate.handleMalloc(ptrName, allocationSize);
+        if (curLHS == null) {
+          return true;
+        }
+        ptrType = ((CPointerType) curLHS.getExpressionType()).getType();
+        loc = solDelegate.getFormulaForExpression(curLHS);
+        length = solDelegate.getValueForCExpression(params.get(0));
+        memDelegate.handleMalloc(loc, length, ptrType);
         break;
 
       case CALLOC:
-        ptrName = ((CIdExpression) curLHS).getName();
-        final CExpression num = params.get(0);
-        allocationSize = params.get(1);
-        delegate.handleCalloc(ptrName, num, allocationSize);
+        if (curLHS == null) {
+          return true;
+        }
+        ptrType = ((CPointerType) curLHS.getExpressionType()).getType();
+        loc = solDelegate.getFormulaForExpression(curLHS);
+        // final CExpression size = params.get(1);
+        length = solDelegate.getValueForCExpression(params.get(0));
+        memDelegate.handleCalloc(loc, length, ptrType);
         break;
 
       case REALLOC:
-        ptrName = ((CIdExpression) curLHS).getName();
-        final CExpression oldPtr = params.get(0);
-        final CExpression size = params.get(1);
-        return !delegate.handleRealloc(ptrName, oldPtr, size);
+        if (curLHS == null) {
+          return true;
+        }
+        ptrType = ((CPointerType) curLHS.getExpressionType()).getType();
+        loc = solDelegate.getFormulaForExpression(curLHS);
+        final Formula oldLoc = solDelegate.getFormulaForExpression(params.get(0));
+        length = solDelegate.getValueForCExpression(params.get(1));
+        return !memDelegate.handleRealloc(loc, oldLoc, length, ptrType);
 
       case FREE:
-        CExpression addrExp = params.get(0);
-        return !delegate.handleFree(addrExp);
+        loc = solDelegate.getFormulaForExpression(params.get(0));
+        return !memDelegate.handleFree(solDelegate, loc);
 
       default:
         break;
@@ -190,6 +211,16 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   @Override
   public Boolean visit(CUnaryExpression pIastUnaryExpression) throws Exception {
+    // switch (pIastUnaryExpression.getOperator()) {
+    // case AMPER:
+    // String varName = ((CIdExpression) curLHS).getName();
+    // CPointerType type = (CPointerType) curLHS.getExpressionType();
+    // delegate.handleAddressOf(varName, type.getType());
+    // break;
+    // default:
+    // break;
+    // }
+
     return pIastUnaryExpression.getOperand().accept(this);
   }
 
@@ -212,7 +243,9 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
     if (subscriptExp.accept(this)) {
       return true;
     }
-    return delegate.checkAllocation(arrayExp, subscriptExp, null) == null;
+    Formula loc = solDelegate.getFormulaForExpression(arrayExp);
+    Formula offset = solDelegate.getFormulaForExpression(subscriptExp);
+    return memDelegate.checkAllocation(solDelegate, loc, offset, null) == null;
   }
 
   @Override
@@ -230,7 +263,9 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   public Boolean visit(CPointerExpression pPointerExpression) throws Exception {
     CExpression operand = pPointerExpression.getOperand();
     if (curLHS == pPointerExpression) {
-      if (delegate.checkAllocation(operand, null, (CExpression) curRHS) == null) {
+      Formula loc = solDelegate.getFormulaForExpression(operand);
+      Formula val = solDelegate.getFormulaForExpression((CExpression) curRHS);
+      if (memDelegate.checkAllocation(solDelegate, loc, null, val) == null) {
         return true;
       }
     }
@@ -266,7 +301,22 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   @Override
   public Boolean visit(CVariableDeclaration pDecl) throws Exception {
-    // TODO add to heap
+    BigInteger size;
+    CType type;
+    if (pDecl.getType() instanceof CArrayType) {
+      CArrayType arrayType = (CArrayType) pDecl.getType();
+      type = arrayType.getType();
+      OptionalInt s = arrayType.getLengthAsInt();
+      size =
+          s.isPresent()
+              ? BigInteger.valueOf(s.getAsInt())
+              : solDelegate.getValueForCExpression(arrayType.getLength());
+    } else {
+      type = pDecl.getType();
+      size = BigInteger.ONE;
+    }
+    Formula f = solDelegate.getFormulaForVariableName(pDecl.getName(), pDecl.isGlobal(), false);
+    memDelegate.addToStack(f, size, type, true);
     CInitializer i = pDecl.getInitializer();
     return i != null ? i.accept(this) : false;
   }

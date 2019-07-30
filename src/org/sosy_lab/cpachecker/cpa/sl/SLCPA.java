@@ -31,10 +31,10 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 /**
@@ -46,19 +46,12 @@ public class SLCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(SLCPA.class);
   }
 
-  // private final CFA cfa;
-  // private final Solver solver;
-  // private final SLPrecisionAdjustment prec;
-
-  // private final FormulaManagerView fMgr;
-  // private final SLFormulaManagerView slMgr;
-  // private final IntegerFormulaManagerView intMgr;
-
-
-  private final SLTransferRelation transfer;
-  private final FormulaManagerView fm;
-  // private final BooleanFormulaManager bfm;
+  private final CFA cfa;
+  private final LogManager logger;
+  private final Configuration config;
+  private final ShutdownNotifier shutdownNotifier;
   private final PathFormulaManager pfm;
+  private final Solver solver;
 
   private SLCPA(
       CFA pCfa,
@@ -67,44 +60,34 @@ public class SLCPA extends AbstractCPA {
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
-    super(
-        "sep",
-        "sep",
-        new FlatLatticeDomain(),
-        new SLTransferRelation(pLogger, pCfa.getMachineModel()));
+    super("sep", "sep", new FlatLatticeDomain(), null);
 
-    Solver solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
-    fm = solver.getFormulaManager();
-    // bfm = fm.getBooleanFormulaManager();
+    cfa = pCfa;
+    logger = pLogger;
+    config = pConfig;
+    shutdownNotifier = pShutdownNotifier;
+    solver = Solver.create(config, logger, shutdownNotifier);
     pfm =
         new PathFormulaManagerImpl(
-            fm,
-            pConfig,
-            pLogger,
-            pShutdownNotifier,
-            pCfa,
+            solver.getFormulaManager(),
+            config,
+            logger,
+            shutdownNotifier,
+            cfa,
             AnalysisDirection.FORWARD);
-
-    transfer = (SLTransferRelation) getTransferRelation();
-    transfer.setPathFormulaManager(pfm);
-    transfer.setSolver(solver);
-    transfer.setFormulaManager(fm);
-
   }
 
   @Override
   public SLState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
     PathFormula stack = pfm.makeEmptyPathFormula();
-    // BooleanFormula heap = slfm.makeEmptyHeap(ifm.makeNumber(42), ifm.makeNumber(0));
     return new SLState(stack);
   }
-}
 
-// FormulaManagerView fManager = solver.getFormulaManager();
-//
-// SLFormulaManager slMgr = fManager.getSLFormulaManager();
-// IntegerFormulaManager intMgr = fManager.getIntegerFormulaManager();
-// IntegerFormula x = intMgr.makeVariable("x");
-// IntegerFormula five = intMgr.makeNumber(5);
-// slMgr.makePointsTo(x, five);
+  @Override
+  public TransferRelation getTransferRelation() {
+    SLMemoryDelegate memDel =
+        new SLMemoryDelegateImpl(logger, cfa.getMachineModel(), solver.getFormulaManager());
+    return new SLTransferRelation(logger, solver, pfm, memDel);
+  }
+}
