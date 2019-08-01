@@ -19,11 +19,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.sl;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -32,25 +33,35 @@ import org.sosy_lab.java_smt.api.Formula;
 
 public class SLState implements AbstractState, Targetable {
 
+  public enum SLStateErrors {
+    INVALID_DEREF,
+    UNFREED_MEMORY;
+  }
+
+
   private final PathFormula pathFormula;
   private final Map<Formula, Formula> heap;
   private final Map<Formula, Formula> stack;
 
   private boolean isTarget;
 
+  @Nullable
+  private SLStateErrors error = null;
+
   public SLState(PathFormula pPathFormula) {
-    this(pPathFormula, new HashMap<>(), new HashMap<>(), false);
+    this(pPathFormula, new HashMap<>(), new HashMap<>(), null);
   }
 
   public SLState(
       PathFormula pPathFormula,
       Map<Formula, Formula> pHeap,
       Map<Formula, Formula> pStack,
-      boolean pIsTarget) {
+      SLStateErrors pError) {
     pathFormula = pPathFormula;
     heap = pHeap;
     stack = pStack;
-    isTarget = pIsTarget;
+    error = pError;
+    isTarget = error != null;
   }
 
   public PathFormula getPathFormula() {
@@ -86,18 +97,14 @@ public class SLState implements AbstractState, Targetable {
     return isTarget;
   }
 
-  public void setTarget(boolean pIsTarget) {
-    isTarget = pIsTarget;
+  public void setTarget(SLStateErrors pError) {
+    error = pError;
+    isTarget = pError != null;
   }
 
   @Override
   @Nonnull
   public Set<Property> getViolatedProperties() throws IllegalStateException {
-    return ImmutableSet.of(new Property() {
-      @Override
-      public String toString() {
-        return "INVALID DEREF";
-      }
-    });
+    return NamedProperty.singleton(error.name());
   }
 }

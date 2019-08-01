@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateErrors;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -116,7 +117,10 @@ public class SLTransferRelation
         Formula fHeap = getFormulaForVariableName(var.getName(), false, true);
         try {
           Formula loc = memDel.checkAllocation(this, fHeap);
-          slState.setTarget(loc != null);
+          if (loc != null) {
+            slState.setTarget(SLStateErrors.UNFREED_MEMORY);
+          }
+
         } catch (Exception e) {
           logger.log(Level.SEVERE, e.getMessage());
         }
@@ -144,14 +148,14 @@ public class SLTransferRelation
   protected @Nullable Collection<SLState>
       handleAssumption(CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
           throws CPATransferException {
-    boolean isTarget = true;
+    SLStateErrors error = null;
     try {
-      isTarget = pExpression.accept(slVisitor);
+      error = pExpression.accept(slVisitor);
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
     return ImmutableList
-        .of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), isTarget));
+        .of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), error));
   }
 
   @Override
@@ -164,7 +168,7 @@ public class SLTransferRelation
     // TODO Auto-generated method stub. Not yet implemented.
     // return super.handleFunctionCallEdge(pCfaEdge, pArguments, pParameters, pCalledFunctionName);
     return Collections
-        .singleton(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), false));
+        .singleton(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), null));
   }
 
   @Override
@@ -177,21 +181,21 @@ public class SLTransferRelation
     // TODO Auto-generated method stub. Not yet implemented.
     // return super.handleFunctionReturnEdge(pCfaEdge, pFnkCall, pSummaryExpr, pCallerFunctionName);
     return Collections
-        .singleton(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), false));
+        .singleton(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), null));
   }
 
   @Override
   protected List<SLState>
       handleDeclarationEdge(CDeclarationEdge pCfaEdge, CDeclaration pDecl)
       throws CPATransferException {
-    boolean isTarget = true;
+    SLStateErrors error = null;
     try {
-      isTarget = pDecl.accept(slVisitor);
+      error = pDecl.accept(slVisitor);
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
     return ImmutableList
-        .of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), isTarget));
+        .of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), error));
   }
 
   @Override
@@ -199,26 +203,26 @@ public class SLTransferRelation
       handleStatementEdge(CStatementEdge pCfaEdge, CStatement pStatement)
           throws CPATransferException {
 
-    boolean isTarget = true;
+    SLStateErrors error = null;
     try {
-      isTarget = pStatement.accept(slVisitor);
+      error = pStatement.accept(slVisitor);
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
     return ImmutableList
-        .of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), isTarget));
+        .of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), error));
   }
 
   @Override
   protected Collection<SLState> handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
-    return ImmutableList.of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), false));
+    return ImmutableList.of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), null));
   }
 
   @Override
   protected Set<SLState> handleBlankEdge(BlankEdge pCfaEdge) {
     return Collections
-        .singleton(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), false));
+        .singleton(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), null));
   }
 
   @Override
