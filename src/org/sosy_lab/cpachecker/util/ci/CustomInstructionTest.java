@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
+import static com.google.common.truth.Truth.assert_;
+
 import com.google.common.truth.Truth;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -36,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -128,7 +129,7 @@ public class CustomInstructionTest {
     Truth.assertThat(aci.isStartState(notStart)).isFalse();
     try {
       aci.isStartState(noLocation);
-      Assert.fail();
+      assert_().fail();
     } catch (CPAException e) {
     }
 
@@ -137,7 +138,7 @@ public class CustomInstructionTest {
     Truth.assertThat(cia.isStartState(notStart)).isFalse();
     try {
       cia.isStartState(noLocation);
-      Assert.fail();
+      assert_().fail();
     } catch (CPAException e) {
     }
   }
@@ -151,7 +152,7 @@ public class CustomInstructionTest {
     Truth.assertThat(aci.isEndState(start)).isFalse();
     try {
       aci.isEndState(noLocation);
-      Assert.fail();
+      assert_().fail();
     } catch (CPAException e) {
     }
 
@@ -169,7 +170,7 @@ public class CustomInstructionTest {
     // test if input parameter not a start state
     try {
       cia.getAppliedCustomInstructionFor(end);
-      Assert.fail();
+      assert_().fail();
     } catch (CPAException e) {
       Truth.assertThat(e)
           .hasMessageThat()
@@ -178,7 +179,7 @@ public class CustomInstructionTest {
     // test if input parameter does not contain location state
     try {
       cia.getAppliedCustomInstructionFor(new ARGState(new CallstackState(null, "main", startNode), null));
-      Assert.fail();
+      assert_().fail();
     } catch (CPAException e) {
     }
   }

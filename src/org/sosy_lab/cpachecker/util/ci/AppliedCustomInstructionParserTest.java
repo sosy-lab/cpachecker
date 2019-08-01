@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
+import static com.google.common.truth.Truth.assert_;
+
 import com.google.common.truth.Truth;
 import java.io.IOException;
 import java.io.Writer;
@@ -35,7 +37,6 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -117,7 +118,7 @@ public class AppliedCustomInstructionParserTest {
   public void testGetCFANode() throws AppliedCustomInstructionParsingFailedException {
     try {
       aciParser.getCFANode("N57", cfaInfo);
-      Assert.fail();
+      assert_().fail();
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
     }
@@ -131,7 +132,7 @@ public class AppliedCustomInstructionParserTest {
   public void testReadCustomInstruction() throws AppliedCustomInstructionParsingFailedException, InterruptedException, SecurityException {
     try {
       aciParser.readCustomInstruction("test4");
-      Assert.fail();
+      assert_().fail();
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
       Truth.assertThat(e.getMessage()).matches("Function unknown in program");
@@ -139,7 +140,7 @@ public class AppliedCustomInstructionParserTest {
 
     try {
       aciParser.readCustomInstruction("test");
-      Assert.fail();
+      assert_().fail();
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
       Truth.assertThat(e.getMessage()).matches("Missing label for start of custom instruction");
@@ -147,7 +148,7 @@ public class AppliedCustomInstructionParserTest {
 
     try {
       aciParser.readCustomInstruction("test2");
-      Assert.fail();
+      assert_().fail();
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
       Truth.assertThat(e.getMessage()).matches("Missing label for end of custom instruction");
@@ -381,7 +382,7 @@ public class AppliedCustomInstructionParserTest {
         Truth.assertThat(entry.getValue().getStartAndEndNodes()).containsExactlyElementsIn(aciNodes);
 
         } else {
-          Truth.assertThat(false).isTrue();
+        assert_().fail();
       }
     }
   }

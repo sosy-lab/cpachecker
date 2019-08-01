@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
+import static com.google.common.truth.Truth.assertWithMessage;
+import static com.google.common.truth.Truth.assert_;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.Ignore;
@@ -130,7 +131,7 @@ public class ASTConverterTest {
       for (String s : invalidValues) {
         try {
           c.parseIntegerLiteral(FileLocation.DUMMY, s, null);
-          fail();
+          assert_().fail();
         } catch (CFAGenerationRuntimeException e) {
           assertThat(e.getMessage())
               .contains(
@@ -245,7 +246,7 @@ public class ASTConverterTest {
       for (String value : values) {
         try {
           converter.parseFloatLiteral(FileLocation.DUMMY, null, value, null);
-          fail("Failed because of value: " + value);
+          assertWithMessage("Failed because of value: " + value).fail();
         } catch (CFAGenerationRuntimeException e) {
           assertThat(e.getMessage())
               .isAnyOf(

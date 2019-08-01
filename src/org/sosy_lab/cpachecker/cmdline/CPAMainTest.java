@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
+import static com.google.common.truth.Truth.assert_;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -166,6 +166,6 @@ public class CPAMainTest {
     config.inject(options);
 
     CPAMain.detectFrontendLanguageIfNecessary(options, config, logManager);
-    fail();
+    assert_().fail();
   }
 }
