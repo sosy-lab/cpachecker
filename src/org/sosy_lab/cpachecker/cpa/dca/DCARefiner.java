@@ -299,8 +299,8 @@ public class DCARefiner implements Refiner, StatisticsProvider {
         assert loopPath.asStatesList().equals(cycle)
             : String.format(
                 "Nodes in cycle are not consistent with nodes in the ARGPath"
-                    + "\n(Nodes in cycle: %s)"
-                    + "\n(Nodes in loop: %s)",
+                    + "%n(Nodes in cycle: %s)"
+                    + "%n(Nodes in loop: %s)",
                 lazyPrintNodes(cycle), lazyPrintNodes(loopPath));
         logger.logf(Level.INFO, "Path to cycle: %s\n", lazyPrintNodes(stemPath));
 
