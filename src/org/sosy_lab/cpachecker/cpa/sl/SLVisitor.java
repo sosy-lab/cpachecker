@@ -129,7 +129,7 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
         if (curLHS == null) {
           return true;
         }
-        loc = solDelegate.getFormulaForExpression(curLHS);
+        loc = solDelegate.getFormulaForExpression(curLHS, true);
         length = solDelegate.getValueForCExpression(params.get(0));
         memDelegate.handleMalloc(loc, length);
         break;
@@ -138,7 +138,7 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
         if (curLHS == null) {
           return true;
         }
-        loc = solDelegate.getFormulaForExpression(curLHS);
+        loc = solDelegate.getFormulaForExpression(curLHS, true);
         length = solDelegate.getValueForCExpression(params.get(0));
         final BigInteger size = solDelegate.getValueForCExpression(params.get(1));
         memDelegate.handleCalloc(loc, length, size);
@@ -148,13 +148,13 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
         if (curLHS == null) {
           return true;
         }
-        loc = solDelegate.getFormulaForExpression(curLHS);
-        final Formula oldLoc = solDelegate.getFormulaForExpression(params.get(0));
+        loc = solDelegate.getFormulaForExpression(curLHS, true);
+        final Formula oldLoc = solDelegate.getFormulaForExpression(params.get(0), false);
         length = solDelegate.getValueForCExpression(params.get(1));
         return !memDelegate.handleRealloc(loc, oldLoc, length);
 
       case FREE:
-        loc = solDelegate.getFormulaForExpression(params.get(0));
+        loc = solDelegate.getFormulaForExpression(params.get(0), false);
         return !memDelegate.handleFree(solDelegate, loc);
 
       default:
@@ -236,8 +236,8 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
     if (subscriptExp.accept(this)) {
       return true;
     }
-    Formula loc = solDelegate.getFormulaForExpression(arrayExp);
-    Formula offset = solDelegate.getFormulaForExpression(subscriptExp);
+    Formula loc = solDelegate.getFormulaForExpression(arrayExp, false);
+    Formula offset = solDelegate.getFormulaForExpression(subscriptExp, false);
     return memDelegate.checkAllocation(solDelegate, loc, offset, null) == null;
   }
 
@@ -256,8 +256,8 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   public Boolean visit(CPointerExpression pPointerExpression) throws Exception {
     CExpression operand = pPointerExpression.getOperand();
     if (curLHS == pPointerExpression) {
-      Formula loc = solDelegate.getFormulaForExpression(operand);
-      Formula val = solDelegate.getFormulaForExpression((CExpression) curRHS);
+      Formula loc = solDelegate.getFormulaForExpression(operand, false);
+      Formula val = solDelegate.getFormulaForExpression((CExpression) curRHS, false);
       if (memDelegate.checkAllocation(solDelegate, loc, null, val) == null) {
         return true;
       }

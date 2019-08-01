@@ -19,7 +19,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.sl;
 
-import java.lang.annotation.Inherited;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
@@ -65,14 +64,11 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
     addToMemory(heap, pMemoryLocation, pSize, false);
   }
 
-  /**
-   * {@link Inherited}
-   */
   @Override
   public boolean
       handleRealloc(
-          Formula pOldMemoryLocation,
           Formula pNewMemoryLocation,
+          Formula pOldMemoryLocation,
           BigInteger pSize)
           throws Exception {
     if (!heap.containsKey(pOldMemoryLocation)) {

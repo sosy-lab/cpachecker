@@ -48,5 +48,11 @@ public interface SLSolverDelegate {
     return getFormulaForVariableName(pExp.getName(), false, true);
   }
 
-  public Formula getFormulaForExpression(CExpression pExp) throws Exception;
+  /**
+   *
+   * @param pExp - the expression.
+   * @param hasNextSsaIndex - pass true, if the formula should have the SSAIndices of the successor.
+   * @return Formula - the formula representing the given @Expression.
+   */
+  public Formula getFormulaForExpression(CExpression pExp, boolean hasNextSsaIndex) throws Exception;
 }

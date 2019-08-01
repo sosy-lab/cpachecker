@@ -31,7 +31,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -272,9 +271,9 @@ public class SLTransferRelation
   }
 
   @Override
-  public Formula getFormulaForExpression(CExpression pExp)
+  public Formula getFormulaForExpression(CExpression pExp, boolean onLHS)
       throws UnrecognizedCodeException {
-    return pExp instanceof CLeftHandSide
+    return onLHS
         ? pfm.expressionToFormula(pathFormula, pExp, edge)
         : pfm.expressionToFormula(pathFormulaPrev, pExp, edge);
   }
