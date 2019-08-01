@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import org.junit.Assert;
@@ -90,10 +92,10 @@ public class SMGJoinSubSMGsForAbstractionTest {
     Assert.assertTrue(join.isDefined());
     Assert.assertSame(SMGJoinStatus.EQUAL, join.getStatus());
 
-    Assert.assertTrue(join.getNonSharedObjectsFromSMG1().contains(firstObject));
-    Assert.assertFalse(join.getNonSharedObjectsFromSMG1().contains(secondObject));
-    Assert.assertTrue(join.getNonSharedObjectsFromSMG2().contains(secondObject));
-    Assert.assertFalse(join.getNonSharedObjectsFromSMG2().contains(firstObject));
+    assertThat(join.getNonSharedObjectsFromSMG1()).contains(firstObject);
+    assertThat(join.getNonSharedObjectsFromSMG1()).doesNotContain(secondObject);
+    assertThat(join.getNonSharedObjectsFromSMG2()).contains(secondObject);
+    assertThat(join.getNonSharedObjectsFromSMG2()).doesNotContain(firstObject);
 
     SMGObject joinResult = join.getNewAbstractObject();
     Assert.assertTrue(joinResult.isAbstract());
@@ -108,6 +110,6 @@ public class SMGJoinSubSMGsForAbstractionTest {
     Assert.assertTrue(resultHeapObjects.contains(firstObject));
     Assert.assertTrue(resultHeapObjects.contains(secondObject));
 
-    Assert.assertTrue(SMGUtils.getPointerToThisObject(resultSll, resultSMG).isEmpty());
+    assertThat(SMGUtils.getPointerToThisObject(resultSll, resultSMG)).isEmpty();
   }
 }

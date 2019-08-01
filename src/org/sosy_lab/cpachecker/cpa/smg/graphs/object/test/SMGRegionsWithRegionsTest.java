@@ -141,7 +141,7 @@ public class SMGRegionsWithRegionsTest {
 
     Set<SMGEdgeHasValue> hvs =
         smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
-    Truth.assertThat(hvs.size()).isEqualTo(1);
+    assertThat(hvs).hasSize(1);
 
     SMGEdgePointsTo pt = smg.getPointer(Iterables.getOnlyElement(hvs).getValue());
     SMGObject abstractionResult = pt.getObject();
@@ -151,7 +151,7 @@ public class SMGRegionsWithRegionsTest {
 
     Set<SMGEdgeHasValue> dataFieldSet =
         smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(abstractionResult).filterAtOffset(dfo));
-    Truth.assertThat(dataFieldSet.size()).isEqualTo(1);
+    assertThat(dataFieldSet).hasSize(1);
     SMGEdgeHasValue dataField = Iterables.getOnlyElement(dataFieldSet);
     SMGValue dataValue = dataField.getValue();
     Assert.assertTrue(smg.isPointer(dataValue));

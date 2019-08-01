@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Set;
@@ -81,7 +83,7 @@ public class SMGSingleLinkedListFinderTest {
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(2,2,2);
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
-    Assert.assertEquals(1, candidates.size());
+    assertThat(candidates).hasSize(1);
   }
 
   @Test

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.Iterables;
 import java.util.Set;
 import org.junit.Assert;
@@ -90,12 +92,12 @@ public class SMGSingleLinkedListCandidateTest {
     Assert.assertEquals(SEGMENT_LENGTH, segment.getMinimumLength());
     Assert.assertEquals(OFFSET, segment.getNfo());
     Set<SMGEdgeHasValue> outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(segment));
-    Assert.assertEquals(1, outboundEdges.size());
+    assertThat(outboundEdges).hasSize(1);
     SMGEdgeHasValue onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
     Assert.assertEquals(OFFSET, onlyOutboundEdge.getOffset());
     Assert.assertSame(CPointerType.POINTER_TO_VOID, onlyOutboundEdge.getType());
 
-    Assert.assertEquals(1, outboundEdges.size());
+    assertThat(outboundEdges).hasSize(1);
     onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
     Assert.assertEquals(SMGZeroValue.INSTANCE, onlyOutboundEdge.getValue());
     Assert.assertEquals(0, onlyOutboundEdge.getOffset());
@@ -125,7 +127,7 @@ public class SMGSingleLinkedListCandidateTest {
     SMGSingleLinkedList realSll = (SMGSingleLinkedList)sll;
     Assert.assertEquals(2, realSll.getMinimumLength());
     Set<SMGEdgeHasValue> outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(realSll));
-    Assert.assertEquals(1, outboundEdges.size());
+    assertThat(outboundEdges).hasSize(1);
     SMGEdgeHasValue outbound = Iterables.getOnlyElement(outboundEdges);
     Assert.assertEquals(64, outbound.getOffset());
     Assert.assertEquals(64, outbound.getSizeInBits(abstractedSmg.getMachineModel()));

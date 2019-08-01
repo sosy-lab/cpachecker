@@ -19,6 +19,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpv;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -278,7 +279,7 @@ public class MPVTest {
     actualResults.assertIs(overallExpectedResult);
     List<AbstractSingleProperty> propertiesResults = parseResult(actualResults.getCheckerResult());
     if (overallExpectedResult.equals(Result.NOT_YET_STARTED)) {
-      assertTrue(propertiesResults.size() == 0);
+      assertThat(propertiesResults).isEmpty();
     } else {
       compareResultsMatrixes(idealResults, propertiesResults);
     }

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
@@ -219,9 +221,9 @@ public class SMGEdgeHasValueTest {
 
     Set<SMGEdgeHasValue> filteredSet = ImmutableSet.copyOf(filter.filter(allEdges));
 
-    Assert.assertEquals(2, filteredSet.size());
-    Assert.assertTrue(filteredSet.contains(hv11at0));
-    Assert.assertTrue(filteredSet.contains(hv12at0));
+    assertThat(filteredSet).hasSize(2);
+    assertThat(filteredSet).contains(hv11at0);
+    assertThat(filteredSet).contains(hv12at0);
   }
 
   @Test
@@ -253,9 +255,9 @@ public class SMGEdgeHasValueTest {
 
     Set<SMGEdgeHasValue> filteredSet = ImmutableSet.copyOf(filter.filter(allEdges));
 
-    Assert.assertEquals(2, filteredSet.size());
-    Assert.assertTrue(filteredSet.contains(hv11at0));
-    Assert.assertTrue(filteredSet.contains(hv21at0));
+    assertThat(filteredSet).hasSize(2);
+    assertThat(filteredSet).contains(hv11at0);
+    assertThat(filteredSet).contains(hv21at0);
   }
 
   @Test
@@ -287,9 +289,9 @@ public class SMGEdgeHasValueTest {
 
     Set<SMGEdgeHasValue> filteredSet = ImmutableSet.copyOf(filter.filter(allEdges));
 
-    Assert.assertEquals(2, filteredSet.size());
-    Assert.assertTrue(filteredSet.contains(hv11at0));
-    Assert.assertTrue(filteredSet.contains(hv21at0));
+    assertThat(filteredSet).hasSize(2);
+    assertThat(filteredSet).contains(hv11at0);
+    assertThat(filteredSet).contains(hv21at0);
 
     filter.filterNotHavingValue(value1);
 
@@ -300,8 +302,8 @@ public class SMGEdgeHasValueTest {
 
     filteredSet = ImmutableSet.copyOf(filter.filter(allEdges));
 
-    Assert.assertEquals(2, filteredSet.size());
-    Assert.assertTrue(filteredSet.contains(hv22at0));
-    Assert.assertTrue(filteredSet.contains(hv12at0));
+    assertThat(filteredSet).hasSize(2);
+    assertThat(filteredSet).contains(hv22at0);
+    assertThat(filteredSet).contains(hv12at0);
   }
 }

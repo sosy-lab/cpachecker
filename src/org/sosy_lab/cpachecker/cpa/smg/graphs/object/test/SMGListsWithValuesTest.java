@@ -124,7 +124,7 @@ public class SMGListsWithValuesTest {
 
     Set<SMGEdgeHasValue> hvs =
         smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
-    Truth.assertThat(hvs.size()).isEqualTo(1);
+    assertThat(hvs).hasSize(1);
 
     SMGEdgePointsTo pt = smg.getPointer(Iterables.getOnlyElement(hvs).getValue());
     SMGObject abstractionResult = pt.getObject();

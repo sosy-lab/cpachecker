@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -70,11 +71,15 @@ public class CompoundMathematicalIntervalTest {
     assertEquals(CompoundMathematicalInterval.of(oneToFiveInterval).unionWith(sixToTenInterval), CompoundMathematicalInterval.of(oneToTenInterval));
     assertEquals(CompoundMathematicalInterval.of(oneToTenInterval).unionWith(sixToTenInterval), CompoundMathematicalInterval.of(oneToTenInterval));
     SimpleInterval zero = SimpleInterval.singleton(BigInteger.ZERO);
-    assertEquals(1, CompoundMathematicalInterval.of(zero.extendToNegativeInfinity()).unionWith(zero.extendToPositiveInfinity()).getIntervals().size());
+    assertThat(
+            CompoundMathematicalInterval.of(zero.extendToNegativeInfinity())
+                .unionWith(zero.extendToPositiveInfinity())
+                .getIntervals())
+        .hasSize(1);
     SimpleInterval zeroToThreeInterval = SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(3));
     CompoundMathematicalInterval zeroToThree = CompoundMathematicalInterval.of(zeroToThreeInterval);
     CompoundMathematicalInterval six = CompoundMathematicalInterval.singleton(6);
-    assertEquals(2, zeroToThree.unionWith(six).getIntervals().size());
+    assertThat(zeroToThree.unionWith(six).getIntervals()).hasSize(2);
     assertEquals(zeroToThree.unionWith(six), six.unionWith(zeroToThree));
     assertEquals(zeroToThree, zeroToThree.unionWith(CompoundMathematicalInterval.singleton(0)));
     assertEquals(zeroToThree, zeroToThree.unionWith(CompoundMathematicalInterval.singleton(1)));
@@ -101,7 +106,8 @@ public class CompoundMathematicalIntervalTest {
     assertEquals(negOneOrZeroOrTenToInf, zeroOrTenToInf.unionWith(negOne));
 
     assertEquals(CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.valueOf(-1), BigInteger.valueOf(1))), negOne.unionWith(CompoundMathematicalInterval.one()).unionWith(zero));
-    assertEquals(1, negOne.unionWith(CompoundMathematicalInterval.one()).unionWith(zero).getIntervals().size());
+    assertThat(negOne.unionWith(CompoundMathematicalInterval.one()).unionWith(zero).getIntervals())
+        .hasSize(1);
   }
 
   @Test

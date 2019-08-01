@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.Iterables;
 import java.util.Set;
 import org.junit.Assert;
@@ -86,7 +88,7 @@ public class SMGAbstractionManagerTest {
 
     SMGRegion globalVar = smg.getObjectForVisibleVariable("pointer");
     Set<SMGEdgeHasValue> hvs = smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalVar));
-    Assert.assertEquals(1, hvs.size());
+    assertThat(hvs).hasSize(1);
     SMGEdgeHasValue hv = Iterables.getOnlyElement(hvs);
     SMGEdgePointsTo pt = smg.getPointer(hv.getValue());
     SMGObject segment = pt.getObject();
