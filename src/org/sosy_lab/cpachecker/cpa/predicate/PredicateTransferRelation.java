@@ -404,6 +404,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       // TODO: the witness automaton is complete in that regard, so use that in future
       if (CFAUtils.getIdExpressionsOfExpression(assumption)
           .anyMatch(var -> var.getExpressionType() instanceof CProblemType)) {
+        logger.log(Level.INFO, "Ignoring assumption", assumption, "because of CProblemType");
         continue;
       }
       pathFormulaTimer.start();
