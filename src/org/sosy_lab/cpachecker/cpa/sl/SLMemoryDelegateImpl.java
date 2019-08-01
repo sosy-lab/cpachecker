@@ -22,7 +22,6 @@ package org.sosy_lab.cpachecker.cpa.sl;
 import java.lang.annotation.Inherited;
 import java.math.BigInteger;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -41,7 +40,7 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
   private final FormulaManagerView fm;
   private final BitvectorFormulaManager bvfm;
   private final IntegerFormulaManager ifm;
-  private HashMap<Formula, Formula> heap = new LinkedHashMap<>();
+  private HashMap<Formula, Formula> heap = new HashMap<>();
   private HashMap<Formula, Formula> stack = new HashMap<>();
   private final HashMap<Formula, BigInteger> allocationSizes = new HashMap<>();
 

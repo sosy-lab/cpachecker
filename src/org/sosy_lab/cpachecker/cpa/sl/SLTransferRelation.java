@@ -31,6 +31,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -57,6 +58,7 @@ import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 
@@ -68,6 +70,7 @@ public class SLTransferRelation
   private final Solver solver;
   private final PathFormulaManager pfm;
   private final FormulaManagerView fm;
+  private final IntegerFormulaManager ifm;
   private final BooleanFormulaManager bfm;
   private final BitvectorFormulaManager bvfm;
 
@@ -87,6 +90,7 @@ public class SLTransferRelation
     logger = pLogger;
     solver = pSolver;
     fm = solver.getFormulaManager();
+    ifm = fm.getIntegerFormulaManager();
     bfm = fm.getBooleanFormulaManager();
     bvfm = fm.getBitvectorFormulaManager();
     pfm = pPfm;
@@ -244,8 +248,8 @@ public class SLTransferRelation
   public boolean checkEquivalence(Formula pF0, Formula pF1) {
     try (ProverEnvironment env = solver.newProverEnvironment()) {
       env.addConstraint(pathFormulaPrev.getFormula());
-      Formula tmp = fm.makeEqual(pF0, pF1);
-      env.addConstraint((BooleanFormula) tmp);
+      BooleanFormula tmp = fm.makeEqual(pF0, pF1);
+      env.addConstraint(tmp);
       return !env.isUnsat();
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
@@ -268,7 +272,10 @@ public class SLTransferRelation
   }
 
   @Override
-  public Formula getFormulaForExpression(CExpression pExp) throws UnrecognizedCodeException {
-    return pfm.expressionToFormula(pathFormulaPrev, pExp, edge);
+  public Formula getFormulaForExpression(CExpression pExp)
+      throws UnrecognizedCodeException {
+    return pExp instanceof CLeftHandSide
+        ? pfm.expressionToFormula(pathFormula, pExp, edge)
+        : pfm.expressionToFormula(pathFormulaPrev, pExp, edge);
   }
 }
