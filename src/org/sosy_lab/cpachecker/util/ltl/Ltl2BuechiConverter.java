@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.io.CharStreams;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,8 +37,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import jhoafparser.consumer.HOAConsumerStore;
 import jhoafparser.parser.HOAFParser;
 import jhoafparser.parser.generated.ParseException;
@@ -189,7 +188,7 @@ public class Ltl2BuechiConverter {
       int exitvalue = process.waitFor();
 
       if (exitvalue != 0) {
-        String errMsg = convertProcessToStream(is).collect(Collectors.joining("\n"));
+        String errMsg = readLinesFromStream(is);
         throw new LtlParseException(
             String.format(
                 "Tool '%s' exited with error code %d. Message from tool:%n%s",
@@ -205,17 +204,17 @@ public class Ltl2BuechiConverter {
   }
 
   /**
-   * Convert an {@link InputStream} into a Java 8 {@link Stream}. This is used to forward error
+   * Convert an {@link InputStream} to a human-readable string. This is used to forward error
    * messages from the external tool to the logger.
+   *
+   * @return A readable string taken and transformed from the {@link InputStream}
+   * @throws IOException In case an I/O error occurs
    */
-  private Stream<String> convertProcessToStream(InputStream is) {
-    List<String> list = new ArrayList<>();
-
-    InputStreamReader inputStreamReader = new InputStreamReader(is, Charset.defaultCharset());
-    BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-    bufferedReader.lines().forEach(x -> list.add(x));
-
-    return list.stream();
+  private String readLinesFromStream(InputStream is) throws IOException {
+    try (BufferedReader br =
+        new BufferedReader(new InputStreamReader(is, Charset.defaultCharset())); ) {
+      return CharStreams.toString(br);
+    }
   }
 
   private static class Converter {
