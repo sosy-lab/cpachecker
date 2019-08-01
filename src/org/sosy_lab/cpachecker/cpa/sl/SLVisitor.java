@@ -177,8 +177,7 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   @Override
   public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) throws Exception {
-    throw new UnsupportedOperationException(
-        CCharLiteralExpression.class.getSimpleName() + "is not implemented yet.");
+    return false;
   }
 
   @Override
