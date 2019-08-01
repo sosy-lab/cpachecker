@@ -57,7 +57,6 @@ import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 
@@ -69,7 +68,6 @@ public class SLTransferRelation
   private final Solver solver;
   private final PathFormulaManager pfm;
   private final FormulaManagerView fm;
-  private final IntegerFormulaManager ifm;
   private final BooleanFormulaManager bfm;
   private final BitvectorFormulaManager bvfm;
 
@@ -89,7 +87,6 @@ public class SLTransferRelation
     logger = pLogger;
     solver = pSolver;
     fm = solver.getFormulaManager();
-    ifm = fm.getIntegerFormulaManager();
     bfm = fm.getBooleanFormulaManager();
     bvfm = fm.getBitvectorFormulaManager();
     pfm = pPfm;
@@ -116,6 +113,13 @@ public class SLTransferRelation
     for (SLState slState : pSuccessor) {
       Set<CSimpleDeclaration> vars = pEdge.getSuccessor().getOutOfScopeVariables();
       for (CSimpleDeclaration var : vars) {
+        Formula fHeap = getFormulaForVariableName(var.getName(), false, true);
+        try {
+          Formula loc = memDel.checkAllocation(this, fHeap);
+          slState.setTarget(loc != null);
+        } catch (Exception e) {
+          logger.log(Level.SEVERE, e.getMessage());
+        }
         memDel.removeFromStack(getFormulaForVariableName(var.getName(), false, false));
       }
 

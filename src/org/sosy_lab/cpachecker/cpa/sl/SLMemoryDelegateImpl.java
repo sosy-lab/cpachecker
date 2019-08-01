@@ -72,7 +72,7 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
           BigInteger pSize)
           throws Exception {
     if (!heap.containsKey(pOldMemoryLocation)) {
-      logger.log(Level.SEVERE, "REALLOC() failed.");
+      logger.log(Level.SEVERE, "REALLOC() failed - address not allocated.");
       return false;
     }
     removeFromMemory(heap, pOldMemoryLocation);

@@ -36,7 +36,7 @@ public class SLState implements AbstractState, Targetable {
   private final Map<Formula, Formula> heap;
   private final Map<Formula, Formula> stack;
 
-  private final boolean isTarget;
+  private boolean isTarget;
 
   public SLState(PathFormula pPathFormula) {
     this(pPathFormula, new HashMap<>(), new HashMap<>(), false);
@@ -84,6 +84,10 @@ public class SLState implements AbstractState, Targetable {
   @Override
   public boolean isTarget() {
     return isTarget;
+  }
+
+  public void setTarget(boolean pIsTarget) {
+    isTarget = pIsTarget;
   }
 
   @Override
