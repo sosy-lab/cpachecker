@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.expressions;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -53,70 +52,70 @@ public class ExpressionTreesTest {
 
   @Test
   public void testIsConstant() {
-    Assert.assertTrue(ExpressionTrees.isConstant(ExpressionTrees.getTrue()));
-    Assert.assertTrue(ExpressionTrees.isConstant(ExpressionTrees.getFalse()));
-    Assert.assertFalse(ExpressionTrees.isConstant(LITERAL_A));
-    Assert.assertFalse(ExpressionTrees.isConstant(LITERAL_NOT_A));
-    Assert.assertFalse(ExpressionTrees.isConstant(And.of(LITERAL_B, LITERAL_C)));
-    Assert.assertFalse(ExpressionTrees.isConstant(Or.of(LITERAL_B, LITERAL_C)));
+    assertThat(ExpressionTrees.isConstant(ExpressionTrees.getTrue())).isTrue();
+    assertThat(ExpressionTrees.isConstant(ExpressionTrees.getFalse())).isTrue();
+    assertThat(ExpressionTrees.isConstant(LITERAL_A)).isFalse();
+    assertThat(ExpressionTrees.isConstant(LITERAL_NOT_A)).isFalse();
+    assertThat(ExpressionTrees.isConstant(And.of(LITERAL_B, LITERAL_C))).isFalse();
+    assertThat(ExpressionTrees.isConstant(Or.of(LITERAL_B, LITERAL_C))).isFalse();
   }
 
   @Test
   public void testIsLeaf() {
-    Assert.assertTrue(ExpressionTrees.isLeaf(ExpressionTrees.getTrue()));
-    Assert.assertTrue(ExpressionTrees.isLeaf(ExpressionTrees.getFalse()));
-    Assert.assertTrue(ExpressionTrees.isLeaf(LITERAL_A));
-    Assert.assertTrue(ExpressionTrees.isLeaf(LITERAL_NOT_A));
-    Assert.assertFalse(ExpressionTrees.isLeaf(And.of(LITERAL_B, LITERAL_C)));
-    Assert.assertFalse(ExpressionTrees.isLeaf(Or.of(LITERAL_B, LITERAL_C)));
+    assertThat(ExpressionTrees.isLeaf(ExpressionTrees.getTrue())).isTrue();
+    assertThat(ExpressionTrees.isLeaf(ExpressionTrees.getFalse())).isTrue();
+    assertThat(ExpressionTrees.isLeaf(LITERAL_A)).isTrue();
+    assertThat(ExpressionTrees.isLeaf(LITERAL_NOT_A)).isTrue();
+    assertThat(ExpressionTrees.isLeaf(And.of(LITERAL_B, LITERAL_C))).isFalse();
+    assertThat(ExpressionTrees.isLeaf(Or.of(LITERAL_B, LITERAL_C))).isFalse();
   }
 
   @Test
   public void testIsOr() {
-    Assert.assertFalse(ExpressionTrees.isOr(ExpressionTrees.getTrue()));
-    Assert.assertFalse(ExpressionTrees.isOr(ExpressionTrees.getFalse()));
-    Assert.assertFalse(ExpressionTrees.isOr(LITERAL_A));
-    Assert.assertFalse(ExpressionTrees.isOr(LITERAL_NOT_A));
-    Assert.assertFalse(ExpressionTrees.isOr(And.of(LITERAL_B, LITERAL_C)));
-    Assert.assertTrue(ExpressionTrees.isOr(Or.of(LITERAL_B, LITERAL_C)));
+    assertThat(ExpressionTrees.isOr(ExpressionTrees.getTrue())).isFalse();
+    assertThat(ExpressionTrees.isOr(ExpressionTrees.getFalse())).isFalse();
+    assertThat(ExpressionTrees.isOr(LITERAL_A)).isFalse();
+    assertThat(ExpressionTrees.isOr(LITERAL_NOT_A)).isFalse();
+    assertThat(ExpressionTrees.isOr(And.of(LITERAL_B, LITERAL_C))).isFalse();
+    assertThat(ExpressionTrees.isOr(Or.of(LITERAL_B, LITERAL_C))).isTrue();
   }
 
   @Test
   public void testIsAnd() {
-    Assert.assertFalse(ExpressionTrees.isAnd(ExpressionTrees.getTrue()));
-    Assert.assertFalse(ExpressionTrees.isAnd(ExpressionTrees.getFalse()));
-    Assert.assertFalse(ExpressionTrees.isAnd(LITERAL_A));
-    Assert.assertFalse(ExpressionTrees.isAnd(LITERAL_NOT_A));
-    Assert.assertTrue(ExpressionTrees.isAnd(And.of(LITERAL_B, LITERAL_C)));
-    Assert.assertFalse(ExpressionTrees.isAnd(Or.of(LITERAL_B, LITERAL_C)));
+    assertThat(ExpressionTrees.isAnd(ExpressionTrees.getTrue())).isFalse();
+    assertThat(ExpressionTrees.isAnd(ExpressionTrees.getFalse())).isFalse();
+    assertThat(ExpressionTrees.isAnd(LITERAL_A)).isFalse();
+    assertThat(ExpressionTrees.isAnd(LITERAL_NOT_A)).isFalse();
+    assertThat(ExpressionTrees.isAnd(And.of(LITERAL_B, LITERAL_C))).isTrue();
+    assertThat(ExpressionTrees.isAnd(Or.of(LITERAL_B, LITERAL_C))).isFalse();
   }
 
   @Test
   public void testIsInCNF() {
-    Assert.assertTrue(ExpressionTrees.isInCNF(ExpressionTrees.getTrue()));
-    Assert.assertTrue(ExpressionTrees.isInCNF(ExpressionTrees.getFalse()));
-    Assert.assertTrue(ExpressionTrees.isInCNF(LITERAL_A));
-    Assert.assertTrue(ExpressionTrees.isInCNF(LITERAL_NOT_A));
-    Assert.assertTrue(ExpressionTrees.isInCNF(And.of(LITERAL_B, LITERAL_C)));
-    Assert.assertTrue(ExpressionTrees.isInCNF(Or.of(LITERAL_B, LITERAL_C)));
+    assertThat(ExpressionTrees.isInCNF(ExpressionTrees.getTrue())).isTrue();
+    assertThat(ExpressionTrees.isInCNF(ExpressionTrees.getFalse())).isTrue();
+    assertThat(ExpressionTrees.isInCNF(LITERAL_A)).isTrue();
+    assertThat(ExpressionTrees.isInCNF(LITERAL_NOT_A)).isTrue();
+    assertThat(ExpressionTrees.isInCNF(And.of(LITERAL_B, LITERAL_C))).isTrue();
+    assertThat(ExpressionTrees.isInCNF(Or.of(LITERAL_B, LITERAL_C))).isTrue();
 
-    Assert.assertTrue(ExpressionTrees.isInCNF(COMPLEX_CNF));
+    assertThat(ExpressionTrees.isInCNF(COMPLEX_CNF)).isTrue();
 
-    Assert.assertFalse(ExpressionTrees.isInCNF(COMPLEX_DNF));
+    assertThat(ExpressionTrees.isInCNF(COMPLEX_DNF)).isFalse();
   }
 
   @Test
   public void testIsInDNF() {
-    Assert.assertTrue(ExpressionTrees.isInDNF(ExpressionTrees.getTrue()));
-    Assert.assertTrue(ExpressionTrees.isInDNF(ExpressionTrees.getFalse()));
-    Assert.assertTrue(ExpressionTrees.isInDNF(LITERAL_A));
-    Assert.assertTrue(ExpressionTrees.isInDNF(LITERAL_NOT_A));
-    Assert.assertTrue(ExpressionTrees.isInDNF(And.of(LITERAL_B, LITERAL_C)));
-    Assert.assertTrue(ExpressionTrees.isInDNF(Or.of(LITERAL_B, LITERAL_C)));
+    assertThat(ExpressionTrees.isInDNF(ExpressionTrees.getTrue())).isTrue();
+    assertThat(ExpressionTrees.isInDNF(ExpressionTrees.getFalse())).isTrue();
+    assertThat(ExpressionTrees.isInDNF(LITERAL_A)).isTrue();
+    assertThat(ExpressionTrees.isInDNF(LITERAL_NOT_A)).isTrue();
+    assertThat(ExpressionTrees.isInDNF(And.of(LITERAL_B, LITERAL_C))).isTrue();
+    assertThat(ExpressionTrees.isInDNF(Or.of(LITERAL_B, LITERAL_C))).isTrue();
 
-    Assert.assertTrue(ExpressionTrees.isInDNF(COMPLEX_DNF));
+    assertThat(ExpressionTrees.isInDNF(COMPLEX_DNF)).isTrue();
 
-    Assert.assertFalse(ExpressionTrees.isInDNF(COMPLEX_CNF));
+    assertThat(ExpressionTrees.isInDNF(COMPLEX_CNF)).isFalse();
   }
 
   @Test
@@ -134,7 +133,7 @@ public class ExpressionTreesTest {
 
     assertThat(ExpressionTrees.toDNF(COMPLEX_DNF)).isEqualTo(COMPLEX_DNF);
 
-    Assert.assertTrue(ExpressionTrees.isInDNF(ExpressionTrees.toDNF(COMPLEX_CNF)));
+    assertThat(ExpressionTrees.isInDNF(ExpressionTrees.toDNF(COMPLEX_CNF))).isTrue();
   }
 
   @Test
@@ -152,7 +151,7 @@ public class ExpressionTreesTest {
 
     assertThat(ExpressionTrees.toCNF(COMPLEX_CNF)).isEqualTo(COMPLEX_CNF);
 
-    Assert.assertTrue(ExpressionTrees.isInCNF(ExpressionTrees.toCNF(COMPLEX_DNF)));
+    assertThat(ExpressionTrees.isInCNF(ExpressionTrees.toCNF(COMPLEX_DNF))).isTrue();
   }
 
 }

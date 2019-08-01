@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 import static com.google.common.truth.Truth.assertThat;
 
 import java.util.TreeMap;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.log.LogManager;
@@ -100,7 +99,7 @@ public class SMGTest {
   @Test
   public void SMGConstructorTest() {
     SMG smg1 = getNewSMG64();
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
     SMGObject nullObject = SMGNullObject.INSTANCE;
     SMGValue nullAddress = SMGZeroValue.INSTANCE;
 
@@ -120,8 +119,8 @@ public class SMGTest {
 
     //copy constructor
     SMG smg_copy = new SMG(smg1);
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg_copy)).isTrue();
 
     SMGObject third_object = new SMGRegion(128, "object-3");
     SMGValue third_value = SMGKnownExpValue.valueOf(3);
@@ -130,8 +129,8 @@ public class SMGTest {
     smg_copy.addHasValueEdge(new SMGEdgeHasValue(mockType, 0, third_object,  third_value));
     smg_copy.addPointsToEdge(new SMGEdgePointsTo(third_value, third_object, 0));
 
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg_copy)).isTrue();
     assertThat(smg1.getObjects()).hasSize(1);
     assertThat(smg_copy.getObjects()).hasSize(2);
     assertThat(smg_copy.getObjects()).contains(third_object);
@@ -213,44 +212,44 @@ public class SMGTest {
 
   @Test
   public void validityTest() {
-    Assert.assertFalse(smg.isObjectValid(SMGNullObject.INSTANCE));
-    Assert.assertTrue(smg.isObjectValid(obj1));
-    Assert.assertTrue(smg.isObjectValid(obj2));
+    assertThat(smg.isObjectValid(SMGNullObject.INSTANCE)).isFalse();
+    assertThat(smg.isObjectValid(obj1)).isTrue();
+    assertThat(smg.isObjectValid(obj2)).isTrue();
 
     UnmodifiableSMG smg_copy = smg.copyOf();
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg_copy)).isTrue();
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg)).isTrue();
 
     smg.setValidity(obj1, false);
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
-    Assert.assertFalse(smg.isObjectValid(SMGNullObject.INSTANCE));
-    Assert.assertFalse(smg.isObjectValid(obj1));
-    Assert.assertTrue(smg.isObjectValid(obj2));
-    Assert.assertFalse(smg_copy.isObjectValid(SMGNullObject.INSTANCE));
-    Assert.assertTrue(smg_copy.isObjectValid(obj1));
-    Assert.assertTrue(smg_copy.isObjectValid(obj2));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg_copy)).isTrue();
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg)).isTrue();
+    assertThat(smg.isObjectValid(SMGNullObject.INSTANCE)).isFalse();
+    assertThat(smg.isObjectValid(obj1)).isFalse();
+    assertThat(smg.isObjectValid(obj2)).isTrue();
+    assertThat(smg_copy.isObjectValid(SMGNullObject.INSTANCE)).isFalse();
+    assertThat(smg_copy.isObjectValid(obj1)).isTrue();
+    assertThat(smg_copy.isObjectValid(obj2)).isTrue();
 
     smg.setValidity(obj2, false);
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
-    Assert.assertFalse(smg_copy.isObjectValid(SMGNullObject.INSTANCE));
-    Assert.assertTrue(smg_copy.isObjectValid(obj1));
-    Assert.assertTrue(smg_copy.isObjectValid(obj2));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg_copy)).isTrue();
+    assertThat(smg_copy.isObjectValid(SMGNullObject.INSTANCE)).isFalse();
+    assertThat(smg_copy.isObjectValid(obj1)).isTrue();
+    assertThat(smg_copy.isObjectValid(obj2)).isTrue();
   }
 
   @Test
   public void consistencyViolationValidNullTest() {
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg)).isTrue();
     smg.setValidity(SMGNullObject.INSTANCE, true);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg)).isFalse();
   }
 
   @Test
   public void consistencyViolationInvalidRegionHasValueTest() {
     smg.setValidity(obj1, false);
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg)).isTrue();
     smg.setValidity(obj2, false);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg)).isFalse();
   }
 
   @Test
@@ -276,8 +275,8 @@ public class SMGTest {
     smg1.addHasValueEdge(invalidHV1);
     smg2.addHasValueEdge(invalidHV2);
 
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg2));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isFalse();
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg2)).isFalse();
   }
 
   @Test
@@ -297,24 +296,24 @@ public class SMGTest {
     SMGEdgeHasValue hv_edge3 = new SMGEdgeHasValue(mockType, 32, object_8b, second_value);
     SMGEdgeHasValue hv_edge4 = new SMGEdgeHasValue(mockType, 0, object_16b, second_value);
 
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
     smg1.addValue(first_value);
     smg1.addObject(object_8b);
     smg1.addHasValueEdge(hv_edge1);
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
     smg1.addValue(second_value);
     smg1.addHasValueEdge(hv_edge3);
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
     smg1.addHasValueEdge(hv_edge4);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isFalse();
     smg1.addObject(object_16b);
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
     smg1.addHasValueEdge(hv_edge2);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isFalse();
   }
 
   @Test
@@ -333,31 +332,31 @@ public class SMGTest {
     SMGEdgePointsTo edge3 = new SMGEdgePointsTo(second_value, object_16b, 0);
     SMGEdgePointsTo edge4 = new SMGEdgePointsTo(first_value, object_16b, 0);
 
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
     smg1.addValue(first_value);
     smg1.addPointsToEdge(edge1);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isFalse();
 
     smg1.addObject(object_8b);
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
     smg1.addValue(third_value);
     smg1.addPointsToEdge(edge2);
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
     smg1.addValue(second_value);
     smg1.addObject(object_16b);
     smg1.addPointsToEdge(edge3);
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
     smg1.addPointsToEdge(edge4);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isFalse();
   }
 
   @Test // (expected=IllegalArgumentException.class)
   public void isObjectValidBadCallTest() {
-    Assert.assertFalse(smg.isObjectValid(new SMGRegion(192, "wee")));
+    assertThat(smg.isObjectValid(new SMGRegion(192, "wee"))).isFalse();
   }
 
   @Test(expected=IllegalArgumentException.class)
@@ -373,7 +372,7 @@ public class SMGTest {
   @Test
   public void getNullObjectTest() {
     SMGObject nullObject = SMGNullObject.INSTANCE;
-    Assert.assertFalse(smg.isObjectValid(nullObject));
+    assertThat(smg.isObjectValid(nullObject)).isFalse();
     assertThat(nullObject.getSize()).isEqualTo(0);
   }
 
@@ -405,48 +404,48 @@ public class SMGTest {
     SMGValue two = SMGKnownExpValue.valueOf(2);
     SMGValue three = SMGKnownExpValue.valueOf(3);
 
-    Assert.assertFalse(nr.neq_exists(one, two));
-    Assert.assertFalse(nr.neq_exists(one, three));
-    Assert.assertFalse(nr.neq_exists(two, three));
-    Assert.assertFalse(nr.neq_exists(two, one));
-    Assert.assertFalse(nr.neq_exists(three, one));
-    Assert.assertFalse(nr.neq_exists(three, two));
+    assertThat(nr.neq_exists(one, two)).isFalse();
+    assertThat(nr.neq_exists(one, three)).isFalse();
+    assertThat(nr.neq_exists(two, three)).isFalse();
+    assertThat(nr.neq_exists(two, one)).isFalse();
+    assertThat(nr.neq_exists(three, one)).isFalse();
+    assertThat(nr.neq_exists(three, two)).isFalse();
 
     nr = nr.addRelationAndCopy(one, three);
 
-    Assert.assertFalse(nr.neq_exists(one, two));
-    Assert.assertTrue(nr.neq_exists(one, three));
-    Assert.assertFalse(nr.neq_exists(two, three));
-    Assert.assertFalse(nr.neq_exists(two, one));
-    Assert.assertTrue(nr.neq_exists(three, one));
-    Assert.assertFalse(nr.neq_exists(three, two));
+    assertThat(nr.neq_exists(one, two)).isFalse();
+    assertThat(nr.neq_exists(one, three)).isTrue();
+    assertThat(nr.neq_exists(two, three)).isFalse();
+    assertThat(nr.neq_exists(two, one)).isFalse();
+    assertThat(nr.neq_exists(three, one)).isTrue();
+    assertThat(nr.neq_exists(three, two)).isFalse();
 
     nr = nr.addRelationAndCopy(one, three);
 
-    Assert.assertFalse(nr.neq_exists(one, two));
-    Assert.assertTrue(nr.neq_exists(one, three));
-    Assert.assertFalse(nr.neq_exists(two, three));
-    Assert.assertFalse(nr.neq_exists(two, one));
-    Assert.assertTrue(nr.neq_exists(three, one));
-    Assert.assertFalse(nr.neq_exists(three, two));
+    assertThat(nr.neq_exists(one, two)).isFalse();
+    assertThat(nr.neq_exists(one, three)).isTrue();
+    assertThat(nr.neq_exists(two, three)).isFalse();
+    assertThat(nr.neq_exists(two, one)).isFalse();
+    assertThat(nr.neq_exists(three, one)).isTrue();
+    assertThat(nr.neq_exists(three, two)).isFalse();
 
     nr = nr.addRelationAndCopy(two, three);
 
-    Assert.assertFalse(nr.neq_exists(one, two));
-    Assert.assertTrue(nr.neq_exists(one, three));
-    Assert.assertTrue(nr.neq_exists(two, three));
-    Assert.assertFalse(nr.neq_exists(two, one));
-    Assert.assertTrue(nr.neq_exists(three, one));
-    Assert.assertTrue(nr.neq_exists(three, two));
+    assertThat(nr.neq_exists(one, two)).isFalse();
+    assertThat(nr.neq_exists(one, three)).isTrue();
+    assertThat(nr.neq_exists(two, three)).isTrue();
+    assertThat(nr.neq_exists(two, one)).isFalse();
+    assertThat(nr.neq_exists(three, one)).isTrue();
+    assertThat(nr.neq_exists(three, two)).isTrue();
 
     nr = nr.removeRelationAndCopy(one, three);
 
-    Assert.assertFalse(nr.neq_exists(one, two));
-    Assert.assertFalse(nr.neq_exists(one, three));
-    Assert.assertTrue(nr.neq_exists(two, three));
-    Assert.assertFalse(nr.neq_exists(two, one));
-    Assert.assertFalse(nr.neq_exists(three, one));
-    Assert.assertTrue(nr.neq_exists(three, two));
+    assertThat(nr.neq_exists(one, two)).isFalse();
+    assertThat(nr.neq_exists(one, three)).isFalse();
+    assertThat(nr.neq_exists(two, three)).isTrue();
+    assertThat(nr.neq_exists(two, one)).isFalse();
+    assertThat(nr.neq_exists(three, one)).isFalse();
+    assertThat(nr.neq_exists(three, two)).isTrue();
   }
 
   @Test
@@ -459,9 +458,9 @@ public class SMGTest {
     nr = nr.addRelationAndCopy(one, two);
     nr = nr.addRelationAndCopy(one, three);
     nr = nr.removeValueAndCopy(one);
-    Assert.assertFalse(nr.neq_exists(one, two));
-    Assert.assertFalse(nr.neq_exists(one, three));
-    Assert.assertFalse(nr.neq_exists(two, three));
+    assertThat(nr.neq_exists(one, two)).isFalse();
+    assertThat(nr.neq_exists(one, three)).isFalse();
+    assertThat(nr.neq_exists(two, three)).isFalse();
   }
 
   @Test
@@ -474,9 +473,9 @@ public class SMGTest {
     nr = nr.addRelationAndCopy(one, three);
     nr = nr.replaceValueAndCopy(two, three);
 
-    Assert.assertTrue(nr.neq_exists(one, two));
-    Assert.assertFalse(nr.neq_exists(one, three));
-    Assert.assertFalse(nr.neq_exists(two, three));
+    assertThat(nr.neq_exists(one, two)).isTrue();
+    assertThat(nr.neq_exists(one, three)).isFalse();
+    assertThat(nr.neq_exists(two, three)).isFalse();
   }
 
   @Test
@@ -491,10 +490,10 @@ public class SMGTest {
     nr = nr.addRelationAndCopy(one, three);
     nr = nr.replaceValueAndCopy(two, three);
 
-    Assert.assertTrue(nr.neq_exists(zero, two));
-    Assert.assertTrue(nr.neq_exists(one, two));
-    Assert.assertFalse(nr.neq_exists(zero, three));
-    Assert.assertFalse(nr.neq_exists(one, three));
-    Assert.assertFalse(nr.neq_exists(two, three));
+    assertThat(nr.neq_exists(zero, two)).isTrue();
+    assertThat(nr.neq_exists(one, two)).isTrue();
+    assertThat(nr.neq_exists(zero, three)).isFalse();
+    assertThat(nr.neq_exists(one, three)).isFalse();
+    assertThat(nr.neq_exists(two, three)).isFalse();
   }
 }

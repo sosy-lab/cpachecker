@@ -28,7 +28,6 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Set;
-import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -52,7 +51,7 @@ public class SMGSingleLinkedListFinderTest {
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
-    Assert.assertTrue(!candidates.isEmpty());
+    assertThat(!candidates.isEmpty()).isTrue();
     SMGAbstractionCandidate candidate = getBestCandidate(candidates);
     assertThat(candidate).isInstanceOf(SMGSingleLinkedListCandidateSequence.class);
     SMGSingleLinkedListCandidateSequence sllCandidate = (SMGSingleLinkedListCandidateSequence)candidate;
@@ -137,10 +136,10 @@ public class SMGSingleLinkedListFinderTest {
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
-    Assert.assertTrue(!candidates.isEmpty());
+    assertThat(!candidates.isEmpty()).isTrue();
 
     for (SMGAbstractionCandidate candidate : candidates) {
-      Assert.assertTrue(((SMGSingleLinkedListCandidateSequence)candidate).getLength() < 5 );
+      assertThat(((SMGSingleLinkedListCandidateSequence) candidate).getLength() < 5).isTrue();
     }
   }
 }

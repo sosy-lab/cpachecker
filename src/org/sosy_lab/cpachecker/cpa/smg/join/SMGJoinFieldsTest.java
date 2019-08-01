@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -194,7 +193,7 @@ public class SMGJoinFieldsTest {
       assertThat(hv.getObject()).isSameInstanceAs(obj1);
       assertThat(hv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(32);
       assertThat(hv.getOffset()).isEqualTo(16);
-      Assert.assertTrue(hv.isCompatibleField(nonPointer));
+      assertThat(hv.isCompatibleField(nonPointer)).isTrue();
     }
   }
 
@@ -315,8 +314,8 @@ public class SMGJoinFieldsTest {
       assertThat(values).doesNotContain(edge.getValue());
       values.add(edge.getValue());
     }
-    Assert.assertTrue(seenZero);
-    Assert.assertTrue(seenTwo);
+    assertThat(seenZero).isTrue();
+    assertThat(seenTwo).isTrue();
 
     smg2.addValue(value1);
     smg2.addHasValueEdge(smg1_4bFrom0ToV1);

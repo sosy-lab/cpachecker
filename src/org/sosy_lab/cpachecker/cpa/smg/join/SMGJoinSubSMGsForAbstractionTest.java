@@ -27,7 +27,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
-import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -89,7 +88,7 @@ public class SMGJoinSubSMGsForAbstractionTest {
     SMGJoinSubSMGsForAbstraction join =
         new SMGJoinSubSMGsForAbstraction(smg, firstObject, secondObject, candidate, smgState);
 
-    Assert.assertTrue(join.isDefined());
+    assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isSameInstanceAs(SMGJoinStatus.EQUAL);
 
     assertThat(join.getNonSharedObjectsFromSMG1()).contains(firstObject);
@@ -98,7 +97,7 @@ public class SMGJoinSubSMGsForAbstractionTest {
     assertThat(join.getNonSharedObjectsFromSMG2()).doesNotContain(firstObject);
 
     SMGObject joinResult = join.getNewAbstractObject();
-    Assert.assertTrue(joinResult.isAbstract());
+    assertThat(joinResult.isAbstract()).isTrue();
     assertThat(joinResult.getKind()).isSameInstanceAs(SMGObjectKind.SLL);
 
     SMGSingleLinkedList resultSll = (SMGSingleLinkedList) joinResult;
@@ -106,9 +105,9 @@ public class SMGJoinSubSMGsForAbstractionTest {
 
     UnmodifiableCLangSMG resultSMG = join.getResultSMG();
     PersistentSet<SMGObject> resultHeapObjects = resultSMG.getHeapObjects();
-    Assert.assertTrue(resultHeapObjects.contains(joinResult));
-    Assert.assertTrue(resultHeapObjects.contains(firstObject));
-    Assert.assertTrue(resultHeapObjects.contains(secondObject));
+    assertThat(resultHeapObjects.contains(joinResult)).isTrue();
+    assertThat(resultHeapObjects.contains(firstObject)).isTrue();
+    assertThat(resultHeapObjects.contains(secondObject)).isTrue();
 
     assertThat(SMGUtils.getPointerToThisObject(resultSll, resultSMG)).isEmpty();
   }

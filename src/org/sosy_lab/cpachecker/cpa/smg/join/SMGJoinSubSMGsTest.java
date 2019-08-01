@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -59,7 +58,7 @@ public class SMGJoinSubSMGsTest {
 
   @Test
   public void testIsDefined() {
-    Assert.assertTrue(jssDefined.isDefined());
+    assertThat(jssDefined.isDefined()).isTrue();
   }
 
   @Test

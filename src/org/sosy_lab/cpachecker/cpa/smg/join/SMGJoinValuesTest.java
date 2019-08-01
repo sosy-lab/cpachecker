@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -94,7 +93,7 @@ public class SMGJoinValuesTest {
     mapping2.map(value2, value3);
 
     SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);
-    Assert.assertTrue(jv.isDefined());
+    assertThat(jv.isDefined()).isTrue();
     assertThat(jv.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
     assertThat(jv.getInputSMG1()).isSameInstanceAs(smg1);
     assertThat(jv.getInputSMG2()).isSameInstanceAs(smg2);
@@ -112,17 +111,17 @@ public class SMGJoinValuesTest {
 
     mapping1.map(value1, value3);
     SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);
-    Assert.assertFalse(jv.isDefined());
+    assertThat(jv.isDefined()).isFalse();
 
     mapping1 = new SMGNodeMapping();
     mapping2.map(value2, value3);
     jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);
-    Assert.assertFalse(jv.isDefined());
+    assertThat(jv.isDefined()).isFalse();
 
     mapping2 = new SMGNodeMapping();
 
     jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);
-    Assert.assertTrue(jv.isDefined());
+    assertThat(jv.isDefined()).isTrue();
     assertThat(jv.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
     assertThat(jv.getInputSMG1()).isSameInstanceAs(smg1);
     assertThat(jv.getInputSMG2()).isSameInstanceAs(smg2);
@@ -146,6 +145,6 @@ public class SMGJoinValuesTest {
     SMGEdgePointsTo pt = new SMGEdgePointsTo(value1, obj1, 0);
     smg1.addPointsToEdge(pt);
     SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);
-    Assert.assertFalse(jv.isDefined());
+    assertThat(jv.isDefined()).isFalse();
   }
 }

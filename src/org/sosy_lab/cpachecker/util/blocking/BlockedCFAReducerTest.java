@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.blocking;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.io.CharStreams;
 import java.io.BufferedWriter;
@@ -77,7 +76,7 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n4, n5);
     funct.addEdge(n5, exitNode);
 
-    assertTrue(reducer.applySequenceRule(funct));
+    assertThat(reducer.applySequenceRule(funct)).isTrue();
     assertThat(funct.getNumOfActiveNodes()).isEqualTo(2);
   }
 

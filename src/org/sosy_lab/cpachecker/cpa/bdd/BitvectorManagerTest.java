@@ -102,11 +102,11 @@ public class BitvectorManagerTest {
   }
 
   private void assertIsTrue(Region r) {
-    Assert.assertTrue(r.isTrue());
+    assertThat(r.isTrue()).isTrue();
   }
 
   private void assertIsFalse(Region r) {
-    Assert.assertTrue(r.isFalse());
+    assertThat(r.isFalse()).isTrue();
   }
 
   private void assertEqual(Region[] r1, Region[] r2) {
@@ -120,7 +120,7 @@ public class BitvectorManagerTest {
     for (int i = 0; i < r1.length; i++) {
       distinct |= r1[i].equals(r2[i]);
     }
-    Assert.assertTrue(distinct);
+    assertThat(distinct).isTrue();
   }
 
   @Test

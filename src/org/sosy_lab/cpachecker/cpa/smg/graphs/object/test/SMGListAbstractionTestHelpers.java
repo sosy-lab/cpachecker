@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.test;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.junit.Assert;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionManager;
@@ -467,7 +468,7 @@ public final class SMGListAbstractionTestHelpers {
 
   public static void assertAbstractListSegmentAsExpected(
       SMGObject pSegment, int pRegionSize, int pLevel, SMGObjectKind pListKind, int pListLength) {
-    Assert.assertTrue(pSegment.isAbstract());
+    assertThat(pSegment.isAbstract()).isTrue();
     Truth.assertThat(pSegment.getSize()).isEqualTo(pRegionSize);
     Truth.assertThat(pSegment.getLevel()).isEqualTo(pLevel);
     Truth.assertThat(pSegment.getKind()).isSameInstanceAs(pListKind);

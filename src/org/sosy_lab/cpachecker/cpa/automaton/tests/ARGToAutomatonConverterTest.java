@@ -20,7 +20,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton.tests;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -145,7 +144,8 @@ public class ARGToAutomatonConverterTest extends AbstractARGTranslationTest {
                 .build();
         CPAcheckerResult.Result partialVerdict =
             CPATestRunner.run(reConfig, fullPath.toString()).getCheckerResult().getResult();
-        assertTrue(partialVerdict.equals(Result.TRUE) || partialVerdict.equals(Result.FALSE));
+        assertThat(partialVerdict.equals(Result.TRUE) || partialVerdict.equals(Result.FALSE))
+            .isTrue();
         fullVerdict = fullVerdict && partialVerdict.equals(Result.TRUE);
       }
       assertThat(fullVerdict).isEqualTo(verdict);

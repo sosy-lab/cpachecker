@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.test;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
@@ -30,7 +32,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -114,7 +115,7 @@ public class SMGRegionsWithListsTest {
             smg, addresses[0], GLOBAL_LIST_POINTER_LABEL);
 
     SMGObject segment = smg.getObjectPointedBy(addresses[0]);
-    Assert.assertFalse(segment.isAbstract());
+    assertThat(segment.isAbstract()).isFalse();
     Truth.assertThat(segment.getKind()).isSameInstanceAs(SMGObjectKind.REG);
     Truth.assertThat(segment.getLevel()).isEqualTo(LEVEL_ZERO);
     Truth.assertThat(segment.getSize()).isEqualTo(nodeSize);
@@ -142,7 +143,7 @@ public class SMGRegionsWithListsTest {
     SMGValue dataValue = dataField.getValue();
 
     // assert that the abstract list points to an abstract sublist
-    Assert.assertTrue(smg.isPointer(dataValue));
+    assertThat(smg.isPointer(dataValue)).isTrue();
     SMGObject subobject = smg.getObjectPointedBy(dataValue);
     Truth.assertThat(subobject).isNotNull();
     int minSublistLength =

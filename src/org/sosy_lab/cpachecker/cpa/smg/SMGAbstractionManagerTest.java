@@ -27,7 +27,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.Iterables;
 import java.util.Set;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -92,6 +91,6 @@ public class SMGAbstractionManagerTest {
     SMGEdgeHasValue hv = Iterables.getOnlyElement(hvs);
     SMGEdgePointsTo pt = smg.getPointer(hv.getValue());
     SMGObject segment = pt.getObject();
-    Assert.assertTrue(segment.isAbstract());
+    assertThat(segment.isAbstract()).isTrue();
   }
 }

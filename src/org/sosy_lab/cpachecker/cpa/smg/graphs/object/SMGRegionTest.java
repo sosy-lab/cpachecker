@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,7 +36,7 @@ public class SMGRegionTest {
   @Test
   public void testIsAbstract() {
     SMGRegion region = new SMGRegion(64, "region");
-    Assert.assertFalse(region.isAbstract());
+    assertThat(region.isAbstract()).isFalse();
   }
 
   @Test

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -92,7 +91,7 @@ public class SMGJoinTargetObjectsTest {
     smg1.addPointsToEdge(pt1);
 
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, obj1, SMGNullObject.INSTANCE);
-    Assert.assertFalse(mo.isDefined());
+    assertThat(mo.isDefined()).isFalse();
     SMGJoinTargetObjects jto =
         new SMGJoinTargetObjects(
             SMGJoinStatus.EQUAL,
@@ -110,8 +109,8 @@ public class SMGJoinTargetObjectsTest {
             false,
             null,
             null);
-    Assert.assertFalse(jto.isDefined());
-    Assert.assertTrue(jto.isRecoverable());
+    assertThat(jto.isDefined()).isFalse();
+    assertThat(jto.isRecoverable()).isTrue();
   }
 
   @Test
@@ -130,8 +129,8 @@ public class SMGJoinTargetObjectsTest {
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, null, null,
         null, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, 0, 0, false, null, null);
 
-    Assert.assertFalse(jto.isDefined());
-    Assert.assertTrue(jto.isRecoverable());
+    assertThat(jto.isDefined()).isFalse();
+    assertThat(jto.isRecoverable()).isTrue();
   }
 
   @Test
@@ -155,7 +154,7 @@ public class SMGJoinTargetObjectsTest {
             value1,
             value2);
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, 0, 0, false, null, null);
-    Assert.assertTrue(jto.isDefined());
+    assertThat(jto.isDefined()).isTrue();
     assertThat(jto.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
     assertThat(jto.getInputSMG1()).isSameInstanceAs(smg1);
     assertThat(jto.getInputSMG2()).isSameInstanceAs(smg2);
@@ -185,7 +184,7 @@ public class SMGJoinTargetObjectsTest {
     //                                                  new SMGNodeMapping(mapping1), new SMGNodeMapping(mapping2),
     //                                                  value1, value2);
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, 0, 0, false, null, null);
-    Assert.assertTrue(jto.isDefined());
+    assertThat(jto.isDefined()).isTrue();
     assertThat(jto.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
     assertThat(jto.getInputSMG1()).isSameInstanceAs(smg1);
     assertThat(jto.getInputSMG2()).isSameInstanceAs(smg2);
@@ -193,10 +192,10 @@ public class SMGJoinTargetObjectsTest {
     //       But we currently do not have isomorphism
     // Assert.assertEquals(mta.getSMG(), jto.getDestinationSMG());
 
-    Assert.assertTrue(jto.mapping1.containsKey(value1));
+    assertThat(jto.mapping1.containsKey(value1)).isTrue();
     assertThat(jto.getValue()).isEqualTo(jto.mapping1.get(value1));
 
-    Assert.assertTrue(jto.mapping2.containsKey(value2));
+    assertThat(jto.mapping2.containsKey(value2)).isTrue();
     assertThat(jto.getValue()).isEqualTo(jto.mapping2.get(value2));
   }
 }

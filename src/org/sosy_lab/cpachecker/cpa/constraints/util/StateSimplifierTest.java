@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.constraints.util;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -119,7 +118,7 @@ public class StateSimplifierTest {
 
     simplifier.removeOutdatedConstraints(constraintsState, valueState);
 
-    Assert.assertTrue(group2ConstraintsExist(constraintsState));
+    assertThat(group2ConstraintsExist(constraintsState)).isTrue();
   }
 
   private boolean group2ConstraintsExist(

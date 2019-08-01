@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.math.BigInteger;
 import java.util.List;
@@ -45,28 +43,44 @@ public class CompoundMathematicalIntervalTest {
 
   @Test
   public void testIsTop() {
-    assertFalse(CompoundMathematicalInterval.of(oneToTenInterval).isTop());
-    assertFalse(CompoundMathematicalInterval.of(negInfToZeroInterval).isTop());
-    assertFalse(CompoundMathematicalInterval.of(zeroToPosInfInterval).isTop());
-    assertFalse(CompoundMathematicalInterval.bottom().isTop());
-    assertTrue(CompoundMathematicalInterval.top().isTop());
+    assertThat(CompoundMathematicalInterval.of(oneToTenInterval).isTop()).isFalse();
+    assertThat(CompoundMathematicalInterval.of(negInfToZeroInterval).isTop()).isFalse();
+    assertThat(CompoundMathematicalInterval.of(zeroToPosInfInterval).isTop()).isFalse();
+    assertThat(CompoundMathematicalInterval.bottom().isTop()).isFalse();
+    assertThat(CompoundMathematicalInterval.top().isTop()).isTrue();
   }
 
   @Test
   public void testIsBottom() {
-    assertFalse(CompoundMathematicalInterval.of(oneToTenInterval).isBottom());
-    assertFalse(CompoundMathematicalInterval.of(negInfToZeroInterval).isBottom());
-    assertFalse(CompoundMathematicalInterval.of(zeroToPosInfInterval).isBottom());
-    assertFalse(CompoundMathematicalInterval.top().isBottom());
-    assertTrue(CompoundMathematicalInterval.bottom().isBottom());
+    assertThat(CompoundMathematicalInterval.of(oneToTenInterval).isBottom()).isFalse();
+    assertThat(CompoundMathematicalInterval.of(negInfToZeroInterval).isBottom()).isFalse();
+    assertThat(CompoundMathematicalInterval.of(zeroToPosInfInterval).isBottom()).isFalse();
+    assertThat(CompoundMathematicalInterval.top().isBottom()).isFalse();
+    assertThat(CompoundMathematicalInterval.bottom().isBottom()).isTrue();
   }
 
   @Test
   public void testUnionWith() {
-    assertTrue(CompoundMathematicalInterval.of(negInfToZeroInterval).unionWith(zeroToPosInfInterval).isTop());
-    assertTrue(CompoundMathematicalInterval.of(negInfToZeroInterval).unionWith(CompoundMathematicalInterval.of(zeroToPosInfInterval)).isTop());
-    assertTrue(CompoundMathematicalInterval.bottom().unionWith(CompoundMathematicalInterval.top()).isTop());
-    assertFalse(CompoundMathematicalInterval.of(negInfToZeroInterval).unionWith(CompoundMathematicalInterval.of(oneToTenInterval)).isTop());
+    assertThat(
+            CompoundMathematicalInterval.of(negInfToZeroInterval)
+                .unionWith(zeroToPosInfInterval)
+                .isTop())
+        .isTrue();
+    assertThat(
+            CompoundMathematicalInterval.of(negInfToZeroInterval)
+                .unionWith(CompoundMathematicalInterval.of(zeroToPosInfInterval))
+                .isTop())
+        .isTrue();
+    assertThat(
+            CompoundMathematicalInterval.bottom()
+                .unionWith(CompoundMathematicalInterval.top())
+                .isTop())
+        .isTrue();
+    assertThat(
+            CompoundMathematicalInterval.of(negInfToZeroInterval)
+                .unionWith(CompoundMathematicalInterval.of(oneToTenInterval))
+                .isTop())
+        .isFalse();
     assertThat(CompoundMathematicalInterval.of(oneToTenInterval))
         .isEqualTo(CompoundMathematicalInterval.of(oneToFiveInterval).unionWith(sixToTenInterval));
     assertThat(CompoundMathematicalInterval.of(oneToTenInterval))
@@ -98,11 +112,11 @@ public class CompoundMathematicalIntervalTest {
     }
     steps = steps.extendToMinValue().extendToMaxValue();
     for (int i = -6; i <= 6; i += 2) {
-      assertTrue(steps.contains(i));
+      assertThat(steps.contains(i)).isTrue();
     }
     CompoundMathematicalInterval stepsNegInf = steps.unionWith(CompoundMathematicalInterval.singleton(BigInteger.valueOf(-4)).extendToMinValue());
     for (int i = -6; i <= 6; i += 2) {
-      assertTrue(stepsNegInf.contains(i));
+      assertThat(stepsNegInf.contains(i)).isTrue();
     }
 
     CompoundMathematicalInterval zeroOrTenToInf = CompoundMathematicalInterval.singleton(0).unionWith(CompoundMathematicalInterval.singleton(10).extendToMaxValue());
@@ -128,7 +142,11 @@ public class CompoundMathematicalIntervalTest {
             CompoundMathematicalInterval.of(negInfToZeroInterval)
                 .intersectWith(CompoundMathematicalInterval.of(zeroToPosInfInterval)))
         .isEqualTo(CompoundMathematicalInterval.of(SimpleInterval.singleton(BigInteger.ZERO)));
-    assertTrue(CompoundMathematicalInterval.bottom().intersectWith(CompoundMathematicalInterval.top()).isBottom());
+    assertThat(
+            CompoundMathematicalInterval.bottom()
+                .intersectWith(CompoundMathematicalInterval.top())
+                .isBottom())
+        .isTrue();
     assertThat(
             CompoundMathematicalInterval.top()
                 .intersectWith(CompoundMathematicalInterval.of(oneToTenInterval)))
@@ -152,13 +170,13 @@ public class CompoundMathematicalIntervalTest {
     assertThat(negInfToTen.invert().invert()).isEqualTo(negInfToTen);
     for (int i = -1; i < 2; ++i) {
       CompoundMathematicalInterval invertedState = CompoundMathematicalInterval.singleton(i).invert();
-      assertFalse(invertedState.contains(i));
-      assertFalse(invertedState.hasLowerBound());
-      assertFalse(invertedState.hasUpperBound());
-      assertFalse(invertedState.isTop());
-      assertFalse(invertedState.isBottom());
-      assertTrue(invertedState.contains(i - 1));
-      assertTrue(invertedState.contains(i + 1));
+      assertThat(invertedState.contains(i)).isFalse();
+      assertThat(invertedState.hasLowerBound()).isFalse();
+      assertThat(invertedState.hasUpperBound()).isFalse();
+      assertThat(invertedState.isTop()).isFalse();
+      assertThat(invertedState.isBottom()).isFalse();
+      assertThat(invertedState.contains(i - 1)).isTrue();
+      assertThat(invertedState.contains(i + 1)).isTrue();
     }
     assertThat(
             CompoundMathematicalInterval.of(
@@ -205,28 +223,66 @@ public class CompoundMathematicalIntervalTest {
     CompoundMathematicalInterval negOne = CompoundMathematicalInterval.singleton(-1);
     CompoundMathematicalInterval zero = CompoundMathematicalInterval.singleton(0);
     CompoundMathematicalInterval ten = CompoundMathematicalInterval.singleton(10);
-    assertTrue(negOne.isSingleton());
-    assertTrue(zero.isSingleton());
-    assertTrue(CompoundMathematicalInterval.one().isSingleton());
-    assertTrue(ten.isSingleton());
-    assertFalse(CompoundMathematicalInterval.span(CompoundMathematicalInterval.one(), ten).isSingleton());
-    assertFalse(zero.unionWith(ten).isSingleton());
-    assertFalse(negOne.unionWith(CompoundMathematicalInterval.span(CompoundMathematicalInterval.one(), ten)).isSingleton());
+    assertThat(negOne.isSingleton()).isTrue();
+    assertThat(zero.isSingleton()).isTrue();
+    assertThat(CompoundMathematicalInterval.one().isSingleton()).isTrue();
+    assertThat(ten.isSingleton()).isTrue();
+    assertThat(
+            CompoundMathematicalInterval.span(CompoundMathematicalInterval.one(), ten)
+                .isSingleton())
+        .isFalse();
+    assertThat(zero.unionWith(ten).isSingleton()).isFalse();
+    assertThat(
+            negOne
+                .unionWith(
+                    CompoundMathematicalInterval.span(CompoundMathematicalInterval.one(), ten))
+                .isSingleton())
+        .isFalse();
   }
 
   @Test
   public void containsTest() {
-    assertTrue(CompoundMathematicalInterval.singleton(-1).contains(-1));
-    assertTrue(CompoundMathematicalInterval.singleton(0).contains(0));
-    assertTrue(CompoundMathematicalInterval.one().contains(1));
-    assertTrue(CompoundMathematicalInterval.singleton(-1).contains(CompoundMathematicalInterval.singleton(-1)));
-    assertTrue(CompoundMathematicalInterval.singleton(0).contains(CompoundMathematicalInterval.singleton(0)));
-    assertTrue(CompoundMathematicalInterval.singleton(1).contains(CompoundMathematicalInterval.singleton(1)));
-    assertTrue(CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN)).contains(CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ONE, BigInteger.TEN))));
-    assertFalse(CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ONE, BigInteger.TEN)).contains(CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN))));
-    assertTrue(CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN)).contains(5));
-    assertFalse(CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN)).contains(-1));
-    assertFalse(CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(4))).unionWith(SimpleInterval.of(BigInteger.valueOf(6), BigInteger.TEN)).contains(5));
+    assertThat(CompoundMathematicalInterval.singleton(-1).contains(-1)).isTrue();
+    assertThat(CompoundMathematicalInterval.singleton(0).contains(0)).isTrue();
+    assertThat(CompoundMathematicalInterval.one().contains(1)).isTrue();
+    assertThat(
+            CompoundMathematicalInterval.singleton(-1)
+                .contains(CompoundMathematicalInterval.singleton(-1)))
+        .isTrue();
+    assertThat(
+            CompoundMathematicalInterval.singleton(0)
+                .contains(CompoundMathematicalInterval.singleton(0)))
+        .isTrue();
+    assertThat(
+            CompoundMathematicalInterval.singleton(1)
+                .contains(CompoundMathematicalInterval.singleton(1)))
+        .isTrue();
+    assertThat(
+            CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN))
+                .contains(
+                    CompoundMathematicalInterval.of(
+                        SimpleInterval.of(BigInteger.ONE, BigInteger.TEN))))
+        .isTrue();
+    assertThat(
+            CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ONE, BigInteger.TEN))
+                .contains(
+                    CompoundMathematicalInterval.of(
+                        SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN))))
+        .isFalse();
+    assertThat(
+            CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN))
+                .contains(5))
+        .isTrue();
+    assertThat(
+            CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN))
+                .contains(-1))
+        .isFalse();
+    assertThat(
+            CompoundMathematicalInterval.of(
+                    SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(4)))
+                .unionWith(SimpleInterval.of(BigInteger.valueOf(6), BigInteger.TEN))
+                .contains(5))
+        .isFalse();
   }
 
   @Test
@@ -242,14 +298,15 @@ public class CompoundMathematicalIntervalTest {
     BigInteger lastUpperBound = null;
     for (SimpleInterval interval : intervals) {
       if (i == 0) {
-        assertFalse(interval.hasLowerBound());
+        assertThat(interval.hasLowerBound()).isFalse();
       } else {
-        assertTrue(interval.hasLowerBound());
+        assertThat(interval.hasLowerBound()).isTrue();
         // Check that intervals to not overlap, touch or are in the wrong order
-        assertTrue(interval.getLowerBound().subtract(lastUpperBound).compareTo(BigInteger.ONE) > 0);
+        assertThat(interval.getLowerBound().subtract(lastUpperBound).compareTo(BigInteger.ONE) > 0)
+            .isTrue();
       }
       if (i == intervals.size() - 1) {
-        assertFalse(interval.hasUpperBound());
+        assertThat(interval.hasUpperBound()).isFalse();
       }
       if (interval.hasUpperBound()) {
         lastUpperBound = interval.getUpperBound();
@@ -278,19 +335,20 @@ public class CompoundMathematicalIntervalTest {
 
   @Test
   public void testAbsolute() {
-    assertFalse(CompoundMathematicalInterval.top().absolute().containsNegative());
+    assertThat(CompoundMathematicalInterval.top().absolute().containsNegative()).isFalse();
     assertThat(CompoundMathematicalInterval.one().negate().absolute())
         .isEqualTo(CompoundMathematicalInterval.one());
     CompoundMathematicalInterval twoToFour = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.valueOf(2), BigInteger.valueOf(4)));
     CompoundMathematicalInterval negTwoToNegOne = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.valueOf(-2), BigInteger.valueOf(-1)));
     CompoundMathematicalInterval negFourToNegTwo = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.valueOf(-4), BigInteger.valueOf(-2)));
     CompoundMathematicalInterval oneToTwo = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(2)));
-    assertFalse(twoToFour.absolute().containsNegative());
-    assertFalse(negFourToNegTwo.absolute().containsNegative());
-    assertFalse(negFourToNegTwo.negate().absolute().containsNegative());
-    assertFalse(oneToTwo.absolute().containsNegative());
-    assertFalse(oneToTwo.negate().absolute().containsNegative());
-    assertFalse(negTwoToNegOne.unionWith(twoToFour).negate().absolute().containsNegative());
+    assertThat(twoToFour.absolute().containsNegative()).isFalse();
+    assertThat(negFourToNegTwo.absolute().containsNegative()).isFalse();
+    assertThat(negFourToNegTwo.negate().absolute().containsNegative()).isFalse();
+    assertThat(oneToTwo.absolute().containsNegative()).isFalse();
+    assertThat(oneToTwo.negate().absolute().containsNegative()).isFalse();
+    assertThat(negTwoToNegOne.unionWith(twoToFour).negate().absolute().containsNegative())
+        .isFalse();
   }
 
 }

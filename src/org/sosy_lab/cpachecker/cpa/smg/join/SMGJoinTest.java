@@ -27,7 +27,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -211,7 +210,7 @@ public class SMGJoinTest {
     String varName = "variableName";
     addGlobalWithoutValueToBoth(varName);
     SMGJoin join = new SMGJoin(smg1, smg2, null, null);
-    Assert.assertTrue(join.isDefined());
+    assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     UnmodifiableCLangSMG resultSMG = join.getJointSMG();
@@ -227,11 +226,11 @@ public class SMGJoinTest {
     addLocalWithoutValueToBoth(varName);
 
     SMGJoin join = new SMGJoin(smg1, smg2, null, null);
-    Assert.assertTrue(join.isDefined());
+    assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     UnmodifiableCLangSMG resultSMG = join.getJointSMG();
-    Assert.assertTrue(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName));
+    assertThat(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName)).isTrue();
     assertObjectCounts(resultSMG, 0, 1, 1);
   }
 
@@ -240,7 +239,7 @@ public class SMGJoinTest {
     String varName = "variableName";
     addGlobalWithValueToBoth(varName);
     SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
-    Assert.assertTrue(join.isDefined());
+    assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     UnmodifiableCLangSMG resultSMG = join.getJointSMG();
@@ -260,11 +259,11 @@ public class SMGJoinTest {
     smg2.addStackFrame(functionDeclaration);
     addLocalWithValueToBoth(varName);
     SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
-    Assert.assertTrue(join.isDefined());
+    assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     UnmodifiableCLangSMG resultSMG = join.getJointSMG();
-    Assert.assertTrue(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName));
+    assertThat(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName)).isTrue();
     assertObjectCounts(resultSMG, 0, 1, 1);
 
     SMGObject global = Iterables.get(resultSMG.getStackFrames(), 0).getVariable(varName);
@@ -315,7 +314,7 @@ public class SMGJoinTest {
     addValueToBoth(c3, 0, 104, 32);
 
     SMGJoin join = new SMGJoin(smg1, smg2, null, null);
-    Assert.assertTrue(join.isDefined());
+    assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
   }
 
@@ -360,7 +359,7 @@ public class SMGJoinTest {
     addPointerValueToBoth(global, 0, 100, 32, objs, 0);
 
     SMGJoin join = new SMGJoin(smg1, smg2, null, null);
-    Assert.assertTrue(join.isDefined());
+    assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.RIGHT_ENTAIL);
 
     // this will lead to incomparable, undefined, you can not join 0(ptr valuu) with 666(nonptr val)
@@ -372,7 +371,7 @@ public class SMGJoinTest {
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, objs.getFirst(), un));
 
     SMGJoin join2 = new SMGJoin(smg1, smg2, null, null);
-    Assert.assertFalse(join2.isDefined());
+    assertThat(join2.isDefined()).isFalse();
     assertThat(join2.getStatus()).isEqualTo(SMGJoinStatus.INCOMPARABLE);
   }
 }

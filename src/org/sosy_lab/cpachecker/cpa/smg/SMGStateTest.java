@@ -32,7 +32,6 @@ import com.google.common.truth.Truth;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -759,8 +758,8 @@ public class SMGStateTest {
         new SMGState(
             logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
 
-    Assert.assertFalse(state.hasMemoryLeaks());
+    assertThat(state.hasMemoryLeaks()).isFalse();
     state.setMemLeak("", Collections.emptyList());
-    Assert.assertTrue(state.hasMemoryLeaks());
+    assertThat(state.hasMemoryLeaks()).isTrue();
   }
 }

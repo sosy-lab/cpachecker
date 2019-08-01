@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -39,16 +38,16 @@ public class TypesTest {
 
   @Test
   public void testCanHoldAllValues_CTypes() {
-    assertTrue(shortHoldsChar());
-    assertTrue(intHoldsShort());
-    assertTrue(doubleHoldsInt());
-    assertTrue(doubleHoldsFloat());
-    assertFalse(intHoldsFloat());
-    assertFalse(charHoldsLongLong());
+    assertThat(shortHoldsChar()).isTrue();
+    assertThat(intHoldsShort()).isTrue();
+    assertThat(doubleHoldsInt()).isTrue();
+    assertThat(doubleHoldsFloat()).isTrue();
+    assertThat(intHoldsFloat()).isFalse();
+    assertThat(charHoldsLongLong()).isFalse();
 
-    assertTrue(signedIntHoldsUnsignedShort());
-    assertFalse(unsignedHoldsSignedInt());
-    assertFalse(unsignedCharHoldsInt());
+    assertThat(signedIntHoldsUnsignedShort()).isTrue();
+    assertThat(unsignedHoldsSignedInt()).isFalse();
+    assertThat(unsignedCharHoldsInt()).isFalse();
   }
 
   private boolean shortHoldsChar() {

@@ -27,7 +27,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.Iterables;
 import java.util.Set;
-import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -86,7 +85,7 @@ public class SMGSingleLinkedListCandidateTest {
     value = root.getValue();
     SMGObject pointedObject = abstractedSmg.getPointer(value).getObject();
     assertThat(pointedObject).isInstanceOf(SMGSingleLinkedList.class);
-    Assert.assertTrue(pointedObject.isAbstract());
+    assertThat(pointedObject.isAbstract()).isTrue();
     SMGSingleLinkedList segment = (SMGSingleLinkedList)pointedObject;
     assertThat(segment.getSize()).isEqualTo(NODE_SIZE);
     assertThat(segment.getMinimumLength()).isEqualTo(SEGMENT_LENGTH);
@@ -123,7 +122,7 @@ public class SMGSingleLinkedListCandidateTest {
     root = Iterables.getOnlyElement(globalHves);
     value = root.getValue();
     SMGObject sll = abstractedSmg.getPointer(value).getObject();
-    Assert.assertTrue(sll.isAbstract());
+    assertThat(sll.isAbstract()).isTrue();
     assertThat(sll).isInstanceOf(SMGSingleLinkedList.class);
     SMGSingleLinkedList realSll = (SMGSingleLinkedList)sll;
     assertThat(realSll.getMinimumLength()).isEqualTo(2);

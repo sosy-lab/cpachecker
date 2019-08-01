@@ -126,52 +126,52 @@ public class AutomatonInternalTest {
     AutomatonBoolExpr myFalse= AutomatonBoolExpr.FALSE;
 
     ex = new AutomatonBoolExpr.And(myTrue, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.And(myTrue, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(myTrue, cannot);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.And(myFalse, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(myFalse, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(myFalse, cannot);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(cannot, myTrue);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.And(cannot, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(cannot, cannot);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myTrue, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myTrue, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myTrue, cannot);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myFalse, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myFalse, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.Or(myFalse, cannot);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(cannot, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(cannot, myFalse);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
