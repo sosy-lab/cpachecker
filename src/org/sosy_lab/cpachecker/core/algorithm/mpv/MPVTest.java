@@ -260,7 +260,7 @@ public class MPVTest {
     // do not compare ideal verdicts UNKNOWN
     for (i = 0; i < idealResults.length; i++) {
       if (idealResults[i][1].equals("UNKNOWN")) {
-        assertThat(idealResults[i][0]).isEqualTo(actualResults[i][0]);
+        assertThat(actualResults[i][0]).isEqualTo(idealResults[i][0]);
         for (int j = 0; j < idealResults[i].length; j++) {
           idealResults[i][j] = actualResults[i][j];
         }

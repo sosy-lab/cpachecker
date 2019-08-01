@@ -70,7 +70,7 @@ public class ConstraintsMergeOperatorTest {
 
     ConstraintsState mergeResult = (ConstraintsState) op.merge(state1, state2, SingletonPrecision.getInstance());
 
-    assertThat(mergeResult.size() + 1).isEqualTo(state2.size());
+    assertThat(mergeResult).hasSize(state2.size() - 1);
     assertThat(mergeResult).doesNotContain(negConst);
 
     state2.remove(negConst);

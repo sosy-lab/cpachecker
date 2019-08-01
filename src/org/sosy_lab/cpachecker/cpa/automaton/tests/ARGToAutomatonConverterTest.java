@@ -144,8 +144,7 @@ public class ARGToAutomatonConverterTest extends AbstractARGTranslationTest {
                 .build();
         CPAcheckerResult.Result partialVerdict =
             CPATestRunner.run(reConfig, fullPath.toString()).getCheckerResult().getResult();
-        assertThat(partialVerdict.equals(Result.TRUE) || partialVerdict.equals(Result.FALSE))
-            .isTrue();
+        assertThat(partialVerdict).isAnyOf(Result.TRUE, Result.FALSE);
         fullVerdict = fullVerdict && partialVerdict.equals(Result.TRUE);
       }
       assertThat(fullVerdict).isEqualTo(verdict);

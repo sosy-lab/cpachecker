@@ -110,12 +110,12 @@ public class BitvectorManagerTest {
   }
 
   private void assertEqual(Region[] r1, Region[] r2) {
-    assertThat(r1.length).isEqualTo(r2.length);
+    assertThat(r1).hasLength(r2.length);
     assertWithMessage(toString(r1) + " != " + toString(r2)).that(r2).isEqualTo(r1);
   }
 
   private void assertDistinct(Region[] r1, Region[] r2) {
-    assertThat(r1.length).isEqualTo(r2.length);
+    assertThat(r1).hasLength(r2.length);
     boolean distinct = false;
     for (int i = 0; i < r1.length; i++) {
       distinct |= r1[i].equals(r2[i]);
