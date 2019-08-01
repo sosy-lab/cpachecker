@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -76,7 +77,7 @@ public class IntervalAnalysisStateTest {
   }
 
   private void checkEquals(Comparable c1, Comparable c2) {
-    assertTrue(c1.compareTo(c2) == 0);
-    assertTrue(c2.compareTo(c1) == 0);
+    assertThat(c1.compareTo(c2)).isEqualTo(0);
+    assertThat(c2.compareTo(c1)).isEqualTo(0);
   }
 }

@@ -49,28 +49,28 @@ public class ASTConverterTest {
 
   @Test
   public final void testCharacterExpression() {
-    assertEquals('\000',   converter32.parseCharacterLiteral("'\\000'", null));
-    assertEquals('\077',   converter32.parseCharacterLiteral("'\\077'", null));
-    assertEquals('\u00FF', converter32.parseCharacterLiteral("'\\xFF'", null));
-    assertEquals('\u00BC', converter32.parseCharacterLiteral("'\\xBC'", null));
-    assertEquals('\u0080', converter32.parseCharacterLiteral("'\\x80'", null));
-    assertEquals('\u007F', converter32.parseCharacterLiteral("'\\X7F'", null));
-    assertEquals('\\', converter32.parseCharacterLiteral("'\\\\'", null));
-    assertEquals('\'', converter32.parseCharacterLiteral("'\\''", null));
-    assertEquals('"',  converter32.parseCharacterLiteral("'\\\"'", null));
-    assertEquals('\0', converter32.parseCharacterLiteral("'\\0'", null));
-    assertEquals(7,    converter32.parseCharacterLiteral("'\\a'", null));
-    assertEquals('\b', converter32.parseCharacterLiteral("'\\b'", null));
-    assertEquals('\f', converter32.parseCharacterLiteral("'\\f'", null));
-    assertEquals('\n', converter32.parseCharacterLiteral("'\\n'", null));
-    assertEquals('\r', converter32.parseCharacterLiteral("'\\r'", null));
-    assertEquals('\t', converter32.parseCharacterLiteral("'\\t'", null));
-    assertEquals(11,   converter32.parseCharacterLiteral("'\\v'", null));
-    assertEquals('a', converter32.parseCharacterLiteral("'a'", null));
-    assertEquals(' ', converter32.parseCharacterLiteral("' '", null));
-    assertEquals('9', converter32.parseCharacterLiteral("'9'", null));
-    assertEquals('´', converter32.parseCharacterLiteral("'´'", null));
-    assertEquals('´', converter32.parseCharacterLiteral("'´'", null));
+    assertThat(converter32.parseCharacterLiteral("'\\000'", null)).isEqualTo('\000');
+    assertThat(converter32.parseCharacterLiteral("'\\077'", null)).isEqualTo('\077');
+    assertThat(converter32.parseCharacterLiteral("'\\xFF'", null)).isEqualTo('\u00FF');
+    assertThat(converter32.parseCharacterLiteral("'\\xBC'", null)).isEqualTo('\u00BC');
+    assertThat(converter32.parseCharacterLiteral("'\\x80'", null)).isEqualTo('\u0080');
+    assertThat(converter32.parseCharacterLiteral("'\\X7F'", null)).isEqualTo('\u007F');
+    assertThat(converter32.parseCharacterLiteral("'\\\\'", null)).isEqualTo('\\');
+    assertThat(converter32.parseCharacterLiteral("'\\''", null)).isEqualTo('\'');
+    assertThat(converter32.parseCharacterLiteral("'\\\"'", null)).isEqualTo('"');
+    assertThat(converter32.parseCharacterLiteral("'\\0'", null)).isEqualTo('\0');
+    assertThat(converter32.parseCharacterLiteral("'\\a'", null)).isEqualTo(7);
+    assertThat(converter32.parseCharacterLiteral("'\\b'", null)).isEqualTo('\b');
+    assertThat(converter32.parseCharacterLiteral("'\\f'", null)).isEqualTo('\f');
+    assertThat(converter32.parseCharacterLiteral("'\\n'", null)).isEqualTo('\n');
+    assertThat(converter32.parseCharacterLiteral("'\\r'", null)).isEqualTo('\r');
+    assertThat(converter32.parseCharacterLiteral("'\\t'", null)).isEqualTo('\t');
+    assertThat(converter32.parseCharacterLiteral("'\\v'", null)).isEqualTo(11);
+    assertThat(converter32.parseCharacterLiteral("'a'", null)).isEqualTo('a');
+    assertThat(converter32.parseCharacterLiteral("' '", null)).isEqualTo(' ');
+    assertThat(converter32.parseCharacterLiteral("'9'", null)).isEqualTo('9');
+    assertThat(converter32.parseCharacterLiteral("'´'", null)).isEqualTo('´');
+    assertThat(converter32.parseCharacterLiteral("'´'", null)).isEqualTo('´');
   }
 
   @Test(expected=CFAGenerationRuntimeException.class)

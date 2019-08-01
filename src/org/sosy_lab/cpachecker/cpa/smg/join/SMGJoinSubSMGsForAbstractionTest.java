@@ -102,7 +102,7 @@ public class SMGJoinSubSMGsForAbstractionTest {
     Assert.assertSame(SMGObjectKind.SLL, joinResult.getKind());
 
     SMGSingleLinkedList resultSll = (SMGSingleLinkedList) joinResult;
-    Assert.assertEquals(2, resultSll.getMinimumLength());
+    assertThat(resultSll.getMinimumLength()).isEqualTo(2);
 
     UnmodifiableCLangSMG resultSMG = join.getResultSMG();
     PersistentSet<SMGObject> resultHeapObjects = resultSMG.getHeapObjects();

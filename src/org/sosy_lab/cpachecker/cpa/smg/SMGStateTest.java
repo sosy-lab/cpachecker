@@ -610,14 +610,14 @@ public class SMGStateTest {
         new SMGState(
             logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     UnmodifiableSMGState second = original.copyOf();
-    Assert.assertNotEquals(original.getId(), second.getId());
+    assertThat(second.getId()).isNotEqualTo(original.getId());
 
     UnmodifiableSMGState copy = original.copyOf();
-    Assert.assertNotEquals(copy.getId(), original.getId());
-    Assert.assertNotEquals(copy.getId(), second.getId());
+    assertThat(original.getId()).isNotEqualTo(copy.getId());
+    assertThat(second.getId()).isNotEqualTo(copy.getId());
 
-    Assert.assertEquals(second.getPredecessorId(), original.getId());
-    Assert.assertEquals(copy.getPredecessorId(), original.getId());
+    assertThat(original.getId()).isEqualTo(second.getPredecessorId());
+    assertThat(original.getId()).isEqualTo(copy.getPredecessorId());
   }
 
   @Test

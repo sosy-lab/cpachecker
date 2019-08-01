@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
-import static org.junit.Assert.assertEquals;
+import static com.google.common.truth.Truth.assertThat;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
@@ -87,16 +87,16 @@ public class MachineModelTest {
 
   @Test
   public void testSizeOfInBits() {
-    assertEquals(sizeInBits, machineModel.getSizeofInBits(type));
+    assertThat(machineModel.getSizeofInBits(type)).isEqualTo(sizeInBits);
   }
 
   @Test
   public void testMinimalValue() {
-    assertEquals(minValue, machineModel.getMinimalIntegerValue(type).longValue());
+    assertThat(machineModel.getMinimalIntegerValue(type).longValue()).isEqualTo(minValue);
   }
 
   @Test
   public void testMaximalValue() {
-    assertEquals(maxValue, machineModel.getMaximalIntegerValue(type).longValue());
+    assertThat(machineModel.getMaximalIntegerValue(type).longValue()).isEqualTo(maxValue);
   }
 }

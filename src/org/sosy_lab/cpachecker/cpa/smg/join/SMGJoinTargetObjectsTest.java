@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,7 +82,7 @@ public class SMGJoinTargetObjectsTest {
     // TODO investigate why they should not be the same, regions are immutable
     // Assert.assertNotSame(jto.mapping1.get(obj1), obj1);
     Assert.assertEquals(jto.mapping1.get(obj1).getLabel(), obj1.getLabel());
-    Assert.assertEquals(jto.mapping1.get(obj1).getSize(), obj1.getSize());
+    assertThat(obj1.getSize()).isEqualTo(jto.mapping1.get(obj1).getSize());
   }
 
   @Test

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,7 +48,7 @@ public class SMGRegionTest {
     Assert.assertTrue(objectJoint instanceof SMGRegion);
     SMGRegion regionJoint = (SMGRegion)objectJoint;
 
-    Assert.assertEquals(64, regionJoint.getSize());
+    assertThat(regionJoint.getSize()).isEqualTo(64);
     Assert.assertEquals("region", regionJoint.getLabel());
   }
 
@@ -64,9 +66,9 @@ public class SMGRegionTest {
     SMGRegion three = new SMGRegion(80, "region");
     SMGRegion four = new SMGRegion(64, "REGION");
 
-    Assert.assertEquals(one.getSize(), two.getSize());
-    Assert.assertNotEquals(one.getSize(), three.getSize());
-    Assert.assertEquals(one.getSize(), four.getSize());
+    assertThat(two.getSize()).isEqualTo(one.getSize());
+    assertThat(three.getSize()).isNotEqualTo(one.getSize());
+    assertThat(four.getSize()).isEqualTo(one.getSize());
     Assert.assertEquals(one.getLabel(), two.getLabel());
     Assert.assertEquals(one.getLabel(), three.getLabel());
     Assert.assertNotEquals(one.getLabel(), four.getLabel());

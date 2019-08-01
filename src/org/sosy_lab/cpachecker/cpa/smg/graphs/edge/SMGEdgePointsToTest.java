@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -40,7 +42,7 @@ public class SMGEdgePointsToTest {
 
     Assert.assertEquals(val, edge.getValue());
     Assert.assertEquals(obj, edge.getObject());
-    Assert.assertEquals(0, edge.getOffset());
+    assertThat(edge.getOffset()).isEqualTo(0);
   }
 
   @Test

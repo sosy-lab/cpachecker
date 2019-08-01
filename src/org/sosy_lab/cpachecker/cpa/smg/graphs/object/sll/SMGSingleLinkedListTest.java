@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.DummyAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
 
 public class SMGSingleLinkedListTest {
 
@@ -36,9 +37,9 @@ public class SMGSingleLinkedListTest {
     SMGSingleLinkedList sll = new SMGSingleLinkedList(128, 0, 2, 4, 0);
 
     Assert.assertTrue(sll.isAbstract());
-    Assert.assertEquals(4, sll.getMinimumLength());
-    Assert.assertEquals(128, sll.getSize());
-    Assert.assertEquals(2, sll.getNfo());
+    assertThat(sll.getMinimumLength()).isEqualTo(4);
+    assertThat(sll.getSize()).isEqualTo(128);
+    assertThat(sll.getNfo()).isEqualTo(2);
   }
 
   @Test

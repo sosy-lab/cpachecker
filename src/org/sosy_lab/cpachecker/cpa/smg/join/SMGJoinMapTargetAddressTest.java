@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -117,7 +119,7 @@ public class SMGJoinMapTargetAddressTest {
 
     SMGEdgePointsTo newEdge = destSMG.getPointer(mta.getValue());
     Assert.assertSame(destObj, newEdge.getObject());
-    Assert.assertEquals(0, newEdge.getOffset());
+    assertThat(newEdge.getOffset()).isEqualTo(0);
 
     Assert.assertSame(mta.getValue(), mta.mapping1.get(value1));
     Assert.assertSame(mta.getValue(), mta.mapping2.get(value2));
