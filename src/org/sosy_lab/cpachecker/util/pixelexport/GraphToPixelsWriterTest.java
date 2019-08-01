@@ -77,7 +77,7 @@ public class GraphToPixelsWriterTest extends GraphToPixelsWriter<DummyNode> {
 
     int nLevels = Iterators.size(result.iterator());
     assertEquals(1, nLevels);
-    assertEquals(result.iterator().next().getWidth(), 1);
+    assertEquals(1, result.iterator().next().getWidth());
   }
 
   /*
