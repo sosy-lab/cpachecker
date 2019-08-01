@@ -151,7 +151,7 @@ public class CLangSMGTest {
 
     smg.addHeapObject(obj);
     smg.addHeapObject(obj);
-    Assert.assertTrue("Asserting the test finished without exception", true);
+    // test just checks that no exception occurs
   }
 
   @Test
