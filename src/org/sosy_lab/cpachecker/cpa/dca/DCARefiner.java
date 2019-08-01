@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.dca;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -37,7 +37,6 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTermina
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -45,7 +44,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
+import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -253,17 +252,19 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   public boolean performRefinement(final ReachedSet pReached)
       throws CPAException, InterruptedException {
     if (skipAnalysis) {
-      logger.logf(Level.SEVERE, "Received flag to skip the refinement. Aborting analysis...");
+      // Option is used to output the computed ARG without any further refinements
+      // (i.e., for debugging)
+      logger.log(Level.INFO, "Received flag to skip the refinement. Aborting analysis...");
       return false;
     }
 
-    logger.log(Level.INFO, String.format("Analyzing the reached set..."));
+    logger.log(Level.INFO, "Starting to analyse the reached set...");
     statistics.refinementTotalTimer.start();
     try {
       return performRefinement0(pReached);
     } finally {
-      logger.log(Level.INFO, String.format("Finished analyzing the reached set."));
       statistics.refinementTotalTimer.stop();
+      logger.log(Level.INFO, "Finished analysing the reached set.");
     }
   }
 
@@ -279,33 +280,29 @@ public class DCARefiner implements Refiner, StatisticsProvider {
             .filter(StronglyConnectedComponent::hasTargetStates)
             .collect(ImmutableSet.toImmutableSet());
 
-    logger.log(Level.INFO, String.format("Found %d SCC(s) with target-states", SCCs.size()));
+    logger.logf(Level.INFO, "Found %d SCC(s) with target-states", SCCs.size());
 
     for (StronglyConnectedComponent scc : SCCs) {
 
       shutdownNotifier.shutdownIfNecessary();
       List<List<ARGState>> sscCycles = ARGUtils.retrieveSimpleCycles(scc.getNodes(), reached);
-      logger.log(Level.INFO, String.format("Found %d cycle(s) in current SCC", sscCycles.size()));
+      logger.logf(Level.INFO, "Found %d cycle(s) in current SCC", sscCycles.size());
 
       for (List<ARGState> cycle : sscCycles) {
-        logger.log(Level.INFO, String.format("Analyzing cycle: %s%n", printNodes(cycle)));
-        checkArgument(
-            cycle.stream().anyMatch(x -> x.isTarget()),
-            "Cycle does not contain a target");
+        logger.logf(Level.INFO, "Analyzing cycle: %s\n", lazyPrintNodes(cycle));
+        assert cycle.stream().anyMatch(ARGState::isTarget) : "Cycle does not contain a target";
 
         shutdownNotifier.shutdownIfNecessary();
         ARGState firstNodeInCycle = cycle.iterator().next();
         ARGPath stemPath = ARGUtils.getShortestPathTo(firstNodeInCycle);
         ARGPath loopPath = new ARGPath(cycle);
-        checkArgument(
-            loopPath.asStatesList().equals(cycle),
-            String.format(
-                "Nodes in cycle are not consistent to nodes in the ARGPath"
-                    + "%n(Nodes in cycle: %s)"
-                    + "%n(Nodes in loop: %s)",
-                printNodes(cycle),
-                printNodes(loopPath)));
-        logger.log(Level.INFO, String.format("Path to cycle: %s%n", printNodes(stemPath)));
+        assert loopPath.asStatesList().equals(cycle)
+            : String.format(
+                "Nodes in cycle are not consistent with nodes in the ARGPath"
+                    + "\n(Nodes in cycle: %s)"
+                    + "\n(Nodes in loop: %s)",
+                lazyPrintNodes(cycle), lazyPrintNodes(loopPath));
+        logger.logf(Level.INFO, "Path to cycle: %s\n", lazyPrintNodes(stemPath));
 
         try {
           // create stem
@@ -416,7 +413,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
             logger.logf(
                 Level.SEVERE,
                 "LassoRanker has non-termination argument: %s",
-                nonTerminationArgument.toString());
+                nonTerminationArgument);
           }
           if (checkTermination.hasTerminationArgument()) {
             RankingRelation terminationArgument = checkTermination.getTerminationArgument();
@@ -425,13 +422,12 @@ public class DCARefiner implements Refiner, StatisticsProvider {
                 "LassoRanker has termination argument %s",
                 terminationArgument.getSupportingInvariants().isEmpty()
                     ? ""
-                    : "%nInvariants: " + terminationArgument.getSupportingInvariants());
+                    : "\nInvariants: " + terminationArgument.getSupportingInvariants());
           }
           if (checkTermination.isUnknown()) {
             logger.logf(Level.SEVERE, "Argument from LassoRanker is unknown");
           }
         } catch (TermException | SolverException | SMTLIBException | IOException e) {
-          logger.logfException(Level.SEVERE, e, "%s", e.getMessage());
           throw new CPAException(e.getMessage(), e);
         }
       }
@@ -456,25 +452,23 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     Optional<BooleanFormula> interpolantOpt =
         Optional.ofNullable(distinctInterpolants.iterator().next());
     if (!interpolantOpt.isPresent()) {
-      logger.log(
+      logger.logf(
           Level.WARNING,
-          String.format(
-              "Could not find any interpolants to do a finite-prefix refinement. "
-                  + "Skipping the process.%nInterpolants: %s",
-              interpolants));
+          "Could not find any interpolants to do a finite-prefix refinement. "
+              + "Skipping the process.\nInterpolants: %s",
+          interpolants);
       return false;
     }
     if (distinctInterpolants.size() > 1) {
-      logger.log(
+      logger.logf(
           Level.SEVERE,
-          String.format(
-              "Found more than one interpolant to do a finite-prefix refinement. "
-                  + "%nInterpolants: %s",
-              interpolants));
-       return false;
+          "Found more than one interpolant to do a finite-prefix refinement. "
+              + "\nInterpolants: %s",
+          interpolants);
+      return false;
     }
 
-    logger.log(Level.WARNING, String.format("Interpolants:%n%s", interpolants));
+    logger.logf(Level.WARNING, "Interpolants:\n%s", interpolants);
 
     try {
       Automaton itpAutomaton =
@@ -484,7 +478,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
                   interpolants,
                   interpolantOpt,
                   curRefinementIteration);
-      logger.log(Level.INFO, itpAutomaton.toString());
+      logger.log(Level.INFO, itpAutomaton);
 
       if (skipFiniteRefinement || curRefinementIteration >= maxRefinementIterations) {
         return false;
@@ -495,13 +489,11 @@ public class DCARefiner implements Refiner, StatisticsProvider {
       curRefinementIteration++;
 
       reinitializeReachedSet();
-      logger.log(
+      logger.logf(
           Level.SEVERE,
-          String.format(
-              "Refining the arg with automaton using interpolant: %s",
-              interpolantOpt.get()));
+          "Refining the arg with automaton using interpolant: %s",
+          interpolantOpt.get());
     } catch (InvalidAutomatonException e) {
-      logger.logfException(Level.SEVERE, e, "%s", e.getMessage());
       throw new CPAException(e.getMessage(), e);
     }
 
@@ -544,16 +536,14 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     }
 
     PathFormula lastListElement = Iterables.getLast(pPathFormulas);
-    checkArgument(
-        result.getSsa().equals(lastListElement.getSsa()),
-        "Inconsistent SSA-map produced:" + "%n(actual: %s)" + "%n(expected %s)",
-        result.getSsa(),
-        lastListElement.getSsa());
-    checkArgument(
-        result.getPointerTargetSet().equals(lastListElement.getPointerTargetSet()),
-        "Inconsistent pointertarget-set produced:" + "%n(actual: %s)" + "%n(expected %s)",
-        result.getPointerTargetSet(),
-        lastListElement.getPointerTargetSet());
+    assert result.getSsa().equals(lastListElement.getSsa())
+        : String.format(
+            "Inconsistent SSA-map produced:" + "%n(actual: %s)" + "%n(expected %s)",
+            result.getSsa(), lastListElement.getSsa());
+    assert result.getPointerTargetSet().equals(lastListElement.getPointerTargetSet())
+        : String.format(
+            "Inconsistent pointertarget-set produced:" + "%n(actual: %s)" + "%n(expected %s)",
+            result.getPointerTargetSet(), lastListElement.getPointerTargetSet());
 
     return result;
   }
@@ -562,16 +552,16 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     return createSinglePathFormula(pPathFormulas, pathFormulaManager.makeEmptyPathFormula());
   }
 
-  private String printNodes(ARGPath pStemPath) {
-    return printNodes(pStemPath.asStatesList());
+  private Object lazyPrintNodes(ARGPath pStemPath) {
+    return lazyPrintNodes(pStemPath.asStatesList());
   }
 
-  private String printNodes(Collection<ARGState> pArgStates) {
-    List<String> formattedNodes =
-        pArgStates.stream()
-            .map(x -> (x.getStateId() + ":" + AbstractStates.extractLocation(x)))
-            .collect(Collectors.toCollection(ArrayList::new));
-    return String.valueOf(formattedNodes);
+  private Object lazyPrintNodes(Collection<ARGState> pArgStates) {
+    return MoreStrings.lazyString(
+        () ->
+            from(pArgStates)
+                .transform(x -> (x.getStateId() + ":" + AbstractStates.extractLocation(x)))
+                .toString());
   }
 
   @Override
