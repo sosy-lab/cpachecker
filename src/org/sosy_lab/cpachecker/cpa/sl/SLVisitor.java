@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.java_smt.api.Formula;
 
@@ -122,7 +121,6 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
   public Boolean visit(CFunctionCallExpression pIastFunctionCallExpression) throws Exception {
     CIdExpression fctExp = (CIdExpression) pIastFunctionCallExpression.getFunctionNameExpression();
     final List<CExpression> params = pIastFunctionCallExpression.getParameterExpressions();
-    CType ptrType;
     BigInteger length;
     Formula loc;
 
@@ -131,32 +129,29 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
         if (curLHS == null) {
           return true;
         }
-        ptrType = ((CPointerType) curLHS.getExpressionType()).getType();
         loc = solDelegate.getFormulaForExpression(curLHS);
         length = solDelegate.getValueForCExpression(params.get(0));
-        memDelegate.handleMalloc(loc, length, ptrType);
+        memDelegate.handleMalloc(loc, length);
         break;
 
       case CALLOC:
         if (curLHS == null) {
           return true;
         }
-        ptrType = ((CPointerType) curLHS.getExpressionType()).getType();
         loc = solDelegate.getFormulaForExpression(curLHS);
-        // final CExpression size = params.get(1);
         length = solDelegate.getValueForCExpression(params.get(0));
-        memDelegate.handleCalloc(loc, length, ptrType);
+        final BigInteger size = solDelegate.getValueForCExpression(params.get(1));
+        memDelegate.handleCalloc(loc, length, size);
         break;
 
       case REALLOC:
         if (curLHS == null) {
           return true;
         }
-        ptrType = ((CPointerType) curLHS.getExpressionType()).getType();
         loc = solDelegate.getFormulaForExpression(curLHS);
         final Formula oldLoc = solDelegate.getFormulaForExpression(params.get(0));
         length = solDelegate.getValueForCExpression(params.get(1));
-        return !memDelegate.handleRealloc(loc, oldLoc, length, ptrType);
+        return !memDelegate.handleRealloc(loc, oldLoc, length);
 
       case FREE:
         loc = solDelegate.getFormulaForExpression(params.get(0));

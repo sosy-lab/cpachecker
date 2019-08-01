@@ -32,10 +32,9 @@ public interface SLMemoryDelegate {
    * Manipulates the heap concerning malloc().
    *
    * @param pMemoryLocation - formula representing the memory location.
-   * @param pLength - length of memory range.
-   * @param pType - type of the values.
+   * @param pLength - size of memory range in bytes.
    */
-  public void handleMalloc(Formula pMemoryLocation, BigInteger pLength, CType pType)
+  public void handleMalloc(Formula pMemoryLocation, BigInteger pLength)
       throws Exception;
 
   /**
@@ -43,12 +42,11 @@ public interface SLMemoryDelegate {
    *
    * @param pNewLocation - formula representing the new memory location.
    * @param pOldLocation - formula representing the old memory location.
-   * @param pLength - length of memory range.
-   * @param pType - type of the values.
+   * @param pSize - size of memory range in bytes.
    * @return true if memory was reallocated successfully, false otherwise.
    */
   public boolean
-      handleRealloc(Formula pNewLocation, Formula pOldLocation, BigInteger pLength, CType pType)
+      handleRealloc(Formula pNewLocation, Formula pOldLocation, BigInteger pSize)
       throws Exception;
 
   /**
@@ -56,9 +54,9 @@ public interface SLMemoryDelegate {
    *
    * @param pMemoryLocation - formula representing the memory location.
    * @param pLength - length of memory range.
-   * @param pType - type of the values.
+   * @param pSize - size of each object in bytes.
    */
-  public void handleCalloc(Formula pMemoryLocation, BigInteger pLength, CType pType)
+  public void handleCalloc(Formula pMemoryLocation, BigInteger pLength, BigInteger pSize)
       throws Exception;
 
   /**

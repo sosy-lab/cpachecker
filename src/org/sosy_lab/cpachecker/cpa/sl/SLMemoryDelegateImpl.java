@@ -60,9 +60,9 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
   // Delegate methods starting here.
   // -------------------------------------------------------------------------------------------------
   @Override
-  public void handleMalloc(Formula pMemoryLocation, BigInteger pSize, CType pType)
+  public void handleMalloc(Formula pMemoryLocation, BigInteger pSize)
       throws Exception {
-    addToMemory(heap, pMemoryLocation, pSize, pType, false);
+    addToMemory(heap, pMemoryLocation, pSize, false);
   }
 
   /**
@@ -73,22 +73,21 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
       handleRealloc(
           Formula pOldMemoryLocation,
           Formula pNewMemoryLocation,
-          BigInteger pLength,
-          CType pType)
+          BigInteger pSize)
           throws Exception {
     if (!heap.containsKey(pOldMemoryLocation)) {
       logger.log(Level.SEVERE, "REALLOC() failed.");
       return false;
     }
     removeFromMemory(heap, pOldMemoryLocation);
-    addToMemory(heap, pNewMemoryLocation, pLength, pType, false);
+    addToMemory(heap, pNewMemoryLocation, pSize, false);
     return true;
   }
 
   @Override
-  public void handleCalloc(Formula pMemoryLocation, BigInteger pLength, CType pType)
+  public void handleCalloc(Formula pMemoryLocation, BigInteger pNum, BigInteger pSize)
       throws Exception {
-    addToMemory(heap, pMemoryLocation, pLength, pType, true);
+    addToMemory(heap, pMemoryLocation, pNum.multiply(pSize), true);
   }
 
   private void removeFromMemory(Map<Formula, Formula> memory, Formula pAddrFormula) {
@@ -164,17 +163,16 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
       Map<Formula, Formula> memory,
       Formula pMemoryLocation,
       BigInteger pLength,
-      CType pType,
       boolean pInitWithZero)
       throws Exception {
-    BigInteger size = machineModel.getSizeof(pType).multiply(pLength);
-    for (int i = 0; i < size.intValueExact(); i++) {
+
+    for (int i = 0; i < pLength.intValueExact(); i++) {
       Formula f = pMemoryLocation;
       if (i > 0) {
         // stack and heap of bytes/chars.
         f = bvfm.add((BitvectorFormula) pMemoryLocation, bvfm.makeBitvector(8, i));
       } else {
-        allocationSizes.put(f, size);
+        allocationSizes.put(f, pLength);
       }
       memory.put(f, pInitWithZero ? ifm.makeNumber(0) : null);
     }
@@ -184,7 +182,8 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
   public void
       addToStack(Formula pMemoryLocation, BigInteger pLength, CType pType, boolean pInitWithZero)
           throws Exception {
-    addToMemory(stack, pMemoryLocation, pLength, pType, pInitWithZero);
+    BigInteger length = pLength.multiply(machineModel.getSizeof(pType));
+    addToMemory(stack, pMemoryLocation, length, pInitWithZero);
   }
 
 }
