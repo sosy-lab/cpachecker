@@ -27,7 +27,8 @@ public enum SLHeapFunction {
   MALLOC("malloc"),
   REALLOC("realloc"),
   CALLOC("calloc"),
-  FREE("free");
+  FREE("free"),
+  NONE("none");
 
   private final String fctName;
 
@@ -47,6 +48,6 @@ public enum SLHeapFunction {
   }
 
   public static SLHeapFunction get(String pName) {
-    return lookup.get(pName);
+    return lookup.containsKey(pName) ? lookup.get(pName) : NONE;
   }
 }
