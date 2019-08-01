@@ -61,19 +61,17 @@ public class Ltl2BuechiConverter {
   /**
    * Entry point to convert a ltl property into an {@link Automaton}.
    *
-   * <p>
-   * This method takes a {@link LabelledFormula} and passes the contained ltl-property to an
+   * <p>This method takes a {@link LabelledFormula} and passes the contained ltl-property to an
    * external tool, which in turn transforms it into a buechi-automaton.
    *
-   * <p>
-   * The output from the external tool is specified to be in 'Hanoi-Omega-Automaton' (HOA) format,
-   * and parsed as such accordingly afterwards. The resulting object will again be transformed into
-   * the final {@link Automaton}.
+   * <p>The output from the external tool is required to be in 'Hanoi-Omega-Automaton' (HOA) format,
+   * as it is parsed as such afterwards. The resulting object will then be transformed into the
+   * final {@link Automaton}.
    *
    * @param pFormula the ltl-property together with a list of its atomic propositions
    * @return an automaton from the automaton-framework in CPAchecker
    * @throws LtlParseException if the transformation fails either due to some false values in the
-   *         intermediate resulting StoredAutomaton or because of an erroneous config.
+   *     intermediate resulting StoredAutomaton or because of an erroneous config.
    */
   public static Automaton convertFormula(
       LabelledFormula pFormula,
@@ -108,7 +106,8 @@ public class Ltl2BuechiConverter {
   }
 
   /**
-   * Constructor setting up the options for the executing the external 'ltl-to-buechi' tool.
+   * Constructor that sets up the options for the execution of an external 'ltl-to-buechi'
+   * transformation tool.
    *
    * @param pFormula the ltl property to be transformed
    */
@@ -132,8 +131,8 @@ public class Ltl2BuechiConverter {
 
   /**
    * Invoke the execution of the external tool, which transforms the ltl property into a
-   * buechi-automaton. The result is parsed afterwards and stored as {@link StoredAutomaton} (i.e.
-   * an object containing an automaton in HOA format).
+   * buechi-automaton. The result is parsed and stored as {@link StoredAutomaton} (i.e., an object
+   * containing an automaton in HOA format).
    *
    * @return the resulting {@link StoredAutomaton}
    */
@@ -219,7 +218,7 @@ public class Ltl2BuechiConverter {
 
   private static class Converter {
 
-    // '-H' lets 'ltl3ba' print the output as buechi-automaton in HOA-format
+    // '-H' lets the tool 'ltl3ba' print its output (the buechi-automaton) in HOA-format
     private static final Converter LTL3BA = new Converter("ltl3ba", "-H");
 
     private final String toolName;
