@@ -182,8 +182,7 @@ public class SLVisitor implements CAstNodeVisitor<Boolean, Exception> {
 
   @Override
   public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws Exception {
-    throw new UnsupportedOperationException(
-        CFloatLiteralExpression.class.getSimpleName() + "is not implemented yet.");
+    return false;
   }
 
   @Override
