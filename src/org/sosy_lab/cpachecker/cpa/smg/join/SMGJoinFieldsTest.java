@@ -396,12 +396,12 @@ public class SMGJoinFieldsTest {
   private void checkStatusAfterRelax(SMGJoinStatus expected, SMG a, SMG b, SMGRegion object) {
     SMGJoinFields js = new SMGJoinFields(a, a, object, object); // dummy instantiation
     js.joinFieldsRelaxStatus(a, b, SMGJoinStatus.INCOMPARABLE, object);
-    Assert.assertEquals(expected, js.getStatus());
+    assertThat(js.getStatus()).isEqualTo(expected);
   }
 
   private void checkStatusAfterJoinFields(SMGJoinStatus expected, SMG a, SMG b, SMGRegion object) {
     SMGJoinFields js = new SMGJoinFields(a, b, object, object); // join fields
-    Assert.assertEquals(expected, js.getStatus());
+    assertThat(js.getStatus()).isEqualTo(expected);
   }
 
   @SuppressWarnings("unused")

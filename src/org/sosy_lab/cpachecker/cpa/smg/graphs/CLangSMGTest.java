@@ -237,7 +237,7 @@ public class CLangSMGTest {
     SMGRegion obj2 = new SMGRegion(128, "label");
     SMGRegion obj3 = new SMGRegion(256, "label");
 
-    Assert.assertNull(smg.getObjectForVisibleVariable(id_expression.getName()));
+    assertThat(smg.getObjectForVisibleVariable(id_expression.getName())).isNull();
     smg.addGlobalObject(obj3);
     assertThat(smg.getObjectForVisibleVariable(id_expression.getName())).isEqualTo(obj3);
 

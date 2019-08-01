@@ -40,8 +40,8 @@ public class SMGEdgePointsToTest {
     SMGObject obj = new SMGRegion(64, "object");
     SMGEdgePointsTo edge = new SMGEdgePointsTo(val, obj, 0);
 
-    Assert.assertEquals(val, edge.getValue());
-    Assert.assertEquals(obj, edge.getObject());
+    assertThat(edge.getValue()).isEqualTo(val);
+    assertThat(edge.getObject()).isEqualTo(obj);
     assertThat(edge.getOffset()).isEqualTo(0);
   }
 

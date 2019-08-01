@@ -45,11 +45,11 @@ public class SMGRegionTest {
     SMGRegion region = new SMGRegion(64, "region");
     SMGRegion region_same = new SMGRegion(64, "region");
     SMGObject objectJoint = region.join(region_same, region_same.getLevel());
-    Assert.assertTrue(objectJoint instanceof SMGRegion);
+    assertThat(objectJoint).isInstanceOf(SMGRegion.class);
     SMGRegion regionJoint = (SMGRegion)objectJoint;
 
     assertThat(regionJoint.getSize()).isEqualTo(64);
-    Assert.assertEquals("region", regionJoint.getLabel());
+    assertThat(regionJoint.getLabel()).isEqualTo("region");
   }
 
   @Test(expected=UnsupportedOperationException.class)
@@ -69,9 +69,9 @@ public class SMGRegionTest {
     assertThat(two.getSize()).isEqualTo(one.getSize());
     assertThat(three.getSize()).isNotEqualTo(one.getSize());
     assertThat(four.getSize()).isEqualTo(one.getSize());
-    Assert.assertEquals(one.getLabel(), two.getLabel());
-    Assert.assertEquals(one.getLabel(), three.getLabel());
-    Assert.assertNotEquals(one.getLabel(), four.getLabel());
+    assertThat(two.getLabel()).isEqualTo(one.getLabel());
+    assertThat(three.getLabel()).isEqualTo(one.getLabel());
+    assertThat(four.getLabel()).isNotEqualTo(one.getLabel());
   }
 
 }

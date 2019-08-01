@@ -104,8 +104,8 @@ public class SMGTest {
     SMGObject nullObject = SMGNullObject.INSTANCE;
     SMGValue nullAddress = SMGZeroValue.INSTANCE;
 
-    Assert.assertNotNull(nullObject);
-    Assert.assertSame(nullObject, SMGNullObject.INSTANCE);
+    assertThat(nullObject).isNotNull();
+    assertThat(SMGNullObject.INSTANCE).isSameInstanceAs(nullObject);
     assertThat(smg1.getObjects()).hasSize(1);
     assertThat(smg1.getObjects()).contains(nullObject);
 
@@ -114,7 +114,7 @@ public class SMGTest {
 
     assertThat(smg1.getPTEdges().size()).isEqualTo(1);
     SMGObject target_object = smg1.getObjectPointedBy(nullAddress);
-    Assert.assertEquals(nullObject, target_object);
+    assertThat(target_object).isEqualTo(nullObject);
 
     assertThat(smg1.getHVEdges()).hasSize(0);
 
@@ -143,7 +143,7 @@ public class SMGTest {
     assertThat(smg1.getPTEdges().size()).isEqualTo(1);
     assertThat(smg_copy.getPTEdges().size()).isEqualTo(2);
     SMGObject target_object_for_third = smg_copy.getObjectPointedBy(third_value);
-    Assert.assertEquals(third_object, target_object_for_third);
+    assertThat(target_object_for_third).isEqualTo(third_object);
 
     assertThat(smg1.getHVEdges()).hasSize(0);
     assertThat(smg_copy.getHVEdges()).hasSize(1);

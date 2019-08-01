@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
-import static org.junit.Assert.assertEquals;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,6 +66,8 @@ public class BDDExistsTest {
     complete = nrm.makeAnd(complete, r0);
 
     Region reduced = nrm.makeExists(complete, r1, r2);
-    assertEquals(new StringBuilder().append(nrm.dumpRegion(reduced)).toString(), reduced, r0);
+    assertWithMessage(new StringBuilder().append(nrm.dumpRegion(reduced)).toString())
+        .that(reduced)
+        .isEqualTo(r0);
   }
 }

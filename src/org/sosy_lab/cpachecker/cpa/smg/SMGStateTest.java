@@ -738,7 +738,7 @@ public class SMGStateTest {
 
     SMGAddressValue pt_obtained =
         Iterables.getOnlyElement(state.getPointerFromValue(pt.getValue())).getObject();
-    Assert.assertEquals(pt_obtained.getObject(), pt.getObject());
+    assertThat(pt.getObject()).isEqualTo(pt_obtained.getObject());
   }
 
   @Test(expected=SMGInconsistentException.class)

@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-
 
 public class ExpressionTreesTest {
 
@@ -120,44 +121,36 @@ public class ExpressionTreesTest {
 
   @Test
   public void testToDNF() {
-    Assert.assertEquals(
-        ExpressionTrees.getTrue(), ExpressionTrees.toDNF(ExpressionTrees.getTrue()));
-    Assert.assertEquals(
-        ExpressionTrees.getFalse(), ExpressionTrees.toDNF(ExpressionTrees.getFalse()));
-    Assert.assertEquals(
-        LITERAL_A,
-        ExpressionTrees.toDNF(LITERAL_A));
-    Assert.assertEquals(
-        LITERAL_NOT_A,
-        ExpressionTrees.toDNF(LITERAL_NOT_A));
-    Assert.assertEquals(
-        And.of(LITERAL_B, LITERAL_C), ExpressionTrees.toDNF(And.of(LITERAL_B, LITERAL_C)));
-    Assert.assertEquals(
-        Or.of(LITERAL_B, LITERAL_C), ExpressionTrees.toDNF(Or.of(LITERAL_B, LITERAL_C)));
+    assertThat(ExpressionTrees.toDNF(ExpressionTrees.getTrue()))
+        .isEqualTo(ExpressionTrees.getTrue());
+    assertThat(ExpressionTrees.toDNF(ExpressionTrees.getFalse()))
+        .isEqualTo(ExpressionTrees.getFalse());
+    assertThat(ExpressionTrees.toDNF(LITERAL_A)).isEqualTo(LITERAL_A);
+    assertThat(ExpressionTrees.toDNF(LITERAL_NOT_A)).isEqualTo(LITERAL_NOT_A);
+    assertThat(ExpressionTrees.toDNF(And.of(LITERAL_B, LITERAL_C)))
+        .isEqualTo(And.of(LITERAL_B, LITERAL_C));
+    assertThat(ExpressionTrees.toDNF(Or.of(LITERAL_B, LITERAL_C)))
+        .isEqualTo(Or.of(LITERAL_B, LITERAL_C));
 
-    Assert.assertEquals(COMPLEX_DNF, ExpressionTrees.toDNF(COMPLEX_DNF));
+    assertThat(ExpressionTrees.toDNF(COMPLEX_DNF)).isEqualTo(COMPLEX_DNF);
 
     Assert.assertTrue(ExpressionTrees.isInDNF(ExpressionTrees.toDNF(COMPLEX_CNF)));
   }
 
   @Test
   public void testToCNF() {
-    Assert.assertEquals(
-        ExpressionTrees.getTrue(), ExpressionTrees.toDNF(ExpressionTrees.getTrue()));
-    Assert.assertEquals(
-        ExpressionTrees.getFalse(), ExpressionTrees.toDNF(ExpressionTrees.getFalse()));
-    Assert.assertEquals(
-        LITERAL_A,
-        ExpressionTrees.toDNF(LITERAL_A));
-    Assert.assertEquals(
-        LITERAL_NOT_A,
-        ExpressionTrees.toDNF(LITERAL_NOT_A));
-    Assert.assertEquals(
-        And.of(LITERAL_B, LITERAL_C), ExpressionTrees.toDNF(And.of(LITERAL_B, LITERAL_C)));
-    Assert.assertEquals(
-        Or.of(LITERAL_B, LITERAL_C), ExpressionTrees.toDNF(Or.of(LITERAL_B, LITERAL_C)));
+    assertThat(ExpressionTrees.toDNF(ExpressionTrees.getTrue()))
+        .isEqualTo(ExpressionTrees.getTrue());
+    assertThat(ExpressionTrees.toDNF(ExpressionTrees.getFalse()))
+        .isEqualTo(ExpressionTrees.getFalse());
+    assertThat(ExpressionTrees.toDNF(LITERAL_A)).isEqualTo(LITERAL_A);
+    assertThat(ExpressionTrees.toDNF(LITERAL_NOT_A)).isEqualTo(LITERAL_NOT_A);
+    assertThat(ExpressionTrees.toDNF(And.of(LITERAL_B, LITERAL_C)))
+        .isEqualTo(And.of(LITERAL_B, LITERAL_C));
+    assertThat(ExpressionTrees.toDNF(Or.of(LITERAL_B, LITERAL_C)))
+        .isEqualTo(Or.of(LITERAL_B, LITERAL_C));
 
-    Assert.assertEquals(COMPLEX_CNF, ExpressionTrees.toCNF(COMPLEX_CNF));
+    assertThat(ExpressionTrees.toCNF(COMPLEX_CNF)).isEqualTo(COMPLEX_CNF);
 
     Assert.assertTrue(ExpressionTrees.isInCNF(ExpressionTrees.toCNF(COMPLEX_DNF)));
   }

@@ -50,9 +50,9 @@ public class SMGEdgeHasValueTest {
     SMGValue val = SMGKnownExpValue.valueOf(666);
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj, val);
 
-    Assert.assertEquals(obj, hv.getObject());
+    assertThat(hv.getObject()).isEqualTo(obj);
     assertThat(hv.getOffset()).isEqualTo(32);
-    Assert.assertEquals(mockType, hv.getType());
+    assertThat(hv.getType()).isEqualTo(mockType);
     assertThat(hv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(32);
   }
 

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -213,19 +215,19 @@ public class SMGJoinMatchObjectsTest {
 
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll1, sll2);
     Assert.assertTrue(mo.isDefined());
-    Assert.assertEquals(SMGJoinStatus.LEFT_ENTAIL, mo.getStatus());
+    assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.LEFT_ENTAIL);
 
     sll1 = new SMGSingleLinkedList(128, 0, 8, 4, 0);
     smg1.addObject(sll1);
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll1, sll2);
     Assert.assertTrue(mo.isDefined());
-    Assert.assertEquals(SMGJoinStatus.EQUAL, mo.getStatus());
+    assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     sll1 = new SMGSingleLinkedList(128, 0, 8, 8, 0);
     smg1.addObject(sll1);
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll1, sll2);
     Assert.assertTrue(mo.isDefined());
-    Assert.assertEquals(SMGJoinStatus.RIGHT_ENTAIL, mo.getStatus());
+    assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.RIGHT_ENTAIL);
   }
 
   @Test
@@ -240,11 +242,11 @@ public class SMGJoinMatchObjectsTest {
 
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll, prototype);
     Assert.assertTrue(mo.isDefined());
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE, mo.getStatus());
+    assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.INCOMPARABLE);
 
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, prototype, sll);
     Assert.assertTrue(mo.isDefined());
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE, mo.getStatus());
+    assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.INCOMPARABLE);
 
     sll = new SMGSingleLinkedList(128, 0, 8, 0, 0);
 
@@ -253,11 +255,11 @@ public class SMGJoinMatchObjectsTest {
 
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll, prototype);
     Assert.assertTrue(mo.isDefined());
-    Assert.assertEquals(SMGJoinStatus.LEFT_ENTAIL, mo.getStatus());
+    assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.LEFT_ENTAIL);
 
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, prototype, sll);
     Assert.assertTrue(mo.isDefined());
-    Assert.assertEquals(SMGJoinStatus.RIGHT_ENTAIL, mo.getStatus());
+    assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.RIGHT_ENTAIL);
   }
 
   @Test
@@ -267,6 +269,6 @@ public class SMGJoinMatchObjectsTest {
     smg2.addObject(object);
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, object, object);
     Assert.assertTrue(mo.isDefined());
-    Assert.assertEquals(SMGJoinStatus.EQUAL, mo.getStatus());
+    assertThat(mo.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
   }
 }

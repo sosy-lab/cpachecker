@@ -73,7 +73,7 @@ public class SMGJoinSubSMGsForAbstractionTest {
     SMGEdgeHasValue root =
         TestHelpers.createGlobalList(smg, SEGMENT_LENGTH, NODE_SIZE, OFFSET, "pointer");
     SMGObject firstObject = smg.getPointer(root.getValue()).getObject();
-    Assert.assertSame(SMGObjectKind.REG, firstObject.getKind());
+    assertThat(firstObject.getKind()).isSameInstanceAs(SMGObjectKind.REG);
 
     SMGSingleLinkedListCandidate candidate =
         new SMGSingleLinkedListCandidate(
@@ -84,13 +84,13 @@ public class SMGJoinSubSMGsForAbstractionTest {
         Iterables.getOnlyElement(
             smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(firstObject).filterAtOffset(nfo)));
     SMGObject secondObject = smg.getObjectPointedBy(nextEdge.getValue());
-    Assert.assertSame(SMGObjectKind.REG, secondObject.getKind());
+    assertThat(secondObject.getKind()).isSameInstanceAs(SMGObjectKind.REG);
 
     SMGJoinSubSMGsForAbstraction join =
         new SMGJoinSubSMGsForAbstraction(smg, firstObject, secondObject, candidate, smgState);
 
     Assert.assertTrue(join.isDefined());
-    Assert.assertSame(SMGJoinStatus.EQUAL, join.getStatus());
+    assertThat(join.getStatus()).isSameInstanceAs(SMGJoinStatus.EQUAL);
 
     assertThat(join.getNonSharedObjectsFromSMG1()).contains(firstObject);
     assertThat(join.getNonSharedObjectsFromSMG1()).doesNotContain(secondObject);
@@ -99,7 +99,7 @@ public class SMGJoinSubSMGsForAbstractionTest {
 
     SMGObject joinResult = join.getNewAbstractObject();
     Assert.assertTrue(joinResult.isAbstract());
-    Assert.assertSame(SMGObjectKind.SLL, joinResult.getKind());
+    assertThat(joinResult.getKind()).isSameInstanceAs(SMGObjectKind.SLL);
 
     SMGSingleLinkedList resultSll = (SMGSingleLinkedList) joinResult;
     assertThat(resultSll.getMinimumLength()).isEqualTo(2);

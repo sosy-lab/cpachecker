@@ -55,7 +55,7 @@ public class SMGSingleLinkedListCandidateTest {
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(object, 32, 0, CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE, false);
 
-    Assert.assertSame(object, candidate.getStartObject());
+    assertThat(candidate.getStartObject()).isSameInstanceAs(object);
     assertThat(candidate.getShape().getNfo()).isEqualTo(32);
     assertThat(candidate.getShape().getHfo()).isEqualTo(0);
     assertThat(candidateSeq.getLength()).isEqualTo(2);
@@ -85,7 +85,7 @@ public class SMGSingleLinkedListCandidateTest {
     root = Iterables.getOnlyElement(globalHves);
     value = root.getValue();
     SMGObject pointedObject = abstractedSmg.getPointer(value).getObject();
-    Assert.assertTrue(pointedObject instanceof SMGSingleLinkedList);
+    assertThat(pointedObject).isInstanceOf(SMGSingleLinkedList.class);
     Assert.assertTrue(pointedObject.isAbstract());
     SMGSingleLinkedList segment = (SMGSingleLinkedList)pointedObject;
     assertThat(segment.getSize()).isEqualTo(NODE_SIZE);
@@ -95,11 +95,11 @@ public class SMGSingleLinkedListCandidateTest {
     assertThat(outboundEdges).hasSize(1);
     SMGEdgeHasValue onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
     assertThat(onlyOutboundEdge.getOffset()).isEqualTo(OFFSET);
-    Assert.assertSame(CPointerType.POINTER_TO_VOID, onlyOutboundEdge.getType());
+    assertThat(onlyOutboundEdge.getType()).isSameInstanceAs(CPointerType.POINTER_TO_VOID);
 
     assertThat(outboundEdges).hasSize(1);
     onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
-    Assert.assertEquals(SMGZeroValue.INSTANCE, onlyOutboundEdge.getValue());
+    assertThat(onlyOutboundEdge.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
     assertThat(onlyOutboundEdge.getOffset()).isEqualTo(0);
     assertThat(onlyOutboundEdge.getSizeInBits(abstractedSmg.getMachineModel()))
         .isEqualTo(NODE_SIZE);
@@ -124,7 +124,7 @@ public class SMGSingleLinkedListCandidateTest {
     value = root.getValue();
     SMGObject sll = abstractedSmg.getPointer(value).getObject();
     Assert.assertTrue(sll.isAbstract());
-    Assert.assertTrue(sll instanceof SMGSingleLinkedList);
+    assertThat(sll).isInstanceOf(SMGSingleLinkedList.class);
     SMGSingleLinkedList realSll = (SMGSingleLinkedList)sll;
     assertThat(realSll.getMinimumLength()).isEqualTo(2);
     Set<SMGEdgeHasValue> outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(realSll));
@@ -132,6 +132,6 @@ public class SMGSingleLinkedListCandidateTest {
     SMGEdgeHasValue outbound = Iterables.getOnlyElement(outboundEdges);
     assertThat(outbound.getOffset()).isEqualTo(64);
     assertThat(outbound.getSizeInBits(abstractedSmg.getMachineModel())).isEqualTo(64);
-    Assert.assertEquals(SMGZeroValue.INSTANCE, outbound.getValue());
+    assertThat(outbound.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
   }
 }

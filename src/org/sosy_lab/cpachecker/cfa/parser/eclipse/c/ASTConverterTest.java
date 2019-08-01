@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
@@ -195,8 +193,8 @@ public class ASTConverterTest {
     // constant integers are always extended to the smallest matching type.
     // thus the result is always identical for L and LL
     for (String postfix : ImmutableList.of("", "l", "ll", "L", "LL", "lL", "Ll")) {
-      assertEquals(expected, parseIntegerExpression32(input + postfix));
-      assertEquals(expected, parseIntegerExpression64(input + postfix));
+      assertThat(parseIntegerExpression32(input + postfix)).isEqualTo(expected);
+      assertThat(parseIntegerExpression64(input + postfix)).isEqualTo(expected);
     }
   }
 
@@ -227,8 +225,8 @@ public class ASTConverterTest {
             (CFloatLiteralExpression)
                 converter.parseFloatLiteral(FileLocation.DUMMY, inputType, inputValue, null);
 
-        assertEquals(expectedValue, literal.getValue().toString());
-        assertTrue(inputType == literal.getExpressionType());
+        assertThat(literal.getValue().toString()).isEqualTo(expectedValue);
+        assertThat(inputType).isSameInstanceAs(literal.getExpressionType());
       }
     }
   }

@@ -20,8 +20,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpv;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -262,7 +260,7 @@ public class MPVTest {
     // do not compare ideal verdicts UNKNOWN
     for (i = 0; i < idealResults.length; i++) {
       if (idealResults[i][1].equals("UNKNOWN")) {
-        assertTrue(idealResults[i][0].equals(actualResults[i][0]));
+        assertThat(idealResults[i][0]).isEqualTo(actualResults[i][0]);
         for (int j = 0; j < idealResults[i].length; j++) {
           idealResults[i][j] = actualResults[i][j];
         }
@@ -270,7 +268,7 @@ public class MPVTest {
     }
 
     // results matrixes should be the same
-    assertArrayEquals(idealResults, actualResults);
+    assertThat(actualResults).isEqualTo(idealResults);
   }
 
   private void checkResults(

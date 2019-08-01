@@ -19,8 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton.tests;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
@@ -125,7 +124,7 @@ public class ARGToAutomatonConverterTest extends AbstractARGTranslationTest {
       } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
         throw new AssertionError(e);
       }
-      assertNotNull(results);
+      assertThat(results).isNotNull();
       if (verdict) {
         results.assertIsSafe();
       } else {
@@ -149,7 +148,7 @@ public class ARGToAutomatonConverterTest extends AbstractARGTranslationTest {
         assertTrue(partialVerdict.equals(Result.TRUE) || partialVerdict.equals(Result.FALSE));
         fullVerdict = fullVerdict && partialVerdict.equals(Result.TRUE);
       }
-      assertEquals(verdict, fullVerdict);
+      assertThat(fullVerdict).isEqualTo(verdict);
     }
   }
 
