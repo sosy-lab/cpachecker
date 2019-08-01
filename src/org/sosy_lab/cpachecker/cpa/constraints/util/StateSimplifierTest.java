@@ -141,8 +141,8 @@ public class StateSimplifierTest {
 
     simplifier.removeOutdatedConstraints(constraintsState, valueState);
 
-    Assert.assertTrue(constraintsState.size() == 1
-        && constraintsState.contains(group2Constraint1));
+    Assert.assertTrue(constraintsState.size() == 1);
+    Assert.assertTrue(constraintsState.contains(group2Constraint1));
   }
 
   private ConstraintsState getSampleConstraints() {
