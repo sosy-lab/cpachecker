@@ -484,7 +484,7 @@ public class ARGStatistics implements Statistics {
           FileSystems.newFileSystem(
               URI.create("jar:" + automatonSpcZipFile.toUri()),
               // create zip-file if not existing, else append
-              Collections.singletonMap("create", "true"))) {
+              ImmutableMap.of("create", "true"))) {
         Path nf = fs.getPath(path.getFileName().toString());
         IO.writeFile(nf, Charset.defaultCharset(), content);
       }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.ldd;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -389,11 +390,11 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
     Map<String, Pair<Integer, Integer>> variableCoeffs = new HashMap<>();
     if (expression instanceof CIntegerLiteralExpression) {
       CIntegerLiteralExpression literal = (CIntegerLiteralExpression) expression;
-      return Collections.singletonMap("const", Pair.of(literal.getValue().intValue(), 1));
+      return ImmutableMap.of("const", Pair.of(literal.getValue().intValue(), 1));
     }
     if (expression instanceof CIdExpression) {
       CIdExpression id = (CIdExpression) expression;
-      return Collections.singletonMap(id.getName(), Pair.of(1, 1));
+      return ImmutableMap.of(id.getName(), Pair.of(1, 1));
     }
     if (expression instanceof CBinaryExpression) {
       CBinaryExpression binaryExpression = (CBinaryExpression) expression;
@@ -408,7 +409,7 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
         // Not a variable, but reducible to a constant
         Integer constant = reduceToConstant(expression);
         if (constant == null) { return null; }
-        return Collections.singletonMap("const", Pair.of(constant, 1));
+        return ImmutableMap.of("const", Pair.of(constant, 1));
       }
       // If both are terms, addition and subtraction are supported
       if (firstAsTerm != null && secondAsTerm != null) {

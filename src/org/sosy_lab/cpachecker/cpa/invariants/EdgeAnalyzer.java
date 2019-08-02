@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.HashMap;
@@ -113,7 +114,7 @@ public class EdgeAnalyzer {
         CType type = variableDeclaration.getType();
         CInitializer initializer = variableDeclaration.getInitializer();
         if (initializer == null) {
-          return Collections.singletonMap(declaredVariable, type);
+          return ImmutableMap.of(declaredVariable, type);
         }
         Map<MemoryLocation, CType> result = new HashMap<>();
         result.put(declaredVariable, type);
@@ -265,11 +266,9 @@ public class EdgeAnalyzer {
   private Map<? extends MemoryLocation, ? extends CType> getInvolvedVariableTypes(AParameterDeclaration pParameter,
       CFAEdge pCFAEdge) {
     if (pParameter.getType() instanceof CType) {
-      return Collections.singletonMap(
-          new MemoryLocationExtractor(
-              compoundIntervalManagerFactory,
-              machineModel,
-              pCFAEdge).getMemoryLocation(pParameter),
+      return ImmutableMap.of(
+          new MemoryLocationExtractor(compoundIntervalManagerFactory, machineModel, pCFAEdge)
+              .getMemoryLocation(pParameter),
           (CType) pParameter.getType());
     }
     return Collections.emptyMap();

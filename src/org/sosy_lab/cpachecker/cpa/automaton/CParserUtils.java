@@ -30,6 +30,7 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -580,7 +581,7 @@ class CParserUtils {
         if (lhs instanceof AIdExpression
             && ((AIdExpression) lhs).getName().contains(CPACHECKER_TMP_PREFIX)) {
           AExpression rhs = expAssignStmt.getRightHandSide();
-          return Collections.<AExpression, AExpression> singletonMap(lhs, rhs);
+          return ImmutableMap.of(lhs, rhs);
         }
       }
     }
