@@ -49,8 +49,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class CompoundIntervalFormulaManager {
 
-  private static final Map<MemoryLocation, NumeralFormula<CompoundInterval>> EMPTY_ENVIRONMENT =
-      ImmutableMap.of();
+  private static final ImmutableMap<MemoryLocation, NumeralFormula<CompoundInterval>>
+      EMPTY_ENVIRONMENT = ImmutableMap.of();
 
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
