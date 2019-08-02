@@ -113,18 +113,29 @@ public class SLTransferRelation
   protected Collection<SLState> postProcessing(Collection<SLState> pSuccessor, CFAEdge pEdge) {
     for (SLState slState : pSuccessor) {
       Set<CSimpleDeclaration> vars = pEdge.getSuccessor().getOutOfScopeVariables();
-      for (CSimpleDeclaration var : vars) {
-        Formula fHeap = getFormulaForVariableName(var.getName(), false, true);
+      for (CSimpleDeclaration outOfScopeVar : vars) {
+        Formula f = getFormulaForVariableName(outOfScopeVar.getName(), true, true);
+        // Check if a pointer to allocated heap memory is dropped.
         try {
-          Formula loc = memDel.checkAllocation(this, fHeap);
+          Formula loc = memDel.checkAllocation(this, f);
           if (loc != null) {
-            slState.setTarget(SLStateErrors.UNFREED_MEMORY);
+            // Check if a copy of the dropped heap pointer exists.
+            int eqFound = 0;
+            for (String var : pathFormula.getSsa().allVariables()) {
+              Formula varFormula = getFormulaForVariableName(var, false, true);
+              if (!varFormula.equals(loc) && checkEquivalence(loc, varFormula, pathFormula)) {
+                eqFound++;
+              }
+            }
+            if (eqFound <= 1) { // skip malloc() return value
+              slState.setTarget(SLStateErrors.UNFREED_MEMORY);
+            }
           }
 
         } catch (Exception e) {
           logger.log(Level.SEVERE, e.getMessage());
         }
-        memDel.removeFromStack(getFormulaForVariableName(var.getName(), false, false));
+        memDel.removeFromStack(getFormulaForVariableName(outOfScopeVar.getName(), true, false));
       }
 
       String info = "";
@@ -253,11 +264,25 @@ public class SLTransferRelation
 
   @Override
   public boolean checkEquivalence(Formula pF0, Formula pF1) {
-    try (ProverEnvironment env = solver.newProverEnvironment()) {
-      env.addConstraint(pathFormulaPrev.getFormula());
-      BooleanFormula tmp = fm.makeEqual(pF0, pF1);
-      env.addConstraint(tmp);
-      return !env.isUnsat();
+    return checkEquivalence(pF0, pF1, pathFormulaPrev);
+  }
+
+  private boolean checkEquivalence(Formula pF0, Formula pF1, PathFormula pContext) {
+    BooleanFormula tmp = fm.makeEqual(pF0, pF1);
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+      prover.addConstraint(pContext.getFormula());
+      prover.addConstraint(tmp);
+      if (prover.isUnsat()) {
+        return false;
+      }
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, e.getMessage());
+    }
+    // Check tautology.
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+      prover.addConstraint(pContext.getFormula());
+      prover.addConstraint(bfm.not(tmp));
+      return prover.isUnsat();
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
@@ -266,8 +291,8 @@ public class SLTransferRelation
 
   @Override
   public Formula
-      getFormulaForVariableName(String pVariable, boolean isGlobal, boolean addSSAIndex) {
-      String var = isGlobal ? pVariable : functionName + "::" + pVariable;
+      getFormulaForVariableName(String pVariable, boolean addFctName, boolean addSSAIndex) {
+    String var = addFctName ? functionName + "::" + pVariable : pVariable;
       CType type = pathFormula.getSsa().getType(var);
     Formula f;
     if (addSSAIndex) {
@@ -285,4 +310,5 @@ public class SLTransferRelation
         ? pfm.expressionToFormula(pathFormula, pExp, edge)
         : pfm.expressionToFormula(pathFormulaPrev, pExp, edge);
   }
+
 }

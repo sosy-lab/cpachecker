@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -44,8 +43,6 @@ public class SLState implements AbstractState, Targetable {
   private final Map<Formula, Formula> stack;
 
   private boolean isTarget;
-
-  @Nullable
   private SLStateErrors error = null;
 
   public SLState(PathFormula pPathFormula) {
@@ -70,14 +67,15 @@ public class SLState implements AbstractState, Targetable {
 
   @Override
   public String toString() {
+    // String e = error == null ? "Nope." : error.name();
     return "Formula:  "
         + pathFormula.toString()
         + "\nStack:   "
         + stack.toString()
         + "\nHeap:     "
         + heap.toString()
-        + "\nisTarget: "
-        + isTarget;
+        + "\nError: "
+        + (error != null ? error.name() : "nope.");
   }
 
   public Map<Formula, Formula> getHeap() {

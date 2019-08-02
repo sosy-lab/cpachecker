@@ -321,7 +321,7 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
       type = pDecl.getType();
       size = BigInteger.ONE;
     }
-    Formula f = solDelegate.getFormulaForVariableName(pDecl.getName(), pDecl.isGlobal(), false);
+    Formula f = solDelegate.getFormulaForVariableName(pDecl.getName(), !pDecl.isGlobal(), false);
     memDelegate.addToStack(f, size, type, true);
     CInitializer i = pDecl.getInitializer();
     return i != null ? i.accept(this) : null;

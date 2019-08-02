@@ -35,17 +35,17 @@ public interface SLSolverDelegate {
   public BigInteger getValueForCExpression(CExpression pExp) throws Exception;
 
   /**
-   * Checks whether two formulae are semantically equivalent.
-   *
+   * Checks whether two formulae are semantically equivalent in the current state's context.
+   * 
    * @return f0 <=> f1
    */
   public boolean checkEquivalence(Formula f0, Formula f1);
 
   public Formula
-      getFormulaForVariableName(String pVariable, boolean pIsGlobal, boolean addSSAIndex);
+      getFormulaForVariableName(String pVariable, boolean addFctName, boolean addSSAIndex);
 
   default public Formula getFormulaForExpression(CIdExpression pExp) {
-    return getFormulaForVariableName(pExp.getName(), false, true);
+    return getFormulaForVariableName(pExp.getName(), true, true);
   }
 
   /**
