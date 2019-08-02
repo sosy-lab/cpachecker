@@ -4,7 +4,7 @@ OBSERVER AUTOMATON MainEntryAutomaton
 INITIAL STATE Body;
 
 STATE USEFIRST Body :
-   MATCH [.*\\s+main\\s*\\(.*\\)\\s*;.*?] -> GOTO MainEntry;
+   MATCH [.*\\s+main\\s*\\(.*\\)\\s*;?.*] -> GOTO MainEntry;
 
 STATE USEFIRST MainEntry :
    MATCH ENTRY -> ERROR("main entry reached");
