@@ -29,6 +29,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.graph.Traverser;
 import java.util.ArrayList;
@@ -199,7 +200,7 @@ public class ARGState extends AbstractSingleWrapperState
         while (!currentLoc.equals(childLoc)) {
           // we didn't find a proper connection to the child so we return an empty list
           if (currentLoc.getNumLeavingEdges() != 1) {
-            return Collections.emptyList();
+            return ImmutableList.of();
           }
 
           final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);

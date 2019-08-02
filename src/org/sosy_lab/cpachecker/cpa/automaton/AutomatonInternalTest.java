@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
@@ -119,7 +120,7 @@ public class AutomatonInternalTest {
     // will always return MaybeBoolean.MAYBE
     AutomatonBoolExpr cannot = new AutomatonBoolExpr.CPAQuery("none", "none");
     Map<String, AutomatonVariable> vars = Collections.emptyMap();
-    List<AbstractState> elements = Collections.emptyList();
+    List<AbstractState> elements = ImmutableList.of();
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, vars, elements, null, null);
     AutomatonBoolExpr ex;
     AutomatonBoolExpr myTrue= AutomatonBoolExpr.TRUE;

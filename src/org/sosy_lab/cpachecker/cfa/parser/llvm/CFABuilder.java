@@ -126,9 +126,9 @@ public class CFABuilder {
   private static final CFunctionDeclaration ABORT_FUNC_DECL =
       new CFunctionDeclaration(
           FileLocation.DUMMY,
-          new CFunctionType(CVoidType.VOID, Collections.emptyList(), false),
+          new CFunctionType(CVoidType.VOID, ImmutableList.of(), false),
           "abort",
-          Collections.emptyList());
+          ImmutableList.of());
   private static final CExpression ABORT_FUNC_NAME =
       new CIdExpression(FileLocation.DUMMY, CVoidType.VOID, "abort", ABORT_FUNC_DECL);
 
@@ -846,7 +846,7 @@ public class CFABuilder {
             getLocation(pItem, pFileName),
             CVoidType.VOID,
             ABORT_FUNC_NAME,
-            Collections.emptyList(),
+            ImmutableList.of(),
             ABORT_FUNC_DECL);
 
     return ImmutableList.of(

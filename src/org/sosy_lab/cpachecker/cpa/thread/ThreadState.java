@@ -29,7 +29,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -63,11 +62,11 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
     @Override
     public ThreadState prepareToStore() {
-      return new SimpleThreadState(this.getThreadSet(), ImmutableMap.of(), Collections.emptyList());
+      return new SimpleThreadState(this.getThreadSet(), ImmutableMap.of(), ImmutableList.of());
     }
 
     public static ThreadState emptyState() {
-      return new SimpleThreadState(ImmutableMap.of(), ImmutableMap.of(), Collections.emptyList());
+      return new SimpleThreadState(ImmutableMap.of(), ImmutableMap.of(), ImmutableList.of());
     }
   }
 
@@ -160,17 +159,11 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
   @Override
   public ThreadState prepareToStore() {
-    return new ThreadState(
-        this.threadSet,
-        ImmutableMap.of(),
-        Collections.emptyList());
+    return new ThreadState(this.threadSet, ImmutableMap.of(), ImmutableList.of());
   }
 
   public static ThreadState emptyState() {
-    return new ThreadState(
-        ImmutableMap.of(),
-        ImmutableMap.of(),
-        Collections.emptyList());
+    return new ThreadState(ImmutableMap.of(), ImmutableMap.of(), ImmutableList.of());
   }
 
   @Override

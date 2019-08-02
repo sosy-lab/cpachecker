@@ -41,7 +41,7 @@ public class AutomatonInternalState {
 
   /** State representing BOTTOM */
   static final AutomatonInternalState BOTTOM =
-      new AutomatonInternalState("_predefinedState_BOTTOM", Collections.emptyList()) {
+      new AutomatonInternalState("_predefinedState_BOTTOM", ImmutableList.of()) {
         @Override
         public String toString() {
           return "STOP";

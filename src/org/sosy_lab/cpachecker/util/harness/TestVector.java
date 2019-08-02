@@ -27,7 +27,6 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -101,7 +100,7 @@ class TestVector {
     ComparableFunctionDeclaration function = new ComparableFunctionDeclaration(pFunction);
     ImmutableList<ExpressionTestValue> currentValues = inputFunctionValues.get(function);
     if (currentValues == null) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
     return currentValues;
   }

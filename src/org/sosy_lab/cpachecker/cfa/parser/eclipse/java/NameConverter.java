@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
@@ -148,7 +148,7 @@ final class NameConverter {
 
   public static String convertDefaultConstructorName(ITypeBinding classBinding) {
     if (classBinding.isAnonymous()) {
-      return convertAnonymousClassConstructorName(classBinding, Collections.emptyList());
+      return convertAnonymousClassConstructorName(classBinding, ImmutableList.of());
 
     } else {
       return (convertClassOrInterfaceToFullName(classBinding)

@@ -36,7 +36,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Set;
@@ -904,7 +903,7 @@ class ASTConverter {
     if (p.size() > 0) {
       params = convert(p);
     } else {
-      params = Collections.emptyList();
+      params = ImmutableList.of();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(e.getName());
@@ -1285,7 +1284,7 @@ class ASTConverter {
           convertConstructorType(constructorBinding),
           fullName,
           simpleName,
-          Collections.emptyList(),
+          ImmutableList.of(),
           mb.getVisibility(),
           mb.isStrictFp(),
           getDeclaringClassType(constructorBinding));
@@ -1296,7 +1295,7 @@ class ASTConverter {
           JConstructorType.createUnresolvableConstructorType(),
           fullName,
           simpleName,
-          Collections.emptyList(),
+          ImmutableList.of(),
           VisibilityModifier.NONE,
           false,
           JClassType.createUnresolvableType());
@@ -1327,8 +1326,8 @@ class ASTConverter {
         parameterTypes = new ArrayList<>(parameterDeclarations.size());
 
       } else {
-        parameterDeclarations = Collections.emptyList();
-        parameterTypes = Collections.emptyList();
+        parameterDeclarations = ImmutableList.of();
+        parameterTypes = ImmutableList.of();
       }
 
       for (JParameterDeclaration d : parameterDeclarations) {
@@ -1676,7 +1675,7 @@ class ASTConverter {
     if (p.size() > 0) {
       params = convert(p);
     } else {
-      params = Collections.emptyList();
+      params = ImmutableList.of();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(mi.getName());

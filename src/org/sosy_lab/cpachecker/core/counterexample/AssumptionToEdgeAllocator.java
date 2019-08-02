@@ -29,6 +29,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.math.BigDecimal;
@@ -361,13 +362,13 @@ public class AssumptionToEdgeAllocator {
       ConcreteState pConcreteState) {
 
     if (!(pCFAEdge instanceof CAssumeEdge)) {
-      return Collections.emptyList();
+      return ImmutableList.of();
 
     } else {
       CExpression pCExpression = ((CAssumeEdge) pCFAEdge).getExpression();
 
       if (!(pCExpression instanceof CBinaryExpression)) {
-        return Collections.emptyList();
+        return ImmutableList.of();
 
       } else {
         CBinaryExpression binExp = ((CBinaryExpression) pCExpression);
@@ -401,7 +402,7 @@ public class AssumptionToEdgeAllocator {
     // For the program entry function, we must be careful not to create
     // expressions before the global initializations
     if (predecessor.getNumEnteringEdges() <= 0) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
 
     // Handle program entry function
@@ -409,12 +410,12 @@ public class AssumptionToEdgeAllocator {
     while (!(predecessor instanceof FunctionEntryNode)) {
       if (predecessor.getNumEnteringEdges() != 1
           || !predecessor.getFunctionName().equals(function)) {
-        return Collections.emptyList();
+        return ImmutableList.of();
       }
       CFAEdge enteringEdge = predecessor.getEnteringEdge(0);
       if (!AutomatonGraphmlCommon.handleAsEpsilonEdge(enteringEdge)
           && !AutomatonGraphmlCommon.isMainFunctionEntry(enteringEdge)) {
-        return Collections.emptyList();
+        return ImmutableList.of();
       }
       predecessor = enteringEdge.getPredecessor();
     }
@@ -424,7 +425,7 @@ public class AssumptionToEdgeAllocator {
 
     List<? extends AParameterDeclaration> parameterDeclarations = entryNode.getFunctionParameters();
     if (parameterDeclarations.isEmpty()) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
     List<AExpressionStatement> result = new ArrayList<>(parameterDeclarations.size());
     for (AParameterDeclaration parameterDeclaration : parameterDeclarations) {
@@ -439,7 +440,7 @@ public class AssumptionToEdgeAllocator {
     Object value = getValueObject(pLeftHandSide, functionName, pConcreteState);
 
     if (value == null) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
 
     Type expectedType = pLeftHandSide.getExpressionType();
@@ -497,7 +498,7 @@ public class AssumptionToEdgeAllocator {
       return handleAssignment(pCFAEdge, assignmentStatement, pConcreteState);
     }
 
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   private List<AExpressionStatement> handleDeclaration(ASimpleDeclaration dcl, String pFunctionName, ConcreteState pConcreteState) {
@@ -509,7 +510,7 @@ public class AssumptionToEdgeAllocator {
       Object value = getValueObject(cDcl, pFunctionName, pConcreteState);
 
       if (value == null) {
-        return Collections.emptyList();
+        return ImmutableList.of();
       }
 
       CIdExpression idExpression = new CIdExpression(dcl.getFileLocation(), cDcl);
@@ -518,7 +519,7 @@ public class AssumptionToEdgeAllocator {
       return handleSimpleValueLiteralsAssumptions(valueAsCode, leftHandSide);
     }
 
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   private List<AExpressionStatement> handleSimpleValueLiteralsAssumptions(ValueLiterals pValueLiterals, CLeftHandSide pLValue) {

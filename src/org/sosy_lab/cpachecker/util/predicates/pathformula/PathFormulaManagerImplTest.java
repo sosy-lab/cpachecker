@@ -30,7 +30,6 @@ import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
-import java.util.Collections;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
@@ -253,8 +252,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     FunctionEntryNode main =
         new CFunctionEntryNode(
             FileLocation.DUMMY,
-            new CFunctionDeclaration(
-                FileLocation.DUMMY, functionType, name, Collections.emptyList()),
+            new CFunctionDeclaration(FileLocation.DUMMY, functionType, name, ImmutableList.of()),
             new FunctionExitNode(name),
             com.google.common.base.Optional.absent());
 

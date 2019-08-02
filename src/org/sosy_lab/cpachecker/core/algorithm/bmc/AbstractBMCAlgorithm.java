@@ -1038,7 +1038,7 @@ abstract class AbstractBMCAlgorithm
     }
 
     public Obligation(CandidateInvariant pCause, SymbolicCandiateInvariant pBlockingClause) {
-      this(pCause, pBlockingClause, Collections.emptyList());
+      this(pCause, pBlockingClause, ImmutableList.of());
     }
 
     public int getDepth() {

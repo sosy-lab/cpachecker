@@ -19,6 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Collections;
@@ -239,8 +240,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
                     pCfa, pLogger, transitions, successor, invA, successorIsBottom);
               } else {
                 transitions.add(
-                    createAutomatonTransition(
-                        successor, Collections.<AExpression>emptyList(), successorIsBottom));
+                    createAutomatonTransition(successor, ImmutableList.of(), successorIsBottom));
               }
             }
             AutomatonInternalState state =

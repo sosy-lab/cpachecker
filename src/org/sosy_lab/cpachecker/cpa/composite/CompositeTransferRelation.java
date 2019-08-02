@@ -415,8 +415,9 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       break;
 
     default:
-      // create cartesian product of all componentSuccessors and store the result in allResultingElements
-      List<AbstractState> initialPrefix = Collections.emptyList();
+        // create cartesian product of all componentSuccessors and store the result in
+        // allResultingElements
+        List<AbstractState> initialPrefix = ImmutableList.of();
       allResultingElements = new ArrayList<>(resultCount);
       createCartesianProduct0(allComponentsSuccessors, initialPrefix, allResultingElements);
     }

@@ -67,7 +67,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(
           Collections.emptyMap(),
-          new AutomatonInternalState("_predefinedState_TOP", Collections.emptyList()),
+          new AutomatonInternalState("_predefinedState_TOP", ImmutableList.of()),
           pAutomatonCPA,
           ImmutableList.of(),
           ExpressionTrees.getTrue(),

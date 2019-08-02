@@ -28,10 +28,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,7 +116,7 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
             getReachedState(currentCutState),
             mustUpdatePrecision(lastRelevantNode, cutState, currentCutState)
                 ? newPrecisionsLst
-                : Collections.emptyList());
+                : ImmutableList.of());
 
         currentCutState = callState;
 

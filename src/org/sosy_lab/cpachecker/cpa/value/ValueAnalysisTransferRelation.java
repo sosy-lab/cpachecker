@@ -1544,7 +1544,7 @@ public class ValueAnalysisTransferRelation
     }
 
     if (newState == null) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     } else {
       return Collections.singleton(newState);
     }

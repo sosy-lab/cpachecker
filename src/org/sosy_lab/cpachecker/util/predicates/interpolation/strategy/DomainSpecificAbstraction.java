@@ -24,9 +24,9 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -2377,10 +2377,10 @@ public class DomainSpecificAbstraction<T> {
     List<Formula> maximumFeasibleAbstraction = new ArrayList<>(formulas.size() - 1);
 
     if (input.equals("root")){
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
     if (input.isEmpty()){
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
     String[] helperArray = new String[2];
     int j = 0;

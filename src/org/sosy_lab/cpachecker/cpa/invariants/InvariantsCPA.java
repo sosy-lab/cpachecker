@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -515,7 +516,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       Set<Pair<AssumeEdge, List<CFAEdge>>> assumeEdgesAndPaths = new HashSet<>();
 
       Queue<Pair<CFANode, List<CFAEdge>>> waitlist = new ArrayDeque<>();
-      waitlist.offer(Pair.of(currentRelevantLocation, Collections.<CFAEdge>emptyList()));
+      waitlist.offer(Pair.of(currentRelevantLocation, ImmutableList.of()));
 
       while (!waitlist.isEmpty()) {
         Pair<CFANode, List<CFAEdge>> currentPair = waitlist.poll();

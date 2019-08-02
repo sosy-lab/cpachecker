@@ -29,7 +29,6 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import org.junit.Before;
@@ -759,7 +758,7 @@ public class SMGStateTest {
             logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
 
     assertThat(state.hasMemoryLeaks()).isFalse();
-    state.setMemLeak("", Collections.emptyList());
+    state.setMemLeak("", ImmutableList.of());
     assertThat(state.hasMemoryLeaks()).isTrue();
   }
 }

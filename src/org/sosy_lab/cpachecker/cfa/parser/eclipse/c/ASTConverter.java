@@ -1004,7 +1004,7 @@ class ASTConverter {
       }
     }
 
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {

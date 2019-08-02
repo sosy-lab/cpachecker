@@ -695,7 +695,7 @@ public class SMGTransferRelation
               "Calling '"
                   + calledFunctionName
                   + "' and not using the result, resulting in memory leak.",
-              Collections.emptyList());
+              ImmutableList.of());
         }
         return newStates;
       }
@@ -1256,7 +1256,7 @@ public class SMGTransferRelation
     }
 
     if (newElement == null) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     } else {
       SMGUtils.plotWhenConfigured(getDotExportFileName(newElement), newElement, assumeDesc.toString(), logger, SMGExportLevel.EVERY, exportSMGOptions);
       return Collections.singleton(newElement);

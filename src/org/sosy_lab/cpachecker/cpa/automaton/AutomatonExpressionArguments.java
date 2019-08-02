@@ -84,7 +84,7 @@ class AutomatonExpressionArguments {
       automatonVariables = pAutomatonVariables;
     }
     if (pAbstractStates == null) {
-      abstractStates = Collections.emptyList();
+      abstractStates = ImmutableList.of();
     } else {
       abstractStates = pAbstractStates;
     }

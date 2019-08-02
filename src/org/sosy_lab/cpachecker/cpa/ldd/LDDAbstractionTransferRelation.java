@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.ldd;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -77,11 +78,15 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends LDDAbstractState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision precision, CFAEdge edge)
           throws CPATransferException, InterruptedException {
-    if (!(element instanceof LDDAbstractState)) { return Collections.emptyList(); }
+    if (!(element instanceof LDDAbstractState)) {
+      return ImmutableList.of();
+    }
     LDDAbstractState analysisElement = (LDDAbstractState) element;
     LDDRegion region = toRegion(edge, analysisElement.getRegion());
     // If the LDD is null or false, no successor state is reachable.
-    if (region == null || region.isFalse()) { return Collections.emptyList(); }
+    if (region == null || region.isFalse()) {
+      return ImmutableList.of();
+    }
     return Collections.singleton(new LDDAbstractState(region));
   }
 

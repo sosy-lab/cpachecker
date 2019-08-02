@@ -344,11 +344,7 @@ public class AutomatonGraphmlParser {
       ExpressionTree<AExpression> invariant = stateInvariantsMap.get(pState);
       try {
         createAutomatonInvariantsTransitions(
-            transitions,
-            stutterCondition,
-            Collections.<AutomatonAction>emptyList(),
-            invariant,
-            pState);
+            transitions, stutterCondition, ImmutableList.of(), invariant, pState);
       } catch (UnrecognizedCodeException e) {
         throw new WitnessParseException("Unable to parse invariant to CExpression");
       }
@@ -356,10 +352,10 @@ public class AutomatonGraphmlParser {
       transitions.add(
           createAutomatonTransition(
               stutterCondition,
-              Collections.<AutomatonBoolExpr>emptyList(),
-              Collections.emptyList(),
+              ImmutableList.of(),
+              ImmutableList.of(),
               ExpressionTrees.<AExpression>getTrue(),
-              Collections.<AutomatonAction>emptyList(),
+              ImmutableList.of(),
               pState,
               pState.isViolationState(),
               stopNotBreakAtSinkStates));
@@ -372,9 +368,9 @@ public class AutomatonGraphmlParser {
           createAutomatonTransition(
               AutomatonBoolExpr.TRUE,
               assertions,
-              Collections.emptyList(),
+              ImmutableList.of(),
               ExpressionTrees.<AExpression>getTrue(),
-              Collections.<AutomatonAction>emptyList(),
+              ImmutableList.of(),
               pState,
               true,
               stopNotBreakAtSinkStates));
@@ -593,11 +589,7 @@ public class AutomatonGraphmlParser {
                   pTransition.getTarget().isSinkState()));
       transitions.add(
           createAutomatonSinkTransition(
-              fpElseTrigger,
-              Collections.<AutomatonBoolExpr>emptyList(),
-              actions,
-              false,
-              stopNotBreakAtSinkStates));
+              fpElseTrigger, ImmutableList.of(), actions, false, stopNotBreakAtSinkStates));
     }
 
     // If the triggers do not apply, none of the above transitions is taken,
@@ -658,7 +650,7 @@ public class AutomatonGraphmlParser {
     transitions.add(
         createAutomatonTransition(
             transitionCondition,
-            Collections.<AutomatonBoolExpr> emptyList(),
+            ImmutableList.of(),
             assumptions,
             candidateInvariants,
             actions,
@@ -678,10 +670,10 @@ public class AutomatonGraphmlParser {
               and(
                   transitionCondition,
                   new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(transitionCondition)),
-              Collections.<AutomatonBoolExpr> emptyList(),
-              Collections.emptyList(),
-              ExpressionTrees.<AExpression> getTrue(),
-              Collections.<AutomatonAction> emptyList(),
+              ImmutableList.of(),
+              ImmutableList.of(),
+              ExpressionTrees.<AExpression>getTrue(),
+              ImmutableList.of(),
               pTransition.getSource(),
               sourceIsViolationNode,
               stopNotBreakAtSinkStates));
@@ -779,7 +771,7 @@ public class AutomatonGraphmlParser {
         throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE + " Reason: " + reason, e);
       }
     }
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   private List<AExpression> logAndRemoveUnknown(List<AExpression> pAssumptions) {
@@ -1813,7 +1805,7 @@ public class AutomatonGraphmlParser {
     pTransitions.add(
         createAutomatonTransition(
             pTransitionCondition,
-            Collections.<AutomatonBoolExpr>emptyList(),
+            ImmutableList.of(),
             assumptionWithCExpr,
             pInvariant,
             pActions,

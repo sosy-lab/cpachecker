@@ -119,8 +119,7 @@ public class TerminationLoopInformation {
   private Map<CExpression, CVariableDeclaration> relevantVariables = Collections.emptyMap();
 
   // reusing of intermediate location is required to build counter examples
-  private List<CFANode> relevantVariablesInitializationIntermediateLocations =
-      Collections.emptyList();
+  private List<CFANode> relevantVariablesInitializationIntermediateLocations = ImmutableList.of();
 
   private Set<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
 
@@ -235,7 +234,7 @@ public class TerminationLoopInformation {
     loopLeavingLocations = Collections.emptySet();
     loopLeavingEdges = Collections.emptySet();
     relevantVariables = Collections.emptyMap();
-    relevantVariablesInitializationIntermediateLocations = Collections.emptyList();
+    relevantVariablesInitializationIntermediateLocations = ImmutableList.of();
     targetNode = Optional.empty();
     resetCfa();
   }

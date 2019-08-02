@@ -226,7 +226,7 @@ public class Automaton {
               new AutomatonExpressionArguments(
                   null,
                   Collections.emptyMap(),
-                  Collections.emptyList(),
+                  ImmutableList.of(),
                   edge,
                   LogManager.createNullLogManager());
           try {

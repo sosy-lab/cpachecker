@@ -27,10 +27,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 import javax.annotation.concurrent.Immutable;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -99,7 +99,7 @@ public class TerminationState extends AbstractSingleWrapperState
    * @return the created {@link TerminationState}
    */
   public static TerminationState createStemState(AbstractState pWrappedState) {
-    return new TerminationState(pWrappedState, null, false, Collections.emptyList());
+    return new TerminationState(pWrappedState, null, false, ImmutableList.of());
   }
 
   /**

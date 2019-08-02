@@ -334,7 +334,7 @@ public class ARGToAutomatonConverter {
 
     switch (export) {
       case NONE:
-        return Collections.emptyList();
+        return ImmutableList.of();
 
       case ALL: // export all nodes, mainly for debugging.
         return from(pDependencies.entrySet())

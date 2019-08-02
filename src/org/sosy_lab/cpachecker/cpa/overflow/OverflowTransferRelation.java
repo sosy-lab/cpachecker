@@ -60,7 +60,7 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
     if (prev.hasOverflow()) {
 
       // Once we have an overflow there is no need to continue.
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
 
     Set<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge);

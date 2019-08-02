@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -202,7 +202,7 @@ public class CustomInstruction{
    */
   public Pair<List<String>, String> getFakeSMTDescription() {
     if (inputVariables.size() == 0 && outputVariables.size() == 0) {
-      return Pair.of(Collections.emptyList(), "(define-fun ci() Bool true)");
+      return Pair.of(ImmutableList.of(), "(define-fun ci() Bool true)");
     }
     StringBuilder sb = new StringBuilder();
     sb.append("(define-fun ci() Bool");
@@ -400,7 +400,7 @@ public class CustomInstruction{
    */
   private Pair<List<String>, String> getFakeSMTDescriptionForACI(final Map<String,String> map) {
     if (inputVariables.size() == 0 && outputVariables.size() == 0) {
-      return Pair.of(Collections.emptyList(), "(define-fun ci() Bool true)");
+      return Pair.of(ImmutableList.of(), "(define-fun ci() Bool true)");
     }
 
     StringBuilder sb = new StringBuilder();
