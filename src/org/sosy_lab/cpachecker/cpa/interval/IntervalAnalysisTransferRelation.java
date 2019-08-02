@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -418,7 +419,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   }
 
   private Collection<IntervalAnalysisState> noSuccessors() {
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 }
 

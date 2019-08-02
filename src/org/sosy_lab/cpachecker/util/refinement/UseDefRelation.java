@@ -28,11 +28,11 @@ import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Collections2.filter;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -202,7 +202,7 @@ public class UseDefRelation {
   }
 
   private void addUseDef(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> uses) {
-    updateRelation(state, edge, Collections.emptySet(), uses);
+    updateRelation(state, edge, ImmutableSet.of(), uses);
   }
 
   private void updateRelation(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> defs, Set<ASimpleDeclaration> uses) {
@@ -217,7 +217,7 @@ public class UseDefRelation {
     if(relation.containsKey(Pair.of(state, edge))) {
       return relation.get(Pair.of(state, edge)).getFirst();
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 
@@ -225,7 +225,7 @@ public class UseDefRelation {
     if(relation.containsKey(Pair.of(state, edge))) {
       return relation.get(Pair.of(state, edge)).getSecond();
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 
@@ -336,14 +336,14 @@ public class UseDefRelation {
     }
 
     if (isEquality(assumeEdge, binaryExpression.getOperator()) && hasUnresolvedUse(operand)) {
-      addUseDef(state, assumeEdge, operand, Collections.emptySet());
+      addUseDef(state, assumeEdge, operand, ImmutableSet.of());
     }
 
     else {
       if(isInequality(assumeEdge, binaryExpression.getOperator())
           && hasUnresolvedUse(operand)
           && hasBooleanCharacter(operand)) {
-        addUseDef(state, assumeEdge, operand, Collections.emptySet());
+        addUseDef(state, assumeEdge, operand, ImmutableSet.of());
       }
     }
   }
@@ -384,7 +384,7 @@ public class UseDefRelation {
     AInitializer initializer = ((AVariableDeclaration) declaration).getInitializer();
 
     if (initializer == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     return getVariablesUsedForInitialization(initializer);

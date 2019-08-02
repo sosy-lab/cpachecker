@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.slicing;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -31,7 +32,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -186,7 +186,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
 
     Set<CFAEdge> relevantEdges;
     if (useRefinableSlice) {
-      relevantEdges = Collections.emptySet();
+      relevantEdges = ImmutableSet.of();
     } else {
       relevantEdges = computeSlice(cfa, spec);
     }

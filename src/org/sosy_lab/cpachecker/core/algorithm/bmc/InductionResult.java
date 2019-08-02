@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -43,7 +42,7 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
   private InductionResult(T pInvariantAbstraction) {
     super(true);
     invariantAbstraction = Objects.requireNonNull(pInvariantAbstraction);
-    badStateBlockingClauses = Collections.emptySet();
+    badStateBlockingClauses = ImmutableSet.of();
     k = -1;
   }
 

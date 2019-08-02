@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.loopbound;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import java.util.Collections;
+import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -184,7 +184,7 @@ public class LoopBoundState
   @Override
   public Set<Loop> getDeepestIterationLoops() {
     if (loopStack.isEmpty()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     int deepestIteration = getDeepestIteration();
     return FluentIterable.from(loopStack)

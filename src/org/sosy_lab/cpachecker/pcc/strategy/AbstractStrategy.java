@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy;
 
+import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.InputStream;
@@ -228,7 +229,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     if (proofInfo != null) {
       return Collections.singleton(proofInfo);
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   public static class PCStrategyStatistics implements Statistics {

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
@@ -226,7 +227,7 @@ enum GraphBuilder {
             locationStates = states.get(successor);
             tryAddToWaitlist = true;
           } else {
-            locationStates = Collections.<ARGState>emptySet();
+            locationStates = ImmutableSet.of();
           }
           boolean appended = appendEdge(pEdgeAppender, leavingEdge, Optional.of(locationStates), pValueMap);
           if (tryAddToWaitlist && appended && visited.add(successor)) {

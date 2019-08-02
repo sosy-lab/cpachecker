@@ -29,7 +29,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -256,9 +255,9 @@ public class ReachingDefState implements AbstractState, Serializable,
         continue;
       }
       if (defPoints1 == null) {
-        defPoints1 = Collections.emptySet();
+        defPoints1 = ImmutableSet.of();
       } else if (defPoints2 == null) {
-        defPoints2 = Collections.emptySet();
+        defPoints2 = ImmutableSet.of();
       }
       unionResult = unionSets(defPoints1, defPoints2);
       if (unionResult.size() != defPoints1.size() || unionResult.size() != defPoints2.size()) {

@@ -31,6 +31,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -236,7 +237,7 @@ class CParserUtils {
       }
       return result;
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   private static Collection<CStatement> parseAsCStatements(

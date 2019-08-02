@@ -31,6 +31,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -157,7 +158,7 @@ public class AutomatonTransferRelation implements TransferRelation {
       throws CPATransferException {
     Preconditions.checkArgument(!(state instanceof AutomatonUnknownState));
     if (state == cpa.getBottomState()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     if (state.getInternalState().getTransitions().isEmpty()) {
@@ -169,7 +170,7 @@ public class AutomatonTransferRelation implements TransferRelation {
       if (!((AutomatonPrecision) precision).isEnabled()) {
         if (state.isTarget()) {
           // do not create transition from target states
-          return Collections.emptySet();
+          return ImmutableSet.of();
         } else {
           // ignore disabled automaton
           return Collections.singleton(state);

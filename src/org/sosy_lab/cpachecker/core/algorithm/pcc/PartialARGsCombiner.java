@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
@@ -414,7 +415,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
     // no successor in every of the ARGs
     if (count == 0) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     Collection<Pair<List<AbstractState>, List<ARGState>>> result = new ArrayList<>(count);

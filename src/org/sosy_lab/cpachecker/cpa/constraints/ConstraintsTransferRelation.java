@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -408,7 +409,7 @@ public class ConstraintsTransferRelation
       try {
         if (automatonState.isTarget() && solver.isUnsat(pStateToStrengthen, functionName)) {
 
-          return Optional.<Collection<ConstraintsState>>of(Collections.<ConstraintsState>emptySet());
+          return Optional.<Collection<ConstraintsState>>of(ImmutableSet.of());
 
         } else {
           return Optional.empty();

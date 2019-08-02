@@ -48,7 +48,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -291,7 +290,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     BooleanFormula interpolant = pInterpolant;
 
     if (bfmgr.isTrue(interpolant)) {
-      return Collections.<AbstractionPredicate>emptySet();
+      return ImmutableSet.of();
     }
 
     Collection<AbstractionPredicate> preds;

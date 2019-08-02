@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -274,7 +274,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
                 pErrorPathPrefix,
                 cfa.getVarClassification().isPresent()
                     ? cfa.getVarClassification().get().getIntBoolVars()
-                    : Collections.emptySet(),
+                    : ImmutableSet.of(),
                 false)
             .getUseDefStates();
 

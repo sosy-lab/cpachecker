@@ -27,13 +27,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -296,7 +296,7 @@ public class ARGToCTranslator {
       ARGState argRoot, @Nullable Set<ARGState> pAddPragma, boolean hasGotoDecProblem)
       throws CPAException {
 
-    addPragmaAfter = pAddPragma == null ? Collections.emptySet() : pAddPragma;
+    addPragmaAfter = pAddPragma == null ? ImmutableSet.of() : pAddPragma;
 
     if (hasGotoDecProblem) {
       copyValuesForGoto = identifyDeclarationProblems(argRoot);

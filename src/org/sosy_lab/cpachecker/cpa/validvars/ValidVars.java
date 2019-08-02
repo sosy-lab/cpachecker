@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,7 +45,7 @@ public class ValidVars implements Serializable {
   private final ImmutableMap<String,Byte> numFunctionCalled;
 
   public static final ValidVars initial =
-      new ValidVars(Collections.<String>emptySet(), ImmutableMap.of(), ImmutableMap.of());
+      new ValidVars(ImmutableSet.of(), ImmutableMap.of(), ImmutableMap.of());
 
   ValidVars(Set<String> pGlobalValidVars, Map<String, ? extends Set<String>> pLocal, Map<String,Byte> pNumFunctionCalled) {
     globalValidVars = ImmutableSet.copyOf(pGlobalValidVars);

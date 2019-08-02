@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.slicing;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -149,7 +150,7 @@ public class SlicingPrecision implements WrapperPrecision  {
   public static class FullPrecision extends SlicingPrecision {
 
     public FullPrecision(final Precision pWrappedPrec) {
-      super(pWrappedPrec, Collections.emptySet());
+      super(pWrappedPrec, ImmutableSet.of());
     }
 
     @Override

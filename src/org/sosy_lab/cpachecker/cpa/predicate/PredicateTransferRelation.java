@@ -27,6 +27,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -118,7 +119,9 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
       // Check whether abstraction is false.
       // Such elements might get created when precision adjustment computes an abstraction.
-      if (element.getAbstractionFormula().isFalse()) { return Collections.emptySet(); }
+      if (element.getAbstractionFormula().isFalse()) {
+        return ImmutableSet.of();
+      }
 
       // calculate strongest post
       PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
@@ -131,7 +134,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
       try {
         if (satCheck && unsatCheck(element.getAbstractionFormula(), pathFormula)) {
-          return Collections.emptySet();
+          return ImmutableSet.of();
         }
       } catch (SolverException e) {
         throw new CPATransferException("Solver failed during successor generation", e);
@@ -308,7 +311,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
         if (!options.ignoreStateAssumptions() && lElement instanceof AbstractStateWithAssumptions) {
           element = strengthen(element, (AbstractStateWithAssumptions) lElement, edge);
           if (element == null) {
-            return Collections.emptySet();
+            return ImmutableSet.of();
           }
         }
 
@@ -328,7 +331,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
         element = strengthenSatCheck(element, currentLocation);
         if (element == null) {
           // successor not reachable
-          return Collections.emptySet();
+          return ImmutableSet.of();
         }
       }
 

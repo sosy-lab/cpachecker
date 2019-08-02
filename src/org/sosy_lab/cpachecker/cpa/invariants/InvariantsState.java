@@ -445,7 +445,7 @@ public class InvariantsState implements AbstractState,
           variableTypes,
           abstractionState,
           newEnvironment,
-          Collections.emptySet(),
+          ImmutableSet.of(),
           overflowDetected,
           includeTypeInformation,
           overapproximatesUnsupportedFeature);
@@ -541,7 +541,7 @@ public class InvariantsState implements AbstractState,
             variableTypes,
             abstractionState,
             resultEnvironment,
-            Collections.emptySet(),
+            ImmutableSet.of(),
             overflowDetected,
             includeTypeInformation,
             overapproximatesUnsupportedFeature);
@@ -671,7 +671,7 @@ public class InvariantsState implements AbstractState,
         variableTypes,
         abstractionState,
         NonRecursiveEnvironment.of(tools.compoundIntervalManagerFactory),
-        Collections.emptySet(),
+        ImmutableSet.of(),
         overflowDetected,
         includeTypeInformation,
         overapproximatesUnsupportedFeature);
@@ -1510,7 +1510,7 @@ public class InvariantsState implements AbstractState,
             variableTypes,
             abstractionState,
             resEnv,
-            Collections.emptySet(),
+            ImmutableSet.of(),
             overflowDetected,
             includeTypeInformation,
             overapproximatesUnsupportedFeature);
@@ -1538,7 +1538,7 @@ public class InvariantsState implements AbstractState,
     }
 
     Set<BooleanFormula<CompoundInterval>> additionalAssumptions =
-        additionalHints.isEmpty() ? Collections.emptySet() : new HashSet<>();
+        additionalHints.isEmpty() ? ImmutableSet.of() : new HashSet<>();
 
     for (BooleanFormula<CompoundInterval> hint :
         FluentIterable.from(Sets.union(pWideningHints, additionalHints))
@@ -1654,7 +1654,7 @@ public class InvariantsState implements AbstractState,
 
       Set<BooleanFormula<CompoundInterval>> commonAssumptions;
       if (assumptions.isEmpty() && pState2.assumptions.isEmpty()) {
-        commonAssumptions = Collections.emptySet();
+        commonAssumptions = ImmutableSet.of();
       } else {
         commonAssumptions = new HashSet<>(Sets.intersection(assumptions, pState2.assumptions));
         for (BooleanFormula<CompoundInterval> assumption :

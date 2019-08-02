@@ -29,6 +29,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -436,7 +437,7 @@ public final class ExpressionTrees {
               @Override
               protected Iterable<ExpressionTree<LeafType>> visitDefault(
                   ExpressionTree<LeafType> pExprTree) {
-                return Collections.emptySet();
+                return ImmutableSet.of();
               }
 
               @Override
@@ -467,7 +468,7 @@ public final class ExpressionTrees {
       @Override
       public ExpressionTree<LeafType> simplify(ExpressionTree<LeafType> pExpressionTree) {
         return ExpressionTrees.simplify(
-            pExpressionTree, Collections.emptySet(), simplificationVisitors, pFactory, true);
+            pExpressionTree, ImmutableSet.of(), simplificationVisitors, pFactory, true);
       }
     };
   }
@@ -479,7 +480,7 @@ public final class ExpressionTrees {
 
   private static <LeafType> ExpressionTree<LeafType> simplify(
       ExpressionTree<LeafType> pExpressionTree, ExpressionTreeFactory<LeafType> pFactory) {
-    return simplify(pExpressionTree, Collections.emptySet(), new HashMap<>(), pFactory, true);
+    return simplify(pExpressionTree, ImmutableSet.of(), new HashMap<>(), pFactory, true);
   }
 
   private static <LeafType> ExpressionTree<LeafType> simplify(

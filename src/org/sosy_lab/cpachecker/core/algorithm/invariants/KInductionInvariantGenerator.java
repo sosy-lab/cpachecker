@@ -43,7 +43,6 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -642,7 +641,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           Specification pSpecification,
           TargetLocationProvider pTargetLocationProvider,
           LogManager pLogger) {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
     },
 

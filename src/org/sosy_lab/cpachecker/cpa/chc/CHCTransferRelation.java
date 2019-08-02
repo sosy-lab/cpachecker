@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.chc;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -91,7 +92,7 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (newState == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     } else {
       return Collections.singleton(newState);
     }
@@ -121,7 +122,7 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
         }
       }
       if (newStates.isEmpty()) {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       } else {
         return newStates;
       }
@@ -130,7 +131,7 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
       newState.setNodeNumber(nodeId);
       newState.updateConstraint(cns.get(0));
       if (newState.isBottom()) {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       } else {
         return Collections.singleton(newState);
       }

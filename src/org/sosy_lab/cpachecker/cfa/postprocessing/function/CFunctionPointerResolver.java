@@ -33,7 +33,6 @@ import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -353,10 +352,10 @@ public class CFunctionPointerResolver implements StatisticsProvider {
           decl = ((CIdExpression) expression).getDeclaration();
         }
         if (decl == null) {
-          funcs = Collections.emptySet();
+          funcs = ImmutableSet.of();
         } else if (decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal()) {
           // TODO means, that our heuristics missed something
-          funcs = Collections.emptySet();
+          funcs = ImmutableSet.of();
         }
       } else {
         funcs = from(funcs).filter(f -> matchedFuncs.contains(f.getFunctionName())).toSet();

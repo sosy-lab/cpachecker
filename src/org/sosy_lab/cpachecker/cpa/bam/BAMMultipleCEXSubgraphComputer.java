@@ -26,9 +26,9 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -217,7 +217,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   }
 
   public ARGPath computePath(ARGState pLastElement) {
-    return computePath(pLastElement, Collections.emptySet());
+    return computePath(pLastElement, ImmutableSet.of());
   }
 
   public ARGPath computePath(ARGState pLastElement, Set<List<Integer>> pRefinedStates) {

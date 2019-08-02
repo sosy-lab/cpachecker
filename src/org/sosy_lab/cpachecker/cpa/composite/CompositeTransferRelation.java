@@ -34,6 +34,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -403,7 +404,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     switch (resultCount) {
     case 0:
         // at least one CPA decided that there is no successor
-        allResultingElements = Collections.emptySet();
+        allResultingElements = ImmutableSet.of();
       break;
 
     case 1:

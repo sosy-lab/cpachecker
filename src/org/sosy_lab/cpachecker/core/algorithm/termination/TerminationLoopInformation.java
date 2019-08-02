@@ -34,7 +34,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
+import com.google.common.collect.ImmutableSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -93,20 +93,20 @@ public class TerminationLoopInformation {
   private Optional<Loop> loop = Optional.empty();
 
   /**
-   * All locations after an outgoing edge of the loop currently processed or an empty set.
-   * Needs to be set before modifying the {@link CFA}!
+   * All locations after an outgoing edge of the loop currently processed or an empty set. Needs to
+   * be set before modifying the {@link CFA}!
    *
    * @see Loop#getOutgoingEdges()
    */
-  private Set<CFANode> loopLeavingLocations = Collections.emptySet();
+  private Set<CFANode> loopLeavingLocations = ImmutableSet.of();
 
   /**
-   * All outgoing edges of the loop currently processed or an empty set.
-   * Needs to be set before modifying the {@link CFA}!
+   * All outgoing edges of the loop currently processed or an empty set. Needs to be set before
+   * modifying the {@link CFA}!
    *
    * @see Loop#getOutgoingEdges()
    */
-  private Set<CFAEdge> loopLeavingEdges = Collections.emptySet();
+  private Set<CFAEdge> loopLeavingEdges = ImmutableSet.of();
 
   /**
    * The current ranking relation.
@@ -229,8 +229,8 @@ public class TerminationLoopInformation {
    */
   void reset() {
     loop = Optional.empty();
-    loopLeavingLocations = Collections.emptySet();
-    loopLeavingEdges = Collections.emptySet();
+    loopLeavingLocations = ImmutableSet.of();
+    loopLeavingEdges = ImmutableSet.of();
     relevantVariables = ImmutableMap.of();
     relevantVariablesInitializationIntermediateLocations = ImmutableList.of();
     targetNode = Optional.empty();

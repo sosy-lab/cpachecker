@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.HashMap;
@@ -359,7 +360,7 @@ public class EdgeAnalyzer {
 
     @Override
     protected Iterable<ALeftHandSide> visitDefault(CExpression pExp) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override

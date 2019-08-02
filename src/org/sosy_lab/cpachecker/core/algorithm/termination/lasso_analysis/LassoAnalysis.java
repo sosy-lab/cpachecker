@@ -30,6 +30,7 @@ import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.java_smt.SolverContextFactory.Solvers.SMTINTERPOL;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import de.uni_freiburg.informatik.ultimate.lassoranker.AnalysisType;
 import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
 import de.uni_freiburg.informatik.ultimate.lassoranker.LassoRankerPreferences;
@@ -49,7 +50,6 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.util.ToolchainCanceledException;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -514,7 +514,7 @@ public class LassoAnalysis {
         template,
         lassoRankerPreferences,
         terminationAnalysisSettings,
-        Collections.emptySet(),
+        ImmutableSet.of(),
         toolchainStorage,
         toolchainStorage);
   }

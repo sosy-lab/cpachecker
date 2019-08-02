@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.automaton;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
@@ -668,7 +669,7 @@ public class AutomatonGraphmlCommon {
   public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode
       pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     if (handleAsEpsilonEdge(pEdge, pAdditionalInfo)) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     return getFileLocationsFromCfaEdge0(pEdge, pMainEntry);
   }
@@ -676,7 +677,7 @@ public class AutomatonGraphmlCommon {
   public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode
       pMainEntry) {
     if (handleAsEpsilonEdge(pEdge)) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     return getFileLocationsFromCfaEdge0(pEdge, pMainEntry);
   }

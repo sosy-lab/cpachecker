@@ -257,7 +257,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
   private Set<OctagonState> handleLiteralBooleanExpression(
       long value, boolean truthAssumption, OctagonState pState) {
     if ((value == 0) == truthAssumption) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     } else {
       return Collections.singleton(pState);
     }
@@ -583,7 +583,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     if (truthAssumption == isOperatorSatisfied(op, leftVal, rightVal)) {
       return Collections.singleton(state);
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 
@@ -696,13 +696,13 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
        if (truthAssumption) {
          return Collections.singleton(pState);
        } else {
-         return Collections.emptySet();
+         return ImmutableSet.of();
        }
       case NOT_EQUALS:
       case LESS_THAN:
       case GREATER_THAN:
         if (truthAssumption) {
-          return Collections.emptySet();
+          return ImmutableSet.of();
         } else {
           return Collections.singleton(pState);
         }
@@ -1099,7 +1099,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
    */
   @Override
   protected Set<OctagonState> handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   class COctagonCoefficientVisitor extends DefaultCExpressionVisitor<Set<Pair<IOctagonCoefficients, OctagonState>>, CPATransferException>

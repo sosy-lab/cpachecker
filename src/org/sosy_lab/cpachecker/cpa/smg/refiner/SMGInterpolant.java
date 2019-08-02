@@ -27,7 +27,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -62,7 +61,7 @@ public class SMGInterpolant implements Interpolant<Collection<SMGState>, SMGInte
   }
 
   public SMGInterpolant(Collection<? extends UnmodifiableSMGState> pStates) {
-    this(pStates, Collections.emptySet());
+    this(pStates, ImmutableSet.of());
   }
 
   public SMGInterpolant(

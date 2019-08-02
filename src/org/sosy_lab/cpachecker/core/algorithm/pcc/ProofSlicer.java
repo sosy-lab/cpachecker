@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -413,7 +413,7 @@ public class ProofSlicer {
       }
     }
 
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   private void updateCoveredNodes(ARGState pCovering, Set<String> varSet,

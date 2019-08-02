@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
+import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
-
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -37,10 +39,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetBot;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetTop;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 
 /**
  * Instances of this class are pointer states that are used as abstract elements
@@ -213,7 +211,7 @@ public class PointerState implements AbstractState {
         if (pArg0 instanceof ExplicitLocationSet) {
           return (ExplicitLocationSet) pArg0;
         }
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
 
     }))).toSet();

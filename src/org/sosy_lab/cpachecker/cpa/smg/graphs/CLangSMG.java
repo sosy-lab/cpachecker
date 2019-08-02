@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -476,7 +476,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   private Set<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {
     SMGObject objectAtLocation = getObjectFromMemoryLocation(pLocation);
     if (objectAtLocation == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(objectAtLocation);

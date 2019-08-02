@@ -407,7 +407,7 @@ public class AppliedCustomInstructionParser {
           .transformAndConcat(CFAUtils::getVariableNamesOfExpression)
           .toSet();
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
  private Set<String> getFunctionParameterInput(final CFunctionCallExpression funCall) {

@@ -30,6 +30,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.graph.Traverser;
 import java.util.ArrayList;
@@ -255,7 +256,7 @@ public class ARGState extends AbstractSingleWrapperState
   public Set<ARGState> getCoveredByThis() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     if (mCoveredByThis == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     } else {
       return Collections.unmodifiableSet(mCoveredByThis);
     }

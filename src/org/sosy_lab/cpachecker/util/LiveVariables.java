@@ -410,7 +410,9 @@ public class LiveVariables {
                 .transform(TO_EQUIV_WRAPPER)
                 .toSet();
         break;
-    case GLOBAL: globalVariables = Collections.emptySet(); break;
+      case GLOBAL:
+        globalVariables = ImmutableSet.of();
+        break;
     default:
       throw new AssertionError("Unhandled case statement: " + config.evaluationStrategy);
     }

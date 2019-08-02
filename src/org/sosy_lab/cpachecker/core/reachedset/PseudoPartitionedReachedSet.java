@@ -124,7 +124,7 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
 
     if (partition == null) {
       // partition is empty
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     Set<AbstractState> states;

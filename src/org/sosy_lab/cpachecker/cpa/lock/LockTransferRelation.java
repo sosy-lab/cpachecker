@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -190,7 +191,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       }
       return Collections.singleton(successor);
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 

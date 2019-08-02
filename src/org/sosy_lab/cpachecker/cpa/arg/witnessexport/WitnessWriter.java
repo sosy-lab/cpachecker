@@ -1706,7 +1706,7 @@ class WitnessWriter implements EdgeAppender {
     if (pState.isTarget() && graphType != WitnessType.CORRECTNESS_WITNESS) {
       return Collections.singleton(NodeFlag.ISVIOLATION);
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   private Collection<Property> extractViolatedProperties(ARGState pState) {

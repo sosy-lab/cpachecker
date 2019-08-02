@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -59,7 +60,7 @@ public class FrameSet implements AutoCloseable {
   public FrameSet(Solver pSolver, Set<ProverOptions> pProverOptions) {
     solver = pSolver;
     proverOptions =
-        pProverOptions.isEmpty() ? Collections.emptySet() : Sets.immutableEnumSet(pProverOptions);
+        pProverOptions.isEmpty() ? ImmutableSet.of() : Sets.immutableEnumSet(pProverOptions);
     newFrame();
   }
 
@@ -117,7 +118,7 @@ public class FrameSet implements AutoCloseable {
       throw new IndexOutOfBoundsException("Illegal frame index: " + pFrameIndex);
     }
     if (pFrameIndex > getFrontierIndex()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     return IntStream.rangeClosed(pFrameIndex, getFrontierIndex())
         .mapToObj(frames::get)

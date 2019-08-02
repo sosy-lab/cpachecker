@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
@@ -169,7 +170,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (state == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     state = state.updateAbstractionState(precision, pEdge);
@@ -564,7 +565,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         }
         state = handleAssume(state, fakeEdge, getExpressionToFormulaVisitor(pCfaEdge, state));
         if (state == null) {
-          return Collections.emptySet();
+          return ImmutableSet.of();
         }
       }
     }

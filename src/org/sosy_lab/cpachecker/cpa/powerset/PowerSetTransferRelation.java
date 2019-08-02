@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.powerset;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
@@ -81,8 +82,7 @@ public class PowerSetTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-
-    return changed ? Collections.singleton(new PowerSetState(newStates)) : Collections.emptySet();
+    return changed ? Collections.singleton(new PowerSetState(newStates)) : ImmutableSet.of();
   }
 
 }

@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +62,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
   private final AggregatedReachedSets aggregatedReached;
 
-  private Set<UnmodifiableReachedSet> lastUsedReachedSets = Collections.emptySet();
+  private Set<UnmodifiableReachedSet> lastUsedReachedSets = ImmutableSet.of();
   private InvariantSupplier lastInvariantSupplier = TrivialInvariantSupplier.INSTANCE;
 
   private final Map<UnmodifiableReachedSet, ReachedSetBasedFormulaSupplier>

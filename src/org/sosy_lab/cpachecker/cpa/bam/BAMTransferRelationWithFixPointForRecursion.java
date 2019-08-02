@@ -27,10 +27,10 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -97,7 +97,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     }
 
     if (maximalDepthForExplicitRecursion != -1 && stack.size() > maximalDepthForExplicitRecursion) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     return super.getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
@@ -395,7 +395,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     assert reached != null : "cached entry has no reached set";
     if (previousResult == null) {
       // outer block was not finished, abort recursion
-      reducedResult = Collections.emptySet();
+      reducedResult = ImmutableSet.of();
       logger.logf(Level.FINEST, "skipping recursive call with new empty result (root is %s)", reached.getFirstState());
     } else {
       // use previously computed outer block as inner block,

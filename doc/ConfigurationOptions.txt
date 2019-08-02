@@ -1544,7 +1544,7 @@ cpa.local.allocatefunctions = {}
 cpa.local.conservativefunctions = {}
 
 # variables, which are always local
-cpa.local.localvariables = Collections.emptySet()
+cpa.local.localvariables = {}
 
 # With this option enabled, function calls that occur in the CFA are
 # followed. By disabling this option one can traverse a function without

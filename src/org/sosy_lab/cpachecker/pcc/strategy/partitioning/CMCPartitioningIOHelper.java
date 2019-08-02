@@ -23,19 +23,17 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,9 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
-
-import com.google.common.base.Preconditions;
-
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class CMCPartitioningIOHelper extends PartitioningIOHelper{
 
@@ -70,7 +66,7 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
   public CMCPartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    this(pConfig, pLogger, pShutdownNotifier, Collections.<ARGState> emptySet(), Collections.<ARGState> emptySet(), null);
+    this(pConfig, pLogger, pShutdownNotifier, ImmutableSet.of(), ImmutableSet.of(), null);
   }
 
   public @Nullable  int[][] getEdgesForPartition(final int pIndex) {
