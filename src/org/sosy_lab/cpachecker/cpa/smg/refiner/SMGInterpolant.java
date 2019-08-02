@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -240,7 +240,7 @@ public class SMGInterpolant implements Interpolant<Collection<SMGState>, SMGInte
 
     @Override
     public int hashCode() {
-      return Objects.hashCode(abstractionBlock, pathsToTrack, stackVariablesToTrack);
+      return Objects.hash(abstractionBlock, pathsToTrack, stackVariablesToTrack);
     }
 
     @Override
@@ -252,9 +252,9 @@ public class SMGInterpolant implements Interpolant<Collection<SMGState>, SMGInte
         return false;
       }
       SMGPrecisionIncrement other = (SMGPrecisionIncrement) obj;
-      return Objects.equal(abstractionBlock, other.abstractionBlock)
-          && Objects.equal(pathsToTrack, other.pathsToTrack)
-          && Objects.equal(stackVariablesToTrack, other.stackVariablesToTrack);
+      return Objects.equals(abstractionBlock, other.abstractionBlock)
+          && Objects.equals(pathsToTrack, other.pathsToTrack)
+          && Objects.equals(stackVariablesToTrack, other.stackVariablesToTrack);
     }
 
     @Override

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -35,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -163,15 +163,15 @@ public class ReachingDefState implements AbstractState, Serializable,
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(globalReachDefs, localReachDefs);
+    return Objects.hash(globalReachDefs, localReachDefs);
   }
 
   @Override
   public boolean equals(Object pO) {
     if (pO instanceof ReachingDefState) {
       ReachingDefState other = (ReachingDefState) pO;
-      return Objects.equal(globalReachDefs, other.globalReachDefs)
-          && Objects.equal(localReachDefs, other.localReachDefs);
+      return Objects.equals(globalReachDefs, other.globalReachDefs)
+          && Objects.equals(localReachDefs, other.localReachDefs);
     } else {
       return false;
     }

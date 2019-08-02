@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -87,7 +87,7 @@ public abstract class SMGEdge {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(object, value, offset);
+    return Objects.hash(object, value, offset);
   }
 
   @Override
@@ -101,6 +101,6 @@ public abstract class SMGEdge {
     SMGEdge other = (SMGEdge) obj;
     return value.equals(other.value)
         && offset == other.offset
-        && Objects.equal(object, other.object);
+        && Objects.equals(object, other.object);
   }
 }

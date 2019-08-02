@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class SMGMemoryPath {
 
@@ -106,7 +106,7 @@ public class SMGMemoryPath {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(globalStart, locationOnStack, functionName, pathOffsets, variableName);
+    return Objects.hash(globalStart, locationOnStack, functionName, pathOffsets, variableName);
   }
 
   @Override
@@ -119,10 +119,10 @@ public class SMGMemoryPath {
     }
     SMGMemoryPath other = (SMGMemoryPath) obj;
     return globalStart == other.globalStart
-        && Objects.equal(locationOnStack, other.locationOnStack)
-        && Objects.equal(functionName, other.functionName)
-        && Objects.equal(pathOffsets, other.pathOffsets)
-        && Objects.equal(variableName, other.variableName);
+        && Objects.equals(locationOnStack, other.locationOnStack)
+        && Objects.equals(functionName, other.functionName)
+        && Objects.equals(pathOffsets, other.pathOffsets)
+        && Objects.equals(variableName, other.variableName);
   }
 
   public static SMGMemoryPath valueOf(String pVariableName, String pFunctionName,
