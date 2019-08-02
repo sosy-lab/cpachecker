@@ -40,7 +40,7 @@
     <module name="TypeName"/>
     <module name="IllegalImport"/>
     <module name="IllegalImport">
-      <property name="illegalClasses" value=".*\.(Builder|of|copyOf)$"/>
+      <property name="illegalClasses" value=".*\.(Builder|of|copyOf)|org\.junit\.Assert(\..*)?|com\.google\.common\.base\.Objects(\..*)?"/>
       <property name="regexp" value="true"/>
     </module>
     <module name="RedundantImport"/>
@@ -70,10 +70,9 @@
       <property name="reliefPattern" value="\$FALL-THROUGH\$"/>
     </module>
     <module name="IllegalInstantiation">
-      <property name="classes" value="Boolean,Character,Integer,Long,Double,Float,String"/>
+      <property name="classes" value="Boolean,Character,Integer,Long,Double,Float,String,java.io.PrintStream,java.io.PrintWriter"/>
     </module>
     <module name="IllegalType">
-      <property name="tokens" value="METHOD_DEF,PARAMETER_DEF,VARIABLE_DEF"/>
       <property name="illegalClassNames" value="java.util.GregorianCalendar, java.util.Hashtable, java.util.HashSet, java.util.HashMap, java.util.ArrayList, java.util.LinkedList, java.util.LinkedHashMap, java.util.LinkedHashSet, java.util.TreeSet, java.util.Stack, java.util.Vector, javax.annotation.Nullable, javax.annotation.CheckReturnValue, javax.annotation.concurrent.GuardedBy, javax.annotation.concurrent.Immutable"/>
       <property name="legalAbstractClassNames" value="AbstractConfigurationBuilderFactory, AbstractPathFactory"/>
     </module>
