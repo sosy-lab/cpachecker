@@ -567,10 +567,10 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
                       System.out, Result.UNKNOWN, currentContext.reached);
                   break;
                 case EXECUTE:
+                  @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
+                  final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
                   stats.printIntermediateStatistics(
-                      new PrintStream(ByteStreams.nullOutputStream()),
-                      Result.UNKNOWN,
-                      currentContext.reached);
+                      dummyStream, Result.UNKNOWN, currentContext.reached);
                   break;
                 default: // do nothing
               }

@@ -189,6 +189,7 @@ public class MPVTest {
     // Get property names with their results based on 'printResult'
     ImmutableList.Builder<AbstractSingleProperty> builder = ImmutableList.builder();
     ByteArrayOutputStream outputStreamResults = new ByteArrayOutputStream();
+    @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for results
     PrintStream printStreamResults =
         new PrintStream(outputStreamResults, true, DEFAULT_CHARSET.name());
     result.printResult(printStreamResults);
@@ -208,6 +209,7 @@ public class MPVTest {
 
     // Get additional parameters for properties from statistics
     ByteArrayOutputStream outputStreamStats = new ByteArrayOutputStream();
+    @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
     PrintStream printStreamStats = new PrintStream(outputStreamStats, true, DEFAULT_CHARSET.name());
     result.printStatistics(printStreamStats);
 
