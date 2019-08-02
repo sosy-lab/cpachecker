@@ -29,10 +29,10 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -66,7 +66,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(
-          Collections.emptyMap(),
+          ImmutableMap.of(),
           new AutomatonInternalState("_predefinedState_TOP", ImmutableList.of()),
           pAutomatonCPA,
           ImmutableList.of(),
@@ -92,7 +92,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
       super(
-          Collections.emptyMap(),
+          ImmutableMap.of(),
           AutomatonInternalState.BOTTOM,
           pAutomatonCPA,
           ImmutableList.of(),

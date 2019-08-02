@@ -301,7 +301,7 @@ public class ARGToCTranslator {
     if (hasGotoDecProblem) {
       copyValuesForGoto = identifyDeclarationProblems(argRoot);
     } else {
-      copyValuesForGoto = Collections.emptyMap();
+      copyValuesForGoto = ImmutableMap.of();
     }
     translate(argRoot);
 

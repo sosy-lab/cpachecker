@@ -30,7 +30,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -225,7 +224,7 @@ public class Automaton {
           AutomatonExpressionArguments args =
               new AutomatonExpressionArguments(
                   null,
-                  Collections.emptyMap(),
+                  ImmutableMap.of(),
                   ImmutableList.of(),
                   edge,
                   LogManager.createNullLogManager());

@@ -240,8 +240,9 @@ public class AutomatonTransferRelation implements TransferRelation {
             AutomatonSafetyProperty prop =
                 new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
 
-            AutomatonState errorState = AutomatonState.automatonStateFactory(
-                Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, prop);
+            AutomatonState errorState =
+                AutomatonState.automatonStateFactory(
+                    ImmutableMap.of(), AutomatonInternalState.ERROR, cpa, 0, 0, prop);
 
             logger.log(
                 Level.FINER,

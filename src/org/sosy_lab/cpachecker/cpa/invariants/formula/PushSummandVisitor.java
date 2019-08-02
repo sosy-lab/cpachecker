@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -43,12 +42,11 @@ public class PushSummandVisitor<T> extends DefaultParameterizedNumeralFormulaVis
   private static final String SUMMAND_ALREADY_CONSUMED_MESSAGE = "Summand already consumed.";
 
   /**
-   * The empty environment used for pushing the summand. No real environment
-   * is required because evaluations are exclusively done on the addition and
-   * negation of constants.
+   * The empty environment used for pushing the summand. No real environment is required because
+   * evaluations are exclusively done on the addition and negation of constants.
    */
   private final Map<? extends MemoryLocation, ? extends NumeralFormula<T>> EMPTY_ENVIRONMENT =
-      Collections.emptyMap();
+      ImmutableMap.of();
 
   /**
    * The evaluation visitor used to evaluate the addition and negation of

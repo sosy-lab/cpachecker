@@ -20,6 +20,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Collections;
@@ -154,7 +155,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
         AutomatonInternalState initState =
             new AutomatonInternalState(initialStateName, initTransitions, false, true, false);
         states.add(initState);
-        Map<String, AutomatonVariable> vars = Collections.emptyMap();
+        Map<String, AutomatonVariable> vars = ImmutableMap.of();
         return new Automaton(automatonName, vars, states, initialStateName);
       } catch (InvalidAutomatonException | UnrecognizedCodeException e) {
         throw new RuntimeException("The passed invariants produce an inconsistent automaton", e);
@@ -248,11 +249,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
             states.add(state);
           }
         }
-        return new Automaton(
-            automatonName,
-            Collections.<String, AutomatonVariable>emptyMap(),
-            states,
-            initialStateName);
+        return new Automaton(automatonName, ImmutableMap.of(), states, initialStateName);
       } catch (InvalidAutomatonException | UnrecognizedCodeException e) {
         throw new RuntimeException("The passed invariants produce an inconsistent automaton", e);
       }

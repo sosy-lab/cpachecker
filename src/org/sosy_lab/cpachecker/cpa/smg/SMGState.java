@@ -27,6 +27,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -159,7 +160,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         pOptions,
         new CLangSMG(pMachineModel),
         ID_COUNTER.getAndIncrement(),
-        Collections.emptyMap());
+        ImmutableMap.of());
   }
 
   public SMGState(

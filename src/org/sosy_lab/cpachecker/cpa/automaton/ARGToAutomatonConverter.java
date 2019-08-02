@@ -32,6 +32,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -213,7 +214,7 @@ public class ARGToAutomatonConverter {
     Preconditions.checkArgument(!ignoreState.apply(root));
     Preconditions.checkArgument(!root.isCovered());
 
-    Map<String, AutomatonVariable> variables = Collections.emptyMap();
+    Map<String, AutomatonVariable> variables = ImmutableMap.of();
 
     Deque<ARGState> waitlist = new ArrayDeque<>();
     Collection<ARGState> finished = new HashSet<>();
@@ -899,7 +900,7 @@ public class ARGToAutomatonConverter {
     }
 
     finishAssumptionHandling(states, callstackToLeaves, stacksWithAssumptions);
-    return new Automaton("ARG", Collections.emptyMap(), states, id(root));
+    return new Automaton("ARG", ImmutableMap.of(), states, id(root));
   }
 
   private static void finishAssumptionHandling(

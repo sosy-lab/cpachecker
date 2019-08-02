@@ -35,6 +35,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -970,7 +971,7 @@ abstract class AbstractBMCAlgorithm
         }
       }
     } else {
-      reachedK = Collections.emptyMap();
+      reachedK = ImmutableMap.of();
     }
     int finalMaxK = maxK;
     return (candidate) -> {

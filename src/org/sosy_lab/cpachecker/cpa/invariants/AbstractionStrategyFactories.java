@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -312,8 +313,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                               pMachineModel,
                               pEdge,
                               pWithEnteringEdges,
-                              Collections
-                                  .<MemoryLocation, NumeralFormula<CompoundInterval>>emptyMap()));
+                              ImmutableMap.of()));
                   if (expression instanceof CExpression) {
                     wideningHint = ((CExpression) expression).accept(expressionToFormulaVisitor);
                   } else if (expression instanceof JExpression) {

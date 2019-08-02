@@ -45,7 +45,6 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -119,7 +118,7 @@ public class AutomatonInternalTest {
   public void testAndOr() throws CPATransferException {
     // will always return MaybeBoolean.MAYBE
     AutomatonBoolExpr cannot = new AutomatonBoolExpr.CPAQuery("none", "none");
-    Map<String, AutomatonVariable> vars = Collections.emptyMap();
+    Map<String, AutomatonVariable> vars = ImmutableMap.of();
     List<AbstractState> elements = ImmutableList.of();
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, vars, elements, null, null);
     AutomatonBoolExpr ex;

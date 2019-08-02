@@ -586,7 +586,7 @@ class CParserUtils {
       }
     }
 
-    return Collections.emptyMap();
+    return ImmutableMap.of();
   }
 
   /**

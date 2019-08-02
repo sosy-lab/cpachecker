@@ -113,10 +113,8 @@ public class TerminationLoopInformation {
    */
   private Optional<RankingRelation> rankingRelation = Optional.empty();
 
-  /**
-   * Mapping of relevant variables to the corresponding primed variable.
-   */
-  private Map<CExpression, CVariableDeclaration> relevantVariables = Collections.emptyMap();
+  /** Mapping of relevant variables to the corresponding primed variable. */
+  private Map<CExpression, CVariableDeclaration> relevantVariables = ImmutableMap.of();
 
   // reusing of intermediate location is required to build counter examples
   private List<CFANode> relevantVariablesInitializationIntermediateLocations = ImmutableList.of();
@@ -233,7 +231,7 @@ public class TerminationLoopInformation {
     loop = Optional.empty();
     loopLeavingLocations = Collections.emptySet();
     loopLeavingEdges = Collections.emptySet();
-    relevantVariables = Collections.emptyMap();
+    relevantVariables = ImmutableMap.of();
     relevantVariablesInitializationIntermediateLocations = ImmutableList.of();
     targetNode = Optional.empty();
     resetCfa();

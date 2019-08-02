@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.modifications;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -57,10 +58,7 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
   }
 
   public ModificationsTransferRelation() {
-    this(
-        false,
-        Collections.<String, Set<String>>emptyMap(),
-        Collections.<String, Set<String>>emptyMap());
+    this(false, ImmutableMap.of(), ImmutableMap.of());
   }
 
   @Override

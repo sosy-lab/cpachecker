@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
@@ -59,7 +58,7 @@ public class CExpressionToOrinalCodeVisitor
   private final Map<CExpression, String> subsitution;
 
   private CExpressionToOrinalCodeVisitor() {
-    this(Collections.emptyMap());
+    this(ImmutableMap.of());
   }
 
   private CExpressionToOrinalCodeVisitor(Map<CExpression, String> pSubsitution) {

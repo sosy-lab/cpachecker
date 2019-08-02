@@ -75,7 +75,6 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 public class EdgeAnalyzer {
 
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
@@ -123,7 +122,7 @@ public class EdgeAnalyzer {
       } else if (declaration instanceof AVariableDeclaration) {
         throw new UnsupportedOperationException("Only C expressions are supported");
       } else {
-        return Collections.emptyMap();
+            return ImmutableMap.of();
       }
     }
     case FunctionCallEdge: {
@@ -133,12 +132,14 @@ public class EdgeAnalyzer {
       // Extract arguments
       String callerFunctionName = pCfaEdge.getPredecessor().getFunctionName();
       for (AExpression argument : functionCallEdge.getArguments()) {
-        result.putAll(getInvolvedVariableTypes(argument,
-            new MemoryLocationExtractor(
-                compoundIntervalManagerFactory,
-                machineModel,
-                callerFunctionName,
-                Collections.<MemoryLocation, NumeralFormula<CompoundInterval>>emptyMap())));
+            result.putAll(
+                getInvolvedVariableTypes(
+                    argument,
+                    new MemoryLocationExtractor(
+                        compoundIntervalManagerFactory,
+                        machineModel,
+                        callerFunctionName,
+                        ImmutableMap.of())));
       }
 
       // Extract formal parameters
@@ -169,7 +170,7 @@ public class EdgeAnalyzer {
         result.putAll(getInvolvedVariableTypes(returnExpression, pCfaEdge));
         return result;
       }
-      return Collections.emptyMap();
+          return ImmutableMap.of();
     }
     case StatementEdge: {
       AStatementEdge statementEdge = (AStatementEdge) pCfaEdge;
@@ -188,7 +189,7 @@ public class EdgeAnalyzer {
         }
         return result;
       } else {
-        return Collections.emptyMap();
+            return ImmutableMap.of();
       }
     }
     case FunctionReturnEdge:
@@ -216,18 +217,17 @@ public class EdgeAnalyzer {
                           compoundIntervalManagerFactory,
                           machineModel,
                           functionReturnEdge.getPredecessor().getFunctionName(),
-                          Collections
-                              .<MemoryLocation, NumeralFormula<CompoundInterval>>emptyMap())));
+                          ImmutableMap.of())));
           }
           result.putAll(getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
           return result;
         }
       }
-      return Collections.emptyMap();
+        return ImmutableMap.of();
     case BlankEdge:
     case CallToReturnEdge:
     default:
-      return Collections.emptyMap();
+        return ImmutableMap.of();
     }
   }
 
@@ -260,7 +260,7 @@ public class EdgeAnalyzer {
       }
       return result;
     }
-    return Collections.emptyMap();
+    return ImmutableMap.of();
   }
 
   private Map<? extends MemoryLocation, ? extends CType> getInvolvedVariableTypes(AParameterDeclaration pParameter,
@@ -271,7 +271,7 @@ public class EdgeAnalyzer {
               .getMemoryLocation(pParameter),
           (CType) pParameter.getType());
     }
-    return Collections.emptyMap();
+    return ImmutableMap.of();
   }
 
 
@@ -295,7 +295,7 @@ public class EdgeAnalyzer {
       }
       return result;
     }
-    return Collections.emptyMap();
+    return ImmutableMap.of();
   }
 
   /**
@@ -307,13 +307,10 @@ public class EdgeAnalyzer {
    * @return the variables involved in the given expression.
    */
   public Map<MemoryLocation, CType> getInvolvedVariableTypes(AExpression pExpression, CFAEdge pCFAEdge) {
-    return getInvolvedVariableTypes(pExpression,
+    return getInvolvedVariableTypes(
+        pExpression,
         new MemoryLocationExtractor(
-            compoundIntervalManagerFactory,
-            machineModel,
-            pCFAEdge,
-            Collections.<MemoryLocation, NumeralFormula<CompoundInterval>> emptyMap())
-    );
+            compoundIntervalManagerFactory, machineModel, pCFAEdge, ImmutableMap.of()));
   }
 
   /**
@@ -325,7 +322,9 @@ public class EdgeAnalyzer {
    * @return the variables involved in the given expression.
    */
   public Map<MemoryLocation, CType> getInvolvedVariableTypes(AExpression pExpression, MemoryLocationExtractor pVariableNameExtractor) {
-    if (pExpression == null) { return Collections.emptyMap(); }
+    if (pExpression == null) {
+      return ImmutableMap.of();
+    }
     if (pExpression instanceof CExpression) {
       Map<MemoryLocation, CType> result = new HashMap<>();
 
