@@ -205,6 +205,10 @@ public class UsageReachedSet extends PartitionedReachedSet {
           state = stateWaitlist.poll();
           List<UsageInfo> expandedUsages = new ArrayList<>();
           ARGState argState = (ARGState) state;
+          if (argState.isCovered()) {
+            // Covered states has no children, we can not determine usages
+            continue;
+          }
           for (ARGState covered : argState.getCoveredByThis()) {
             if (stateToUsage.containsKey(covered)) {
               expandedUsages.addAll(stateToUsage.get(covered));
