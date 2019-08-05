@@ -117,7 +117,7 @@ public class SLTransferRelation
         Formula f = getFormulaForVariableName(outOfScopeVar.getName(), true, true);
         // Check if a pointer to allocated heap memory is dropped.
         try {
-          Formula loc = memDel.checkAllocation(this, f);
+          Formula loc = memDel.checkHeapAllocation(this, f);
           if (loc != null) {
             // Check if a copy of the dropped heap pointer exists.
             int eqFound = 0;
@@ -135,7 +135,7 @@ public class SLTransferRelation
         } catch (Exception e) {
           logger.log(Level.SEVERE, e.getMessage());
         }
-        memDel.removeFromStack(getFormulaForVariableName(outOfScopeVar.getName(), true, false));
+        memDel.removeFromStack(getFormulaForVariableName(outOfScopeVar.getName(), true, true));
       }
 
       String info = "";
@@ -291,22 +291,18 @@ public class SLTransferRelation
 
   @Override
   public Formula
-      getFormulaForVariableName(String pVariable, boolean addFctName, boolean addSSAIndex) {
+      getFormulaForVariableName(String pVariable, boolean addFctName, boolean succSsaIndex) {
     String var = addFctName ? functionName + "::" + pVariable : pVariable;
       CType type = pathFormula.getSsa().getType(var);
-    Formula f;
-    if (addSSAIndex) {
-      f = pfm.makeFormulaForVariable(pathFormula, var, type);
-    } else {
-      f = pfm.makeFormulaForUninstantiatedVariable(var, type, null, false);
-    }
-      return f;
+    return succSsaIndex
+        ? pfm.makeFormulaForVariable(pathFormula, var, type)
+        : pfm.makeFormulaForVariable(pathFormulaPrev, var, type);
   }
 
   @Override
-  public Formula getFormulaForExpression(CExpression pExp, boolean onLHS)
+  public Formula getFormulaForExpression(CExpression pExp, boolean succSsaIndex)
       throws UnrecognizedCodeException {
-    return onLHS
+    return succSsaIndex
         ? pfm.expressionToFormula(pathFormula, pExp, edge)
         : pfm.expressionToFormula(pathFormulaPrev, pExp, edge);
   }

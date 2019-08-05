@@ -241,14 +241,19 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
   public SLStateErrors visit(CArraySubscriptExpression pIastArraySubscriptExpression)
       throws Exception {
     CExpression subscriptExp = pIastArraySubscriptExpression.getSubscriptExpression();
-    CExpression arrayExp = pIastArraySubscriptExpression.getArrayExpression();
     SLStateErrors error = subscriptExp.accept(this);
     if (error != null) {
       return error;
     }
+
+    CExpression arrayExp = pIastArraySubscriptExpression.getArrayExpression();
     Formula loc = solDelegate.getFormulaForExpression(arrayExp, false);
     Formula offset = solDelegate.getFormulaForExpression(subscriptExp, false);
-    return memDelegate.checkAllocation(solDelegate, loc, offset, null) == null
+    Formula val = null;
+    if (curLHS == pIastArraySubscriptExpression) {
+      val = solDelegate.getFormulaForExpression((CExpression) curRHS, false);
+    }
+    return memDelegate.checkAllocation(solDelegate, loc, offset, val) == null
         ? SLStateErrors.INVALID_DEREF
         : null;
   }
@@ -261,20 +266,30 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
 
   @Override
   public SLStateErrors visit(CIdExpression pIastIdExpression) throws Exception {
+    if (curLHS == pIastIdExpression) {
+      Formula fCurrent = solDelegate.getFormulaForExpression(pIastIdExpression, true, false);
+      Formula fNew = solDelegate.getFormulaForExpression(pIastIdExpression, true, true);
+      memDelegate.removeFromStack(fCurrent);
+      memDelegate.addToStack(fNew, BigInteger.ONE, pIastIdExpression.getExpressionType(), true);
+    }
     return null;
   }
 
   @Override
   public SLStateErrors visit(CPointerExpression pPointerExpression) throws Exception {
     CExpression operand = pPointerExpression.getOperand();
-    if (curLHS == pPointerExpression) {
-      Formula loc = solDelegate.getFormulaForExpression(operand, false);
-      Formula val = solDelegate.getFormulaForExpression((CExpression) curRHS, false);
-      if (memDelegate.checkAllocation(solDelegate, loc, null, val) == null) {
-        return SLStateErrors.INVALID_DEREF;
-      }
+    SLStateErrors error = operand.accept(this);
+    if (error != null) {
+      return error;
     }
-    return operand.accept(this);
+    Formula loc = solDelegate.getFormulaForExpression(operand, false);
+    Formula val = null;
+    if (curLHS == pPointerExpression) {
+      val = solDelegate.getFormulaForExpression((CExpression) curRHS, false);
+    }
+    return memDelegate.checkAllocation(solDelegate, loc, null, val) == null
+        ? SLStateErrors.INVALID_DEREF
+        : null;
   }
 
   @Override
@@ -321,7 +336,7 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
       type = pDecl.getType();
       size = BigInteger.ONE;
     }
-    Formula f = solDelegate.getFormulaForVariableName(pDecl.getName(), !pDecl.isGlobal(), false);
+    Formula f = solDelegate.getFormulaForVariableName(pDecl.getName(), !pDecl.isGlobal(), true);
     memDelegate.addToStack(f, size, type, true);
     CInitializer i = pDecl.getInitializer();
     return i != null ? i.accept(this) : null;

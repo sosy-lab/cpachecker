@@ -111,23 +111,59 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
     if (pOffset != null) {
       fLoc = fm.makePlus(fLoc, pOffset);
     }
+    Formula match = checkMemoryForMatch(pSolDel, heap, fLoc, pVal);
+    return match != null ? match : checkMemoryForMatch(pSolDel, stack, fLoc, pVal);
+  }
+
+  @Override
+  public Formula checkHeapAllocation(
+      SLSolverDelegate pSolDel,
+      Formula pHeapLocation,
+      Formula pOffset,
+      Formula pVal)
+      throws Exception {
+    if (pOffset != null) {
+      pHeapLocation = fm.makePlus(pHeapLocation, pOffset);
+    }
+    return checkMemoryForMatch(pSolDel, heap, pHeapLocation, pVal);
+  }
+
+  @Override
+  public Formula checkStackAllocation(
+      SLSolverDelegate pSolDel,
+      Formula pStackLocation,
+      Formula pOffset,
+      Formula pVal)
+      throws Exception {
+    if (pOffset != null) {
+      pStackLocation = fm.makePlus(pStackLocation, pOffset);
+    }
+    return checkMemoryForMatch(pSolDel, stack, pStackLocation, pVal);
+  }
+
+  private Formula checkMemoryForMatch(
+      SLSolverDelegate pSolDel,
+      Map<Formula, Formula> pMemory,
+      Formula fLoc,
+      Formula pVal) {
     // Syntactical check for performance.
-    if (heap.containsKey(fLoc)) {
+    if (pMemory.containsKey(fLoc)) {
       if (pVal != null) {
-        heap.put(fLoc, pVal);
+        pMemory.put(fLoc, pVal);
       }
       return fLoc;
     }
     // Semantical check.
-    for (Formula formulaOnHeap : heap.keySet()) {
-      if (pSolDel.checkEquivalence(fLoc, formulaOnHeap)) {
-        if(pVal != null) {
-          heap.put(formulaOnHeap, pVal);
+    for (Formula formulaOnMemory : pMemory.keySet()) {
+      if (pSolDel.checkEquivalence(fLoc, formulaOnMemory)) {
+        if (pVal != null) {
+          pMemory.put(formulaOnMemory, pVal);
         }
-        return formulaOnHeap;
+        return formulaOnMemory;
       }
     }
     return null;
+
   }
 
   @Override
@@ -181,5 +217,7 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
     BigInteger length = pLength.multiply(machineModel.getSizeof(pType));
     addToMemory(stack, pMemoryLocation, length, pInitWithZero);
   }
+
+
 
 }

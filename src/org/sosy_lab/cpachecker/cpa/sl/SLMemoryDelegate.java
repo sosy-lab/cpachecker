@@ -72,13 +72,14 @@ public interface SLMemoryDelegate {
 
 
   /**
-   * Checks whether the given address is allocated on the heap. The associated value can be updated.
+   * Checks whether the given address is allocated (on heap or stack). The associated value can be
+   * updated.
    *
    * @param pMemoryLocation - formula representing the memory location to be checked.
    * @param pOffset - optional array offset, null otherwise.
    * @param pVal - optional value to be updated, null otherwise.
    *
-   * @return The formula on the heap if allocated, null otherwise.
+   * @return The formula if allocated, null otherwise.
    */
   public Formula checkAllocation(
       SLSolverDelegate pSolDel,
@@ -88,7 +89,60 @@ public interface SLMemoryDelegate {
       throws Exception;
 
   /**
-   * Checks whether the given address is allocated on the heap.
+   * Checks whether the given address is allocated on the heap. The associated value can be updated.
+   *
+   * @param pHeapLocation - formula representing the memory location to be checked.
+   * @param pOffset - optional array offset, null otherwise.
+   * @param pVal - optional value to be updated, null otherwise.
+   *
+   * @return The formula if allocated on the heap, null otherwise.
+   */
+  public Formula checkHeapAllocation(
+      SLSolverDelegate pSolDel,
+      Formula pHeapLocation,
+      Formula pOffset,
+      Formula pVal)
+      throws Exception;
+
+  /**
+   * Checks whether the given address is allocated.
+   *
+   * @see SLMemoryDelegate#checkAllocation(SLSolverDelegate, Formula, Formula, Formula)
+   */
+  default public Formula checkHeapAllocation(SLSolverDelegate pSolDel, Formula pLocation)
+      throws Exception {
+    return checkHeapAllocation(pSolDel, pLocation, null, null);
+  }
+
+  /**
+   * Checks whether the given address is allocated on the stack. The associated value can be
+   * updated.
+   *
+   * @param pStackLocation - formula representing the memory location to be checked.
+   * @param pOffset - optional array offset, null otherwise.
+   * @param pVal - optional value to be updated, null otherwise.
+   *
+   * @return The formula if allocated on the heap, null otherwise.
+   */
+  public Formula checkStackAllocation(
+      SLSolverDelegate pSolDel,
+      Formula pStackLocation,
+      Formula pOffset,
+      Formula pVal)
+      throws Exception;
+
+  /**
+   * Checks whether the given address is allocated on the stack.
+   *
+   * @see SLMemoryDelegate#checkAllocation(SLSolverDelegate, Formula, Formula, Formula)
+   */
+  default public Formula checkStackAllocation(SLSolverDelegate pSolDel, Formula pLocation)
+      throws Exception {
+    return checkStackAllocation(pSolDel, pLocation, null, null);
+  }
+
+  /**
+   * Checks whether the given address is allocated.
    *
    * @see SLMemoryDelegate#checkAllocation(SLSolverDelegate, Formula, Formula, Formula)
    */

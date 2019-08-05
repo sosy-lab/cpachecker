@@ -36,16 +36,25 @@ public interface SLSolverDelegate {
 
   /**
    * Checks whether two formulae are semantically equivalent in the current state's context.
-   * 
+   *
    * @return f0 <=> f1
    */
   public boolean checkEquivalence(Formula f0, Formula f1);
 
+  /**
+   * Returns a formula for the given variable name
+   *
+   * @param pVariable - the variable name.
+   * @param addFctName - adds the function scope to the formula (e.g. @null for global variables).
+   * @param succSsaIndex - whether the formula should be generated using the successor's @SSAMap.
+   * @return
+   */
   public Formula
-      getFormulaForVariableName(String pVariable, boolean addFctName, boolean addSSAIndex);
+      getFormulaForVariableName(String pVariable, boolean addFctName, boolean succSsaIndex);
 
-  default public Formula getFormulaForExpression(CIdExpression pExp) {
-    return getFormulaForVariableName(pExp.getName(), true, true);
+  default public Formula
+      getFormulaForExpression(CIdExpression pExp, boolean addFctName, boolean succSsaIndex) {
+    return getFormulaForVariableName(pExp.getName(), addFctName, succSsaIndex);
   }
 
   /**
