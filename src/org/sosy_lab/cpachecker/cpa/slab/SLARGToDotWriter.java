@@ -23,19 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.slab;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSortedSet;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
@@ -105,10 +105,7 @@ public class SLARGToDotWriter {
 
     Iterable<CFANode> locations = pState.getLocationNodes();
     SortedSet<Integer> locationNumbers =
-        ImmutableSortedSet.copyOf(
-            StreamSupport.stream(locations.spliterator(), false)
-                .map(x -> x.getNodeNumber())
-                .collect(Collectors.toList()));
+        from(locations).transform(CFANode::getNodeNumber).toSortedSet(Comparator.naturalOrder());
     builder.append(generateLocationString(locationNumbers));
     builder.append("\" ");
     builder.append("id=\"").append(pState.getStateId()).append(String.format("\"]%n"));
