@@ -202,11 +202,7 @@ public class BAMDataManagerImpl implements BAMDataManager {
   public List<AbstractState> getExpandedStatesList(AbstractState state) {
     List<AbstractState> lst = new ArrayList<>();
     BlockExitData data;
-    while (true) {
-      data = expandedStateToBlockExit.get(state);
-      if (data == null) {
-        break;
-      }
+    while ((data = expandedStateToBlockExit.get(state)) != null) {
       lst.add(state);
       state = data.reducedState;
     }
