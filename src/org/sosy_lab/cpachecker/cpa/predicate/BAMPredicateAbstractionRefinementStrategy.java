@@ -34,12 +34,11 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This is an extension of {@link PredicateAbstractionRefinementStrategy} that takes care of
- * updating the BAM state.
+ * This is an extension of {@link PredicateAbstractionRefinementStrategy} that takes care of BAM
+ * internals for counterexamples.
  */
-public class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstractionRefinementStrategy {
-
-  private boolean secondRepeatedCEX = false;
+public class BAMPredicateAbstractionRefinementStrategy
+    extends PredicateAbstractionRefinementStrategy {
 
   protected BAMPredicateAbstractionRefinementStrategy(
       final Configuration config,
@@ -58,27 +57,11 @@ public class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstract
       boolean pRepeatedCounterexample)
       throws CPAException, InterruptedException {
 
-    boolean furtherCEXTrackingNeeded = true;
+    // overriding this method is needed, as it is possible
+    // to get two or even more successive spurious counterexamples,
+    // which only differ in its abstractions (with 'aggressive caching').
+    // The return-value is irrelevant and never used, because pRepeatedCounterexample is ignored.
 
-    // overriding this method is needed, as, in principle, it is possible
-    // to get two successive spurious counterexamples, which only differ in its abstractions
-    // (with 'aggressive caching').
-
-    if (!pRepeatedCounterexample) {
-      secondRepeatedCEX = false;
-    } else if (pRepeatedCounterexample) {
-      if (!secondRepeatedCEX) {
-        secondRepeatedCEX = true;
-      } else {
-        // reset flags and continue
-        secondRepeatedCEX = false;
-        furtherCEXTrackingNeeded = false;
-      }
-    }
-
-    super.performRefinement(
-        pReached, abstractionStatesTrace, pInterpolants, false);
-
-    return furtherCEXTrackingNeeded;
+    return super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, false);
   }
 }
