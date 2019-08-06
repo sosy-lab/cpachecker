@@ -47,7 +47,7 @@ public interface SLSolverDelegate {
    * @param pVariable - the variable name.
    * @param addFctName - adds the function scope to the formula (e.g. @null for global variables).
    * @param succSsaIndex - whether the formula should be generated using the successor's @SSAMap.
-   * @return
+   * @return formula of variable
    */
   public Formula
       getFormulaForVariableName(String pVariable, boolean addFctName, boolean succSsaIndex);

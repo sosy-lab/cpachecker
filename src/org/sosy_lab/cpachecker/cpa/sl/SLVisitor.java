@@ -20,8 +20,10 @@
 package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
+import java.util.HashSet;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -54,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -61,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateErrors;
 import org.sosy_lab.java_smt.api.Formula;
@@ -74,6 +78,7 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
   private final SLSolverDelegate solDelegate;
   private CLeftHandSide curLHS;
   private CRightHandSide curRHS;
+  private final Set<CSimpleDeclaration> inScopePtrs = new HashSet<>();
 
   public SLVisitor(SLSolverDelegate pSolDelegate, SLMemoryDelegate pMemDelegate) {
     solDelegate = pSolDelegate;
@@ -188,7 +193,8 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
 
   @Override
   public SLStateErrors visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws Exception {
-    return null;
+    throw new UnsupportedOperationException(
+        CCastExpression.class.getSimpleName() + "is not implemented yet.");
   }
 
   @Override
@@ -212,17 +218,16 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
 
   @Override
   public SLStateErrors visit(CUnaryExpression pIastUnaryExpression) throws Exception {
-    // switch (pIastUnaryExpression.getOperator()) {
-    // case AMPER:
-    // String varName = ((CIdExpression) curLHS).getName();
-    // CPointerType type = (CPointerType) curLHS.getExpressionType();
-    // delegate.handleAddressOf(varName, type.getType());
-    // break;
-    // default:
-    // break;
-    // }
-
-    return pIastUnaryExpression.getOperand().accept(this);
+    CExpression operand = pIastUnaryExpression.getOperand();
+    switch (pIastUnaryExpression.getOperator()) {
+      case AMPER:
+        Formula f = solDelegate.getFormulaForExpression(curLHS, true);
+        memDelegate.handleAddressOf(f, operand.getExpressionType());
+        break;
+      default:
+        break;
+    }
+    return operand.accept(this);
   }
 
   @Override
@@ -266,12 +271,17 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
 
   @Override
   public SLStateErrors visit(CIdExpression pIastIdExpression) throws Exception {
-    if (curLHS == pIastIdExpression) {
-      Formula fCurrent = solDelegate.getFormulaForExpression(pIastIdExpression, true, false);
-      Formula fNew = solDelegate.getFormulaForExpression(pIastIdExpression, true, true);
-      memDelegate.removeFromStack(fCurrent);
-      memDelegate.addToStack(fNew, BigInteger.ONE, pIastIdExpression.getExpressionType(), true);
-    }
+    // if (curLHS == pIastIdExpression) {
+    // Formula fCurrent = solDelegate.getFormulaForExpression(pIastIdExpression, true, false);
+    // Formula fNew = solDelegate.getFormulaForExpression(pIastIdExpression, true, true);
+    // Formula loc = memDelegate.checkStackAllocation(solDelegate, fCurrent);
+    // if (loc != null) {
+    //
+    // memDelegate.removeFromStack(loc);
+    // memDelegate.addToStack(fNew, BigInteger.ONE, pIastIdExpression.getExpressionType(), true);
+    // }
+    //
+    // }
     return null;
   }
 
@@ -322,24 +332,32 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
 
   @Override
   public SLStateErrors visit(CVariableDeclaration pDecl) throws Exception {
-    BigInteger size;
-    CType type;
-    if (pDecl.getType() instanceof CArrayType) {
-      CArrayType arrayType = (CArrayType) pDecl.getType();
-      type = arrayType.getType();
-      OptionalInt s = arrayType.getLengthAsInt();
-      size =
-          s.isPresent()
-              ? BigInteger.valueOf(s.getAsInt())
-              : solDelegate.getValueForCExpression(arrayType.getLength());
-    } else {
-      type = pDecl.getType();
-      size = BigInteger.ONE;
+    curLHS = new CIdExpression(pDecl.getFileLocation(), pDecl);
+    CType type = pDecl.getType();
+    if (type instanceof CArrayType || type instanceof CPointerType) {
+      inScopePtrs.add(pDecl);
     }
-    Formula f = solDelegate.getFormulaForVariableName(pDecl.getName(), !pDecl.isGlobal(), true);
-    memDelegate.addToStack(f, size, type, true);
+    if (type instanceof CArrayType) {
+      CArrayType aType = (CArrayType) type;
+      OptionalInt s = aType.getLengthAsInt();
+      BigInteger size =
+            s.isPresent()
+                ? BigInteger.valueOf(s.getAsInt())
+                : solDelegate.getValueForCExpression(aType.getLength());
+      // CExpression e =
+      // new CUnaryExpression(
+      // pDecl.getFileLocation(),
+      // pDecl.getType(),
+      // new CIdExpression(pDecl.getFileLocation(), pDecl),
+      // UnaryOperator.AMPER);
+      // Formula f = solDelegate.getFormulaForExpression(e, true);
+      Formula f = solDelegate.getFormulaForVariableName(pDecl.getName(), true, true);
+      memDelegate.addToStack(f, size, aType.getType(), true);
+    }
     CInitializer i = pDecl.getInitializer();
-    return i != null ? i.accept(this) : null;
+    SLStateErrors error = i != null ? i.accept(this) : null;
+    curLHS = null;
+    return error;
   }
 
   @Override
@@ -395,6 +413,14 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
   public SLStateErrors visit(CReturnStatement pNode) throws Exception {
     throw new UnsupportedOperationException(
         CReturnStatement.class.getSimpleName() + "is not implemented yet.");
+  }
+
+  public Set<CSimpleDeclaration> getInScopePtrs() {
+    return inScopePtrs;
+  }
+
+  public void removePtr(CSimpleDeclaration pPtr) {
+    inScopePtrs.remove(pPtr);
   }
 }
 

@@ -171,4 +171,6 @@ public interface SLMemoryDelegate {
   public void
       addToStack(Formula pMemoryLocation, BigInteger pSize, CType pType, boolean pInitWithZero)
           throws Exception;
+
+  public void handleAddressOf(Formula pVar, CType pType) throws Exception;
 }

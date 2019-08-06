@@ -86,6 +86,12 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
     addToMemory(heap, pMemoryLocation, pNum.multiply(pSize), true);
   }
 
+  @Override
+  public void handleAddressOf(Formula pMemoryLocation, CType pType) throws Exception {
+    addToMemory(stack, pMemoryLocation, machineModel.getSizeof(pType), true);
+
+  }
+
   private void removeFromMemory(Map<Formula, Formula> memory, Formula pAddrFormula) {
     BigInteger size = allocationSizes.get(pAddrFormula);
     for (int i = 0; i < size.intValueExact(); i++) {
@@ -217,7 +223,4 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
     BigInteger length = pLength.multiply(machineModel.getSizeof(pType));
     addToMemory(stack, pMemoryLocation, length, pInitWithZero);
   }
-
-
-
 }

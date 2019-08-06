@@ -31,9 +31,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -43,6 +46,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -112,37 +117,67 @@ public class SLTransferRelation
   @Override
   protected Collection<SLState> postProcessing(Collection<SLState> pSuccessor, CFAEdge pEdge) {
     for (SLState slState : pSuccessor) {
-      Set<CSimpleDeclaration> vars = pEdge.getSuccessor().getOutOfScopeVariables();
-      for (CSimpleDeclaration outOfScopeVar : vars) {
-        Formula f = getFormulaForVariableName(outOfScopeVar.getName(), true, true);
-        // Check if a pointer to allocated heap memory is dropped.
-        try {
-          Formula loc = memDel.checkHeapAllocation(this, f);
-          if (loc != null) {
-            // Check if a copy of the dropped heap pointer exists.
-            int eqFound = 0;
-            for (String var : pathFormula.getSsa().allVariables()) {
-              Formula varFormula = getFormulaForVariableName(var, false, true);
-              if (!varFormula.equals(loc) && checkEquivalence(loc, varFormula, pathFormula)) {
-                eqFound++;
-              }
-            }
-            if (eqFound <= 1) { // skip malloc() return value
-              slState.setTarget(SLStateErrors.UNFREED_MEMORY);
-            }
-          }
-
-        } catch (Exception e) {
-          logger.log(Level.SEVERE, e.getMessage());
-        }
-        memDel.removeFromStack(getFormulaForVariableName(outOfScopeVar.getName(), true, true));
-      }
-
       String info = "";
       info += pEdge.getCode() + "\n";
       info += slState + "\n";
       info += "---------------------------";
       logger.log(Level.INFO, info);
+
+      Set<CSimpleDeclaration> vars = pEdge.getSuccessor().getOutOfScopeVariables();
+      for (CSimpleDeclaration outOfScopeVar : vars) {
+        CType varType = outOfScopeVar.getType();
+        Formula f = getFormulaForVariableName(outOfScopeVar.getName(), true, true);
+        if (varType instanceof CPointerType || varType instanceof CArrayType) {
+          slVisitor.removePtr(outOfScopeVar);
+          // Check if a pointer to allocated heap memory is dropped.
+          try {
+            Formula loc = memDel.checkHeapAllocation(this, f);
+            if (loc != null) {
+              // Check if a copy of the dropped heap pointer exists.
+              boolean eqFound = false;
+              for (CSimpleDeclaration inScopePtr : slVisitor.getInScopePtrs()) {
+                Formula varFormula = getFormulaForVariableName(inScopePtr.getName(), true, true);
+                if (!varFormula.equals(f) && checkEquivalence(loc, varFormula, pathFormula)) {
+                  eqFound = true;
+                  break;
+                }
+              }
+              if (!eqFound) { //
+                slState.setTarget(SLStateErrors.UNFREED_MEMORY);
+              }
+            }
+
+          } catch (Exception e) {
+            logger.log(Level.SEVERE, e.getMessage());
+          }
+        }
+
+        try {
+          f = getFormulaForVariableName(outOfScopeVar.getName(), true, true);
+          for (Formula stackFormula : memDel.getStack().keySet()) {
+            if (checkEquivalence(f, stackFormula, pathFormula)) {
+              memDel.removeFromStack(stackFormula);
+              break;
+            }
+            CIdExpression id = new CIdExpression(outOfScopeVar.getFileLocation(), outOfScopeVar);
+            CExpression e =
+                new CUnaryExpression(
+                    outOfScopeVar.getFileLocation(),
+                    new CPointerType(true, true, varType),
+                    id,
+                    UnaryOperator.AMPER);
+            Formula addrF = getFormulaForExpression(e, true);
+            if (checkEquivalence(addrF, stackFormula, pathFormula)) {
+              memDel.removeFromStack(stackFormula);
+              break;
+            }
+          }
+        } catch (Exception e1) {
+          logger.log(Level.SEVERE, e1.getMessage());
+        }
+      }
+
+
     }
     return pSuccessor;
   }
