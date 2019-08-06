@@ -61,30 +61,23 @@ public class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstract
     boolean furtherCEXTrackingNeeded = true;
 
     // overriding this method is needed, as, in principle, it is possible
-    // -- to get two successive spurious counterexamples, which only differ in its abstractions
+    // to get two successive spurious counterexamples, which only differ in its abstractions
     // (with 'aggressive caching').
-    // -- to have an imprecise predicate-reduce-operator, which can be refined.
 
-    // use flags to wait for the second repeated CEX
     if (!pRepeatedCounterexample) {
-      pRepeatedCounterexample = false;
       secondRepeatedCEX = false;
-    } else if (pRepeatedCounterexample && !secondRepeatedCEX) {
-      pRepeatedCounterexample = false;
-      secondRepeatedCEX = true;
-    }
-
-    // in case of a (twice) repeated CEX,
-    // we try to improve the reduce-operator by refining the relevantPredicatesComputer.
-    else if (pRepeatedCounterexample && secondRepeatedCEX) {
-          // reset flags and continue
-          pRepeatedCounterexample = false;
-          secondRepeatedCEX = false;
-          furtherCEXTrackingNeeded = false;
+    } else if (pRepeatedCounterexample) {
+      if (!secondRepeatedCEX) {
+        secondRepeatedCEX = true;
+      } else {
+        // reset flags and continue
+        secondRepeatedCEX = false;
+        furtherCEXTrackingNeeded = false;
+      }
     }
 
     super.performRefinement(
-        pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
+        pReached, abstractionStatesTrace, pInterpolants, false);
 
     return furtherCEXTrackingNeeded;
   }
