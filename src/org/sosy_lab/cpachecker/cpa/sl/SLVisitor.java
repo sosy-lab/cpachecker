@@ -265,8 +265,14 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
 
   @Override
   public SLStateErrors visit(CFieldReference pIastFieldReference) throws Exception {
-    throw new UnsupportedOperationException(
-        CFieldReference.class.getSimpleName() + "is not implemented yet.");
+    if (pIastFieldReference.isPointerDereference()) {
+      CExpression e = pIastFieldReference.getFieldOwner();
+      Formula loc = solDelegate.getFormulaForExpression(e, false);
+      return memDelegate.checkAllocation(solDelegate, loc, null, null) == null
+          ? SLStateErrors.INVALID_DEREF
+          : null;
+    }
+    return null;
   }
 
   @Override
@@ -321,8 +327,9 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
 
   @Override
   public SLStateErrors visit(CComplexTypeDeclaration pDecl) throws Exception {
-    throw new UnsupportedOperationException(
-        CComplexTypeDeclaration.class.getSimpleName() + "is not implemented yet.");
+    // throw new UnsupportedOperationException(
+    // CComplexTypeDeclaration.class.getSimpleName() + "is not implemented yet.");
+    return null;
   }
 
   @Override
