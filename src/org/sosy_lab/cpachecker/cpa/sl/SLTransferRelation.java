@@ -117,11 +117,6 @@ public class SLTransferRelation
   @Override
   protected Collection<SLState> postProcessing(Collection<SLState> pSuccessor, CFAEdge pEdge) {
     for (SLState slState : pSuccessor) {
-      String info = "";
-      info += pEdge.getCode() + "\n";
-      info += slState + "\n";
-      info += "---------------------------";
-      logger.log(Level.INFO, info);
 
       Set<CSimpleDeclaration> vars = pEdge.getSuccessor().getOutOfScopeVariables();
       for (CSimpleDeclaration outOfScopeVar : vars) {
@@ -177,8 +172,13 @@ public class SLTransferRelation
         }
       }
 
-
+      String info = "";
+      info += pEdge.getCode() + "\n";
+      info += slState + "\n";
+      info += "---------------------------";
+      logger.log(Level.INFO, info);
     }
+
     return pSuccessor;
   }
 
