@@ -205,6 +205,6 @@ public class FrameSet implements AutoCloseable {
 
   public boolean isConfirmed(CandidateInvariant pRootInvariant) {
     int index = getFrontierIndex(pRootInvariant);
-    return IntStream.range(1, index).filter(emptyFrames::contains).findAny().isPresent();
+    return IntStream.range(1, index).anyMatch(emptyFrames::contains);
   }
 }
