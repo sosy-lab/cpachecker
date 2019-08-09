@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -58,7 +59,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -107,7 +107,7 @@ public class WitnessExporter {
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       CounterexampleInfo pCounterExample)
       throws IOException {
 
@@ -137,7 +137,7 @@ public class WitnessExporter {
       final Writer pWriter,
       final ARGState pRoot,
       final Predicate<? super ARGState> pIsRelevantState,
-      final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       final Predicate<? super ARGState> pIsCycleHead,
       final Function<? super ARGState, ExpressionTree<Object>> toQuasiInvariant)
       throws IOException {
@@ -167,7 +167,7 @@ public class WitnessExporter {
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge)
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge)
       throws IOException {
     writeProofWitness(
         pTarget,
@@ -286,7 +286,7 @@ public class WitnessExporter {
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       InvariantProvider pInvariantProvider)
       throws IOException {
     Preconditions.checkNotNull(pTarget);

@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -70,7 +71,7 @@ enum GraphBuilder {
     public void buildGraph(
         ARGState pRootState,
         Predicate<? super ARGState> pPathStates,
-        Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+        final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
@@ -79,7 +80,7 @@ enum GraphBuilder {
       for (Pair<ARGState, Iterable<ARGState>> argEdges : pARGEdges) {
         ARGState s = argEdges.getFirst();
         if (!s.equals(pRootState)
-            && s.getParents().stream().noneMatch(p -> pIsRelevantEdge.apply(Pair.of(p, s)))) {
+            && s.getParents().stream().noneMatch(p -> pIsRelevantEdge.test(p, s))) {
           continue;
         }
         String sourceStateNodeId = getId(s);
@@ -137,7 +138,7 @@ enum GraphBuilder {
               Optional.<Collection<ARGState>>of(Collections.singleton(s));
 
           // Only proceed with this state if the path states contain the child
-          if (pPathStates.apply(child) && pIsRelevantEdge.apply(Pair.of(s, child))) {
+          if (pPathStates.apply(child) && pIsRelevantEdge.test(s, child)) {
             // Child belongs to the path!
             pEdgeAppender.appendNewEdge(
                 prevStateId,
@@ -154,7 +155,7 @@ enum GraphBuilder {
               for (ARGState sibling : s.getChildren()) {
                 if (sibling != child
                     && siblingEdge.equals(s.getEdgeToChild(sibling))
-                    && pIsRelevantEdge.apply(Pair.of(s, sibling))) {
+                    && pIsRelevantEdge.test(s, sibling)) {
                   addArtificialSinkEdge = false;
                   break;
                 }
@@ -187,7 +188,7 @@ enum GraphBuilder {
     public void buildGraph(
         ARGState pRootState,
         final Predicate<? super ARGState> pPathStates,
-        final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+        final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
@@ -203,8 +204,9 @@ enum GraphBuilder {
       subProgramNodes.add(rootNode);
       for (final Pair<ARGState, Iterable<ARGState>> edge : pARGEdges) {
         for (ARGState target : edge.getSecond()) {
-          // where the successor ARG node is in the set of target path states AND the edge is relevant
-          if (pPathStates.apply(target) && pIsRelevantEdge.apply(Pair.of(edge.getFirst(), target))) {
+          // where the successor ARG node is in the set of target path states AND the edge is
+          // relevant
+          if (pPathStates.apply(target) && pIsRelevantEdge.test(edge.getFirst(), target)) {
             for (CFANode location : AbstractStates.extractLocations(target)) {
               subProgramNodes.add(location);
               states.put(location, target);
@@ -250,7 +252,7 @@ enum GraphBuilder {
     public void buildGraph(
         ARGState pRootState,
         final Predicate<? super ARGState> pPathStates,
-        final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+        final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
@@ -266,8 +268,9 @@ enum GraphBuilder {
       subProgramNodes.add(rootNode);
       for (final Pair<ARGState, Iterable<ARGState>> edge : pARGEdges) {
         for (ARGState target : edge.getSecond()) {
-          // where the successor ARG node is in the set of target path states AND the edge is relevant
-          if (pPathStates.apply(target) && pIsRelevantEdge.apply(Pair.of(edge.getFirst(), target))) {
+          // where the successor ARG node is in the set of target path states AND the edge is
+          // relevant
+          if (pPathStates.apply(target) && pIsRelevantEdge.test(edge.getFirst(), target)) {
             for (CFANode location : AbstractStates.extractLocations(target)) {
               subProgramNodes.add(location);
               states.put(location, target);
@@ -340,7 +343,7 @@ enum GraphBuilder {
   public abstract void buildGraph(
       ARGState pRootState,
       Predicate<? super ARGState> pPathStates,
-      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
       Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
       Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,

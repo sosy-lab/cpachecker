@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -85,8 +86,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
@@ -417,8 +418,8 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
       final FormatType type) {
     final ARGState rootState = pTargetPath.getFirstState();
     final Predicate<? super ARGState> relevantStates = Predicates.in(pTargetPath.getStateSet());
-    final Predicate<? super Pair<ARGState, ARGState>> relevantEdges =
-        Predicates.in(pTargetPath.getStatePairs());
+    final BiPredicate<ARGState, ARGState> relevantEdges =
+        BiPredicates.pairIn(ImmutableSet.copyOf(pTargetPath.getStatePairs()));
     try {
       Optional<String> testOutput;
 

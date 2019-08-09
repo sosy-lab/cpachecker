@@ -109,6 +109,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -478,7 +479,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
           writer,
           newRoot,
           relevantStates,
-          edge -> relevantStates.apply(edge.getFirst()) && relevantStates.apply(edge.getSecond()),
+          BiPredicates.bothSatisfy(relevantStates),
           state -> state == loopStartInCEX,
           provideQuasiInvariant);
     } catch (IOException e) {

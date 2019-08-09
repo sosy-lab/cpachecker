@@ -69,6 +69,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BiPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -122,6 +123,7 @@ import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -1018,46 +1020,41 @@ class WitnessWriter implements EdgeAppender {
   }
 
   /**
-   * Starting from the given initial ARG state, collects that state and all
-   * transitive successors (as defined by the successor function) that are
-   * children of their direct predecessor and are accepted by the path state
-   * predicate.
+   * Starting from the given initial ARG state, collects that state and all transitive successors
+   * (as defined by the successor function) that are children of their direct predecessor and are
+   * accepted by the path state predicate.
    *
    * @param pInitialState the initial ARG state.
-   * @param pSuccessorFunction the function defining the successors of a
-   * state.
+   * @param pSuccessorFunction the function defining the successors of a state.
    * @param pPathStates a filter on the nodes.
    * @param pIsRelevantEdge a filter on the successor function.
-   *
    * @return the parents with their children.
    */
   private Iterable<ARGState> collectPathNodes(
       final ARGState pInitialState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
-      final Predicate<? super ARGState> pPathStates, Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge) {
+      final Predicate<? super ARGState> pPathStates,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge) {
     return Iterables.transform(
         collectPathEdges(pInitialState, pSuccessorFunction, pPathStates, pIsRelevantEdge), Pair::getFirst);
   }
 
   /**
-   * Starting from the given initial ARG state, collects that state and all
-   * transitive successors (as defined by the successor function) that are
-   * children of their direct predecessor. Children are only computed for
-   * nodes that are accepted by the path state predicate.
+   * Starting from the given initial ARG state, collects that state and all transitive successors
+   * (as defined by the successor function) that are children of their direct predecessor. Children
+   * are only computed for nodes that are accepted by the path state predicate.
    *
    * @param pInitialState the initial ARG state.
-   * @param pSuccessorFunction the function defining the successors of a
-   * state.
+   * @param pSuccessorFunction the function defining the successors of a state.
    * @param pPathStates a filter on the parent nodes.
    * @param pIsRelevantEdge a filter on the successor function.
-   *
    * @return the parents with their children.
    */
   private Iterable<Pair<ARGState, Iterable<ARGState>>> collectPathEdges(
       final ARGState pInitialState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
       final Predicate<? super ARGState> pPathStates,
-      final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge) {
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge) {
     return new Iterable<Pair<ARGState, Iterable<ARGState>>>() {
 
       private final Set<ARGState> visited = new HashSet<>();
@@ -1095,7 +1092,7 @@ class WitnessWriter implements EdgeAppender {
 
             // Only the children on the path become parents themselves
             for (ARGState child : children.filter(pPathStates)) {
-              if (pIsRelevantEdge.apply(Pair.of(parent, child)) && visited.add(child)) {
+              if (pIsRelevantEdge.test(parent, child) && visited.add(child)) {
                 waitlist.offer(child);
               }
             }
@@ -1116,14 +1113,14 @@ class WitnessWriter implements EdgeAppender {
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       final Predicate<? super ARGState> pIsCyclehead,
       final Optional<Function<? super ARGState, ExpressionTree<Object>>> cycleHeadToQuasiInvariant,
       Optional<CounterexampleInfo> pCounterExample,
       GraphBuilder pGraphBuilder)
       throws IOException {
 
-    Predicate<? super Pair<ARGState, ARGState>> isRelevantEdge = pIsRelevantEdge;
+    BiPredicate<ARGState, ARGState> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
     Map<ARGState, CFAEdgeWithAdditionalInfo> additionalInfo = getAdditionalInfo(pCounterExample);
     additionalInfoConverters = getAdditionalInfoConverters(pCounterExample);
@@ -1135,7 +1132,7 @@ class WitnessWriter implements EdgeAppender {
                 pCounterExample.get().getExactVariableValues(),
                 ASSUMPTION_FILTER);
       } else {
-        isRelevantEdge = edge -> pIsRelevantState.apply(edge.getFirst()) && pIsRelevantState.apply(edge.getSecond());
+        isRelevantEdge = BiPredicates.bothSatisfy(pIsRelevantState);
       }
     }
 
