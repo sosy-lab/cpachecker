@@ -277,7 +277,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     NumeralFormula<CompoundInterval> value;
-    if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
+    if (decl.getInitializer() instanceof CInitializerExpression) {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
       value = init.accept(getExpressionToFormulaVisitor(pEdge, pElement));
       if (containsArrayWildcard(value)) {

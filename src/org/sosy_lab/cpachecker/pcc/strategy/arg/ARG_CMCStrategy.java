@@ -106,8 +106,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
     int index = 0;
     for (ReachedSet partialReached : partialReachedSets) {
-      if (partialReached.getFirstState() == null
-          || !(partialReached.getFirstState() instanceof ARGState)
+      if (!(partialReached.getFirstState() instanceof ARGState)
           || (extractLocation(partialReached.getFirstState()) == null)) {
         logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
         roots = null;

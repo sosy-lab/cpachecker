@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 
-
 final class TypeHierarchy {
 
   private Map<String, JClassOrInterfaceType> types;
@@ -172,7 +171,7 @@ final class TypeHierarchy {
 
     JClassOrInterfaceType type =  types.get(pTypeName);
 
-    if (type == null || !(type instanceof JInterfaceType)) {
+    if (!(type instanceof JInterfaceType)) {
       throw new IllegalStateException("Interface Type does not exist");
     }
 
@@ -189,7 +188,7 @@ final class TypeHierarchy {
 
     JClassOrInterfaceType type =  types.get(pTypeName);
 
-    if (type == null || !(type instanceof JClassType)) {
+    if (!(type instanceof JClassType)) {
       throw new IllegalStateException("Interface Type does not exist");
     }
 

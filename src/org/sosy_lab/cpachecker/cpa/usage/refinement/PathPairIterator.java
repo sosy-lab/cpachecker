@@ -148,7 +148,7 @@ public class PathPairIterator extends
     secondExtendedPath = pathPair.getSecond();
 
     Object predicateInfo = wrapperResult.getInfo(PredicateRefinerAdapter.class);
-    if (predicateInfo != null && predicateInfo instanceof List) {
+    if (predicateInfo instanceof List) {
       @SuppressWarnings("unchecked")
       List<ARGState> affectedStates = (List<ARGState>)predicateInfo;
       //affectedStates may be null, if the path was refined somewhen before

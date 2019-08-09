@@ -1208,7 +1208,7 @@ public class AssumptionToEdgeAllocator {
           throws UnrecognizedCodeException {
         Object value = LModelValueVisitor.this.visit(pCPointerExpression);
 
-        if (value == null || !(value instanceof Number)) {
+        if (!(value instanceof Number)) {
           return Value.UnknownValue.getInstance();
         }
 
@@ -1219,7 +1219,7 @@ public class AssumptionToEdgeAllocator {
       protected Value evaluateCIdExpression(CIdExpression pCIdExpression)
           throws UnrecognizedCodeException {
         Object value = LModelValueVisitor.this.visit(pCIdExpression);
-        if (value == null || !(value instanceof Number)) {
+        if (!(value instanceof Number)) {
           return Value.UnknownValue.getInstance();
         }
         return new NumericValue((Number)value);
@@ -1235,7 +1235,7 @@ public class AssumptionToEdgeAllocator {
           throws UnrecognizedCodeException {
         Object value = LModelValueVisitor.this.visit(pLValue);
 
-        if (value == null || !(value instanceof Number)) {
+        if (!(value instanceof Number)) {
           return Value.UnknownValue.getInstance();
         }
 
@@ -1247,7 +1247,7 @@ public class AssumptionToEdgeAllocator {
           throws UnrecognizedCodeException {
         Object value = LModelValueVisitor.this.visit(pLValue);
 
-        if (value == null || !(value instanceof Number)) {
+        if (!(value instanceof Number)) {
           return Value.UnknownValue.getInstance();
         }
 

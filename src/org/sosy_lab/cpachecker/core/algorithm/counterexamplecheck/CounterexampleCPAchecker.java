@@ -214,7 +214,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
 
       if (provideCEXInfoFromCEXCheck) {
         AbstractState target = from(lReached).firstMatch(IS_TARGET_STATE).orNull();
-        if (target != null && target instanceof ARGState) {
+        if (target instanceof ARGState) {
           ARGState argTarget = (ARGState) target;
           if (argTarget.getCounterexampleInformation().isPresent()) {
             CounterexampleInfo cexInfo = argTarget.getCounterexampleInformation().get();

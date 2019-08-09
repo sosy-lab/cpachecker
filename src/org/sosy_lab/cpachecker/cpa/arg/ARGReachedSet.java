@@ -351,7 +351,7 @@ public class ARGReachedSet {
   }
 
   private void dumpSubgraph(ARGState e) {
-    if (cpa == null || !(cpa instanceof ARGCPA)) {
+    if (!(cpa instanceof ARGCPA)) {
       return;
     }
 

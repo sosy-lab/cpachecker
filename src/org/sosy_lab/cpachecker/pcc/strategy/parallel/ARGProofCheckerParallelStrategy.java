@@ -279,8 +279,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   }
 
   private boolean correctReachedSetFormatForProof(UnmodifiableReachedSet pReached) {
-    if (pReached.getFirstState() == null
-        || !(pReached.getFirstState() instanceof ARGState)
+    if (!(pReached.getFirstState() instanceof ARGState)
         || (extractLocation(pReached.getFirstState()) == null)) {
       logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return false;

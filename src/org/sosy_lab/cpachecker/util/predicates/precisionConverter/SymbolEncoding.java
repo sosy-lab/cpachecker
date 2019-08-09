@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-
 public class SymbolEncoding {
 
   private Set<CSimpleDeclaration> decls = new HashSet<>();
@@ -252,7 +251,7 @@ public class SymbolEncoding {
     @SuppressWarnings("unchecked")
     @Override
     public boolean equals(Object other) {
-      if (other != null && other instanceof Type) {
+      if (other instanceof Type) {
         Type<T> t = (Type<T>)other;
         return returnType.equals(t.returnType)
             && parameterTypes.equals(t.parameterTypes);

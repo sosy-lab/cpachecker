@@ -261,7 +261,7 @@ public class LocalTransferRelation
           }
         }
       }
-      if (init != null && init instanceof CInitializerExpression) {
+      if (init instanceof CInitializerExpression) {
         assign(newState, id, deref, ((CInitializerExpression) init).getExpression());
       } else if (!decl.isGlobal() && type instanceof CArrayType) {
         // Uninitialized arrays (int a[2]) are pointed to local memory

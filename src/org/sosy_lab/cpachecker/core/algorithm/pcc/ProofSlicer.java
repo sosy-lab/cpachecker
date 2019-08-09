@@ -92,7 +92,8 @@ public class ProofSlicer {
 
   public UnmodifiableReachedSet sliceProof(final UnmodifiableReachedSet pReached) {
     AbstractState first = pReached.getFirstState();
-    if (first != null && first instanceof ARGState && AbstractStates.extractLocation(first) != null
+    if (first instanceof ARGState
+        && AbstractStates.extractLocation(first) != null
         && AbstractStates.extractStateByType(first, ValueAnalysisState.class) != null
         && AbstractStates.extractStateByType(first, CallstackState.class) != null
         && ((ARGState) first).getWrappedState() instanceof CompositeState) {

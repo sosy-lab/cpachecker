@@ -384,7 +384,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
       if (importantVars.remove(vdecl.getQualifiedName())) {
         final CInitializer initializer = vdecl.getInitializer();
-        if (initializer != null && initializer instanceof CInitializerExpression) {
+        if (initializer instanceof CInitializerExpression) {
           final CExpression init = ((CInitializerExpression) initializer).getExpression();
           CFAUtils.getVariableNamesOfExpression(init).copyInto(importantVars);
         }
