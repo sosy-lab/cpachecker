@@ -2450,13 +2450,13 @@ public class DomainSpecificAbstraction<T> {
           }
 
         }
-        if (comparable == false) {
+        if (!comparable) {
           break;
         }
       }
 
     }
-    if (comparable == false) {
+    if (!comparable) {
       isIncomparable = true;
     }
     return isIncomparable;

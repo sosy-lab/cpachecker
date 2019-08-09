@@ -154,7 +154,7 @@ public class SLARGToDotWriter {
     while (!waitlist.isEmpty()) {
       ARGState currentState = waitlist.pop();
       if (currentState.isDestroyed()
-          || PredicateAbstractState.getPredicateState(currentState).isAbstractionState() == false) {
+          || !PredicateAbstractState.getPredicateState(currentState).isAbstractionState()) {
         continue;
       }
       sb.append(determineNode((SLARGState) currentState));
@@ -177,7 +177,7 @@ public class SLARGToDotWriter {
     }
     for (ARGState state : FluentIterable.from(states).filter(x -> !reached.contains(x)).toList()) {
       if (state.isDestroyed()
-          || PredicateAbstractState.getPredicateState(state).isAbstractionState() == false) {
+          || !PredicateAbstractState.getPredicateState(state).isAbstractionState()) {
         continue;
       }
       sb.append(determineNode((SLARGState) state));
