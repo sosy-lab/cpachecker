@@ -117,7 +117,8 @@ public final class Specification {
         break;
     }
 
-    Set<Property> properties = transformedImmutableSetCopy(pProperties, p -> p.getProperty());
+    Set<Property> properties =
+        transformedImmutableSetCopy(pProperties, SpecificationProperty::getProperty);
 
     ImmutableListMultimap.Builder<Path, Automaton> multiplePropertiesBuilder =
         ImmutableListMultimap.builder();

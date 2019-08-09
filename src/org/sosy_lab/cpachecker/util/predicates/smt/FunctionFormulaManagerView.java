@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Arrays;
@@ -142,17 +141,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
   @Override
   public <T extends Formula> T declareAndCallUF(
       String name, FormulaType<T> pReturnType, List<Formula> pArgs) {
-
-    List<FormulaType<?>> argTypes =
-        transformedImmutableListCopy(
-            pArgs,
-            new Function<Formula, FormulaType<?>>() {
-              @Override
-              public FormulaType<?> apply(Formula pArg0) {
-                return getFormulaType(pArg0);
-              }
-            });
-
+    List<FormulaType<?>> argTypes = transformedImmutableListCopy(pArgs, this::getFormulaType);
     FunctionDeclaration<T> func = declareUF(name, pReturnType, argTypes);
     return callUF(func, pArgs);
   }

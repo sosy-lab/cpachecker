@@ -741,7 +741,7 @@ public class AutomatonGraphmlCommon {
           CFATraversal.dfs().backwards().traverseOnce(assumeEdge.getSuccessor(), switchDetector);
           List<FileLocation> caseLocations =
               transformedImmutableListCopy(
-                  switchDetector.getEdgesBackwardToSwitchNode(), e -> e.getFileLocation());
+                  switchDetector.getEdgesBackwardToSwitchNode(), CFAEdge::getFileLocation);
           location = FileLocation.merge(caseLocations);
         }
 

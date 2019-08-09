@@ -331,7 +331,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
 
           // check stem prefixes for infeasibility
           ImmutableList<BooleanFormula> stemBFList =
-              transformedImmutableListCopy(stemPathFormulaList, x -> x.getFormula());
+              transformedImmutableListCopy(stemPathFormulaList, PathFormula::getFormula);
           if (isUnsat(stemBFList)) {
             logger.log(Level.SEVERE, "Found unsat predicates in stem");
             boolean refine = refineFinitePrefixes(stemPath, stemBFList);
@@ -342,7 +342,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
 
           // check loop prefixes for infeasibility
           ImmutableList<BooleanFormula> loopBFList =
-              transformedImmutableListCopy(loopPathFormulaList, x -> x.getFormula());
+              transformedImmutableListCopy(loopPathFormulaList, PathFormula::getFormula);
           if (isUnsat(loopBFList)) {
             logger.log(Level.SEVERE, "Found unsat predicates in loop");
             boolean refine = refineFinitePrefixes(loopPath, loopBFList);

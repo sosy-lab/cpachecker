@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
@@ -66,7 +67,7 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
         transformedImmutableListCopy(
             SlicingAbstractionsUtils.getFormulasForPath(
                 pfmgr, solver, pRoot, pPath, includePartialInvariants),
-            x -> x.getFormula()));
+            PathFormula::getFormula));
   }
 
 }

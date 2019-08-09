@@ -85,7 +85,8 @@ public class TotalTransitionRelation {
       totalTransitionRelation.put(predecessorLocation.getNodeNumber(), partialTransitionRelation);
     }
     predecessorLocations =
-        transformedImmutableSetCopy(totalTransitionRelation.values(), t -> t.getStartLocation());
+        transformedImmutableSetCopy(
+            totalTransitionRelation.values(), PartialTransitionRelation::getStartLocation);
   }
 
   public CFANode getInitialLocation() {

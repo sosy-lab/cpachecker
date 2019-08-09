@@ -463,7 +463,8 @@ public class CPAMain {
       Map<String, String> cmdLineOptions,
       Set<SpecificationProperty> pProperties)
       throws InvalidConfigurationException, IOException {
-    Set<Property> properties = transformedImmutableSetCopy(pProperties, p -> p.getProperty());
+    Set<Property> properties =
+        transformedImmutableSetCopy(pProperties, SpecificationProperty::getProperty);
 
     final Path alternateConfigFile;
 
