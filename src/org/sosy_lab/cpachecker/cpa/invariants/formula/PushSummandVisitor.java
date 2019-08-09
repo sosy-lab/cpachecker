@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -89,9 +91,7 @@ public class PushSummandVisitor<T> extends DefaultParameterizedNumeralFormulaVis
    * summand consumed, otherwise it does nothing.
    */
   private void checkNotConsumed() throws IllegalStateException {
-    if (isSummandConsumed()) {
-      throw new IllegalStateException(SUMMAND_ALREADY_CONSUMED_MESSAGE);
-    }
+    checkState(!isSummandConsumed(), SUMMAND_ALREADY_CONSUMED_MESSAGE);
   }
 
   /**

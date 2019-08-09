@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
@@ -73,8 +74,8 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.InvariantStrengthening.NextCti
 import org.sosy_lab.cpachecker.core.algorithm.bmc.PartialTransitionRelation.CtiWithInputs;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant.BlockedCounterexampleToInductivity;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
@@ -1025,10 +1026,9 @@ public class PdrAlgorithm implements Algorithm {
       UnrolledReachedSet pBmcReachedSet,
       ProverEnvironmentWithFallback pCexProver)
       throws InterruptedException, CPAException, SolverException {
-    if (pObligation.getFrameIndex() != 0) {
-      throw new IllegalArgumentException(
-          "Bounded model check should only be called for obligations at frame index zero.");
-    }
+    checkArgument(
+        pObligation.getFrameIndex() == 0,
+        "Bounded model check should only be called for obligations at frame index zero.");
 
     CandidateInvariant violatedCandidate = pObligation.getViolatedInvariant();
     ReachedSet reached = pBmcReachedSet.getReachedSet();

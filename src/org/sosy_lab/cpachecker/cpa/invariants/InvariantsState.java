@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
@@ -1562,9 +1563,7 @@ public class InvariantsState implements AbstractState,
 
   private BooleanFormula<CompoundInterval> instantiateModTemplate(
       Variable<CompoundInterval> pDividend, int pDivisor, int pRemainder) {
-    if (pDivisor < 2) {
-      throw new IllegalArgumentException("Divisor must be greater than 1.");
-    }
+    checkArgument(pDivisor >= 2, "Divisor must be greater than 1.");
     if (pRemainder < 0 || pRemainder >= pDivisor) {
       throw new IllegalArgumentException(
           String.format("The remainder must be between 0 and %d.", pDivisor - 1));

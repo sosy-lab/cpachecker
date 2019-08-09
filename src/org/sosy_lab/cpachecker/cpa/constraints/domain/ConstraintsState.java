@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableCollection;
@@ -299,9 +300,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
 
     @Override
     public void remove() {
-      if (index < 0) {
-        throw new IllegalStateException("Iterator not at valid location");
-      }
+      checkState(index >= 0, "Iterator not at valid location");
 
       constraints.remove(index);
       index--;

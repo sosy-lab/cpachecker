@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Objects;
@@ -50,10 +53,9 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
       Iterable<? extends SymbolicCandiateInvariant> pBadStateBlockingClauses,
       int pK) {
     super(false);
-    if (Iterables.isEmpty(pBadStateBlockingClauses)) {
-      throw new IllegalArgumentException(
-          "Bad-state blocking invariants should be present if (and only if) induction failed.");
-    }
+    checkArgument(
+        !Iterables.isEmpty(pBadStateBlockingClauses),
+        "Bad-state blocking invariants should be present if (and only if) induction failed.");
     if (pK < 0) {
       throw new IllegalArgumentException(
           "k must not be negative for failed induction results, but is " + pK);
@@ -70,27 +72,21 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
   }
 
   public T getInvariantRefinement() {
-    if (!isSuccessful()) {
-      throw new IllegalArgumentException(
-          "An invariant abstraction is only present if induction succeeded.");
-    }
+    checkArgument(
+        isSuccessful(), "An invariant abstraction is only present if induction succeeded.");
     return invariantAbstraction;
   }
 
   public Set<SymbolicCandiateInvariant> getBadStateBlockingClauses() {
-    if (isSuccessful()) {
-      throw new IllegalStateException(
-          "Auxiliary-invariants for blocking bad states are only available if induction failed.");
-    }
+    checkState(
+        !isSuccessful(),
+        "Auxiliary-invariants for blocking bad states are only available if induction failed.");
     assert !badStateBlockingClauses.isEmpty();
     return badStateBlockingClauses;
   }
 
   public int getK() {
-    if (isSuccessful()) {
-      throw new IllegalStateException(
-          "Input-assignment length is only present if induction failed.");
-    }
+    checkState(!isSuccessful(), "Input-assignment length is only present if induction failed.");
     return k;
   }
 

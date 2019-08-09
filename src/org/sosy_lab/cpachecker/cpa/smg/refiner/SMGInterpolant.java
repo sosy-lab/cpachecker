@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -187,10 +189,8 @@ public class SMGInterpolant implements Interpolant<Collection<SMGState>, SMGInte
 
   public static SMGInterpolant getTrueInterpolant(SMGInterpolant template) {
 
-    if (template.isFalse()) {
-      throw new IllegalArgumentException(
-        "Can't create true interpolant from a false interpolant template.");
-    }
+    checkArgument(
+        !template.isFalse(), "Can't create true interpolant from a false interpolant template.");
 
     UnmodifiableSMGState templateState = template.smgStates.iterator().next();
     SMGState newState = templateState.copyOf();

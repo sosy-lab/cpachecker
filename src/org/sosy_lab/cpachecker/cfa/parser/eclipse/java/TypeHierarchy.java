@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -171,9 +172,7 @@ final class TypeHierarchy {
 
     JClassOrInterfaceType type =  types.get(pTypeName);
 
-    if (!(type instanceof JInterfaceType)) {
-      throw new IllegalStateException("Interface Type does not exist");
-    }
+    checkState((type instanceof JInterfaceType), "Interface Type does not exist");
 
     return (JInterfaceType) types.get(pTypeName);
   }
@@ -188,9 +187,7 @@ final class TypeHierarchy {
 
     JClassOrInterfaceType type =  types.get(pTypeName);
 
-    if (!(type instanceof JClassType)) {
-      throw new IllegalStateException("Interface Type does not exist");
-    }
+    checkState((type instanceof JClassType), "Interface Type does not exist");
 
     return (JClassType) types.get(pTypeName);
   }

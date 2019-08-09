@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -183,7 +185,7 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
   @Override
   public void readPartition(final ObjectInputStream pIn, final PCStrategyStatistics pStats, final Lock pLock)
       throws ClassNotFoundException, IOException {
-    if (pLock == null) { throw new IllegalArgumentException("Cannot protect against parallel access"); }
+    checkArgument(pLock != null, "Cannot protect against parallel access");
     pLock.lock();
     try {
       readPartition(pIn, pStats);

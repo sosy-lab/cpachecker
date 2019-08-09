@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.annotations.VisibleForTesting;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -88,9 +90,9 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public boolean overlapsWith(SMGEdgeHasValue other, MachineModel pModel) {
-    if (object != other.object) {
-      throw new IllegalArgumentException("Call of overlapsWith() on Has-Value edges pair not originating from the same object");
-    }
+    checkArgument(
+        object == other.object,
+        "Call of overlapsWith() on Has-Value edges pair not originating from the same object");
 
     long otStart = other.getOffset();
 

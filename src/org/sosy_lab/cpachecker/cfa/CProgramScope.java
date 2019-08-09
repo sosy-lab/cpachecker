@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
@@ -856,9 +857,9 @@ public class CProgramScope implements Scope {
   }
 
   public static String getFunctionNameOfArtificialReturnVar(CIdExpression pCIdExpression) {
-    if (!isArtificialFunctionReturnVariable(pCIdExpression)) {
-      throw new IllegalArgumentException("Variable is not an artificial return variable.");
-    }
+    checkArgument(
+        isArtificialFunctionReturnVariable(pCIdExpression),
+        "Variable is not an artificial return variable.");
     String qualifiedName = pCIdExpression.getDeclaration().getQualifiedName();
     return qualifiedName.substring(0, qualifiedName.indexOf("::"));
   }

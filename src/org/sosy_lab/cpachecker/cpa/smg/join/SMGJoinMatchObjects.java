@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -132,9 +134,7 @@ final class SMGJoinMatchObjects {
       SMGObject pObj1,
       SMGObject pObj2) {
 
-    if (!pSMG1.getObjects().contains(pObj1) || !pSMG2.getObjects().contains(pObj2)) {
-      throw new IllegalArgumentException();
-    }
+    checkArgument(pSMG1.getObjects().contains(pObj1) && pSMG2.getObjects().contains(pObj2));
 
     // Algorithm 8 from FIT-TR-2012-04, line 1
     if (checkNull(pObj1, pObj2)) {

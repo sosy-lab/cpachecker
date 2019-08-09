@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -127,9 +129,7 @@ public class FrameSet implements AutoCloseable {
   }
 
   public void addFrameClause(int pFrameIndex, CandidateInvariant pClause) {
-    if (pFrameIndex > getFrontierIndex()) {
-      throw new IllegalArgumentException("To push the frontier, use pushFrontier");
-    }
+    checkArgument(pFrameIndex <= getFrontierIndex(), "To push the frontier, use pushFrontier");
     Set<CandidateInvariant> frame = frames.get(pFrameIndex);
     boolean added = false;
     for (CandidateInvariant clauseComponent :

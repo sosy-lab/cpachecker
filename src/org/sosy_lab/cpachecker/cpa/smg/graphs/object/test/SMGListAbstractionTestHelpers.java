@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.test;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.Iterables;
@@ -59,9 +60,7 @@ public final class SMGListAbstractionTestHelpers {
   }
 
   private static SMGValue[] generateNewAddresses(int pCount) {
-    if (pCount < 1) {
-      throw new IllegalArgumentException("Count must be at least 1.");
-    }
+    checkArgument(pCount >= 1, "Count must be at least 1.");
     SMGValue[] addresses = new SMGValue[pCount];
     for (int i = 0; i < pCount; i++) {
       addresses[i] = newVal();
@@ -70,9 +69,7 @@ public final class SMGListAbstractionTestHelpers {
   }
 
   private static SMGObject[] createRegionsOnHeap(CLangSMG pSmg, int pCount, int pSize) {
-    if (pCount < 1) {
-      throw new IllegalArgumentException("Count must be at least 1.");
-    }
+    checkArgument(pCount >= 1, "Count must be at least 1.");
     SMGObject[] regions = new SMGObject[pCount];
     for (int i = 0; i < pCount; i++) {
       SMGObject region = new SMGRegion(pSize, "list_node" + i);
@@ -92,9 +89,7 @@ public final class SMGListAbstractionTestHelpers {
       Integer[] pMinLengths,
       int pLevel,
       SMGListLinkage pLinkage) {
-    if (pCount < 1) {
-      throw new IllegalArgumentException("Count must be at least 1.");
-    }
+    checkArgument(pCount >= 1, "Count must be at least 1.");
     SMGObject[] lists = new SMGObject[pCount];
     for (int i = 0; i < pCount; i++) {
       SMGObject list = null;
@@ -116,13 +111,12 @@ public final class SMGListAbstractionTestHelpers {
 
   private static SMGEdgeHasValue[] addFieldsToObjectsOnHeap(
       CLangSMG pSmg, SMGObject[] pObjects, SMGValue[] pValues, int pFieldSize, int pFieldOffset) {
-    if (pObjects == null || pValues == null || pObjects.length == 0) {
-      throw new IllegalArgumentException("The provided arrays must not be null or empty.");
-    }
-    if (pObjects.length != pValues.length) {
-      throw new IllegalArgumentException(
-          "The number of objects must be equal to the number of values.");
-    }
+    checkArgument(
+        pObjects != null && pValues != null && pObjects.length != 0,
+        "The provided arrays must not be null or empty.");
+    checkArgument(
+        pObjects.length == pValues.length,
+        "The number of objects must be equal to the number of values.");
     SMGEdgeHasValue[] hvEdges = new SMGEdgeHasValue[pObjects.length];
     for (int i = 0; i < pObjects.length; i++) {
       pSmg.addValue(pValues[i]);
@@ -135,13 +129,12 @@ public final class SMGListAbstractionTestHelpers {
 
   private static SMGEdgePointsTo[] addPointersToRegionsOnHeap(
       CLangSMG pSmg, SMGObject[] pRegions, SMGValue[] pAddresses, int pOffset) {
-    if (pRegions == null || pAddresses == null || pRegions.length == 0) {
-      throw new IllegalArgumentException("The provided arrays must not be null or empty.");
-    }
-    if (pRegions.length != pAddresses.length) {
-      throw new IllegalArgumentException(
-          "The number of regions must be equal to the number of addresses.");
-    }
+    checkArgument(
+        pRegions != null && pAddresses != null && pRegions.length != 0,
+        "The provided arrays must not be null or empty.");
+    checkArgument(
+        pRegions.length == pAddresses.length,
+        "The number of regions must be equal to the number of addresses.");
     SMGEdgePointsTo[] ptEdges = new SMGEdgePointsTo[pRegions.length];
     for (int i = 0; i < pRegions.length; i++) {
       pSmg.addValue(pAddresses[i]);
@@ -159,13 +152,12 @@ public final class SMGListAbstractionTestHelpers {
       SMGValue[] pAddresses,
       int pHeadOffset,
       SMGTargetSpecifier pFirstOrLast) {
-    if (pLists == null || pAddresses == null || pLists.length == 0) {
-      throw new IllegalArgumentException("The provided arrays must not be null or empty.");
-    }
-    if (pLists.length != pAddresses.length) {
-      throw new IllegalArgumentException(
-          "The number of lists must be equal to the number of addresses.");
-    }
+    checkArgument(
+        pLists != null && pAddresses != null && pLists.length != 0,
+        "The provided arrays must not be null or empty.");
+    checkArgument(
+        pLists.length == pAddresses.length,
+        "The number of lists must be equal to the number of addresses.");
     SMGEdgePointsTo[] ptEdges = new SMGEdgePointsTo[pLists.length];
     for (int i = 0; i < pLists.length; i++) {
       pSmg.addValue(pAddresses[i]);
@@ -185,12 +177,10 @@ public final class SMGListAbstractionTestHelpers {
       int pPfo,
       SMGListCircularity pCircularity,
       SMGListLinkage pLinkage) {
-    if (pSmg == null) {
-      throw new IllegalArgumentException("The smg was null.");
-    }
-    if (pAddresses == null || pAddresses.length < 1) {
-      throw new IllegalArgumentException("The provided array must not be null or empty.");
-    }
+    checkArgument(pSmg != null, "The smg was null.");
+    checkArgument(
+        pAddresses != null && pAddresses.length >= 1,
+        "The provided array must not be null or empty.");
     if (pCircularity != SMGListCircularity.OPEN && pCircularity != SMGListCircularity.CIRCULAR) {
       throw new IllegalArgumentException("Unsupported list circularity: " + pCircularity);
     }
@@ -293,9 +283,8 @@ public final class SMGListAbstractionTestHelpers {
   }
 
   private static SMGValue[] joinValuesPerList(SMGValue[][] pLists) {
-    if (pLists == null || pLists.length == 0) {
-      throw new IllegalArgumentException("The provided array must not be null or empty.");
-    }
+    checkArgument(
+        pLists != null && pLists.length != 0, "The provided array must not be null or empty.");
     SMGValue[] values = new SMGValue[pLists.length];
     for (int i = 0; i < pLists.length; i++) {
       SMGValue[] list = pLists[i];
@@ -311,14 +300,11 @@ public final class SMGListAbstractionTestHelpers {
   }
 
   private static Integer[] getMinLengths(SMGValue[][] pLists) {
-    if (pLists == null || pLists.length == 0) {
-      throw new IllegalArgumentException("The provided array must not be null or empty.");
-    }
+    checkArgument(
+        pLists != null && pLists.length != 0, "The provided array must not be null or empty.");
     Integer[] minLengths = new Integer[pLists.length];
     for (int i = 0; i < pLists.length; i++) {
-      if (pLists[i] == null) {
-        throw new IllegalArgumentException("The provided array must not contain null.");
-      }
+      checkArgument(pLists[i] != null, "The provided array must not contain null.");
       minLengths[i] = pLists[i].length;
     }
     return minLengths;
@@ -326,9 +312,9 @@ public final class SMGListAbstractionTestHelpers {
 
   private static void deleteLinksOfObjects(
       CLangSMG pSmg, SMGValue[] pAddresses, int pNfo, int pPfo) {
-    if (pAddresses == null || pAddresses.length == 0) {
-      throw new IllegalArgumentException("The provided array must not be null or empty.");
-    }
+    checkArgument(
+        pAddresses != null && pAddresses.length != 0,
+        "The provided array must not be null or empty.");
     for (SMGValue address : pAddresses) {
       SMGObject object = pSmg.getObjectPointedBy(address);
       for (Integer offset : new Integer[] {pNfo, pPfo}) {
@@ -352,9 +338,8 @@ public final class SMGListAbstractionTestHelpers {
       int pDataSize,
       SMGListCircularity pCircularity,
       SMGListLinkage pLinkage) {
-    if (pValues == null || pValues.length < 1) {
-      throw new IllegalArgumentException("The provided array must not be null or empty.");
-    }
+    checkArgument(
+        pValues != null && pValues.length >= 1, "The provided array must not be null or empty.");
     SMGValue[] addresses = generateNewAddresses(pValues.length);
     SMGObject[] regions = createRegionsOnHeap(pSmg, pValues.length, pSize);
     addPointersToRegionsOnHeap(pSmg, regions, addresses, 0);
@@ -376,9 +361,8 @@ public final class SMGListAbstractionTestHelpers {
       int pSubDataSize,
       SMGListCircularity pCircularity,
       SMGListLinkage pLinkage) {
-    if (pValues == null || pValues.length < 1) {
-      throw new IllegalArgumentException("The provided array must not be null or empty.");
-    }
+    checkArgument(
+        pValues != null && pValues.length >= 1, "The provided array must not be null or empty.");
     SMGValue[] addresses = generateNewAddresses(pValues.length);
     SMGObject[] regions = createRegionsOnHeap(pSmg, pValues.length, pRegionSize);
     SMGValue[] subaddresses = generateNewAddresses(pValues.length);
@@ -401,9 +385,9 @@ public final class SMGListAbstractionTestHelpers {
       int pDataSize,
       SMGListCircularity pCircularity,
       SMGListLinkage pLinkage) {
-    if (pSublists == null || pSublists.length < 1) {
-      throw new IllegalArgumentException("The provided array must not be null or empty.");
-    }
+    checkArgument(
+        pSublists != null && pSublists.length >= 1,
+        "The provided array must not be null or empty.");
     SMGValue[] addresses = generateNewAddresses(pSublists.length);
     SMGObject[] regions = createRegionsOnHeap(pSmg, pSublists.length, pNodeSize);
     SMGValue[] subaddresses = generateNewAddresses(pSublists.length);
@@ -431,9 +415,8 @@ public final class SMGListAbstractionTestHelpers {
       int pDataSize,
       SMGListCircularity pCircularity,
       SMGListLinkage pLinkage) {
-    if (pLists == null || pLists.length == 0) {
-      throw new IllegalArgumentException("The provided array must not be null or empty.");
-    }
+    checkArgument(
+        pLists != null && pLists.length != 0, "The provided array must not be null or empty.");
     SMGValue[] addresses = generateNewAddresses(pLists.length);
     int level = 0;
     Integer[] minLengths = getMinLengths(pLists);

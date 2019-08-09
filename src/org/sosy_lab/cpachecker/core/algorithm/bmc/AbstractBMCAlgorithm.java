@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
@@ -1191,9 +1192,7 @@ abstract class AbstractBMCAlgorithm
     }
 
     public Iterable<AbstractState> filterUnchecked(Iterable<AbstractState> pStates) {
-      if (!isSafe()) {
-        throw new IllegalStateException("A counterexample was found already.");
-      }
+      checkState(isSafe(), "A counterexample was found already.");
       return Iterables.filter(pStates, Predicates.not(Predicates.in(checkedStates)));
     }
   }

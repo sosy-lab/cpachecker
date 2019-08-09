@@ -67,9 +67,8 @@ public class DCACPA extends AbstractSingleWrapperCPA {
   }
 
   void addAutomaton(Automaton pAutomaton) {
-    if (!automatonList.add(pAutomaton)) {
-      throw new IllegalArgumentException("DCA-CPA already contains the specified automaton.");
-    }
+    checkArgument(
+        automatonList.add(pAutomaton), "DCA-CPA already contains the specified automaton.");
   }
 
   ImmutableCollection<Automaton> getAutomatonSet() {

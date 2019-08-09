@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
@@ -75,12 +77,8 @@ public class Interval implements Serializable{
   }
 
   private boolean isSane() {
-    if ((low == null) != (high == null)) {
-      throw new IllegalStateException("invalid empty interval");
-    }
-    if (low != null && low > high) {
-      throw new IllegalStateException("low cannot be larger than high");
-    }
+    checkState((low == null) == (high == null), "invalid empty interval");
+    checkState(low == null || low <= high, "low cannot be larger than high");
 
     return true;
   }

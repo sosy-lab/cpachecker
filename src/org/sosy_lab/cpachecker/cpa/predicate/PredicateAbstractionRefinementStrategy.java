@@ -519,9 +519,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
 
   private PredicatePrecision extractPredicatePrecision(Precision oldPrecision) throws IllegalStateException {
     PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
-    if (oldPredicatePrecision == null) {
-      throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
-    }
+    checkState(
+        oldPredicatePrecision != null,
+        "Could not find the PredicatePrecision for the error element");
     return oldPredicatePrecision;
   }
 

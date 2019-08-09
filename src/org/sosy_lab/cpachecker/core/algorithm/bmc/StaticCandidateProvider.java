@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
@@ -133,9 +135,7 @@ public class StaticCandidateProvider implements CandidateGenerator {
 
       @Override
       public void remove() {
-        if (candidate == null) {
-          throw new IllegalStateException();
-        }
+        checkState(candidate != null);
         refutedInvariants.add(candidate);
         iterator.remove();
         order.remove(candidate);

@@ -299,9 +299,8 @@ public class ARGUtils {
 
       if (seenElements.contains(parentElement)) {
         // Backtrack
-        if (backTrackPoints.isEmpty()) {
-          throw new IllegalArgumentException("No ARG path from the target state to a root state.");
-        }
+        checkArgument(
+            !backTrackPoints.isEmpty(), "No ARG path from the target state to a root state.");
         ARGState backTrackPoint = backTrackPoints.pop();
         ListIterator<ARGState> stateIterator = states.listIterator(states.size());
         while (stateIterator.hasPrevious() && !stateIterator.previous().equals(backTrackPoint)) {
@@ -573,9 +572,7 @@ public class ARGUtils {
         throw new IllegalArgumentException("ARG splits with more than two branches!");
       }
 
-      if (!arg.contains(child)) {
-        throw new IllegalArgumentException("ARG and direction information from solver disagree!");
-      }
+      checkArgument(arg.contains(child), "ARG and direction information from solver disagree!");
 
       builder.add(currentElement, edge);
       currentElement = child;
@@ -606,9 +603,8 @@ public class ARGUtils {
 
     ARGPath result = getPathFromBranchingInformation(root, arg, branchingInformation);
 
-    if (result.getLastState() != target) {
-      throw new IllegalArgumentException("ARG target path reached the wrong target state!");
-    }
+    checkArgument(
+        result.getLastState() == target, "ARG target path reached the wrong target state!");
 
     return result;
   }
