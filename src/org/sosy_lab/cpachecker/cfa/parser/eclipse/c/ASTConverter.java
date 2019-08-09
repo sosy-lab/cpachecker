@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
@@ -1781,7 +1782,7 @@ class ASTConverter {
       name = declarator.getThird();
     }
 
-    if (name == null || name.isEmpty()) {
+    if (isNullOrEmpty(name)) {
       name = "__anon_type_member_" + nofMember;
     }
 

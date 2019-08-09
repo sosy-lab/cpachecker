@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
@@ -1387,7 +1388,7 @@ class WitnessWriter implements EdgeAppender {
     if (!tree.equals(ExpressionTrees.getTrue())) {
       pDoc.addDataElementChild(pNode, KeyDef.INVARIANT, tree.toString());
       String scope = stateScopes.get(pStateId);
-      if (scope != null && !scope.isEmpty() && !tree.equals(ExpressionTrees.getFalse())) {
+      if (!isNullOrEmpty(scope) && !tree.equals(ExpressionTrees.getFalse())) {
         pDoc.addDataElementChild(pNode, KeyDef.INVARIANTSCOPE, scope);
       }
     }

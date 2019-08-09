@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableMap;
@@ -131,7 +132,7 @@ class CFABuilder extends ASTVisitor {
 
   public void analyzeTranslationUnit(
       IASTTranslationUnit ast, String staticVariablePrefix, Scope pFallbackScope) {
-    if (ast.getFilePath() != null && !ast.getFilePath().isEmpty()) {
+    if (!isNullOrEmpty(ast.getFilePath())) {
       parsedFiles.add(Paths.get(ast.getFilePath()));
     }
     sideAssignmentStack = new Sideassignments();
