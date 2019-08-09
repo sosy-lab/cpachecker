@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
-import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.logging.Level.FINEST;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
@@ -186,7 +186,7 @@ public class TerminationLoopInformation {
   void setProcessedLoop(Loop pLoop, Set<CVariableDeclaration> pRelevantVariables) {
     loop = Optional.of(pLoop);
     loopLeavingLocations =
-        pLoop.getOutgoingEdges().stream().map(CFAEdge::getSuccessor).collect(toImmutableSet());
+        transformedImmutableSetCopy(pLoop.getOutgoingEdges(), CFAEdge::getSuccessor);
     loopLeavingEdges = ImmutableSet.copyOf(pLoop.getOutgoingEdges());
     resetRankingRelation();
 
