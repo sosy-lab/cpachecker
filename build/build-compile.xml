@@ -67,6 +67,44 @@
         </javac>
     </target>
 
+    <!-- Use error-prone as compiler and specify refaster file. -->
+    <target name="refaster" depends="build-dependencies">
+        <fail unless="refaster.rule.file" message="Specify rule file with -Drefaster.rule.file=..."/>
+        <property name="refaster.patch.file" value="${basedir}/error-prone.patch"/> <!-- hard-coded in error-prone -->
+        <delete file="${refaster.patch.file}" quiet="true"/>
+
+        <!-- We use a temp directory as destdir to make sure we compile all files. -->
+        <tempfile property="temp.dir" destdir="${java.io.tmpdir}" prefix="refaster-build-"/>
+        <mkdir dir="${temp.dir}"/>
+        <javac destdir="${temp.dir}"
+               failonerror="false"
+               errorProperty="javac.failed"
+               createMissingPackageInfoClass="false"
+               fork="true"
+               includeAntRuntime="false"
+               encoding="UTF-8">
+            <compilerarg value="-J-Xbootclasspath/p:${ivy.lib.dir}/build/javac.jar" if:set="java8"/>
+            <compilerarg line="-source ${source.format}" if:set="java8"/>
+            <compilerarg line="-target ${class.format}" if:set="java8"/>
+            <compilerarg line="--release ${source.release}" unless:set="java8"/>
+            <src path="${source.dir}"/>
+            <classpath refid="classpath"/>
+            <compilerarg value="-XDcompilePolicy=simple"/> <!-- necessary for error-prone -->
+            <compilerarg value="-Xplugin:ErrorProne -XepPatchChecks:refaster:${refaster.rule.file} -XepPatchLocation:${basedir}" unless:set="errorprone.disable"/>
+            <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
+            <compilerarg value="-processorpath"/><compilerarg pathref="processorpath"/>
+            <compilerarg value="-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED" unless:set="java8"/>
+            <compilerarg value="-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED" unless:set="java8"/>
+        </javac>
+        <delete dir="${temp.dir}"/>
+        <fail if="javac.failed" message="Compilation failed"/>
+
+        <!-- Check result and provide instructions -->
+        <available property="refaster.patch.file.exists" file="${refaster.patch.file}"/>
+        <fail if="refaster.patch.file.exists" message="Refaster suggestions are in error-prone.patch, apply with 'patch -p0 &lt; ${refaster.patch.file}'. Make sure to format the code after applying the patch."/>
+        <echo message="Refaster found no suggestions." level="info"/>
+    </target>
+
     <path id="ecj">
         <fileset dir="${ivy.lib.dir}/build" includes="ecj.jar"/>
     </path>
