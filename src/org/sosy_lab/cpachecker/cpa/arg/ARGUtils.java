@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
@@ -874,11 +875,7 @@ public class ARGUtils {
     checkNotNull(pReached);
 
     ImmutableList<ARGState> argStates =
-        pReached
-            .asCollection()
-            .stream()
-            .map(x -> (ARGState) x)
-            .collect(ImmutableList.toImmutableList());
+        transformedImmutableListCopy(pReached.asCollection(), x -> (ARGState) x);
 
     return retrieveSCCs(argStates, Optional.empty());
   }

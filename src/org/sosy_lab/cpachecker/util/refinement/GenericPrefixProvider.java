@@ -24,9 +24,9 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -234,6 +234,6 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
         cfa.getMachineModel()).obtainInterpolants();
 
     return InfeasiblePrefix.buildForValueDomain(
-        infeasiblePrefix, FluentIterable.from(interpolants).transform(Pair::getSecond).toList());
+        infeasiblePrefix, transformedImmutableListCopy(interpolants, Pair::getSecond));
   }
 }

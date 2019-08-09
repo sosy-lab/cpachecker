@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Functions;
@@ -216,9 +217,9 @@ public class CFunctionPointerResolver implements StatisticsProvider {
       }
       Set<String> addressedFunctions = varCollector.getCollectedFunctions();
       candidateFunctions =
-          from(Sets.intersection(addressedFunctions, cfa.getAllFunctionNames()))
-              .transform(Functions.forMap(cfa.getAllFunctions()))
-              .toList();
+          transformedImmutableListCopy(
+              Sets.intersection(addressedFunctions, cfa.getAllFunctionNames()),
+              Functions.forMap(cfa.getAllFunctions()));
 
       if (logger.wouldBeLogged(Level.ALL)) {
         logger.log(

@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import com.google.common.collect.ImmutableList;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -62,16 +63,10 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
   BlockFormulas getFormulasForPath(final ARGState pRoot, final List<ARGState> pPath)
       throws CPATransferException, InterruptedException {
     return new BlockFormulas(
-        SlicingAbstractionsUtils
-            .getFormulasForPath(
-                pfmgr,
-                solver,
-                pRoot,
-                pPath,
-                includePartialInvariants)
-            .stream()
-            .map(x -> x.getFormula())
-            .collect(ImmutableList.toImmutableList()));
+        transformedImmutableListCopy(
+            SlicingAbstractionsUtils.getFormulasForPath(
+                pfmgr, solver, pRoot, pPath, includePartialInvariants),
+            x -> x.getFormula()));
   }
 
 }

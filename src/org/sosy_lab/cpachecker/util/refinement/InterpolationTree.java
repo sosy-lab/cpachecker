@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
@@ -198,7 +199,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * This method extracts all targets states from the target paths.
    */
   private Set<ARGState> extractTargets(final Collection<ARGPath> targetsPaths) {
-    return FluentIterable.from(targetsPaths).transform(ARGPath::getLastState).toSet();
+    return transformedImmutableSetCopy(targetsPaths, ARGPath::getLastState);
   }
 
   public ARGState getRoot() {

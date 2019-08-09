@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
@@ -225,10 +226,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   }
 
   boolean checkThePathHasRepeatedStates(ARGPath path, Set<List<Integer>> pRefinedStates) {
-    List<Integer> ids =
-        from(path.asStatesList())
-        .transform(getStateId)
-        .toList();
+    List<Integer> ids = transformedImmutableListCopy(path.asStatesList(), getStateId);
 
     return from(pRefinedStates)
         .anyMatch(ids::containsAll);

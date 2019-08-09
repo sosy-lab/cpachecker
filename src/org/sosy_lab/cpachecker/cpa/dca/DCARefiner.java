@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.dca;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -330,9 +331,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
 
           // check stem prefixes for infeasibility
           ImmutableList<BooleanFormula> stemBFList =
-              stemPathFormulaList.stream()
-                  .map(x -> x.getFormula())
-                  .collect(ImmutableList.toImmutableList());
+              transformedImmutableListCopy(stemPathFormulaList, x -> x.getFormula());
           if (isUnsat(stemBFList)) {
             logger.log(Level.SEVERE, "Found unsat predicates in stem");
             boolean refine = refineFinitePrefixes(stemPath, stemBFList);
@@ -343,9 +342,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
 
           // check loop prefixes for infeasibility
           ImmutableList<BooleanFormula> loopBFList =
-              loopPathFormulaList.stream()
-                  .map(x -> x.getFormula())
-                  .collect(ImmutableList.toImmutableList());
+              transformedImmutableListCopy(loopPathFormulaList, x -> x.getFormula());
           if (isUnsat(loopBFList)) {
             logger.log(Level.SEVERE, "Found unsat predicates in loop");
             boolean refine = refineFinitePrefixes(loopPath, loopBFList);

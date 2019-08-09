@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -83,9 +85,7 @@ public class TotalTransitionRelation {
       totalTransitionRelation.put(predecessorLocation.getNodeNumber(), partialTransitionRelation);
     }
     predecessorLocations =
-        FluentIterable.from(totalTransitionRelation.values())
-            .transform(t -> t.getStartLocation())
-            .toSet();
+        transformedImmutableSetCopy(totalTransitionRelation.values(), t -> t.getStartLocation());
   }
 
   public CFANode getInitialLocation() {

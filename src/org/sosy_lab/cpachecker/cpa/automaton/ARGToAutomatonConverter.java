@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -864,14 +865,12 @@ public class ARGToAutomatonConverter {
               makeLocationTransition(
                   AbstractStates.extractLocation(parent).getNodeNumber(), id(parent), assumptions));
           try {
-          transitions.add(
-              makeLocationTransition(
-                  AbstractStates.extractLocation(parent).getNodeNumber(),
-                  id(elem),
-                  assumptions
-                      .stream()
-                      .map(x -> negateExpression((CExpression) x))
-                      .collect(ImmutableList.toImmutableList())));
+            transitions.add(
+                makeLocationTransition(
+                    AbstractStates.extractLocation(parent).getNodeNumber(),
+                    id(elem),
+                    transformedImmutableListCopy(
+                        assumptions, x -> negateExpression((CExpression) x))));
           } catch (ClassCastException e) {
             throw new AssertionError(
                 "Currently there is only support for negating CExpressions", e);

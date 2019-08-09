@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Strings;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
@@ -52,7 +53,7 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
 
     super(
         pReturnType,
-        FluentIterable.from(pParameters).transform(CParameterDeclaration::getType).toList(),
+        transformedImmutableListCopy(pParameters, CParameterDeclaration::getType),
         pTakesVarArgs);
 
     parameters = ImmutableList.copyOf(pParameters);

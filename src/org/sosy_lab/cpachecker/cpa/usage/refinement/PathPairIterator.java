@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
-import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -275,9 +275,9 @@ public class PathPairIterator extends
   }
 
   private void handleAffectedStates(List<ARGState> affectedStates) {
-    //ARGState nextStart;
-    //if (affectedStates != null) {
-      List<Integer>changedStateNumbers = from(affectedStates).transform(idExtractor).toList();
+    // ARGState nextStart;
+    // if (affectedStates != null) {
+    List<Integer> changedStateNumbers = transformedImmutableListCopy(affectedStates, idExtractor);
       refinedStates.add(changedStateNumbers);
 
     /*  nextStart = affectedStates.get(affectedStates.size() - 1);

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -737,10 +739,9 @@ public class AutomatonGraphmlCommon {
         } else {
           SwitchDetector switchDetector = new SwitchDetector(assumeEdge);
           CFATraversal.dfs().backwards().traverseOnce(assumeEdge.getSuccessor(), switchDetector);
-          List<FileLocation> caseLocations = FluentIterable
-              .from(switchDetector.getEdgesBackwardToSwitchNode())
-              .transform(e -> e.getFileLocation())
-              .toList();
+          List<FileLocation> caseLocations =
+              transformedImmutableListCopy(
+                  switchDetector.getEdgesBackwardToSwitchNode(), e -> e.getFileLocation());
           location = FileLocation.merge(caseLocations);
         }
 

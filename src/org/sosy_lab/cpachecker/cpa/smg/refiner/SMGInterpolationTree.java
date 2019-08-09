@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -172,7 +174,7 @@ public class SMGInterpolationTree {
    * This method extracts all targets states from the target paths.
    */
   private Set<ARGState> extractTargets(final Collection<ARGPath> targetsPaths) {
-    return FluentIterable.from(targetsPaths).transform(ARGPath::getLastState).toSet();
+    return transformedImmutableSetCopy(targetsPaths, ARGPath::getLastState);
   }
 
   public ARGState getRoot() {

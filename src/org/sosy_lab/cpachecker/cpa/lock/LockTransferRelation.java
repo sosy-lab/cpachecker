@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.lock;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
@@ -275,7 +276,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
 
   private ImmutableList<? extends AbstractLockEffect> convertAnnotationToLockEffect(
       Set<LockIdentifier> pAnnotatedIds, LockEffect pEffect) {
-    return from(pAnnotatedIds).transform(pEffect::cloneWithTarget).toList();
+    return transformedImmutableListCopy(pAnnotatedIds, pEffect::cloneWithTarget);
   }
 
   private List<AbstractLockEffect> handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge) {

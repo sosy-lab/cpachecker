@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core;
 
 import static java.util.stream.Collectors.joining;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -116,8 +117,7 @@ public final class Specification {
         break;
     }
 
-    Set<Property> properties =
-        pProperties.stream().map(p -> p.getProperty()).collect(ImmutableSet.toImmutableSet());
+    Set<Property> properties = transformedImmutableSetCopy(pProperties, p -> p.getProperty());
 
     ImmutableListMultimap.Builder<Path, Automaton> multiplePropertiesBuilder =
         ImmutableListMultimap.builder();

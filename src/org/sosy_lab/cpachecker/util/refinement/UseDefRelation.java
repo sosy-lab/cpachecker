@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.util.refinement;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Collections2.filter;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -150,7 +150,7 @@ public class UseDefRelation {
   public Collection<String> getUsesAsQualifiedName() {
     Set<String> uses = new HashSet<>();
     for (Set<ASimpleDeclaration> useSet :
-        FluentIterable.from(relation.values()).transform(Pair::getSecond).toSet()) {
+        transformedImmutableSetCopy(relation.values(), Pair::getSecond)) {
       for (ASimpleDeclaration use : useSet) {
         uses.add(use.getQualifiedName());
       }
@@ -160,7 +160,7 @@ public class UseDefRelation {
   }
 
   public Set<ARGState> getUseDefStates() {
-    return FluentIterable.from(relation.keySet()).transform(Pair::getFirst).toSet();
+    return transformedImmutableSetCopy(relation.keySet(), Pair::getFirst);
   }
 
   private void buildRelation(ARGPath path) {
