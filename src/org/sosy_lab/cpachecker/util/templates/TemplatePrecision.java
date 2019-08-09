@@ -359,9 +359,9 @@ public class TemplatePrecision implements Precision {
         .stream()
         .filter(
             l ->
-                !linearExpressions
+                linearExpressions
                     .stream()
-                    .anyMatch(l2 -> l2 != l && existsAndMoreThanOne.test(l2.divide(l))));
+                    .noneMatch(l2 -> l2 != l && existsAndMoreThanOne.test(l2.divide(l))));
   }
 
   private static Equivalence<CIdExpression> BASIC_TYPE_EQUIVALENCE =

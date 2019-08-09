@@ -152,10 +152,11 @@ public class Ltl2BuechiConverter {
       }
       storedAutomaton.getStoredHeader().setAPs(list);
 
-      if (!storedAutomaton.getStoredHeader()
+      if (storedAutomaton
+          .getStoredHeader()
           .getAPs()
           .stream()
-          .anyMatch(x -> labelledFormula.getAPs().contains(Literal.of(x, false)))) {
+          .noneMatch(x -> labelledFormula.getAPs().contains(Literal.of(x, false)))) {
         throw new RuntimeException(
             "Output from external tool contains APs which are not consistent with the APs from the provided ltl formula");
       }

@@ -79,7 +79,7 @@ enum GraphBuilder {
       for (Pair<ARGState, Iterable<ARGState>> argEdges : pARGEdges) {
         ARGState s = argEdges.getFirst();
         if (!s.equals(pRootState)
-            && !s.getParents().stream().anyMatch(p -> pIsRelevantEdge.apply(Pair.of(p, s)))) {
+            && s.getParents().stream().noneMatch(p -> pIsRelevantEdge.apply(Pair.of(p, s)))) {
           continue;
         }
         String sourceStateNodeId = getId(s);
