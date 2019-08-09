@@ -342,7 +342,7 @@ enum CexTraceAnalysisDirection {
 
     // this is a true or false formula, return 0 as this is the easiest formula
     // we can encounter
-    if (varNames.size() == 0) {
+    if (varNames.isEmpty()) {
       return 0;
     } else {
       return currentScore / varNames.size();

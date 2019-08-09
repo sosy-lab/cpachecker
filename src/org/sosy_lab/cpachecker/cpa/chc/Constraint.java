@@ -109,7 +109,7 @@ public class Constraint {
     if (cns == null) {
       return true;
     } else {
-      if ( cns.size() != 0 ) {
+      if (!cns.isEmpty()) {
         if (cns.get(0).toString().equals("false")) {
           return true;
         }

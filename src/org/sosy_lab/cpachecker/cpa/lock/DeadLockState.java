@@ -230,7 +230,7 @@ public class DeadLockState extends AbstractLockState {
 
   @Override
   public String toString() {
-    if (lockList.size() > 0) {
+    if (!lockList.isEmpty()) {
       StringBuilder sb = new StringBuilder();
       return Joiner.on(",").appendTo(sb, lockList).toString();
     } else {

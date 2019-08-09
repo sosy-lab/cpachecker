@@ -180,13 +180,13 @@ public class CustomInstruction{
     StringBuilder sb = new StringBuilder();
 
     sb.append("(");
-    if (inputVariables.size() > 0) {
+    if (!inputVariables.isEmpty()) {
       Joiner.on(", ").appendTo(sb, Iterables.transform(inputVariables, CIUtils.GET_SMTNAME));
     }
 
     sb.append(") -> (");
 
-    if (outputVariables.size() > 0) {
+    if (!outputVariables.isEmpty()) {
       Joiner.on(", ").appendTo(sb, Iterables.transform(outputVariables, CIUtils.GET_SMTNAME_WITH_INDEX));
     }
     sb.append(")");
@@ -201,18 +201,18 @@ public class CustomInstruction{
    * @return (define-fun ci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
    */
   public Pair<List<String>, String> getFakeSMTDescription() {
-    if (inputVariables.size() == 0 && outputVariables.size() == 0) {
+    if (inputVariables.isEmpty() && outputVariables.isEmpty()) {
       return Pair.of(ImmutableList.of(), "(define-fun ci() Bool true)");
     }
     StringBuilder sb = new StringBuilder();
     sb.append("(define-fun ci() Bool");
     int BracketCounter = 0;
 
-    if (inputVariables.size() != 0) {
+    if (!inputVariables.isEmpty()) {
       String last = inputVariables.get(inputVariables.size()-1);
       for (int i=0; i<inputVariables.size(); i++) {
         String variable = inputVariables.get(i);
-        if (outputVariables.size()==0 && variable.equals(last)) {
+        if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(variable, false));
 //          sb.append("= ");
 //          sb.append(variable);
@@ -225,7 +225,7 @@ public class CustomInstruction{
       }
     }
 
-    if (outputVariables.size() != 0) {
+    if (!outputVariables.isEmpty()) {
       String last = outputVariables.get(outputVariables.size()-1);
       for (int i=0; i<outputVariables.size(); i++) {
         String variable = outputVariables.get(i);
@@ -399,7 +399,7 @@ public class CustomInstruction{
    * @return (define-fun aci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
    */
   private Pair<List<String>, String> getFakeSMTDescriptionForACI(final Map<String,String> map) {
-    if (inputVariables.size() == 0 && outputVariables.size() == 0) {
+    if (inputVariables.isEmpty() && outputVariables.isEmpty()) {
       return Pair.of(ImmutableList.of(), "(define-fun ci() Bool true)");
     }
 
@@ -407,11 +407,11 @@ public class CustomInstruction{
     sb.append("(define-fun ci() Bool");
     int BracketCounter = 0;
 
-    if (inputVariables.size() != 0) {
+    if (!inputVariables.isEmpty()) {
       String last = inputVariables.get(inputVariables.size()-1);
       for (int i=0; i<inputVariables.size(); i++) {
         String variable = inputVariables.get(i);
-        if (outputVariables.size()==0 && variable.equals(last)) {
+        if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(map.get(variable), false));
         } else {
           sb.append("(and ");
@@ -421,7 +421,7 @@ public class CustomInstruction{
       }
     }
 
-    if (outputVariables.size() != 0) {
+    if (!outputVariables.isEmpty()) {
       String last = outputVariables.get(outputVariables.size()-1);
       for (int i=0; i<outputVariables.size(); i++) {
         String variable = outputVariables.get(i);

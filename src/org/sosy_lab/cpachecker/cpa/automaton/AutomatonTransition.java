@@ -429,7 +429,7 @@ class AutomatonTransition {
   }
 
   public boolean isTransitionWithAssumptions() {
-    return assumptions.size() > 0;
+    return !assumptions.isEmpty();
   }
 
   public boolean nontriviallyMatches(final CFAEdge pEdge, final LogManager pLogger) {

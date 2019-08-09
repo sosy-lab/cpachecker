@@ -424,7 +424,7 @@ class ASTConverter {
     JFieldDeclaration fieldDecl = scope.lookupField(fieldName);
 
     // update initializer (can't be constructed while generating the Declaration)
-    if (preSideAssignments.size() != 0 || postSideAssignments.size() != 0) {
+    if (!preSideAssignments.isEmpty() || !postSideAssignments.isEmpty()) {
       logger.log(
           Level.WARNING, "Sideeffects of initializer of field " + fieldName + " will be ignored");
       preSideAssignments.clear();
@@ -900,7 +900,7 @@ class ASTConverter {
     List<Expression> p = e.arguments();
 
     List<JExpression> params;
-    if (p.size() > 0) {
+    if (!p.isEmpty()) {
       params = convert(p);
     } else {
       params = ImmutableList.of();
@@ -1672,7 +1672,7 @@ class ASTConverter {
     List<Expression> p = mi.arguments();
 
     List<JExpression> params;
-    if (p.size() > 0) {
+    if (!p.isEmpty()) {
       params = convert(p);
     } else {
       params = ImmutableList.of();

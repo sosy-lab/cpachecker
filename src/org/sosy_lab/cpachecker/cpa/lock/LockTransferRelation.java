@@ -291,30 +291,30 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       List<AbstractLockEffect> result = new ArrayList<>();
 
       AnnotationInfo currentAnnotation = annotatedFunctions.get(fName);
-      if (currentAnnotation.getRestoreLocks().size() == 0
-          && currentAnnotation.getFreeLocks().size() == 0
-          && currentAnnotation.getResetLocks().size() == 0
-          && currentAnnotation.getCaptureLocks().size() == 0) {
+      if (currentAnnotation.getRestoreLocks().isEmpty()
+          && currentAnnotation.getFreeLocks().isEmpty()
+          && currentAnnotation.getResetLocks().isEmpty()
+          && currentAnnotation.getCaptureLocks().isEmpty()) {
         // Not specified annotations are considered to be totally restoring
         AbstractLockEffect restoreAll = RestoreAllLockEffect.getInstance();
         return Collections.singletonList(restoreAll);
       } else {
-        if (currentAnnotation.getRestoreLocks().size() > 0) {
+        if (!currentAnnotation.getRestoreLocks().isEmpty()) {
           result.addAll(
               convertAnnotationToLockEffect(
                   currentAnnotation.getRestoreLocks(), RestoreLockEffect.getInstance()));
         }
-        if (currentAnnotation.getFreeLocks().size() > 0) {
+        if (!currentAnnotation.getFreeLocks().isEmpty()) {
           result.addAll(
               convertAnnotationToLockEffect(
                   currentAnnotation.getFreeLocks(), ReleaseLockEffect.getInstance()));
         }
-        if (currentAnnotation.getResetLocks().size() > 0) {
+        if (!currentAnnotation.getResetLocks().isEmpty()) {
           result.addAll(
               convertAnnotationToLockEffect(
                   currentAnnotation.getResetLocks(), ResetLockEffect.getInstance()));
         }
-        if (currentAnnotation.getCaptureLocks().size() > 0) {
+        if (!currentAnnotation.getCaptureLocks().isEmpty()) {
           for (LockIdentifier targetId : currentAnnotation.getCaptureLocks()) {
             result.add(
                 AcquireLockEffect.createEffectForId(

@@ -98,7 +98,7 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
       UsageInfoSet uset = usageInfoSets.get(point);
       boolean b = uset.remove(pUstate);
       if (b) {
-        if (uset.size() == 0) {
+        if (uset.isEmpty()) {
           usageInfoSets.remove(point);
         }
         //May be two usages related to the same state. This is abstractState !

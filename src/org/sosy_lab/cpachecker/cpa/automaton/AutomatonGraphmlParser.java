@@ -1197,11 +1197,11 @@ public class AutomatonGraphmlParser {
         endLineTags.size() < 2, "At most one endline data tag must be provided for each edge.");
 
     int startLine = 0;
-    if (startLineTags.size() > 0) {
+    if (!startLineTags.isEmpty()) {
       startLine = Integer.parseInt(startLineTags.iterator().next());
     }
     int endLine = 0;
-    if (endLineTags.size() > 0) {
+    if (!endLineTags.isEmpty()) {
       endLine = Integer.parseInt(endLineTags.iterator().next());
     }
     if (startLine < 1 && endLine > 1) {
@@ -1249,11 +1249,11 @@ public class AutomatonGraphmlParser {
         endoffsetTags.size() < 2, "At most one endoffset data tag must be provided for each edge.");
 
     int offset = -1;
-    if (offsetTags.size() > 0) {
+    if (!offsetTags.isEmpty()) {
       offset = Integer.parseInt(offsetTags.iterator().next());
     }
     int endoffset = -1;
-    if (endoffsetTags.size() > 0) {
+    if (!endoffsetTags.isEmpty()) {
       endoffset = Integer.parseInt(endoffsetTags.iterator().next());
     }
     if (offset < 0 && endoffset > 0) {
@@ -1292,7 +1292,7 @@ public class AutomatonGraphmlParser {
   private static AutomatonBoolExpr getAssumeCaseMatcher(Node pTransition) throws WitnessParseException {
     Set<String> assumeCaseTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.CONTROLCASE);
 
-    if (assumeCaseTags.size() > 0) {
+    if (!assumeCaseTags.isEmpty()) {
       checkParsable(
           assumeCaseTags.size() < 2,
           "At most one assume-case tag must be provided for each transition.");
@@ -1340,7 +1340,7 @@ public class AutomatonGraphmlParser {
       throws WitnessParseException {
     Set<String> threadIdTags = GraphMLDocumentData.getDataOnNode(pTransition, pKey);
 
-    if (threadIdTags.size() > 0) {
+    if (!threadIdTags.isEmpty()) {
       checkParsable(
           threadIdTags.size() < 2, pErrorMessage);
       String threadId = threadIdTags.iterator().next();

@@ -113,7 +113,7 @@ class CSizeOfVisitor extends BaseSizeofVisitor {
           return handleUnkownArrayLengthValue(pArrayType);
         }
 
-        assert addressOfFieldAndState.size() > 0;
+        assert !addressOfFieldAndState.isEmpty();
 
         SMGAddress addressOfField = addressOfFieldAndState.get(0).getObject();
 

@@ -552,7 +552,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
           succ.addParent(pred);
 
-        } else if (leave instanceof FunctionCallEdge && pred.getChildren().size() == 0) {
+        } else if (leave instanceof FunctionCallEdge && pred.getChildren().isEmpty()) {
           // function calls are not considered to be part of the loop
           locContinueLoop = ((FunctionCallEdge) leave).getSummaryEdge().getSuccessor();
           contextToARGState = new HashMap<>();

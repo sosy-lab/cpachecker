@@ -414,7 +414,7 @@ public class ARGUtils {
 
     List<ARGState> states = new ArrayList<>();
     ARGState currentElement = root;
-    while (currentElement.getChildren().size() > 0) {
+    while (!currentElement.getChildren().isEmpty()) {
       states.add(currentElement);
       currentElement = currentElement.getChildren().iterator().next();
     }

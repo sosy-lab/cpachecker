@@ -401,7 +401,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     ArrayList<BAMARGBlockStartState> consider = new ArrayList<>(pMap.keySet());
     BitSet set;
 
-    while (consider.size() > 0) {
+    while (!consider.isEmpty()) {
       if (size == consider.size()) {
         logger.log(Level.WARNING, "Cannot topology sort ARGs for blocks due to recursion.");
         return new ARGState[1];

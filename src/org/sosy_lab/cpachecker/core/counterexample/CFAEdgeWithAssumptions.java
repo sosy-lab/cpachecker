@@ -97,7 +97,7 @@ public class CFAEdgeWithAssumptions {
    */
   public String getAsCode() {
 
-    if (expressionStmts.size() == 0) {
+    if (expressionStmts.isEmpty()) {
       return "";
     }
 
@@ -123,7 +123,7 @@ public class CFAEdgeWithAssumptions {
    */
   public String prettyPrintCode(int numberOfTabsPerLine) {
 
-    if (expressionStmts.size() == 0) {
+    if (expressionStmts.isEmpty()) {
       return "";
     }
 

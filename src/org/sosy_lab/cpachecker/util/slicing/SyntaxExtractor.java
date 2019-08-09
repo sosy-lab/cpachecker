@@ -125,7 +125,7 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
           notFoundTargets.removeAll(targetsReachableFrom.get(edge.getSuccessor()));
         }
 
-        if (notFoundTargets.size() == 0) {
+        if (notFoundTargets.isEmpty()) {
           return new HashSet<>(relevantTargets);
         }
       }

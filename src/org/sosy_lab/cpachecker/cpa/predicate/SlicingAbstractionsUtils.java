@@ -365,7 +365,7 @@ public class SlicingAbstractionsUtils {
             } else {
               // aggregateBasicBlocks is enabled!
               List<CFAEdge> edges = parent.getEdgesToChild(currentState);
-              assert edges.size() != 0;
+              assert !edges.isEmpty();
               currentBuilder = finishedBuilders.get(parent);
               for (CFAEdge e : edges) {
                 currentBuilder = currentBuilder.makeAnd(e);
@@ -394,7 +394,7 @@ public class SlicingAbstractionsUtils {
               // aggregateBasicBlocks is enabled!
               PathFormulaBuilder otherBuilder = finishedBuilders.get(parent);
               List<CFAEdge> edges = parent.getEdgesToChild(currentState);
-              assert edges.size() != 0;
+              assert !edges.isEmpty();
               for (CFAEdge e : edges) {
                 otherBuilder = otherBuilder.makeAnd(e);
               }
@@ -687,7 +687,7 @@ public class SlicingAbstractionsUtils {
   }
 
   public static void removeIncomingEdgesWithLocationMismatch(SLARGState state) {
-    if (state.isTarget() || state.getParents().size() == 0) {
+    if (state.isTarget() || state.getParents().isEmpty()) {
       return;
     }
     Set<CFANode> locations = getOutgoingLocations(state);
@@ -712,7 +712,7 @@ public class SlicingAbstractionsUtils {
   }
 
   public static void removeOutgoingEdgesWithLocationMismatch(SLARGState state) {
-    if (state.isTarget() || state.getParents().size() == 0) {
+    if (state.isTarget() || state.getParents().isEmpty()) {
       return;
     }
     Set<CFANode> locations = getIncomingLocations(state);
@@ -740,7 +740,7 @@ public class SlicingAbstractionsUtils {
   private static boolean blk(ARGState pState) {
 
     // if it is the root state, return true:
-    if (pState.getParents().size() == 0) {
+    if (pState.getParents().isEmpty()) {
       return true;
     }
     // if it is a target state, return true:

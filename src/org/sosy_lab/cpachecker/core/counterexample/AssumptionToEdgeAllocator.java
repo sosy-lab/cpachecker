@@ -339,7 +339,7 @@ public class AssumptionToEdgeAllocator {
 
       List<AExpressionStatement> assignments = handleAssignment(pCFAEdge, (CLeftHandSide) op, pConcreteState);
 
-      if (assignments.size() == 0) {
+      if (assignments.isEmpty()) {
         return "";
       } else {
         return Joiner.on(System.lineSeparator())

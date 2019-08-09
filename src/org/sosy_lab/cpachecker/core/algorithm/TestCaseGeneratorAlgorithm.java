@@ -211,7 +211,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
           .stream()
           .filter(
               (AbstractState state) -> {
-                return ((ARGState) state).getChildren().size() > 0;
+                return !((ARGState) state).getChildren().isEmpty();
               })
           .forEach(
               (AbstractState state) -> {

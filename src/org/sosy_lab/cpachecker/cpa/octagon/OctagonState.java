@@ -737,7 +737,7 @@ public class OctagonState implements AbstractState {
       }
     }
 
-    if (keysToRemove.size() == 0) {
+    if (keysToRemove.isEmpty()) {
       return this;
     }
 

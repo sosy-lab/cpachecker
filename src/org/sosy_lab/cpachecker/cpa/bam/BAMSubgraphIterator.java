@@ -184,7 +184,7 @@ public class BAMSubgraphIterator {
     Map<ARGState, BackwardARGState> mapToPath = new HashMap<>();
     BackwardARGState currentStateOnPath = parent;
 
-    while (currentStateOnPath.getChildren().size() > 0) {
+    while (!currentStateOnPath.getChildren().isEmpty()) {
 
       // assert currentStateOnPath.getChildren().size() == 1;
       currentStateOnPath = getNextStateOnPath(currentStateOnPath);
@@ -197,7 +197,7 @@ public class BAMSubgraphIterator {
       // Recursion is not supported here!
 
       if (data.getNonReducedInitialStates(parentInARG).size() > 1) {
-        assert parentInARG.getParents().size() == 0;
+        assert parentInARG.getParents().isEmpty();
         assert AbstractStates.extractLocation(parentInARG) instanceof FunctionEntryNode;
 
         //Now we should check, that there is no corresponding exit state in the path

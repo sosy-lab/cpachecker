@@ -96,7 +96,7 @@ class CodeAppender implements Appendable {
 
   private CodeAppender appendAssignment(String pRetvalName, TestValue pValue, boolean pEnclose)
       throws IOException {
-    boolean hasAuxiliaryStatmenets = pValue.getAuxiliaryStatements().size() > 0;
+    boolean hasAuxiliaryStatmenets = !pValue.getAuxiliaryStatements().isEmpty();
     if (hasAuxiliaryStatmenets) {
       if (pEnclose) {
         appendable.append("{ ");

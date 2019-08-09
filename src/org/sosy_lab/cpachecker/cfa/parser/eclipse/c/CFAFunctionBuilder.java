@@ -314,7 +314,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd) {
 
-    assert (locStack.size() > 0) : "not in a function's scope";
+    assert (!locStack.isEmpty()) : "not in a function's scope";
 
     CFANode prevNode = locStack.pop();
 
@@ -420,7 +420,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category declarations
    */
   private int handleFunctionDefinition(final IASTFunctionDefinition declaration) {
-    if (locStack.size() != 0) {
+    if (!locStack.isEmpty()) {
       throw parseContext.parseError("nested function declarations unsupported", declaration);
     }
 

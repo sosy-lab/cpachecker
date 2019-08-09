@@ -79,7 +79,7 @@ class BAMARGUtils {
 
     worklist.add(firstElement);
 
-    while (worklist.size() != 0) {
+    while (!worklist.isEmpty()) {
       ARGState currentElement = worklist.removeLast();
 
       assert reachedSet.contains(currentElement);

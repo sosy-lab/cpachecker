@@ -255,7 +255,7 @@ class SMGJoinFields {
       Set<SMGEdgeHasValue> hvInSMG2Set = pSMG2.getHVEdges(filter);
 
       SMGEdgeHasValue hvInSMG2;
-      if (hvInSMG2Set.size() > 0) {
+      if (!hvInSMG2Set.isEmpty()) {
         hvInSMG2 = Iterables.getOnlyElement(hvInSMG2Set);
       } else {
         hvInSMG2 = null;

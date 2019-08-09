@@ -325,7 +325,7 @@ public class WitnessExporter {
       visited.add(l);
       for (CFAEdge e : CFAUtils.leavingEdges(l)) {
         Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
-        if (fileLocations.size() > 0) {
+        if (!fileLocations.isEmpty()) {
           String fileName = fileLocations.iterator().next().getFileName();
           if (fileName != null) {
             return fileName;

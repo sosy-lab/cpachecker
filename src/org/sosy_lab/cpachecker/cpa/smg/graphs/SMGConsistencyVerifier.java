@@ -127,7 +127,7 @@ final class SMGConsistencyVerifier {
       // Verify that the HasValue edge set for this invalid object is empty
       SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj);
 
-      if (pSmg.getHVEdges(filter).size() > 0) {
+      if (!pSmg.getHVEdges(filter).isEmpty()) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: invalid object has a HVEdge");
         return false;
       }

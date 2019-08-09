@@ -137,7 +137,7 @@ public class PathPairIterator extends
 
   private boolean checkIsUsageUnreachable(UsageInfo pInput) {
     return !computedPathsForUsage.containsKey(pInput)
-        || computedPathsForUsage.get(pInput).size() == 0;
+        || computedPathsForUsage.get(pInput).isEmpty();
   }
 
   @Override

@@ -268,7 +268,7 @@ public class CMCPartitionChecker {
           return;
         }
 
-        if (successors.size() == 0) {
+        if (successors.isEmpty()) {
           break;
         }
 

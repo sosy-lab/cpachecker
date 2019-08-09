@@ -471,7 +471,7 @@ public class PartialEvaluator implements
     }
     if (partsFound > atomicUnionParts.size()) {
       NumeralFormula<CompoundInterval> result = null;
-      if (atomicUnionParts.size() > 0) {
+      if (!atomicUnionParts.isEmpty()) {
         Iterator<NumeralFormula<CompoundInterval>> atomicUnionPartsIterator = atomicUnionParts.iterator();
         result = atomicUnionPartsIterator.next();
         while (atomicUnionPartsIterator.hasNext()) {

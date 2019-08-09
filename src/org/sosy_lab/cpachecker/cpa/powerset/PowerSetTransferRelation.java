@@ -76,7 +76,7 @@ public class PowerSetTransferRelation extends SingleEdgeTransferRelation {
       Collection<? extends AbstractState> strengtheningRes =
           wrapperTransfer.strengthen(
               stateInSet, Collections.singletonList(stateInSet), cfaEdge, precision);
-      if (strengtheningRes != null && strengtheningRes.size() > 0) {
+      if (strengtheningRes != null && !strengtheningRes.isEmpty()) {
         changed = true;
         newStates.addAll(strengtheningRes);
       }

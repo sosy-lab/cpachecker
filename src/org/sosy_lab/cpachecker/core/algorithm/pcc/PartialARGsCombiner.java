@@ -408,7 +408,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     // compute number of successors
     int count = 0;
     for (List<ARGState> successor : pSuccessorsForEdge) {
-      if (successor.size() > 0) {
+      if (!successor.isEmpty()) {
         count = count == 0 ? successor.size() : count * successor.size();
       }
     }
@@ -437,7 +437,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
       // collect ARG successors
       for (int index = 0; index < indices.length; index++) {
-        if (pSuccessorsForEdge.get(index).size() > 0) {
+        if (!pSuccessorsForEdge.get(index).isEmpty()) {
           argSuccessors.add(getUncoveredSuccessor(pSuccessorsForEdge.get(index).get(indices[index])));
         }
       }

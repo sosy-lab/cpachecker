@@ -2427,7 +2427,7 @@ public class DomainSpecificAbstraction<T> {
     List<List<Formula>> compareList = new ArrayList<>(formulas.size() - 1);
     Boolean isIncomparable = false;
     Boolean comparable = false;
-    while (frontierListCopy.size() != 0) {
+    while (!frontierListCopy.isEmpty()) {
        List<Formula> smallestList = frontierListCopy.get(0);
 
 
