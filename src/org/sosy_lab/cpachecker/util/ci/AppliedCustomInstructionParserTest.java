@@ -162,9 +162,7 @@ public class AppliedCustomInstructionParserTest {
         expectedStart = n;
       }
       if(n.getLabel().startsWith("end_ci") && n.getFunctionName().equals("ci")) {
-        for(CFANode e: CFAUtils.predecessorsOf(n)) {
-          expectedEnds.add(e);
-        }
+        CFAUtils.predecessorsOf(n).copyInto(expectedEnds);
       }
     }
     Truth.assertThat(ci.getStartNode()).isEqualTo(expectedStart);
@@ -190,9 +188,7 @@ public class AppliedCustomInstructionParserTest {
         expectedStart = n;
       }
       if(n.getLabel().startsWith("end_ci") && n.getFunctionName().equals("main")) {
-        for(CFANode e: CFAUtils.predecessorsOf(n)) {
-          expectedEnds.add(e);
-        }
+        CFAUtils.predecessorsOf(n).copyInto(expectedEnds);
       }
     }
     Truth.assertThat(ci.getStartNode()).isEqualTo(expectedStart);

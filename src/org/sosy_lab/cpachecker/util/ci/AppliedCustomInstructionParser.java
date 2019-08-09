@@ -288,9 +288,7 @@ public class AppliedCustomInstructionParser {
 
       // pred is endNode of CI -> store pred in Collection of endNodes
       if (pred instanceof CLabelNode && ((CLabelNode)pred).getLabel().startsWith("end_ci_")) {
-        for (CFANode endNode : CFAUtils.predecessorsOf(pred)) {
-          ciEndNodes.add(endNode);
-        }
+        CFAUtils.predecessorsOf(pred).copyInto(ciEndNodes);
         continue;
       }
 

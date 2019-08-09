@@ -319,9 +319,7 @@ public class CustomInstructionTest {
           startNode = node;
         }
         if (((CLabelNode) node).getLabel().startsWith("end_ci")) {
-          for(CFANode predecessor: CFAUtils.allPredecessorsOf(node)) {
-            endNodes.add(predecessor);
-          }
+          CFAUtils.allPredecessorsOf(node).copyInto(endNodes);
         }
       }
       for (CFAEdge e : CFAUtils.allLeavingEdges(node)) {

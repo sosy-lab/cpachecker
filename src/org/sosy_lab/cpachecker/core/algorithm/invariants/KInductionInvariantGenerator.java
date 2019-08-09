@@ -506,9 +506,10 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
     final Set<CandidateInvariant> candidates = new LinkedHashSet<>();
 
-    for (CandidateInvariant candidate : pOptions.guessCandidatesFromCFA.create(pCFA, pSpecification, pTargetLocationProvider, pLogger)) {
-      candidates.add(candidate);
-    }
+    Iterables.addAll(
+        candidates,
+        pOptions.guessCandidatesFromCFA.create(
+            pCFA, pSpecification, pTargetLocationProvider, pLogger));
 
     final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
     if (pOptions.invariantsAutomatonFile != null) {
