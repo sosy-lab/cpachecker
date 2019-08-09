@@ -217,14 +217,12 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       current = toVisit.pop();
 
       if (current.isCovered()) {
-        if (!seen.contains(current.getCoveringState())) {
-          seen.add(current.getCoveringState());
+        if (seen.add(current.getCoveringState())) {
           toVisit.add(current.getCoveringState());
         }
       } else {
         for (ARGState state : current.getChildren()) {
-          if (!seen.contains(state)) {
-            seen.add(state);
+          if (seen.add(state)) {
             toVisit.add(state);
           }
         }
@@ -321,8 +319,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       current = toVisit.pop();
 
       if (current.isCovered()) {
-        if (!seen.contains(current.getCoveringState())) {
-          seen.add(current.getCoveringState());
+        if (seen.add(current.getCoveringState())) {
           toVisit.add(current.getCoveringState());
         }
       } else {
@@ -334,8 +331,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
         }
 
         for (ARGState state : current.getChildren()) {
-          if (!seen.contains(state)) {
-            seen.add(state);
+          if (seen.add(state)) {
             toVisit.add(state);
           }
         }
@@ -365,8 +361,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       current = toVisit.pop();
 
       if (current.isCovered()) {
-        if (!seen.contains(current.getCoveringState())) {
-          seen.add(current.getCoveringState());
+        if (seen.add(current.getCoveringState())) {
           toVisit.add(current.getCoveringState());
         }
       } else {
@@ -381,8 +376,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
         }
 
         for (ARGState state : current.getChildren()) {
-          if (!seen.contains(state)) {
-            seen.add(state);
+          if (seen.add(state)) {
             toVisit.add(state);
           }
         }
