@@ -157,6 +157,7 @@ enum CexTraceAnalysisDirection {
    * A random order of the trace
    */
   RANDOM {
+    @SuppressWarnings("ImmutableEnumChecker")
     private final Random rnd = new Random(0);
 
     @Override
