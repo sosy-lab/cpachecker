@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
@@ -394,7 +394,7 @@ class CFABuilder extends ASTVisitor {
     cfas.put(functionName, startNode);
     cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
     globalDeclarations.addAll(
-        transformedImmutableListCopy(
+        Collections2.transform(
             functionBuilder.getGlobalDeclarations(),
             pInput -> Triple.of(pInput.getFirst(), pInput.getSecond(), actScope)));
     globalDecls.addAll(functionBuilder.getGlobalDeclarations());

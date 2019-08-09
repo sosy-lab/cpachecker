@@ -226,9 +226,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
       Preconditions.checkNotNull(pRemoveIndices);
 
       Set<Integer> newSplit = new HashSet<>(inSplit);
-      for (Integer splitIndex : pRemoveIndices) {
-        newSplit.remove(splitIndex);
-      }
+      newSplit.removeAll(pRemoveIndices);
 
       if (newSplit.size() < 1) {
         return this;
