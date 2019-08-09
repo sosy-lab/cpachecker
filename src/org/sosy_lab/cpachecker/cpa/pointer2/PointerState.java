@@ -204,7 +204,7 @@ public class PointerState implements AbstractState {
    * @return all locations known to the state.
    */
   public Set<MemoryLocation> getKnownLocations() {
-    return FluentIterable.from(Iterables.concat(pointsToMap.keySet(), FluentIterable.from(pointsToMap.values()).transformAndConcat(new Function<LocationSet, Iterable<? extends MemoryLocation>>() {
+    return ImmutableSet.copyOf(Iterables.concat(pointsToMap.keySet(), FluentIterable.from(pointsToMap.values()).transformAndConcat(new Function<LocationSet, Iterable<? extends MemoryLocation>>() {
 
       @Override
       public Iterable<? extends MemoryLocation> apply(LocationSet pArg0) {
@@ -214,7 +214,7 @@ public class PointerState implements AbstractState {
         return ImmutableSet.of();
       }
 
-    }))).toSet();
+    })));
   }
 
   /**

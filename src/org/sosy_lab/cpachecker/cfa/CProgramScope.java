@@ -343,7 +343,7 @@ public class CProgramScope implements Scope {
 
     Iterator<Supplier<Iterable<CSimpleDeclaration>>> lookupSupplierIterator = filteredAndUnfiltered.iterator();
     while (results.size() != 1 && lookupSupplierIterator.hasNext()) {
-      results = FluentIterable.from(lookupSupplierIterator.next().get()).toSet();
+      results = ImmutableSet.copyOf(lookupSupplierIterator.next().get());
     }
 
     CSimpleDeclaration result = null;

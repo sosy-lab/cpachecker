@@ -37,6 +37,7 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -349,7 +350,7 @@ abstract class AbstractBMCAlgorithm
     Map<SymbolicCandiateInvariant, BmcResult> checkedClauses = new HashMap<>();
 
     if (!candidateGenerator.produceMoreCandidates()) {
-      for (AbstractState state : from(reachedSet.getWaitlist()).toList()) {
+      for (AbstractState state : ImmutableList.copyOf(reachedSet.getWaitlist())) {
         reachedSet.removeOnlyFromWaitlist(state);
       }
       return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -1080,9 +1081,9 @@ abstract class AbstractBMCAlgorithm
 
       BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
       Set<BooleanFormula> reducedLiftedCti =
-          from(SymbolicCandiateInvariant.getConjunctionOperands(
-                  pFmgr, bfmgr.not(pRefinedBlockingClause.getPlainFormula(pFmgr)), true))
-              .toSet();
+          ImmutableSet.copyOf(
+              SymbolicCandiateInvariant.getConjunctionOperands(
+                  pFmgr, bfmgr.not(pRefinedBlockingClause.getPlainFormula(pFmgr)), true));
       List<BooleanFormula> remainingLiterals =
           from(SymbolicCandiateInvariant.getConjunctionOperands(
                   pFmgr, bfmgr.not(blockingClause.getPlainFormula(pFmgr)), true))

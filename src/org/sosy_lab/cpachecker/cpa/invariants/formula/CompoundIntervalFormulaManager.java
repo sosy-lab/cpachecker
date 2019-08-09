@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -161,7 +161,8 @@ public class CompoundIntervalFormulaManager {
     if (pFormula instanceof Collection<?>) {
       return definitelyImplies((Collection<BooleanFormula<CompoundInterval>>) pFormulas, pFormula, true, newMap, false, pDisableOverflowCheck);
     }
-    return definitelyImplies(FluentIterable.from(pFormulas).toSet(), pFormula, true, newMap, false, pDisableOverflowCheck);
+    return definitelyImplies(
+        ImmutableSet.copyOf(pFormulas), pFormula, true, newMap, false, pDisableOverflowCheck);
   }
 
   /**

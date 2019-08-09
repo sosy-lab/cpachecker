@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -310,6 +311,6 @@ public class DeadLockState extends AbstractLockState {
 
   @Override
   protected Set<LockIdentifier> getLocks() {
-    return from(lockList).toSet();
+    return ImmutableSet.copyOf(lockList);
   }
 }

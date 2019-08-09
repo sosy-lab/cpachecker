@@ -187,7 +187,7 @@ public class TerminationLoopInformation {
     loop = Optional.of(pLoop);
     loopLeavingLocations =
         pLoop.getOutgoingEdges().stream().map(CFAEdge::getSuccessor).collect(toImmutableSet());
-    loopLeavingEdges = pLoop.getOutgoingEdges().stream().collect(toImmutableSet());
+    loopLeavingEdges = ImmutableSet.copyOf(pLoop.getOutgoingEdges());
     resetRankingRelation();
 
     String functionName = pLoop.getLoopHeads().iterator().next().getFunctionName();
