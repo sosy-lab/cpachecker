@@ -289,7 +289,7 @@ class AutomatonTransition {
         pArgs.getLogger().log(Level.SEVERE, res.getFailureMessage() + " in " + res.getFailureOrigin());
       }
     }
-    if (pArgs.getLogMessage() != null && pArgs.getLogMessage().length() > 0) {
+    if (pArgs.getLogMessage() != null && !pArgs.getLogMessage().isEmpty()) {
       pArgs.getLogger().log(Level.INFO, pArgs.getLogMessage());
       pArgs.clearLogMessage();
     }

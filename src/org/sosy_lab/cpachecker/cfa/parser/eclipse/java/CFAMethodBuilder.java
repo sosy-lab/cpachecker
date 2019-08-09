@@ -1351,8 +1351,8 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
 
-        boolean isBlankEdge = (prevEdge instanceof BlankEdge)
-                                && prevEdge.getDescription().equals("");
+        boolean isBlankEdge =
+            (prevEdge instanceof BlankEdge) && prevEdge.getDescription().isEmpty();
 
         if (isBlankEdge) {
 

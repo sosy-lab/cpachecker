@@ -100,7 +100,7 @@ public class ExternModelLoader {
           // +1 because of the dummy var
           assert predicates.size() == Integer.parseInt(parts.get(2)) + 1
               : "did not get all dimcas variables?";
-        } else if (line.trim().length()>0) {
+        } else if (!line.trim().isEmpty()) {
           //-17552 -11882 1489 48905 0
           // constraints
           BooleanFormula constraint = bfmgr.makeFalse();

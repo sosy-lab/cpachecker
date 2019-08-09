@@ -1781,7 +1781,7 @@ class ASTConverter {
       name = declarator.getThird();
     }
 
-    if (name == null || name.equals("")) {
+    if (name == null || name.isEmpty()) {
       name = "__anon_type_member_" + nofMember;
     }
 

@@ -846,8 +846,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       if (isReachableNode(prevNode)) {
 
         for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
-          if ((prevEdge instanceof BlankEdge)
-              && prevEdge.getDescription().equals("")) {
+          if ((prevEdge instanceof BlankEdge) && prevEdge.getDescription().isEmpty()) {
 
             // the only entering edge is a BlankEdge, so we delete this edge and prevNode
 

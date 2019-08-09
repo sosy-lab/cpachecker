@@ -75,7 +75,7 @@ public class PresisionParser {
           String nodeId = matcher.group().substring(1);
           node = idToNodeMap.get(Integer.parseInt(nodeId));
           info = new HashMap<>();
-        } else if (line.length() > 0) {
+        } else if (!line.isEmpty()) {
           // it's information about local statistics
           List<String> localSet = Splitter.on(";").splitToList(line);
 
