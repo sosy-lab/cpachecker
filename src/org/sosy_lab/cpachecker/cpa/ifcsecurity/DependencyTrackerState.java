@@ -119,9 +119,7 @@ public class DependencyTrackerState
           assert (merge.dependencies.containsKey(var));
           ndeps = merge.dependencies.get(var);
         }
-        for (Variable var2 : deps) {
-          ndeps.add(var2);
-        }
+        ndeps.addAll(deps);
         merge.dependencies.put(var, ndeps);
       }
       return merge;
@@ -163,9 +161,7 @@ public class DependencyTrackerState
       Variable key=entry.getKey();
       SortedSet<Variable> vars = entry.getValue();
       SortedSet<Variable> nvars = new TreeSet<>();
-      for (Variable var : vars) {
-        nvars.add(var);
-      }
+      nvars.addAll(vars);
       result.dependencies.put(key, nvars);
     }
 

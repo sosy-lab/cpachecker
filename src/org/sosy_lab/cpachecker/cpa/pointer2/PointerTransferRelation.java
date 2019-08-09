@@ -576,9 +576,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
                 for (MemoryLocation location : ((ExplicitLocationSet) starredLocations)) {
                   LocationSet pointsToSet = pState.getPointsToSet(location);
                   if (pointsToSet.isTop()) {
-                    for (MemoryLocation loc : pState.getKnownLocations()) {
-                      result.add(loc);
-                    }
+                    result.addAll(pState.getKnownLocations());
                     break;
                   } else if (!pointsToSet.isBot() && pointsToSet instanceof ExplicitLocationSet) {
                     ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pointsToSet;

@@ -112,9 +112,7 @@ class ReducedFunction {
     ArrayList<ReducedEdge> result = new ArrayList<>();
     Collection<Set<ReducedEdge>> edges = cfaEdges.row(pOfNode).values();
     for (Set<ReducedEdge> edgesToNode: edges) {
-      for (ReducedEdge e: edgesToNode) {
-        result.add(e);
-      }
+      result.addAll(edgesToNode);
     }
 
     return result;

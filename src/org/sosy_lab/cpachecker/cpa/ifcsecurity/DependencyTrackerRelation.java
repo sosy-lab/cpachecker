@@ -108,9 +108,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
         SortedSet<Variable> vars=visitor.getResult();
         for(Variable var: vars){
             assert(state.getDependencies().containsKey(pvar));
-            for(Variable c: state.getDependencies().get(var)){
-              deps.add(c);
-            }
+            deps.addAll(state.getDependencies().get(var));
         }
         result.getDependencies().put(pvar, deps);
       }
@@ -142,9 +140,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
       SortedSet<Variable> varl=visitor.getResult();
       SortedSet<Variable> deps=new TreeSet<>();
       assert(state.getDependencies().containsKey(function));
-      for(Variable c: state.getDependencies().get(function)){
-        deps.add(c);
-      }
+      deps.addAll(state.getDependencies().get(function));
 
       //Set dependency of variable
       for(Variable l: varl){
@@ -195,9 +191,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
           Variable tvar=new Variable(dec.getInitializer().toASTString());
           if(state.getDependencies().containsKey(tvar)){
             SortedSet<Variable> tdeps=state.getDependencies().get(tvar);
-            for(Variable tdep:tdeps){
-              deps.add(tdep);
-            }
+            deps.addAll(tdeps);
           }
         }
         result.getDependencies().put(var, deps);
@@ -256,9 +250,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
         SortedSet<Variable> deps=new TreeSet<>();
         for(Variable var: vars){
           assert(state.getDependencies().containsKey(var));
-          for(Variable c: state.getDependencies().get(var)){
-            deps.add(c);
-          }
+          deps.addAll(state.getDependencies().get(var));
         }
         result.getDependencies().put(l, deps);
       }
@@ -281,9 +273,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
        SortedSet<Variable> deps=new TreeSet<>();
        for(Variable var: vars){
          assert(state.getDependencies().containsKey(var));
-         for(Variable c: state.getDependencies().get(var)){
-           deps.add(c);
-         }
+         deps.addAll(state.getDependencies().get(var));
        }
        result.getDependencies().put(function, deps);
     }
@@ -403,9 +393,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
             int size=ostate.getGuards().getSize();
             for(int i=0;i<size;i++){
               SortedSet<Variable> nvars = ostate.getGuards().getVariables(i);
-              for(Variable nvar:nvars){
-                cvars.add(nvar);
-              }
+              cvars.addAll(nvars);
             }
           }
          }
@@ -442,9 +430,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
             int size=ostate.getGuards().getSize();
             for(int i=0;i<size;i++){
               SortedSet<Variable> nvars = ostate.getGuards().getVariables(i);
-              for(Variable nvar:nvars){
-                cvars.add(nvar);
-              }
+              cvars.addAll(nvars);
             }
           }
          }
@@ -482,9 +468,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
           int size=ostate.getGuards().getSize();
           for(int i=0;i<size;i++){
             SortedSet<Variable> nvars = ostate.getGuards().getVariables(i);
-            for(Variable nvar:nvars){
-              cvars.add(nvar);
-            }
+            cvars.addAll(nvars);
           }
          }
       }
@@ -520,9 +504,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
             SortedSet<Variable> vars=visitor.getResult();
             for(Variable var: vars){
               assert(pState.getDependencies().containsKey(var));
-              for(Variable c: pState.getDependencies().get(var)){
-                deps.add(c);
-              }
+              deps.addAll(pState.getDependencies().get(var));
             }
           }
           else{

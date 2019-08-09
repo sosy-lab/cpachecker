@@ -77,9 +77,7 @@ public class BlockGuard implements Cloneable, Serializable{
         boolean truth=value.second.first.second.booleanValue();
         SortedSet<Variable> scs=value.second.second;
         SortedSet<Variable> secsec=new TreeSet<>();
-        for(Variable sc: scs){
-          secsec.add(sc);
-        }
+        secsec.addAll(scs);
 
         Pair<CExpression,Boolean> secfirst=new Pair<>(expr,truth);
         Pair<Pair<CExpression,Boolean>,SortedSet<Variable>> sec= new Pair<>(secfirst,secsec);
@@ -107,9 +105,7 @@ public class BlockGuard implements Cloneable, Serializable{
       int size=contextstack.size();
       if(size>0){
         SortedSet<Variable> end=contextstack.get(size-1).second.second;
-        for(Variable var: end){
-          varl.add(var);
-        }
+        varl.addAll(end);
       }
 
       Pair<CExpression,Boolean> secfirst=new Pair<>(pExpression,pValue);

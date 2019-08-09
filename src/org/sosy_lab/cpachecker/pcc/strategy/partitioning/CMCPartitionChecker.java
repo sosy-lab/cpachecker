@@ -27,6 +27,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -298,9 +299,7 @@ public class CMCPartitionChecker {
   }
 
   private void prepareCoverageInspectionOfExternalNodes(AbstractState[] pPartitionNodes, AbstractState[] pExternalNodes) {
-    for(AbstractState external: pExternalNodes){
-      externalNodes.add(external);
-    }
+    externalNodes.addAll(Arrays.asList(pExternalNodes));
 
     addStatesToMapping(pPartitionNodes, partitionNodes);
 

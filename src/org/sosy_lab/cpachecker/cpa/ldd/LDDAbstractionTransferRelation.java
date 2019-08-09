@@ -268,9 +268,7 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
         region = substituteByTerm(variable, term, constant, previousRegion);
       } else {
         term.put(variable, 1);
-        for (String var : term.keySet()) {
-          this.usedVars.add(var);
-        }
+        this.usedVars.addAll(term.keySet());
         region = this.regionManager.makeAnd(previousRegion, toConstantAssignmentRegion(term, constant));
       }
       return region;
