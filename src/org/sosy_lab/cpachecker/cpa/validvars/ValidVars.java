@@ -83,17 +83,18 @@ public class ValidVars implements Serializable {
     // merge local vars
     ImmutableSet<String> newLocalsForFun;
     ImmutableMap.Builder<String,ImmutableSet<String>> builderMap = ImmutableMap.builder();
-    for (String funName: localValidVars.keySet()) {
-      checkArgument(numFunctionCalled.get(funName).equals(pOther.numFunctionCalled.get(funName)), "Require Callstack CPA to separate different function calls.");
+    for (Map.Entry<String, Set<String>> entry : localValidVars.entrySet()) {
+      String funName = entry.getKey();
+      checkArgument(
+          numFunctionCalled.get(funName).equals(pOther.numFunctionCalled.get(funName)),
+          "Require Callstack CPA to separate different function calls.");
       builder = ImmutableSet.builder();
       builder.addAll(pOther.localValidVars.get(funName));
-      builder.addAll(localValidVars.get(funName));
-
+      builder.addAll(entry.getValue());
       newLocalsForFun = builder.build();
-      if (newLocalsForFun.size()!=pOther.localValidVars.get(funName).size()) {
+      if (newLocalsForFun.size() != pOther.localValidVars.get(funName).size()) {
         changed = true;
       }
-
       builderMap.put(funName, newLocalsForFun);
     }
 
@@ -141,9 +142,10 @@ public class ValidVars implements Serializable {
   private Map<String, Set<String>> updateLocalVars(String funName, Collection<String> newLocalVarsNames) {
     if (newLocalVarsNames != null) {
       ImmutableMap.Builder<String, Set<String>> builderMap = ImmutableMap.builder();
-      for (String functionName : localValidVars.keySet()) {
+      for (Map.Entry<String, Set<String>> entry : localValidVars.entrySet()) {
+        String functionName = entry.getKey();
         if (!functionName.equals(funName)) {
-          builderMap.put(functionName, localValidVars.get(functionName));
+          builderMap.put(functionName, entry.getValue());
         }
       }
 
@@ -170,9 +172,10 @@ public class ValidVars implements Serializable {
       if (numFunctionCalled.get(funName) > 1) { return new ValidVars(globalValidVars, localValidVars,
           decreaseNumForFunction(funName)); }
       ImmutableMap.Builder<String, Set<String>> builderMap = ImmutableMap.builder();
-      for (String functionName : localValidVars.keySet()) {
+      for (Map.Entry<String, Set<String>> entry : localValidVars.entrySet()) {
+        String functionName = entry.getKey();
         if (!functionName.equals(funName)) {
-          builderMap.put(functionName, localValidVars.get(functionName));
+          builderMap.put(functionName, entry.getValue());
         }
       }
       return new ValidVars(globalValidVars, builderMap.build(), decreaseNumForFunction(funName));
@@ -182,12 +185,13 @@ public class ValidVars implements Serializable {
 
   private Map<String, Byte> decreaseNumForFunction(String pFunctionName) {
     ImmutableMap.Builder<String, Byte> builder = ImmutableMap.builder();
-    for (String functionName : numFunctionCalled.keySet()) {
+    for (Map.Entry<String, Byte> entry : numFunctionCalled.entrySet()) {
+      String functionName = entry.getKey();
       if (!functionName.equals(pFunctionName)) {
-        builder.put(functionName, numFunctionCalled.get(functionName));
+        builder.put(functionName, entry.getValue());
       } else {
-        if (numFunctionCalled.get(functionName) > 1) {
-          builder.put(functionName, (byte) (numFunctionCalled.get(functionName).byteValue() - 1));
+        if (entry.getValue() > 1) {
+          builder.put(functionName, (byte) (entry.getValue().byteValue() - 1));
         }
       }
     }
@@ -196,11 +200,12 @@ public class ValidVars implements Serializable {
 
   private Map<String, Byte> increaseNumForFunction(String pFunctionName) {
     ImmutableMap.Builder<String, Byte> builder = ImmutableMap.builder();
-    for (String functionName : numFunctionCalled.keySet()) {
+    for (Map.Entry<String, Byte> entry : numFunctionCalled.entrySet()) {
+      String functionName = entry.getKey();
       if (!functionName.equals(pFunctionName)) {
-        builder.put(functionName, numFunctionCalled.get(functionName));
+        builder.put(functionName, entry.getValue());
       } else {
-        builder.put(functionName, (byte) (numFunctionCalled.get(functionName).byteValue() + 1));
+        builder.put(functionName, (byte) (entry.getValue().byteValue() + 1));
       }
     }
     if (!numFunctionCalled.containsKey(pFunctionName)) {

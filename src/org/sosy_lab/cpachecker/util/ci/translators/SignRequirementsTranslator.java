@@ -27,12 +27,12 @@ import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-
 
 public class SignRequirementsTranslator extends CartesianRequirementsTranslator<SignState> {
 
@@ -49,9 +49,10 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
   protected List<String> getListOfIndependentRequirements(final SignState pRequirement, final SSAMap pIndices,
       final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
-    for (String var : pRequirement.getSignMapView().keySet()) {
+    for (Map.Entry<String, SIGN> entry : pRequirement.getSignMapView().entrySet()) {
+      String var = entry.getKey();
       if (pRequiredVars == null || pRequiredVars.contains(var)) {
-        list.add(getRequirement(getVarWithIndex(var, pIndices),pRequirement.getSignMapView().get(var)));
+        list.add(getRequirement(getVarWithIndex(var, pIndices), entry.getValue()));
       }
     }
     return list;

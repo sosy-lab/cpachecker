@@ -109,10 +109,11 @@ public class DependencyTrackerState
     } else {
       //Strongest Post Condition
       DependencyTrackerState merge = this;
-      //implicit copy of this
-      //explicit copy of pOther
-      for (Variable var : pOther.dependencies.keySet()) {
-        SortedSet<Variable> deps = pOther.dependencies.get(var);
+      // implicit copy of this
+      // explicit copy of pOther
+      for (Entry<Variable, SortedSet<Variable>> entry : pOther.dependencies.entrySet()) {
+        Variable var = entry.getKey();
+        SortedSet<Variable> deps = entry.getValue();
         SortedSet<Variable> ndeps = new TreeSet<>();
         if (this.dependencies.containsKey(var)) {
           assert (merge.dependencies.containsKey(var));

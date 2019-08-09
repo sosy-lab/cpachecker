@@ -201,8 +201,10 @@ public class SymbolEncoding {
           new Appender() {
             @Override
             public void appendTo(Appendable app) throws IOException {
-              for (String symbol : encodedSymbols.keySet()) {
-                final Type<FormulaType<?>> type = encodedSymbols.get(symbol);
+              for (Map.Entry<String, SymbolEncoding.Type<FormulaType<?>>> entry :
+                  encodedSymbols.entrySet()) {
+                String symbol = entry.getKey();
+                final Type<FormulaType<?>> type = entry.getValue();
                 app.append(symbol + "\t" + type.getReturnType());
                 if (!type.getParameterTypes().isEmpty()) {
                   app.append("\t" + Joiner.on("\t").join(type.getParameterTypes()));
