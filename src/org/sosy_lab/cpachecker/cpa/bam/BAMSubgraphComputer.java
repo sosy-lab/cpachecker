@@ -111,7 +111,11 @@ public class BAMSubgraphComputer {
     assert mainRs.asCollection().containsAll(targets)
       : "target states should be contained in reached-set. The following states are not contained: "
         + Iterables.filter(targets, s -> !mainRs.contains(s));
-    assert !targets.isEmpty() : "cannot compute subgraph without target states";
+    if (targets.isEmpty()) {
+      // cannot compute subgraph without target states
+      return Pair.of(
+          new BackwardARGState((ARGState) mainRs.getFirstState()), Collections.emptyList());
+    }
     Collection<BackwardARGState> newTargets =
         transformedImmutableListCopy(targets, BackwardARGState::new);
     BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet, newTargets);
