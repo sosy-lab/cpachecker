@@ -31,8 +31,10 @@ import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.base.Equivalence;
+import com.google.common.base.Joiner;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 import java.math.BigInteger;
@@ -402,40 +404,44 @@ class PointerTargetSetManager {
       int currentFieldIndex = 0;
       final ImmutableList.Builder<CCompositeTypeMemberDeclaration> membersBuilder =
           ImmutableList.builder();
+      final HashSet<CType> seenMembers = new HashSet<>();
       if (isAlreadyMergedCompositeType(type1)) {
         // if already a merged type, just copy the inner types, without creating new base-names
-        List<CCompositeTypeMemberDeclaration> members = ((CCompositeType) type1).getMembers();
-        membersBuilder.addAll(members);
-        currentFieldIndex += members.size();
+        for (CCompositeTypeMemberDeclaration innerType : ((CCompositeType) type1).getMembers()) {
+          membersBuilder.add(innerType);
+          seenMembers.add(innerType.getType());
+          currentFieldIndex++;
+        }
       } else {
         membersBuilder.add(new CCompositeTypeMemberDeclaration(type1,
                                                                getUnitedFieldBaseName(currentFieldIndex)));
+        seenMembers.add(type1);
         currentFieldIndex++;
       }
       if (isAlreadyMergedCompositeType(type2)) {
-        // if already a merged type, just copy the inner types
+        // if already a merged type, just copy the inner types, if needed
         for (CCompositeTypeMemberDeclaration innerType : ((CCompositeType) type2).getMembers()) {
+          if (seenMembers.add(innerType.getType())) {
             membersBuilder.add(
                 new CCompositeTypeMemberDeclaration(
                     innerType.getType(), getUnitedFieldBaseName(currentFieldIndex)));
             currentFieldIndex++;
+          }
         }
       } else {
+        if (seenMembers.add(type2)) {
         membersBuilder.add(new CCompositeTypeMemberDeclaration(type2,
                                                                getUnitedFieldBaseName(currentFieldIndex)));
+        }
       }
 
-
-      String varName = UNITED_BASE_UNION_TAG_PREFIX
-                       + type1.toString().replace(' ', '_')
-                       + "_and_"
-                       + type2.toString().replace(' ', '_');
-      return new CCompositeType(false,
-                                false,
-                                ComplexTypeKind.UNION,
-                                membersBuilder.build(),
-                                varName,
-                                varName);
+      ImmutableList<CCompositeTypeMemberDeclaration> members = membersBuilder.build();
+      String varName =
+          UNITED_BASE_UNION_TAG_PREFIX
+              + Joiner.on("_and_")
+                  .join(
+                      Iterables.transform(members, m -> m.getType().toString().replace(" ", "_")));
+      return new CCompositeType(false, false, ComplexTypeKind.UNION, members, varName, varName);
     }
 
     /**
