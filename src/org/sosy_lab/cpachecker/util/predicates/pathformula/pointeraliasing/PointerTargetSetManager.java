@@ -383,7 +383,9 @@ class PointerTargetSetManager {
     INSTANCE;
 
     /**
-     * Resolves a merge conflict between two types and returns the resolved type
+     * Resolves a merge conflict between two types and returns the resolved type.
+     *
+     * <p>We build up a new union-type containing all given types, except for fake-types.
      *
      * @param key   Not used in the algorithm.
      * @param type1 The first type to merge.
@@ -400,36 +402,23 @@ class PointerTargetSetManager {
       int currentFieldIndex = 0;
       final ImmutableList.Builder<CCompositeTypeMemberDeclaration> membersBuilder =
           ImmutableList.builder();
-      if (type1 instanceof CCompositeType) {
-        final CCompositeType compositeType1 = (CCompositeType) type1;
-        if (compositeType1.getKind() == ComplexTypeKind.UNION &&
-            !compositeType1.getMembers().isEmpty() &&
-            compositeType1.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0))) {
-          membersBuilder.addAll(compositeType1.getMembers());
-          currentFieldIndex += compositeType1.getMembers().size();
-        } else {
-          membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType1,
-                                                                 getUnitedFieldBaseName(currentFieldIndex)));
-          currentFieldIndex++;
-        }
+      if (isAlreadyMergedCompositeType(type1)) {
+        // if already a merged type, just copy the inner types, without creating new base-names
+        List<CCompositeTypeMemberDeclaration> members = ((CCompositeType) type1).getMembers();
+        membersBuilder.addAll(members);
+        currentFieldIndex += members.size();
       } else {
         membersBuilder.add(new CCompositeTypeMemberDeclaration(type1,
                                                                getUnitedFieldBaseName(currentFieldIndex)));
         currentFieldIndex++;
       }
-      if (type2 instanceof CCompositeType) {
-        final CCompositeType compositeType2 = (CCompositeType) type2;
-        if (compositeType2.getKind() == ComplexTypeKind.UNION &&
-            !compositeType2.getMembers().isEmpty() &&
-            compositeType2.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0))) {
-          for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType2.getMembers()) {
-            membersBuilder.add(new CCompositeTypeMemberDeclaration(memberDeclaration.getType(),
-                                                                   getUnitedFieldBaseName(currentFieldIndex)));
+      if (isAlreadyMergedCompositeType(type2)) {
+        // if already a merged type, just copy the inner types
+        for (CCompositeTypeMemberDeclaration innerType : ((CCompositeType) type2).getMembers()) {
+            membersBuilder.add(
+                new CCompositeTypeMemberDeclaration(
+                    innerType.getType(), getUnitedFieldBaseName(currentFieldIndex)));
             currentFieldIndex++;
-          }
-        } else {
-          membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType2,
-                                                                 getUnitedFieldBaseName(currentFieldIndex)));
         }
       } else {
         membersBuilder.add(new CCompositeTypeMemberDeclaration(type2,
@@ -447,6 +436,21 @@ class PointerTargetSetManager {
                                 membersBuilder.build(),
                                 varName,
                                 varName);
+    }
+
+    /**
+     * check whether the given type was already build by a previous merge of other types.
+     *
+     * <p>We check for UNION-type with special fieldnames.
+     */
+    private static boolean isAlreadyMergedCompositeType(final CType type) {
+      if (type instanceof CCompositeType) {
+        final CCompositeType compositeType = (CCompositeType) type;
+        return compositeType.getKind() == ComplexTypeKind.UNION
+            && !compositeType.getMembers().isEmpty()
+            && compositeType.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0));
+      }
+      return false;
     }
   }
 
