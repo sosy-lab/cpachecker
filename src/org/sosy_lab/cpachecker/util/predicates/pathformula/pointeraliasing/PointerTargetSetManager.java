@@ -413,8 +413,8 @@ class PointerTargetSetManager {
           currentFieldIndex++;
         }
       } else {
-        membersBuilder.add(new CCompositeTypeMemberDeclaration(type1,
-                                                               getUnitedFieldBaseName(currentFieldIndex)));
+        membersBuilder.add(
+            new CCompositeTypeMemberDeclaration(type1, getUnitedFieldBaseName(currentFieldIndex)));
         seenMembers.add(type1);
         currentFieldIndex++;
       }
@@ -430,8 +430,9 @@ class PointerTargetSetManager {
         }
       } else {
         if (seenMembers.add(type2)) {
-        membersBuilder.add(new CCompositeTypeMemberDeclaration(type2,
-                                                               getUnitedFieldBaseName(currentFieldIndex)));
+          membersBuilder.add(
+              new CCompositeTypeMemberDeclaration(
+                  type2, getUnitedFieldBaseName(currentFieldIndex)));
         }
       }
 
