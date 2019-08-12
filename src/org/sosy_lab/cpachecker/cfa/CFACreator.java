@@ -1033,6 +1033,9 @@ v.addInitializer(initializer);
             "Could not write functionCalls to dot file");
         // continue with analysis
       }
+    }
+
+    if (exportFunctionCalls && exportFunctionCallsUsedFile != null) {
       try (Writer w = IO.openOutputFile(exportFunctionCallsUsedFile, Charset.defaultCharset())) {
         FunctionCallDumper.dump(w, cfa, true);
       } catch (IOException e) {
