@@ -27,6 +27,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -113,8 +114,7 @@ public class BAMSubgraphComputer {
         + Iterables.filter(targets, s -> !mainRs.contains(s));
     if (targets.isEmpty()) {
       // cannot compute subgraph without target states
-      return Pair.of(
-          new BackwardARGState((ARGState) mainRs.getFirstState()), Collections.emptyList());
+      return Pair.of(new BackwardARGState((ARGState) mainRs.getFirstState()), ImmutableList.of());
     }
     Collection<BackwardARGState> newTargets =
         transformedImmutableListCopy(targets, BackwardARGState::new);
