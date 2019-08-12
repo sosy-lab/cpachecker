@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -287,8 +288,8 @@ class ConstraintBasedConstraintsPrecision
 
     sb.append("\nFunctionwise tracked: {");
     if (!trackedInFunction.keySet().isEmpty()) {
-      List<String> functions = new ArrayList<>(trackedInFunction.keySet());
-      Collections.sort(functions); // we always want the same function order
+      // we always want the same function order
+      List<String> functions = Ordering.natural().immutableSortedCopy(trackedInFunction.keySet());
 
       sb.append("\n");
       for (String f : functions) {
