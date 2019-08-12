@@ -629,6 +629,7 @@ cfa.callgraph.export = true
 
 # file name for call graph as .dot file
 cfa.callgraph.file = "functionCalls.dot"
+cfa.callgraph.fileUsed = "functionCallsUsed.dot"
 
 # how often do we clone a function?
 cfa.cfaCloner.numberOfCopies = 5
