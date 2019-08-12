@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.statistics;
 
-import com.google.common.collect.ConcurrentHashMultiset;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Multiset.Entry;
 import com.google.common.collect.Ordering;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Thread-safe implementation of numerical statistics.
@@ -37,24 +39,30 @@ import java.util.List;
  */
 public class StatHist extends AbstractStatValue {
 
-  protected final Multiset<Long> hist = ConcurrentHashMultiset.create();
+  protected final Multiset<Long> hist = HashMultiset.create();
 
   public StatHist(String pTitle) {
     super(StatKind.AVG, pTitle);
   }
 
   public int getTimesWithValue(Long value) {
-    return hist.count(value);
+    synchronized (hist) {
+      return hist.count(value);
+    }
   }
 
   public void insertValue(long pNewValue) {
-    hist.add(pNewValue);
+    synchronized (hist) {
+      hist.add(pNewValue);
+    }
   }
 
   @Override
   public String toString() {
-    return String.format(
-        "%s (cnt=%d, avg=%.2f, dev=%.2f)", hist, hist.size(), getAvg(), getStdDeviation());
+    synchronized (hist) {
+      return String.format(
+          "%s (cnt=%d, avg=%.2f, dev=%.2f)", hist, hist.size(), getAvg(), getStdDeviation());
+    }
   }
 
   public double getStdDeviation() {
@@ -118,10 +126,23 @@ public class StatHist extends AbstractStatValue {
 
   @Override
   public int getUpdateCount() {
-    return hist.size();
+    synchronized (hist) {
+      return hist.size();
+    }
   }
 
   public void mergeWith(StatHist other) {
-    hist.addAll(other.hist);
+    // copy data to avoid a possible deadlock from locking hist and other hist.
+    Map<Long, Integer> countMap = new LinkedHashMap<>();
+    synchronized (other.hist) {
+      for (Long e : other.hist.elementSet()) {
+        countMap.put(e, other.hist.count(e));
+      }
+    }
+    synchronized (hist) {
+      for (java.util.Map.Entry<Long, Integer> e : countMap.entrySet()) {
+        hist.add(e.getKey(), e.getValue());
+      }
+    }
   }
 }
