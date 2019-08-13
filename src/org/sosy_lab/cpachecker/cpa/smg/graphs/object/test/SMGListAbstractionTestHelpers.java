@@ -86,7 +86,7 @@ public final class SMGListAbstractionTestHelpers {
       int pHfo,
       int pNfo,
       int pPfo,
-      Integer[] pMinLengths,
+      int[] pMinLengths,
       int pLevel,
       SMGListLinkage pLinkage) {
     checkArgument(pCount >= 1, "Count must be at least 1.");
@@ -299,10 +299,10 @@ public final class SMGListAbstractionTestHelpers {
     return values;
   }
 
-  private static Integer[] getMinLengths(SMGValue[][] pLists) {
+  private static int[] getMinLengths(SMGValue[][] pLists) {
     checkArgument(
         pLists != null && pLists.length != 0, "The provided array must not be null or empty.");
-    Integer[] minLengths = new Integer[pLists.length];
+    int[] minLengths = new int[pLists.length];
     for (int i = 0; i < pLists.length; i++) {
       checkArgument(pLists[i] != null, "The provided array must not contain null.");
       minLengths[i] = pLists[i].length;
@@ -317,7 +317,7 @@ public final class SMGListAbstractionTestHelpers {
         "The provided array must not be null or empty.");
     for (SMGValue address : pAddresses) {
       SMGObject object = pSmg.getObjectPointedBy(address);
-      for (Integer offset : new Integer[] {pNfo, pPfo}) {
+      for (int offset : new int[] {pNfo, pPfo}) {
         Set<SMGEdgeHasValue> set =
             pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
         for (SMGEdgeHasValue hv : set) {
@@ -391,7 +391,7 @@ public final class SMGListAbstractionTestHelpers {
     SMGValue[] addresses = generateNewAddresses(pSublists.length);
     SMGObject[] regions = createRegionsOnHeap(pSmg, pSublists.length, pNodeSize);
     SMGValue[] subaddresses = generateNewAddresses(pSublists.length);
-    Integer[] minLengths = getMinLengths(pSublists);
+    int[] minLengths = getMinLengths(pSublists);
     int level = 0;
     SMGObject[] sublists =
         createListsOnHeap(
@@ -419,7 +419,7 @@ public final class SMGListAbstractionTestHelpers {
         pLists != null && pLists.length != 0, "The provided array must not be null or empty.");
     SMGValue[] addresses = generateNewAddresses(pLists.length);
     int level = 0;
-    Integer[] minLengths = getMinLengths(pLists);
+    int[] minLengths = getMinLengths(pLists);
     SMGObject[] lists =
         createListsOnHeap(
             pSmg, pLists.length, pNodeSize, pHfo, pNfo, pPfo, minLengths, level, pLinkage);

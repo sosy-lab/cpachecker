@@ -27,9 +27,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.math.LongMath.saturatedAdd;
 import static com.google.common.math.LongMath.saturatedMultiply;
 
+import com.google.common.primitives.Longs;
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Objects;
 
 public class Interval implements Serializable{
@@ -372,14 +371,14 @@ public class Interval implements Serializable{
    * @return new interval that represents the result of the multiplication of the two intervals
    */
   public Interval times(Interval other) {
-    Long[] values = {
+    long[] values = {
                       saturatedMultiply(low, other.low),
                       saturatedMultiply(low, other.high),
                       saturatedMultiply(high, other.low),
                       saturatedMultiply(high, other.high)
                     };
 
-    return new Interval(Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
+    return new Interval(Longs.min(values), Longs.max(values));
   }
 
   /**
@@ -393,14 +392,14 @@ public class Interval implements Serializable{
     if (other.contains(ZERO)) {
       return UNBOUND;
     } else {
-      Long[] values = {
+      long[] values = {
                         low / other.low,
                         low / other.high,
                         high / other.low,
                         high / other.high
                       };
 
-      return new Interval(Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
+      return new Interval(Longs.min(values), Longs.max(values));
     }
   }
 
