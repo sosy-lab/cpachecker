@@ -270,8 +270,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
                       Collection<CLeftHandSide> firstRes = binExp.getOperand1().accept(this);
                       Collection<CLeftHandSide> sndRes = binExp.getOperand2().accept(this);
 
-                      Set<CLeftHandSide> res = new HashSet<>();
-                      res.addAll(firstRes);
+                      Set<CLeftHandSide> res = new HashSet<>(firstRes);
+
                       res.addAll(sndRes);
 
                       return res;

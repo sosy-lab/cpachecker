@@ -654,8 +654,8 @@ public class SlicingAbstractionsUtils {
             .filter(x -> isAbstractionState(x))
             .collect(Collectors.toList());
 
-    final Set<ARGState> statesOnErrorPath = new HashSet<>();
-    statesOnErrorPath.addAll(abstractionStatesOnErrorPath);
+    final Set<ARGState> statesOnErrorPath = new HashSet<>(abstractionStatesOnErrorPath);
+
     for (int i = 0; i< abstractionStatesOnErrorPath.size()-1;i++) {
       ARGState start = abstractionStatesOnErrorPath.get(i);
       ARGState stop = abstractionStatesOnErrorPath.get(i+1);

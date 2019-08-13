@@ -232,8 +232,8 @@ public class ARGUtils {
 
     boolean lastTransitionIsDifferent = false;
     while (!currentARGState.getParents().isEmpty()) {
-      List<ARGState> potentialParents = new ArrayList<>();
-      potentialParents.addAll(currentARGState.getParents());
+      List<ARGState> potentialParents = new ArrayList<>(currentARGState.getParents());
+
       if (!tracePrefixesToAvoid.isEmpty()) {
         potentialParents.addAll(currentARGState.getCoveredByThis());
       }

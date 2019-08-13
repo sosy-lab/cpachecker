@@ -330,12 +330,12 @@ public class AppliedCustomInstructionParser {
       throw new AppliedCustomInstructionParsingFailedException("Missing label for end of custom instruction");
     }
 
-    List<String> outputVariablesAsList = new ArrayList<>();
-    outputVariablesAsList.addAll(outputVariables);
+    List<String> outputVariablesAsList = new ArrayList<>(outputVariables);
+
     Collections.sort(outputVariablesAsList);
 
-    List<String> inputVariablesAsList = new ArrayList<>();
-    inputVariablesAsList.addAll(inputVariables);
+    List<String> inputVariablesAsList = new ArrayList<>(inputVariables);
+
     Collections.sort(inputVariablesAsList);
 
     return new CustomInstruction(ciStartNode, ciEndNodes, inputVariablesAsList, outputVariablesAsList, shutdownNotifier);

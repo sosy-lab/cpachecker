@@ -273,8 +273,8 @@ public class ReachingDefState implements AbstractState, Serializable,
   }
 
   private Set<DefinitionPoint> unionSets(Set<DefinitionPoint> set1, Set<DefinitionPoint> set2) {
-    Set<DefinitionPoint> result = new HashSet<>();
-    result.addAll(set1);
+    Set<DefinitionPoint> result = new HashSet<>(set1);
+
     result.addAll(set2);
     return result;
   }

@@ -483,8 +483,8 @@ public class PredicateStaticRefiner extends StaticRefiner
       }
     }
 
-    Set<AbstractionPredicate> allPredicates = new HashSet<>();
-    allPredicates.addAll(globalPredicates);
+    Set<AbstractionPredicate> allPredicates = new HashSet<>(globalPredicates);
+
     allPredicates.addAll(functionPredicates.values());
     foundPredicates.setNextValue(allPredicates.size());
 

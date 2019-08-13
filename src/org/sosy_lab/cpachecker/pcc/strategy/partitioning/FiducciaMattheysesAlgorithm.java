@@ -151,8 +151,8 @@ public class FiducciaMattheysesAlgorithm {
       TreeMap<Long, Deque<Integer>> v2Buckets,
       Map<Integer, Long> gain,
       Map<Integer, Boolean> lock) {
-    Set<Integer> neighbors = new HashSet<>();
-    neighbors.addAll(graph.getAdjacencyList().get(node));
+    Set<Integer> neighbors = new HashSet<>(graph.getAdjacencyList().get(node));
+
     neighbors.addAll(graph.getPredecessorsOf(node));
     for(int n : neighbors) {
       boolean nInV1 = v1.contains(n);

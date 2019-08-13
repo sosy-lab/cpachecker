@@ -237,9 +237,10 @@ public class EdgeAnalyzer {
     if (pAssignment instanceof AExpressionAssignmentStatement) {
       AExpressionAssignmentStatement expressionAssignmentStatement =
           (AExpressionAssignmentStatement) pAssignment;
-      Map<MemoryLocation, CType> result = new HashMap<>();
-      result.putAll(
-          getInvolvedVariableTypes(expressionAssignmentStatement.getLeftHandSide(), pCfaEdge));
+      Map<MemoryLocation, CType> result =
+          new HashMap<>(
+              getInvolvedVariableTypes(expressionAssignmentStatement.getLeftHandSide(), pCfaEdge));
+
       result.putAll(
           getInvolvedVariableTypes(
               ExpressionToFormulaVisitor.makeCastFromArrayToPointerIfNecessary(
@@ -251,9 +252,11 @@ public class EdgeAnalyzer {
     if (pAssignment instanceof AFunctionCallAssignmentStatement) {
       AFunctionCallAssignmentStatement functionCallAssignmentStatement =
           (AFunctionCallAssignmentStatement) pAssignment;
-      Map<MemoryLocation, CType> result = new HashMap<>();
-      result.putAll(
-          getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
+      Map<MemoryLocation, CType> result =
+          new HashMap<>(
+              getInvolvedVariableTypes(
+                  functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
+
       AFunctionCallExpression functionCallExpression =
           functionCallAssignmentStatement.getFunctionCallExpression();
       for (AExpression expression : functionCallExpression.getParameterExpressions()) {
