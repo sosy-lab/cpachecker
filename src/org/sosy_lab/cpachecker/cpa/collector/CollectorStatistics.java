@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.collector;
 
-import static com.google.common.collect.FluentIterable.from;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -40,12 +42,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -54,23 +56,20 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+
 
 @Options(prefix="cpa.collector")
 public class CollectorStatistics implements Statistics {
@@ -88,15 +87,10 @@ public class CollectorStatistics implements Statistics {
 
   private final CollectorCPA cpa;
   private final LogManager logger;
-  //private static final String HTML_TEMPLATE = "collectorreport.html";
-  private static final String HTML_TEMPLATE = "collectortable.html";
-  private static final String CSS_TEMPLATE = "collectortable.css";
-  private static final String JS_TEMPLATE = "collectortable.js";
+  private static final String HTML_TEMPLATE = "collector.html";
+  private static final String CSS_TEMPLATE = "collector.css";
+  private static final String JS_TEMPLATE = "collector.js";
   private Collection<ARGState> reachedcollectionARG = new ArrayList<ARGState>();
-  private Collection<ARGState> reconstructedCollection;
-  private LinkedHashMap<ARGState, Boolean> destroyedStates;
-  private Boolean aftermerge;
-  private LinkedHashMap<ARGState, Boolean> linkedmergepartner;
   private myARGState myARGState1;
   private myARGState myARGState2;
   private final LinkedHashMap<ARGState,ARGState> linkedparents = new LinkedHashMap<>();
@@ -109,8 +103,9 @@ public class CollectorStatistics implements Statistics {
   private ARGState convertedparenttransfer;
   private ARGState newarg3;
   private final Map<Integer, Object> argNodes;
-  private final Map<String, Object> argEdges;
-
+  private final Multimap<Integer, Object> argEdges;
+  private int count;
+  private LinkedHashMap<Map<Integer, Object>,Multimap<Integer, Object>> linkedNodesAndEdges = new LinkedHashMap<>();
 
   public CollectorStatistics(CollectorCPA ccpa, Configuration config,LogManager pLogger) throws InvalidConfigurationException {
     this.cpa = ccpa;
@@ -119,13 +114,13 @@ public class CollectorStatistics implements Statistics {
     config.inject(this, CollectorStatistics.class);
 
     argNodes = new HashMap<>();
-    argEdges = new HashMap<>();
+    argEdges = ArrayListMultimap.create();
   }
 
   @Override
   public String getName() {
     return "CollectorCPA";
-  } //return null wenn ich eh keine Statistiken will
+  }
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
@@ -143,7 +138,8 @@ public class CollectorStatistics implements Statistics {
 
     private void reconstructARG(UnmodifiableReachedSet reached){
 
-    makeASonjaFileDirectory();
+    makeAFileDirectory();
+    count = 0;
 
     for (AbstractState entry : reached.asCollection()) {
 
@@ -173,8 +169,7 @@ public class CollectorStatistics implements Statistics {
           }
         }
         reachedcollectionARG.add(newarg);
-        //makeFiles(reachedcollectionARG);
-
+        makeLinkedData(reachedcollectionARG);
       }
 
       Boolean merged = ((CollectorState) entry).ismerged();
@@ -202,10 +197,13 @@ public class CollectorStatistics implements Statistics {
 
             newarg1 = new ARGState(wrappedmyARG1, current1);
             reachedcollectionARG.add(newarg1);
-            //makeFiles(reachedcollectionARG);
+            makeLinkedData(reachedcollectionARG);
+
             newarg2 = new ARGState(wrappedmyARG2, current2);
             reachedcollectionARG.add(newarg2);
-            //makeFiles(reachedcollectionARG);
+            makeLinkedData(reachedcollectionARG);
+
+
 
             boolean destroyed1 = convertedARGState1.isDestroyed();
             boolean destroyed2 = convertedARGState2.isDestroyed();
@@ -213,6 +211,21 @@ public class CollectorStatistics implements Statistics {
             linkedDestroyer.put(newarg1, destroyed1);
             linkedparents.put(convertedARGState2, newarg2);
             linkedDestroyer.put(newarg2, destroyed2);
+
+            // remove mergepartner nodes
+            int id1 = newarg1.getStateId();
+            int id2 = newarg2.getStateId();
+            argNodes.remove(id1);
+            argNodes.remove(id2);
+
+            //remove all edges associated with key(node) id1/id2
+            if(argEdges.containsKey(id1)){
+              argEdges.removeAll(id1);
+            }
+
+            if(argEdges.containsKey(id2)){
+              argEdges.removeAll(id2);
+            }
 
             reachedcollectionARG.remove(newarg2);
             reachedcollectionARG.remove(newarg1);
@@ -226,29 +239,26 @@ public class CollectorStatistics implements Statistics {
             linkedparents.put(mergedstate, newarg3);
 
             reachedcollectionARG.add(newarg3);
-            //makeFiles(reachedcollectionARG);
+            makeLinkedData(reachedcollectionARG);
 
           }
         }
       }
   }
 
-      buildArgGraphData(reachedcollectionARG);
-      makeFiles(reachedcollectionARG);
-  }
+    //makeDotFile(reachedcollectionARG);
+      makeHTMLFile();
 
-  private void insertCss(BufferedWriter pWriter) {
   }
 
   public ARGState getFirst(Collection<ARGState> collection){
       return collection.iterator().next();
     }
 
-
-  private void makeFiles(Collection<ARGState> pReachedcollectionARG) {
+  private void makeDotFile(Collection<ARGState> pReachedcollectionARG) {
     try{
       int i = 0;
-      String filenamepart1 = "./output/SonjasDotFiles/etape_";
+      String filenamepart1 = "./output/CollectorDotFiles/etape_";
       String filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
       File file = new File(filenamefinal);
       while (file.exists()) {
@@ -260,61 +270,57 @@ public class CollectorStatistics implements Statistics {
       Writer writer = new FileWriter(file, false);
       BufferedWriter bw = new BufferedWriter(writer);
 
-      ARGToDotWriter.write(bw, pReachedcollectionARG, "Test Reconstruction Sonja");
+      ARGToDotWriter.write(bw, pReachedcollectionARG, "Reconstruction of ARGstates");
 
       bw.close();
-      //####################################
-      BufferedReader reader =
-          Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
-              .openBufferedStream();
-      Writer writerhtml = IO.openOutputFile(Paths.get("./output/SonjasFile.html"),
-          Charsets.UTF_8);
-      BufferedWriter bwhtml = new BufferedWriter(writerhtml);
-      String line2;
-      while (null != (line2 = reader.readLine())){
-       // logger.log(Level.INFO, "sonja will lesen " + line2);
-        //bwhtml.write(line2);
-        if (line2.contains("REPORT_CSS")) {
-          //insertCss(writer);
-          bwhtml.write("<style>" + "\n");
-          Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
-              .copyTo(bwhtml);
-          bwhtml.write("</style>");
-        } else if (line2.contains("REPORT_JS")){
-          logger.log(Level.INFO, "sonja will javascript " );
-          //insertArgJson(bwhtml);
-          /**Resources.asCharSource(Resources.getResource(getClass(), JS_TEMPLATE), Charsets.UTF_8)
-              .copyTo(bwhtml);**/
-          insertJs(bwhtml);
-        } else {
-          bwhtml.write(line2 + "\n");
-        }
-      }
-      bwhtml.close();
-      //####################################
-
-
-
     }catch (IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not create Sonjas file.");
+          WARNING, e, "Could not create DotFiles.");
     }
   }
-private void makeASonjaFileDirectory () {
 
-    String directoryName = "./output/SonjasDotFiles";
+  private void makeHTMLFile(){
+    try {
+      BufferedReader  reader = Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
+          .openBufferedStream();
+
+    Writer writerhtml = IO.openOutputFile(Paths.get("./output/ComputationSteps.html"),
+        Charsets.UTF_8);
+    BufferedWriter bwhtml = new BufferedWriter(writerhtml);
+    String line2;
+    while (null != (line2 = reader.readLine())){
+      if (line2.contains("REPORT_CSS")) {
+        bwhtml.write("<style>" + "\n");
+        Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
+            .copyTo(bwhtml);
+        bwhtml.write("</style>");
+      } else if (line2.contains("REPORT_JS")){
+        insertJs(bwhtml);
+      } else {
+        bwhtml.write(line2 + "\n");
+      }
+    }
+    bwhtml.close();
+
+  }catch (IOException e) {
+    logger.logUserException(
+        WARNING, e, "Could not create HTMLFile.");
+    }
+  }
+
+  private void makeAFileDirectory () {
+
+    String directoryName = "./output/CollectorDotFiles";
     File directory = new File(directoryName);
    if (! directory.exists()){
      try {
        directory.mkdir();
      }catch(SecurityException se){
        logger.logUserException(
-           WARNING, se, "Could not create Sonjas directory.");
+           WARNING, se, "Could not create directory.");
      }
     }
 }
-//!!!!!Ab hier code aus ReportGenerator:
-
 
   private void insertJs(
       Writer writer)
@@ -325,7 +331,7 @@ private void makeASonjaFileDirectory () {
       String line;
       while (null != (line = reader.readLine())) {
          if (line.contains("ARG_JSON_INPUT")) {
-          insertArgJson(writer);
+          makeArgJson(writer);
         }  else {
           writer.write(line + "\n");
         }
@@ -333,51 +339,63 @@ private void makeASonjaFileDirectory () {
     }
   }
 
-  private void insertArgJson(Writer writer) {
-    try {
-      // Achtung für die HTML-Tabelle Klammern {} weg und write "nodes" auskommentieren
-      writer.write("var myData = { ");
-      if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
-        writer.write("\n\"nodes\":");
-        JSON.writeJSONString(argNodes.values(), writer);
-        writer.write(",\n\"edges\":");
-        JSON.writeJSONString(argEdges.values(), writer);
-        writer.write("\n");
-      }
-      writer.write("}\n");
-    } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report: Inserting ARG Json failed.");
-    }
+  private void makeLinkedData(Collection<ARGState> pReachedcollectionARG){
+
+    buildArgGraphData(pReachedcollectionARG);
+
+    Map<Integer, Object> immutableMapNodes =
+        Collections.unmodifiableMap(new LinkedHashMap<Integer, Object>(argNodes));
+
+    Multimap<Integer, Object> immutableMapEdges = ImmutableMultimap.<Integer, Object>builder().putAll(argEdges)
+            .build();
+
+    linkedNodesAndEdges.put(immutableMapNodes,immutableMapEdges);
   }
 
+
+  private void makeArgJson(Writer writer) {
+
+    if (!linkedNodesAndEdges.isEmpty()) {
+      linkedNodesAndEdges.forEach((key, value) -> {
+        try {
+          writer.write("var myData" + count + " = { ");
+            writer.write("\n\"nodes\":");
+            JSON.writeJSONString(key.values(), writer);
+            writer.write(",\n\"edges\":");
+            JSON.writeJSONString(value.values(), writer);
+            writer.write(",\n\"other\":");
+            JSON.writeJSONString(count, writer);
+            writer.write("\n");
+          writer.write("}\n");
+          count++;
+          writer.write("var myCount = " + linkedNodesAndEdges.size());
+          writer.write("\n");
+        } catch (IOException e) {
+          logger.logUserException(WARNING, e, "Inserting ARG Json failed.");
+        }
+      });
+    }
+  }
 
   private void buildArgGraphData(Collection<ARGState> reached) {
     for (AbstractState entry : reached) {
       int parentStateId = ((ARGState) entry).getStateId();
+
       for (CFANode node : AbstractStates.extractLocations(entry)) {
         if (!argNodes.containsKey(parentStateId)) {
           argNodes.put(parentStateId, createArgNode(parentStateId, node, (ARGState) entry));
-          if (!((ARGState) entry).getChildren().isEmpty()) {
-            for (ARGState child : ((ARGState) entry).getChildren()) {
-              int childStateId = child.getStateId();
-              // Covered state is not contained in the reached set
-              if (child.isCovered()) {
-                String label = child.toDOTLabel();
-                label = label.length() > 2 ? label.substring(0, label.length() - 2) : "";
-                //createCoveredArgNode(childStateId, child, label);
-                //createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
-              }
-              argEdges.put(
-                  parentStateId + "->" + childStateId,
-                  createArgEdge(
-                      parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child)));
-            }
-          }
-        }}}
-    logger.log(Level.INFO, "sonja argnodes " +"\n" + argNodes.toString());
-    logger.log(Level.INFO, "sonja argedges " +"\n" + argEdges.toString());
+        }}
+      Collection<ARGState> children = ((ARGState) entry).getChildren();
+      for (ARGState child : children) {
+        int childID = child.getStateId();
+        argEdges.put(
+            childID,
+            createArgEdge(
+                parentStateId, childID, ((ARGState) entry).getEdgesToChild(child)));
+      }
+    }
   }
-
+// ReportGenerator methods
   private Map<String, Object> createArgNode(int parentStateId, CFANode node, ARGState argState) {
     String dotLabel =
         argState.toDOTLabel().length() > 2
@@ -471,11 +489,4 @@ private void makeASonjaFileDirectory () {
         .replaceAll("\\s+", " ")
         .replaceAll(" ;", ";");
   }
-
-
-
-
-
-
-
 }
