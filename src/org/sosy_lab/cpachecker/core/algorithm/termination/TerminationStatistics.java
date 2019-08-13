@@ -70,6 +70,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -138,6 +139,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   )
   @FileOption(Type.OUTPUT_FILE)
   private Path violationWitness = Paths.get("nontermination_witness.graphml");
+
+  @Option(
+    secure = true,
+    name = "compressWitness",
+    description = "compress the produced violation-witness automata using GZIP compression."
+  )
+  private boolean compressWitness = true;
 
   private final int totalLoops;
 
@@ -474,14 +482,33 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
 
-    try (Writer writer = IO.openOutputFile(violationWitness, Charset.defaultCharset())) {
-      witnessExporter.writeTerminationErrorWitness(
-          writer,
-          newRoot,
-          relevantStates,
-          BiPredicates.bothSatisfy(relevantStates),
-          state -> state == loopStartInCEX,
-          provideQuasiInvariant);
+    try {
+      if (!compressWitness) {
+        try (Writer writer = IO.openOutputFile(violationWitness, Charset.defaultCharset())) {
+          witnessExporter.writeTerminationErrorWitness(
+              writer,
+              newRoot,
+              relevantStates,
+              BiPredicates.bothSatisfy(relevantStates),
+              state -> state == loopStartInCEX,
+              provideQuasiInvariant);
+        }
+      } else {
+        Path file = violationWitness;
+        file.resolveSibling(file.getFileName() + ".gz");
+        IO.writeGZIPFile(
+            file,
+            Charset.defaultCharset(),
+            (Appender)
+                pAppendable ->
+                    witnessExporter.writeTerminationErrorWitness(
+                        pAppendable,
+                        newRoot,
+                        relevantStates,
+                        BiPredicates.bothSatisfy(relevantStates),
+                        state -> state == loopStartInCEX,
+                        provideQuasiInvariant));
+      }
     } catch (IOException e) {
       logger.logException(WARNING, e, "Violation witness export failed.");
     }

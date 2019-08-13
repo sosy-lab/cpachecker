@@ -30,7 +30,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Queues;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
-import java.io.Writer;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
@@ -134,7 +133,7 @@ public class WitnessExporter {
   }
 
   public void writeTerminationErrorWitness(
-      final Writer pWriter,
+      final Appendable pWriter,
       final ARGState pRoot,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,

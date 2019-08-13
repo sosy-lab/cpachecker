@@ -3766,6 +3766,9 @@ statistics.print = false
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
+# compress the produced violation-witness automata using GZIP compression.
+termination.compressWitness = true
+
 # When checking for the termination property, use this configuration file
 # instead of the current one.
 termination.config = no default value
