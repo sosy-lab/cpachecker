@@ -495,7 +495,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         }
       } else {
         Path file = violationWitness;
-        file.resolveSibling(file.getFileName() + ".gz");
+        file = file.resolveSibling(file.getFileName() + ".gz");
         IO.writeGZIPFile(
             file,
             Charset.defaultCharset(),
