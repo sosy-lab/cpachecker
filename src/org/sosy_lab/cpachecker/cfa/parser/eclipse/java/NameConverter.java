@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -54,46 +56,32 @@ final class NameConverter {
         convertClassOrInterfaceToFullName(binding.getDeclaringClass())
             + DELIMITER + binding.getName()));
 
-    String[] typeNames = convertTypeNames(binding.getParameterTypes());
-
-    if (typeNames.length > 0) {
+    final ITypeBinding[] parameterTypes = binding.getParameterTypes();
+    if (parameterTypes.length > 0) {
       name.append(DELIMITER);
     }
-
-    Joiner.on(DELIMITER).appendTo(name , typeNames);
+    Joiner.on(DELIMITER)
+        .appendTo(name, from(parameterTypes).transform(NameConverter::convertTypeName));
 
     return name.toString();
   }
 
-  public static String[] convertTypeNames(ITypeBinding[] parameterTypes) {
+  private static String convertTypeName(ITypeBinding binding) {
+    // TODO Erase when Library in class Path
+    if (binding.getBinaryName().equals("String")
+        || binding.getQualifiedName().equals("java.lang.String")) {
+      return "java_lang_String";
 
-    String[] typeNames = new String[parameterTypes.length];
+    } else if (binding.isArray()) {
+      ITypeBinding elementType = binding.getElementType();
 
-    int c = 0;
-    for (ITypeBinding parameterTypeBindings : parameterTypes) {
-
-      // TODO Erase when Library in class Path
-      if (parameterTypeBindings.getBinaryName().equals("String")
-          || parameterTypeBindings.getQualifiedName().equals("java.lang.String")) {
-
-        typeNames[c] = "java_lang_String";
-      } else if(parameterTypeBindings.isArray()) {
-
-       ITypeBinding elementType = parameterTypeBindings.getElementType();
-
-       if (elementType.getBinaryName().equals("String")
-           || elementType.getQualifiedName().equals("java.lang.String")) {
-         typeNames[c] = "String[]";
-       } else {
-         typeNames[c] = elementType.getQualifiedName() + "[]";
-       }
-      } else {
-        typeNames[c] = parameterTypeBindings.getQualifiedName();
+      if (elementType.getBinaryName().equals("String")
+          || elementType.getQualifiedName().equals("java.lang.String")) {
+        return "String[]";
       }
-
-      c++;
+      return elementType.getQualifiedName() + "[]";
     }
-    return typeNames;
+    return binding.getQualifiedName();
   }
 
   public static String convertName(IVariableBinding vb) {

@@ -107,9 +107,8 @@ public class ARGToAutomatonConverterTest extends AbstractARGTranslationTest {
     Automaton aut = converter.getAutomaton(root, true);
     Files.write(automatonPath, aut.toString().getBytes("utf-8"));
 
-
     for (String analysis :
-        new String[] {"predicateAnalysis.properties", "valueAnalysis.properties"}) {
+        ImmutableList.of("predicateAnalysis.properties", "valueAnalysis.properties")) {
       // test whether C program still gives correct verdict with joint automaton:
       Configuration reConfig =
           TestDataTools.configurationForTest()

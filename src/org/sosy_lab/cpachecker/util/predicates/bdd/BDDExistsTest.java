@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.bdd;
 
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,8 +49,8 @@ public class BDDExistsTest {
   public String bddPackage;
 
   @Parameters(name = "{0}")
-  public static Object[] getAllPackages() {
-    return new String[] {"SYLVAN", "JAVA"};
+  public static List<String> getAllPackages() {
+    return ImmutableList.of("SYLVAN", "JAVA");
   }
 
   @Test
