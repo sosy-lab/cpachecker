@@ -26,10 +26,10 @@ package org.sosy_lab.cpachecker.util.pixelexport;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.ImmutableIntArray;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.awt.Color;
 import java.util.Collection;
-import java.util.List;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class SimpleGraphLevel implements GraphLevel {
@@ -52,7 +52,7 @@ public class SimpleGraphLevel implements GraphLevel {
   }
 
   @Override
-  public Collection<Pair<List<Integer>, Color>> getGroups() {
+  public Collection<Pair<ImmutableIntArray, Color>> getGroups() {
     return ImmutableList.of();
   }
 
