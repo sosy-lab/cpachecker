@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.primitives.ImmutableLongArray;
 import java.util.Objects;
 
 public class SMGMemoryPath {
@@ -34,34 +32,36 @@ public class SMGMemoryPath {
   private final String functionName;
   private final Integer locationOnStack;
   private final boolean globalStart;
-  private final List<Long> pathOffsets;
+  private final ImmutableLongArray pathOffsets;
 
-  private SMGMemoryPath(String pVariableName, String pFunctionName, Long pPathOffset,
-      Integer pLocationOnStack) {
+  private SMGMemoryPath(
+      String pVariableName, String pFunctionName, long pPathOffset, Integer pLocationOnStack) {
     globalStart = false;
     variableName = pVariableName;
     functionName = pFunctionName;
-    pathOffsets = ImmutableList.of(pPathOffset);
+    pathOffsets = ImmutableLongArray.of(pPathOffset);
     locationOnStack = pLocationOnStack;
   }
 
-  private SMGMemoryPath(String pVariableName, Long pPathOffset) {
+  private SMGMemoryPath(String pVariableName, long pPathOffset) {
     globalStart = true;
     variableName = pVariableName;
     functionName = null;
     locationOnStack = null;
-    pathOffsets = ImmutableList.of(pPathOffset);
+    pathOffsets = ImmutableLongArray.of(pPathOffset);
   }
 
-  public SMGMemoryPath(SMGMemoryPath pParent, Long pOffset) {
+  public SMGMemoryPath(SMGMemoryPath pParent, long pOffset) {
     globalStart = pParent.globalStart;
     variableName = pParent.variableName;
     functionName = pParent.functionName;
     locationOnStack = pParent.locationOnStack;
 
-    List<Long> offsets = new ArrayList<>(pParent.getPathOffset());
-    offsets.add(pOffset);
-    pathOffsets = ImmutableList.copyOf(offsets);
+    pathOffsets =
+        ImmutableLongArray.builder(pParent.getPathOffset().length() + 1)
+            .addAll(pParent.getPathOffset())
+            .add(pOffset)
+            .build();
   }
 
   public String getFunctionName() {
@@ -76,7 +76,7 @@ public class SMGMemoryPath {
     return variableName;
   }
 
-  public List<Long> getPathOffset() {
+  public ImmutableLongArray getPathOffset() {
     return pathOffsets;
   }
 
@@ -96,10 +96,11 @@ public class SMGMemoryPath {
 
     result.append(variableName);
 
-    for (Long offset : pathOffsets) {
-      result.append("->");
-      result.append(offset);
-    }
+    pathOffsets.forEach(
+        offset -> {
+          result.append("->");
+          result.append(offset);
+        });
 
     return result.toString();
   }
@@ -125,16 +126,16 @@ public class SMGMemoryPath {
         && Objects.equals(variableName, other.variableName);
   }
 
-  public static SMGMemoryPath valueOf(String pVariableName, String pFunctionName,
-                                      Long pPathOffset, Integer pLocationOnStack) {
+  public static SMGMemoryPath valueOf(
+      String pVariableName, String pFunctionName, long pPathOffset, Integer pLocationOnStack) {
     return new SMGMemoryPath(pVariableName, pFunctionName, pPathOffset, pLocationOnStack);
   }
 
-  public static SMGMemoryPath valueOf(String pVariableName, Long pPathOffset) {
+  public static SMGMemoryPath valueOf(String pVariableName, long pPathOffset) {
     return new SMGMemoryPath(pVariableName, pPathOffset);
   }
 
-  public static SMGMemoryPath valueOf(SMGMemoryPath pParent, Long pOffset) {
+  public static SMGMemoryPath valueOf(SMGMemoryPath pParent, long pOffset) {
     return new SMGMemoryPath(pParent, pOffset);
   }
 }

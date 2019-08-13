@@ -27,14 +27,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.ImmutableLongArray;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
@@ -532,11 +531,10 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
 
     SMGObject object = initialRegion.get();
-    List<Long> offsets = pLocation.getPathOffset();
-    Iterator<Long> it = offsets.iterator();
+    final ImmutableLongArray offsets = pLocation.getPathOffset();
 
-    while (it.hasNext()) {
-      long offset = it.next();
+    for (int i = 0; i < offsets.length(); i++) {
+      final long offset = offsets.get(i);
 
       Set<SMGEdgeHasValue> hves =
           getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
@@ -545,7 +543,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
       }
 
       SMGEdgeHasValue hve = Iterables.getOnlyElement(hves);
-      if (!it.hasNext()) {
+      if (i == offsets.length() - 1) {
         return Optional.of(hve);
       }
 
