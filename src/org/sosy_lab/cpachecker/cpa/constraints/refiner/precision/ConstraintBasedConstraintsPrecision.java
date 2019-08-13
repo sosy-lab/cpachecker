@@ -26,12 +26,10 @@ package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -268,11 +266,9 @@ class ConstraintBasedConstraintsPrecision
 
     sb.append("\nLocally tracked: {");
     if (!trackedLocally.keySet().isEmpty()) {
-      List<CFANode> nodes = new ArrayList<>(trackedLocally.keySet());
-      Collections.sort(nodes); // we always want the same node order
-
       sb.append("\n");
-      for (CFANode n : nodes) {
+      // we always want the same node order
+      for (CFANode n : ImmutableList.sortedCopyOf(trackedLocally.keySet())) {
         sb.append("\t").append(n).append(" -> ");
 
         // unfortunately, constraints aren't comparable, so we won't have a deterministic order.
@@ -289,7 +285,7 @@ class ConstraintBasedConstraintsPrecision
     sb.append("\nFunctionwise tracked: {");
     if (!trackedInFunction.keySet().isEmpty()) {
       // we always want the same function order
-      List<String> functions = Ordering.natural().immutableSortedCopy(trackedInFunction.keySet());
+      List<String> functions = ImmutableList.sortedCopyOf(trackedInFunction.keySet());
 
       sb.append("\n");
       for (String f : functions) {

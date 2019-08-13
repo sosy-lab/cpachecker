@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.slicing;
 
+import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -96,16 +96,12 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     slicingTime.start();
     Set<CFAEdge> relevantEdges = new HashSet<>();
     try {
-
-      List<CFAEdge> criteriaEdges = new ArrayList<>(pSlicingCriteria);
-
       // Heuristic: Reverse to make states that are deeper in the path first - these
       // have a higher chance of including earlier states in their dependences
-      criteriaEdges.sort(
-          (f, s) ->
-              Integer.compare(
-                  f.getPredecessor().getReversePostorderId(),
-                  s.getPredecessor().getReversePostorderId()));
+      ImmutableList<CFAEdge> criteriaEdges =
+          ImmutableList.sortedCopyOf(
+              Comparator.comparingInt(edge -> edge.getPredecessor().getReversePostorderId()),
+              pSlicingCriteria);
 
       for (CFAEdge g : criteriaEdges) {
         if (relevantEdges.contains(g)) {

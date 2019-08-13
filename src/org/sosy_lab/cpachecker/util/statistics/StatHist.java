@@ -24,12 +24,11 @@
 package org.sosy_lab.cpachecker.util.statistics;
 
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Multiset.Entry;
-import com.google.common.collect.Ordering;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -86,7 +85,7 @@ public class StatHist extends AbstractStatValue {
   /** returns the element at position floor(size/2). */
   public long getMean() {
     synchronized (hist) {
-      List<Long> values = Ordering.natural().immutableSortedCopy(hist.elementSet());
+      ImmutableList<Long> values = ImmutableList.sortedCopyOf(hist.elementSet());
       int i = 0;
       int middle = (hist.size() + 1) / 2;
       for (long value : values) { // sorted

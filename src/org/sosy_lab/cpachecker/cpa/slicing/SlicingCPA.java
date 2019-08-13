@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.slicing;
 
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -30,10 +32,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -237,11 +236,13 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
                         fullPrec.getNew(slicingPrec.getWrappedPrec(), slicingPrec.getRelevant());
                   }
                 }
-                List<CFAEdge> edges = new ArrayList<>(fullPrec.getRelevant());
-                edges.sort(Comparator.comparing(CFAEdge::toString));
+                ImmutableList<String> edges =
+                    ImmutableList.sortedCopyOf(
+                        Collections2.transform(fullPrec.getRelevant(), Object::toString));
 
-                for (CFAEdge e : edges) {
-                  sliceFile.write(e.toString() + "\n");
+                for (String e : edges) {
+                  sliceFile.write(e);
+                  sliceFile.write('\n');
                 }
               } catch (IOException pE) {
                 logger.logException(Level.INFO, pE, "Writing slice failed");

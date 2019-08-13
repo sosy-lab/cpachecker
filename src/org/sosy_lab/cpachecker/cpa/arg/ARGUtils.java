@@ -44,7 +44,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
@@ -1044,7 +1043,7 @@ public class ARGUtils {
 
     int multiEdgeCount = 0; // see below
 
-    for (ARGState s : Ordering.natural().immutableSortedCopy(pPathStates)) {
+    for (ARGState s : ImmutableList.sortedCopyOf(pPathStates)) {
 
       sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
 
@@ -1149,7 +1148,7 @@ public class ARGUtils {
     CFANode inLoopNode = null;
     CFANode inFunctionNode = null;
 
-    ImmutableList<ARGState> sortedStates = Ordering.natural().immutableSortedCopy(pPathStates);
+    ImmutableList<ARGState> sortedStates = ImmutableList.sortedCopyOf(pPathStates);
 
     Deque<String> sortedFunctionOccurrence = new ArrayDeque<>();
     for (ARGState s : sortedStates) {
