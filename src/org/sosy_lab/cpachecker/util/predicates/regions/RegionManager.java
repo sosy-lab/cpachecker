@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.regions;
 
+import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
@@ -89,7 +89,7 @@ public interface RegionManager extends RegionCreator {
    *
    * @param pOrder the new order of the variables.
    */
-  void setVarOrder(ArrayList<Integer> pOrder);
+  void setVarOrder(ImmutableIntArray pOrder);
 
   /**
    * Reorders the bdd variables with the provided strategy.
