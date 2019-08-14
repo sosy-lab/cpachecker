@@ -1224,7 +1224,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
      */
     for (SMGEdgeHasValue hv : edges) {
 
-      boolean hvEdgeOverlaps = new_edge.overlapsWith(hv, heap.getMachineModel());
+      boolean hvEdgeOverlaps = new_edge.overlapsWith(hv);
       boolean hvEdgeIsZero = hv.getValue() == SMGZeroValue.INSTANCE;
 
       if (hvEdgeOverlaps) {
@@ -1696,7 +1696,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     // Remove all target edges in range
     for (SMGEdgeHasValue edge : getHVEdges(filterTarget)) {
-      if (edge.overlapsWith(pTargetOffset, targetRangeSize, heap.getMachineModel())) {
+      if (edge.overlapsWith(pTargetOffset, targetRangeSize)) {
         heap.removeHasValueEdge(edge);
 
         // Shrink overlapping zero edge
@@ -1729,7 +1729,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // Shift the source edge offset depending on the target range offset
     long copyShift = pTargetOffset - pSourceOffset;
     for (SMGEdgeHasValue edge : getHVEdges(filterSource)) {
-      if (edge.overlapsWith(pSourceOffset, pSourceLastCopyBitOffset, heap.getMachineModel())) {
+      if (edge.overlapsWith(pSourceOffset, pSourceLastCopyBitOffset)) {
         long offset = edge.getOffset() + copyShift;
         newSMGState = writeValue0(pTarget, offset, edge.getType(), edge.getValue()).getState();
       }

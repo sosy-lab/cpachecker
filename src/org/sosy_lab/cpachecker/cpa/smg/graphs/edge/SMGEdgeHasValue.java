@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.math.BigInteger;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -101,17 +100,17 @@ public class SMGEdgeHasValue extends SMGEdge {
     return true;
   }
 
-  public boolean overlapsWith(SMGEdgeHasValue other, MachineModel pModel) {
+  public boolean overlapsWith(SMGEdgeHasValue other) {
     checkArgument(
         object == other.object,
         "Call of overlapsWith() on Has-Value edges pair not originating from the same object");
 
     long otStart = other.getOffset();
     long otEnd = otStart + other.getSizeInBits();
-    return overlapsWith(otStart, otEnd, pModel);
+    return overlapsWith(otStart, otEnd);
   }
 
-  public boolean overlapsWith(long pOtStart, long pOtEnd, MachineModel pModel) {
+  public boolean overlapsWith(long pOtStart, long pOtEnd) {
 
     long myStart = getOffset();
 

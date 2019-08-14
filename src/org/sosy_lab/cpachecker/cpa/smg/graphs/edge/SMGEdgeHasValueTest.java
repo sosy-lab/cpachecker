@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -39,8 +38,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGEdgeHasValueTest {
-
-  private static final MachineModel MM = MachineModel.LINUX64;
 
   private final int mockTypeSize = 32;
   private final int mockTypeSize12b = 96;
@@ -88,25 +85,25 @@ public class SMGEdgeHasValueTest {
     SMGEdgeHasValue at4 = new SMGEdgeHasValue(mockType, mockTypeSize, 32, object, value);
     SMGEdgeHasValue at6 = new SMGEdgeHasValue(mockType, mockTypeSize, 48, object, value);
 
-    assertThat(at0.overlapsWith(at2, MM)).isTrue();
-    assertThat(at2.overlapsWith(at0, MM)).isTrue();
-    assertThat(at2.overlapsWith(at4, MM)).isTrue();
-    assertThat(at4.overlapsWith(at2, MM)).isTrue();
-    assertThat(at4.overlapsWith(at6, MM)).isTrue();
-    assertThat(at6.overlapsWith(at4, MM)).isTrue();
+    assertThat(at0.overlapsWith(at2)).isTrue();
+    assertThat(at2.overlapsWith(at0)).isTrue();
+    assertThat(at2.overlapsWith(at4)).isTrue();
+    assertThat(at4.overlapsWith(at2)).isTrue();
+    assertThat(at4.overlapsWith(at6)).isTrue();
+    assertThat(at6.overlapsWith(at4)).isTrue();
 
-    assertThat(at0.overlapsWith(at0, MM)).isTrue();
+    assertThat(at0.overlapsWith(at0)).isTrue();
 
-    assertThat(at0.overlapsWith(at4, MM)).isFalse();
-    assertThat(at0.overlapsWith(at6, MM)).isFalse();
-    assertThat(at2.overlapsWith(at6, MM)).isFalse();
-    assertThat(at4.overlapsWith(at0, MM)).isFalse();
-    assertThat(at6.overlapsWith(at0, MM)).isFalse();
-    assertThat(at6.overlapsWith(at2, MM)).isFalse();
+    assertThat(at0.overlapsWith(at4)).isFalse();
+    assertThat(at0.overlapsWith(at6)).isFalse();
+    assertThat(at2.overlapsWith(at6)).isFalse();
+    assertThat(at4.overlapsWith(at0)).isFalse();
+    assertThat(at6.overlapsWith(at0)).isFalse();
+    assertThat(at6.overlapsWith(at2)).isFalse();
 
     SMGEdgeHasValue whole = new SMGEdgeHasValue(mockType12b, mockTypeSize12b, 0, object, value);
-    assertThat(whole.overlapsWith(at4, MM)).isTrue();
-    assertThat(at4.overlapsWith(whole, MM)).isTrue();
+    assertThat(whole.overlapsWith(at4)).isTrue();
+    assertThat(at4.overlapsWith(whole)).isTrue();
   }
 
   @Test
@@ -174,7 +171,7 @@ public class SMGEdgeHasValueTest {
     SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType, mockTypeSize, 0, object1, value);
     SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType, mockTypeSize, 16, object2, value);
 
-    hv1.overlapsWith(hv2, MM);
+    hv1.overlapsWith(hv2);
   }
 
   @Test
