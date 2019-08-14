@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 public class SMGEdgeHasValue extends SMGEdge {
 
   final private CType type;
+  private final BigInteger sizeInBits;
 
   /**
    * @param pType type of the object's memory starting at offset.
@@ -49,14 +51,24 @@ public class SMGEdgeHasValue extends SMGEdge {
    * @param pObject the target object pointed to.
    * @param pValue the value that points to some object.
    */
-  public SMGEdgeHasValue(CType pType, long pOffset, SMGObject pObject, SMGValue pValue) {
+  public SMGEdgeHasValue(
+      CType pType, BigInteger pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
     super(pValue, pObject, pOffset);
     type = pType;
+    sizeInBits = pSizeInBits;
+  }
+
+  public SMGEdgeHasValue(
+      CType pType, long pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
+    super(pValue, pObject, pOffset);
+    type = pType;
+    sizeInBits = BigInteger.valueOf(pSizeInBits);
   }
 
   public SMGEdgeHasValue(int pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
     super(pValue, pObject, pOffset);
     type = TypeUtils.createTypeWithLength(pSizeInBits);
+    sizeInBits = BigInteger.valueOf(pSizeInBits);
   }
 
   @Override
@@ -72,6 +84,10 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   public int getSizeInBits(MachineModel pMachineModel) {
     return pMachineModel.getSizeofInBits(type).intValueExact();
+  }
+
+  public long getSizeInBits() {
+    return sizeInBits.longValueExact();
   }
 
   @Override

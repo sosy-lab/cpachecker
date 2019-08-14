@@ -106,7 +106,12 @@ class SMGJoinFields {
       filterForSMG2.filterAtOffset(edge.getOffset());
       if (pSMG2.getHVEdges(filterForSMG2).isEmpty()) {
         returnSet.add(
-            new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj2, SMGKnownSymValue.of()));
+            new SMGEdgeHasValue(
+                edge.getType(),
+                edge.getSizeInBits(),
+                edge.getOffset(),
+                pObj2,
+                SMGKnownSymValue.of()));
       }
     }
 
@@ -199,7 +204,13 @@ class SMGJoinFields {
 
         Entry<Long, Integer> floorEntry = newNullEdgesOffsetToSize.floorEntry(min);
         if (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= max ) {
-          retset.add(new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj1, SMGZeroValue.INSTANCE));
+          retset.add(
+              new SMGEdgeHasValue(
+                  edge.getType(),
+                  edge.getSizeInBits(),
+                  edge.getOffset(),
+                  pObj1,
+                  SMGZeroValue.INSTANCE));
         }
       }
     }

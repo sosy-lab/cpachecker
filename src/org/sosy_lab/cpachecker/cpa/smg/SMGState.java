@@ -503,7 +503,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     for (SMGEdgeHasValue edge : fields) {
       heap.addHasValueEdge(
-          new SMGEdgeHasValue(edge.getType(), edge.getOffset(), newObject, edge.getValue()));
+          new SMGEdgeHasValue(
+              edge.getType(), edge.getSizeInBits(), edge.getOffset(), newObject, edge.getValue()));
     }
 
     for (SMGEdgePointsTo edge : pointer) {
@@ -679,7 +680,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     for (SMGEdgeHasValue hve : oldFieldsEdges) {
       heap.addHasValueEdge(
-          new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newSll, hve.getValue()));
+          new SMGEdgeHasValue(
+              hve.getType(), hve.getSizeInBits(), hve.getOffset(), newSll, hve.getValue()));
     }
 
     for (SMGEdgePointsTo ptE : oldPtEdges) {
@@ -797,7 +799,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     for (SMGEdgeHasValue hve : oldFieldsEdges) {
       heap.addHasValueEdge(
-          new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newDll, hve.getValue()));
+          new SMGEdgeHasValue(
+              hve.getType(), hve.getSizeInBits(), hve.getOffset(), newDll, hve.getValue()));
     }
 
     for (SMGEdgePointsTo ptE : oldPtEdges) {
@@ -872,7 +875,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           }
         }
         heap.addHasValueEdge(
-            new SMGEdgeHasValue(hve.getType(), hve.getOffset(), pNewRegion, newVal));
+            new SMGEdgeHasValue(
+                hve.getType(), hve.getSizeInBits(), hve.getOffset(), pNewRegion, newVal));
       } else {
         MachineModel model = heap.getMachineModel();
         int sizeOfHveInBits = hve.getSizeInBits(model);
@@ -954,7 +958,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           }
         }
       }
-      heap.addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newObj, newVal));
+      heap.addHasValueEdge(
+          new SMGEdgeHasValue(hve.getType(), hve.getSizeInBits(), hve.getOffset(), newObj, newVal));
     }
   }
 
@@ -1096,7 +1101,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return SMGValueAndState.of(newState);
     }
 
-    SMGEdgeHasValue edge = new SMGEdgeHasValue(pType, pOffset, pObject, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue edge =
+        new SMGEdgeHasValue(
+            pType,
+            heap.getMachineModel().getSizeofInBits(pType),
+            pOffset,
+            pObject,
+            SMGZeroValue.INSTANCE);
 
     SMGEdgeHasValueFilter filter =
         SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pOffset);
@@ -1191,7 +1202,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return new SMGStateEdgePair(newState);
     }
 
-    SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pType, pOffset, pObject, pValue);
+    SMGEdgeHasValue new_edge =
+        new SMGEdgeHasValue(
+            pType, heap.getMachineModel().getSizeofInBits(pType), pOffset, pObject, pValue);
 
     // Check if the edge is  not present already
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
