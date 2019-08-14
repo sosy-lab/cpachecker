@@ -101,6 +101,11 @@ public class RefinementBlockFactory {
   @Option(description = "Disable all caching into all internal refinement blocks", secure = true)
   private boolean disableAllCaching = false;
 
+  @Option(
+    description = "Refine any inconsistency of lock states or just incompatible pairs",
+    secure = true)
+  private boolean refineOnlyIncompatiblePairs = false;
+
   @Option(description = "Limit for unique iterations of iterators", secure = true)
   private int iterationLimit = Integer.MAX_VALUE;
 
@@ -257,7 +262,8 @@ public class RefinementBlockFactory {
                 new LockRefiner(
                     (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
                     lockTransfer,
-                    lReducer);
+                    lReducer,
+                    refineOnlyIncompatiblePairs);
 
             break;
 
