@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.util.refinement;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -79,10 +79,8 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   /** the predecessor relation of the states contained in this tree */
   private final Map<ARGState, ARGState> predecessorRelation = new LinkedHashMap<>();
 
-  /**
-   * the successor relation of the states contained in this tree
-   */
-  private final ListMultimap<ARGState, ARGState> successorRelation = ArrayListMultimap.create();
+  /** the successor relation of the states contained in this tree */
+  private final ListMultimap<ARGState, ARGState> successorRelation = LinkedListMultimap.create();
 
   /**
    * the mapping from state to the identified interpolants
@@ -223,35 +221,22 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * @param file file the file to write to
    */
   public void exportToDot(PathTemplate file, long refinementCounter) {
-    StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
+    StringBuilder result = new StringBuilder("digraph tree {" + "\n");
     for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
-      if (interpolants.containsKey(current.getKey())) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("itp is " + interpolants.get(current.getKey()));
-
-        result.append(
-            current.getKey().getStateId()
-                + " [label=\""
-                + (current.getKey().getStateId()
-                    + " / "
-                    + AbstractStates.extractLocation(current.getKey()))
-                + " has itp "
-                + sb.toString()
-                + "\"]"
-                + "\n");
-        result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
-
-      } else {
-        result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp NA\"]" + "\n");
-        result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
-      }
-
+      final ARGState parent = current.getKey();
+      String interpolant =
+          interpolants.containsKey(parent) ? interpolants.get(parent).toString() : "NA";
+      result.append(
+          parent.getStateId()
+              + String.format(
+                  " [label=\"%d / %s has itp %s\"]\n",
+                  parent.getStateId(), AbstractStates.extractLocation(parent), interpolant));
+      result.append(parent.getStateId() + " -> " + current.getValue().getStateId() + "\n");
+      // + " [label=\"" + parent.getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
       if (current.getValue().isTarget()) {
         result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
       }
-
-      assert (!current.getKey().isTarget());
+      assert (!parent.isTarget());
     }
     result.append("}");
 
