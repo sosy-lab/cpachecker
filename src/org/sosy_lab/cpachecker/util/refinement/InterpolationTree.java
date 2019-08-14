@@ -229,7 +229,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
       result.append(
           parent.getStateId()
               + String.format(
-                  " [label=\"%d / %s has itp %s\"]\n",
+                  " [label=\"%d / %s has itp %s\"]%n",
                   parent.getStateId(), AbstractStates.extractLocation(parent), interpolant));
       result.append(parent.getStateId() + " -> " + current.getValue().getStateId() + "\n");
       // + " [label=\"" + parent.getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
