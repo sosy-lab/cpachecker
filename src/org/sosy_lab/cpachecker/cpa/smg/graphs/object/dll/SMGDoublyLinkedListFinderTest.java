@@ -68,21 +68,9 @@ public class SMGDoublyLinkedListFinderTest {
 
     smg1.addStackFrame(functionDeclaration3);
 
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
+    for (int i = 0; i < 15; i++) {
+      SMGCPA.getNewValue();
+    }
 
     SMGRegion l1 = new SMGRegion(96, "l1");
     SMGRegion l2 = new SMGRegion(96, "l2");

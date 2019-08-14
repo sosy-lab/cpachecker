@@ -105,7 +105,7 @@ public class SMGEdgeHasValue extends SMGEdge {
 
     long myStart = getOffset();
 
-    long myEnd = myStart + pModel.getSizeofInBits(type).longValueExact();
+    long myEnd = myStart + getSizeInBits(pModel);
 
     if (myStart < pOtStart) {
       return (myEnd > pOtStart);
@@ -124,8 +124,8 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
-    return pModel.getSizeofInBits(type).equals(pModel.getSizeofInBits(other.type))
-        && (getOffset() == other.getOffset())
+    return getSizeInBits(pModel) == other.getSizeInBits(pModel)
+        && getOffset() == other.getOffset()
         && object == other.object;
   }
 
