@@ -52,6 +52,8 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -63,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
@@ -167,10 +170,23 @@ public class CEXExporter {
       return;
     }
 
+    boolean backwardsCounterexample = false;
     final ARGPath targetPath = counterexample.getTargetPath();
+    final CFANode targetLocation = AbstractStates.extractLocation(targetState);
+    if (targetLocation instanceof CFunctionEntryNode
+        && targetLocation.getFunctionName().equals("main")) {
+      // If it is a backwards analysis targetLocation is CFunctionEntryNode of the main function but
+      // for the counterexample export target State has to be switched
+      targetState = targetPath.getLastState();
+      backwardsCounterexample = true;
+    }
+    final ARGState rootState = targetPath.getFirstState();
     final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge = Predicates.in(
         new HashSet<>(targetPath.getStatePairs()));
     final ARGState rootState = targetPath.getFirstState();
+    // If it is a backwards analysis the targetState is a CFunctionEntryNode
+    // Either change rootState to targetPath.getLastState() and reverse Path
+    // Or do the whole export for different start Node Type
     final int uniqueId = counterexample.getUniqueId();
 
     if (options.getCoveragePrefix() != null) {
@@ -213,7 +229,9 @@ public class CEXExporter {
 
     final Set<ARGState> pathElements;
     Appender pathProgram = null;
-    if (counterexample.isPreciseCounterExample()) {
+    if (counterexample.isPreciseCounterExample() || backwardsCounterexample) {
+      // I have no idea why the backwards counterexample are imprecise but i think they acutally
+      // should be precise
       pathElements = targetPath.getStateSet();
 
       if (options.getSourceFile() != null) {
