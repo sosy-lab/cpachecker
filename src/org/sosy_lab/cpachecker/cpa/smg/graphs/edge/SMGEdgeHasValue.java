@@ -82,10 +82,6 @@ public class SMGEdgeHasValue extends SMGEdge {
     return type;
   }
 
-  public int getSizeInBits(MachineModel pMachineModel) {
-    return pMachineModel.getSizeofInBits(type).intValueExact();
-  }
-
   public long getSizeInBits() {
     return sizeInBits.longValueExact();
   }
@@ -111,9 +107,7 @@ public class SMGEdgeHasValue extends SMGEdge {
         "Call of overlapsWith() on Has-Value edges pair not originating from the same object");
 
     long otStart = other.getOffset();
-
-    long otEnd = otStart + pModel.getSizeofInBits(other.getType()).longValueExact();
-
+    long otEnd = otStart + other.getSizeInBits();
     return overlapsWith(otStart, otEnd, pModel);
   }
 
@@ -121,7 +115,7 @@ public class SMGEdgeHasValue extends SMGEdge {
 
     long myStart = getOffset();
 
-    long myEnd = myStart + getSizeInBits(pModel);
+    long myEnd = myStart + getSizeInBits();
 
     if (myStart < pOtStart) {
       return (myEnd > pOtStart);
@@ -139,8 +133,8 @@ public class SMGEdgeHasValue extends SMGEdge {
     return type.equals(other.type) && (getOffset() == other.getOffset());
   }
 
-  public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
-    return getSizeInBits(pModel) == other.getSizeInBits(pModel)
+  public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other) {
+    return getSizeInBits() == other.getSizeInBits()
         && getOffset() == other.getOffset()
         && object == other.object;
   }

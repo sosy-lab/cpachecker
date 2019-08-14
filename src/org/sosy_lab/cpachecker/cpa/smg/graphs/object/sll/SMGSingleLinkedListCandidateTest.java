@@ -100,8 +100,7 @@ public class SMGSingleLinkedListCandidateTest {
     onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
     assertThat(onlyOutboundEdge.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
     assertThat(onlyOutboundEdge.getOffset()).isEqualTo(0);
-    assertThat(onlyOutboundEdge.getSizeInBits(abstractedSmg.getMachineModel()))
-        .isEqualTo(NODE_SIZE);
+    assertThat(onlyOutboundEdge.getSizeInBits()).isEqualTo(NODE_SIZE);
   }
 
   @Test
@@ -130,7 +129,7 @@ public class SMGSingleLinkedListCandidateTest {
     assertThat(outboundEdges).hasSize(1);
     SMGEdgeHasValue outbound = Iterables.getOnlyElement(outboundEdges);
     assertThat(outbound.getOffset()).isEqualTo(64);
-    assertThat(outbound.getSizeInBits(abstractedSmg.getMachineModel())).isEqualTo(64);
+    assertThat(outbound.getSizeInBits()).isEqualTo(64);
     assertThat(outbound.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
   }
 }

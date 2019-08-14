@@ -154,7 +154,7 @@ public class SMGJoinFieldsTest {
       assertThat(pFieldMap).containsKey(offset);
 
       SMGValue value = edge.getValue();
-      int length = edge.getSizeInBits(MachineModel.LINUX64);
+      long length = edge.getSizeInBits();
       Pair<SMGValue, Integer> expectedValueAndLength = pFieldMap.get(offset);
 
       SMGValue eValue = expectedValueAndLength.getFirst();
@@ -194,7 +194,7 @@ public class SMGJoinFieldsTest {
     for (SMGEdgeHasValue hv : Sets.union(hvSet1, hvSet2)) { // just two edges in there
       assertThat(hv.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
       assertThat(hv.getObject()).isSameInstanceAs(obj1);
-      assertThat(hv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(32);
+      assertThat(hv.getSizeInBits()).isEqualTo(32);
       assertThat(hv.getOffset()).isEqualTo(16);
       assertThat(hv.isCompatibleField(nonPointer)).isTrue();
     }
@@ -231,9 +231,9 @@ public class SMGJoinFieldsTest {
       assertThat(hv.getObject()).isSameInstanceAs(obj1);
       assertThat(hv.getOffset()).isAnyOf(112L, 144L);
       if (hv.getOffset() == 112) {
-        assertThat(hv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(16);
+        assertThat(hv.getSizeInBits()).isEqualTo(16);
       } else {
-        assertThat(hv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(32);
+        assertThat(hv.getSizeInBits()).isEqualTo(32);
       }
     }
   }

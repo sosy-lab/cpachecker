@@ -209,7 +209,7 @@ public final class SMGPlotter {
     }
 
     for (SMGEdgeHasValue edge: smg.getHVEdges()) {
-      sb.append(newLineWithOffset(smgHVEdgeAsDot(edge, smg)));
+      sb.append(newLineWithOffset(smgHVEdgeAsDot(edge)));
     }
 
     for (SMGEdgePointsTo edge : smg.getPTEdges()) {
@@ -296,7 +296,7 @@ public final class SMGPlotter {
     return "value_null_" + SMGPlotter.nulls;
   }
 
-  private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge, UnmodifiableCLangSMG pSMG) {
+  private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge) {
     String prefix = "";
     String target;
     if (pEdge.getValue().isZero()) {
@@ -313,7 +313,7 @@ public final class SMGPlotter {
         + "[label=\"["
         + pEdge.getOffset()
         + "b-"
-        + (pEdge.getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel()))
+        + (pEdge.getOffset() + pEdge.getSizeInBits())
         + "b]\"];";
   }
 

@@ -473,7 +473,7 @@ public class SMG implements UnmodifiableSMG {
     TreeMap<Long, Integer> offsetToSize = new TreeMap<>();
     for (SMGEdgeHasValue edge : nullValueFilter.filter(hv_edges)) {
       long offset = edge.getOffset();
-      int size = edge.getSizeInBits(machine_model);
+      int size = (int) edge.getSizeInBits();
       Integer existingSize = offsetToSize.get(offset);
       if (existingSize != null) {
         size = Math.max(size, existingSize);
@@ -530,7 +530,7 @@ public class SMG implements UnmodifiableSMG {
 
   @Override
   public boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
-    return isCoveredByNullifiedBlocks(pEdge.getObject(), pEdge.getOffset(), pEdge.getSizeInBits(machine_model));
+    return isCoveredByNullifiedBlocks(pEdge.getObject(), pEdge.getOffset(), pEdge.getSizeInBits());
   }
 
   @Override

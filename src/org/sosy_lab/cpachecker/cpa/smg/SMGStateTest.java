@@ -362,9 +362,9 @@ public class SMGStateTest {
     SMGEdgeHasValue dataField =
         Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(dfo)));
 
-    Truth.assertThat(newNextField.getSizeInBits(model32)).isEqualTo(ptrSizeInBits);
-    Truth.assertThat(prevField.getSizeInBits(model32)).isEqualTo(ptrSizeInBits);
-    Truth.assertThat(dataField.getSizeInBits(model32)).isEqualTo(ptrSizeInBits);
+    Truth.assertThat(newNextField.getSizeInBits()).isEqualTo(ptrSizeInBits);
+    Truth.assertThat(prevField.getSizeInBits()).isEqualTo(ptrSizeInBits);
+    Truth.assertThat(dataField.getSizeInBits()).isEqualTo(ptrSizeInBits);
 
     // next of new region should point to new dll
     SMGObject newDll = newSMG.getPointer(newNextField.getValue()).getObject();
@@ -439,9 +439,9 @@ public class SMGStateTest {
         Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(dfo2)));
 
     // assert that each field has the correct size
-    Truth.assertThat(dataFieldBeforeNext.getSizeInBits(model32)).isEqualTo(ptrSizeInBits);
-    Truth.assertThat(nextField.getSizeInBits(model32)).isEqualTo(ptrSizeInBits);
-    Truth.assertThat(dataFieldAfterNext.getSizeInBits(model32)).isEqualTo(ptrSizeInBits);
+    Truth.assertThat(dataFieldBeforeNext.getSizeInBits()).isEqualTo(ptrSizeInBits);
+    Truth.assertThat(nextField.getSizeInBits()).isEqualTo(ptrSizeInBits);
+    Truth.assertThat(dataFieldAfterNext.getSizeInBits()).isEqualTo(ptrSizeInBits);
 
     // next of new region should point to new sll
     Truth.assertThat(newSMG.isPointer(nextField.getValue())).isTrue();
@@ -514,9 +514,8 @@ public class SMGStateTest {
         Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(nfo)));
 
     // data at nfo is not zero anymore -> overlap is not allowed anymore
-    Truth.assertThat(dataFieldBeforeNext.getSizeInBits(model64))
-        .isEqualTo(sizeInBits - ptrSizeInBits);
-    Truth.assertThat(nextField.getSizeInBits(model64)).isEqualTo(ptrSizeInBits);
+    Truth.assertThat(dataFieldBeforeNext.getSizeInBits()).isEqualTo(sizeInBits - ptrSizeInBits);
+    Truth.assertThat(nextField.getSizeInBits()).isEqualTo(ptrSizeInBits);
 
     // next pointer of new region should point to new sll
     Truth.assertThat(newSMG.isPointer(nextField.getValue())).isTrue();
