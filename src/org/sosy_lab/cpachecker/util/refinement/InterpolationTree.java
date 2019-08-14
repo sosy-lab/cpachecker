@@ -28,9 +28,9 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -43,6 +43,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -306,11 +307,10 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * @return the precision increment for the given refinement root
    */
   public Multimap<CFANode, MemoryLocation> extractPrecisionIncrement(ARGState pRefinementRoot) {
-    Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+    Multimap<CFANode, MemoryLocation> increment = LinkedHashMultimap.create();
 
-    Deque<ARGState> todo =
-        new ArrayDeque<>(Collections.singleton(predecessorRelation.get(pRefinementRoot)));
-
+    Deque<ARGState> todo = new ArrayDeque<>();
+    todo.add(predecessorRelation.get(pRefinementRoot));
     while (!todo.isEmpty()) {
       final ARGState currentState = todo.removeFirst();
 
@@ -340,14 +340,15 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   public Collection<ARGState> obtainRefinementRoots(GenericRefiner.RestartStrategy pStrategy) {
     if (pStrategy == GenericRefiner.RestartStrategy.ROOT) {
       assert successorRelation.get(root).size() == 1 : "ARG root has more than one successor";
-      return new HashSet<>(Collections.singleton(successorRelation.get(root).iterator().next()));
+      return ImmutableList.of(successorRelation.get(root).iterator().next());
     }
 
     ARGState commonRoot = null;
 
-    Collection<ARGState> refinementRoots = new HashSet<>();
+    Collection<ARGState> refinementRoots = new LinkedHashSet<>();
 
-    Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(root));
+    Deque<ARGState> todo = new ArrayDeque<>();
+    todo.add(root);
     while (!todo.isEmpty()) {
       final ARGState currentState = todo.removeFirst();
 
@@ -361,13 +362,12 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
         if (pStrategy == GenericRefiner.RestartStrategy.COMMON && refinementRoots.size() > 2) {
           assert commonRoot != null: "common root not yet set";
-          return new HashSet<>(Collections.singleton(commonRoot));
+          return ImmutableList.of(commonRoot);
         }
         continue;
       }
 
-      Collection<ARGState> successors = successorRelation.get(currentState);
-      todo.addAll(successors);
+      todo.addAll(successorRelation.get(currentState));
     }
 
     return refinementRoots;
@@ -383,7 +383,8 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   public Collection<ARGState> obtainCutOffRoots() {
     Collection<ARGState> refinementRoots = new HashSet<>();
 
-    Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(root));
+    Deque<ARGState> todo = new ArrayDeque<>();
+    todo.add(root);
     while (!todo.isEmpty()) {
       final ARGState currentState = todo.removeFirst();
 
@@ -393,8 +394,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
       }
 
-      Collection<ARGState> successors = successorRelation.get(currentState);
-      todo.addAll(successors);
+      todo.addAll(successorRelation.get(currentState));
     }
 
     return refinementRoots;
@@ -409,7 +409,8 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   public Collection<ARGState> getTargetsInSubtree(ARGState state) {
     Collection<ARGState> targetStates = new HashSet<>();
 
-    Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(state));
+    Deque<ARGState> todo = new ArrayDeque<>();
+    todo.add(state);
     while (!todo.isEmpty()) {
       final ARGState currentState = todo.removeFirst();
 
@@ -418,8 +419,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
         continue;
       }
 
-      Collection<ARGState> successors = successorRelation.get(currentState);
-      todo.addAll(successors);
+      todo.addAll(successorRelation.get(currentState));
     }
 
     return targetStates;
