@@ -46,7 +46,7 @@ public class SMGTest {
   private LogManager logger = LogManager.createTestLogManager();
 
   private SMG smg;
-  private final int mockTypeSize = 32;
+  private static final int mockTypeSize = 32;
   private final CType mockType = TypeUtils.createTypeWithLength(mockTypeSize);
 
   SMGObject obj1 = new SMGRegion(64, "object-1");

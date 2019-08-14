@@ -51,8 +51,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class SMGJoinFieldsTest {
 
-  private final int mockType4bSize = 32;
-  private final int mockType8bSize = 64;
+  private static final int mockType4bSize = 32;
+  private static final int mockType8bSize = 64;
   private final CType mockType4b = TypeUtils.createTypeWithLength(mockType4bSize);
   private final CType mockType8b = TypeUtils.createTypeWithLength(mockType8bSize);
 

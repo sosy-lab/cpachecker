@@ -39,8 +39,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGEdgeHasValueTest {
 
-  private final int mockTypeSize = 32;
-  private final int mockTypeSize12b = 96;
+  private static final int mockTypeSize = 32;
+  private static final int mockTypeSize12b = 96;
   private final CType mockType = TypeUtils.createTypeWithLength(mockTypeSize);
   private final CType mockType12b = TypeUtils.createTypeWithLength(mockTypeSize12b);
 
