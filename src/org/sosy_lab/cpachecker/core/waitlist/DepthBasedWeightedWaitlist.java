@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import java.util.Comparator;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -42,19 +40,13 @@ public class DepthBasedWeightedWaitlist extends WeightedRandomWaitlist {
           .thenComparingInt(
               s -> AbstractStates.extractStateByType(s, CallstackState.class).getDepth());
 
-  public DepthBasedWeightedWaitlist(WaitlistFactory pFactory, Configuration pConfig)
-      throws InvalidConfigurationException {
+  public DepthBasedWeightedWaitlist(
+      WaitlistFactory pFactory, WeightedRandomWaitlist.WaitlistOptions pConfig) {
     super(DEPTH_BASED_STATE_COMPARATOR, pFactory, pConfig);
   }
 
-  public static WaitlistFactory factory(WaitlistFactory pDelegate, Configuration pConfig) {
-    return () -> {
-      try {
-        return new DepthBasedWeightedWaitlist(pDelegate, pConfig);
-
-      } catch (InvalidConfigurationException pE) {
-        throw new AssertionError(pE);
-      }
-    };
+  public static WaitlistFactory factory(
+      WaitlistFactory pDelegate, WeightedRandomWaitlist.WaitlistOptions pConfig) {
+    return () -> new DepthBasedWeightedWaitlist(pDelegate, pConfig);
   }
 }

@@ -37,35 +37,41 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.OrderStatisticMap;
 import org.sosy_lab.cpachecker.util.OrderStatisticMap.OrderStatisticsMapProxy;
 
-@Options(prefix="analysis.traversal.random")
 public class WeightedRandomWaitlist implements Waitlist {
 
-  @Option(secure=true, description="Exponent of random function."
-      + "This value influences the probability distribution over the waitlist elements"
-      + "when choosing the next element."
-      + "Has to be a double in the range [0, INF)")
-  private double exponent = 1;
+  @Options(prefix = "analysis.traversal.random")
+  public static class WaitlistOptions {
+    @Option(
+        secure = true,
+        description =
+            "Exponent of random function."
+                + "This value influences the probability distribution over the waitlist elements"
+                + "when choosing the next element."
+                + "Has to be a double in the range [0, INF)")
+    private double exponent = 1;
 
-  @Option(secure = true, description = "Seed for random values.")
-  private int seed = 0;
+    @Option(secure = true, description = "Seed for random values.")
+    private int seed = 0;
 
+    public WaitlistOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+      if (exponent < 0) {
+        throw new InvalidConfigurationException(
+            "analysis.traversal.random.exponent has to be " + "a double greater or equal to 0");
+      }
+    }
+  }
+
+  private final double exponent;
   private OrderStatisticMap<AbstractState, Waitlist> states;
   private WaitlistFactory waitlistFactory;
   private Comparator<AbstractState> comparator;
   private Random random;
 
-  public WeightedRandomWaitlist(Comparator<AbstractState> pComparator, WaitlistFactory pFactory,
-                                Configuration pConfig)
-      throws InvalidConfigurationException {
-    pConfig.inject(this, WeightedRandomWaitlist.class);
-
-    if (exponent < 0) {
-      throw new InvalidConfigurationException("analysis.traversal.random.exponent has to be "
-          + "a double greater or equal to 0");
-    }
-
-    random = new Random(seed);
-
+  public WeightedRandomWaitlist(
+      Comparator<AbstractState> pComparator, WaitlistFactory pFactory, WaitlistOptions pConfig) {
+    exponent = pConfig.exponent;
+    random = new Random(pConfig.seed);
     comparator = pComparator;
     states = new OrderStatisticsMapProxy<>(new TreeMap<>(comparator));
 

@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import java.util.Comparator;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssumeEdgesInPathConditionState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -38,19 +36,13 @@ public class BranchBasedWeightedWaitlist extends WeightedRandomWaitlist {
               AbstractStates.extractStateByType(s, AssumeEdgesInPathConditionState.class)
                   .getPathLength());
 
-  public BranchBasedWeightedWaitlist(WaitlistFactory pFactory, Configuration pConfig)
-      throws InvalidConfigurationException {
+  public BranchBasedWeightedWaitlist(
+      WaitlistFactory pFactory, WeightedRandomWaitlist.WaitlistOptions pConfig) {
     super(BRANCHING_DEPTH_COMPARATOR, pFactory, pConfig);
   }
 
-  public static WaitlistFactory factory(WaitlistFactory pDelegate, Configuration pConfig) {
-    return () -> {
-      try {
-        return new BranchBasedWeightedWaitlist(pDelegate, pConfig);
-
-      } catch (InvalidConfigurationException pE) {
-        throw new AssertionError(pE);
-      }
-    };
+  public static WaitlistFactory factory(
+      WaitlistFactory pDelegate, WeightedRandomWaitlist.WaitlistOptions pConfig) {
+    return () -> new BranchBasedWeightedWaitlist(pDelegate, pConfig);
   }
 }
