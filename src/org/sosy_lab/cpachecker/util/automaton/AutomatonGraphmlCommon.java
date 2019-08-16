@@ -45,7 +45,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -758,33 +757,6 @@ public class AutomatonGraphmlCommon {
       }
     }
     return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
-  }
-
-  public static Optional<FileLocation> getMinFileLocation(CFAEdge pEdge, FunctionEntryNode
-      pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
-    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry, pAdditionalInfo);
-    return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l1.getNodeOffset(), l2.getNodeOffset()));
-  }
-
-  public static Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge, FunctionEntryNode
-      pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
-    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry, pAdditionalInfo);
-    return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l2.getNodeOffset(), l1.getNodeOffset()));
-  }
-
-  private static Optional<FileLocation> getMinFileLocation(Iterable<FileLocation> pLocations, Comparator<FileLocation> pComparator) {
-    Iterator<FileLocation> locationIterator = pLocations.iterator();
-    if (!locationIterator.hasNext()) {
-      return Optional.empty();
-    }
-    FileLocation min = locationIterator.next();
-    while (locationIterator.hasNext()) {
-      FileLocation l = locationIterator.next();
-      if (pComparator.compare(l, min) < 0) {
-        min = l;
-      }
-    }
-    return Optional.of(min);
   }
 
   public static boolean isPartOfSwitchStatement(AssumeEdge pAssumeEdge) {
