@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 class TestVector {
 
@@ -153,23 +152,13 @@ class TestVector {
     return new TestVector();
   }
 
-  private static final Ordering<FileLocation> FILE_LOCATION_ORDERING =
-      Ordering.from(
-          (pA, pB) -> {
-            return ComparisonChain.start()
-                .compare(pA.getFileName(), pB.getFileName())
-                .compare(pA.getNodeOffset(), pB.getNodeOffset())
-                .compare(pA.getNodeLength(), pB.getNodeLength())
-                .result();
-          });
-
   private static final Ordering<AParameterDeclaration> PARAMETER_ORDERING =
       Ordering.from(
           (pA, pB) -> {
             return ComparisonChain.start()
                 .compare(pA.getQualifiedName(), pB.getQualifiedName())
                 .compare(pA.getType(), pB.getType(), Ordering.usingToString())
-                .compare(pA.getFileLocation(), pB.getFileLocation(), FILE_LOCATION_ORDERING)
+                .compare(pA.getFileLocation(), pB.getFileLocation())
                 .result();
           });
 

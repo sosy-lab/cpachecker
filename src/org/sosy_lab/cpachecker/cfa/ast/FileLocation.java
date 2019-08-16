@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import java.io.Serializable;
@@ -34,7 +35,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Immutable
-public class FileLocation implements Serializable {
+public class FileLocation implements Serializable, Comparable<FileLocation> {
 
   private static final long serialVersionUID = 6652099907084949014L;
 
@@ -215,6 +216,15 @@ public class FileLocation implements Serializable {
         && other.startingLine == startingLine
         && other.endingLine == endingLine
         && Objects.equals(other.fileName, fileName);
+  }
+
+  @Override
+  public int compareTo(FileLocation pOther) {
+    return ComparisonChain.start()
+        .compare(fileName, pOther.fileName)
+        .compare(offset, pOther.offset)
+        .compare(length, pOther.length)
+        .result();
   }
 
   @Override
