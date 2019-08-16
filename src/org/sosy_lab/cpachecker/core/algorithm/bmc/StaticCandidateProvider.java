@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -51,10 +52,7 @@ public class StaticCandidateProvider implements CandidateGenerator {
   private final Set<CandidateInvariant> refutedInvariants = new LinkedHashSet<>();
 
   private final NavigableSet<CandidateInvariant> candidates =
-      new TreeSet<>(
-          (a, b) -> {
-            return Integer.compare(order.get(a), order.get(b));
-          });
+      new TreeSet<>(Comparator.comparingInt(order::get));
 
   private boolean produced = false;
 

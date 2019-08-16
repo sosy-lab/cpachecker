@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bam.cache;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
@@ -33,7 +34,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -313,9 +314,8 @@ public class BAMDataManagerImpl implements BAMDataManager {
 
   /** sort map-entries by their key. */
   private static <T> List<Entry<AbstractState, T>> sorted(Map<AbstractState, T> map) {
-    List<Entry<AbstractState, T>> sorted = new ArrayList<>(map.entrySet());
-    Collections.sort(sorted, (x, y) -> Integer.compare(getId(x.getKey()), getId(y.getKey())));
-    return sorted;
+    return ImmutableList.sortedCopyOf(
+        Comparator.comparingInt(entry -> getId(entry.getKey())), map.entrySet());
   }
 
   @Override
