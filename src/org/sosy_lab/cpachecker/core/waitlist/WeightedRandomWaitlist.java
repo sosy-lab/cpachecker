@@ -54,8 +54,6 @@ public class WeightedRandomWaitlist implements Waitlist {
   private Comparator<AbstractState> comparator;
   private Random random;
 
-  private Configuration config;
-
   public WeightedRandomWaitlist(Comparator<AbstractState> pComparator, WaitlistFactory pFactory,
                                 Configuration pConfig)
       throws InvalidConfigurationException {
@@ -66,29 +64,12 @@ public class WeightedRandomWaitlist implements Waitlist {
           + "a double greater or equal to 0");
     }
 
-    config = pConfig;
     random = new Random(seed);
 
     comparator = pComparator;
     states = new OrderStatisticsMapProxy<>(new TreeMap<>(comparator));
 
     waitlistFactory = pFactory;
-  }
-
-  /**
-   * Creates a new {@code WeightedRandomWaitlist} with the reversed order of this waitlist.
-   * This operation runs in O(n) for n elements in the waitlist,
-   * thus this method should be used with only few elements in the list.
-   */
-  public WeightedRandomWaitlist reversed() throws InvalidConfigurationException {
-    WeightedRandomWaitlist revWaitlist =
-        new WeightedRandomWaitlist(comparator.reversed(), waitlistFactory, config);
-    for (Waitlist w : states.values()) {
-      for (AbstractState s : w) {
-        revWaitlist.add(s);
-      }
-    }
-    return revWaitlist;
   }
 
   @Override
