@@ -33,7 +33,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -58,6 +57,7 @@ import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.ToIntFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -654,7 +654,9 @@ abstract class AbstractBMCAlgorithm
       BooleanFormula liftedCti = bfmgr.not(blockingClause.getPlainFormula(fmgr));
 
       // Add literals until unsat
-      Queue<BooleanFormula> literals = new PriorityQueue<>(new BooleanFormulaComparator(fmgr));
+      ToIntFunction<BooleanFormula> variableNameCount = f -> fmgr.extractVariableNames(f).size();
+      Queue<BooleanFormula> literals =
+          new PriorityQueue<>(Comparator.comparingInt(variableNameCount).reversed());
       Iterables.addAll(
           literals, SymbolicCandiateInvariant.getConjunctionOperands(fmgr, liftedCti, true));
 
@@ -830,24 +832,6 @@ abstract class AbstractBMCAlgorithm
    */
   protected Set<CFANode> getLoopHeads() {
     return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
-  }
-
-  private static final class BooleanFormulaComparator implements Comparator<BooleanFormula> {
-
-    private final FormulaManagerView fmgr;
-
-    public BooleanFormulaComparator(FormulaManagerView pFmgr) {
-      fmgr = Objects.requireNonNull(pFmgr);
-    }
-
-    @Override
-    public int compare(BooleanFormula pO1, BooleanFormula pO2) {
-      Set<String> leftVariableNames = fmgr.extractVariableNames(pO1);
-      Set<String> rightVariableNames = fmgr.extractVariableNames(pO2);
-      return ComparisonChain.start()
-          .compare(rightVariableNames.size(), leftVariableNames.size())
-          .result();
-    }
   }
 
   public enum InvariantGeneratorFactory {
