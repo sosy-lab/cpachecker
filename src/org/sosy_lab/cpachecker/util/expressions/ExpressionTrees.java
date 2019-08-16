@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Comparators;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -591,6 +592,9 @@ public final class ExpressionTrees {
 
     private static final long serialVersionUID = -8004131077972723263L;
 
+    private final Comparator<Iterable<ExpressionTree<LeafType>>> lexicographicalOrdering =
+        Comparators.lexicographical(this);
+
     @Override
     public int compare(final ExpressionTree<LeafType> pO1, final ExpressionTree<LeafType> pO2) {
       @SuppressWarnings("unchecked")
@@ -602,8 +606,6 @@ public final class ExpressionTrees {
           pO2.accept(
               (ExpressionTreeVisitor<LeafType, Integer, NoException>) TYPE_ORDER_VISITOR);
       final int typeOrderComp = Integer.compare(typeOrder1, typeOrder2);
-      final Ordering<Iterable<ExpressionTree<LeafType>>> lexicographicalOrdering =
-          Ordering.from(this).lexicographical();
       return pO1.accept(
           new CachingVisitor<LeafType, Integer, NoException>() {
 

@@ -43,11 +43,11 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -250,12 +250,13 @@ public class LiveVariables {
                         EvaluationStrategy pEvaluationStrategy,
                         Language pLanguage) {
 
-    Ordering<Equivalence.Wrapper<ASimpleDeclaration>> declarationOrdering = Ordering.natural().onResultOf(FROM_EQUIV_WRAPPER_TO_STRING);
+    Comparator<Equivalence.Wrapper<ASimpleDeclaration>> declarationOrdering =
+        Comparator.comparing(FROM_EQUIV_WRAPPER_TO_STRING);
 
     // ImmutableSortedSetMultimap does not exist, in order to create a sorted immutable Multimap
     // we sort it and create an immutable copy (Guava's Immutable* classes guarantee to keep the order).
     SortedSetMultimap<CFANode, Equivalence.Wrapper<ASimpleDeclaration>> sortedLiveVariables =
-        TreeMultimap.create(Ordering.natural(), declarationOrdering);
+        TreeMultimap.create(Comparator.naturalOrder(), declarationOrdering);
     sortedLiveVariables.putAll(pLiveVariables);
     liveVariables = ImmutableSetMultimap.copyOf(sortedLiveVariables);
     assert pLiveVariables.size() == liveVariables.size() : "ASimpleDeclarations with identical qualified names";
