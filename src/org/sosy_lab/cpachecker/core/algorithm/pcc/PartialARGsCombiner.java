@@ -284,7 +284,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     for (AbstractState state : AbstractStates.asIterable(pPredecessor)) {
       if (state instanceof AutomatonState
           && ((AutomatonState) state).getOwningAutomatonName().equals("AssumptionAutomaton")) {
-        if (AutomatonStateARGCombiningHelper.endsInAssumptionTrueState((AutomatonState) state, pSuccEdge)) {
+        if (automatonARGBuilderSupport.endsInAssumptionTrueState(
+            (AutomatonState) state, pSuccEdge)) {
           return false;
         }
       }

@@ -118,7 +118,7 @@ public class AutomatonTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    return Collections.singleton(((AutomatonState) pState).getAutomatonCPA().getTopState());
+    return ImmutableList.of(new AutomatonState.TOP(cpa.getAutomaton()));
   }
 
   private Collection<AutomatonState> getAbstractSuccessors0(
@@ -240,8 +240,14 @@ public class AutomatonTransferRelation implements TransferRelation {
             AutomatonSafetyProperty prop =
                 new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
 
-            AutomatonState errorState = AutomatonState.automatonStateFactory(
-                Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, prop);
+            AutomatonState errorState =
+                AutomatonState.automatonStateFactory(
+                    ImmutableMap.of(),
+                    AutomatonInternalState.ERROR,
+                    cpa.getAutomaton(),
+                    0,
+                    0,
+                    prop);
 
             logger.log(
                 Level.FINER,
@@ -287,7 +293,7 @@ public class AutomatonTransferRelation implements TransferRelation {
             AutomatonState.automatonStateFactory(
                 newVars,
                 t.getFollowState(),
-                state.getAutomatonCPA(),
+                state.getOwningAutomaton(),
                 instantiatedAssumes,
                 t.getCandidateInvariants(),
                 state.getMatches() + 1,
@@ -303,7 +309,14 @@ public class AutomatonTransferRelation implements TransferRelation {
       return lSuccessors;
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
-      AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(state.getVars(), state.getInternalState(), cpa, state.getMatches(), state.getFailedMatches() + failedMatches, null);
+      AutomatonState stateNewCounters =
+          AutomatonState.automatonStateFactory(
+              state.getVars(),
+              state.getInternalState(),
+              cpa.getAutomaton(),
+              state.getMatches(),
+              state.getFailedMatches() + failedMatches,
+              null);
       return Collections.singleton(stateNewCounters);
     }
   }
