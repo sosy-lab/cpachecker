@@ -118,8 +118,7 @@ public class AutomatonTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    return ImmutableList.of(
-        new AutomatonState.TOP(cpa.getAutomaton(), cpa.isTreatingErrorsAsTargets()));
+    return ImmutableList.of(cpa.getTopState());
   }
 
   private Collection<AutomatonState> getAbstractSuccessors0(
