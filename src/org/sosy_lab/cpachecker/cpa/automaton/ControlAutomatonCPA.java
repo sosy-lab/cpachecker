@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
@@ -205,6 +206,10 @@ public class ControlAutomatonCPA
 
   Automaton getAutomaton() {
     return this.automaton;
+  }
+
+  public void registerInAutomatonInfo(AutomatonInfo info) {
+    info.register(automaton, this);
   }
 
   @Override
