@@ -108,7 +108,7 @@ public class RedundantRequirementsRemover {
           if (!loc.equals(AbstractStates.extractLocation(end))) { throw new CPAException(""); }
         }
 
-        intermediate.add(getAbstractValues(extractState(start), inputVarsAndConsts));
+        intermediate.add(getAbstractValues(extractState(end), inputVarsAndConsts));
       }
 
       Collections.sort(intermediate, sortHelper);
