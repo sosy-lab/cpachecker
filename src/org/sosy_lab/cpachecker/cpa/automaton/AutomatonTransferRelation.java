@@ -118,7 +118,8 @@ public class AutomatonTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    return ImmutableList.of(new AutomatonState.TOP(cpa.getAutomaton()));
+    return ImmutableList.of(
+        new AutomatonState.TOP(cpa.getAutomaton(), cpa.isTreatingErrorsAsTargets()));
   }
 
   private Collection<AutomatonState> getAbstractSuccessors0(
@@ -247,7 +248,8 @@ public class AutomatonTransferRelation implements TransferRelation {
                     cpa.getAutomaton(),
                     0,
                     0,
-                    prop);
+                    prop,
+                    cpa.isTreatingErrorsAsTargets());
 
             logger.log(
                 Level.FINER,
@@ -298,7 +300,8 @@ public class AutomatonTransferRelation implements TransferRelation {
                 t.getCandidateInvariants(),
                 state.getMatches() + 1,
                 state.getFailedMatches(),
-                violatedProperty);
+                violatedProperty,
+                state.isTreatingErrorsAsTarget());
 
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           lSuccessors.add(lSuccessor);
@@ -316,7 +319,8 @@ public class AutomatonTransferRelation implements TransferRelation {
               cpa.getAutomaton(),
               state.getMatches(),
               state.getFailedMatches() + failedMatches,
-              null);
+              null,
+              state.isTreatingErrorsAsTarget());
       return Collections.singleton(stateNewCounters);
     }
   }

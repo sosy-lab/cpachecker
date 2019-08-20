@@ -133,8 +133,10 @@ public class ControlAutomatonCPA
   private boolean topOnFinalSelfLoopingState = false;
 
   private final Automaton automaton;
-  private final AutomatonState topState = new AutomatonState.TOP(getAutomaton());
-  private final AutomatonState bottomState = new AutomatonState.BOTTOM(getAutomaton());
+  private final AutomatonState topState =
+      new AutomatonState.TOP(getAutomaton(), isTreatingErrorsAsTargets());
+  private final AutomatonState bottomState =
+      new AutomatonState.BOTTOM(getAutomaton(), isTreatingErrorsAsTargets());
 
   private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
   final AutomatonStatistics stats = new AutomatonStatistics(this);
@@ -245,7 +247,8 @@ public class ControlAutomatonCPA
         pAutomaton,
         0,
         0,
-        safetyProp);
+        safetyProp,
+        isTreatingErrorsAsTargets());
   }
 
   @Override
