@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVaria
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 /**
  * This class combines a AutomatonInternal State with a variable Configuration.
@@ -465,28 +464,6 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     out.defaultWriteObject();
     out.writeInt(internalState.getStateId());
     out.writeObject(automaton.getName());
-  }
-
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
-  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-    in.defaultReadObject();
-    int stateId = in.readInt();
-    internalState = GlobalInfo.getInstance().getAutomatonInfo().getStateById(stateId);
-    if(internalState == null) {
-      if(stateId == AutomatonInternalState.ERROR.getStateId()) {
-        internalState = AutomatonInternalState.ERROR;
-      } else if(stateId == AutomatonInternalState.BREAK.getStateId()) {
-        internalState = AutomatonInternalState.BREAK;
-      } else if(stateId == AutomatonInternalState.BOTTOM.getStateId()) {
-        internalState = AutomatonInternalState.BOTTOM;
-      }
-    }
-
-    automaton =
-        GlobalInfo.getInstance()
-            .getAutomatonInfo()
-            .getCPAForAutomaton((String) in.readObject())
-            .getAutomaton();
   }
 
   public int getMatches() {
