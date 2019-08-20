@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
-import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 public class GlobalInfo {
   private static GlobalInfo instance;
   private CFAInfo cfaInfo;
-  private AutomatonInfo automatonInfo = new AutomatonInfo();
   private ConfigurableProgramAnalysis cpa;
   private FormulaManagerView predicateFormulaManagerView;
   private FormulaManagerView assumptionFormulaManagerView;
@@ -88,9 +86,7 @@ public class GlobalInfo {
     apronLogger = null;
     if (cpa != null) {
       for (ConfigurableProgramAnalysis c : CPAs.asIterable(cpa)) {
-        if (c instanceof ControlAutomatonCPA) {
-          ((ControlAutomatonCPA) c).registerInAutomatonInfo(automatonInfo);
-        } else if (c instanceof ApronCPA) {
+        if (c instanceof ApronCPA) {
           Preconditions.checkState(apronManager == null && apronLogger == null);
           ApronCPA apron = (ApronCPA) c;
           apronManager = apron.getManager();
@@ -105,11 +101,6 @@ public class GlobalInfo {
         }
       }
     }
-  }
-
-  public synchronized AutomatonInfo getAutomatonInfo() {
-    Preconditions.checkState(automatonInfo != null);
-    return automatonInfo;
   }
 
   public synchronized FormulaManagerView getPredicateFormulaManagerView() {
