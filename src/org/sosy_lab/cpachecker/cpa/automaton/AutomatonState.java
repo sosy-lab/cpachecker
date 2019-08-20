@@ -30,7 +30,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
@@ -458,12 +457,6 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
   public Map<String, AutomatonVariable> getVars() {
    return vars;
-  }
-
-  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-    out.defaultWriteObject();
-    out.writeInt(internalState.getStateId());
-    out.writeObject(automaton.getName());
   }
 
   public int getMatches() {
