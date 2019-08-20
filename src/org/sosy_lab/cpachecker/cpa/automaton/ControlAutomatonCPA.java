@@ -133,12 +133,16 @@ public class ControlAutomatonCPA
   private boolean topOnFinalSelfLoopingState = false;
 
   private final Automaton automaton;
-  private final AutomatonState topState =
-      new AutomatonState.TOP(getAutomaton(), isTreatingErrorsAsTargets());
-  private final AutomatonState bottomState =
-      new AutomatonState.BOTTOM(getAutomaton(), isTreatingErrorsAsTargets());
+  private final AutomatonState topState;
+  private final AutomatonState bottomState;
 
-  private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
+  private final AbstractDomain automatonDomain;
+  //  private final AutomatonState topState =
+  //      new AutomatonState.TOP(getAutomaton(), isTreatingErrorsAsTargets());
+  //  private final AutomatonState bottomState =
+  //      new AutomatonState.BOTTOM(getAutomaton(), isTreatingErrorsAsTargets());
+  //
+  //  private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
   final AutomatonStatistics stats = new AutomatonStatistics(this);
   private final CFA cfa;
   private final LogManager logger;
@@ -160,6 +164,11 @@ public class ControlAutomatonCPA
     } else {
       this.automaton = constructAutomataFromFile(pConfig, inputFile);
     }
+
+    topState = new AutomatonState.TOP(getAutomaton(), isTreatingErrorsAsTargets());
+    bottomState = new AutomatonState.BOTTOM(getAutomaton(), isTreatingErrorsAsTargets());
+
+    automatonDomain = new FlatLatticeDomain(topState);
 
     pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
