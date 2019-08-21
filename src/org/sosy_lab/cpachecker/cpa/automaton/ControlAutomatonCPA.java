@@ -143,7 +143,7 @@ public class ControlAutomatonCPA
   //      new AutomatonState.BOTTOM(getAutomaton(), isTreatingErrorsAsTargets());
   //
   //  private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
-  final AutomatonStatistics stats = new AutomatonStatistics(this);
+  private final AutomatonStatistics stats;
   private final CFA cfa;
   private final LogManager logger;
 
@@ -169,6 +169,7 @@ public class ControlAutomatonCPA
     bottomState = new AutomatonState.BOTTOM(getAutomaton(), isTreatingErrorsAsTargets());
 
     automatonDomain = new FlatLatticeDomain(topState);
+    stats = new AutomatonStatistics(automaton);
 
     pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
