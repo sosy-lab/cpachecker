@@ -37,7 +37,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
+import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.GeometricNonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.InfiniteFixpointRepetition;
@@ -66,8 +68,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
@@ -159,7 +159,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private final Timer safetyAnalysisTime = new Timer();
 
-  private final Map<Loop, AtomicInteger> safetyAnalysisRunsPerLoop = new ConcurrentHashMap<>();
+  private final Multiset<Loop> safetyAnalysisRunsPerLoop = ConcurrentHashMultiset.create();
 
   private final LogManager logger;
 
@@ -220,13 +220,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   void safetyAnalysisStarted(Loop pLoop) {
     checkState(analysedLoops.contains(pLoop));
-    safetyAnalysisRunsPerLoop.computeIfAbsent(pLoop, l -> new AtomicInteger()).incrementAndGet();
+    safetyAnalysisRunsPerLoop.add(pLoop);
     safetyAnalysisTime.start();
   }
 
   void safetyAnalysisFinished(Loop pLoop) {
     checkState(analysedLoops.contains(pLoop));
-    checkState(safetyAnalysisRunsPerLoop.containsKey(pLoop));
+    checkState(safetyAnalysisRunsPerLoop.contains(pLoop));
     safetyAnalysisTime.stop();
   }
 
@@ -259,17 +259,21 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         "  Max time per loop analysis:                       " + format(loopTime.getMaxTime()));
     pOut.println();
 
-    int safetyAnalysisRuns =
-        safetyAnalysisRunsPerLoop.values().stream().mapToInt(AtomicInteger::get).sum();
+    int safetyAnalysisRuns = safetyAnalysisRunsPerLoop.size();
     assert safetyAnalysisRuns == safetyAnalysisTime.getNumberOfIntervals();
     int maxSafetyAnalysisRuns =
-        safetyAnalysisRunsPerLoop.values().stream().mapToInt(AtomicInteger::get).max().orElse(0);
+        safetyAnalysisRunsPerLoop
+            .entrySet()
+            .stream()
+            .mapToInt(Multiset.Entry::getCount)
+            .max()
+            .orElse(0);
     String loopsWithMaxSafetyAnalysisRuns =
         safetyAnalysisRunsPerLoop
             .entrySet()
             .stream()
-            .filter(e -> e.getValue().get() == maxSafetyAnalysisRuns)
-            .map(Entry::getKey)
+            .filter(e -> e.getCount() == maxSafetyAnalysisRuns)
+            .map(Multiset.Entry::getElement)
             .map(l -> l.getLoopHeads().toString())
             .collect(Collectors.joining(", "));
     pOut.println(
@@ -294,15 +298,15 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     pOut.println();
 
     int iterations = lassoTime.getNumberOfIntervals();
-    int lassos = lassosPerLoop.values().stream().mapToInt(AtomicInteger::get).sum();
+    int lassos = lassosPerLoop.size();
     int maxLassosPerLoop =
-        lassosPerLoop.values().stream().mapToInt(AtomicInteger::get).max().orElse(0);
+        lassosPerLoop.entrySet().stream().mapToInt(Multiset.Entry::getCount).max().orElse(0);
     String loopsWithMaxLassos =
         lassosPerLoop
             .entrySet()
             .stream()
-            .filter(e -> e.getValue().get() == maxLassosPerLoop)
-            .map(Entry::getKey)
+            .filter(e -> e.getCount() == maxLassosPerLoop)
+            .map(Multiset.Entry::getElement)
             .map(l -> l.getLoopHeads().toString())
             .collect(Collectors.joining(", "));
     pOut.println("Number of analysed lassos:                          " + format(lassos));

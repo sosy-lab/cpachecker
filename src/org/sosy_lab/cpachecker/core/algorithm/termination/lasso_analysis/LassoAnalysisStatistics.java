@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
+import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Multiset;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
 import java.util.Map;
@@ -48,7 +50,7 @@ public abstract class LassoAnalysisStatistics implements Statistics {
 
   protected final Timer lassosCreationTime = new Timer();
 
-  protected final Map<Loop, AtomicInteger> lassosPerLoop = Maps.newConcurrentMap();
+  protected final Multiset<Loop> lassosPerLoop = ConcurrentHashMultiset.create();
 
   protected final AtomicInteger maxLassosPerIteration = new AtomicInteger();
 
@@ -83,7 +85,7 @@ public abstract class LassoAnalysisStatistics implements Statistics {
   }
 
   public void lassosConstructed(Loop pLoop, int numberOfLassos) {
-    lassosPerLoop.computeIfAbsent(pLoop, l -> new AtomicInteger()).addAndGet(numberOfLassos);
+    lassosPerLoop.add(pLoop, numberOfLassos);
     lassosCurrentIteration.addAndGet(numberOfLassos);
   }
 
