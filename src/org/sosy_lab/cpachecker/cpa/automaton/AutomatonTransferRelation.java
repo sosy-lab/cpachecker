@@ -87,12 +87,13 @@ public class AutomatonTransferRelation implements TransferRelation {
     this.logger = pLogger;
     this.machineModel = pMachineModel;
 
-    totalPostTime = pCpa.stats.totalPostTime.getNewTimer();
-    matchTime = pCpa.stats.matchTime.getNewTimer();
-    assertionsTime = pCpa.stats.assertionsTime.getNewTimer();
-    actionTime = pCpa.stats.actionTime.getNewTimer();
-    totalStrengthenTime = pCpa.stats.totalStrengthenTime.getNewTimer();
-    automatonSuccessors = pCpa.stats.automatonSuccessors;
+    AutomatonStatistics stats = cpa.getStatistics();
+    totalPostTime = stats.totalPostTime.getNewTimer();
+    matchTime = stats.matchTime.getNewTimer();
+    assertionsTime = stats.assertionsTime.getNewTimer();
+    actionTime = stats.actionTime.getNewTimer();
+    totalStrengthenTime = stats.totalStrengthenTime.getNewTimer();
+    automatonSuccessors = stats.automatonSuccessors;
   }
 
   @Override
@@ -242,7 +243,13 @@ public class AutomatonTransferRelation implements TransferRelation {
 
             AutomatonState errorState =
                 AutomatonState.automatonStateFactory(
-                    ImmutableMap.of(), AutomatonInternalState.ERROR, cpa, 0, 0, prop);
+                    ImmutableMap.of(),
+                    AutomatonInternalState.ERROR,
+                    state.getOwningAutomaton(),
+                    0,
+                    0,
+                    prop,
+                    state.isTreatingErrorsAsTarget());
 
             logger.log(
                 Level.FINER,
@@ -288,12 +295,13 @@ public class AutomatonTransferRelation implements TransferRelation {
             AutomatonState.automatonStateFactory(
                 newVars,
                 t.getFollowState(),
-                state.getAutomatonCPA(),
+                state.getOwningAutomaton(),
                 instantiatedAssumes,
                 t.getCandidateInvariants(),
                 state.getMatches() + 1,
                 state.getFailedMatches(),
-                violatedProperty);
+                violatedProperty,
+                state.isTreatingErrorsAsTarget());
 
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           lSuccessors.add(lSuccessor);
@@ -304,7 +312,15 @@ public class AutomatonTransferRelation implements TransferRelation {
       return lSuccessors;
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
-      AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(state.getVars(), state.getInternalState(), cpa, state.getMatches(), state.getFailedMatches() + failedMatches, null);
+      AutomatonState stateNewCounters =
+          AutomatonState.automatonStateFactory(
+              state.getVars(),
+              state.getInternalState(),
+              state.getOwningAutomaton(),
+              state.getMatches(),
+              state.getFailedMatches() + failedMatches,
+              null,
+              state.isTreatingErrorsAsTarget());
       return ImmutableSet.of(stateNewCounters);
     }
   }

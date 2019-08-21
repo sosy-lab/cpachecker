@@ -27,32 +27,29 @@ import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class AutomatonStateARGCombiningHelper {
 
   private final Map<String, AutomatonInternalState> qualifiedAutomatonStateNameToInternalState;
-  private final Map<String, ControlAutomatonCPA> nameToCPA;
+  private final Map<String, Automaton> nameToAutomaton;
 
   public AutomatonStateARGCombiningHelper() {
     qualifiedAutomatonStateNameToInternalState = new HashMap<>();
-    nameToCPA = new HashMap<>();
+    nameToAutomaton = new HashMap<>();
   }
 
   public boolean registerAutomaton(final AutomatonState pStateOfAutomata) {
-    ControlAutomatonCPA automatonCPA = pStateOfAutomata.getAutomatonCPA();
-    final String prefix = automatonCPA.getAutomaton().getName() + "::";
+    Automaton automaton = pStateOfAutomata.getOwningAutomaton();
+    final String prefix = automaton.getName() + "::";
     String qualifiedName;
 
-    if (nameToCPA.put(automatonCPA.getAutomaton().getName(), automatonCPA) != null) {
+    if (nameToAutomaton.put(automaton.getName(), automaton) != null) {
       return false;
     }
 
-    for (AutomatonInternalState internal : automatonCPA.getAutomaton().getStates()) {
+    for (AutomatonInternalState internal : automaton.getStates()) {
       qualifiedName = prefix + internal.getName();
       if (qualifiedAutomatonStateNameToInternalState.put(qualifiedName, internal) != null) {
         return false;
@@ -77,33 +74,39 @@ public class AutomatonStateARGCombiningHelper {
       return AutomatonState.automatonStateFactory(
           toReplace.getVars(),
           qualifiedAutomatonStateNameToInternalState.get(qualifiedName),
-          nameToCPA.get(toReplace.getOwningAutomatonName()),
+          nameToAutomaton.get(toReplace.getOwningAutomatonName()),
           toReplace.getAssumptions(),
           toReplace.getCandidateInvariants(),
           toReplace.getMatches(),
           toReplace.getFailedMatches(),
-          violatedProp);
+          violatedProp,
+          toReplace.isTreatingErrorsAsTarget());
     }
 
     throw new CPAException("Changing state failed, unknown state.");
   }
 
   public boolean considersAutomaton(final String pAutomatonName) {
-    return nameToCPA.containsKey(pAutomatonName);
+    return nameToAutomaton.containsKey(pAutomatonName);
   }
 
-  public static boolean endsInAssumptionTrueState(final AutomatonState pPredecessor, final CFAEdge pEdge) {
+  public static boolean endsInAssumptionTrueState(
+      final AutomatonState pPredecessor, @SuppressWarnings("unused") final CFAEdge pEdge) {
     Preconditions.checkNotNull(pPredecessor);
-    try {
-      for (AbstractState successor : pPredecessor.getAutomatonCPA().getTransferRelation()
-          .getAbstractSuccessorsForEdge(pPredecessor, SingletonPrecision.getInstance(), pEdge)) {
-        if (!((AutomatonState) successor).getInternalStateName().equals("__TRUE")) {
-          return false;
-        }
+    // TODO: this is the only crucial place left that needs to be fixed for the refactoring of the
+    // AutomatonCPA
+    for (AutomatonTransition transition : pPredecessor.getInternalState().getTransitions()) {
+      if (!transition.getFollowState().getName().equals("__TRUE")) {
+        return false;
       }
-    } catch (CPATransferException e) {
-      return false;
     }
+    //      for (AbstractState successor : pPredecessor.getAutomatonCPA().getTransferRelation()
+    //          .getAbstractSuccessorsForEdge(pPredecessor, SingletonPrecision.getInstance(),
+    // pEdge)) {
+    //        if (!((AutomatonState) successor).getInternalStateName().equals("__TRUE")) {
+    //          return false;
+    //        }
+    //      }
     return true;
   }
 
