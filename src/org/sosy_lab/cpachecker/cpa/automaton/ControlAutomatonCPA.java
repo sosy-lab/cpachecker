@@ -292,7 +292,7 @@ public class ControlAutomatonCPA
 
   @Override
   public AutomatonTransferRelation getTransferRelation() {
-    return new AutomatonTransferRelation(this, logger, cfa.getMachineModel());
+    return new AutomatonTransferRelation(logger, cfa.getMachineModel(), stats);
   }
 
   public AutomatonState getBottomState() {

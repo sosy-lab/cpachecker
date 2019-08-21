@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
  */
 public class AutomatonTransferRelation implements TransferRelation {
 
-  private final ControlAutomatonCPA cpa;
   private final LogManager logger;
   private final MachineModel machineModel;
 
@@ -83,17 +82,16 @@ public class AutomatonTransferRelation implements TransferRelation {
   private final StatIntHist automatonSuccessors;
 
   public AutomatonTransferRelation(
-      ControlAutomatonCPA pCpa, LogManager pLogger, MachineModel pMachineModel) {
-    this.cpa = pCpa;
+      LogManager pLogger, MachineModel pMachineModel, AutomatonStatistics pStats) {
     this.logger = pLogger;
     this.machineModel = pMachineModel;
 
-    totalPostTime = pCpa.stats.totalPostTime.getNewTimer();
-    matchTime = pCpa.stats.matchTime.getNewTimer();
-    assertionsTime = pCpa.stats.assertionsTime.getNewTimer();
-    actionTime = pCpa.stats.actionTime.getNewTimer();
-    totalStrengthenTime = pCpa.stats.totalStrengthenTime.getNewTimer();
-    automatonSuccessors = pCpa.stats.automatonSuccessors;
+    totalPostTime = pStats.totalPostTime.getNewTimer();
+    matchTime = pStats.matchTime.getNewTimer();
+    assertionsTime = pStats.assertionsTime.getNewTimer();
+    actionTime = pStats.actionTime.getNewTimer();
+    totalStrengthenTime = pStats.totalStrengthenTime.getNewTimer();
+    automatonSuccessors = pStats.automatonSuccessors;
   }
 
   @Override
@@ -294,7 +292,7 @@ public class AutomatonTransferRelation implements TransferRelation {
 
         logger.log(Level.ALL, "Replace variables in automata assumptions");
         ImmutableList<AExpression> instantiatedAssumes =
-            exprArgs.instantiateAssumptions(t.getAssumptions(edge, this.logger, this.machineModel));
+            exprArgs.instantiateAssumptions(t.getAssumptions(edge, logger, machineModel));
 
         AutomatonState lSuccessor =
             AutomatonState.automatonStateFactory(
