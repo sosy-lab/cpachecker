@@ -570,14 +570,14 @@ class WitnessWriter implements EdgeAppender {
       result = result.putAndCopy(KeyDef.ENDLINE, Integer.toString(max.getEndingLineInOrigin()));
     }
 
-    if (witnessOptions.exportOffset() && min != null) {
+    if (witnessOptions.exportOffset() && min != null && min.isOffsetRelatedToOrigin()) {
       if (witnessOptions.exportSourceFileName()
           || !min.getFileName().equals(defaultSourcefileName)) {
         result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
       }
       result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
     }
-    if (witnessOptions.exportOffset() && max != null) {
+    if (witnessOptions.exportOffset() && max != null && max.isOffsetRelatedToOrigin()) {
       result =
           result.putAndCopy(
               KeyDef.ENDOFFSET, Integer.toString(max.getNodeOffset() + max.getNodeLength() - 1));
