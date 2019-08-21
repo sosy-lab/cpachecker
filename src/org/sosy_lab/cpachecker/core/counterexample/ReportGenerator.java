@@ -274,19 +274,32 @@ public class ReportGenerator {
       Writer writer, CFA cfa, DOTBuilder2 dotBuilder, @Nullable CounterexampleInfo counterExample)
       throws IOException {
     writer.write("var cfaJson = {\n");
-    insertFunctionNames(writer, cfa);
-    writer.write(",\n");
-    insertFCallEdges(writer, dotBuilder);
-    writer.write(",\n");
-    insertCombinedNodesData(writer, dotBuilder);
-    writer.write(",\n");
-    insertCombinedNodesLabelsData(writer, dotBuilder);
-    writer.write(",\n");
-    insertMergedNodesListData(writer, dotBuilder);
-    writer.write(",\n");
+
+    // Program entry function at first place is important for the graph generation
+    writer.write("\"functionNames\":");
+    Set<String> allFunctionsEntryFirst = new LinkedHashSet<>();
+    allFunctionsEntryFirst.add(cfa.getMainFunction().getFunctionName());
+    allFunctionsEntryFirst.addAll(cfa.getAllFunctionNames());
+    JSON.writeJSONString(allFunctionsEntryFirst, writer);
+
+    writer.write(",\n\"functionCallEdges\":");
+    dotBuilder.writeFunctionCallEdges(writer);
+
+    writer.write(",\n\"combinedNodes\":");
+    dotBuilder.writeCombinedNodes(writer);
+
+    writer.write(",\n\"combinedNodesLabels\":");
+    dotBuilder.writeCombinedNodesLabels(writer);
+
+    writer.write(",\n\"mergedNodes\":");
+    dotBuilder.writeMergedNodesList(writer);
+
     if (counterExample != null) {
-      insertErrorPathData(counterExample, writer);
+      writer.write(",\n\"errorPath\":");
+      counterExample.toJSON(writer);
     }
+
+    writer.write(",\n");
     dotBuilder.writeCfaInfo(writer);
     writer.write("\n}\n");
   }
@@ -518,43 +531,6 @@ public class ReportGenerator {
     } else {
       writer.write("<p>Log not available</p>");
     }
-  }
-
-  private void insertFCallEdges(Writer writer, DOTBuilder2 dotBuilder) throws IOException {
-    writer.write("\"functionCallEdges\":");
-    dotBuilder.writeFunctionCallEdges(writer);
-  }
-
-  private void insertCombinedNodesData(Writer writer, DOTBuilder2 dotBuilder) throws IOException {
-    writer.write("\"combinedNodes\":");
-    dotBuilder.writeCombinedNodes(writer);
-  }
-
-  private void insertCombinedNodesLabelsData(Writer writer, DOTBuilder2 dotBuilder)
-      throws IOException {
-    writer.write("\"combinedNodesLabels\":");
-    dotBuilder.writeCombinedNodesLabels(writer);
-  }
-
-  private void insertMergedNodesListData(Writer writer, DOTBuilder2 dotBuilder) throws IOException {
-    writer.write("\"mergedNodes\":");
-    dotBuilder.writeMergedNodesList(writer);
-  }
-
-  private void insertErrorPathData(CounterexampleInfo counterExample, Writer writer)
-      throws IOException {
-    writer.write("\"errorPath\":");
-    counterExample.toJSON(writer);
-    writer.write(",\n");
-  }
-
-  // Program entry function at first place is important for the graph generation
-  private void insertFunctionNames(Writer writer, CFA cfa) throws IOException {
-    writer.write("\"functionNames\":");
-    Set<String> allFunctionsEntryFirst = new LinkedHashSet<>();
-    allFunctionsEntryFirst.add(cfa.getMainFunction().getFunctionName());
-    allFunctionsEntryFirst.addAll(cfa.getAllFunctionNames());
-    JSON.writeJSONString(allFunctionsEntryFirst, writer);
   }
 
   private void insertSourceFileNames(Writer writer) throws IOException {
