@@ -1,0 +1,17 @@
+# This is a Docker image for running the Javascript end-to-end tests.
+# It should be pushed to registry.gitlab.com/sosy-lab/software/cpachecker/test
+# and will be used by CI as declared in .gitlab-ci.yml.
+#
+# Commands for updating the image:
+# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker/test:java-node - < build/gitlab-ci.Dockerfile.java-node
+# docker push registry.gitlab.com/sosy-lab/software/cpachecker/test
+
+# We base it on Ubuntu 18.04 instead of some Node image
+# to make sure that the tests are also executable on a standard Ubuntu easily.
+FROM ubuntu:18.04
+
+RUN apt-get update && apt-get install -y \
+      chromium-browser \
+      nodejs \
+      npm \
+      openjdk-11-jre-headless

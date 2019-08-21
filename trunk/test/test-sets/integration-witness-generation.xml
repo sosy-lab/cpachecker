@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="7 GB" cpuCores="2">
+
+  <!--
+  Generate the test-set definition file to validate the witnesses
+  produced by this test-set definition using ../util/generate_witness_validation_testdef.py
+  -->
+
+  <option name="-heap">6000M</option>
+
+  <resultfiles>**.graphml*</resultfiles>
+  <option name="-setprop">cpa.arg.compressWitness=true</option>
+  <option name="-setprop">counterexample.export.compressWitness=true</option>
+
+  <rundefinition>
+    <option name="-svcomp19"/>
+  </rundefinition>
+
+  <tasks name="BitVectorsOverflows">
+    <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    <option name="-64"/>
+  </tasks>
+    <tasks name="HeapReach">
+    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="HeapMemSafety">
+    <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <!-- exclude files where several properties are available -->
+    <exclude>../programs/benchmarks/list-ext-properties/list-ext.yml</exclude>
+    <exclude>../programs/benchmarks/list-ext-properties/list-ext_flag.yml</exclude>
+  </tasks>
+  <tasks name="Floats">
+    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ControlFlow">
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="Recursive">
+    <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <option name="-setprop">cpa.callstack.skipVoidRecursion=false</option>
+  </tasks>
+</benchmark>

@@ -1,0 +1,12 @@
+OBSERVER AUTOMATON UninitializedVariablesTestAutomaton
+/* Queries the UninitializedVariablesCPA for errors and prints them.
+ * Does not abort the checking (does not go to the error state).
+ */
+
+INITIAL STATE Init;
+
+STATE USEFIRST Init :
+  CHECK(uninitVars, "UNINITIALIZED_RETURN_VALUE") -> PRINT "Automaton: Uninitialized return value" GOTO Init;
+  CHECK(uninitVars, "UNINITIALIZED_VARIABLE_USED") -> PRINT "Automaton: Uninitialized variable used" GOTO Init;
+
+END AUTOMATON

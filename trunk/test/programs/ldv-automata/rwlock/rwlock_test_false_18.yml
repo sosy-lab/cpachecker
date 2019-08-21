@@ -1,0 +1,6 @@
+format_version: "1.0"
+input_files: "rwlock_test_false_18.c"
+properties:
+  - property_file: "../../../config/automata/ldv/rwlock.spc"
+    expected_verdict: false
+

@@ -1,0 +1,251 @@
+# DO NOT EDIT LOCALLY!
+# Keep this file synchronized with
+# https://gitlab.com/sosy-lab/software/java-project-template
+
+stages:
+  - images
+  - dependencies
+  - build
+  - checks
+  - deploy
+
+# Default image for non-JDK-specific jobs
+image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+
+variables:
+  IVY_CACHE_DIR: "${CI_PROJECT_DIR}/.ivy2"
+  ANT_PROPS_BUILD: "-Divy.disable=true"
+  ANT_PROPS_CHECKS: "-Divy.disable=true -DskipBuild=true"
+
+
+# Download dependencies and provide them to later stages
+build-dependencies:
+  stage: dependencies
+  dependencies: []
+  script: "ant build-dependencies"
+  cache:
+    key: "$CI_JOB_NAME"
+    paths:
+      - ".ivy2/"
+      - "lib/java/"
+  artifacts:
+    paths:
+      - "lib/java/"
+
+
+# Build binaries and provide them to later stages
+.build: &build
+  stage: build
+  script: "ant $ANT_PROPS_BUILD jar"
+  artifacts:
+    paths:
+      - "bin/"
+      - "*.jar"
+
+build:jdk-8:
+  <<: *build
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
+
+build:jdk-11:
+  <<: *build
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+
+build:jdk-12:
+  <<: *build
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
+
+
+# For checks that need the binaries
+.binary_check: &binary_check
+  stage: checks
+
+# For checks that only need the source code, not the binaries
+.source_check: &source_check
+  stage: checks
+  dependencies:
+    - build-dependencies
+
+
+.build-project-ecj: &build-project-ecj
+  <<: *source_check
+  script: "ant $ANT_PROPS_BUILD build-project-ecj"
+
+build-project-ecj:jdk-8:
+  <<: *build-project-ecj
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
+
+build-project-ecj:jdk-11:
+  <<: *build-project-ecj
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+
+build-project-ecj:jdk-12:
+  <<: *build-project-ecj
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
+
+
+check-format:
+  <<: *source_check
+  script: "ant $ANT_PROPS_CHECKS format-source && git diff -s --exit-code"
+
+checkstyle:
+  <<: *source_check
+  script:
+    - "ant $ANT_PROPS_CHECKS checkstyle"
+    - "ant $ANT_PROPS_CHECKS run-checkstyle -Dcheckstyle.output=plain && cat Checkstyle*.xml && test $(cat Checkstyle*xml | grep -vic audit) -eq 0"
+  artifacts:
+    paths:
+      - "Checkstyle*html"
+    when: on_failure
+
+javadoc:
+  <<: *binary_check
+  script: "ant $ANT_PROPS_CHECKS javadoc"
+  dependencies:
+    - build-dependencies
+    - build:jdk-11
+  artifacts:
+    paths:
+      - "Javadoc/"
+
+spotbugs:
+  <<: *binary_check
+  script:
+    - 'ant $ANT_PROPS_CHECKS spotbugs'
+    - 'test \! -f SpotBugs.html'
+  dependencies:
+    - build-dependencies
+    - build:jdk-11
+  artifacts:
+    paths:
+      - "SpotBugs.html"
+    when: on_failure
+
+.unit-tests: &unit-tests
+  <<: *binary_check
+  script: "ant $ANT_PROPS_CHECKS unit-tests-coverage"
+  artifacts:
+    paths:
+      - "JUnit.html"
+      - "JUnit-coverage/"
+      - "junit/coverage.xml"
+    when: always
+    reports:
+      junit: "junit/TESTS-TestSuites.xml"
+
+unit-tests:jdk-8:
+  <<: *unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-8
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
+
+unit-tests:jdk-11:
+  <<: *unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-11
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+
+unit-tests:jdk-12:
+  <<: *unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-12
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
+
+
+refaster:
+  stage: checks
+  dependencies: []
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+  before_script:
+    - 'test -d refaster || git clone https://gitlab.com/sosy-lab/software/refaster.git'
+    - 'cd refaster'
+    - 'git fetch'
+    - 'git checkout $REFASTER_REPO_REVISION'
+    - 'ant build-refaster-rule -Drefaster.source.pattern=**/*.java -Drefaster.rule.file=../rule.refaster -Derrorprone.version=$REFASTER_VERSION'
+    - 'cd -'
+  script:
+    - 'ant refaster -Drefaster.rule.file=rule.refaster'
+  cache:
+    key: "$CI_JOB_NAME"
+    paths:
+      - ".ivy2/"
+      - "refaster/"
+  artifacts:
+    paths:
+      - "error-prone.patch"
+      - "rule.refaster"
+    when: on_failure
+  except:
+    variables:
+      - $REFASTER_REPO_REVISION == null # required for job
+      - $REFASTER_VERSION == null # required for job
+
+
+deploy-coverage:
+  stage: deploy
+  script: "build/deploy-coverage.sh"
+  dependencies:
+    - unit-tests:jdk-11
+  only:
+    refs:
+      - master
+    variables:
+      - $CI_PROJECT_PATH == $PROJECT_PATH # not on forks
+  except:
+    variables:
+      - $CODACY_PROJECT_TOKEN == null # required for job
+      - $GH_TOKEN == null # required for job
+  cache:
+    paths:
+      - "codacy-coverage-reporter-assembly*.jar"
+
+deploy-gh-pages:
+  stage: deploy
+  script: "build/deploy-gh-pages.sh"
+  dependencies:
+    - build:jdk-11
+    - javadoc
+  only:
+    refs:
+      - master
+    variables:
+      - $CI_PROJECT_PATH == $PROJECT_PATH # not on forks
+  except:
+    variables:
+      - $GH_TOKEN == null # required for job
+
+
+# Build Docker images
+# following this guideline: https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
+.build-docker:
+  stage: images
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /root/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE/$IMAGE
+  only:
+    - schedules
+    - web
+
+build-docker:test:jdk-8:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-8
+    IMAGE: test:jdk-8
+
+build-docker:test:jdk-11:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-11
+    IMAGE: test:jdk-11
+
+build-docker:test:jdk-12:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-12
+    IMAGE: test:jdk-12

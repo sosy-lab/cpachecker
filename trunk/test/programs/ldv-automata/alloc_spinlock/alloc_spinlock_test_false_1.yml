@@ -1,0 +1,6 @@
+format_version: "1.0"
+input_files: "alloc_spinlock_test_false_1.c"
+properties:
+  - property_file: "../../../config/automata/ldv/alloc_spinlock.spc"
+    expected_verdict: false
+

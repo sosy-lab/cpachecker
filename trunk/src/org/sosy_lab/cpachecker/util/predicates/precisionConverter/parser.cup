@@ -1,0 +1,156 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2015  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
+
+import com.google.common.io.CharSource;
+import com.google.common.collect.ImmutableList;
+
+import java.io.Reader;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Level;
+
+import java_cup.runtime.ComplexSymbolFactory;
+import java_cup.runtime.Scanner;
+import java_cup.runtime.Symbol;
+import java_cup.runtime.SymbolFactory;
+
+import javax.annotation.Nullable;
+
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
+import org.sosy_lab.java_smt.api.FormulaType;
+
+parser code {:
+  private LogManager logger;
+  Converter converter; 
+
+  public FormulaParser(Scanner scanner, SymbolFactory sf, Converter pConverter, LogManager pLogger) {
+      super(scanner, sf);
+      logger = pLogger;
+      converter = pConverter;
+  }
+
+  @Override
+  public void report_error(String message, Object info) {
+    String errorString = message;
+    if (info != null) {
+      errorString += " near " + info;
+    }
+    logger.log(Level.WARNING, errorString);
+  }
+
+  /**
+   * This method converts a formula with the given converter.
+   * If the converter is NULL or the formula is a solver-specific string, it is returned unchanged.
+   * Otherwise the converter converts the formula, for example from Integer-logic to BV-logic.
+   * If a symbol cannot be parsed, the returned formula-string is NULL.
+   */
+  public static String convertFormula(@Nullable Converter converter, String line, LogManagerWithoutDuplicates pLogger) {
+
+    if (converter == null) {
+      return line;
+    }
+
+    if (!line.startsWith("(define-fun ") && !line.startsWith("(declare-fun ") && !line.startsWith("(assert ")) {
+      // ignore solver-specific lines
+      return line;
+    }
+
+    return convert0(converter, line, pLogger);
+  }
+
+  private static String convert0(Converter converter, String line, LogManagerWithoutDuplicates pLogger)
+      throws AssertionError {
+    try (Reader input = CharSource.wrap(line).openStream()) {
+      ComplexSymbolFactory sf = new ComplexSymbolFactory();
+      Scanner scanner = new FormulaScanner(input, sf);
+      FormulaParser parser = new FormulaParser(scanner, sf, converter, pLogger);
+      Symbol symbol = parser.parse();
+      return ((String) symbol.value);
+    } catch (UnknownFormulaSymbolException e) {
+      //if (e.getMessage().contains("unknown symbol in formula: .def_")) {
+        // ignore Mathsat5-specific helper symbols,
+        // they are based on 'real' unknown symbols.
+      //} else {
+        pLogger.logOnce(Level.INFO, e.getMessage());
+      //}
+      return null;
+    } catch (Exception e) {
+      throw new AssertionError("There was a problem while parsing the formula '''" + line + "'''.", e);
+    }
+  }
+
+  Converter getConverter(){
+      return converter;
+  }
+
+:};
+
+
+/* Predefined Symbols */
+terminal String DECLAREFUN, DEFINEFUN, ASSERT;
+terminal String SYMBOL, NUMERAL, DECIMAL;
+terminal String LPAR, RPAR;
+
+non terminal String symbol, numeral;
+non terminal String goal, definefun, declarefun, assert;
+non terminal Type<String> funtype;
+non terminal List<String> types;
+non terminal String type;
+non terminal List<Pair<String, Type<FormulaType<?>>>> terms;
+non terminal Pair<String, Type<FormulaType<?>>> term;
+
+/* ! start here ! */
+goal ::= definefun:n {: RESULT = n; :}
+       | declarefun:n {: RESULT = n; :}
+       | assert:n {: RESULT = n; :};
+
+declarefun ::= LPAR DECLAREFUN symbol:n funtype:ft RPAR 
+	{: RESULT = "(declare-fun " + parser.getConverter().convertFunctionDeclaration(n, ft) + ")"; :};
+definefun ::= LPAR DEFINEFUN symbol:n funtype:ft term:f RPAR 
+	{: RESULT = "(define-fun " + parser.getConverter().convertFunctionDefinition(n, ft, f) + ")"; :};
+assert ::= LPAR ASSERT term:f RPAR 
+	{: RESULT = "(assert " + f.getFirst() + ")"; :};
+
+funtype ::= LPAR types:lst RPAR type:t 
+	{: RESULT = new Type<String>(t, ImmutableList.copyOf(lst)); :};
+types ::= type:t types:lst {: lst.add(0,t); RESULT = lst; :}
+        | /* empty */ {: RESULT = new LinkedList<String>(); :};
+type ::= symbol:n {: RESULT = n; :}
+		| LPAR SYMBOL:uscore SYMBOL:bv numeral:n RPAR {: RESULT = "(_ BitVec " + n + ")"; :};
+
+terms ::= term:t terms:lst {: lst.add(0,t); RESULT = lst; :}
+        | /* empty */ {: RESULT = new LinkedList<Pair<String, Type<FormulaType<?>>>>(); :};
+term ::= numeral:n {: RESULT = parser.getConverter().convertNumeral(n); :}
+       | symbol:n {: RESULT = parser.getConverter().convertSymbol(n); :}
+       | LPAR term:op terms:lst RPAR {: RESULT = parser.getConverter().convertTerm(op, lst); :};
+
+numeral ::= NUMERAL:n {: RESULT = n; :} 
+          | DECIMAL:n {: RESULT = n; :};
+symbol ::= SYMBOL:n {: RESULT = n; :};
+

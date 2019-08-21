@@ -1,0 +1,10 @@
+OBSERVER AUTOMATON AutomatonCoversLine
+
+INITIAL STATE Init;
+
+STATE USEFIRST Init :
+// 4 cannot be covered, it is a blank line between declarations.
+// 7 is the first statement in main, should be possible to cover.
+  COVERS_LINES(4 7) -> ERROR("Reached line 4 or line 7.");
+
+END AUTOMATON

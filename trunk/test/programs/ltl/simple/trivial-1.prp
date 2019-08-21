@@ -1,0 +1,1 @@
+CHECK( init(main()), LTL( <>("x > 10000") ) )
