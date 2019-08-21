@@ -111,10 +111,9 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
           }
 
         } else {
-          // BACKWARDS: Build the stack on the function-return edge (add element to the stack)
-          return Collections.singleton(new CallstackState(e,
-              nextAnalysisFunction,
-              correspondingCallNode));
+            // BACKWARDS: Build the stack on the function-return edge (add element to the stack)
+            return ImmutableSet.of(
+                new CallstackState(e, nextAnalysisFunction, correspondingCallNode));
         }
       }
 

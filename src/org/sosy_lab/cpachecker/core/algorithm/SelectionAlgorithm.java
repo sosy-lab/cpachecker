@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -497,7 +498,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
         mainFunction,
         singleShutdownManager,
         aggregateReached,
-        Collections.singleton("analysis.selectAnalysisHeuristically"),
+        ImmutableSet.of("analysis.selectAnalysisHeuristically"),
         stats.getSubStatistics());
   }
 

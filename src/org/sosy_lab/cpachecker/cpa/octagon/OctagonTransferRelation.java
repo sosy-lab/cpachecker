@@ -1124,7 +1124,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
     @Override
     protected Set<Pair<IOctagonCoefficients, OctagonState>> visitDefault(CExpression pExp) throws CPATransferException {
-      return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
+      return ImmutableSet.of(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
     }
 
     @Override
@@ -1138,7 +1138,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       case SHIFT_LEFT:
       case SHIFT_RIGHT:
       case MODULO:
-        return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
+        return ImmutableSet.of(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
       default:
         // nothing to do
       }
@@ -1150,14 +1150,14 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       left = FluentIterable.from(left).filter(new NotInstanceOfEmptyCoefficients()).toSet();
 
       if (left.isEmpty() || origSize != left.size()) {
-        return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
+        return ImmutableSet.of(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
       } else {
         for (Pair<IOctagonCoefficients, OctagonState> pair : left) {
           Set<Pair<IOctagonCoefficients, OctagonState>> tmpRight = e.getOperand2().accept(new COctagonCoefficientVisitor(pair.getSecond(), visitorFunctionName));
           origSize = tmpRight.size();
           tmpRight = FluentIterable.from(tmpRight).filter(new NotInstanceOfEmptyCoefficients()).toSet();
           if (tmpRight.isEmpty() || origSize != tmpRight.size()) {
-            return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
+            return ImmutableSet.of(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
           } else {
             right.add(Pair.of(pair.getFirst(), tmpRight));
           }
@@ -1537,23 +1537,23 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
         varIndex = visitorState.getVariableIndexFor(varName);
       }
 
-      if (varIndex == -1) { return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState)); }
-      return Collections.singleton(Pair.of((IOctagonCoefficients)new OctagonSimpleCoefficients(visitorState.sizeOfVariables(), varIndex, OctagonIntValue.ONE, visitorState), visitorState));
+      if (varIndex == -1) { return ImmutableSet.of(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState)); }
+      return ImmutableSet.of(Pair.of((IOctagonCoefficients)new OctagonSimpleCoefficients(visitorState.sizeOfVariables(), varIndex, OctagonIntValue.ONE, visitorState), visitorState));
     }
 
     @Override
     public Set<Pair<IOctagonCoefficients, OctagonState>> visit(CCharLiteralExpression e) throws CPATransferException {
-      return Collections.singleton(Pair.of((IOctagonCoefficients)new OctagonSimpleCoefficients(visitorState.sizeOfVariables(), OctagonIntValue.of(e.getValue()), visitorState), visitorState));
+      return ImmutableSet.of(Pair.of((IOctagonCoefficients)new OctagonSimpleCoefficients(visitorState.sizeOfVariables(), OctagonIntValue.of(e.getValue()), visitorState), visitorState));
     }
 
     @Override
     public Set<Pair<IOctagonCoefficients, OctagonState>> visit(CFloatLiteralExpression e) throws CPATransferException {
-        return Collections.singleton(Pair.of((IOctagonCoefficients)new OctagonSimpleCoefficients(visitorState.sizeOfVariables(), new OctagonDoubleValue(e.getValue().doubleValue()), visitorState), visitorState));
+        return ImmutableSet.of(Pair.of((IOctagonCoefficients)new OctagonSimpleCoefficients(visitorState.sizeOfVariables(), new OctagonDoubleValue(e.getValue().doubleValue()), visitorState), visitorState));
     }
 
     @Override
     public Set<Pair<IOctagonCoefficients, OctagonState>> visit(CIntegerLiteralExpression e) throws CPATransferException {
-      return Collections.singleton(Pair.of((IOctagonCoefficients)new OctagonSimpleCoefficients(visitorState.sizeOfVariables(), OctagonIntValue.of(e.asLong()), visitorState), visitorState));
+      return ImmutableSet.of(Pair.of((IOctagonCoefficients)new OctagonSimpleCoefficients(visitorState.sizeOfVariables(), OctagonIntValue.of(e.asLong()), visitorState), visitorState));
     }
 
     @Override
@@ -1563,7 +1563,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       case AMPER:
       case SIZEOF:
       case TILDE:
-        return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
+        return ImmutableSet.of(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
       default:
         // nothing to do
       }
@@ -1581,7 +1581,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       // value is undefined, the other states could only be more precise and are
       // therefore irrelevant
       if (operand.isEmpty() || origSize != operand.size()) {
-        return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
+        return ImmutableSet.of(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
       }
 
       Set<Pair<IOctagonCoefficients, OctagonState>> returnValues = new HashSet<>();
@@ -1613,7 +1613,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
             // $FALL-THROUGH$
         }
       }
-      return Collections.singleton(Pair.of(coefficients, visitorState));
+      return ImmutableSet.of(Pair.of(coefficients, visitorState));
     }
   }
 

@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.chc;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -458,22 +458,22 @@ public class ConstraintManager {
           negAtomCnT = new Compound(">=", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return Collections.singleton(Pair.of((Term)negAtomCnT, cn.getSecond()));
+          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
         case "=<":
           negAtomCnT = new Compound(">", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return Collections.singleton(Pair.of((Term)negAtomCnT, cn.getSecond()));
+          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
         case ">":
           negAtomCnT = new Compound("=<", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return Collections.singleton(Pair.of((Term)negAtomCnT, cn.getSecond()));
+          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
         case ">=":
           negAtomCnT = new Compound("<", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return Collections.singleton(Pair.of((Term)negAtomCnT, cn.getSecond()));
+          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
         case "=:=":
           return Arrays.asList(
               Pair.of((Term)new Compound("<", new Term[] {atomCnT.arg(1), atomCnT.arg(2)}), cn.getSecond()),
@@ -489,9 +489,9 @@ public class ConstraintManager {
 
     if (ce instanceof CIdExpression) {
       vars.add(CVar2PrologVar(ce.toString()));
-      return Collections.singleton(Pair.of((Term)CVar2PrologVar(ce.toString()), vars));
+      return ImmutableSet.of(Pair.of((Term)CVar2PrologVar(ce.toString()), vars));
     } else if (ce instanceof CIntegerLiteralExpression) {
-      return Collections.singleton(Pair.of(Util.textToTerm("rdiv(" + ce + ",1)"), vars));
+      return ImmutableSet.of(Pair.of(Util.textToTerm("rdiv(" + ce + ",1)"), vars));
     } else if (ce instanceof CBinaryExpression ) {
       CBinaryExpression bexp = (CBinaryExpression)ce;
       Collection<Pair<Term, List<Term>>> operand1 = expressionToCLP(bexp.getOperand1());
@@ -541,11 +541,11 @@ public class ConstraintManager {
       vars.add(CVar2PrologVar(ce.toString()));
       expTerm = CVar2PrologVar(ce.toString());
       Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, expTerm});
-      return Collections.singleton(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), vars));
+      return ImmutableSet.of(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), vars));
     } else if (ce instanceof CIntegerLiteralExpression) {
       expTerm = Util.textToTerm("rdiv(" + ce + ",1)");
       Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, expTerm});
-      return Collections.singleton(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), vars));
+      return ImmutableSet.of(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), vars));
     } else if (ce instanceof CBinaryExpression ) {
       CBinaryExpression bexp = (CBinaryExpression)ce;
       Collection<Pair<Term, List<Term>>> aexpTerms = expressionToCLP(ce);

@@ -90,7 +90,7 @@ public class FrameSet implements AutoCloseable {
             i -> {
               Iterable<? extends Object> result = frames.get(i);
               if (i == 0) {
-                result = Iterables.concat(Collections.singleton("I"), result);
+                result = Iterables.concat(ImmutableSet.of("I"), result);
               }
               return result;
             })

@@ -203,8 +203,9 @@ public class AutomatonTransferRelation implements TransferRelation {
           throw new AutomatonTransferException(
               "Automaton transition condition could not be evaluated", match);
         }
-        // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
-        return Collections.singleton(new AutomatonUnknownState(state));
+        // if one transition cannot be evaluated the evaluation must be postponed until enough
+        // information is available
+        return ImmutableSet.of(new AutomatonUnknownState(state));
       } else {
         if (match.getValue()) {
           edgeMatched = true;
@@ -218,7 +219,7 @@ public class AutomatonTransferRelation implements TransferRelation {
                   "Automaton transition assertions could not be evaluated", assertionsHold);
             }
             // cannot yet be evaluated
-            return Collections.singleton(new AutomatonUnknownState(state));
+            return ImmutableSet.of(new AutomatonUnknownState(state));
 
           } else if (assertionsHold.getValue()) {
             if (!t.canExecuteActionsOn(exprArgs)) {
@@ -227,7 +228,7 @@ public class AutomatonTransferRelation implements TransferRelation {
                     "Automaton transition action could not be executed");
               }
               // cannot yet execute, goto UnknownState
-              return Collections.singleton(new AutomatonUnknownState(state));
+              return ImmutableSet.of(new AutomatonUnknownState(state));
             }
 
             // delay execution as described above

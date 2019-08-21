@@ -55,7 +55,7 @@ public class PowerSetTransferRelation extends SingleEdgeTransferRelation {
       successors.addAll(wrapperTransfer.getAbstractSuccessorsForEdge(wrappedState, pPrecision, pCfaEdge));
     }
 
-    return Collections.singleton(new PowerSetState(successors));
+    return ImmutableSet.of(new PowerSetState(successors));
   }
 
   @Override
@@ -82,7 +82,7 @@ public class PowerSetTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    return changed ? Collections.singleton(new PowerSetState(newStates)) : ImmutableSet.of();
+    return changed ? ImmutableSet.of(new PowerSetState(newStates)) : ImmutableSet.of();
   }
 
 }
