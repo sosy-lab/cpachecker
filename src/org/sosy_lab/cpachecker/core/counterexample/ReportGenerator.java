@@ -271,53 +271,43 @@ public class ReportGenerator {
   }
 
   private void insertCfaJson(
-      Writer writer,
-      CFA cfa,
-      DOTBuilder2 dotBuilder,
-      @Nullable CounterexampleInfo counterExample) {
-    try {
-      writer.write("var cfaJson = {\n");
-      insertFunctionNames(writer, cfa);
-      writer.write(",\n");
-      insertFCallEdges(writer, dotBuilder);
-      writer.write(",\n");
-      insertCombinedNodesData(writer, dotBuilder);
-      writer.write(",\n");
-      insertCombinedNodesLabelsData(writer, dotBuilder);
-      writer.write(",\n");
-      insertMergedNodesListData(writer, dotBuilder);
-      writer.write(",\n");
-      if (counterExample != null) {
-        insertErrorPathData(counterExample, writer);
-      }
-      dotBuilder.writeCfaInfo(writer);
-      writer.write("\n}\n");
-    } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report: Inserting CFA Json failed.");
+      Writer writer, CFA cfa, DOTBuilder2 dotBuilder, @Nullable CounterexampleInfo counterExample)
+      throws IOException {
+    writer.write("var cfaJson = {\n");
+    insertFunctionNames(writer, cfa);
+    writer.write(",\n");
+    insertFCallEdges(writer, dotBuilder);
+    writer.write(",\n");
+    insertCombinedNodesData(writer, dotBuilder);
+    writer.write(",\n");
+    insertCombinedNodesLabelsData(writer, dotBuilder);
+    writer.write(",\n");
+    insertMergedNodesListData(writer, dotBuilder);
+    writer.write(",\n");
+    if (counterExample != null) {
+      insertErrorPathData(counterExample, writer);
     }
+    dotBuilder.writeCfaInfo(writer);
+    writer.write("\n}\n");
   }
 
-  private void insertArgJson(Writer writer) {
-    try {
-      writer.write("var argJson = {");
-      if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
-        writer.write("\n\"nodes\":");
-        JSON.writeJSONString(argNodes.values(), writer);
-        writer.write(",\n\"edges\":");
-        JSON.writeJSONString(argEdges.values(), writer);
-        writer.write("\n");
-      }
-      if(!argRelevantEdges.isEmpty() && !argRelevantNodes.isEmpty()){
-        writer.write(",\n\"relevantnodes\":");
-        JSON.writeJSONString(argRelevantNodes.values(), writer);
-        writer.write(",\n\"relevantedges\":");
-        JSON.writeJSONString(argRelevantEdges.values(), writer);
-        writer.write("\n");
-      }
-      writer.write("}\n");
-    } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report: Inserting ARG Json failed.");
+  private void insertArgJson(Writer writer) throws IOException {
+    writer.write("var argJson = {");
+    if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
+      writer.write("\n\"nodes\":");
+      JSON.writeJSONString(argNodes.values(), writer);
+      writer.write(",\n\"edges\":");
+      JSON.writeJSONString(argEdges.values(), writer);
+      writer.write("\n");
     }
+    if (!argRelevantEdges.isEmpty() && !argRelevantNodes.isEmpty()) {
+      writer.write(",\n\"relevantnodes\":");
+      JSON.writeJSONString(argRelevantNodes.values(), writer);
+      writer.write(",\n\"relevantedges\":");
+      JSON.writeJSONString(argRelevantEdges.values(), writer);
+      writer.write("\n");
+    }
+    writer.write("}\n");
   }
 
   private void insertCss(Writer writer) throws IOException {
@@ -327,41 +317,26 @@ public class ReportGenerator {
     writer.write("</style>");
   }
 
-  private void insertMetaTags(Writer writer) {
-    try {
-      writer.write("<meta name='generator'" + " content='" + producer + "'>\n");
-    } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report: Inserting metatags failed.");
-    }
+  private void insertMetaTags(Writer writer) throws IOException {
+    writer.write("<meta name='generator'" + " content='" + producer + "'>\n");
   }
 
-  private void insertDateAndVersion(Writer writer) {
-    try {
-      String generated =
-          String.format(
-              "Generated on %s by %s",
-              new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()), producer);
-      writer.write(generated);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Inserting date and version failed.");
-    }
+  private void insertDateAndVersion(Writer writer) throws IOException {
+    String generated =
+        String.format(
+            "Generated on %s by %s",
+            new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()), producer);
+    writer.write(generated);
   }
 
-  private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer writer) {
-    try {
-      if (counterExample == null) {
-        writer.write(sourceFiles.get(0));
-      } else {
-        String title =
-            String
-                .format("%s (Counterexample %s)", sourceFiles.get(0), counterExample.getUniqueId());
-        writer.write(title);
-      }
-    } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report: Inserting report name failed.");
+  private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer writer)
+      throws IOException {
+    if (counterExample == null) {
+      writer.write(sourceFiles.get(0));
+    } else {
+      String title =
+          String.format("%s (Counterexample %s)", sourceFiles.get(0), counterExample.getUniqueId());
+      writer.write(title);
     }
   }
 
@@ -455,9 +430,6 @@ public class ReportGenerator {
           lineNumber++;
         }
         writer.write("</table></div>\n");
-      } catch (IOException e) {
-        logger
-            .logUserException(WARNING, e, "Could not create report: Inserting source code failed.");
       }
     } else {
       writer.write("<p>No Source-File available</p>");
@@ -542,102 +514,53 @@ public class ReportGenerator {
         }
         String exitTableLine = "</tbody></table>\n";
         writer.write(exitTableLine);
-      } catch (IOException e) {
-        logger.logUserException(WARNING, e, "Could not create report: Adding log failed.");
       }
     } else {
       writer.write("<p>Log not available</p>");
     }
   }
 
-  private void insertFCallEdges(Writer writer, DOTBuilder2 dotBuilder) {
-    try {
-      writer.write("\"functionCallEdges\":");
-      dotBuilder.writeFunctionCallEdges(writer);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of function call edges failed.");
-    }
+  private void insertFCallEdges(Writer writer, DOTBuilder2 dotBuilder) throws IOException {
+    writer.write("\"functionCallEdges\":");
+    dotBuilder.writeFunctionCallEdges(writer);
   }
 
-  private void insertCombinedNodesData(Writer writer, DOTBuilder2 dotBuilder) {
-    try {
-      writer.write("\"combinedNodes\":");
-      dotBuilder.writeCombinedNodes(writer);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of combined nodes failed.");
-    }
+  private void insertCombinedNodesData(Writer writer, DOTBuilder2 dotBuilder) throws IOException {
+    writer.write("\"combinedNodes\":");
+    dotBuilder.writeCombinedNodes(writer);
   }
 
-  private void insertCombinedNodesLabelsData(Writer writer, DOTBuilder2 dotBuilder) {
-    try {
-      writer.write("\"combinedNodesLabels\":");
-      dotBuilder.writeCombinedNodesLabels(writer);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of combined nodes labels failed.");
-    }
+  private void insertCombinedNodesLabelsData(Writer writer, DOTBuilder2 dotBuilder)
+      throws IOException {
+    writer.write("\"combinedNodesLabels\":");
+    dotBuilder.writeCombinedNodesLabels(writer);
   }
 
-  private void insertMergedNodesListData(Writer writer, DOTBuilder2 dotBuilder) {
-    try {
-      writer.write("\"mergedNodes\":");
-      dotBuilder.writeMergedNodesList(writer);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of merged nodes failed.");
-    }
+  private void insertMergedNodesListData(Writer writer, DOTBuilder2 dotBuilder) throws IOException {
+    writer.write("\"mergedNodes\":");
+    dotBuilder.writeMergedNodesList(writer);
   }
 
-  private void insertErrorPathData(CounterexampleInfo counterExample, Writer writer) {
-    try {
-      writer.write("\"errorPath\":");
-      counterExample.toJSON(writer);
-      writer.write(",\n");
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of counter example failed.");
-    }
+  private void insertErrorPathData(CounterexampleInfo counterExample, Writer writer)
+      throws IOException {
+    writer.write("\"errorPath\":");
+    counterExample.toJSON(writer);
+    writer.write(",\n");
   }
 
   // Program entry function at first place is important for the graph generation
-  private void insertFunctionNames(Writer writer, CFA cfa) {
-    try {
-      writer.write("\"functionNames\":");
-      Set<String> allFunctionsEntryFirst = new LinkedHashSet<>();
-      allFunctionsEntryFirst.add(cfa.getMainFunction().getFunctionName());
-      allFunctionsEntryFirst.addAll(cfa.getAllFunctionNames());
-      JSON.writeJSONString(allFunctionsEntryFirst, writer);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of function names failed.");
-    }
+  private void insertFunctionNames(Writer writer, CFA cfa) throws IOException {
+    writer.write("\"functionNames\":");
+    Set<String> allFunctionsEntryFirst = new LinkedHashSet<>();
+    allFunctionsEntryFirst.add(cfa.getMainFunction().getFunctionName());
+    allFunctionsEntryFirst.addAll(cfa.getAllFunctionNames());
+    JSON.writeJSONString(allFunctionsEntryFirst, writer);
   }
 
-  private void insertSourceFileNames(Writer writer) {
-    try {
-      writer.write("var sourceFiles = ");
-      JSON.writeJSONString(sourceFiles, writer);
-      writer.write(";\n");
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of source file names failed.");
-    }
+  private void insertSourceFileNames(Writer writer) throws IOException {
+    writer.write("var sourceFiles = ");
+    JSON.writeJSONString(sourceFiles, writer);
+    writer.write(";\n");
   }
 
   /** Build ARG data for all ARG states in the reached set. */
