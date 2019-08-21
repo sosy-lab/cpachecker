@@ -41,11 +41,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -105,7 +105,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   // use 'id' and 'precessorId' only for debugging or logging, never for important stuff!
   // TODO remove to avoid problems?
-  private static final AtomicInteger ID_COUNTER = new AtomicInteger(0);
+  private static final UniqueIdGenerator ID_COUNTER = new UniqueIdGenerator();
   private final int predecessorId;
   private final int id;
 
@@ -159,7 +159,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         pLogger,
         pOptions,
         new CLangSMG(pMachineModel),
-        ID_COUNTER.getAndIncrement(),
+        ID_COUNTER.getFreshId(),
         ImmutableMap.of());
   }
 
@@ -185,7 +185,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap = pHeap;
     logger = pLogger;
     predecessorId = pPredId;
-    id = ID_COUNTER.getAndIncrement();
+    id = ID_COUNTER.getFreshId();
     Preconditions.checkArgument(!pExplicitValues.containsKey(null));
     Preconditions.checkArgument(!pExplicitValues.containsValue(null));
     explicitValues.putAll(pExplicitValues);
@@ -198,7 +198,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id = ID_COUNTER.getAndIncrement();
+    id = ID_COUNTER.getFreshId();
     explicitValues.putAll(pOriginalState.explicitValues);
     blockEnded = pOriginalState.blockEnded;
     errorInfo = pOriginalState.errorInfo.withProperty(pProperty);
@@ -224,8 +224,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     if (errorInfo.equals(pOther.errorInfo)) {
       return this;
     }
-    SMGState result =
-        new SMGState(logger, options, heap, ID_COUNTER.getAndIncrement(), explicitValues);
+    SMGState result = new SMGState(logger, options, heap, ID_COUNTER.getFreshId(), explicitValues);
     result.errorInfo = result.errorInfo.mergeWith(pOther.errorInfo);
     return result;
   }
