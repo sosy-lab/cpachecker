@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -207,46 +208,21 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     if (this == pObj) {
       return true;
     }
-    if (pObj == null) {
+    if (!(pObj instanceof AutomatonState)) {
       return false;
     }
-    if (!pObj.getClass().equals(this.getClass())) {
-      return false;
-    }
+
     AutomatonState otherState = (AutomatonState) pObj;
-    if (assumptions == null) {
-      if (otherState.assumptions != null) {
-        return false;
-      }
-    } else if (!assumptions.equals(otherState.assumptions)) {
-      return false;
-    }
-    if (vars == null) {
-      if (otherState.vars != null) {
-        return false;
-      }
-    } else if (!vars.equals(otherState.vars)) {
-      return false;
-    }
-    if (internalState == null) {
-      if (otherState.internalState != null) {
-        return false;
-      }
-    } else if (!internalState.equals(otherState.internalState)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(assumptions, otherState.assumptions)
+        && Objects.equals(vars, otherState.vars)
+        && Objects.equals(internalState, otherState.internalState);
   }
 
   @Override
   public int hashCode() {
     // Important: we cannot use vars.hashCode(), because the hash code of a map
     // depends on the hash code of its values, and those may change.
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((assumptions == null) ? 0 : assumptions.hashCode());
-    result = prime * result + ((internalState == null) ? 0 : internalState.hashCode());
-    return result;
+    return Objects.hash(assumptions, internalState);
   }
 
 
