@@ -35,6 +35,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
@@ -47,11 +48,11 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -85,7 +86,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 @Options
 public class ReportGenerator {
 
-  private static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+  private static final DateTimeFormatter DATE_TIME_FORMAT =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
 
@@ -235,7 +237,8 @@ public class ReportGenerator {
         } else if (line.contains("GENERATED")) {
           insertDateAndVersion(writer);
         } else {
-          writer.write(line + "\n");
+          writer.write(line);
+          writer.write('\n');
         }
       }
     } catch (IOException e) {
@@ -264,7 +267,8 @@ public class ReportGenerator {
         } else if (line.contains("SOURCE_FILES")) {
           insertSourceFileNames(writer);
         } else {
-          writer.write(line + "\n");
+          writer.write(line);
+          writer.write('\n');
         }
       }
     }
@@ -277,9 +281,11 @@ public class ReportGenerator {
 
     // Program entry function at first place is important for the graph generation
     writer.write("\"functionNames\":");
-    Set<String> allFunctionsEntryFirst = new LinkedHashSet<>();
-    allFunctionsEntryFirst.add(cfa.getMainFunction().getFunctionName());
-    allFunctionsEntryFirst.addAll(cfa.getAllFunctionNames());
+    Set<String> allFunctionsEntryFirst =
+        ImmutableSet.<String>builder()
+            .add(cfa.getMainFunction().getFunctionName())
+            .addAll(cfa.getAllFunctionNames())
+            .build();
     JSON.writeJSONString(allFunctionsEntryFirst, writer);
 
     writer.write(",\n\"functionCallEdges\":");
@@ -324,22 +330,21 @@ public class ReportGenerator {
   }
 
   private void insertCss(Writer writer) throws IOException {
-    writer.write("<style>" + "\n");
+    writer.write("<style>\n");
     Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
         .copyTo(writer);
     writer.write("</style>");
   }
 
   private void insertMetaTags(Writer writer) throws IOException {
-    writer.write("<meta name='generator'" + " content='" + producer + "'>\n");
+    writer.write(String.format("<meta name='generator' content='%s'>\n", producer));
   }
 
   private void insertDateAndVersion(Writer writer) throws IOException {
-    String generated =
+    writer.write(
         String.format(
             "Generated on %s by %s",
-            new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()), producer);
-    writer.write(generated);
+            DATE_TIME_FORMAT.format(LocalDateTime.now(ZoneId.systemDefault())), producer));
   }
 
   private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer writer)
