@@ -233,7 +233,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     RestartAlgorithm algorithm =
         new RestartAlgorithm(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
     if (algorithm.useARGCombiningAlgorithm) {
-      return new PartialARGsCombiner(algorithm, pConfig, pLogger, pShutdownNotifier);
+      return new PartialARGsCombiner(
+          algorithm, pConfig, pLogger, pCfa.getMachineModel(), pShutdownNotifier);
     }
     return algorithm;
   }

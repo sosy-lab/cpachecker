@@ -27,11 +27,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.base.Verify;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
@@ -55,12 +52,12 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -72,11 +69,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateARGCombiningHelper;
-import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -87,14 +84,19 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdown;
   private final Configuration config;
+  private final MachineModel machineModel;
   private final AutomatonStateARGCombiningHelper automatonARGBuilderSupport;
 
   private final ARGCombinerStatistics stats = new ARGCombinerStatistics();
 
-
-  public PartialARGsCombiner(Algorithm pAlgorithm, Configuration pConfig, LogManager pLogger,
+  public PartialARGsCombiner(
+      Algorithm pAlgorithm,
+      Configuration pConfig,
+      LogManager pLogger,
+      MachineModel pMachineModel,
       ShutdownNotifier pShutdownNotifier) {
     restartAlgorithm = pAlgorithm;
+    machineModel = pMachineModel;
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdown = pShutdownNotifier;
     config = pConfig;
@@ -270,8 +272,11 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private boolean noConcreteSuccessorExist(final ARGState pPredecessor, final CFAEdge pSuccEdge,
-      HistoryForwardingReachedSet pForwaredReachedSet) {
+  private boolean noConcreteSuccessorExist(
+      final ARGState pPredecessor,
+      final CFAEdge pSuccEdge,
+      HistoryForwardingReachedSet pForwaredReachedSet)
+      throws CPATransferException {
     // check if analysis stopped exploration due e.g. time limit
     boolean inReached = false;
     for(ReachedSet reached :pForwaredReachedSet.getAllReachedSetsUsedAsDelegates()) {
@@ -290,14 +295,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       if (state instanceof AutomatonState
           && ((AutomatonState) state).getOwningAutomatonName().equals("AssumptionAutomaton")) {
 
-        Optional<ConfigurableProgramAnalysis> cpaOpt =
-            FluentIterable.from(pForwaredReachedSet.getCPAs())
-                .firstMatch(x -> x instanceof ControlAutomatonCPA);
-        Verify.verify(cpaOpt.isPresent());
-        ControlAutomatonCPA automatonCPA = (ControlAutomatonCPA) cpaOpt.get();
-
         if (AutomatonStateARGCombiningHelper.endsInAssumptionTrueState(
-            automatonCPA, (AutomatonState) state, pSuccEdge)) {
+            (AutomatonState) state, pSuccEdge, logger, machineModel)) {
           return false;
         }
       }

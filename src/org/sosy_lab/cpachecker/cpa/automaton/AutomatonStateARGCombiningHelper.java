@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -94,25 +96,25 @@ public class AutomatonStateARGCombiningHelper {
   }
 
   public static boolean endsInAssumptionTrueState(
-      final ControlAutomatonCPA pAutomatonCPA,
       final AutomatonState pPredecessor,
-      final CFAEdge pEdge) {
-    Preconditions.checkNotNull(pAutomatonCPA);
+      final CFAEdge pEdge,
+      LogManager pLogger,
+      MachineModel pMachineModel)
+      throws CPATransferException {
     Preconditions.checkNotNull(pPredecessor);
-    try {
-      for (AbstractState successor :
-          pAutomatonCPA
-              .getTransferRelation()
-              .getAbstractSuccessorsForEdge(
-                  pPredecessor, SingletonPrecision.getInstance(), pEdge)) {
-        if (!((AutomatonState) successor).getInternalStateName().equals("__TRUE")) {
-          return false;
-        }
+    for (AbstractState successor :
+        AutomatonTransferRelation.computeAbstractSuccessorsForEdge(
+            pPredecessor,
+            SingletonPrecision.getInstance(),
+            pEdge,
+            pLogger,
+            pMachineModel,
+            /* Yes @PW, this could probably need an improvement :-) */
+            new AutomatonStatistics(pPredecessor.getOwningAutomaton()))) {
+      if (!((AutomatonState) successor).getInternalStateName().equals("__TRUE")) {
+        return false;
       }
-    } catch (CPATransferException e) {
-      return false;
     }
     return true;
   }
-
 }

@@ -94,6 +94,19 @@ public class AutomatonTransferRelation implements TransferRelation {
     automatonSuccessors = pStats.automatonSuccessors;
   }
 
+  /** TODO (only committed for demonstration purposes now) */
+  public static Collection<AutomatonState> computeAbstractSuccessorsForEdge(
+      AbstractState pElement,
+      Precision pPrecision,
+      CFAEdge pCfaEdge,
+      LogManager pLogger,
+      MachineModel pMachineModel,
+      AutomatonStatistics pStats)
+      throws CPATransferException {
+    return new AutomatonTransferRelation(pLogger, pMachineModel, pStats)
+        .getAbstractSuccessorsForEdge(pElement, pPrecision, pCfaEdge);
+  }
+
   @Override
   public Collection<AutomatonState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
