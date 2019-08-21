@@ -337,7 +337,7 @@ public class ReportGenerator {
   }
 
   private void insertMetaTags(Writer writer) throws IOException {
-    writer.write(String.format("<meta name='generator' content='%s'>\n", producer));
+    writer.write(String.format("<meta name='generator' content='%s'>%n", producer));
   }
 
   private void insertDateAndVersion(Writer writer) throws IOException {
