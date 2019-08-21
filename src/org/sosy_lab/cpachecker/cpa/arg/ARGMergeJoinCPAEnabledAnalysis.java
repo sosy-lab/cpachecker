@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -40,7 +41,7 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
 
   private final boolean deleteSubgraphAfterMerge;
   private final MergeOperator wrappedMerge;
-  private final ArrayList<ARGState> toDeleteFromReached = new ArrayList<>();
+  private final List<ARGState> toDeleteFromReached = new ArrayList<>();
 
   public ARGMergeJoinCPAEnabledAnalysis(MergeOperator pWrappedMerge, final boolean pDeleteSubgraph) {
     wrappedMerge = pWrappedMerge;

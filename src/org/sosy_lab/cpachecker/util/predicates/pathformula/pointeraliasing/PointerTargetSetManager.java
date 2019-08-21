@@ -404,7 +404,7 @@ class PointerTargetSetManager {
       int currentFieldIndex = 0;
       final ImmutableList.Builder<CCompositeTypeMemberDeclaration> membersBuilder =
           ImmutableList.builder();
-      final HashSet<CType> seenMembers = new HashSet<>();
+      final Set<CType> seenMembers = new HashSet<>();
       if (isAlreadyMergedCompositeType(type1)) {
         // if already a merged type, just copy the inner types, without creating new base-names
         for (CCompositeTypeMemberDeclaration innerType : ((CCompositeType) type1).getMembers()) {

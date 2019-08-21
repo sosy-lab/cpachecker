@@ -109,7 +109,7 @@ class ReducedFunction {
   }
 
   public List<ReducedEdge> getLeavingEdges(ReducedNode pOfNode) {
-    ArrayList<ReducedEdge> result = new ArrayList<>();
+    List<ReducedEdge> result = new ArrayList<>();
     Collection<Set<ReducedEdge>> edges = cfaEdges.row(pOfNode).values();
     for (Set<ReducedEdge> edgesToNode: edges) {
       result.addAll(edgesToNode);

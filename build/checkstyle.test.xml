@@ -70,10 +70,10 @@
       <property name="reliefPattern" value="\$FALL-THROUGH\$"/>
     </module>
     <module name="IllegalInstantiation">
-      <property name="classes" value="Boolean,Character,Integer,Long,Double,Float,String,java.io.PrintStream,java.io.PrintWriter"/>
+      <property name="classes" value="Boolean,Character,Integer,Long,Double,Float,String,java.io.PrintStream,java.io.PrintWriter, java.util.Date, java.text.SimpleDateFormat"/>
     </module>
     <module name="IllegalType">
-      <property name="illegalClassNames" value="java.util.GregorianCalendar, java.util.Hashtable, java.util.HashSet, java.util.HashMap, java.util.ArrayList, java.util.LinkedList, java.util.LinkedHashMap, java.util.LinkedHashSet, java.util.TreeSet, java.util.Stack, java.util.Vector, javax.annotation.Nullable, javax.annotation.CheckReturnValue, javax.annotation.concurrent.GuardedBy, javax.annotation.concurrent.Immutable"/>
+      <property name="illegalClassNames" value="java.util.Date, java.util.GregorianCalendar, java.text.DateFormat, java.text.SimpleDateFormat, java.util.Hashtable, java.util.HashSet, java.util.HashMap, java.util.ArrayList, java.util.LinkedList, java.util.LinkedHashMap, java.util.LinkedHashSet, java.util.TreeSet, java.util.Stack, java.util.Vector, com.google.common.collect.ArrayListMultimap, com.google.common.collect.HashMultimap, com.google.common.collect.HashMultiset, com.google.common.collect.LinkedHashMultimap, com.google.common.collect.LinkedHashMultiset, com.google.common.collect.LinkedListMultimap, com.google.common.collect.TreeMultiset, javax.annotation.Nullable, javax.annotation.CheckReturnValue, javax.annotation.concurrent.GuardedBy, javax.annotation.concurrent.Immutable"/>
       <property name="legalAbstractClassNames" value="AbstractConfigurationBuilderFactory, AbstractPathFactory"/>
     </module>
     <module name="InnerAssignment"/>

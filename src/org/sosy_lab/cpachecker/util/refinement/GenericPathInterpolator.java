@@ -279,7 +279,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
             .getUseDefStates();
 
     ArrayDeque<Pair<FunctionCallEdge, Boolean>> functionCalls = new ArrayDeque<>();
-    ArrayList<CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());
+    List<CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());
 
     PathIterator iterator = pErrorPathPrefix.pathIterator();
     while (iterator.hasNext()) {

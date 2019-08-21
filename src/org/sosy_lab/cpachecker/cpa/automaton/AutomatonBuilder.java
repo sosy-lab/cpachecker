@@ -81,8 +81,7 @@ public class AutomatonBuilder {
     checkArgument(pInterpolantOpt.isPresent());
     checkArgument(pPath.asStatesList().size() == pInvariants.size() + 1);
 
-    ArrayList<BooleanFormula> invariants =
-        new ArrayList<>(pInvariants.subList(1, pInvariants.size()));
+    List<BooleanFormula> invariants = new ArrayList<>(pInvariants.subList(1, pInvariants.size()));
     invariants.add(formulaManagerView.getBooleanFormulaManager().makeFalse());
 
     logger.log(

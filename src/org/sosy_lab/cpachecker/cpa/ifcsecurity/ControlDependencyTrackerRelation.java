@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -61,18 +62,20 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
   private LogManager logger;
   @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
-  /**
-   * Internal Variable: Control Dependencies
-   */
-  private Map<CFANode, TreeSet<CFANode>> rcd;
+  /** Internal Variable: Control Dependencies */
+  private Map<CFANode, NavigableSet<CFANode>> rcd;
 
   /**
    * Constructor for Transfer-Relation of ControlDependencyTracker
+   *
    * @param pLogger Logger
    * @param pShutdownNotifier ShutdownNotifier
    * @param pRcd ControlDependencies
    */
-  public ControlDependencyTrackerRelation(LogManager pLogger, ShutdownNotifier pShutdownNotifier, Map<CFANode, TreeSet<CFANode>> pRcd) {
+  public ControlDependencyTrackerRelation(
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      Map<CFANode, NavigableSet<CFANode>> pRcd) {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     rcd=pRcd;

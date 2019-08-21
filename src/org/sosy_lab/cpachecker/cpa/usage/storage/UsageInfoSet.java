@@ -8,6 +8,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 
+@SuppressWarnings("checkstyle:IllegalType") // TODO: use composition instead of inheritance
 public class UsageInfoSet extends TreeSet<UsageInfo> {
 
   private static final long serialVersionUID = -5057827815596702715L;

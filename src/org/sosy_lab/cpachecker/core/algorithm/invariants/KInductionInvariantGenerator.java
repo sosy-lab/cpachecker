@@ -50,6 +50,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
@@ -853,7 +854,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                     varClassification.getAssumedVariables().elementSet(),
                     varClassification.getIntAddVars()));
         Map<String, CIdExpression> idExpressions = new LinkedHashMap<>();
-        TreeSet<BigInteger> constants = new TreeSet<>();
+        NavigableSet<BigInteger> constants = new TreeSet<>();
         Multimap<CType, String> typePartitions = LinkedHashMultimap.create();
         Map<CIdExpression, String> functions = new HashMap<>();
         for (String var : vars) {

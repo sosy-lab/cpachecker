@@ -668,7 +668,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException, CPAException, InterruptedException {
 
     pCurrentContext.localShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
-    ArrayList<ResourceLimit> limits = new ArrayList<>();
+    List<ResourceLimit> limits = new ArrayList<>();
     try {
       limits.add(ProcessCpuTimeLimit.fromNowOn(TimeSpan.ofSeconds(pCurrentContext.timeLimit)));
     } catch (JMException e) {

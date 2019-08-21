@@ -75,7 +75,7 @@ public class ExternModelLoader {
       throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
     }
     try (BufferedReader br = Files.newBufferedReader(pModelFile, StandardCharsets.UTF_8)) {
-      ArrayList<String> predicates = new ArrayList<>(10000);
+      List<String> predicates = new ArrayList<>(10000);
       //var ids in dimacs files start with 1, so we want the first var at position 1
       predicates.add("RheinDummyVar");
       BooleanFormula externalModel = bfmgr.makeTrue();

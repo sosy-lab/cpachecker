@@ -473,8 +473,8 @@ public class ARGToCTranslator {
             .stream()
             .allMatch(x -> (currentElement.getEdgeToChild(x) instanceof CAssumeEdge))) {
 
-      //collect edges of condition branch
-      ArrayList<ARGEdge> result = new ArrayList<>(2);
+      // collect edges of condition branch
+      List<ARGEdge> result = new ArrayList<>(2);
       int ind = 0;
       boolean previousTruthAssumption = false;
       String elseCond = null;

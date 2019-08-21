@@ -597,7 +597,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       if (lessPrecise.size() == morePrecise.size() && lessPrecise.equals(morePrecise)) { return false; }
 
       // build conjunction of predicates
-      ArrayList<BooleanFormula> list = new ArrayList<>(Math.max(lessPrecise.size(), morePrecise.size()));
+      List<BooleanFormula> list = new ArrayList<>(Math.max(lessPrecise.size(), morePrecise.size()));
       for (AbstractionPredicate abs : lessPrecise) {
         list.add(abs.getSymbolicAtom());
       }

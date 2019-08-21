@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
 public class DeadLockState extends AbstractLockState {
 
+  @SuppressWarnings("checkstyle:IllegalType") // TODO: use composition instead of inheritance
   public static class DeadLockTreeNode extends ArrayList<LockIdentifier> implements CompatibleNode {
 
     private static final long serialVersionUID = 5757759799394605077L;

@@ -718,9 +718,8 @@ public class ARGUtils {
    */
   public static List<List<ARGState>>
       retrieveSimpleCycles(List<ARGState> pStates, ReachedSet pReached) {
-    HashSet<ARGState> filteredStates =
-        pReached.asCollection()
-            .stream()
+    Set<ARGState> filteredStates =
+        pReached.asCollection().stream()
             .map(x -> (ARGState) x)
             .filter(x -> !pStates.contains(x))
             .collect(Collectors.toCollection(HashSet::new));

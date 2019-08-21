@@ -122,7 +122,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       Block block;
       BAMARGBlockStartState bamState;
       Collection<ARGState> returnNodes;
-      ArrayList<ARGState> partialReturnNodes = new ArrayList<>();
+      List<ARGState> partialReturnNodes = new ArrayList<>();
       List<ARGState> argStates;
       int numElems;
       for (int i = 0; i < args.length - 2; i++) {
@@ -391,8 +391,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     ARGState[] result = new ARGState[pMap.size() + 1];
 
     int nextPos = 0, size = 0;
-    ArrayList<Integer> deleteEdges = new ArrayList<>();
-    ArrayList<BAMARGBlockStartState> consider = new ArrayList<>(pMap.keySet());
+    List<Integer> deleteEdges = new ArrayList<>();
+    List<BAMARGBlockStartState> consider = new ArrayList<>(pMap.keySet());
     BitSet set;
 
     while (!consider.isEmpty()) {
@@ -461,7 +461,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     @Override
     public void run() {
       int end;
-      ArrayList<ARGState> returnNodes = new ArrayList<>();
+      List<ARGState> returnNodes = new ArrayList<>();
       boolean fail = false;
       try {
         do {
@@ -504,7 +504,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     private boolean success = true;
     private int max;
     private int numSetResults;
-    private ArrayList<ARGState> returnNodes;
+    private List<ARGState> returnNodes;
 
     public CommonResult(int maxParticipants) {
       max = maxParticipants;

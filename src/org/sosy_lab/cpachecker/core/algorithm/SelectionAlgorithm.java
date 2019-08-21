@@ -87,9 +87,9 @@ public class SelectionAlgorithm extends NestingAlgorithm {
 
   private static class SelectionAlgorithmCFAVisitor implements CFAVisitor {
 
-    private final HashSet<String> functionNames = new HashSet<>();
-    private Set<String> arrayVariables = new HashSet<>();
-    private HashSet<String> floatVariables = new HashSet<>();
+    private final Set<String> functionNames = new HashSet<>();
+    private final Set<String> arrayVariables = new HashSet<>();
+    private final Set<String> floatVariables = new HashSet<>();
 
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {

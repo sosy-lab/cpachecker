@@ -1252,8 +1252,8 @@ public class ValueAnalysisTransferRelation
       throws CPATransferException {
     assert pElement instanceof ValueAnalysisState;
 
-    ArrayList<ValueAnalysisState> toStrengthen = new ArrayList<>();
-    ArrayList<ValueAnalysisState> result = new ArrayList<>();
+    List<ValueAnalysisState> toStrengthen = new ArrayList<>();
+    List<ValueAnalysisState> result = new ArrayList<>();
     toStrengthen.add((ValueAnalysisState) pElement);
     result.add((ValueAnalysisState) pElement);
 

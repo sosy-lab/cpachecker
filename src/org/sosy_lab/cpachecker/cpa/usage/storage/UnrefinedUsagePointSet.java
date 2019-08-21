@@ -27,13 +27,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableSet;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 
 public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
-  private final TreeSet<UsagePoint> topUsages;
+  private final NavigableSet<UsagePoint> topUsages;
   private final Map<UsagePoint, UsageInfoSet> usageInfoSets;
 
   public UnrefinedUsagePointSet() {

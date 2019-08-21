@@ -100,19 +100,18 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
 
 
   private Collection<CHCState> handleAssumeEdge(CHCState currentState, AssumeEdge cfaEdge) {
-    ArrayList<Constraint> cns = ConstraintManager.getConstraint(cfaEdge);
+    List<Constraint> cns = ConstraintManager.getConstraint(cfaEdge);
     return createStatesFromConstraints(
         currentState,
         cfaEdge.getSuccessor().getNodeNumber(),
         cns);
   }
 
-
-  private Collection<CHCState> createStatesFromConstraints(CHCState current,
-      int nodeId, ArrayList<Constraint> cns) {
+  private Collection<CHCState> createStatesFromConstraints(
+      CHCState current, int nodeId, List<Constraint> cns) {
     CHCState newState;
     if (cns.size() > 1) {
-      ArrayList<CHCState> newStates = new ArrayList<>(2);
+      List<CHCState> newStates = new ArrayList<>(2);
       for (Constraint cn : cns) {
         newState = new CHCState(current);
         newState.setNodeNumber(nodeId);

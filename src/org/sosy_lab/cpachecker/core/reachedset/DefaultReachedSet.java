@@ -36,6 +36,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -53,7 +54,7 @@ class DefaultReachedSet implements ReachedSet, Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  private final LinkedHashMap<AbstractState, Precision> reached;
+  private final Map<AbstractState, Precision> reached;
   private transient Set<AbstractState> unmodifiableReached;
   private @Nullable AbstractState lastState = null;
   private @Nullable AbstractState firstState = null;

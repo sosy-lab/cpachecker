@@ -226,7 +226,7 @@ public class RCNFManager implements StatisticsProvider {
       public BooleanFormula visitOr(List<BooleanFormula> processed) {
 
         Set<BooleanFormula> intersection = null;
-        ArrayList<Set<BooleanFormula>> argsAsConjunctions = new ArrayList<>();
+        List<Set<BooleanFormula>> argsAsConjunctions = new ArrayList<>();
         for (BooleanFormula op : processed) {
           Set<BooleanFormula> args = bfmgr.toConjunctionArgs(op, false);
 

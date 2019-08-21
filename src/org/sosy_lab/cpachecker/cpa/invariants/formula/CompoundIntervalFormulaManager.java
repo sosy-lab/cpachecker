@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
@@ -200,7 +201,7 @@ public class CompoundIntervalFormulaManager {
     for (BooleanFormula<CompoundInterval> formula : formulas) {
       Collection<BooleanFormula<CompoundInterval>> disjunctions = formula.accept(SPLIT_DISJUNCTIONS_VISITOR);
       if (disjunctions.size() > 1) {
-        ArrayList<BooleanFormula<CompoundInterval>> newFormulas = new ArrayList<>(formulas);
+        List<BooleanFormula<CompoundInterval>> newFormulas = new ArrayList<>(formulas);
         Map<MemoryLocation, NumeralFormula<CompoundInterval>> newBaseEnvironment = new HashMap<>(pInformationBaseEnvironment);
         newFormulas.remove(formula);
         for (BooleanFormula<CompoundInterval> disjunctivePart : disjunctions) {

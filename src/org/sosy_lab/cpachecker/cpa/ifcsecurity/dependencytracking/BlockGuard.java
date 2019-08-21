@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -115,12 +116,14 @@ public class BlockGuard implements Cloneable, Serializable{
       contextstack.add(elem);
     }
 
-   /**
-    * Removes all Control Dependency information from the context stack that does not influence <i>currentNode</i>.
-    * @param pCurrentNode Node for which controlDependencies that stacks should be reduced to.
-    * @param pDependencies Control Dependencies of <i>currentNode</i>.
-    */
-   public void changeContextStack(CFANode pCurrentNode, TreeSet<CFANode> pDependencies){
+  /**
+   * Removes all Control Dependency information from the context stack that does not influence
+   * <i>currentNode</i>.
+   *
+   * @param pCurrentNode Node for which controlDependencies that stacks should be reduced to.
+   * @param pDependencies Control Dependencies of <i>currentNode</i>.
+   */
+  public void changeContextStack(CFANode pCurrentNode, NavigableSet<CFANode> pDependencies) {
      int size=contextstack.size();
      for(int i=size;i>0;i--){
        Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, SortedSet<Variable>>> elem=contextstack.get(i-1);

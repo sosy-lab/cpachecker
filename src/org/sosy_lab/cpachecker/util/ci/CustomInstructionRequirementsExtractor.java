@@ -198,7 +198,7 @@ public class CustomInstructionRequirementsExtractor {
   private Collection<ARGState> findEndStatesFor(final ARGState ciStart,
       final CustomInstructionApplications pCustomIA)
       throws InterruptedException, CPAException {
-    ArrayList<ARGState> list = new ArrayList<>();
+    List<ARGState> list = new ArrayList<>();
     Queue<ARGState> queue = new ArrayDeque<>();
     Set<ARGState> visitedNodes = new HashSet<>();
 

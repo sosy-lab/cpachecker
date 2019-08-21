@@ -66,7 +66,7 @@ public class DomainSpecificAbstraction<T> {
   private final Timer feasibilityCheckTimer;
   private final Timer maximisationTimer;
   LogManager logger;
-  private HashMap<String, FormulaType> latticeNamesTypes = new HashMap<>();
+  private final Map<String, FormulaType> latticeNamesTypes = new HashMap<>();
   protected boolean inequalityInterpolationAbstractions;
 
   public DomainSpecificAbstraction(
@@ -155,7 +155,7 @@ public class DomainSpecificAbstraction<T> {
           .immutableCopy();
       Set<String> variablesThatAreNotUsedInBothParts = Sets.difference(variables1, variables2)
           .immutableCopy();
-      HashMap<String, FormulaType> variablesUsedInBothPartsClasses = new HashMap<>();
+      Map<String, FormulaType> variablesUsedInBothPartsClasses = new HashMap<>();
 
       arrayVariablesThatAreUsedInBothParts = variablesThatAreUsedInBothParts.toArray(new
           String[variablesThatAreUsedInBothParts.size

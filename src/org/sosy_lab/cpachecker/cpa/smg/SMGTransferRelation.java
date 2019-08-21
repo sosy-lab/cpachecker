@@ -1202,8 +1202,8 @@ public class SMGTransferRelation
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
 
-    ArrayList<SMGState> toStrengthen = new ArrayList<>();
-    ArrayList<SMGState> result = new ArrayList<>();
+    List<SMGState> toStrengthen = new ArrayList<>();
+    List<SMGState> result = new ArrayList<>();
     toStrengthen.add((SMGState) element);
     result.add((SMGState) element);
 

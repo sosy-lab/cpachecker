@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -262,7 +263,7 @@ public final class SMGPlotter {
     sb.append("struct").append(pStructId).append("[shape=record,label=\" ");
 
     // I sooo wish for Python list comprehension here...
-    ArrayList<String> nodes = new ArrayList<>();
+    List<String> nodes = new ArrayList<>();
     for (Entry<String, SMGRegion> entry : pNamespace.entrySet()) {
       String key = entry.getKey();
       SMGObject obj = entry.getValue();

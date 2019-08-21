@@ -64,6 +64,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
@@ -1178,7 +1179,7 @@ class WitnessWriter implements EdgeAppender {
     removeUnnecessarySinkEdges();
 
     // Merge nodes with empty or repeated edges
-    TreeSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
+    NavigableSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is redundant, remove it
@@ -1717,7 +1718,7 @@ class WitnessWriter implements EdgeAppender {
   }
 
   private Collection<Property> extractViolatedProperties(ARGState pState) {
-    ArrayList<Property> result = new ArrayList<>();
+    List<Property> result = new ArrayList<>();
     if (pState.isTarget()) {
       result.addAll(pState.getViolatedProperties());
     }
