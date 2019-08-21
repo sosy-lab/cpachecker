@@ -629,6 +629,7 @@ cfa.callgraph.export = true
 
 # file name for call graph as .dot file
 cfa.callgraph.file = "functionCalls.dot"
+cfa.callgraph.fileUsed = "functionCallsUsed.dot"
 
 # how often do we clone a function?
 cfa.cfaCloner.numberOfCopies = 5
@@ -1006,6 +1007,10 @@ cpa.arg.automaton.splitStrategy = TARGETS
 
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
+
+# prevent the stop-operator from aborting the stop-check early when it
+# crosses a target state
+cpa.arg.coverTargetStates = false
 
 # inform merge operator in CPA enabled analysis that it should delete the
 # subgraph of the merged node which is required to get at most one successor
@@ -1406,6 +1411,15 @@ cpa.constraints.satCheckStrategy = AT_ASSUME
 # Try model of predecessor constraints state before running SMT solver
 cpa.constraints.useLastModel = true
 
+# Set number of refinements for the trace abstraction algorithm
+cpa.dca.refiner.maxRefinementIterations = 0
+
+# Allows to abort the analysis early in order to only produce the ARG
+cpa.dca.refiner.skipAnalysis = false
+
+# Abort the refinement of finite prefixes for the purpose of better debugging
+cpa.dca.refiner.skipFiniteRefinement = false
+
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
@@ -1531,15 +1545,12 @@ cpa.local.allocatefunctions = {}
 cpa.local.conservativefunctions = {}
 
 # variables, which are always local
-cpa.local.localvariables = Collections.emptySet()
+cpa.local.localvariables = {}
 
 # With this option enabled, function calls that occur in the CFA are
 # followed. By disabling this option one can traverse a function without
 # following function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
-
-# reduce recursive locks to a single access
-cpa.lock.aggressiveReduction = false
 
 # What are we searching for: race or deadlock
 cpa.lock.analysisMode = RACE
@@ -1551,8 +1562,22 @@ cpa.lock.annotate = no default value
 # contains all lock names
 cpa.lock.lockinfo = {}
 
+# which merge operator to use for LockCPA
+cpa.lock.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# reduce recursive locks to a single access
+cpa.lock.reduceLockCounters = BLOCK
+  enum:     [NONE, BLOCK, ALL]
+
 # reduce unused locks
 cpa.lock.reduceUselessLocks = false
+
+# Enable refinement procedure
+cpa.lock.refinement = false
+
+# stop path exploration if a lock limit is reached
+cpa.lock.stopAfterLockLimit = false
 
 # Consider or not special cases with empty lock sets
 cpa.lock.stopMode = DEFAULT
@@ -1758,16 +1783,8 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
-# which strategy/heuristic should be used to compute relevant predicates for
-# a block-reduction?
-# AUXILIARY: dependencies between variables.
-# OCCURENCE: occurence of variables in the block.
-# ALL: all variables are relevant.
-cpa.predicate.bam.predicateComputer = "AUXILIARY"
-  allowed values: [AUXILIARY, OCCURRENCE, ALL]
-
-# Enable/disable precision reduction using RelevantPredicateComputer
-cpa.predicate.bam.reduceIrrelevantPrecision = true
+# Check satisfiability for plain conjunction of edge and assumptions.
+cpa.predicate.assumptionStrengtheningSatCheck = false
 
 # Enable/disable abstraction reduction at the BAM block entry
 cpa.predicate.bam.useAbstractionReduction = true
@@ -2622,6 +2639,17 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
+# Simple thread analysis from theory paper
+cpa.thread.simpleMode = false
+
+# The case when the same thread is created several times we do not support.We
+# may skip or fail in this case.
+cpa.thread.skipTheSameThread = false
+
+# The case when the same thread is created several times we do not support.We
+# may try to support it with self-parallelizm.
+cpa.thread.supportSelfCreation = false
+
 # allow assignments of a new thread to the same left-hand-side as an existing
 # thread.
 cpa.threading.allowMultipleLHS = false
@@ -2830,6 +2858,10 @@ cpa.value.refinement.avoidSimilarRepeatedRefinement = false
 # state's precision is kept.
 cpa.value.refinement.basisStrategy = SUBGRAPH
   enum:     [ALL, SUBGRAPH, TARGET, CUTPOINT]
+
+# completely disable the tracking of found error paths in the refiner, i.e.,
+# disable the detection of repeated counterexamples
+cpa.value.refinement.disableErrorPathTracking = false
 
 # whether or not to do lazy-abstraction
 cpa.value.refinement.doLazyAbstraction = true
@@ -3429,10 +3461,6 @@ pdr.abstractionStrategy = NO_ABSTRACTION
 pdr.conditionAdjustmentCriterion = NEVER
   enum:     [NEVER, ALWAYS]
 
-# Try to shorten the lifted state further by checking if the lifting query is
-# still valid after dropping each literal in turn.
-pdr.dropLiteralsBeyondUnsatCoreAfterLifting = false
-
 # Which strategy to use to perform invariant refinement on successful proof
 # results.
 pdr.invariantRefinementStrategy = NO_STRENGTHENING
@@ -3445,14 +3473,6 @@ pdr.liftingAbstractionFailureThreshold = 0
 # Which strategy to use to abstract counterexamples to inductivity.
 pdr.liftingStrategy = NO_LIFTING
   enum:     [NO_LIFTING, UNSAT_CORE_BASED_LIFTING, ABSTRACTION_BASED_LIFTING]
-
-# The maximum number of attempts at dropping literals during the inductive
-# generalization of states.
-pdr.maxAttemptsToDropLiteralsDuringGeneralization = 10
-
-# The maximum number of literals that should be dropped during the inductive
-# generalization of states.
-pdr.maxLiteralsToDropDuringGeneralization = 5
 
 # Maximum number of accepted spurious transitions within a proof-obligation
 # trace before a consecution abstraction failure triggers a refinement.
@@ -3745,6 +3765,9 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# compress the produced violation-witness automata using GZIP compression.
+termination.compressWitness = true
 
 # When checking for the termination property, use this configuration file
 # instead of the current one.

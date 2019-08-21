@@ -125,7 +125,7 @@ public class CParserWithLocationMapper implements CParser {
 
         if (token.getType() == IToken.tPOUND) { // match #
           // Read the complete line containing the directive...
-          ArrayList<Token> directiveTokens = new ArrayList<>();
+          List<Token> directiveTokens = new ArrayList<>();
           token = lx.nextToken();
           while (token.getType() != Lexer.tNEWLINE && token.getType() != IToken.tEND_OF_INPUT) {
             directiveTokens.add(token);
@@ -135,7 +135,7 @@ public class CParserWithLocationMapper implements CParser {
           relativeLineNumber += 1;
 
           // Evaluate the preprocessor directive...
-          if (readLineDirectives && directiveTokens.size() > 0) {
+          if (readLineDirectives && !directiveTokens.isEmpty()) {
             String firstTokenImage = directiveTokens.get(0).getImage().trim();
 
             final int lineNumberTokenIndex;

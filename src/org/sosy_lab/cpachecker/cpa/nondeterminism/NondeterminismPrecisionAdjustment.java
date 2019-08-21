@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.nondeterminism;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
-import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -56,18 +56,16 @@ public enum NondeterminismPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public Optional<? extends AbstractState> strengthen(
-      AbstractState pState, Precision pPrecision, List<AbstractState> pOtherStates) {
+      AbstractState pState, Precision pPrecision, Iterable<AbstractState> pOtherStates) {
     return Optional.of(prec(pState, pOtherStates));
   }
 
   private AbstractState prec(AbstractState pState, Iterable<AbstractState> pOtherStates) {
     AbstractState result = pState;
     if (pState instanceof NondeterminismNonAbstractionState
-        && FluentIterable.from(pOtherStates)
-            .anyMatch(
-                s ->
-                    s instanceof PredicateAbstractState
-                        && PredicateAbstractState.CONTAINS_ABSTRACTION_STATE.apply(s))) {
+        && from(pOtherStates)
+            .filter(PredicateAbstractState.class)
+            .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
       result =
           new NondeterminismAbstractionState(
               ((NondeterminismNonAbstractionState) pState).getNondetVariables());

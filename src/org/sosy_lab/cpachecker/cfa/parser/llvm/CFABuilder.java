@@ -126,9 +126,9 @@ public class CFABuilder {
   private static final CFunctionDeclaration ABORT_FUNC_DECL =
       new CFunctionDeclaration(
           FileLocation.DUMMY,
-          new CFunctionType(CVoidType.VOID, Collections.emptyList(), false),
+          new CFunctionType(CVoidType.VOID, ImmutableList.of(), false),
           "abort",
-          Collections.emptyList());
+          ImmutableList.of());
   private static final CExpression ABORT_FUNC_NAME =
       new CIdExpression(FileLocation.DUMMY, CVoidType.VOID, "abort", ABORT_FUNC_DECL);
 
@@ -662,7 +662,7 @@ public class CFABuilder {
   protected FunctionEntryNode visitFunction(final Value pItem, final String pFileName) {
     assert pItem.isFunction();
 
-    logger.log(Level.FINE, "Creating function: " + pItem.getValueName());
+    logger.log(Level.FINE, "Creating function:", pItem.getValueName());
 
     return handleFunctionDefinition(pItem, pFileName);
   }
@@ -846,7 +846,7 @@ public class CFABuilder {
             getLocation(pItem, pFileName),
             CVoidType.VOID,
             ABORT_FUNC_NAME,
-            Collections.emptyList(),
+            ImmutableList.of(),
             ABORT_FUNC_DECL);
 
     return ImmutableList.of(
@@ -1179,11 +1179,10 @@ public class CFABuilder {
       throws LLVMException {
     FileLocation location = getLocation(pItem, pFileName);
     if (pItem.isConstantInt()) {
-      long constantValue = pItem.constIntGetSExtValue();
-      // In LLVM, literals of arbitrary size can be given.
-      // Since we want to map this to C, let's just use the largest integer type available to us
+      BigInteger constantValue = BigInteger.valueOf(pItem.constIntGetSExtValue());
+      CType type = getTypeForInteger(constantValue);
       return new CIntegerLiteralExpression(
-          getLocation(pItem, pFileName), CNumericTypes.UNSIGNED_LONG_LONG_INT, BigInteger.valueOf(constantValue));
+          getLocation(pItem, pFileName), type, constantValue);
 
     } else if (pItem.isConstantPointerNull()) {
       return new CPointerExpression(location, pExpectedType, getNull(location));
@@ -1224,6 +1223,25 @@ public class CFABuilder {
     } else {
       throw new UnsupportedOperationException("LLVM parsing does not support constant " + pItem);
     }
+  }
+
+  private CType getTypeForInteger(BigInteger pConstantValue) throws LLVMException{
+    // While clang-3.9 translates C integers larger than 'signed long long int' to negative values,
+    // literals of arbitrary size can be given in LLVM when written by hand,
+    // so we use the largest types available in C and throw an exception if the values are too large.
+    if (machineModel.getMaximalIntegerValue(CNumericTypes.SIGNED_LONG_LONG_INT).compareTo(pConstantValue) < 0) {
+      if (machineModel.getMaximalIntegerValue(CNumericTypes.UNSIGNED_LONG_LONG_INT).compareTo(pConstantValue) < 0) {
+        throw new LLVMException("Value not representable in CPAchecker's CFA representation of LLVM (too large): " + pConstantValue);
+      }
+
+      return CNumericTypes.UNSIGNED_LONG_LONG_INT;
+    }
+
+    if (machineModel.getMinimalIntegerValue(CNumericTypes.SIGNED_LONG_LONG_INT).compareTo(pConstantValue) > 0) {
+      throw new LLVMException("Value not representable in CPAchecker's CFA representation of LLVM (too small): " + pConstantValue);
+    }
+
+    return CNumericTypes.SIGNED_LONG_LONG_INT;
   }
 
   private CExpression getNull(final FileLocation pLocation) {

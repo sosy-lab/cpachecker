@@ -192,7 +192,7 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(MethodDeclaration mDeclaration) {
 
-    if (locStack.size() != 0) {
+    if (!locStack.isEmpty()) {
       throw new CFAGenerationRuntimeException("Nested method declarations?");
     }
 
@@ -280,7 +280,7 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(final VariableDeclarationStatement sd) {
 
-    assert (locStack.size() > 0) : "not in a methods's scope";
+    assert (!locStack.isEmpty()) : "not in a methods's scope";
 
     CFANode prevNode = locStack.pop();
 
@@ -296,7 +296,7 @@ class CFAMethodBuilder extends ASTVisitor {
    @Override
   public boolean visit(final SingleVariableDeclaration sd) {
 
-    assert (locStack.size() > 0) : "not in a methods's scope";
+    assert (!locStack.isEmpty()) : "not in a methods's scope";
 
     CFANode prevNode = locStack.pop();
 
@@ -1351,8 +1351,8 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
 
-        boolean isBlankEdge = (prevEdge instanceof BlankEdge)
-                                && prevEdge.getDescription().equals("");
+        boolean isBlankEdge =
+            (prevEdge instanceof BlankEdge) && prevEdge.getDescription().isEmpty();
 
         if (isBlankEdge) {
 
@@ -2452,7 +2452,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
   public void createDefaultConstructor(ITypeBinding classBinding) {
 
-    if (locStack.size() != 0) {
+    if (!locStack.isEmpty()) {
       throw new CFAGenerationRuntimeException("Nested function declarations?");
     }
 

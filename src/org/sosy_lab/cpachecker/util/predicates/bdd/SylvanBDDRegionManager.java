@@ -31,6 +31,7 @@ import static jsylvan.JSylvan.ref;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Predicates;
+import com.google.common.primitives.ImmutableIntArray;
 import com.google.common.primitives.Longs;
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
@@ -305,8 +306,7 @@ class SylvanBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public void setVarOrder(ArrayList<Integer> pOrder) {
-  }
+  public void setVarOrder(ImmutableIntArray pOrder) {}
 
   @Override
   public void reorder(PredicateOrderingStrategy strategy) {

@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static com.google.common.truth.Truth.assertThat;
 
 import java.math.BigInteger;
 import org.junit.Test;
@@ -40,7 +39,7 @@ public class IIIOperatorTest {
   public void testAdd() {
     SimpleInterval zero = SimpleInterval.singleton(BigInteger.ZERO);
     SimpleInterval one = SimpleInterval.singleton(BigInteger.ONE);
-    assertEquals(one, IIIOperator.ADD.apply(zero, one));
+    assertThat(IIIOperator.ADD.apply(zero, one)).isEqualTo(one);
   }
 
   @Test
@@ -56,30 +55,58 @@ public class IIIOperatorTest {
     SimpleInterval zeroToTwo = SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(2));
     SimpleInterval eightToTen = SimpleInterval.of(BigInteger.valueOf(8), BigInteger.TEN);
 
-    assertEquals(negFourToFour, IIIOperator.MODULO.apply(SimpleInterval.infinite(), five));
-    assertEquals(zeroToFour, IIIOperator.MODULO.apply(zeroToInf, five));
-    assertEquals(zeroToFour, IIIOperator.MODULO.apply(zeroToInf, five.negate()));
-    assertEquals(twoToThree, IIIOperator.MODULO.apply(tenToEleven, SimpleInterval.singleton(scalarFour)));
-    assertEquals(zeroToTwo, IIIOperator.MODULO.apply(eightToTen, SimpleInterval.singleton(scalarFour)));
-    assertEquals(twoToThree, IIIOperator.MODULO.apply(tenToEleven, SimpleInterval.singleton(scalarFour).negate()));
-    assertEquals(zeroToTwo, IIIOperator.MODULO.apply(eightToTen, SimpleInterval.singleton(scalarFour).negate()));
-    assertEquals(twoToThree.negate(), IIIOperator.MODULO.apply(tenToEleven.negate(), SimpleInterval.singleton(scalarFour)));
-    assertEquals(zeroToTwo.negate(), IIIOperator.MODULO.apply(eightToTen.negate(), SimpleInterval.singleton(scalarFour)));
-    assertEquals(twoToThree.negate(), IIIOperator.MODULO.apply(tenToEleven.negate(), SimpleInterval.singleton(scalarFour).negate()));
-    assertEquals(zeroToTwo.negate(), IIIOperator.MODULO.apply(eightToTen.negate(), SimpleInterval.singleton(scalarFour).negate()));
-    assertEquals(zeroToFour, IIIOperator.MODULO.apply(zeroToInf, SimpleInterval.of(BigInteger.ZERO, scalarFive)));
-    assertEquals(zeroToFour, IIIOperator.MODULO.apply(zeroToInf, SimpleInterval.of(scalarFour.negate(), scalarFive)));
-    assertEquals(zeroToFour, IIIOperator.MODULO.apply(zeroToInf, SimpleInterval.of(scalarFive.negate(), scalarFour)));
-    assertEquals(zeroToFour.negate(), IIIOperator.MODULO.apply(zeroToInf.negate(), SimpleInterval.of(BigInteger.ZERO, scalarFive)));
-    assertEquals(zeroToFour.negate(), IIIOperator.MODULO.apply(zeroToInf.negate(), SimpleInterval.of(scalarFour.negate(), scalarFive)));
-    assertEquals(zeroToFour.negate(), IIIOperator.MODULO.apply(zeroToInf.negate(), SimpleInterval.of(scalarFive.negate(), scalarFour)));
-    assertEquals(SimpleInterval.of(scalarFour.negate(), scalarFour), IIIOperator.MODULO.apply(SimpleInterval.infinite(), SimpleInterval.of(scalarFive.negate(), scalarFour)));
+    assertThat(IIIOperator.MODULO.apply(SimpleInterval.infinite(), five)).isEqualTo(negFourToFour);
+    assertThat(IIIOperator.MODULO.apply(zeroToInf, five)).isEqualTo(zeroToFour);
+    assertThat(IIIOperator.MODULO.apply(zeroToInf, five.negate())).isEqualTo(zeroToFour);
+    assertThat(IIIOperator.MODULO.apply(tenToEleven, SimpleInterval.singleton(scalarFour)))
+        .isEqualTo(twoToThree);
+    assertThat(IIIOperator.MODULO.apply(eightToTen, SimpleInterval.singleton(scalarFour)))
+        .isEqualTo(zeroToTwo);
+    assertThat(IIIOperator.MODULO.apply(tenToEleven, SimpleInterval.singleton(scalarFour).negate()))
+        .isEqualTo(twoToThree);
+    assertThat(IIIOperator.MODULO.apply(eightToTen, SimpleInterval.singleton(scalarFour).negate()))
+        .isEqualTo(zeroToTwo);
+    assertThat(IIIOperator.MODULO.apply(tenToEleven.negate(), SimpleInterval.singleton(scalarFour)))
+        .isEqualTo(twoToThree.negate());
+    assertThat(IIIOperator.MODULO.apply(eightToTen.negate(), SimpleInterval.singleton(scalarFour)))
+        .isEqualTo(zeroToTwo.negate());
+    assertThat(
+            IIIOperator.MODULO.apply(
+                tenToEleven.negate(), SimpleInterval.singleton(scalarFour).negate()))
+        .isEqualTo(twoToThree.negate());
+    assertThat(
+            IIIOperator.MODULO.apply(
+                eightToTen.negate(), SimpleInterval.singleton(scalarFour).negate()))
+        .isEqualTo(zeroToTwo.negate());
+    assertThat(IIIOperator.MODULO.apply(zeroToInf, SimpleInterval.of(BigInteger.ZERO, scalarFive)))
+        .isEqualTo(zeroToFour);
+    assertThat(
+            IIIOperator.MODULO.apply(zeroToInf, SimpleInterval.of(scalarFour.negate(), scalarFive)))
+        .isEqualTo(zeroToFour);
+    assertThat(
+            IIIOperator.MODULO.apply(zeroToInf, SimpleInterval.of(scalarFive.negate(), scalarFour)))
+        .isEqualTo(zeroToFour);
+    assertThat(
+            IIIOperator.MODULO.apply(
+                zeroToInf.negate(), SimpleInterval.of(BigInteger.ZERO, scalarFive)))
+        .isEqualTo(zeroToFour.negate());
+    assertThat(
+            IIIOperator.MODULO.apply(
+                zeroToInf.negate(), SimpleInterval.of(scalarFour.negate(), scalarFive)))
+        .isEqualTo(zeroToFour.negate());
+    assertThat(
+            IIIOperator.MODULO.apply(
+                zeroToInf.negate(), SimpleInterval.of(scalarFive.negate(), scalarFour)))
+        .isEqualTo(zeroToFour.negate());
+    assertThat(
+            IIIOperator.MODULO.apply(
+                SimpleInterval.infinite(), SimpleInterval.of(scalarFive.negate(), scalarFour)))
+        .isEqualTo(SimpleInterval.of(scalarFour.negate(), scalarFour));
 
     SimpleInterval fiftyNine = SimpleInterval.of(BigInteger.valueOf(59), BigInteger.valueOf(59));
     SimpleInterval zeroTo255 = SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(255));
-    assertEquals(
-        SimpleInterval.of(BigInteger.valueOf(0), BigInteger.valueOf(59)),
-        IIIOperator.MODULO.apply(fiftyNine, zeroTo255));
+    assertThat(IIIOperator.MODULO.apply(fiftyNine, zeroTo255))
+        .isEqualTo(SimpleInterval.of(BigInteger.valueOf(0), BigInteger.valueOf(59)));
   }
 
   @Test
@@ -99,13 +126,17 @@ public class IIIOperatorTest {
     SimpleInterval twoToFour = SimpleInterval.of(BigInteger.valueOf(2), BigInteger.valueOf(4));
     SimpleInterval fortyToHundred = SimpleInterval.of(BigInteger.valueOf(40), BigInteger.valueOf(100));
 
-    assertEquals(negHundredToZero, IIIOperator.MULTIPLY.apply(negTenToZero, zeroToTen));
-    assertEquals(negHundredToHundred, IIIOperator.MULTIPLY.apply(negTenToZero, negTenToTen));
-    assertEquals(zero, IIIOperator.MULTIPLY.apply(SimpleInterval.infinite(), zero));
-    assertEquals(SimpleInterval.infinite(), IIIOperator.MULTIPLY.apply(SimpleInterval.infinite(), zeroToOne));
-    assertEquals(SimpleInterval.infinite(), IIIOperator.MULTIPLY.apply(negInfToFive, negInfToFive));
-    assertEquals(twentyFiveToInf, IIIOperator.MULTIPLY.apply(negInfToNegFive, negInfToNegFive));
-    assertEquals(fortyToHundred, IIIOperator.MULTIPLY.apply(twentyToTwentyFive, twoToFour));
+    assertThat(IIIOperator.MULTIPLY.apply(negTenToZero, zeroToTen)).isEqualTo(negHundredToZero);
+    assertThat(IIIOperator.MULTIPLY.apply(negTenToZero, negTenToTen))
+        .isEqualTo(negHundredToHundred);
+    assertThat(IIIOperator.MULTIPLY.apply(SimpleInterval.infinite(), zero)).isEqualTo(zero);
+    assertThat(IIIOperator.MULTIPLY.apply(SimpleInterval.infinite(), zeroToOne))
+        .isEqualTo(SimpleInterval.infinite());
+    assertThat(IIIOperator.MULTIPLY.apply(negInfToFive, negInfToFive))
+        .isEqualTo(SimpleInterval.infinite());
+    assertThat(IIIOperator.MULTIPLY.apply(negInfToNegFive, negInfToNegFive))
+        .isEqualTo(twentyFiveToInf);
+    assertThat(IIIOperator.MULTIPLY.apply(twentyToTwentyFive, twoToFour)).isEqualTo(fortyToHundred);
   }
 
   @Test
@@ -128,24 +159,40 @@ public class IIIOperatorTest {
     SimpleInterval negInfToZero = zeroToInf.negate();
     SimpleInterval zeroToTwo = SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(2));
 
-    assertEquals(SimpleInterval.infinite(), IIIOperator.DIVIDE.apply(negInfToZero, negInfToFive));
-    assertEquals(oneToFour, IIIOperator.DIVIDE.apply(negFourToNegTwo, negTwoToNegOne));
-    assertEquals(negFourToNegOne, IIIOperator.DIVIDE.apply(negFourToNegTwo, oneToTwo));
-    assertEquals(negFourToNegOne, IIIOperator.DIVIDE.apply(twoToFour, negTwoToNegOne));
-    assertEquals(oneToFour, IIIOperator.DIVIDE.apply(twoToFour, oneToTwo));
-    assertEquals(negTwentyToTwenty, IIIOperator.DIVIDE.apply(negTwentyToTwenty, negTwoToTwo));
-    assertEquals(SimpleInterval.infinite(), IIIOperator.DIVIDE.apply(negInfToTen, negTwoToTwo));
-    assertEquals(negInfToFive, IIIOperator.DIVIDE.apply(negInfToTen, twoToFour));
-    assertEquals(negInfToZero, IIIOperator.DIVIDE.apply(negInfToNegFive, fiveToInf));
-    assertEquals(negTwentyToTen, IIIOperator.DIVIDE.apply(negTwentyToTen, negTwoToInf));
-    assertEquals(SimpleInterval.infinite(), IIIOperator.DIVIDE.apply(SimpleInterval.infinite(), SimpleInterval.infinite()));
-    assertNull(IIIOperator.DIVIDE.apply(SimpleInterval.infinite(), SimpleInterval.singleton(BigInteger.ZERO)));
-    assertEquals(SimpleInterval.infinite(), IIIOperator.DIVIDE.apply(SimpleInterval.infinite(), SimpleInterval.singleton(BigInteger.valueOf(5))));
-    assertEquals(SimpleInterval.infinite(), IIIOperator.DIVIDE.apply(SimpleInterval.infinite(), SimpleInterval.singleton(BigInteger.valueOf(-5))));
-    assertEquals(zeroToInf, IIIOperator.DIVIDE.apply(zeroToInf, SimpleInterval.singleton(BigInteger.valueOf(5))));
-    assertEquals(negInfToZero, IIIOperator.DIVIDE.apply(zeroToInf, SimpleInterval.singleton(BigInteger.valueOf(-5))));
-    assertEquals(negTwentyToTwenty, IIIOperator.DIVIDE.apply(negTwentyToTwenty, zeroToInf));
-    assertEquals(oneToFour, IIIOperator.DIVIDE.apply(twoToFour, zeroToTwo));
+    assertThat(IIIOperator.DIVIDE.apply(negInfToZero, negInfToFive))
+        .isEqualTo(SimpleInterval.infinite());
+    assertThat(IIIOperator.DIVIDE.apply(negFourToNegTwo, negTwoToNegOne)).isEqualTo(oneToFour);
+    assertThat(IIIOperator.DIVIDE.apply(negFourToNegTwo, oneToTwo)).isEqualTo(negFourToNegOne);
+    assertThat(IIIOperator.DIVIDE.apply(twoToFour, negTwoToNegOne)).isEqualTo(negFourToNegOne);
+    assertThat(IIIOperator.DIVIDE.apply(twoToFour, oneToTwo)).isEqualTo(oneToFour);
+    assertThat(IIIOperator.DIVIDE.apply(negTwentyToTwenty, negTwoToTwo))
+        .isEqualTo(negTwentyToTwenty);
+    assertThat(IIIOperator.DIVIDE.apply(negInfToTen, negTwoToTwo))
+        .isEqualTo(SimpleInterval.infinite());
+    assertThat(IIIOperator.DIVIDE.apply(negInfToTen, twoToFour)).isEqualTo(negInfToFive);
+    assertThat(IIIOperator.DIVIDE.apply(negInfToNegFive, fiveToInf)).isEqualTo(negInfToZero);
+    assertThat(IIIOperator.DIVIDE.apply(negTwentyToTen, negTwoToInf)).isEqualTo(negTwentyToTen);
+    assertThat(IIIOperator.DIVIDE.apply(SimpleInterval.infinite(), SimpleInterval.infinite()))
+        .isEqualTo(SimpleInterval.infinite());
+    assertThat(
+            IIIOperator.DIVIDE.apply(
+                SimpleInterval.infinite(), SimpleInterval.singleton(BigInteger.ZERO)))
+        .isNull();
+    assertThat(
+            IIIOperator.DIVIDE.apply(
+                SimpleInterval.infinite(), SimpleInterval.singleton(BigInteger.valueOf(5))))
+        .isEqualTo(SimpleInterval.infinite());
+    assertThat(
+            IIIOperator.DIVIDE.apply(
+                SimpleInterval.infinite(), SimpleInterval.singleton(BigInteger.valueOf(-5))))
+        .isEqualTo(SimpleInterval.infinite());
+    assertThat(IIIOperator.DIVIDE.apply(zeroToInf, SimpleInterval.singleton(BigInteger.valueOf(5))))
+        .isEqualTo(zeroToInf);
+    assertThat(
+            IIIOperator.DIVIDE.apply(zeroToInf, SimpleInterval.singleton(BigInteger.valueOf(-5))))
+        .isEqualTo(negInfToZero);
+    assertThat(IIIOperator.DIVIDE.apply(negTwentyToTwenty, zeroToInf)).isEqualTo(negTwentyToTwenty);
+    assertThat(IIIOperator.DIVIDE.apply(twoToFour, zeroToTwo)).isEqualTo(oneToFour);
   }
 
 }

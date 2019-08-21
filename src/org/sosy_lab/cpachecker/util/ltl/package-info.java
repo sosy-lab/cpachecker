@@ -21,5 +21,8 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/** Execution and parsing of an external tool that translates ltl-formulas to buchi automata. */
+/**
+ * This package provides util-classes for parsing ltl-properties and transforming them into buechi
+ * automata.
+ */
 package org.sosy_lab.cpachecker.util.ltl;

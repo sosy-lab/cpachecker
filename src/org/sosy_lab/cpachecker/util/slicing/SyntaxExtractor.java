@@ -125,7 +125,7 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
           notFoundTargets.removeAll(targetsReachableFrom.get(edge.getSuccessor()));
         }
 
-        if (notFoundTargets.size() == 0) {
+        if (notFoundTargets.isEmpty()) {
           return new HashSet<>(relevantTargets);
         }
       }
@@ -138,9 +138,7 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
     Collection<CFAEdge> edges = new ArrayList<>(2 * pCfa.getAllNodes().size());
 
     for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge leaving : CFAUtils.allLeavingEdges(node)) {
-        edges.add(leaving);
-      }
+      CFAUtils.allLeavingEdges(node).copyInto(edges);
     }
     return edges;
   }

@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -107,7 +107,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
     if (exitBlockAnalysis(argState, node)) {
 
       // We are leaving the block, do not perform analysis beyond the current block.
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     if (startNewBlockAnalysis(argState, node)) {
@@ -287,7 +287,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState pState,
-      List<AbstractState> pOtherStates,
+      Iterable<AbstractState> pOtherStates,
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {

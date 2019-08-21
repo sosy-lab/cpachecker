@@ -31,6 +31,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -68,7 +69,7 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
  * The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState} and
  * strengthens an {@link AutomatonState.AutomatonUnknownState}.
  */
-class AutomatonTransferRelation implements TransferRelation {
+public class AutomatonTransferRelation implements TransferRelation {
 
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
@@ -157,7 +158,7 @@ class AutomatonTransferRelation implements TransferRelation {
       throws CPATransferException {
     Preconditions.checkArgument(!(state instanceof AutomatonUnknownState));
     if (state == cpa.getBottomState()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     if (state.getInternalState().getTransitions().isEmpty()) {
@@ -169,7 +170,7 @@ class AutomatonTransferRelation implements TransferRelation {
       if (!((AutomatonPrecision) precision).isEnabled()) {
         if (state.isTarget()) {
           // do not create transition from target states
-          return Collections.emptySet();
+          return ImmutableSet.of();
         } else {
           // ignore disabled automaton
           return Collections.singleton(state);
@@ -202,8 +203,9 @@ class AutomatonTransferRelation implements TransferRelation {
           throw new AutomatonTransferException(
               "Automaton transition condition could not be evaluated", match);
         }
-        // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
-        return Collections.singleton(new AutomatonUnknownState(state));
+        // if one transition cannot be evaluated the evaluation must be postponed until enough
+        // information is available
+        return ImmutableSet.of(new AutomatonUnknownState(state));
       } else {
         if (match.getValue()) {
           edgeMatched = true;
@@ -217,7 +219,7 @@ class AutomatonTransferRelation implements TransferRelation {
                   "Automaton transition assertions could not be evaluated", assertionsHold);
             }
             // cannot yet be evaluated
-            return Collections.singleton(new AutomatonUnknownState(state));
+            return ImmutableSet.of(new AutomatonUnknownState(state));
 
           } else if (assertionsHold.getValue()) {
             if (!t.canExecuteActionsOn(exprArgs)) {
@@ -226,7 +228,7 @@ class AutomatonTransferRelation implements TransferRelation {
                     "Automaton transition action could not be executed");
               }
               // cannot yet execute, goto UnknownState
-              return Collections.singleton(new AutomatonUnknownState(state));
+              return ImmutableSet.of(new AutomatonUnknownState(state));
             }
 
             // delay execution as described above
@@ -240,8 +242,9 @@ class AutomatonTransferRelation implements TransferRelation {
             AutomatonSafetyProperty prop =
                 new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
 
-            AutomatonState errorState = AutomatonState.automatonStateFactory(
-                Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, prop);
+            AutomatonState errorState =
+                AutomatonState.automatonStateFactory(
+                    ImmutableMap.of(), AutomatonInternalState.ERROR, cpa, 0, 0, prop);
 
             logger.log(
                 Level.FINER,
@@ -317,18 +320,18 @@ class AutomatonTransferRelation implements TransferRelation {
   }
 
   /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState, java.util.List, org.sosy_lab.cpachecker.cfa.model.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
+   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState, java.util.Iterable, org.sosy_lab.cpachecker.cfa.model.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
    */
   @Override
-  public Collection<? extends AbstractState> strengthen(
+  public Collection<AutomatonState> strengthen(
       AbstractState pElement,
-      List<AbstractState> pOtherElements,
+      Iterable<AbstractState> pOtherElements,
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException {
     if (pElement instanceof AutomatonUnknownState) {
       totalStrengthenTime.start();
-      Collection<AbstractState> successors =
+      Collection<AutomatonState> successors =
           strengthenAutomatonUnknownState(
               (AutomatonUnknownState) pElement, pOtherElements, pCfaEdge, pPrecision);
       totalStrengthenTime.stop();
@@ -352,10 +355,10 @@ class AutomatonTransferRelation implements TransferRelation {
         }
       }
     }
-    return Collections.singleton(pElement);
+    return Collections.singleton(state);
   }
 
-  private Collection<? extends AbstractState> handleThreadCreationForWitnessValidation(
+  private Collection<AutomatonState> handleThreadCreationForWitnessValidation(
       CFAEdge pthreadCreateEdge,
       Precision pPrecision,
       AutomatonState state,
@@ -401,14 +404,15 @@ class AutomatonTransferRelation implements TransferRelation {
    * Strengthening might depend on the strengthening of other automaton states, so we do a
    * fixed-point iteration.
    */
-  private Collection<AbstractState> strengthenAutomatonUnknownState(
+  private Collection<AutomatonState> strengthenAutomatonUnknownState(
       AutomatonUnknownState lUnknownState,
-      List<AbstractState> pOtherElements,
+      Iterable<AbstractState> pOtherElements,
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException {
     Set<List<AbstractState>> strengtheningCombinations = new LinkedHashSet<>();
-    strengtheningCombinations.add(pOtherElements);
+    // need to use lists in set instead of iterable because the latter does not guarantee equals()
+    strengtheningCombinations.add(ImmutableList.copyOf(pOtherElements));
     boolean changed = from(pOtherElements).anyMatch(instanceOf(AutomatonUnknownState.class));
     while (changed) {
       changed = false;
@@ -458,7 +462,7 @@ class AutomatonTransferRelation implements TransferRelation {
     }
 
     // For each list of other states, do the strengthening
-    Collection<AbstractState> successors = new LinkedHashSet<>();
+    Collection<AutomatonState> successors = new LinkedHashSet<>();
     for (List<AbstractState> otherStates : strengtheningCombinations) {
       successors.addAll(
           getFollowStates(

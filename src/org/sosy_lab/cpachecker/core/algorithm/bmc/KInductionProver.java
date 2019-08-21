@@ -487,7 +487,7 @@ class KInductionProver implements AutoCloseable {
             // We are in the last iteration and failed to prove the candidate invariant
 
             Iterable<? extends SymbolicCandiateInvariant> badStateBlockingClauses =
-                Collections.emptySet();
+                ImmutableSet.of();
             Map<CounterexampleToInductivity, BooleanFormula> detectedCtis =
                 extractCTIs(reached, modelAssignments, pCheckedKeys, pCandidateInvariant, pK + 1);
             if (pLifting.canLift()) {

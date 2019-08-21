@@ -27,8 +27,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Comparators;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -436,7 +438,7 @@ public final class ExpressionTrees {
               @Override
               protected Iterable<ExpressionTree<LeafType>> visitDefault(
                   ExpressionTree<LeafType> pExprTree) {
-                return Collections.emptySet();
+                return ImmutableSet.of();
               }
 
               @Override
@@ -467,7 +469,7 @@ public final class ExpressionTrees {
       @Override
       public ExpressionTree<LeafType> simplify(ExpressionTree<LeafType> pExpressionTree) {
         return ExpressionTrees.simplify(
-            pExpressionTree, Collections.emptySet(), simplificationVisitors, pFactory, true);
+            pExpressionTree, ImmutableSet.of(), simplificationVisitors, pFactory, true);
       }
     };
   }
@@ -479,7 +481,7 @@ public final class ExpressionTrees {
 
   private static <LeafType> ExpressionTree<LeafType> simplify(
       ExpressionTree<LeafType> pExpressionTree, ExpressionTreeFactory<LeafType> pFactory) {
-    return simplify(pExpressionTree, Collections.emptySet(), new HashMap<>(), pFactory, true);
+    return simplify(pExpressionTree, ImmutableSet.of(), new HashMap<>(), pFactory, true);
   }
 
   private static <LeafType> ExpressionTree<LeafType> simplify(
@@ -590,6 +592,9 @@ public final class ExpressionTrees {
 
     private static final long serialVersionUID = -8004131077972723263L;
 
+    private final Comparator<Iterable<ExpressionTree<LeafType>>> lexicographicalOrdering =
+        Comparators.lexicographical(this);
+
     @Override
     public int compare(final ExpressionTree<LeafType> pO1, final ExpressionTree<LeafType> pO2) {
       @SuppressWarnings("unchecked")
@@ -601,8 +606,6 @@ public final class ExpressionTrees {
           pO2.accept(
               (ExpressionTreeVisitor<LeafType, Integer, NoException>) TYPE_ORDER_VISITOR);
       final int typeOrderComp = Integer.compare(typeOrder1, typeOrder2);
-      final Ordering<Iterable<ExpressionTree<LeafType>>> lexicographicalOrdering =
-          Ordering.from(this).lexicographical();
       return pO1.accept(
           new CachingVisitor<LeafType, Integer, NoException>() {
 

@@ -23,9 +23,16 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -37,13 +44,6 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSet
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.BestFirstEvaluationFunctionFactory.BestFirstEvaluationFunctions;
-
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * Compute a greedy graph partitioning in best-first-manner
@@ -162,8 +162,9 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
   @Override
   public List<Set<Integer>> computePartitioning(int pNumPartitions,
       PartialReachedSetDirectedGraph pGraph) throws InterruptedException {
-    if (pNumPartitions <= 0 || pGraph == null) { throw new IllegalArgumentException(
-        "Partitioniong must contain at least 1 partition. Graph may not be null."); }
+    checkArgument(
+        pNumPartitions > 0 && pGraph != null,
+        "Partitioniong must contain at least 1 partition. Graph may not be null.");
     WeightedGraph wGraph = new WeightedGraph(pGraph); //Transform into weighted graph
     return computePartitioning(pNumPartitions, wGraph);
   }
@@ -171,8 +172,9 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
   @Override
   public List<Set<Integer>> computePartitioning(int pNumPartitions,
       WeightedGraph wGraph) throws InterruptedException {
-    if (pNumPartitions <= 0 || wGraph == null) { throw new IllegalArgumentException(
-        "Partitioniong must contain at least 1 partition. Graph may not be null."); }
+    checkArgument(
+        pNumPartitions > 0 && wGraph != null,
+        "Partitioniong must contain at least 1 partition. Graph may not be null.");
 
     logger.log(Level.FINE,
         String.format(

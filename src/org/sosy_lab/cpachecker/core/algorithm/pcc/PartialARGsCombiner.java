@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
@@ -407,14 +408,14 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     // compute number of successors
     int count = 0;
     for (List<ARGState> successor : pSuccessorsForEdge) {
-      if (successor.size() > 0) {
+      if (!successor.isEmpty()) {
         count = count == 0 ? successor.size() : count * successor.size();
       }
     }
 
     // no successor in every of the ARGs
     if (count == 0) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     Collection<Pair<List<AbstractState>, List<ARGState>>> result = new ArrayList<>(count);
@@ -436,7 +437,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
       // collect ARG successors
       for (int index = 0; index < indices.length; index++) {
-        if (pSuccessorsForEdge.get(index).size() > 0) {
+        if (!pSuccessorsForEdge.get(index).isEmpty()) {
           argSuccessors.add(getUncoveredSuccessor(pSuccessorsForEdge.get(index).get(indices[index])));
         }
       }

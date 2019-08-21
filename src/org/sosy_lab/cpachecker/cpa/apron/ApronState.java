@@ -522,7 +522,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
       }
     }
 
-    if (keysToRemove.size() == 0) {
+    if (keysToRemove.isEmpty()) {
       return this;
     }
 

@@ -126,7 +126,10 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="java-smt" rev="3.0.0" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="java-smt" rev="3.0.0" conf="runtime->runtime; contrib->sources">
+          <!-- OptiMathSAT causes segfaults: https://github.com/sosy-lab/java-smt/issues/132 -->
+          <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
+        </dependency>
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->

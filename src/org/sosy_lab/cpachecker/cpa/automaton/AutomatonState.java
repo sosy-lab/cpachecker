@@ -29,14 +29,15 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -65,8 +66,8 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(
-          Collections.emptyMap(),
-          new AutomatonInternalState("_predefinedState_TOP", Collections.emptyList()),
+          ImmutableMap.of(),
+          new AutomatonInternalState("_predefinedState_TOP", ImmutableList.of()),
           pAutomatonCPA,
           ImmutableList.of(),
           ExpressionTrees.getTrue(),
@@ -91,7 +92,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
       super(
-          Collections.emptyMap(),
+          ImmutableMap.of(),
           AutomatonInternalState.BOTTOM,
           pAutomatonCPA,
           ImmutableList.of(),
@@ -275,7 +276,10 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   @Override
   public String toDOTLabel() {
     if (!internalState.getName().equals("Init")) {
-      return (automatonCPA!=null?automatonCPA.getAutomaton().getName() + ": ": "") + internalState.getName();
+      return (automatonCPA != null ? automatonCPA.getAutomaton().getName() + ": " : "")
+          + internalState.getName()
+          + "\nAssumptions: "
+          + assumptions.stream().map(x -> x.toASTString()).collect(Collectors.joining("; "));
     }
     return "";
   }

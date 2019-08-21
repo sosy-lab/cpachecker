@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import static org.junit.Assert.assertEquals;
+import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
@@ -102,9 +102,9 @@ public class AssignmentToPathAllocatorTest {
             1,
             ImmutableList.of());
 
-    assertEquals(1, allocator.findFirstOccurrenceOf(varX, ssaMaps));
-    assertEquals(2, allocator.findFirstOccurrenceOf(varY, ssaMaps));
-    assertEquals(2, allocator.findFirstOccurrenceOf(varZ, ssaMaps));
+    assertThat(allocator.findFirstOccurrenceOf(varX, ssaMaps)).isEqualTo(1);
+    assertThat(allocator.findFirstOccurrenceOf(varY, ssaMaps)).isEqualTo(2);
+    assertThat(allocator.findFirstOccurrenceOf(varZ, ssaMaps)).isEqualTo(2);
   }
 
 }

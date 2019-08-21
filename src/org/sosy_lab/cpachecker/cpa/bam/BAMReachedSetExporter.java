@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -39,6 +38,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
-import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix = "cpa.bam")
 class BAMReachedSetExporter implements Statistics {
@@ -78,8 +77,9 @@ class BAMReachedSetExporter implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path simplifiedArgFile = Paths.get("BlockedARGSimplified.dot");
 
-  private final Predicate<Pair<ARGState, ARGState>> highlightSummaryEdge =
-      input -> input.getFirst().getEdgeToChild(input.getSecond()) instanceof FunctionSummaryEdge;
+  private final BiPredicate<ARGState, ARGState> highlightSummaryEdge =
+      (firstState, secondState) ->
+          firstState.getEdgeToChild(secondState) instanceof FunctionSummaryEdge;
 
   private final LogManager logger;
   private final AbstractBAMCPA bamcpa;

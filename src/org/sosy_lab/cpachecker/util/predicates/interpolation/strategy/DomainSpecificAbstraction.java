@@ -24,9 +24,9 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -66,7 +66,7 @@ public class DomainSpecificAbstraction<T> {
   private final Timer feasibilityCheckTimer;
   private final Timer maximisationTimer;
   LogManager logger;
-  private HashMap<String, FormulaType> latticeNamesTypes = new HashMap<>();
+  private final Map<String, FormulaType> latticeNamesTypes = new HashMap<>();
   protected boolean inequalityInterpolationAbstractions;
 
   public DomainSpecificAbstraction(
@@ -139,21 +139,13 @@ public class DomainSpecificAbstraction<T> {
         if (it == 0) {
           variables1 = variablesInFormulas.get(0);
           for (int i = 1; i < variablesInFormulas.size(); i++) {
-            for (String f : variablesInFormulas.get(i)) {
-              variables2.add(f);
-            }
+            variables2.addAll(variablesInFormulas.get(i));
           }
         } else {
-          for (String f : variablesInFormulas.get(0)) {
-            variables1.add(f);
-          }
-          for (String f : variablesInFormulas.get(1)) {
-            variables1.add(f);
-          }
+          variables1.addAll(variablesInFormulas.get(0));
+          variables1.addAll(variablesInFormulas.get(1));
           for (int i = 2; i < variablesInFormulas.size(); i++) {
-            for (String f : variablesInFormulas.get(i)) {
-              variables2.add(f);
-            }
+            variables2.addAll(variablesInFormulas.get(i));
           }
         }
       } finally {
@@ -163,7 +155,7 @@ public class DomainSpecificAbstraction<T> {
           .immutableCopy();
       Set<String> variablesThatAreNotUsedInBothParts = Sets.difference(variables1, variables2)
           .immutableCopy();
-      HashMap<String, FormulaType> variablesUsedInBothPartsClasses = new HashMap<>();
+      Map<String, FormulaType> variablesUsedInBothPartsClasses = new HashMap<>();
 
       arrayVariablesThatAreUsedInBothParts = variablesThatAreUsedInBothParts.toArray(new
           String[variablesThatAreUsedInBothParts.size
@@ -1867,13 +1859,9 @@ public class DomainSpecificAbstraction<T> {
               if (!latticenamesH.isEmpty()) {
                 BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
                 List<BooleanFormula> toCheckFormulaList = new ArrayList<>(formulas.size() - 1);
-                for (BooleanFormula f : changedFomulasRest1) {
-                  toCheckFormulaList.add(f);
-                }
+                toCheckFormulaList.addAll(changedFomulasRest1);
                 toCheckFormulaList.add(toCheckFormula);
-                for (BooleanFormula f : changedFomulasRest2) {
-                  toCheckFormulaList.add(f);
-                }
+                toCheckFormulaList.addAll(changedFomulasRest2);
                 BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
                 feasibilityCheckTimer.start();
                 try {
@@ -2117,21 +2105,15 @@ public class DomainSpecificAbstraction<T> {
       }
       BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
       List<BooleanFormula> toCheckFormulaList = new ArrayList<>(formulas.size() - 1);
-      for (BooleanFormula f : changedFormulasRest1) {
-        toCheckFormulaList.add(f);
-      }
+      toCheckFormulaList.addAll(changedFormulasRest1);
       toCheckFormulaList.add(toCheckFormula);
-      for (BooleanFormula f : changedFormulasRest2) {
-        toCheckFormulaList.add(f);
-      }
+      toCheckFormulaList.addAll(changedFormulasRest2);
       BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
      // logger.log(Level.INFO, "Feasibility Check on " + toCheckFormulaBlocked.toString());
       isFeasible = prove(toCheckFormulaBlocked, prover);
       if (!isFeasible){
         latticeNamesHElementsCopy.clear();
-        for (String v : latticeNamesHElements){
-          latticeNamesHElementsCopy.add(v);
-        }
+        latticeNamesHElementsCopy.addAll(latticeNamesHElements);
         counter++;
       } else {
         if (latticeNamesHElementsCopy.size() > 2) {
@@ -2170,36 +2152,26 @@ public class DomainSpecificAbstraction<T> {
 
         BooleanFormula toCheckFormula2 = fmgr.makeAnd(helperFormula1, helperFormula2);
         List<BooleanFormula> toCheckFormulaList2 = new ArrayList<>(formulas.size() - 1);
-        for (BooleanFormula f : changedFormulasRest1) {
-          toCheckFormulaList2.add(f);
-        }
+        toCheckFormulaList2.addAll(changedFormulasRest1);
         toCheckFormulaList2.add(toCheckFormula2);
-        for (BooleanFormula f : changedFormulasRest2) {
-          toCheckFormulaList2.add(f);
-        }
+        toCheckFormulaList2.addAll(changedFormulasRest2);
         BlockFormulas toCheckFormulaBlocked2 = new BlockFormulas(toCheckFormulaList2);
        // logger.log(Level.INFO, "Feasibility Check on " + toCheckFormulaBlocked2.toString());
         isFeasible = prove(toCheckFormulaBlocked2, prover);
         if (!isFeasible) {
           latticeNamesHElements.clear();
-          for (String v : latticeNamesHElementsCopy){
-            latticeNamesHElements.add(v);
-          }
+          latticeNamesHElements.addAll(latticeNamesHElementsCopy);
           i = 0;
           counter++;
         } else {
           latticeNamesHElements.clear();
-          for (String v : middleElem){
-            latticeNamesHElements.add(v);
-          }
+          latticeNamesHElements.addAll(middleElem);
           i = 0;
           counter++;
         }
       } else {
           latticeNamesHElements.clear();
-          for (String v : latticeNamesHElementsCopy){
-            latticeNamesHElements.add(v);
-          }
+          latticeNamesHElements.addAll(latticeNamesHElementsCopy);
           i = 0;
           counter++;
         }
@@ -2377,10 +2349,10 @@ public class DomainSpecificAbstraction<T> {
     List<Formula> maximumFeasibleAbstraction = new ArrayList<>(formulas.size() - 1);
 
     if (input.equals("root")){
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
     if (input.isEmpty()){
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
     String[] helperArray = new String[2];
     int j = 0;
@@ -2427,7 +2399,7 @@ public class DomainSpecificAbstraction<T> {
     List<List<Formula>> compareList = new ArrayList<>(formulas.size() - 1);
     Boolean isIncomparable = false;
     Boolean comparable = false;
-    while (frontierListCopy.size() != 0) {
+    while (!frontierListCopy.isEmpty()) {
        List<Formula> smallestList = frontierListCopy.get(0);
 
 
@@ -2450,13 +2422,13 @@ public class DomainSpecificAbstraction<T> {
           }
 
         }
-        if (comparable == false) {
+        if (!comparable) {
           break;
         }
       }
 
     }
-    if (comparable == false) {
+    if (!comparable) {
       isIncomparable = true;
     }
     return isIncomparable;

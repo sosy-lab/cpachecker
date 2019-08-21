@@ -178,7 +178,7 @@ public class PredicateAbstractionsStorage {
           currentAbstractionId = Integer.parseInt(declarationTokenizer.nextToken());
           while (declarationTokenizer.hasMoreTokens()) {
             String token = declarationTokenizer.nextToken().trim();
-            if (token.length() > 0) {
+            if (!token.isEmpty()) {
               if (token.startsWith("@")) {
                 currentLocationId = OptionalInt.of(Integer.parseInt(token.substring(1)));
               } else {

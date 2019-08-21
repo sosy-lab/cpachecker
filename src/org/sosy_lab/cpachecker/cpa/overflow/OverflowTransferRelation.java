@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -61,7 +60,7 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
     if (prev.hasOverflow()) {
 
       // Once we have an overflow there is no need to continue.
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
 
     Set<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge);
@@ -92,7 +91,7 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState state,
-      List<AbstractState> otherStates,
+      Iterable<AbstractState> otherStates,
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {

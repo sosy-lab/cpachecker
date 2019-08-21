@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.ArrayList;
@@ -48,7 +50,6 @@ import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 
 /**
  * An element of octagon abstract domain. This element contains an {@link Octagon} which
@@ -313,9 +314,7 @@ public class OctagonState implements AbstractState {
 
   protected MemoryLocation getVariableNameFor(int index) {
     MemoryLocation result = variableToIndexMap.inverse().get(index);
-    if (result == null) {
-      throw new IllegalArgumentException();
-    }
+    checkArgument(result != null);
     return result;
   }
 
@@ -738,7 +737,7 @@ public class OctagonState implements AbstractState {
       }
     }
 
-    if (keysToRemove.size() == 0) {
+    if (keysToRemove.isEmpty()) {
       return this;
     }
 

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.coverage;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
@@ -78,11 +79,10 @@ class CounterexampleCoverageCollector {
         }
       }
     }
-    if (!foundAssumptionAutomaton) {
-      throw new IllegalArgumentException(
-          "This method should only be called when an " +
-          "Assumption Automaton is used as part of the specification.");
-    }
+    checkArgument(
+        foundAssumptionAutomaton,
+        "This method should only be called when an "
+            + "Assumption Automaton is used as part of the specification.");
     return false;
   }
 

@@ -1,8 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.congruence;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
-
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.abe.ABEAbstractedState;
@@ -12,11 +15,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
 
 public class CongruenceState implements
                              Iterable<Entry<Template, Congruence>>,
@@ -126,7 +124,7 @@ public class CongruenceState implements
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(data);
+    return Objects.hash(data);
   }
 
   @Override

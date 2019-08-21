@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
-import com.google.common.primitives.Ints;
+import com.google.common.primitives.ImmutableIntArray;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -53,10 +53,11 @@ public class TreeInterpolationWithSolver<T> extends AbstractTreeInterpolation<T>
           final InterpolationManager.Interpolator<T> interpolator,
           final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
           throws InterruptedException, SolverException {
-    final Pair<List<Triple<BooleanFormula, AbstractState, T>>, List<Integer>> p = buildTreeStructure(formulasWithStatesAndGroupdIds);
+    final Pair<List<Triple<BooleanFormula, AbstractState, T>>, ImmutableIntArray> p =
+        buildTreeStructure(formulasWithStatesAndGroupdIds);
     final List<BooleanFormula> itps =
         interpolator.itpProver.getTreeInterpolants0(
-            projectToThird(p.getFirst()), Ints.toArray(p.getSecond()));
+            projectToThird(p.getFirst()), p.getSecond().toArray());
     return flattenTreeItps(formulasWithStatesAndGroupdIds, itps);
   }
 

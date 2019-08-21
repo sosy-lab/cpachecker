@@ -103,7 +103,7 @@ public class LocalTransferRelation
   )
   private Set<String> conservationOfSharedness = ImmutableSet.of();
 
-  private Map<String, Integer> allocateInfo;
+  private final Map<String, Integer> allocateInfo;
 
   public LocalTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -150,6 +150,9 @@ public class LocalTransferRelation
       CFunctionCall summaryExpr,
       String callerFunctionName)
       throws HandleCodeException {
+
+    // NOTE! getFunctionName() return inner function name!
+
     CFunctionCall exprOnSummary = cfaEdge.getSummaryEdge().getExpression();
     LocalState newElement = state.getClonedPreviousState();
 
@@ -164,18 +167,31 @@ public class LocalTransferRelation
       // return id is handled internally
       assign(newElement, leftId, dereference, assignExp.getRightHandSide());
     }
+
     // Update the outer parameters:
     CFunctionSummaryEdge sEdge = cfaEdge.getSummaryEdge();
     CFunctionEntryNode entry = sEdge.getFunctionEntry();
     String funcName = entry.getFunctionName();
-    if (!isAllocatedFunction(funcName)) {
-      List<String> paramNames = entry.getFunctionParameterNames();
-      List<CExpression> arguments =
-          sEdge.getExpression().getFunctionCallExpression().getParameterExpressions();
-      List<CParameterDeclaration> parameterTypes = entry.getFunctionDefinition().getParameters();
+    assert funcName.equals(getFunctionName());
 
-      extractIdentifiers(arguments, paramNames, parameterTypes, funcName, getFunctionName())
-          .forEach(p -> completeAssign(newElement, p.getFirst(), p.getThird(), p.getSecond()));
+
+    int allocParameter = isParameterAllocatedFunction(funcName) ? allocateInfo.get(funcName) : 0;
+    List<String> paramNames = entry.getFunctionParameterNames();
+    List<CExpression> arguments =
+        sEdge.getExpression().getFunctionCallExpression().getParameterExpressions();
+    List<CParameterDeclaration> parameterTypes = entry.getFunctionDefinition().getParameters();
+
+    List<Triple<AbstractIdentifier, LocalVariableIdentifier, Integer>> toProcess =
+        extractIdentifiers(arguments, paramNames, parameterTypes, callerFunctionName, funcName);
+
+    for (int i = 0; i < toProcess.size(); i++) {
+      Triple<AbstractIdentifier, LocalVariableIdentifier, Integer> pairId = toProcess.get(i);
+      // Note, index starts from in configuration
+      if (allocParameter > 0 && allocParameter == i + 1) {
+        completeSet(newElement, pairId.getFirst(), pairId.getThird(), DataType.LOCAL);
+      } else {
+        completeAssign(newElement, pairId.getFirst(), pairId.getThird(), pairId.getSecond());
+      }
     }
     return newElement;
   }
@@ -245,7 +261,7 @@ public class LocalTransferRelation
           }
         }
       }
-      if (init != null && init instanceof CInitializerExpression) {
+      if (init instanceof CInitializerExpression) {
         assign(newState, id, deref, ((CInitializerExpression) init).getExpression());
       } else if (!decl.isGlobal() && type instanceof CArrayType) {
         // Uninitialized arrays (int a[2]) are pointed to local memory
@@ -263,25 +279,9 @@ public class LocalTransferRelation
     String funcName = right.getFunctionNameExpression().toASTString();
     boolean isConservativeFunction = conservationOfSharedness.contains(funcName);
 
-    if (isAllocatedFunction(funcName)) {
-      Integer num = allocateInfo.get(funcName);
-      if (num == null) {
-        // Means that we use pattern
-        num = 0;
-      }
-      if (num == 0) {
-        // local data are returned from function
-        pSuccessor.set(leftId, DataType.LOCAL);
-      } else if (num > 0) {
-        num = allocateInfo.get(funcName);
-        if (num > 0) {
-          // local data are transmitted, as function parameters. F.e., allocate(&pointer);
-          CExpression parameter = right.getParameterExpressions().get(num - 1);
-          // TODO How it works?
-          AbstractIdentifier rightId = createId(parameter, dereference);
-          pSuccessor.set(rightId, DataType.LOCAL);
-        }
-      }
+    if (isAllocatedFunction(funcName) && allocateInfo.get(funcName) == 0) {
+      // local data are returned from function
+      pSuccessor.set(leftId, DataType.LOCAL);
       return true;
 
     } else if (isConservativeFunction) {
@@ -403,7 +403,7 @@ public class LocalTransferRelation
 
   private void alias(
       LocalState pSuccessor, AbstractIdentifier leftId, AbstractIdentifier rightId) {
-    if (leftId.isGlobal()) {
+    if (leftId.isGlobal() && !pSuccessor.checkIsAlwaysLocal(leftId)) {
       // Variable is global, not memory location!
       // So, we should set the type of 'right' to global
       pSuccessor.set(rightId, DataType.GLOBAL);
@@ -452,5 +452,10 @@ public class LocalTransferRelation
 
   private boolean isAllocatedFunction(String funcName) {
     return allocate.contains(funcName) || from(allocatePattern).anyMatch(funcName::contains);
+  }
+
+  private boolean isParameterAllocatedFunction(String funcName) {
+    return allocateInfo.containsKey(funcName)
+        && allocateInfo.get(funcName) > 0;
   }
 }

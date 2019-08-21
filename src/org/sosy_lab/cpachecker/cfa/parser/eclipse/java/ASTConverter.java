@@ -36,7 +36,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Set;
@@ -425,7 +424,7 @@ class ASTConverter {
     JFieldDeclaration fieldDecl = scope.lookupField(fieldName);
 
     // update initializer (can't be constructed while generating the Declaration)
-    if (preSideAssignments.size() != 0 || postSideAssignments.size() != 0) {
+    if (!preSideAssignments.isEmpty() || !postSideAssignments.isEmpty()) {
       logger.log(
           Level.WARNING, "Sideeffects of initializer of field " + fieldName + " will be ignored");
       preSideAssignments.clear();
@@ -901,10 +900,10 @@ class ASTConverter {
     List<Expression> p = e.arguments();
 
     List<JExpression> params;
-    if (p.size() > 0) {
+    if (!p.isEmpty()) {
       params = convert(p);
     } else {
-      params = Collections.emptyList();
+      params = ImmutableList.of();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(e.getName());
@@ -1285,7 +1284,7 @@ class ASTConverter {
           convertConstructorType(constructorBinding),
           fullName,
           simpleName,
-          Collections.emptyList(),
+          ImmutableList.of(),
           mb.getVisibility(),
           mb.isStrictFp(),
           getDeclaringClassType(constructorBinding));
@@ -1296,7 +1295,7 @@ class ASTConverter {
           JConstructorType.createUnresolvableConstructorType(),
           fullName,
           simpleName,
-          Collections.emptyList(),
+          ImmutableList.of(),
           VisibilityModifier.NONE,
           false,
           JClassType.createUnresolvableType());
@@ -1327,8 +1326,8 @@ class ASTConverter {
         parameterTypes = new ArrayList<>(parameterDeclarations.size());
 
       } else {
-        parameterDeclarations = Collections.emptyList();
-        parameterTypes = Collections.emptyList();
+        parameterDeclarations = ImmutableList.of();
+        parameterTypes = ImmutableList.of();
       }
 
       for (JParameterDeclaration d : parameterDeclarations) {
@@ -1673,10 +1672,10 @@ class ASTConverter {
     List<Expression> p = mi.arguments();
 
     List<JExpression> params;
-    if (p.size() > 0) {
+    if (!p.isEmpty()) {
       params = convert(p);
     } else {
-      params = Collections.emptyList();
+      params = ImmutableList.of();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(mi.getName());

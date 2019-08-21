@@ -99,12 +99,12 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
     BlockFormulaStrategy blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr);
 
-    strategy = new UsageStatisticsRefinementStrategy(
-                                          predicateCpa.getConfiguration(),
-                                          logger,
-                                          predicateCpa,
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getPredicateManager());
+    strategy =
+        new UsageStatisticsRefinementStrategy(
+            predicateCpa.getConfiguration(),
+            logger,
+            predicateCpa.getSolver(),
+            predicateCpa.getPredicateManager());
 
     refiner = new PredicateCPARefinerFactory(pCpa)
         .setBlockFormulaStrategy(blockFormulaStrategy)
@@ -261,10 +261,9 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     private PredicatePrecision lastAddedPrecision;
 
     public UsageStatisticsRefinementStrategy(final Configuration config, final LogManager logger,
-        final BAMPredicateCPA predicateCpa,
         final Solver pSolver,
         final PredicateAbstractionManager pPredAbsMgr) throws InvalidConfigurationException {
-      super(config, logger, predicateCpa, pSolver, pPredAbsMgr);
+      super(config, logger, pSolver, pPredAbsMgr);
     }
 
     @Override

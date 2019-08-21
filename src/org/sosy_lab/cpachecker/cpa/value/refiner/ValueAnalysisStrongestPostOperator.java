@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -145,7 +145,7 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
             UniqueAssignmentsInPathConditionState.class);
 
     if (assignments == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     return assignments.getMemoryLocationsExceedingThreshold();

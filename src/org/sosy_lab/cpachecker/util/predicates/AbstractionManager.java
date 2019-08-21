@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.primitives.ImmutableIntArray;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -47,7 +48,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -252,7 +252,7 @@ public final class AbstractionManager {
     if (this.varOrderMethod.getIsFrameworkStrategy()) {
       rmgr.reorder(this.varOrderMethod);
     } else {
-      ArrayList<Integer> predicateOrdering = new ArrayList<>(numberOfPredicates);
+      ImmutableIntArray.Builder predicateOrdering = ImmutableIntArray.builder(numberOfPredicates);
       if (varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY)) {
         predicateOrdering.addAll(randomListOfVarIDs);
       } else if (multiplePartitions) {
@@ -269,7 +269,7 @@ public final class AbstractionManager {
         }
       }
 
-      rmgr.setVarOrder(predicateOrdering);
+      rmgr.setVarOrder(predicateOrdering.build());
     }
   }
 
@@ -485,7 +485,7 @@ public final class AbstractionManager {
         });
   }
 
-  public RegionCreator getRegionCreator() {
+  public RegionManager getRegionCreator() {
     return rmgr;
   }
 

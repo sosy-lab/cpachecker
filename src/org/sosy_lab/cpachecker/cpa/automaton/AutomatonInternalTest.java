@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
@@ -44,7 +45,6 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -118,60 +118,60 @@ public class AutomatonInternalTest {
   public void testAndOr() throws CPATransferException {
     // will always return MaybeBoolean.MAYBE
     AutomatonBoolExpr cannot = new AutomatonBoolExpr.CPAQuery("none", "none");
-    Map<String, AutomatonVariable> vars = Collections.emptyMap();
-    List<AbstractState> elements = Collections.emptyList();
+    Map<String, AutomatonVariable> vars = ImmutableMap.of();
+    List<AbstractState> elements = ImmutableList.of();
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, vars, elements, null, null);
     AutomatonBoolExpr ex;
     AutomatonBoolExpr myTrue= AutomatonBoolExpr.TRUE;
     AutomatonBoolExpr myFalse= AutomatonBoolExpr.FALSE;
 
     ex = new AutomatonBoolExpr.And(myTrue, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.And(myTrue, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(myTrue, cannot);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.And(myFalse, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(myFalse, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(myFalse, cannot);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(cannot, myTrue);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.And(cannot, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(cannot, cannot);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myTrue, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myTrue, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myTrue, cannot);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myFalse, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myFalse, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.Or(myFalse, cannot);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(cannot, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(cannot, myFalse);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();

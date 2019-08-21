@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ForwardingList;
 import com.google.common.collect.HashMultimap;
@@ -219,7 +221,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
     String commentOfEdge = lastIntermediate.getComment();
 
-    if (commentOfEdge != null && !commentOfEdge.isEmpty()) {
+    if (!isNullOrEmpty(commentOfEdge)) {
       comment.append(commentOfEdge);
       comment.append("\n");
     }

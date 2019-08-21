@@ -220,8 +220,9 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
         throw new CPAException("Error state not known to analysis with enabler CPA. Cannot continue analysis.");
       }
       Precision precision =  pReachedSet.getPrecision(((ARGState)e.getFailureCause()).getParents().iterator().next());
-      if (e.getFailureCause() != null && !pReachedSet.contains(e.getFailureCause())
-          && ((ARGState) e.getFailureCause()).getParents().size() != 0) {
+      if (e.getFailureCause() != null
+          && !pReachedSet.contains(e.getFailureCause())
+          && !((ARGState) e.getFailureCause()).getParents().isEmpty()) {
         // add element
         pReachedSet.add(e.getFailureCause(), precision);
         // readd parents their may be other siblings in the ARG which are not part of the reached set
@@ -383,9 +384,9 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
         CompositeState newComp = new CompositeState(wrappedStates.build());
 
-        assert (pPredecessor.getChildren().size() == 0);
+        assert (pPredecessor.getChildren().isEmpty());
         assert (pPredecessor.getParents().size() == 1);
-        assert (pPredecessor.getCoveredByThis().size() == 0);
+        assert (pPredecessor.getCoveredByThis().isEmpty());
 
         ARGState newPred = new ARGState(newComp, pPredecessor.getParents().iterator().next());
         pPredecessor.removeFromARG();
@@ -438,7 +439,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     case VALUE:
       Collection<? extends AbstractState> nextFakeStateResult = enablerTransfer
               .getAbstractSuccessorsForEdge(pFakeEnablerState, SingletonPrecision.getInstance(), pAssumeEdge);
-      if (nextFakeStateResult == null || nextFakeStateResult.size() <= 0) {
+      if (nextFakeStateResult == null || nextFakeStateResult.isEmpty()) {
         logger.log(Level.INFO,
                 "Adding error explaining condition makes path infeasible, enabler knows of infeasibility of error, but still try to exclude path");
         return pFakeEnablerState;
@@ -485,7 +486,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
   private Precision buildInitialPrecision(Collection<Precision> precisions, Precision initialPrecision)
       throws InterruptedException, RefinementFailedException {
-    if (precisions.size()==0) {
+    if (precisions.isEmpty()) {
       return initialPrecision;
     }
 
@@ -596,7 +597,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       if (lessPrecise.size() == morePrecise.size() && lessPrecise.equals(morePrecise)) { return false; }
 
       // build conjunction of predicates
-      ArrayList<BooleanFormula> list = new ArrayList<>(Math.max(lessPrecise.size(), morePrecise.size()));
+      List<BooleanFormula> list = new ArrayList<>(Math.max(lessPrecise.size(), morePrecise.size()));
       for (AbstractionPredicate abs : lessPrecise) {
         list.add(abs.getSymbolicAtom());
       }

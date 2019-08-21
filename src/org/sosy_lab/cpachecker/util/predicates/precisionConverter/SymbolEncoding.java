@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-
 public class SymbolEncoding {
 
   private Set<CSimpleDeclaration> decls = new HashSet<>();
@@ -202,8 +201,10 @@ public class SymbolEncoding {
           new Appender() {
             @Override
             public void appendTo(Appendable app) throws IOException {
-              for (String symbol : encodedSymbols.keySet()) {
-                final Type<FormulaType<?>> type = encodedSymbols.get(symbol);
+              for (Map.Entry<String, SymbolEncoding.Type<FormulaType<?>>> entry :
+                  encodedSymbols.entrySet()) {
+                String symbol = entry.getKey();
+                final Type<FormulaType<?>> type = entry.getValue();
                 app.append(symbol + "\t" + type.getReturnType());
                 if (!type.getParameterTypes().isEmpty()) {
                   app.append("\t" + Joiner.on("\t").join(type.getParameterTypes()));
@@ -252,7 +253,7 @@ public class SymbolEncoding {
     @SuppressWarnings("unchecked")
     @Override
     public boolean equals(Object other) {
-      if (other != null && other instanceof Type) {
+      if (other instanceof Type) {
         Type<T> t = (Type<T>)other;
         return returnType.equals(t.returnType)
             && parameterTypes.equals(t.parameterTypes);

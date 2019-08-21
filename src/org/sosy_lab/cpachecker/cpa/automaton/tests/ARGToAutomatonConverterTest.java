@@ -19,9 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton.tests;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -109,9 +107,8 @@ public class ARGToAutomatonConverterTest extends AbstractARGTranslationTest {
     Automaton aut = converter.getAutomaton(root, true);
     Files.write(automatonPath, aut.toString().getBytes("utf-8"));
 
-
     for (String analysis :
-        new String[] {"predicateAnalysis.properties", "valueAnalysis.properties"}) {
+        ImmutableList.of("predicateAnalysis.properties", "valueAnalysis.properties")) {
       // test whether C program still gives correct verdict with joint automaton:
       Configuration reConfig =
           TestDataTools.configurationForTest()
@@ -125,7 +122,7 @@ public class ARGToAutomatonConverterTest extends AbstractARGTranslationTest {
       } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
         throw new AssertionError(e);
       }
-      assertNotNull(results);
+      assertThat(results).isNotNull();
       if (verdict) {
         results.assertIsSafe();
       } else {
@@ -146,10 +143,10 @@ public class ARGToAutomatonConverterTest extends AbstractARGTranslationTest {
                 .build();
         CPAcheckerResult.Result partialVerdict =
             CPATestRunner.run(reConfig, fullPath.toString()).getCheckerResult().getResult();
-        assertTrue(partialVerdict.equals(Result.TRUE) || partialVerdict.equals(Result.FALSE));
+        assertThat(partialVerdict).isAnyOf(Result.TRUE, Result.FALSE);
         fullVerdict = fullVerdict && partialVerdict.equals(Result.TRUE);
       }
-      assertEquals(verdict, fullVerdict);
+      assertThat(fullVerdict).isEqualTo(verdict);
     }
   }
 

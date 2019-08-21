@@ -160,7 +160,7 @@ public class AssumptionToEdgeAllocatorTest {
 
   private LeftHandSide makeVariable(String pName, String pFunction) {
 
-    if (pFunction.equals("")) {
+    if (pFunction.isEmpty()) {
       return new IDExpression(pName);
     } else {
       return new IDExpression(pName, pFunction);

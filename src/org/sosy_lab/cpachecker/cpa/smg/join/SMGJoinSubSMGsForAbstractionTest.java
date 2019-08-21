@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
-import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -71,7 +72,7 @@ public class SMGJoinSubSMGsForAbstractionTest {
     SMGEdgeHasValue root =
         TestHelpers.createGlobalList(smg, SEGMENT_LENGTH, NODE_SIZE, OFFSET, "pointer");
     SMGObject firstObject = smg.getPointer(root.getValue()).getObject();
-    Assert.assertSame(SMGObjectKind.REG, firstObject.getKind());
+    assertThat(firstObject.getKind()).isSameInstanceAs(SMGObjectKind.REG);
 
     SMGSingleLinkedListCandidate candidate =
         new SMGSingleLinkedListCandidate(
@@ -82,32 +83,32 @@ public class SMGJoinSubSMGsForAbstractionTest {
         Iterables.getOnlyElement(
             smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(firstObject).filterAtOffset(nfo)));
     SMGObject secondObject = smg.getObjectPointedBy(nextEdge.getValue());
-    Assert.assertSame(SMGObjectKind.REG, secondObject.getKind());
+    assertThat(secondObject.getKind()).isSameInstanceAs(SMGObjectKind.REG);
 
     SMGJoinSubSMGsForAbstraction join =
         new SMGJoinSubSMGsForAbstraction(smg, firstObject, secondObject, candidate, smgState);
 
-    Assert.assertTrue(join.isDefined());
-    Assert.assertSame(SMGJoinStatus.EQUAL, join.getStatus());
+    assertThat(join.isDefined()).isTrue();
+    assertThat(join.getStatus()).isSameInstanceAs(SMGJoinStatus.EQUAL);
 
-    Assert.assertTrue(join.getNonSharedObjectsFromSMG1().contains(firstObject));
-    Assert.assertFalse(join.getNonSharedObjectsFromSMG1().contains(secondObject));
-    Assert.assertTrue(join.getNonSharedObjectsFromSMG2().contains(secondObject));
-    Assert.assertFalse(join.getNonSharedObjectsFromSMG2().contains(firstObject));
+    assertThat(join.getNonSharedObjectsFromSMG1()).contains(firstObject);
+    assertThat(join.getNonSharedObjectsFromSMG1()).doesNotContain(secondObject);
+    assertThat(join.getNonSharedObjectsFromSMG2()).contains(secondObject);
+    assertThat(join.getNonSharedObjectsFromSMG2()).doesNotContain(firstObject);
 
     SMGObject joinResult = join.getNewAbstractObject();
-    Assert.assertTrue(joinResult.isAbstract());
-    Assert.assertSame(SMGObjectKind.SLL, joinResult.getKind());
+    assertThat(joinResult.isAbstract()).isTrue();
+    assertThat(joinResult.getKind()).isSameInstanceAs(SMGObjectKind.SLL);
 
     SMGSingleLinkedList resultSll = (SMGSingleLinkedList) joinResult;
-    Assert.assertEquals(2, resultSll.getMinimumLength());
+    assertThat(resultSll.getMinimumLength()).isEqualTo(2);
 
     UnmodifiableCLangSMG resultSMG = join.getResultSMG();
     PersistentSet<SMGObject> resultHeapObjects = resultSMG.getHeapObjects();
-    Assert.assertTrue(resultHeapObjects.contains(joinResult));
-    Assert.assertTrue(resultHeapObjects.contains(firstObject));
-    Assert.assertTrue(resultHeapObjects.contains(secondObject));
+    assertThat(resultHeapObjects.contains(joinResult)).isTrue();
+    assertThat(resultHeapObjects.contains(firstObject)).isTrue();
+    assertThat(resultHeapObjects.contains(secondObject)).isTrue();
 
-    Assert.assertTrue(SMGUtils.getPointerToThisObject(resultSll, resultSMG).isEmpty());
+    assertThat(SMGUtils.getPointerToThisObject(resultSll, resultSMG)).isEmpty();
   }
 }

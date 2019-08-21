@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.slab.SLARGState;
 import org.sosy_lab.cpachecker.cpa.slab.SLARGToDotWriter;
+import org.sosy_lab.cpachecker.util.BiPredicates;
 
 @Options(prefix = "cpa.arg")
 public class ARGLogger {
@@ -120,7 +121,7 @@ public class ARGLogger {
           (ARGState) pRootState,
           ARGState::getChildren,
           Predicates.alwaysTrue(),
-          Predicates.alwaysFalse());
+          BiPredicates.alwaysFalse());
     } catch (IOException e) {
       logger.logfUserException(Level.WARNING, e, "A problem occurred while writing to %s ", file);
     }

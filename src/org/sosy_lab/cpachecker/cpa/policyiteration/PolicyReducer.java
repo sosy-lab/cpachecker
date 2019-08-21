@@ -30,9 +30,7 @@ import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -84,7 +82,7 @@ class PolicyReducer implements Reducer {
     PolicyState pState = (PolicyState) expandedState;
     Preconditions.checkState(pState.isAbstract());
     PolicyAbstractedState aState = pState.asAbstracted();
-    Set<String> blockVars = getBlockVariables(context);
+    Set<String> blockVars = context.getVariables();
 
     Map<Template, PolicyBound> newAbstraction =
         Maps.filterEntries(
@@ -299,10 +297,5 @@ class PolicyReducer implements Reducer {
     Preconditions.checkState(pExpandedState.isAbstract());
 
     throw new UnsupportedOperationException("Recursion is not supported by LPI+BAM yet.");
-  }
-
-  private Set<String> getBlockVariables(Block pBlock) {
-    return Collections3.transformedImmutableSetCopy(
-        pBlock.getReferencedVariables(), ReferencedVariable::getName);
   }
 }

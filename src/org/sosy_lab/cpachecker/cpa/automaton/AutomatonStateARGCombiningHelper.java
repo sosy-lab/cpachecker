@@ -68,7 +68,7 @@ public class AutomatonStateARGCombiningHelper {
     if (qualifiedAutomatonStateNameToInternalState.containsKey(qualifiedName)) {
       AutomatonSafetyProperty violatedProp = null;
 
-      if (toReplace.isTarget() && toReplace.getViolatedProperties().size() > 0) {
+      if (toReplace.isTarget() && !toReplace.getViolatedProperties().isEmpty()) {
         Property prop = toReplace.getViolatedProperties().iterator().next();
         assert prop instanceof AutomatonSafetyProperty;
         violatedProp = (AutomatonSafetyProperty) prop;

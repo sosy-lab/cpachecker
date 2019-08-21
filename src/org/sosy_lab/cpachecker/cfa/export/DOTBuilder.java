@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.export;
 
+import static com.google.common.base.Strings.nullToEmpty;
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
@@ -157,8 +159,7 @@ public final class DOTBuilder {
       Function<CFANode, String> formatNodeLabel) {
     final String shape;
 
-    String nodeAnnotation = formatNodeLabel.apply(node);
-    nodeAnnotation = nodeAnnotation != null ? nodeAnnotation : "";
+    String nodeAnnotation = nullToEmpty(formatNodeLabel.apply(node));
 
     if (nodeAnnotation.length() > NODE_SHAPE_CHANGE_CHAR_LIMIT) {
       shape = "box";

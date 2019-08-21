@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.andersen;
 
-import java.util.Map;
-
+import com.google.common.collect.ImmutableListMultimap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.andersen.util.BaseConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.ComplexConstraint;
@@ -81,7 +80,7 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
    *
    * @return points-to sets for the local constraint system.
    */
-  public Map<String, String[]> getLocalPointsToSets() {
+  public ImmutableListMultimap<String, String> getLocalPointsToSets() {
     return this.localConstraintSystem.getPointsToSets();
   }
 

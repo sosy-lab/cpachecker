@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
-import org.junit.Assert;
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.DummyAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
 
 public class SMGSingleLinkedListTest {
 
@@ -35,10 +35,10 @@ public class SMGSingleLinkedListTest {
   public void basicsTest() {
     SMGSingleLinkedList sll = new SMGSingleLinkedList(128, 0, 2, 4, 0);
 
-    Assert.assertTrue(sll.isAbstract());
-    Assert.assertEquals(4, sll.getMinimumLength());
-    Assert.assertEquals(128, sll.getSize());
-    Assert.assertEquals(2, sll.getNfo());
+    assertThat(sll.isAbstract()).isTrue();
+    assertThat(sll.getMinimumLength()).isEqualTo(4);
+    assertThat(sll.getSize()).isEqualTo(128);
+    assertThat(sll.getNfo()).isEqualTo(2);
   }
 
   @Test
@@ -50,10 +50,10 @@ public class SMGSingleLinkedListTest {
 
     DummyAbstraction dummy = new DummyAbstraction(prototype);
 
-    Assert.assertFalse(sll1.matchGenericShape(dummy));
-    Assert.assertTrue(sll1.matchGenericShape(sll2));
-    Assert.assertTrue(sll2.matchGenericShape(sll3));
-    Assert.assertTrue(sll1.matchGenericShape(sll3));
+    assertThat(sll1.matchGenericShape(dummy)).isFalse();
+    assertThat(sll1.matchGenericShape(sll2)).isTrue();
+    assertThat(sll2.matchGenericShape(sll3)).isTrue();
+    assertThat(sll1.matchGenericShape(sll3)).isTrue();
   }
 
   @Test
@@ -65,9 +65,9 @@ public class SMGSingleLinkedListTest {
 
     DummyAbstraction dummy = new DummyAbstraction(prototype);
 
-    Assert.assertFalse(sll1.matchSpecificShape(dummy));
-    Assert.assertTrue(sll1.matchSpecificShape(sll2));
-    Assert.assertFalse(sll2.matchSpecificShape(sll3));
-    Assert.assertFalse(sll1.matchSpecificShape(sll3));
+    assertThat(sll1.matchSpecificShape(dummy)).isFalse();
+    assertThat(sll1.matchSpecificShape(sll2)).isTrue();
+    assertThat(sll2.matchSpecificShape(sll3)).isFalse();
+    assertThat(sll1.matchSpecificShape(sll3)).isFalse();
   }
 }

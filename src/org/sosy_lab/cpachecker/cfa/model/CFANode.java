@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -290,7 +291,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
    */
   public Set<CSimpleDeclaration> getOutOfScopeVariables() {
     if (outOfScopeVariables == null) { // lazy
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     return Collections.unmodifiableSet(outOfScopeVariables);
   }

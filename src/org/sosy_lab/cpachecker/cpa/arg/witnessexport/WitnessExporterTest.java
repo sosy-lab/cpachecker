@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import static com.google.common.truth.Truth.assertWithMessage;
+
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -43,7 +45,6 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -177,7 +178,7 @@ public class WitnessExporterTest {
       results.assertIsUnsafe();
       return WitnessType.VIOLATION_WITNESS;
     }
-    Assert.fail("Cannot determine expected result.");
+    assertWithMessage("Cannot determine expected result.").fail();
     throw new AssertionError("Unreachable code.");
   }
 
@@ -217,7 +218,7 @@ public class WitnessExporterTest {
     } else if (isSupposedToBeUnsafe(pFilePath)) {
       results.assertIsUnsafe();
     } else {
-      Assert.fail("Cannot determine expected result.");
+      assertWithMessage("Cannot determine expected result.").fail();
     }
   }
 

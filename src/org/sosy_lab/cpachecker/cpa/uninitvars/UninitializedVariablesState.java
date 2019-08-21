@@ -122,7 +122,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
 
   @Override
   public boolean equals(Object o) {
-    if (o == null || !(o instanceof UninitializedVariablesState)) {
+    if (!(o instanceof UninitializedVariablesState)) {
       return false;
     }
     if (this == o) {

@@ -455,7 +455,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         if (printIntermediateStatistics) {
           stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
         } else {
-          stats.printIntermediateStatistics(new PrintStream(ByteStreams.nullOutputStream()), Result.UNKNOWN, currentReached);
+          @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
+          final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
+          stats.printIntermediateStatistics(dummyStream, Result.UNKNOWN, currentReached);
         }
         if (writeIntermediateOutputFiles) {
           stats.writeOutputFiles(Result.UNKNOWN, pReached);

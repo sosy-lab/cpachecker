@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import com.google.common.base.Preconditions;
@@ -94,6 +95,13 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     if (bamPccManager.isPCCEnabled()) {
       return bamPccManager.attachAdditionalInfoToCallNodes(successors);
     }
+
+    if (Iterables.any(successors, IS_TARGET_STATE)) {
+      stats.depthsOfTargetStates.insertValue(stack.size());
+      stats.depthsOfFoundTargetStates.insertValue(
+          stack.size() + data.getExpandedStatesList(successors.iterator().next()).size());
+    }
+
     return successors;
   }
 
@@ -375,6 +383,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       throws InterruptedException, CPAException {
 
     // CPAAlgorithm is not re-entrant due to statistics
+    stats.algorithmInstances.inc();
     final Algorithm algorithm = algorithmFactory.newInstance();
     algorithm.run(reached);
 
@@ -382,8 +391,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     final List<AbstractState> returnStates;
     final AbstractState lastState = reached.getLastState();
     if (isTargetState(lastState)) {
-      //found a target state inside a recursive subgraph call
-      //this needs to be propagated to outer subgraph (till main is reached)
+      // found a target state inside a recursive subgraph call
+      // this needs to be propagated to outer subgraph (till main is reached)
       returnStates = Collections.singletonList(lastState);
 
     } else {
@@ -409,9 +418,11 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
   @Override
   public Collection<? extends AbstractState> strengthen(
-      AbstractState pElement, List<AbstractState> pOtherElements,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException,
-      InterruptedException {
+      AbstractState pElement,
+      Iterable<AbstractState> pOtherElements,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException, InterruptedException {
     Collection<? extends AbstractState> out =
         super.strengthen(pElement, pOtherElements, pCfaEdge, pPrecision);
     if (bamPccManager.isPCCEnabled()) {

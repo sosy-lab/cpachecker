@@ -30,6 +30,7 @@ import static java.util.logging.Level.FINEST;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -117,7 +118,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
           FileLocation.DUMMY,
           CFunctionType.functionTypeWithReturnType(CNumericTypes.INT),
           "__VERIFIER_nondet_int",
-          Collections.emptyList());
+          ImmutableList.of());
 
   private Set<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
 
@@ -148,7 +149,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     } else if (terminationState.isPartOfStem()
         && terminationInformation.isPredecessorOfIncommingEdge(location)) {
       statesAtCurrentLocation = declarePrimedVariables(terminationState, pPrecision, location);
-      targetStatesAtCurrentLocation = Collections.emptyList();
+      targetStatesAtCurrentLocation = ImmutableList.of();
 
     } else if (terminationInformation.isLoopHead(location)) {
       statesAtCurrentLocation = insertRankingRelation(terminationState, pPrecision, location);
@@ -161,7 +162,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
 
     } else {
       statesAtCurrentLocation = Collections.singleton(terminationState);
-      targetStatesAtCurrentLocation = Collections.emptyList();
+      targetStatesAtCurrentLocation = ImmutableList.of();
     }
 
     resetCfa();
@@ -277,7 +278,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
                 FileLocation.DUMMY,
                 CNumericTypes.INT,
                 new CIdExpression(FileLocation.DUMMY, NONDET_INT),
-                Collections.emptyList(),
+                ImmutableList.of(),
                 NONDET_INT));
 
     CFAEdge nondetAssignmentEdge = crateCStatementEdge(nondetAssignment, node2, node3);

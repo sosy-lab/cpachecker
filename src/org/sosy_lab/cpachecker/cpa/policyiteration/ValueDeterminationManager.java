@@ -133,7 +133,7 @@ public class ValueDeterminationManager {
 
     Set<Integer> visitedLocationIDs = new HashSet<>();
 
-    LinkedHashSet<PolicyAbstractedState> queue = new LinkedHashSet<>();
+    Set<PolicyAbstractedState> queue = new LinkedHashSet<>();
     queue.add(mergedState);
 
     while (!queue.isEmpty()) {
@@ -224,7 +224,7 @@ public class ValueDeterminationManager {
     int startLocId,
     Multimap<Integer, Integer> backwEdges
   ) {
-    LinkedHashSet<Integer> queue = new LinkedHashSet<>();
+    Set<Integer> queue = new LinkedHashSet<>();
     queue.add(startLocId);
     Set<Integer> out = new HashSet<>();
     while (!queue.isEmpty()) {
@@ -257,7 +257,7 @@ public class ValueDeterminationManager {
       Map<Integer, PolicyAbstractedState> stateMap,
       SetMultimap<Integer, Integer> backwDepsEdges
   ) {
-    LinkedHashSet<PolicyAbstractedState> queue = new LinkedHashSet<>();
+    Set<PolicyAbstractedState> queue = new LinkedHashSet<>();
     queue.add(newState);
     while (!queue.isEmpty()) {
       Iterator<PolicyAbstractedState> it = queue.iterator();

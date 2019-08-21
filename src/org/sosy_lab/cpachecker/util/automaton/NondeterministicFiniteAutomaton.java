@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 public class NondeterministicFiniteAutomaton<T> {
@@ -90,7 +91,7 @@ public class NondeterministicFiniteAutomaton<T> {
 
     private static final StatePool STATE_POOL = new StatePool();
 
-    private ArrayList<State> mPool;
+    private List<State> mPool;
     private int mNextStateId;
 
     private StatePool() {
@@ -177,9 +178,9 @@ public class NondeterministicFiniteAutomaton<T> {
   private State mInitialState;
   private Set<State> mFinalStates;
 
-  private final ArrayList<Set<Edge>> mOutgoingEdges;
-  private final ArrayList<Set<Edge>> mIncomingEdges;
-  private final ArrayList<Edge> mEdges;
+  private final List<Set<Edge>> mOutgoingEdges;
+  private final List<Set<Edge>> mIncomingEdges;
+  private final List<Edge> mEdges;
 
   private int mStatesCounter;
   private final StatePool.StateIterable mStateIterable;

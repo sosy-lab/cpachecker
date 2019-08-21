@@ -78,8 +78,7 @@ class AutomatonStatistics implements Statistics {
 
     int statesWithAssumptionTransitions = 0;
     for (AutomatonInternalState state : mCpa.getAutomaton().getStates()) {
-      if (state.getTransitions().stream().filter(p -> p.isTransitionWithAssumptions()).count()
-          > 0) {
+      if (state.getTransitions().stream().anyMatch(p -> p.isTransitionWithAssumptions())) {
         statesWithAssumptionTransitions++;
       }
     }

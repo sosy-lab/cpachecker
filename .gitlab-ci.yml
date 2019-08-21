@@ -3,6 +3,10 @@ include: /build/gitlab-ci.yml
 variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
+  # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
+  REFASTER_REPO_REVISION: aac6cfb2b28c0d528af167f6e697a2405b61a823
+  # Needs to be synchronized with Error Prone version in lib/ivy.xml
+  REFASTER_VERSION: 2.3.3
 
 
 .binary_check: &binary_check
@@ -22,6 +26,7 @@ configuration-checks:jdk-8:
   dependencies:
     - build-dependencies
     - build:jdk-8
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
 
 configuration-checks:jdk-11:
   <<: *configuration-checks
@@ -29,9 +34,6 @@ configuration-checks:jdk-11:
     - build-dependencies
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
-  # Temporarily allow failures until the segmentation fault is fixed
-  # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
-  allow_failure: true
 
 configuration-checks:jdk-12:
   <<: *configuration-checks
@@ -39,9 +41,6 @@ configuration-checks:jdk-12:
     - build-dependencies
     - build:jdk-12
   image: ${CI_REGISTRY_IMAGE}/test:jdk-12
-  # Temporarily allow failures until the segmentation fault is fixed
-  # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
-  allow_failure: true
 
 
 configuration-documentation:
@@ -52,7 +51,7 @@ configuration-documentation:
     - "diff doc/ConfigurationOptions.txt.old doc/ConfigurationOptions.txt"
   dependencies:
     - build-dependencies
-    - build:jdk-8
+    - build:jdk-11
 
 
 configuration-plot:
@@ -77,6 +76,7 @@ python-unit-tests:jdk-8:
   dependencies:
     - build-dependencies
     - build:jdk-8
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
 
 python-unit-tests:jdk-11:
   <<: *python-unit-tests
@@ -111,11 +111,17 @@ javascript-unit-tests:
     when: always
 
 
+build-docker:test:java-node:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.java-node
+    IMAGE: test:java-node
+
 javascript-e2e-tests:
   stage: checks
   dependencies:
     - build-dependencies
-    - build:jdk-8
+    - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:java-node
   before_script:
       # generate example report

@@ -29,7 +29,6 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,7 +38,7 @@ public class AggregatedReachedSets {
   protected final Set<UnmodifiableReachedSet> reachedSets;
 
   public AggregatedReachedSets() {
-    reachedSets = Collections.emptySet();
+    reachedSets = ImmutableSet.of();
   }
 
   public AggregatedReachedSets(Set<UnmodifiableReachedSet> pReachedSets) {

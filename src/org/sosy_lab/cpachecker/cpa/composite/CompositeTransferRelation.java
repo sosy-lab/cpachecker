@@ -34,6 +34,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -403,7 +404,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     switch (resultCount) {
     case 0:
         // at least one CPA decided that there is no successor
-        allResultingElements = Collections.emptySet();
+        allResultingElements = ImmutableSet.of();
       break;
 
     case 1:
@@ -415,8 +416,9 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       break;
 
     default:
-      // create cartesian product of all componentSuccessors and store the result in allResultingElements
-      List<AbstractState> initialPrefix = Collections.emptyList();
+        // create cartesian product of all componentSuccessors and store the result in
+        // allResultingElements
+        List<AbstractState> initialPrefix = ImmutableList.of();
       allResultingElements = new ArrayList<>(resultCount);
       createCartesianProduct0(allComponentsSuccessors, initialPrefix, allResultingElements);
     }
@@ -447,9 +449,10 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState element,
-      List<AbstractState> otherElements,
+      Iterable<AbstractState> otherElements,
       CFAEdge cfaEdge,
-      Precision precision) throws CPATransferException, InterruptedException {
+      Precision precision)
+      throws CPATransferException, InterruptedException {
 
     CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision) precision;

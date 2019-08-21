@@ -349,7 +349,7 @@ public class SMGBuiltins {
         state.addNewStackAllocation(
             sizeValue.getAsInt() * machineModel.getSizeofCharInBits(), allocation_label);
 
-    ArrayList<SMGAddressValueAndState> result = new ArrayList<>(2);
+    List<SMGAddressValueAndState> result = new ArrayList<>(2);
     result.add(SMGAddressValueAndState.of(state, addressValue));
 
     // If malloc can fail, handle fail with alternative state

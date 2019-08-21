@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ObjectOutputStream;
 import java.util.Collections;
@@ -101,7 +102,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
     if (hasViolatedProperties()) {
       return Collections.singleton(propertyInstance);
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 

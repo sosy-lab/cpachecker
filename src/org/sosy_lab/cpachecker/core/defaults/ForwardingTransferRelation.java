@@ -256,7 +256,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   @SuppressWarnings({"unchecked", "unused"})
   protected Collection<T> postProcessing(@Nullable S successor, CFAEdge edge) {
     if (successor == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     } else {
       return Collections.singleton((T)successor);
     }

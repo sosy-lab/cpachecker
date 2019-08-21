@@ -243,7 +243,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       final Multimap<ARGState, ARGState> importantEdges) {
 
     final List<ARGState> usedChildren = from(current.getChildren()).filter(in(block)).toList();
-    assert usedChildren.size() > 0 : "no child for " + current.getStateId();
+    assert !usedChildren.isEmpty() : "no child for " + current.getStateId();
 
     // if we have an assumption, and the branches are completely unimportant,
     // the assumption itself is unimportant, so we can ignore it
@@ -384,7 +384,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
       if (importantVars.remove(vdecl.getQualifiedName())) {
         final CInitializer initializer = vdecl.getInitializer();
-        if (initializer != null && initializer instanceof CInitializerExpression) {
+        if (initializer instanceof CInitializerExpression) {
           final CExpression init = ((CInitializerExpression) initializer).getExpression();
           CFAUtils.getVariableNamesOfExpression(init).copyInto(importantVars);
         }
@@ -601,7 +601,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       final Multimap<ARGState, ARGState> importantEdges)
       throws CPATransferException, InterruptedException {
 
-    assert current.getParents().size() > 0 : "no parent for " + current.getStateId();
+    assert !current.getParents().isEmpty() : "no parent for " + current.getStateId();
 
     // join all formulas from parents
     final List<PathFormula> pfs = new ArrayList<>(current.getParents().size());

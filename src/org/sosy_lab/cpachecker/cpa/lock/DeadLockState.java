@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
 public class DeadLockState extends AbstractLockState {
 
+  @SuppressWarnings("checkstyle:IllegalType") // TODO: use composition instead of inheritance
   public static class DeadLockTreeNode extends ArrayList<LockIdentifier> implements CompatibleNode {
 
     private static final long serialVersionUID = 5757759799394605077L;
@@ -153,18 +155,9 @@ public class DeadLockState extends AbstractLockState {
     }
 
     @Override
-    public void reduce() {
+    public void reduce(Set<LockIdentifier> removeCounters, Set<LockIdentifier> totalRemove) {
       mutableToRestore = null;
-    }
-
-    @Override
-    public void reduceLocks(Set<LockIdentifier> usedLocks) {
-
-    }
-
-    @Override
-    public void reduceLockCounters(Set<LockIdentifier> exceptLocks) {
-      int num = getTailNum(mutableLockList, exceptLocks);
+      int num = getTailNum(mutableLockList, removeCounters, totalRemove);
       if (num < mutableLockList.size() - 1) {
         for (int i = mutableLockList.size() - 1; i > num; i--) {
           mutableLockList.remove(i);
@@ -172,10 +165,29 @@ public class DeadLockState extends AbstractLockState {
       }
     }
 
-    private int getTailNum(List<LockIdentifier> pLockList, Set<LockIdentifier> exceptLocks) {
+    @Override
+    public void expand(
+        AbstractLockState rootState,
+        Set<LockIdentifier> expandCounters,
+        Set<LockIdentifier> totalExpand) {
+      mutableToRestore = rootState.toRestore;
+      List<LockIdentifier> rootList = ((DeadLockState) rootState).lockList;
+      int num = getTailNum(mutableLockList, expandCounters, totalExpand);
+      if (num < rootList.size() - 1) {
+        for (int i = num + 1; i < rootList.size(); i++) {
+          mutableLockList.add(rootList.get(i));
+        }
+      }
+    }
+
+    private int getTailNum(
+        List<LockIdentifier> pLockList,
+        Set<LockIdentifier> removeCounters,
+        Set<LockIdentifier> totalRemove) {
       for (int i = pLockList.size() - 1; i >= 0; i--) {
         LockIdentifier id = pLockList.get(i);
-        if (pLockList.indexOf(id) == i || exceptLocks.contains(id)) {
+        if (!totalRemove.contains(id)
+            || (pLockList.indexOf(id) == i && removeCounters.contains(id))) {
           return i;
         }
       }
@@ -184,25 +196,6 @@ public class DeadLockState extends AbstractLockState {
 
     public void expand(LockState rootState) {
       mutableToRestore = rootState.toRestore;
-    }
-
-    @Override
-    public void expandLocks(LockState pRootState, Set<LockIdentifier> usedLocks) {
-      throw new UnsupportedOperationException(
-          "Valueable reduce/expand operations are not supported for dead lock analysis");
-    }
-
-    @Override
-    public void expandLockCounters(
-        AbstractLockState pRootState,
-        Set<LockIdentifier> pRestrictedLocks) {
-      List<LockIdentifier> rootList = ((DeadLockState) pRootState).lockList;
-      int num = getTailNum(rootList, pRestrictedLocks);
-      if (num < rootList.size() - 1) {
-        for (int i = num + 1; i < rootList.size(); i++) {
-          mutableLockList.add(rootList.get(i));
-        }
-      }
     }
 
     @Override
@@ -239,7 +232,7 @@ public class DeadLockState extends AbstractLockState {
 
   @Override
   public String toString() {
-    if (lockList.size() > 0) {
+    if (!lockList.isEmpty()) {
       StringBuilder sb = new StringBuilder();
       return Joiner.on(",").appendTo(sb, lockList).toString();
     } else {
@@ -319,6 +312,6 @@ public class DeadLockState extends AbstractLockState {
 
   @Override
   protected Set<LockIdentifier> getLocks() {
-    return from(lockList).toSet();
+    return ImmutableSet.copyOf(lockList);
   }
 }

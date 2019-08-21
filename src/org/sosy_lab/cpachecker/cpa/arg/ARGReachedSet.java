@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.BiPredicates;
 
 /**
  * This class is a modifiable live view of a reached set, which shows the ARG
@@ -351,7 +352,7 @@ public class ARGReachedSet {
   }
 
   private void dumpSubgraph(ARGState e) {
-    if (cpa == null || !(cpa instanceof ARGCPA)) {
+    if (!(cpa instanceof ARGCPA)) {
       return;
     }
 
@@ -372,10 +373,11 @@ public class ARGReachedSet {
       refinementGraph.enterSubgraph("cluster_" + refinementNumber,
                                     "Refinement " + refinementNumber);
 
-      refinementGraph.writeSubgraph(e,
+      refinementGraph.writeSubgraph(
+          e,
           Functions.forMap(successors.asMap(), ImmutableSet.<ARGState>of()),
           Predicates.alwaysTrue(),
-          Predicates.alwaysFalse());
+          BiPredicates.alwaysFalse());
 
       refinementGraph.leaveSubgraph();
 

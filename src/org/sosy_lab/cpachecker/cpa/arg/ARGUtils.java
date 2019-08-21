@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
@@ -43,7 +44,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
@@ -53,6 +53,7 @@ import java.util.AbstractCollection;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -230,8 +231,8 @@ public class ARGUtils {
 
     boolean lastTransitionIsDifferent = false;
     while (!currentARGState.getParents().isEmpty()) {
-      List<ARGState> potentialParents = new ArrayList<>();
-      potentialParents.addAll(currentARGState.getParents());
+      List<ARGState> potentialParents = new ArrayList<>(currentARGState.getParents());
+
       if (!tracePrefixesToAvoid.isEmpty()) {
         potentialParents.addAll(currentARGState.getCoveredByThis());
       }
@@ -298,9 +299,8 @@ public class ARGUtils {
 
       if (seenElements.contains(parentElement)) {
         // Backtrack
-        if (backTrackPoints.isEmpty()) {
-          throw new IllegalArgumentException("No ARG path from the target state to a root state.");
-        }
+        checkArgument(
+            !backTrackPoints.isEmpty(), "No ARG path from the target state to a root state.");
         ARGState backTrackPoint = backTrackPoints.pop();
         ListIterator<ARGState> stateIterator = states.listIterator(states.size());
         while (stateIterator.hasPrevious() && !stateIterator.previous().equals(backTrackPoint)) {
@@ -414,7 +414,7 @@ public class ARGUtils {
 
     List<ARGState> states = new ArrayList<>();
     ARGState currentElement = root;
-    while (currentElement.getChildren().size() > 0) {
+    while (!currentElement.getChildren().isEmpty()) {
       states.add(currentElement);
       currentElement = currentElement.getChildren().iterator().next();
     }
@@ -572,9 +572,7 @@ public class ARGUtils {
         throw new IllegalArgumentException("ARG splits with more than two branches!");
       }
 
-      if (!arg.contains(child)) {
-        throw new IllegalArgumentException("ARG and direction information from solver disagree!");
-      }
+      checkArgument(arg.contains(child), "ARG and direction information from solver disagree!");
 
       builder.add(currentElement, edge);
       currentElement = child;
@@ -605,9 +603,8 @@ public class ARGUtils {
 
     ARGPath result = getPathFromBranchingInformation(root, arg, branchingInformation);
 
-    if (result.getLastState() != target) {
-      throw new IllegalArgumentException("ARG target path reached the wrong target state!");
-    }
+    checkArgument(
+        result.getLastState() == target, "ARG target path reached the wrong target state!");
 
     return result;
   }
@@ -703,6 +700,262 @@ public class ARGUtils {
     return true;
   }
 
+  public static List<List<ARGState>> retrieveSimpleCycles(List<ARGState> pStates) {
+    return retrieveSimpleCycles(pStates, Optional.empty());
+  }
+
+  /**
+   * Find and retrieve all cycles from an exclusive list of {@link ARGState}s. I.e., only the states
+   * within the list are considered, while every other ARGState from the {@link ReachedSet} is
+   * explicitly ignored.
+   *
+   * <p>
+   * For more information, see {@link ARGUtils#retrieveSimpleCycles(List, Optional)}
+   *
+   * @param pStates list of {@link ARGState}s to be looked for cycles
+   * @param pReached the {@link ReachedSet} to retrieve all other states which are ignored later on
+   * @return An adjacency list containing all cycles, given as a list of {@link ARGState}
+   */
+  public static List<List<ARGState>>
+      retrieveSimpleCycles(List<ARGState> pStates, ReachedSet pReached) {
+    Set<ARGState> filteredStates =
+        pReached.asCollection().stream()
+            .map(x -> (ARGState) x)
+            .filter(x -> !pStates.contains(x))
+            .collect(Collectors.toCollection(HashSet::new));
+    return retrieveSimpleCycles(pStates, Optional.of(filteredStates));
+  }
+
+  /**
+   * Find and retrieve all cycles from a list of {@link ARGState}s using Donald B. Johnson's
+   * algorithm.
+   *
+   * <p>The algorithm finds all elementary circuits in time bounded by O((n + e)(c + 1)), with n
+   * being the nodes, e the edges, and c the number of cycles found.
+   *
+   * @param pStates the ARGStates to be looked for cycles
+   * @return An adjacency list containing all cycles, given as a list of {@link ARGState}
+   * @see <a
+   *     href="https://github.com/jgrapht/jgrapht/blob/master/jgrapht-core/src/main/java/org/jgrapht/alg/cycle/JohnsonSimpleCycles.java">code-references</a>
+   * @see <a
+   *     href="https://github.com/mission-peace/interview/blob/master/src/com/interview/graph/AllCyclesInDirectedGraphJohnson.java">code-references
+   *     2</a>
+   */
+  public static List<List<ARGState>>
+      retrieveSimpleCycles(List<ARGState> pStates, Optional<Set<ARGState>> pExcludeStates) {
+    Set<ARGState> blockedSet = new HashSet<>();
+    Map<ARGState, Set<ARGState>> blockedMap = new HashMap<>();
+    Deque<ARGState> stack = new ArrayDeque<>();
+    List<List<ARGState>> allCycles = new ArrayList<>();
+
+    int startIndex = 0;
+    while (startIndex < pStates.size() - 1) {
+      // Find SCCs in the subgraph induced by pStates starting with startIndex and beyond.
+      // This is done by using Tarjan's algorithm and pretending that nodes with an index
+      // smaller than startIndex do not exist (these are stored in the excludeSet)
+      List<ARGState> subList = pStates.subList(startIndex, pStates.size());
+      Set<ARGState> excludeSet = new HashSet<>(pStates);
+      if (pExcludeStates.isPresent()) {
+        excludeSet.addAll(pExcludeStates.get());
+      }
+      excludeSet.removeAll(subList);
+      ImmutableSet<StronglyConnectedComponent> SCCs =
+          ARGUtils.retrieveSCCs(subList, Optional.of(excludeSet))
+              .stream()
+              .filter(x -> x.getNodes().size() > 1)
+              .collect(ImmutableSet.toImmutableSet());
+
+      if (!SCCs.isEmpty()) {
+        // find the SCC with the minimum index with respect to pStates
+        ARGState s =
+            SCCs.stream()
+                .map(x -> pStates.indexOf(x.getRootNode()))
+                .reduce((x, y) -> x.compareTo(y) <= 0 ? x : y)
+                .map(pStates::get)
+                .get();
+
+        blockedSet.clear();
+        blockedMap.clear();
+
+        findCyclesInSCC(s, s, blockedSet, blockedMap, stack, allCycles, Optional.of(excludeSet));
+
+        // TODO: the next line only works if pStates has a deterministic order
+        startIndex = pStates.indexOf(s) + 1;
+
+      } else {
+        break;
+      }
+    }
+
+    return allCycles;
+  }
+
+  /** Find cycles in a strongly connected graph per Johnson. */
+  private static boolean findCyclesInSCC(
+      ARGState pStartState,
+      ARGState pCurrentState,
+      Set<ARGState> pBlockedSet,
+      Map<ARGState, Set<ARGState>> pBlockedMap,
+      Deque<ARGState> pStack,
+      List<List<ARGState>> pAllCycles,
+      Optional<Set<ARGState>> pExcludeSet) {
+
+    if (pExcludeSet.isPresent() && pExcludeSet.get().contains(pCurrentState)) {
+      // Do not regard nodes which were deliberately put into a set of excluded states
+      return false;
+    }
+
+    boolean foundCycle = false;
+    pStack.push(pCurrentState);
+    pBlockedSet.add(pCurrentState);
+
+    for (ARGState successor : pCurrentState.getChildren()) {
+      // If the successor is equal to the startState, a cycle has been found.
+      // Store contents of stack in the final result.
+      if (successor.equals(pStartState)) {
+        List<ARGState> cycle = new ArrayList<>();
+        pStack.push(pStartState);
+        cycle.addAll(pStack);
+        Collections.reverse(cycle);
+        pStack.pop();
+        pAllCycles.add(cycle);
+        foundCycle = true;
+      } else if (!pBlockedSet.contains(successor)) {
+        // Explore this successor only if it is not already in the blocked set.
+        boolean gotCycle =
+            findCyclesInSCC(
+                pStartState, successor, pBlockedSet, pBlockedMap, pStack, pAllCycles, pExcludeSet);
+        foundCycle = foundCycle || gotCycle;
+      }
+    }
+
+    if (foundCycle) {
+      unblock(pCurrentState, pBlockedSet, pBlockedMap);
+    } else {
+      for (ARGState s : pCurrentState.getChildren()) {
+        Set<ARGState> blockedSet = pBlockedMap.computeIfAbsent(s, (key) -> new HashSet<>());
+        blockedSet.add(pCurrentState);
+      }
+    }
+    pStack.pop();
+
+    return foundCycle;
+  }
+
+  private static void unblock(
+      ARGState pCurrentState, Set<ARGState> pBlockedSet, Map<ARGState, Set<ARGState>> pBlockedMap) {
+    pBlockedSet.remove(pCurrentState);
+    if (pBlockedMap.get(pCurrentState) != null) {
+      pBlockedMap
+          .get(pCurrentState)
+          .forEach(
+              state -> {
+                if (pBlockedSet.contains(state)) {
+                  unblock(state, pBlockedSet, pBlockedMap);
+                }
+              });
+    }
+  }
+
+  /**
+   * Find all strongly connected components recursively within the reached set using Tarjan's
+   * algorithm.
+   *
+   * <p>The algorithm is based on a depth-first-search, so the respective procedure is called only
+   * once for each node. The time complexity is thus linear in the number of nodes and edges, i.e.
+   * O(|N| + |E|)
+   *
+   * @param pReached the reached set.
+   * @return A set containing all {@link StronglyConnectedComponent}s. This set also includes SCCs
+   *     that only consists of a single ARGState.
+   */
+  public static ImmutableSet<StronglyConnectedComponent> retrieveSCCs(ReachedSet pReached) {
+    checkNotNull(pReached);
+
+    ImmutableList<ARGState> argStates =
+        transformedImmutableListCopy(pReached.asCollection(), x -> (ARGState) x);
+
+    return retrieveSCCs(argStates, Optional.empty());
+  }
+
+  private static ImmutableSet<StronglyConnectedComponent> retrieveSCCs(
+      List<ARGState> pARGStates, Optional<Collection<ARGState>> pExcludeStates) {
+    checkNotNull(pARGStates);
+
+    List<StronglyConnectedComponent> SCCs = new ArrayList<>();
+
+    int index = 0;
+
+    Deque<ARGState> dfsStack = new ArrayDeque<>();
+    Map<ARGState, Integer> stateIndex = new HashMap<>();
+
+    // Map to store the topmost reachable ancestor with the minimum possible index value
+    Map<ARGState, Integer> stateLowLink = new HashMap<>();
+
+    for (ARGState state : pARGStates) {
+      if (pExcludeStates.isPresent()) {
+        if (pExcludeStates.get().contains(state)) {
+          continue;
+        }
+      }
+      if (!stateIndex.containsKey(state)) {
+        strongConnect(state, index, stateIndex, stateLowLink, dfsStack, SCCs, pExcludeStates);
+      }
+    }
+    Collections.reverse(SCCs);
+    return ImmutableSet.copyOf(SCCs);
+  }
+
+  /**
+   * Recursively find {@link StronglyConnectedComponent}s using DFS traversal
+   */
+  private static void strongConnect(
+      ARGState pState,
+      int pIndex,
+      Map<ARGState, Integer> pStateIndex,
+      Map<ARGState, Integer> pStateLowLink,
+      Deque<ARGState> pDfsStack,
+      List<StronglyConnectedComponent> pSCCs,
+      Optional<Collection<ARGState>> pExcludeStates) {
+
+    pStateIndex.put(pState, pIndex);
+    pStateLowLink.put(pState, pIndex);
+    pIndex++;
+    pDfsStack.push(pState);
+
+    for (Iterator<ARGState> iterator = pState.getChildren().iterator(); iterator.hasNext(); ) {
+      ARGState sucessorState = iterator.next();
+      if (pExcludeStates.isPresent() && pExcludeStates.get().contains(sucessorState)) {
+          continue;
+      }
+      if (!pStateIndex.containsKey(sucessorState)) {
+        // Successor has not yet been visited; recurse on it
+        strongConnect(
+            sucessorState, pIndex, pStateIndex, pStateLowLink, pDfsStack, pSCCs, pExcludeStates);
+        pStateLowLink.put(
+            pState, Math.min(pStateLowLink.get(pState), pStateLowLink.get(sucessorState)));
+      } else if (pDfsStack.contains(sucessorState)) {
+        // Successor is in the stack ('dfsNodeStack') and hence in the current SCC
+        // Otherwise, if the sucessorState is not on the stack, then (pState, sucessorState) is a
+        // cross-edge (not a back edge) in the DFS tree and thus it must be ignored
+        pStateLowLink
+            .put(pState, Math.min(pStateLowLink.get(pState), pStateIndex.get(sucessorState)));
+
+      }
+    }
+
+    // If pState is a root node, pop the stack and generate an SCC
+    if (pStateIndex.get(pState).intValue() == pStateLowLink.get(pState).intValue()) {
+      ARGState s;
+      StronglyConnectedComponent scc = new StronglyConnectedComponent(pState);
+      do {
+        s = pDfsStack.pop();
+        scc.addNode(s);
+      } while (pState != s);
+      pSCCs.add(scc);
+    }
+  }
+
   /**
    * Produce an automaton in the format for the AutomatonCPA from a given connected list of paths.
    * The automaton matches exactly the edges along the path. If there is a target state, it is
@@ -789,7 +1042,7 @@ public class ARGUtils {
 
     int multiEdgeCount = 0; // see below
 
-    for (ARGState s : Ordering.natural().immutableSortedCopy(pPathStates)) {
+    for (ARGState s : ImmutableList.sortedCopyOf(pPathStates)) {
 
       sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
 
@@ -894,7 +1147,7 @@ public class ARGUtils {
     CFANode inLoopNode = null;
     CFANode inFunctionNode = null;
 
-    ImmutableList<ARGState> sortedStates = Ordering.natural().immutableSortedCopy(pPathStates);
+    ImmutableList<ARGState> sortedStates = ImmutableList.sortedCopyOf(pPathStates);
 
     Deque<String> sortedFunctionOccurrence = new ArrayDeque<>();
     for (ARGState s : sortedStates) {

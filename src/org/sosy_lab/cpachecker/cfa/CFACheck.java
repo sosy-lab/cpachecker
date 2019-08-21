@@ -283,30 +283,36 @@ public class CFACheck {
   }
 
   private static void checkTypes(CExpression exp, MachineModel machineModel) {
-    exp.accept(new ExpressionValidator(machineModel));
+    exp.accept(new ExpressionValidator(machineModel, exp));
   }
 
   private static final class ExpressionValidator
       extends DefaultCExpressionVisitor<Void, RuntimeException> {
 
     private final MachineModel machineModel;
+    private final CExpression expressionForLogging;
 
-    public ExpressionValidator(MachineModel pMachineModel) {
+    public ExpressionValidator(MachineModel pMachineModel, CExpression pExp) {
       machineModel = pMachineModel;
+      expressionForLogging = pExp;
     }
 
     private void checkValueRange(CType pType, BigInteger value) {
       CSimpleType type = (CSimpleType) pType.getCanonicalType();
       verify(
           machineModel.getMinimalIntegerValue(type).compareTo(value) <= 0,
-          "value '%s' is too small for type '%s'",
+          "value '%s' is too small for type '%s' in expression '%s' at %s",
           value,
-          type);
+          type,
+          expressionForLogging.toASTString(),
+          expressionForLogging.getFileLocation());
       verify(
           machineModel.getMaximalIntegerValue(type).compareTo(value) >= 0,
-          "value '%s' is too large for type '%s'",
+          "value '%s' is too large for type '%s' in expression '%s' at %s",
           value,
-          type);
+          type,
+          expressionForLogging.toASTString(),
+          expressionForLogging.getFileLocation());
     }
 
     @Override

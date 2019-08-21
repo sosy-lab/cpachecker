@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.chc;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -82,7 +82,7 @@ public class ConstraintManager {
     return init;
   }
 
-  public static Constraint simplify(ArrayList<Term> cn, Map<String, Term> vars) {
+  public static Constraint simplify(List<Term> cn, Map<String, Term> vars) {
 
     // Constraint to be solved
     Term constraint = Util.termArrayToList(cn.toArray(new Term[0]));
@@ -139,7 +139,7 @@ public class ConstraintManager {
 
   public static Constraint and(Constraint cn1, Constraint cn2) {
 
-    ArrayList<Term> andCn = new ArrayList<>(cn1.getConstraint());
+    List<Term> andCn = new ArrayList<>(cn1.getConstraint());
     andCn.addAll(cn2.getConstraint());
 
     logger.log(Level.FINEST, "\n * " + cn1 + "\n * and \n * " + cn2);
@@ -211,17 +211,16 @@ public class ConstraintManager {
     return nres;
   }
 
-
-  public static ArrayList<Constraint> getConstraint(AssumeEdge ae) {
+  public static List<Constraint> getConstraint(AssumeEdge ae) {
     CBinaryExpression c = (CBinaryExpression) ae.getExpression();
-    Collection<Pair<Term,ArrayList<Term>>> acList;
-    ArrayList<Constraint> cns = new ArrayList<>(2);
+    Collection<Pair<Term, List<Term>>> acList;
+    List<Constraint> cns = new ArrayList<>(2);
 
     if (ae.getTruthAssumption()) {
       // atomic constraint
       acList = expressionToCLP(c);
       // for all term in the list create a constraint
-      for (Pair<Term,ArrayList<Term>> p : acList) {
+      for (Pair<Term, List<Term>> p : acList) {
         cns.add(new Constraint(p.getFirst(), p.getSecond()));
       }
     } else {
@@ -238,7 +237,7 @@ public class ConstraintManager {
                 c.getOperator().getOppositLogicalOperator());
       }
       acList = expressionToCLP(negbe);
-      for (Pair<Term,ArrayList<Term>> p : acList) {
+      for (Pair<Term, List<Term>> p : acList) {
         cns.add(new Constraint(p.getFirst(), p.getSecond()));
       }
     }
@@ -254,12 +253,12 @@ public class ConstraintManager {
     CExpression exp = (CExpression) rhs;
     c.addVar(lhs.toString(),ConstraintManager.CVar2PrologPrimedVar(lhs.toString()));
     if (lhs instanceof AIdExpression) {
-      for (Pair<Term,ArrayList<Term>> t: expressionToCLP(exp)) {
+      for (Pair<Term, List<Term>> t : expressionToCLP(exp)) {
         Term[] operands = {
           c.getVars().get(lhs.toString()),
           t.getFirst()
         };
-        ArrayList<Term> list = new ArrayList<>();
+        List<Term> list = new ArrayList<>();
         list.add(new Compound("=:=",operands));
         c.setConstraint(list);
       }
@@ -271,18 +270,17 @@ public class ConstraintManager {
 
 
   public static Constraint getConstraint(CExpression exp) {
-    ArrayList<Term> tlist= new ArrayList<>();
-    ArrayList<Term> vlist= new ArrayList<>();
-    for (Pair<Term,ArrayList<Term>> t: expressionToCLP(exp)) {
+    List<Term> tlist = new ArrayList<>();
+    List<Term> vlist = new ArrayList<>();
+    for (Pair<Term, List<Term>> t : expressionToCLP(exp)) {
         tlist.add(t.getFirst());
         vlist.addAll(t.getSecond());
       }
     return new Constraint(tlist,vlist);
   }
 
-
-  public static ArrayList<Constraint> getConstraint(List<CExpression> exp) {
-    ArrayList<Constraint> clist = new ArrayList<>();
+  public static List<Constraint> getConstraint(List<CExpression> exp) {
+    List<Constraint> clist = new ArrayList<>();
     for (CExpression c: exp) {
       clist.add(getConstraint(c));
     }
@@ -301,10 +299,10 @@ public class ConstraintManager {
       if (initializer != null) {
         if (initializer instanceof CInitializerExpression) {
           CExpression expression = ((CInitializerExpression)initializer).getExpression();
-          Collection<Pair<Term,ArrayList<Term>>> at = expressionToCLP(expression);
-          for (Pair<Term,ArrayList<Term>> t: at) {
+          Collection<Pair<Term, List<Term>>> at = expressionToCLP(expression);
+          for (Pair<Term, List<Term>> t : at) {
             Term rhs = t.getFirst();
-            ArrayList<Term> acList = new ArrayList<>();
+            List<Term> acList = new ArrayList<>();
             acList.add(new Compound("=:=", new Term[] {lhs,rhs}));
             ac.setConstraint(acList);
           }
@@ -328,10 +326,10 @@ public class ConstraintManager {
 
     Constraint ac = new Constraint();
 
-    Collection<Pair<Term,ArrayList<Term>>> at = expressionToCLP(expression);
-    for (Pair<Term,ArrayList<Term>> t: at) {
+    Collection<Pair<Term, List<Term>>> at = expressionToCLP(expression);
+    for (Pair<Term, List<Term>> t : at) {
       Term rhs = t.getFirst();
-      ArrayList<Term> acList = new ArrayList<>();
+      List<Term> acList = new ArrayList<>();
       acList.add(new Compound("=:=", new Term[] {lhs,rhs}));
       ac.setConstraint(acList);
     }
@@ -384,7 +382,7 @@ public class ConstraintManager {
           c.getVars().get(lhs.toString()),
           CVar2PrologVar(rhs.getFunctionNameExpression().toString())
         };
-        ArrayList<Term> list = new ArrayList<>();
+        List<Term> list = new ArrayList<>();
         list.add(new Compound("=:=",operands));
         c.setConstraint(list);
       }
@@ -396,14 +394,14 @@ public class ConstraintManager {
   public static Collection<Constraint> getConstraint(List<String> names,
       List<? extends AExpression> expressions) {
 
-    ArrayList<Constraint> cnList = new ArrayList<>();
+    List<Constraint> cnList = new ArrayList<>();
 
     for (int i = 0; i < names.size(); i++) {
 
       String name = names.get(i);
       AExpression expression = expressions.get(i);
 
-      for (Pair<Term,ArrayList<Term>> p: paramExpressionToCLP(name, expression)) {
+      for (Pair<Term, List<Term>> p : paramExpressionToCLP(name, expression)) {
         cnList.add(new Constraint(
             new ArrayList<>(Arrays.asList(Util.listToTermArray(p.getFirst()))),p.getSecond()));
       }
@@ -450,8 +448,8 @@ public class ConstraintManager {
     return pvar;
   }
 
-
-  private static Collection<Pair<Term,ArrayList<Term>>> getNegatedConstraintList(Pair<Term,ArrayList<Term>> cn) {
+  private static Collection<Pair<Term, List<Term>>> getNegatedConstraintList(
+      Pair<Term, List<Term>> cn) {
 
       Compound atomCnT = (Compound)cn.getFirst();
       Compound negAtomCnT = null;
@@ -460,22 +458,22 @@ public class ConstraintManager {
           negAtomCnT = new Compound(">=", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return Collections.singleton(Pair.of((Term)negAtomCnT, cn.getSecond()));
+          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
         case "=<":
           negAtomCnT = new Compound(">", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return Collections.singleton(Pair.of((Term)negAtomCnT, cn.getSecond()));
+          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
         case ">":
           negAtomCnT = new Compound("=<", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return Collections.singleton(Pair.of((Term)negAtomCnT, cn.getSecond()));
+          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
         case ">=":
           negAtomCnT = new Compound("<", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return Collections.singleton(Pair.of((Term)negAtomCnT, cn.getSecond()));
+          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
         case "=:=":
           return Arrays.asList(
               Pair.of((Term)new Compound("<", new Term[] {atomCnT.arg(1), atomCnT.arg(2)}), cn.getSecond()),
@@ -485,19 +483,19 @@ public class ConstraintManager {
       }
   }
 
-  private static Collection<Pair<Term,ArrayList<Term>>> expressionToCLP(AExpression ce) {
+  private static Collection<Pair<Term, List<Term>>> expressionToCLP(AExpression ce) {
 
-    ArrayList<Term> vars = new ArrayList<>();
+    List<Term> vars = new ArrayList<>();
 
     if (ce instanceof CIdExpression) {
       vars.add(CVar2PrologVar(ce.toString()));
-      return Collections.singleton(Pair.of((Term)CVar2PrologVar(ce.toString()), vars));
+      return ImmutableSet.of(Pair.of((Term)CVar2PrologVar(ce.toString()), vars));
     } else if (ce instanceof CIntegerLiteralExpression) {
-      return Collections.singleton(Pair.of(Util.textToTerm("rdiv(" + ce + ",1)"), vars));
+      return ImmutableSet.of(Pair.of(Util.textToTerm("rdiv(" + ce + ",1)"), vars));
     } else if (ce instanceof CBinaryExpression ) {
       CBinaryExpression bexp = (CBinaryExpression)ce;
-      Collection<Pair<Term,ArrayList<Term>>> operand1 = expressionToCLP(bexp.getOperand1());
-      Collection<Pair<Term,ArrayList<Term>>> operand2 = expressionToCLP(bexp.getOperand2());
+      Collection<Pair<Term, List<Term>>> operand1 = expressionToCLP(bexp.getOperand1());
+      Collection<Pair<Term, List<Term>>> operand2 = expressionToCLP(bexp.getOperand2());
       switch (bexp.getOperator()) {
         case PLUS:
           return addOperands("+", operand1, operand2);
@@ -510,8 +508,8 @@ public class ConstraintManager {
         case EQUALS:
           return addOperands("=:=", operand1, operand2);
         case NOT_EQUALS:
-          Collection<Pair<Term,ArrayList<Term>>> opUnion = new ArrayList<>(
-              addOperands(">", operand1, operand2));
+          Collection<Pair<Term, List<Term>>> opUnion =
+              new ArrayList<>(addOperands(">", operand1, operand2));
           opUnion.addAll(addOperands("<", operand1, operand2));
           return opUnion;
         case LESS_THAN:
@@ -530,11 +528,10 @@ public class ConstraintManager {
     }
   }
 
-
-  private static Collection<Pair<Term,ArrayList<Term>>> paramExpressionToCLP(
+  private static Collection<Pair<Term, List<Term>>> paramExpressionToCLP(
       String paramName, AExpression ce) {
 
-    ArrayList<Term> vars = new ArrayList<>();
+    List<Term> vars = new ArrayList<>();
 
     Term paramVariable = CVar2PrologVar(paramName);
     vars.add(paramVariable);
@@ -544,22 +541,22 @@ public class ConstraintManager {
       vars.add(CVar2PrologVar(ce.toString()));
       expTerm = CVar2PrologVar(ce.toString());
       Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, expTerm});
-      return Collections.singleton(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), vars));
+      return ImmutableSet.of(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), vars));
     } else if (ce instanceof CIntegerLiteralExpression) {
       expTerm = Util.textToTerm("rdiv(" + ce + ",1)");
       Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, expTerm});
-      return Collections.singleton(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), vars));
+      return ImmutableSet.of(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), vars));
     } else if (ce instanceof CBinaryExpression ) {
       CBinaryExpression bexp = (CBinaryExpression)ce;
-      Collection<Pair<Term,ArrayList<Term>>> aexpTerms = expressionToCLP(ce);
-      Collection<Pair<Term,ArrayList<Term>>> paramAexpTerms = new ArrayList<>(aexpTerms.size());
+      Collection<Pair<Term, List<Term>>> aexpTerms = expressionToCLP(ce);
+      Collection<Pair<Term, List<Term>>> paramAexpTerms = new ArrayList<>(aexpTerms.size());
       switch (bexp.getOperator()) {
         case PLUS:
         case MINUS:
         case MULTIPLY:
         case DIVIDE:
-          for (Pair<Term,ArrayList<Term>> aexpTerm : aexpTerms) {
-            ArrayList<Term> aexpTermVars = new ArrayList<>(aexpTerm.getSecond());
+          for (Pair<Term, List<Term>> aexpTerm : aexpTerms) {
+            List<Term> aexpTermVars = new ArrayList<>(aexpTerm.getSecond());
             aexpTermVars.add(paramVariable);
             Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, aexpTerm.getFirst()});
             paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), aexpTermVars));
@@ -572,13 +569,13 @@ public class ConstraintManager {
         case GREATER_THAN:
         case GREATER_EQUAL:
         case NOT_EQUALS:
-          for (Pair<Term,ArrayList<Term>> aexpTerm : aexpTerms) {
-            ArrayList<Term> aexpTermVars = new ArrayList<>(aexpTerm.getSecond());
+          for (Pair<Term, List<Term>> aexpTerm : aexpTerms) {
+            List<Term> aexpTermVars = new ArrayList<>(aexpTerm.getSecond());
             aexpTermVars.add(paramVariable);
             Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, Util.textToTerm("rdiv(1,1)")});
             paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm, aexpTerm.getFirst()}), aexpTermVars));
             paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, Util.textToTerm("rdiv(0,1)")});
-            for (Pair<Term,ArrayList<Term>> negAexpTerm :  getNegatedConstraintList(aexpTerm)) {
+            for (Pair<Term, List<Term>> negAexpTerm : getNegatedConstraintList(aexpTerm)) {
               paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm, negAexpTerm.getFirst()}), aexpTermVars));
             }
           }
@@ -591,15 +588,16 @@ public class ConstraintManager {
     }
   }
 
+  private static Collection<Pair<Term, List<Term>>> addOperands(
+      String operator,
+      Collection<Pair<Term, List<Term>>> operand1,
+      Collection<Pair<Term, List<Term>>> operand2) {
 
-  private static Collection<Pair<Term,ArrayList<Term>>> addOperands(String operator,
-      Collection<Pair<Term,ArrayList<Term>>> operand1, Collection<Pair<Term,ArrayList<Term>>> operand2) {
+    Collection<Pair<Term, List<Term>>> termList = new ArrayList<>();
+    List<Term> vars = new ArrayList<>();
 
-    Collection<Pair<Term,ArrayList<Term>>> termList = new ArrayList<>();
-    ArrayList<Term> vars = new ArrayList<>();
-
-    for (Pair<Term,ArrayList<Term>> subop1 : operand1) {
-      for (Pair<Term,ArrayList<Term>> subop2 : operand2) {
+    for (Pair<Term, List<Term>> subop1 : operand1) {
+      for (Pair<Term, List<Term>> subop2 : operand2) {
         vars.addAll(subop1.getSecond());
         vars.addAll(subop2.getSecond());
         termList.add(Pair.of(

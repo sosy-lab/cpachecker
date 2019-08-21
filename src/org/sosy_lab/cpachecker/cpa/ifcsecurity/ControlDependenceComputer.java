@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -36,11 +37,11 @@ public class ControlDependenceComputer {
 
   private CFA cfa;
 
-  private Map<CFANode,TreeSet<CFANode>> df=new TreeMap<>();
-  private Map<CFANode,TreeSet<CFANode>> cd=new TreeMap<>();
-  private Map<CFANode,TreeSet<CFANode>> rcd=new TreeMap<>();
+  private Map<CFANode, NavigableSet<CFANode>> df = new TreeMap<>();
+  private Map<CFANode, NavigableSet<CFANode>> cd = new TreeMap<>();
+  private Map<CFANode, NavigableSet<CFANode>> rcd = new TreeMap<>();
 
-  public ControlDependenceComputer(CFA pCfa, Map<CFANode,TreeSet<CFANode>> pDf){
+  public ControlDependenceComputer(CFA pCfa, Map<CFANode, NavigableSet<CFANode>> pDf) {
     this.df=pDf;
     this.cfa=pCfa;
   }
@@ -48,24 +49,24 @@ public class ControlDependenceComputer {
   public void execute(){
     //Control Dependence
     for(CFANode m: cfa.getAllNodes()){
-      TreeSet<CFANode> cdset=new TreeSet<>();
+      NavigableSet<CFANode> cdset = new TreeSet<>();
       cd.put(m,cdset);
     }
     for(CFANode n: cfa.getAllNodes()){
       for(CFANode m: df.get(n)){
-        TreeSet<CFANode> cdset=cd.get(m);
+        NavigableSet<CFANode> cdset = cd.get(m);
         cdset.add(n);
       }
     }
 
     for(CFANode m: cfa.getAllNodes()){
-      TreeSet<CFANode> cdset=new TreeSet<>();
+      NavigableSet<CFANode> cdset = new TreeSet<>();
       rcd.put(m,cdset);
     }
 
     for(CFANode n: cfa.getAllNodes()){
       for(CFANode m: cd.get(n)){
-        TreeSet<CFANode> rcdset=rcd.get(m);
+        NavigableSet<CFANode> rcdset = rcd.get(m);
         rcdset.add(n);
       }
     }
@@ -75,9 +76,9 @@ public class ControlDependenceComputer {
     while(changed){
       changed=false;
       for(CFANode n: cfa.getAllNodes()){
-        TreeSet<CFANode> rcdsetn=rcd.get(n);
+        NavigableSet<CFANode> rcdsetn = rcd.get(n);
         for(CFANode m: new TreeSet<>(rcdsetn)){
-          TreeSet<CFANode> rcdsetm=rcd.get(m);
+          NavigableSet<CFANode> rcdsetm = rcd.get(m);
           for(CFANode l: rcdsetm){
             if (!rcdsetn.contains(l)) {
               changed=true;
@@ -89,11 +90,11 @@ public class ControlDependenceComputer {
     }
   }
 
-  public Map<CFANode,TreeSet<CFANode>> getControlDependency(){
+  public Map<CFANode, NavigableSet<CFANode>> getControlDependency() {
     return cd;
   }
 
-  public Map<CFANode,TreeSet<CFANode>> getReversedControlDependency(){
+  public Map<CFANode, NavigableSet<CFANode>> getReversedControlDependency() {
     return rcd;
   }
 }

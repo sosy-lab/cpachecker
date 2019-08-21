@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.math.BigInteger;
+import static com.google.common.base.Preconditions.checkArgument;
 
+import java.math.BigInteger;
 
 public enum CompoundMathematicalIntervalManager implements CompoundIntervalManager {
 
@@ -256,9 +257,9 @@ public enum CompoundMathematicalIntervalManager implements CompoundIntervalManag
   }
 
   private static void checkOperand(CompoundInterval pOperand) {
-    if (!(pOperand instanceof CompoundMathematicalInterval)) {
-      throw new IllegalArgumentException("Operand is not a compound mathematical interval.");
-    }
+    checkArgument(
+        (pOperand instanceof CompoundMathematicalInterval),
+        "Operand is not a compound mathematical interval.");
   }
 
   private static void checkOperands(CompoundInterval pOperand1, CompoundInterval pOperand2) {

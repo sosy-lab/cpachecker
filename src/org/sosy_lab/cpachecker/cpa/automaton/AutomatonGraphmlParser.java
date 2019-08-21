@@ -344,11 +344,7 @@ public class AutomatonGraphmlParser {
       ExpressionTree<AExpression> invariant = stateInvariantsMap.get(pState);
       try {
         createAutomatonInvariantsTransitions(
-            transitions,
-            stutterCondition,
-            Collections.<AutomatonAction>emptyList(),
-            invariant,
-            pState);
+            transitions, stutterCondition, ImmutableList.of(), invariant, pState);
       } catch (UnrecognizedCodeException e) {
         throw new WitnessParseException("Unable to parse invariant to CExpression");
       }
@@ -356,10 +352,10 @@ public class AutomatonGraphmlParser {
       transitions.add(
           createAutomatonTransition(
               stutterCondition,
-              Collections.<AutomatonBoolExpr>emptyList(),
-              Collections.emptyList(),
+              ImmutableList.of(),
+              ImmutableList.of(),
               ExpressionTrees.<AExpression>getTrue(),
-              Collections.<AutomatonAction>emptyList(),
+              ImmutableList.of(),
               pState,
               pState.isViolationState(),
               stopNotBreakAtSinkStates));
@@ -372,9 +368,9 @@ public class AutomatonGraphmlParser {
           createAutomatonTransition(
               AutomatonBoolExpr.TRUE,
               assertions,
-              Collections.emptyList(),
+              ImmutableList.of(),
               ExpressionTrees.<AExpression>getTrue(),
-              Collections.<AutomatonAction>emptyList(),
+              ImmutableList.of(),
               pState,
               true,
               stopNotBreakAtSinkStates));
@@ -593,11 +589,7 @@ public class AutomatonGraphmlParser {
                   pTransition.getTarget().isSinkState()));
       transitions.add(
           createAutomatonSinkTransition(
-              fpElseTrigger,
-              Collections.<AutomatonBoolExpr>emptyList(),
-              actions,
-              false,
-              stopNotBreakAtSinkStates));
+              fpElseTrigger, ImmutableList.of(), actions, false, stopNotBreakAtSinkStates));
     }
 
     // If the triggers do not apply, none of the above transitions is taken,
@@ -658,7 +650,7 @@ public class AutomatonGraphmlParser {
     transitions.add(
         createAutomatonTransition(
             transitionCondition,
-            Collections.<AutomatonBoolExpr> emptyList(),
+            ImmutableList.of(),
             assumptions,
             candidateInvariants,
             actions,
@@ -678,10 +670,10 @@ public class AutomatonGraphmlParser {
               and(
                   transitionCondition,
                   new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(transitionCondition)),
-              Collections.<AutomatonBoolExpr> emptyList(),
-              Collections.emptyList(),
-              ExpressionTrees.<AExpression> getTrue(),
-              Collections.<AutomatonAction> emptyList(),
+              ImmutableList.of(),
+              ImmutableList.of(),
+              ExpressionTrees.<AExpression>getTrue(),
+              ImmutableList.of(),
               pTransition.getSource(),
               sourceIsViolationNode,
               stopNotBreakAtSinkStates));
@@ -779,7 +771,7 @@ public class AutomatonGraphmlParser {
         throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE + " Reason: " + reason, e);
       }
     }
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   private List<AExpression> logAndRemoveUnknown(List<AExpression> pAssumptions) {
@@ -1205,11 +1197,11 @@ public class AutomatonGraphmlParser {
         endLineTags.size() < 2, "At most one endline data tag must be provided for each edge.");
 
     int startLine = 0;
-    if (startLineTags.size() > 0) {
+    if (!startLineTags.isEmpty()) {
       startLine = Integer.parseInt(startLineTags.iterator().next());
     }
     int endLine = 0;
-    if (endLineTags.size() > 0) {
+    if (!endLineTags.isEmpty()) {
       endLine = Integer.parseInt(endLineTags.iterator().next());
     }
     if (startLine < 1 && endLine > 1) {
@@ -1257,11 +1249,11 @@ public class AutomatonGraphmlParser {
         endoffsetTags.size() < 2, "At most one endoffset data tag must be provided for each edge.");
 
     int offset = -1;
-    if (offsetTags.size() > 0) {
+    if (!offsetTags.isEmpty()) {
       offset = Integer.parseInt(offsetTags.iterator().next());
     }
     int endoffset = -1;
-    if (endoffsetTags.size() > 0) {
+    if (!endoffsetTags.isEmpty()) {
       endoffset = Integer.parseInt(endoffsetTags.iterator().next());
     }
     if (offset < 0 && endoffset > 0) {
@@ -1300,7 +1292,7 @@ public class AutomatonGraphmlParser {
   private static AutomatonBoolExpr getAssumeCaseMatcher(Node pTransition) throws WitnessParseException {
     Set<String> assumeCaseTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.CONTROLCASE);
 
-    if (assumeCaseTags.size() > 0) {
+    if (!assumeCaseTags.isEmpty()) {
       checkParsable(
           assumeCaseTags.size() < 2,
           "At most one assume-case tag must be provided for each transition.");
@@ -1348,7 +1340,7 @@ public class AutomatonGraphmlParser {
       throws WitnessParseException {
     Set<String> threadIdTags = GraphMLDocumentData.getDataOnNode(pTransition, pKey);
 
-    if (threadIdTags.size() > 0) {
+    if (!threadIdTags.isEmpty()) {
       checkParsable(
           threadIdTags.size() < 2, pErrorMessage);
       String threadId = threadIdTags.iterator().next();
@@ -1740,13 +1732,22 @@ public class AutomatonGraphmlParser {
       return createAutomatonSinkTransition(
           pTriggers, pAssertions, pActions, pLeadsToViolationNode, pSinkAsBottomNotBreak);
     }
+    AutomatonTransition.Builder builder =
+        new AutomatonTransition.Builder(pTriggers, pTargetState.getId())
+            .withAssertions(
+                pLeadsToViolationNode
+                    ? ImmutableList.<AutomatonBoolExpr>builder()
+                        .addAll(pAssertions)
+                        .add(createViolationAssertion())
+                        .build()
+                    : pAssertions)
+            .withAssumptions(pAssumptions)
+            .withCandidateInvariants(pCandidateInvariants)
+            .withActions(pActions);
     if (pLeadsToViolationNode) {
-      List<AutomatonBoolExpr> assertions = ImmutableList.<AutomatonBoolExpr>builder().addAll(pAssertions).add(createViolationAssertion()).build();
-      return new ViolationCopyingAutomatonTransition(
-          pTriggers, assertions, pAssumptions, pCandidateInvariants, pActions, pTargetState.getId());
+      return new ViolationCopyingAutomatonTransition(builder);
     }
-    return new AutomatonTransition(
-        pTriggers, pAssertions, pAssumptions, pCandidateInvariants, pActions, pTargetState.getId());
+    return builder.build();
   }
 
   private static AutomatonTransition createAutomatonSinkTransition(
@@ -1755,31 +1756,27 @@ public class AutomatonGraphmlParser {
       List<AutomatonAction> pActions,
       boolean pLeadsToViolationNode,
       boolean pSinkAsBottomNotBreak) {
+    AutomatonTransition.Builder builder =
+        new AutomatonTransition.Builder(
+            pTriggers,
+            pSinkAsBottomNotBreak ? AutomatonInternalState.BOTTOM : AutomatonInternalState.BREAK)
+                .withAssertions(pAssertions)
+                .withActions(pActions);
     if (pLeadsToViolationNode) {
-      return new ViolationCopyingAutomatonTransition(
-          pTriggers,
-          pAssertions,
-          pActions,
-          pSinkAsBottomNotBreak ? AutomatonInternalState.BOTTOM : AutomatonInternalState.BREAK);
+      return new ViolationCopyingAutomatonTransition(builder);
     }
-    return new AutomatonTransition(
-        pTriggers,
-        pAssertions,
-        pActions,
-        pSinkAsBottomNotBreak ? AutomatonInternalState.BOTTOM : AutomatonInternalState.BREAK);
+    return builder.build();
   }
 
   private static AutomatonTransition createAutomatonInvariantErrorTransition(
       AutomatonBoolExpr pTriggers, List<AExpression> pAssumptions) {
     StringExpression violatedPropertyDesc = new StringExpression("Invariant not valid");
     AutomatonInternalState followErrorState = AutomatonInternalState.ERROR;
-    return new AutomatonTransition(
-        pTriggers,
-        Collections.<AutomatonBoolExpr>emptyList(),
-        pAssumptions,
-        Collections.<AutomatonAction>emptyList(),
-        followErrorState,
-        violatedPropertyDesc);
+
+    return new AutomatonTransition.Builder(pTriggers, followErrorState)
+        .withAssumptions(pAssumptions)
+        .withViolatedPropertyDescription(violatedPropertyDesc)
+        .build();
   }
 
   private void createAutomatonInvariantsTransitions(
@@ -1808,7 +1805,7 @@ public class AutomatonGraphmlParser {
     pTransitions.add(
         createAutomatonTransition(
             pTransitionCondition,
-            Collections.<AutomatonBoolExpr>emptyList(),
+            ImmutableList.of(),
             assumptionWithCExpr,
             pInvariant,
             pActions,
@@ -1819,22 +1816,8 @@ public class AutomatonGraphmlParser {
 
   private static class ViolationCopyingAutomatonTransition extends AutomatonTransition {
 
-    private ViolationCopyingAutomatonTransition(
-        AutomatonBoolExpr pTriggers,
-        List<AutomatonBoolExpr> pAssertions,
-        List<AExpression> pAssumptions,
-        ExpressionTree<AExpression> pCandidateInvariants,
-        List<AutomatonAction> pActions,
-        String pTargetStateId) {
-      super(pTriggers, pAssertions, pAssumptions, pCandidateInvariants, pActions, pTargetStateId);
-    }
-
-    private ViolationCopyingAutomatonTransition(
-        AutomatonBoolExpr pTriggers,
-        List<AutomatonBoolExpr> pAssertions,
-        List<AutomatonAction> pActions,
-        AutomatonInternalState pTargetState) {
-      super(pTriggers, pAssertions, pActions, pTargetState);
+    private ViolationCopyingAutomatonTransition(Builder pBuilder) {
+      super(pBuilder);
     }
 
     @Override
