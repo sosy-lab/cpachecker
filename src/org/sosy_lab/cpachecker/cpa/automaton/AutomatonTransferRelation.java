@@ -31,6 +31,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -100,16 +101,17 @@ public class AutomatonTransferRelation implements TransferRelation {
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
 
     Preconditions.checkArgument(pElement instanceof AutomatonState);
+    AutomatonState element = (AutomatonState) pElement;
 
     if (pElement instanceof AutomatonUnknownState) {
       // the last CFA edge could not be processed properly
-      // (strengthen was not called on the AutomatonUnknownState or the strengthen operation had not enough information to determine a new following state.)
-      AutomatonState top = cpa.getTopState();
-      return Collections.singleton(top);
+      // (strengthen was not called on the AutomatonUnknownState or the strengthen operation had not
+      // enough information to determine a new following state.)
+      return ImmutableList.of(
+          new AutomatonState.TOP(element.getOwningAutomaton(), element.isTreatingErrorsAsTarget()));
     }
 
-    Collection<AutomatonState> result =
-        getAbstractSuccessors0((AutomatonState) pElement, pCfaEdge, pPrecision);
+    Collection<AutomatonState> result = getAbstractSuccessors0(element, pCfaEdge, pPrecision);
     automatonSuccessors.setNextValue(result.size());
     return result;
   }
@@ -156,8 +158,9 @@ public class AutomatonTransferRelation implements TransferRelation {
       Precision precision)
       throws CPATransferException {
     Preconditions.checkArgument(!(state instanceof AutomatonUnknownState));
-    if (state == cpa.getBottomState()) {
-      return Collections.emptySet();
+    if (state.equals(
+        new AutomatonState.BOTTOM(state.getOwningAutomaton(), state.isTreatingErrorsAsTarget()))) {
+      return ImmutableSet.of();
     }
 
     if (state.getInternalState().getTransitions().isEmpty()) {
