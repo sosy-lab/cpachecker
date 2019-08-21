@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -121,6 +122,26 @@ public class AutomatonInternalState {
 
   public boolean isNontrivialCycleStart() {
     return isCycleStart;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, transitions, mIsTarget);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof AutomatonInternalState)) {
+      return false;
+    }
+
+    AutomatonInternalState other = (AutomatonInternalState) obj;
+    return Objects.equals(name, other.name)
+        && Objects.equals(transitions, other.transitions)
+        && Objects.equals(mIsTarget, other.mIsTarget);
   }
 
   /** Lets all outgoing transitions of this state resolve their "sink" states.
