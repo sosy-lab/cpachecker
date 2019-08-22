@@ -208,7 +208,7 @@ public class ControlAutomatonCPA
     return lst.get(0);
   }
 
-  Automaton getAutomaton() {
+  public Automaton getAutomaton() {
     return this.automaton;
   }
 

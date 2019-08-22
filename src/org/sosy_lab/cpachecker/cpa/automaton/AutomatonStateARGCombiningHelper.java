@@ -24,32 +24,38 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Verify;
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class AutomatonStateARGCombiningHelper {
 
   private final Map<String, AutomatonInternalState> qualifiedAutomatonStateNameToInternalState;
-  private final Map<String, Automaton> nameToAutomaton;
+  private final Map<String, ControlAutomatonCPA> nameToCPA;
 
   public AutomatonStateARGCombiningHelper() {
     qualifiedAutomatonStateNameToInternalState = new HashMap<>();
-    nameToAutomaton = new HashMap<>();
+    nameToCPA = new HashMap<>();
   }
 
-  public boolean registerAutomaton(final AutomatonState pStateOfAutomata) {
-    Automaton automaton = pStateOfAutomata.getOwningAutomaton();
-    final String prefix = automaton.getName() + "::";
+  public boolean registerAutomaton(
+      final AutomatonState pStateOfAutomata, ControlAutomatonCPA pAutomatonCPA) {
+    Verify.verify(pStateOfAutomata.getOwningAutomaton().equals(pAutomatonCPA.getAutomaton()));
+
+    final String prefix = pAutomatonCPA.getAutomaton().getName() + "::";
     String qualifiedName;
 
-    if (nameToAutomaton.put(automaton.getName(), automaton) != null) {
+    if (nameToCPA.put(pAutomatonCPA.getAutomaton().getName(), pAutomatonCPA) != null) {
       return false;
     }
 
-    for (AutomatonInternalState internal : automaton.getStates()) {
+    for (AutomatonInternalState internal : pAutomatonCPA.getAutomaton().getStates()) {
       qualifiedName = prefix + internal.getName();
       if (qualifiedAutomatonStateNameToInternalState.put(qualifiedName, internal) != null) {
         return false;
@@ -71,10 +77,16 @@ public class AutomatonStateARGCombiningHelper {
         violatedProp = (AutomatonSafetyProperty) prop;
       }
 
+      Verify.verify(
+          nameToCPA
+              .get(toReplace.getOwningAutomatonName())
+              .getAutomaton()
+              .equals(toReplace.getOwningAutomaton()));
+
       return AutomatonState.automatonStateFactory(
           toReplace.getVars(),
           qualifiedAutomatonStateNameToInternalState.get(qualifiedName),
-          nameToAutomaton.get(toReplace.getOwningAutomatonName()),
+          toReplace.getOwningAutomaton(),
           toReplace.getAssumptions(),
           toReplace.getCandidateInvariants(),
           toReplace.getMatches(),
@@ -87,26 +99,24 @@ public class AutomatonStateARGCombiningHelper {
   }
 
   public boolean considersAutomaton(final String pAutomatonName) {
-    return nameToAutomaton.containsKey(pAutomatonName);
+    return nameToCPA.containsKey(pAutomatonName);
   }
 
-  public static boolean endsInAssumptionTrueState(
-      final AutomatonState pPredecessor, @SuppressWarnings("unused") final CFAEdge pEdge) {
+  public boolean endsInAssumptionTrueState(final AutomatonState pPredecessor, final CFAEdge pEdge)
+      throws CPATransferException {
     Preconditions.checkNotNull(pPredecessor);
-    // TODO: this is the only crucial place left that needs to be fixed for the refactoring of the
-    // AutomatonCPA
-    for (AutomatonTransition transition : pPredecessor.getInternalState().getTransitions()) {
-      if (!transition.getFollowState().getName().equals("__TRUE")) {
+
+    ControlAutomatonCPA automatonCPA = nameToCPA.get(pPredecessor.getOwningAutomatonName());
+    Verify.verifyNotNull(automatonCPA);
+
+    for (AbstractState successor :
+        automatonCPA
+            .getTransferRelation()
+            .getAbstractSuccessorsForEdge(pPredecessor, SingletonPrecision.getInstance(), pEdge)) {
+      if (!((AutomatonState) successor).getInternalStateName().equals("__TRUE")) {
         return false;
       }
     }
-    //      for (AbstractState successor : pPredecessor.getAutomatonCPA().getTransferRelation()
-    //          .getAbstractSuccessorsForEdge(pPredecessor, SingletonPrecision.getInstance(),
-    // pEdge)) {
-    //        if (!((AutomatonState) successor).getInternalStateName().equals("__TRUE")) {
-    //          return false;
-    //        }
-    //      }
     return true;
   }
 
