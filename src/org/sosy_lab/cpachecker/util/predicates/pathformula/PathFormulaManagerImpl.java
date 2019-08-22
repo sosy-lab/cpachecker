@@ -295,6 +295,22 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula resetSharedVariables(PathFormula pPathFormula) {
+    SSAMap oldSSA = pPathFormula.getSsa();
+    PointerTargetSet oldPts = pPathFormula.getPointerTargetSet();
+    SSAMapBuilder ssaBuilder = oldSSA.builder();
+
+    for (String var : oldSSA.allVariables()) {
+      if (var.contains("::")) {
+        // local variable
+      } else {
+        converter.makeFreshIndex(var, oldSSA.getType(var), ssaBuilder);
+      }
+    }
+    return makeNewPathFormula(pPathFormula, ssaBuilder.build(), oldPts);
+  }
+
+  @Override
   public PathFormula makeEmptyPathFormula() {
     return new PathFormula(bfmgr.makeTrue(),
                            SSAMap.emptySSAMap(),
