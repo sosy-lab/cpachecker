@@ -1429,11 +1429,6 @@ class WitnessWriter implements EdgeAppender {
 
         @Override
         public boolean apply(final Edge pEdge) {
-          // prevent loss of invariant information by merging potentially different invariants, e.g.
-          // 1 and i==0:
-          if (!getStateInvariant(pEdge.getSource()).equals(getStateInvariant(pEdge.getTarget()))) {
-            return false;
-          }
           if (isNodeRedundant.apply(pEdge.getTarget())) {
             return true;
           }

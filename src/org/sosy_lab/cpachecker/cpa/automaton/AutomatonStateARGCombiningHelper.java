@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class AutomatonStateARGCombiningHelper {
@@ -90,21 +92,40 @@ public class AutomatonStateARGCombiningHelper {
     return nameToAutomaton.containsKey(pAutomatonName);
   }
 
-  public static boolean endsInAssumptionTrueState(final AutomatonState pPredecessor, final CFAEdge pEdge) {
+  public static boolean endsInAssumptionTrueState(
+      final AutomatonState pPredecessor, final CFAEdge pEdge, final LogManager pLogger) {
     Preconditions.checkNotNull(pPredecessor);
-    // TODO: merge (overwrite) with code from marie in revision trunk@31770
-    //    try {
-    //      for (AbstractState successor : pPredecessor.getAutomatonCPA().getTransferRelation()
-    //          .getAbstractSuccessorsForEdge(pPredecessor, SingletonPrecision.getInstance(),
-    // pEdge)) {
-    //        if (!((AutomatonState) successor).getInternalStateName().equals("__TRUE")) {
-    //          return false;
-    //        }
-    //      }
-    //    } catch (CPATransferException e) {
-    //      return false;
-    //    }
-    return true;
-  }
+    Preconditions.checkArgument(!pPredecessor.getInternalState().isNonDetState());
 
+    AutomatonExpressionArguments exprArgs =
+        new AutomatonExpressionArguments(
+            pPredecessor, pPredecessor.getVars(), null, pEdge, pLogger);
+    try {
+      for (AutomatonTransition transition : pPredecessor.getInternalState().getTransitions()) {
+        exprArgs.clearTransitionVariables();
+        ResultValue<Boolean> match;
+
+        match = transition.getTrigger().eval(exprArgs);
+        if (match.canNotEvaluate()) {
+          return false;
+        }
+
+        if (match.getValue()) {
+          if (transition.getFollowState().getName().equals("__TRUE")) {
+            ResultValue<Boolean> assertionsHold = transition.assertionsHold(exprArgs);
+            if (!assertionsHold.canNotEvaluate()
+                && assertionsHold.getValue()
+                && transition.canExecuteActionsOn(exprArgs)) {
+              return true;
+            }
+          }
+          return false;
+        }
+      }
+    } catch (CPATransferException e) {
+      return false;
+    }
+
+    return pPredecessor.getInternalState().getName().equals("__TRUE");
+  }
 }
