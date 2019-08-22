@@ -29,11 +29,9 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.MoreCollectors;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -67,20 +65,16 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateARGCombiningHelper;
-import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
@@ -190,8 +184,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   private boolean combineARGs(List<ARGState> roots, ForwardingReachedSet pReceivedReachedSet,
       HistoryForwardingReachedSet pForwaredReachedSet)
       throws InterruptedException, CPAException {
-    Pair<Map<String, Integer>, List<AbstractState>> initStates =
-        identifyCompositeStateTypesAndTheirInitialInstances(roots, pForwaredReachedSet);
+  Pair<Map<String, Integer>, List<AbstractState>> initStates =
+      identifyCompositeStateTypesAndTheirInitialInstances(roots);
 
     Map<String, Integer> stateToPos = initStates.getFirst();
     List<AbstractState> initialStates = initStates.getSecond();
@@ -272,11 +266,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private boolean noConcreteSuccessorExist(
-      final ARGState pPredecessor,
-      final CFAEdge pSuccEdge,
-      HistoryForwardingReachedSet pForwaredReachedSet)
-      throws CPATransferException {
+  private boolean noConcreteSuccessorExist(final ARGState pPredecessor, final CFAEdge pSuccEdge,
+      HistoryForwardingReachedSet pForwaredReachedSet) {
     // check if analysis stopped exploration due e.g. time limit
     boolean inReached = false;
     for(ReachedSet reached :pForwaredReachedSet.getAllReachedSetsUsedAsDelegates()) {
@@ -294,8 +285,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     for (AbstractState state : AbstractStates.asIterable(pPredecessor)) {
       if (state instanceof AutomatonState
           && ((AutomatonState) state).getOwningAutomatonName().equals("AssumptionAutomaton")) {
-        if (automatonARGBuilderSupport.endsInAssumptionTrueState(
-            (AutomatonState) state, pSuccEdge)) {
+        if (AutomatonStateARGCombiningHelper.endsInAssumptionTrueState((AutomatonState) state, pSuccEdge)) {
           return false;
         }
       }
@@ -304,9 +294,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   }
 
   private Pair<Map<String, Integer>, List<AbstractState>>
-      identifyCompositeStateTypesAndTheirInitialInstances(
-          Collection<ARGState> rootNodes, HistoryForwardingReachedSet pForwaredReachedSet)
-          throws InterruptedException, CPAException {
+      identifyCompositeStateTypesAndTheirInitialInstances(Collection<ARGState> rootNodes)
+  throws InterruptedException, CPAException {
    logger.log(Level.FINE, "Derive composite state structure of combined ARG");
 
     List<AbstractState> initialState = new ArrayList<>();
@@ -377,11 +366,6 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       wrapped = Collections.singleton(root.getWrappedState());
     }
 
-    Verify.verify(pForwaredReachedSet.getCPAs().size() == 1);
-    Verify.verify(Iterables.getOnlyElement(pForwaredReachedSet.getCPAs()) instanceof ARGCPA);
-    ImmutableSet<ControlAutomatonCPA> automatonCPAs =
-        CPAs.retrieveCPAsOfType(pForwaredReachedSet.getCPAs(), ControlAutomatonCPA.class);
-
     for (AbstractState innerWrapped : wrapped) {
       shutdown.shutdownIfNecessary();
 
@@ -390,13 +374,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
         assert (initialState.size() == nextId);
 
         stateToPos.put(name, nextId);
-        AutomatonState wrappedAutomatonState = (AutomatonState) innerWrapped;
-        ControlAutomatonCPA automatonCPA =
-            automatonCPAs
-                .stream()
-                .filter(x -> x.getAutomaton().equals(wrappedAutomatonState.getOwningAutomaton()))
-                .collect(MoreCollectors.onlyElement());
-        if (!automatonARGBuilderSupport.registerAutomaton(wrappedAutomatonState, automatonCPA)) {
+        if (!automatonARGBuilderSupport.registerAutomaton((AutomatonState) innerWrapped)) {
           logger.log(Level.SEVERE, "Property specification, given by automata specification, is ambigous.");
           throw new CPAException(
               "Ambigious property specification,  automata specification contains automata with same name or same state names");
