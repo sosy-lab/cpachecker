@@ -156,7 +156,7 @@ public class AutomatonTransferRelation implements TransferRelation {
       Precision precision)
       throws CPATransferException {
     Preconditions.checkArgument(!(state instanceof AutomatonUnknownState));
-    if (state.equals(cpa.getBottomState())) {
+    if (state == cpa.getBottomState()) {
       return ImmutableSet.of();
     }
 
