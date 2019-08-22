@@ -153,6 +153,11 @@ public class PredicateMergeOperator implements MergeOperator {
 
     assert edge1 instanceof PredicateAbstractEdge && edge2 instanceof PredicateAbstractEdge;
 
+    if (edge1 == PredicateAbstractEdge.getHavocEdgeInstance()
+        || edge2 == PredicateAbstractEdge.getHavocEdgeInstance()) {
+      return PredicateAbstractEdge.getHavocEdgeInstance();
+    }
+
     Collection<CAssignment> formulas1 = ((PredicateAbstractEdge) edge1).getAssignments();
     Collection<CAssignment> formulas2 = ((PredicateAbstractEdge) edge2).getAssignments();
 

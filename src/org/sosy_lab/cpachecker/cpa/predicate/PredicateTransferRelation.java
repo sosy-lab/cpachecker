@@ -605,40 +605,46 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
       Pair<Set<String>, Set<String>> extractedPredicateInfo = null;
 
-      if (options.applyRelevantEffects()) {
-        prepareTimer.start();
-        extractedPredicateInfo = preparePredicates(prec.getLocalPredicates().values());
-        prepareTimer.stop();
-      }
-
-      for (CAssignment c : ((PredicateAbstractEdge) edge).getAssignments()) {
-        CFAEdge fakeEdge =
-            new CStatementEdge(
-                "environment",
-                c,
-                c.getFileLocation(),
-                new CFANode("dummy"),
-                new CFANode("dummy"));
-
-        boolean needToApply = true;
+      if (edge == PredicateAbstractEdge.getHavocEdgeInstance()) {
+        currentFormula = pathFormulaManager.resetSharedVariables(oldFormula);
+        changed = true;
+      } else {
 
         if (options.applyRelevantEffects()) {
-          PathFormula emptyFormula = pathFormulaManager.makeEmptyPathFormula(oldFormula);
-          convertingTimer.start();
-          PathFormula testFormula = convertEdgeToPathFormula(emptyFormula, fakeEdge);
-          convertingTimer.stop();
-
-          needToApply = isRelevant(testFormula.getFormula(), extractedPredicateInfo);
+          prepareTimer.start();
+          extractedPredicateInfo = preparePredicates(prec.getLocalPredicates().values());
+          prepareTimer.stop();
         }
 
-        if (needToApply) {
-          convertingTimer.start();
-          PathFormula edgeFormula = convertEdgeToPathFormula(oldFormula, fakeEdge);
-          convertingTimer.stop();
-          makeOrTimer.start();
-          currentFormula = pathFormulaManager.makeOr(currentFormula, edgeFormula);
-          makeOrTimer.stop();
-          changed = true;
+        for (CAssignment c : ((PredicateAbstractEdge) edge).getAssignments()) {
+          CFAEdge fakeEdge =
+              new CStatementEdge(
+                  "environment",
+                  c,
+                  c.getFileLocation(),
+                  new CFANode("dummy"),
+                  new CFANode("dummy"));
+
+          boolean needToApply = true;
+
+          if (options.applyRelevantEffects()) {
+            PathFormula emptyFormula = pathFormulaManager.makeEmptyPathFormula(oldFormula);
+            convertingTimer.start();
+            PathFormula testFormula = convertEdgeToPathFormula(emptyFormula, fakeEdge);
+            convertingTimer.stop();
+
+            needToApply = isRelevant(testFormula.getFormula(), extractedPredicateInfo);
+          }
+
+          if (needToApply) {
+            convertingTimer.start();
+            PathFormula edgeFormula = convertEdgeToPathFormula(oldFormula, fakeEdge);
+            convertingTimer.stop();
+            makeOrTimer.start();
+            currentFormula = pathFormulaManager.makeOr(currentFormula, edgeFormula);
+            makeOrTimer.stop();
+            changed = true;
+          }
         }
       }
 
