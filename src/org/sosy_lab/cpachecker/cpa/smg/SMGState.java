@@ -743,7 +743,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
             SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(offsetPointingToRegion));
     SMGSymbolicValue oldPointerToRegion =
         readValue(pListSeg, offsetPointingToRegion, CPointerType.POINTER_TO_VOID).getObject();
-    if (oldDllFieldsToOldRegion.iterator().hasNext()) {
+    if (!oldDllFieldsToOldRegion.isEmpty()) {
       SMGEdgeHasValue oldDllFieldToOldRegion = Iterables.getOnlyElement(oldDllFieldsToOldRegion);
 
       // Work around with nullified memory block
@@ -794,7 +794,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGHasValueEdges fieldsContainingOldPointerToDll =
         heap.getHVEdges(SMGEdgeHasValueFilter.valueFilter(oldPointerToDll));
 
-    if (!fieldsContainingOldPointerToDll.iterator().hasNext()) {
+    if (fieldsContainingOldPointerToDll.isEmpty()) {
       typeOfPointerToDll = CPointerType.POINTER_TO_VOID;
     } else {
       typeOfPointerToDll = fieldsContainingOldPointerToDll.iterator().next().getType();
@@ -1186,22 +1186,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       value = pValue;
     }
 
-    // If the value represents an address, and the address is known,
-    // add the necessary points-To edge.
-//    if (pValue instanceof SMGAddressValue) {
-//      SMGAddress address = ((SMGAddressValue) pValue).getAddress();
-//
-//      if (!address.isUnknown()) {
-//        SMGAddressValue addressValue =
-//            SMGKnownAddressValue.valueOf(address.getObject(), address.getOffset());
-//        value = addressValue;
-//        addPointsToEdge(
-//            address.getObject(),
-//            address.getOffset().getAsLong(),
-//            addressValue);
-//      }
-//    }
-
     return writeValue0(pObject, pOffset, pType, value);
   }
 
@@ -1534,6 +1518,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGRegion new_object = new SMGRegion(size, label);
     SMGAddressValue new_value = SMGKnownAddressValue.valueOf(new_object, offset);
     heap.addHeapObject(new_object);
+    heap.setValidity(new_object, true);
     heap.addValue(new_value);
     SMGEdgePointsTo pointsTo = new SMGEdgePointsTo(new_value, new_object, offset);
     heap.addPointsToEdge(pointsTo);

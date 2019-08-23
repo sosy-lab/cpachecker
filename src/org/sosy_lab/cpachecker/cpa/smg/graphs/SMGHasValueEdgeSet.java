@@ -310,6 +310,11 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     return new SMGHasValueEdgeSet(newMap, newSizesMap, size + edgesSet.size);
   }
 
+  @Override
+  public boolean isEmpty() {
+    return size == 0;
+  }
+
 
   @Override
   public int hashCode() {

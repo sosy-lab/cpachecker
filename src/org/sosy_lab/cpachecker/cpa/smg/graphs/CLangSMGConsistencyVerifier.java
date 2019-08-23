@@ -120,7 +120,7 @@ public class CLangSMGConsistencyVerifier {
   }
 
   /**
-   * Verifies that heap, global and stack union is equal to the set of all objects
+   * Verifies that heap, global and stack union is equal to the set of all valid objects
    *
    * @param pLogger Logger to log the message
    * @param pSmg SMG to check
@@ -137,8 +137,8 @@ public class CLangSMGConsistencyVerifier {
     }
 
     boolean toReturn =
-        object_union.containsAll(pSmg.getObjects().asSet())
-            && pSmg.getObjects().asSet().containsAll(object_union);
+        object_union.containsAll(pSmg.getValidObjects())
+            && pSmg.getValidObjects().addAndCopy(SMGNullObject.INSTANCE).containsAll(object_union);
 
     if (! toReturn) {
       pLogger.log(Level.SEVERE, "CLangSMG inconsistent: union of stack, heap and global object is not the same set as the set of SMG objects");

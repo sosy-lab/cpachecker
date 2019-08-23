@@ -77,7 +77,7 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
   @Override
   public SMGObject copy(int pNewLevel) {
-    return new SMGRegion(getSize(), "ID" + SMGCPA.getNewValue() + " Copy", pNewLevel);
+    return new SMGRegion(getSize(), "ID" + SMGCPA.getNewValue() + " Copy of " + getId(), pNewLevel);
   }
 
   @Override
