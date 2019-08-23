@@ -28,7 +28,7 @@ import static de.uni_freiburg.informatik.ultimate.lassoranker.variables.Inequali
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
-
+import com.google.common.base.Throwables;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.DnfTransformation.DnfTransformationException;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
@@ -144,7 +145,7 @@ public class LassoBuilder {
     equalElimination = new EqualElimination(fmgrView);
     notEqualAndNotInequalityElimination = new NotEqualAndNotInequalityElimination(fmgrView);
     dnfTransformation =
-        new DnfTransformation(logger, shutdownNotifier, fmgrView, proverEnvironmentSupplier);
+        new DnfTransformation(shutdownNotifier, fmgrView, proverEnvironmentSupplier);
 
     stats = pLassoAnalysisStats;
   }
@@ -311,12 +312,12 @@ public class LassoBuilder {
     return polyhedra;
   }
 
-  public Dnf toDnf(BooleanFormula pFormula) throws InterruptedException {
+  public Dnf toDnf(BooleanFormula pFormula) throws InterruptedException, SolverException {
     return toDnf(pFormula, Result.empty(fmgr));
   }
 
   public Dnf toDnf(BooleanFormula pFormula, UfElimination.Result eliminatedUfs)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
 
     BooleanFormula simplified;
     if (simplify) {
@@ -348,9 +349,15 @@ public class LassoBuilder {
 
   private BooleanFormula transformRecursively(
       BooleanFormulaTransformationVisitor visitor, BooleanFormula formula)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
     shutdownNotifier.shutdownIfNecessary();
-    return fmgrView.getBooleanFormulaManager().transformRecursively(formula, visitor);
+    try {
+      return fmgrView.getBooleanFormulaManager().transformRecursively(formula, visitor);
+    } catch (DnfTransformationException e) {
+      Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+      Throwables.throwIfInstanceOf(e.getCause(), SolverException.class);
+      throw new AssertionError(e);
+    }
   }
 
   private InOutVariables extractRankVars(
