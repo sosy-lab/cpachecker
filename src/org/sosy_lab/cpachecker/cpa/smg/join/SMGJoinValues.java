@@ -137,7 +137,6 @@ final class SMGJoinValues {
         status = status.updateWith(SMGJoinStatus.RIGHT_ENTAIL);
       }
 
-      //TODO join: move up
       destSMG.addValue(newValue);
       mapping1.map(pV1, newValue);
       mapping2.map(pV2, newValue);
@@ -547,13 +546,11 @@ final class SMGJoinValues {
     /*Create optional object*/
     SMGObject optionalObject = new SMGOptionalObject(pTarget.getSize(), level);
     mapping2.map(pTarget, optionalObject);
-    //TODO join: write
     ((CLangSMG) pDestSMG).addHeapObject(optionalObject);
 
     /*Create pointer to optional object.*/
     SMGAddressValue resultPointer = SMGKnownAddressValue.valueOf(optionalObject, pointedToTargetEdge.getOffset());
     SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
-    //TODO join: write
     pDestSMG.addValue(resultPointer);
     pDestSMG.addPointsToEdge(newJointPtEdge);
     mapping2.map(pValue2, resultPointer);
@@ -626,20 +623,17 @@ final class SMGJoinValues {
         } else {
           newVal = SMGKnownSymValue.of();
           mapping2.map(val, newVal);
-          //TODO join: write
           pDestSMG.addValue(newVal);
         }
 
         newHve = new SMGEdgeHasValue(pDestSMG.getMachineModel(), field.getType(), field.getOffset(), optionalObject, newVal);
       }
       if (!pDestSMG.getValues().contains(newHve.getValue())) {
-        //TODO join: write
         pDestSMG.addValue(newHve.getValue());
       }
       if (!mapping1.containsKey(field.getValue())) {
         mapping1.map(field.getValue(), newHve.getValue());
       }
-      //TODO join: write
       pDestSMG.addHasValueEdge(newHve);
     }
 
@@ -803,7 +797,6 @@ final class SMGJoinValues {
     /*Create optional object*/
     SMGObject optionalObject = new SMGOptionalObject(pTarget.getSize(), level);
     mapping1.map(pTarget, optionalObject);
-    //TODO join: write
     ((CLangSMG) pDestSMG).addHeapObject(optionalObject);
     pDestSMG.setValidity(optionalObject, pInputSMG1.isObjectValid(pTarget));
 
@@ -811,7 +804,6 @@ final class SMGJoinValues {
     SMGAddressValue resultPointer = SMGKnownAddressValue.valueOf(optionalObject,
         pointedToTargetEdge.getOffset());
     SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
-    //TODO join: write
     pDestSMG.addValue(resultPointer);
     pDestSMG.addPointsToEdge(newJointPtEdge);
     mapping1.map(pValue1, resultPointer);
@@ -883,21 +875,17 @@ final class SMGJoinValues {
         } else {
           newVal = SMGKnownSymValue.of();
           mapping1.map(val, newVal);
-          //TODO join: write
           pDestSMG.addValue(newVal);
         }
 
         newHve = new SMGEdgeHasValue(pDestSMG.getMachineModel(), field.getType(), field.getOffset(), optionalObject, newVal);
       }
-      //TODO join: read
       if (!pDestSMG.getValues().contains(newHve.getValue())) {
-        //TODO join: write
         pDestSMG.addValue(newHve.getValue());
       }
       if (!mapping1.containsKey(field.getValue())) {
         mapping1.map(field.getValue(), newHve.getValue());
       }
-      //TODO join: write
       pDestSMG.addHasValueEdge(newHve);
     }
 
@@ -986,7 +974,6 @@ final class SMGJoinValues {
 
         SMGAddressValue resultPointer = SMGKnownAddressValue.valueOf(jointList, ptEdge.getOffset());
         SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
-        //TODO join: write
         newDestSMG.addValue(resultPointer);
         newDestSMG.addPointsToEdge(newJointPtEdge);
 
@@ -1071,7 +1058,6 @@ final class SMGJoinValues {
     if (resultPointer == null) {
       resultPointer = SMGKnownAddressValue.valueOf(list, ptEdge.getOffset());
       SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
-      //TODO join: write
       newDestSMG.addValue(resultPointer);
       newDestSMG.addPointsToEdge(newJointPtEdge);
       mapping1.map(pointer1, resultPointer);
@@ -1118,14 +1104,12 @@ final class SMGJoinValues {
     // Algorithm 9 from FIT-TR-2012-04, line 11
     SMGEdgeHasValue newHve = new SMGEdgeHasValue(pDestSMG.getMachineModel(), nfType, nf, list, newAdressFromDLS);
 
-    //TODO join: read
     Iterator<SMGEdgeHasValue> currentValue =
         pDestSMG
             .getHVEdges(SMGEdgeHasValueFilter.objectFilter(list))
             .getOverlapping(newHve)
             .iterator();
     if (!currentValue.hasNext()) {
-      //TODO join: write
       pDestSMG.addHasValueEdge(newHve);
     } else {
       if (!currentValue.next().getValue().equals(newAdressFromDLS)) {
@@ -1257,7 +1241,6 @@ final class SMGJoinValues {
 
         SMGAddressValue resultPointer = SMGKnownAddressValue.valueOf(jointList, ptEdge.getOffset());
         SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
-        //TODO join: write
         newDestSMG.addValue(resultPointer);
         newDestSMG.addPointsToEdge(newJointPtEdge);
 
@@ -1459,7 +1442,6 @@ final class SMGJoinValues {
       }
 
       pMapping.map(pList, listCopy);
-      //TODO join: write
       ((CLangSMG) pDestSMG).addHeapObject(listCopy);
     }
 
@@ -1516,10 +1498,8 @@ final class SMGJoinValues {
         SMGEdgeHasValue newEdge =
             new SMGEdgeHasValue(pDestSMG.getMachineModel(), hve.getType(), hve.getOffset(),
                 listCopy, newVal);
-        //TODO join: read
         if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(listCopy)).getOverlapping(newEdge).iterator().hasNext()) {
           if (!pDestSMG.getValues().contains(newVal)) {
-            //TODO join: write
             pDestSMG.addValue(newVal);
           }
           if (!pMapping.containsKey(subDlsValue)) {
@@ -1574,7 +1554,6 @@ final class SMGJoinValues {
 
             copyOfReachedObject = reachedObjectSubSmg.copy(newLevel);
             pMapping.map(reachedObjectSubSmg, copyOfReachedObject);
-            //TODO join: write
             ((CLangSMG) pDestSMG).addHeapObject(copyOfReachedObject);
             pDestSMG.setValidity(copyOfReachedObject, pInputSMG1.isObjectValid(reachedObjectSubSmg));
             pToBeChecked.add(reachedObjectSubSmg);
@@ -1586,7 +1565,6 @@ final class SMGJoinValues {
             newVal = pMapping.get(subDlsValue);
           } else {
             SMGAddressValue newAdrVal = SMGKnownAddressValue.valueOf(copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset());
-            //TODO join: write
             newVal = newAdrVal;
             pDestSMG.addValue(newAdrVal);
             pMapping.map(subDlsValue, newAdrVal);
@@ -1603,21 +1581,17 @@ final class SMGJoinValues {
                 reachedObjectSubSmgPTEdge.getOffset(),
                 newTg);
             pDestSMG.addPointsToEdge(newPtEdge);
-            //TODO join: write
           }
         }
       }
 
-      //TODO join: read
       if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(newObj).filterAtOffset(hve.getOffset())).size() == 0) {
         if (!pDestSMG.getValues().contains(newVal)) {
-          //TODO join: write
           pDestSMG.addValue(newVal);
         }
         if (!pMapping.containsKey(subDlsValue)) {
           pMapping.map(subDlsValue, newVal);
         }
-        //TODO join: write
         pDestSMG.addHasValueEdge(
             new SMGEdgeHasValue(pDestSMG.getMachineModel(), hve.getType(), hve.getOffset(), newObj, newVal));
       }

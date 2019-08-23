@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class GenericAbstractionCandidate implements SMGGenericAbstractionCandidate {
@@ -92,7 +91,6 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
 
     int c = 0;
     for (SMGValue pointer : abstractToConcretePointerMap.values()) {
-      //TODO join: read
       assert pSMG.isPointer(pointer);
 
       SMGEdgePointsTo pointerEdge = pSMG.getPointer(pointer);
@@ -115,7 +113,6 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
     /*Third, remove all object and edges that are represented by this abstraction.*/
     for (SMGObject obj : objectsToBeRemoved) {
       assert pSMG.getObjects().contains(obj);
-      //TODO join: write
       pSMG.removeObjectAndEdges(obj);
     }
 
@@ -128,7 +125,6 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
   private void connect(SMG pSMG, GenericAbstraction pGenericAbstraction,
       Set<SMGEdgePointsTo> pAbstractAddresses, Set<SMGEdgeHasValue> pAbstractFields) {
 
-    //TODO join: write
     pSMG.addObject(pGenericAbstraction);
 
     for (SMGEdgePointsTo pte : pAbstractAddresses) {

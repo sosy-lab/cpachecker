@@ -80,7 +80,6 @@ final class SMGJoinTargetObjects {
           new SMGJoinMapTargetAddress(
               inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pAddress1, pAddress2);
       defined = true;
-      //TODO join: replace
       destSMG = mta.getSMG();
       value = mta.getValue();
       return true;
@@ -181,7 +180,6 @@ final class SMGJoinTargetObjects {
     SMGObject newObject =
         target1.join(target2, pLevelMapping.get(SMGJoinLevel.valueOf(pLevel1, pLevel2)));
 
-    //TODO join: write
     if (destSMG instanceof CLangSMG) {
       ((CLangSMG)destSMG).addHeapObject(newObject);
     } else {
@@ -199,7 +197,6 @@ final class SMGJoinTargetObjects {
 
     // Algorithm 6 from FIT-TR-2012-04, line 13
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pAddress1, pAddress2);
-    //TODO join: move
     destSMG = mta.getSMG();
     value = mta.getValue();
 
@@ -221,11 +218,9 @@ final class SMGJoinTargetObjects {
 
     if (mapping1.containsKey(pTarget1)) {
       SMGObject oldTarget = mapping1.get(pTarget1);
-      //TODO join: read
       Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(oldTarget, destSMG);
       removeSubSmgAndMappping(oldTarget, mapping1);
 
-      //TODO join: write
       for (SMGEdgePointsTo ptE : pointer) {
         SMGAddressValue addressValue = SMGKnownAddressValue.valueOf(targetObject, ptE.getOffset());
         destSMG.addValue(addressValue);
@@ -237,11 +232,9 @@ final class SMGJoinTargetObjects {
 
     if (mapping2.containsKey(pTarget2)) {
       SMGObject oldTarget = mapping2.get(pTarget2);
-      //TODO join: read
       Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(oldTarget, destSMG);
       removeSubSmgAndMappping(oldTarget, mapping2);
 
-      //TODO join: write
       for (SMGEdgePointsTo ptE : pointer) {
         destSMG.addValue(ptE.getValue());
         destSMG.addPointsToEdge(
@@ -260,11 +253,9 @@ final class SMGJoinTargetObjects {
     Set<SMGObject> toCheck = new HashSet<>();
 
     pMapping.removeValue(targetObject);
-    //TODO join: read
     SMGHasValueEdges hves =
         destSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(targetObject));
 
-    //TODO join: write
     destSMG.removeObjectAndEdges(targetObject);
 
     Set<Long> restricted = new HashSet<>();
@@ -315,14 +306,12 @@ final class SMGJoinTargetObjects {
       Set<SMGObject> pToBeChecked, int pLevel, SMGNodeMapping pMapping) {
 
     pMapping.removeValue(pObjToCheck);
-    //TODO join: read
     for (SMGEdgeHasValue hve :
         destSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck))) {
       SMGValue val = hve.getValue();
 
       if (!val.isZero()) {
 
-        //TODO join: read
         if (destSMG.isPointer(val)) {
           SMGObject reachedObject = destSMG.getPointer(val).getObject();
           if (!pReached.contains(reachedObject)
@@ -337,8 +326,6 @@ final class SMGJoinTargetObjects {
       }
     }
 
-
-    //TODO join: write
     destSMG.removeObjectAndEdges(pObjToCheck);
   }
 
