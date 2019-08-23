@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 final class SMGJoinTargetObjects {
@@ -226,8 +227,11 @@ final class SMGJoinTargetObjects {
 
       //TODO join: write
       for (SMGEdgePointsTo ptE : pointer) {
-        destSMG.addPointsToEdge(new SMGEdgePointsTo(ptE.getValue(), targetObject, ptE.getOffset(),
-            ptE.getTargetSpecifier()));
+        SMGAddressValue addressValue = SMGKnownAddressValue.valueOf(targetObject, ptE.getOffset());
+        destSMG.addValue(addressValue);
+        destSMG.addPointsToEdge(
+            new SMGEdgePointsTo(
+                addressValue, targetObject, ptE.getOffset(), ptE.getTargetSpecifier()));
       }
     }
 
@@ -239,6 +243,7 @@ final class SMGJoinTargetObjects {
 
       //TODO join: write
       for (SMGEdgePointsTo ptE : pointer) {
+        destSMG.addValue(ptE.getValue());
         destSMG.addPointsToEdge(
             new SMGEdgePointsTo(ptE.getValue(), targetObject, ptE.getOffset(),
                 ptE.getTargetSpecifier()));
