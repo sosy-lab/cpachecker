@@ -174,6 +174,7 @@ public class SMGJoinFieldsTest {
     smg1.addObject(obj1);
     smg2.addObject(obj2);
     smg2.addValue(adr2);
+    smg2.addValue(value2);
 
     SMGEdgeHasValue nullifyObj1 = new SMGEdgeHasValue(64, 0, obj1, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue nonPointer = new SMGEdgeHasValue(smg2.getMachineModel(), mockType4b, 16, obj2, value2);

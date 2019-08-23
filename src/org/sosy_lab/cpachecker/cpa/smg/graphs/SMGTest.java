@@ -207,11 +207,11 @@ public class SMGTest {
     smg1.addHasValueEdge(hv4);
 
     assertThat(smg1.getObjects()).contains(object);
-    smg1.removeObjectAndEdges(object);
-    assertThat(smg1.getObjects()).doesNotContain(object);
+    smg1.markObjectDeletedAndRemoveEdges(object);
+    Assert.assertFalse(smg1.isObjectValid(object));
     assertThat(smg1.getHVEdges()).doesNotContain(hv0);
     assertThat(smg1.getHVEdges()).doesNotContain(hv4);
-    assertThat(smg1.getPTEdges()).doesNotContain(pt);
+    assertThat(smg1.getPTEdges()).contains(pt);
   }
 
   @Test

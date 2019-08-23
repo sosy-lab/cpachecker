@@ -282,8 +282,8 @@ public class SMGStateTest {
     smg1State.addStackFrame(functionDeclaration3);
     smg1State.addPointsToEdge(head, 0, value5);
 
-    smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.of());
-    smg1State.writeValue(head, 32, pointerType, SMGKnownSymValue.of());
+    smg1State.writeValue(head, 0, pointerType, value6);
+    smg1State.writeValue(head, 32, pointerType, value10);
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
 
@@ -350,6 +350,7 @@ public class SMGStateTest {
 
     Truth.assertThat(valAndStates1.size()).isEqualTo(1);
     SMGState newState = valAndStates1.get(0).getSmgState();
+    newState.pruneUnreachable();
     newState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     UnmodifiableSMG newSMG = newState.getHeap();
@@ -422,6 +423,7 @@ public class SMGStateTest {
 
     Truth.assertThat(valAndStates1.size()).isEqualTo(1);
     SMGState newState = valAndStates1.get(0).getSmgState();
+    newState.pruneUnreachable();
     newState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     UnmodifiableSMG newSMG = newState.getHeap();

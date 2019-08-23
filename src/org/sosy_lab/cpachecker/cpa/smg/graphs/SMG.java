@@ -166,6 +166,7 @@ public class SMG implements UnmodifiableSMG {
     neq = neq.removeValueAndCopy(pValue);
     pathPredicate.removeValue(pValue);
     errorPredicate.removeValue(pValue);
+    assert hv_edges.filter(SMGEdgeHasValueFilter.valueFilter(pValue)).size() == 0;
   }
   /**
    * Remove pObj from the SMG. This method does not remove
@@ -183,36 +184,17 @@ public class SMG implements UnmodifiableSMG {
   }
 
   /**
-   * Remove pObj and all edges leading from/to it from the SMG
+   * Mark pObj as deleted (invalid) and remove hasValueEdges leading from it from the SMG
    *
    * Keeps consistency: no
    *
    * @param pObj Object to remove
    */
-  final public void removeObjectAndEdges(final SMGObject pObj) {
+  final public void markObjectDeletedAndRemoveEdges(final SMGObject pObj) {
     Preconditions.checkArgument(pObj != SMGNullObject.INSTANCE, "Can not remove NULL from SMG");
-    removeObject(pObj);
-    for (SMGEdgePointsTo ptEdge : SMGEdgePointsToFilter.targetObjectFilter(pObj).filter(pt_edges)) {
-      values = values.removeAndCopy(ptEdge.getValue());
-    }
+    setValidity(pObj, false);
     hv_edges = hv_edges.removeAllEdgesOfObjectAndCopy(pObj);
-    pt_edges = pt_edges.removeAllEdgesOfObjectAndCopy(pObj);
-
-    // assert !isObjectReferencedAnywhere(pObj)
-    //     : String.format("removed object <%s> has reference in the SMG", pObj);
   }
-
-//  private boolean isObjectReferencedAnywhere(SMGObject pObj) {
-//    for (SMGEdgeHasValue edge : hv_edges.getHvEdges()) {
-//      if (edge.getValue() instanceof SMGKnownAddressValue) {
-//        SMGKnownAddressValue kav = (SMGKnownAddressValue) edge.getValue();
-//        if (kav.getObject() == pObj) {
-//          return true;
-//        }
-//      }
-//    }
-//    return false;
-//  }
 
   /**
    * Add pObj object to the SMG, with validity set to pValidity.
@@ -426,6 +408,7 @@ public class SMG implements UnmodifiableSMG {
     if (ptEdge != null) {
       return ptEdge.getObject();
     } else {
+      assert !(pValue instanceof SMGAddressValue);
       return null;
     }
   }
@@ -500,7 +483,7 @@ public class SMG implements UnmodifiableSMG {
    */
   @Override
   public boolean isPointer(SMGValue value) {
-    assert pt_edges.containsEdgeWithValue(value) == value instanceof SMGAddressValue;
+//    assert pt_edges.containsEdgeWithValue(value) == value instanceof SMGAddressValue;
     return value instanceof SMGAddressValue;
   }
 
@@ -555,8 +538,6 @@ public class SMG implements UnmodifiableSMG {
     pathPredicate.replace(fresh, old);
     errorPredicate.replace(fresh, old);
 
-    removeValue(old);
-
     for (SMGEdgeHasValue old_hve : getHVEdges(SMGEdgeHasValueFilter.valueFilter(old))) {
       SMGEdgeHasValue newHvEdge =
           new SMGEdgeHasValue(getMachineModel(), old_hve.getType(), old_hve.getOffset(), old_hve.getObject(), fresh);
@@ -567,6 +548,11 @@ public class SMG implements UnmodifiableSMG {
     if (pt_edges.containsEdgeWithValue(old)) {
       SMGEdgePointsTo pt_edge = pt_edges.getEdgeWithValue(old);
       pt_edges = pt_edges.removeAndCopy(pt_edge);
+      // Workaround for removed object
+      if (pt_edges.containsEdgeWithValue(fresh)) {
+        assert getHVEdges(SMGEdgeHasValueFilter.valueFilter(fresh)).size() == 0;
+        pt_edges = pt_edges.removeEdgeWithValueAndCopy(fresh);
+      }
       Preconditions.checkArgument(
           !pt_edges.containsEdgeWithValue(fresh) || fresh.equals(SMGZeroValue.INSTANCE));
       pt_edges =
@@ -574,6 +560,8 @@ public class SMG implements UnmodifiableSMG {
               new SMGEdgePointsTo(
                   fresh, pt_edge.getObject(), pt_edge.getOffset(), pt_edge.getTargetSpecifier()));
     }
+
+    removeValue(old);
   }
 
   @Override

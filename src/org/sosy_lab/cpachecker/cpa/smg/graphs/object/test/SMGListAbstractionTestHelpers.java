@@ -160,6 +160,7 @@ public final class SMGListAbstractionTestHelpers {
     }
     SMGEdgePointsTo[] ptEdges = new SMGEdgePointsTo[pLists.length];
     for (int i = 0; i < pLists.length; i++) {
+      pAddresses[i] = SMGKnownAddressValue.valueOf(pLists[i], pHeadOffset);
       pSmg.addValue(pAddresses[i]);
       SMGEdgePointsTo pt = new SMGEdgePointsTo(pAddresses[i], pLists[i], pHeadOffset, pFirstOrLast);
       pSmg.addPointsToEdge(pt);
@@ -455,6 +456,7 @@ public final class SMGListAbstractionTestHelpers {
         new SMGAbstractionManager(LogManager.createTestLogManager(), pSmg, pState);
     pState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     manager.execute();
+    pState.pruneUnreachable();
     pState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
   }
 
