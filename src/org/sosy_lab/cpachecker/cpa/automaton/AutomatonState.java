@@ -221,7 +221,10 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     if (this == pObj) {
       return true;
     }
-    if (!(pObj instanceof AutomatonState)) {
+    if (pObj == null) {
+      return false;
+    }
+    if (!pObj.getClass().equals(this.getClass())) {
       return false;
     }
 
