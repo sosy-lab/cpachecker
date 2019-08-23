@@ -380,7 +380,7 @@ public class SMGJoinTest {
     // one might expect SMGJoinValues.joinValuesNonPointers to be used,
     // but 0 is considered a pointer value ( SMG.isPointer() )
     // this join fails due to SMGJoinValues not due to SMGJoinFields!
-    SMGValue un = SMGKnownSymValue.valueOf(666);
+    SMGValue un = SMGKnownSymValue.of();
     smg1.addValue(un);
     smg1.addHasValueEdge(new SMGEdgeHasValue(smg1.getMachineModel(), mockType4b, 32, objs.getFirst(), un));
 

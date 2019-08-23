@@ -168,8 +168,8 @@ public class SMGStateTest {
 
     smg1State.addPointsToEdge(head, 0, value5);
 
-    smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
-    smg1State.writeValue(head, 4, pointerType, SMGKnownSymValue.valueOf(10));
+    smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.of());
+    smg1State.writeValue(head, 4, pointerType, SMGKnownSymValue.of());
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
 
@@ -203,7 +203,7 @@ public class SMGStateTest {
     SMGAddressValue value8 = SMGKnownAddressValue.valueOf(l3, 0);
     SMGAddressValue value9 = SMGKnownAddressValue.valueOf(l4, 0);
     SMGAddressValue value10 = SMGKnownAddressValue.valueOf(l5, 0);
-    SMGValue value11 = SMGKnownSymValue.valueOf(11);
+    SMGValue value11 = SMGKnownSymValue.of();
     SMGAddressValue value12 = SMGKnownAddressValue.valueOf(l1, 0);
     SMGAddressValue value13 = SMGKnownAddressValue.valueOf(l2, 0);
 
@@ -282,8 +282,8 @@ public class SMGStateTest {
     smg1State.addStackFrame(functionDeclaration3);
     smg1State.addPointsToEdge(head, 0, value5);
 
-    smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
-    smg1State.writeValue(head, 32, pointerType, SMGKnownSymValue.valueOf(10));
+    smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.of());
+    smg1State.writeValue(head, 32, pointerType, SMGKnownSymValue.of());
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
 
@@ -323,8 +323,8 @@ public class SMGStateTest {
 
     SMGAddressValue value6 = SMGKnownAddressValue.valueOf(dll, hfo);
     SMGAddressValue value7 = SMGKnownAddressValue.valueOf(dll, hfo);
-    SMGSymbolicValue value8 = SMGKnownSymValue.valueOf(8);
-    SMGSymbolicValue value9 = SMGKnownSymValue.valueOf(9);
+    SMGSymbolicValue value8 = SMGKnownSymValue.of();
+    SMGSymbolicValue value9 = SMGKnownSymValue.of();
 
     heap.addValue(value6);
     heap.addValue(value7);
@@ -646,7 +646,7 @@ public class SMGStateTest {
     Assert.assertTrue(values_for_obj.contains(hv));
 
     // Write a *different* 16b value into it and assert that the state *did* change
-    SMGKnownSymbolicValue newer_value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+    SMGKnownSymbolicValue newer_value = SMGKnownSymValue.of();
     SMGEdgeHasValue new_hv = state.writeValue(pt.getObject(), 0, mockType16b, newer_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
