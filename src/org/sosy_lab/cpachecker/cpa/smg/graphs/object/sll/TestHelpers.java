@@ -29,14 +29,15 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 public final class TestHelpers {
   public static SMGValue createList(
       CLangSMG pSmg, int pLength, int pSize, int pOffset, String pPrefix) {
-    SMGValue value = null;
+    SMGAddressValue value = null;
     for (int i = 0; i < pLength; i++) {
       SMGObject node = new SMGRegion(pSize, pPrefix + "list_node" + i);
       SMGEdgeHasValue hv;
@@ -46,7 +47,7 @@ public final class TestHelpers {
       } else {
         hv = new SMGEdgeHasValue(pSmg.getMachineModel(), CPointerType.POINTER_TO_VOID, pOffset, node, value);
       }
-      value = SMGKnownSymValue.of();
+      value = SMGKnownAddressValue.valueOf(node, 0);
       SMGEdgePointsTo pt = new SMGEdgePointsTo(value, node, 0);
       pSmg.addHeapObject(node);
       pSmg.addValue(value);

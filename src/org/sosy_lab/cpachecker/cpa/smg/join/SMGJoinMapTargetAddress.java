@@ -34,14 +34,14 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 
 final class SMGJoinMapTargetAddress {
   private final SMG smg;
   @VisibleForTesting final SMGNodeMapping mapping1;
   @VisibleForTesting final SMGNodeMapping mapping2;
-  private final SMGValue value;
+  private final SMGAddressValue value;
 
   /** Algorithm 7 from FIT-TR-2012-04 */
   public SMGJoinMapTargetAddress(
@@ -50,8 +50,8 @@ final class SMGJoinMapTargetAddress {
       SMG destSMG,
       SMGNodeMapping pMapping1,
       SMGNodeMapping pMapping2,
-      SMGValue pAddress1,
-      SMGValue pAddress2) {
+      SMGAddressValue pAddress1,
+      SMGAddressValue pAddress2) {
     smg = destSMG;
     mapping1 = pMapping1;
     mapping2 = pMapping2;
@@ -94,7 +94,7 @@ final class SMGJoinMapTargetAddress {
     if(pAddress1.equals(pAddress2)) {
       value = pAddress1;
     } else {
-      value = SMGKnownSymValue.of();
+      value = SMGKnownAddressValue.valueOf(target, pt.getOffset());
     }
 
     //TODO join: write
@@ -114,7 +114,7 @@ final class SMGJoinMapTargetAddress {
     return smg;
   }
 
-  public SMGValue getValue() {
+  public SMGAddressValue getValue() {
     return value;
   }
 }

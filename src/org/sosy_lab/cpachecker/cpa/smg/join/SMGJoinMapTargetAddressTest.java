@@ -32,8 +32,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 public class SMGJoinMapTargetAddressTest {
@@ -44,13 +45,13 @@ public class SMGJoinMapTargetAddressTest {
   private SMGNodeMapping mapping2;
 
   final SMGRegion obj1 = new SMGRegion(64, "ze label");
-  final SMGValue value1 = SMGKnownSymValue.of();
+  final SMGAddressValue value1 = SMGKnownAddressValue.valueOf(obj1, 0);
   final SMGEdgePointsTo edge1 = new SMGEdgePointsTo(value1, obj1, 0);
 
-  final SMGValue value2 = SMGKnownSymValue.of();
+  final SMGAddressValue value2 = SMGUnknownValue.INSTANCE;
 
   final SMGObject destObj = new SMGRegion(64, "destination");
-  final SMGValue destValue = SMGKnownSymValue.of();
+  final SMGAddressValue destValue = SMGKnownAddressValue.valueOf(destObj, 0);
 
   @Before
   public void setUp() {

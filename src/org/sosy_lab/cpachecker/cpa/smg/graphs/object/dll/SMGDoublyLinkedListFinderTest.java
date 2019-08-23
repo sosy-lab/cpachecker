@@ -43,8 +43,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 
 public class SMGDoublyLinkedListFinderTest {
 
@@ -90,12 +90,12 @@ public class SMGDoublyLinkedListFinderTest {
     SMGRegion l5 = new SMGRegion(96, "l5");
     SMGRegion head = new SMGRegion(64, "head");
 
-    SMGValue value5 = SMGKnownExpValue.valueOf(5);
-    SMGValue value6 = SMGKnownExpValue.valueOf(6);
-    SMGValue value7 = SMGKnownExpValue.valueOf(7);
-    SMGValue value8 = SMGKnownExpValue.valueOf(8);
-    SMGValue value9 = SMGKnownExpValue.valueOf(9);
-    SMGValue value10 = SMGKnownExpValue.valueOf(10);
+    SMGAddressValue value5 = SMGKnownAddressValue.valueOf(head, 0);
+    SMGAddressValue value6 = SMGKnownAddressValue.valueOf(l1, 0);
+    SMGAddressValue value7 = SMGKnownAddressValue.valueOf(l2, 0);
+    SMGAddressValue value8 = SMGKnownAddressValue.valueOf(l3, 0);
+    SMGAddressValue value9 = SMGKnownAddressValue.valueOf(l4, 0);
+    SMGAddressValue value10 = SMGKnownAddressValue.valueOf(l5, 0);
 
     SMGEdgeHasValue headfn = new SMGEdgeHasValue(smg1.getMachineModel(), pointerType, 0, head, value6);
     SMGEdgeHasValue l1fn = new SMGEdgeHasValue(smg1.getMachineModel(), pointerType, 0, l1, value7);

@@ -27,15 +27,15 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 
 public class SMGEdgePointsToTest {
 
   @Test
   public void testSMGEdgePointsTo() {
-    SMGValue val = SMGKnownExpValue.valueOf(6);
     SMGObject obj = new SMGRegion(64, "object");
+    SMGAddressValue val = SMGKnownAddressValue.valueOf(obj, 0);
     SMGEdgePointsTo edge = new SMGEdgePointsTo(val, obj, 0);
 
     Assert.assertEquals(val, edge.getValue());
@@ -45,15 +45,13 @@ public class SMGEdgePointsToTest {
 
   @Test
   public void testIsConsistentWith() {
-    SMGValue val1 = SMGKnownExpValue.valueOf(1);
-    SMGValue val2 = SMGKnownExpValue.valueOf(2);
     SMGObject obj = new SMGRegion(64, "object");
-    SMGObject obj2 = new SMGRegion(64, "object2");
+    SMGAddressValue val1 = SMGKnownAddressValue.valueOf(obj, 0);
+    SMGAddressValue val2 = SMGKnownAddressValue.valueOf(obj, 0);
 
     SMGEdgePointsTo edge1 = new SMGEdgePointsTo(val1, obj, 0);
     SMGEdgePointsTo edge2 = new SMGEdgePointsTo(val2, obj, 0);
-    SMGEdgePointsTo edge3 = new SMGEdgePointsTo(val1, obj, 32);
-    SMGEdgePointsTo edge4 = new SMGEdgePointsTo(val1, obj2, 0);
+
 
     // An edge is consistent with itself
     Assert.assertTrue(edge1.isConsistentWith(edge1));
@@ -61,10 +59,5 @@ public class SMGEdgePointsToTest {
     // Different vals pointing to same place: violates "injective"
     Assert.assertFalse(edge1.isConsistentWith(edge2));
 
-    // Same val pointing to different offsets
-    Assert.assertFalse(edge1.isConsistentWith(edge3));
-
-    // Same val pointing to different objects
-    Assert.assertFalse(edge1.isConsistentWith(edge4));
   }
 }

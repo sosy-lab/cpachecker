@@ -50,6 +50,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -205,8 +207,8 @@ final class SMGJoinValues {
   }
 
   private boolean joinValuesPointers(
-      SMGValue pV1,
-      SMGValue pV2,
+      SMGAddressValue pV1,
+      SMGAddressValue pV2,
       int pLevel1,
       int pLevel2,
       int ldiff,
@@ -312,8 +314,8 @@ final class SMGJoinValues {
     }
 
     // Algorithm 5 from FIT-TR-2012-04, line 5
-    if (joinValuesPointers(
-        pValue1, pValue2, levelV1, levelV2, pLDiff, identicalInputSmg, pLevelMap)) {
+    if (inputSMG1.isPointer(pValue1) && inputSMG2.isPointer(pValue2) &&
+        joinValuesPointers((SMGAddressValue)pValue1, (SMGAddressValue)pValue2, levelV1, levelV2, pLDiff, identicalInputSmg, pLevelMap)) {
 
       if(defined) {
         abstractionCandidates = ImmutableList.of();
@@ -549,7 +551,7 @@ final class SMGJoinValues {
     ((CLangSMG) pDestSMG).addHeapObject(optionalObject);
 
     /*Create pointer to optional object.*/
-    SMGValue resultPointer = SMGKnownSymValue.of();
+    SMGAddressValue resultPointer = SMGKnownAddressValue.valueOf(optionalObject, pointedToTargetEdge.getOffset());
     SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
     //TODO join: write
     pDestSMG.addValue(resultPointer);
@@ -806,7 +808,8 @@ final class SMGJoinValues {
     pDestSMG.setValidity(optionalObject, pInputSMG1.isObjectValid(pTarget));
 
     /*Create pointer to optional object.*/
-    SMGValue resultPointer = SMGKnownSymValue.of();
+    SMGAddressValue resultPointer = SMGKnownAddressValue.valueOf(optionalObject,
+        pointedToTargetEdge.getOffset());
     SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
     //TODO join: write
     pDestSMG.addValue(resultPointer);
@@ -981,7 +984,7 @@ final class SMGJoinValues {
 
       if (!mapping1.containsKey(pointer1)) {
 
-        SMGValue resultPointer = SMGKnownSymValue.of();
+        SMGAddressValue resultPointer = SMGKnownAddressValue.valueOf(jointList, ptEdge.getOffset());
         SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
         //TODO join: write
         newDestSMG.addValue(resultPointer);
@@ -1054,7 +1057,7 @@ final class SMGJoinValues {
 
     SMGObject list = mapping1.get(pTarget);
 
-    SMGValue resultPointer = null;
+    SMGAddressValue resultPointer = null;
 
     Set<SMGEdgePointsTo> edges = pDestSMG.getPtEdges(
         SMGEdgePointsToFilter.targetObjectFilter(list).filterAtTargetOffset(ptEdge.getOffset())
@@ -1066,7 +1069,7 @@ final class SMGJoinValues {
 
     // Algorithm 9 from FIT-TR-2012-04, line 9
     if (resultPointer == null) {
-      resultPointer = SMGKnownSymValue.of();
+      resultPointer = SMGKnownAddressValue.valueOf(list, ptEdge.getOffset());
       SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
       //TODO join: write
       newDestSMG.addValue(resultPointer);
@@ -1252,7 +1255,7 @@ final class SMGJoinValues {
 
       if (!mapping2.containsKey(pointer2)) {
 
-        SMGValue resultPointer = SMGKnownSymValue.of();
+        SMGAddressValue resultPointer = SMGKnownAddressValue.valueOf(jointList, ptEdge.getOffset());
         SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
         //TODO join: write
         newDestSMG.addValue(resultPointer);
@@ -1321,7 +1324,7 @@ final class SMGJoinValues {
 
     SMGObject list = mapping2.get(pTarget);
 
-    SMGValue resultPointer = null;
+    SMGAddressValue resultPointer = null;
 
     Set<SMGEdgePointsTo> edges = pDestSMG.getPtEdges(
         SMGEdgePointsToFilter.targetObjectFilter(list).filterAtTargetOffset(ptEdge.getOffset())
@@ -1332,7 +1335,7 @@ final class SMGJoinValues {
     }
 
     if(resultPointer == null) {
-      resultPointer = SMGKnownSymValue.of();
+      resultPointer = SMGKnownAddressValue.valueOf(list, ptEdge.getOffset());
       SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
       newDestSMG.addValue(resultPointer);
       newDestSMG.addPointsToEdge(newJointPtEdge);
@@ -1492,9 +1495,10 @@ final class SMGJoinValues {
             if(pMapping.containsKey(subDlsValue)) {
               newVal = pMapping.get(subDlsValue);
             } else {
-              newVal = SMGKnownSymValue.of();
-              pDestSMG.addValue(newVal);
-              pMapping.map(subDlsValue, newVal);
+              SMGAddressValue newAdrVal = SMGKnownAddressValue.valueOf(copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset());
+              newVal = newAdrVal;
+              pDestSMG.addValue(newAdrVal);
+              pMapping.map(subDlsValue, newAdrVal);
 
               SMGTargetSpecifier newTg;
               if (copyOfReachedObject instanceof SMGRegion) {
@@ -1503,7 +1507,7 @@ final class SMGJoinValues {
                 newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
               }
 
-              SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset(), newTg);
+              SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newAdrVal, copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset(), newTg);
               pDestSMG.addPointsToEdge(newPtEdge);
             }
           }
@@ -1581,10 +1585,11 @@ final class SMGJoinValues {
           if (pMapping.containsKey(subDlsValue)) {
             newVal = pMapping.get(subDlsValue);
           } else {
-            newVal = SMGKnownSymValue.of();
+            SMGAddressValue newAdrVal = SMGKnownAddressValue.valueOf(copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset());
             //TODO join: write
-            pDestSMG.addValue(newVal);
-            pMapping.map(subDlsValue, newVal);
+            newVal = newAdrVal;
+            pDestSMG.addValue(newAdrVal);
+            pMapping.map(subDlsValue, newAdrVal);
 
             SMGTargetSpecifier newTg;
 
@@ -1594,7 +1599,7 @@ final class SMGJoinValues {
               newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
             }
 
-            SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject,
+            SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newAdrVal, copyOfReachedObject,
                 reachedObjectSubSmgPTEdge.getOffset(),
                 newTg);
             pDestSMG.addPointsToEdge(newPtEdge);

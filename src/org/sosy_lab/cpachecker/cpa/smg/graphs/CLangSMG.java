@@ -559,6 +559,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
   @Override
   public void replaceValue(SMGValue fresh, SMGValue old) {
+    assert !(isPointer(old) && !isPointer(fresh));
 
     super.replaceValue(fresh, old);
 

@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGEdgeHasValueTemp
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGEdgeHasValueTemplateWithConcreteValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGEdgePointsToTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGObjectTemplate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 @SuppressWarnings("unused")
@@ -394,7 +395,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       }
 
       SMGValue pointerTemplate = pointerTemplateEdge.getAbstractValue();
-      SMGValue pointer = pointerToRegionMap.get(offset).getValue();
+      SMGAddressValue pointer = pointerToRegionMap.get(offset).getValue();
 
       if (pTemplateToInputSmgMapping.contains(pointerTemplate)) {
         if (!pTemplateToInputSmgMapping.get(pointerTemplate).equals(pointer)) {
@@ -685,7 +686,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       }
 
       SMGValue pointerTemplate = ptTmp.getAbstractValue();
-      SMGValue pointer = pointerToRegionMap.get(offset).getValue();
+      SMGAddressValue pointer = pointerToRegionMap.get(offset).getValue();
 
       if (pMatStepToSubSMGMapping.contains(pointerTemplate)) {
         if (!pMatStepToSubSMGMapping.get(pointerTemplate).equals(pointer)) {

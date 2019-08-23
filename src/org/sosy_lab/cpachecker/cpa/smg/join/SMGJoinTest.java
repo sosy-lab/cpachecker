@@ -51,8 +51,11 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -136,16 +139,6 @@ public class SMGJoinTest {
   }
 
   // Testing condition: adds a pointer to both SMGs
-  private void addPointerToBoth(
-      Pair<? extends SMGObject, ? extends SMGObject> target, long pOffset, int pValue) {
-    SMGValue value = SMGKnownExpValue.valueOf(pValue);
-    smg1.addValue(value);
-    smg2.addValue(value);
-    smg1.addPointsToEdge(new SMGEdgePointsTo(value, target.getFirst(), pOffset));
-    smg2.addPointsToEdge(new SMGEdgePointsTo(value, target.getSecond(), pOffset));
-  }
-
-  // Testing condition: adds a pointer to both SMGs
   private void addPointerValueToBoth(
       Pair<? extends SMGObject, ? extends SMGObject> var,
       long pOffset,
@@ -154,8 +147,18 @@ public class SMGJoinTest {
       Pair<? extends SMGObject, ? extends SMGObject> target,
       long pTargetOffset) {
 
-    addValueToBoth(var, pOffset, pValue, pSize);
-    addPointerToBoth(target, pTargetOffset, pValue);
+    SMGKnownSymbolicValue valueForID = SMGKnownSymValue.valueOf(pValue);
+    SMGAddressValue value1 = SMGKnownAddressValue.valueOf(valueForID, target.getFirst(), SMGKnownExpValue.valueOf(pTargetOffset));
+    SMGAddressValue value2 = SMGKnownAddressValue.valueOf(valueForID, target.getSecond(), SMGKnownExpValue.valueOf(pTargetOffset));
+
+    smg1.addValue(value1);
+    smg2.addValue(value2);
+
+    smg1.addHasValueEdge(new SMGEdgeHasValue(pSize, pOffset, var.getFirst(), value1));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(pSize, pOffset, var.getSecond(), value2));
+
+    smg1.addPointsToEdge(new SMGEdgePointsTo(value1, target.getFirst(), pTargetOffset));
+    smg2.addPointsToEdge(new SMGEdgePointsTo(value2, target.getSecond(), pTargetOffset));
   }
 
   // Testing condition: adds an identical local variable to both SMGs

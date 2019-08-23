@@ -40,8 +40,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
@@ -54,7 +55,7 @@ public class SMGTest {
   SMGObject obj1 = new SMGRegion(64, "object-1");
   SMGObject obj2 = new SMGRegion(64, "object-2");
 
-  SMGValue val1 = SMGKnownExpValue.valueOf(1);
+  SMGAddressValue val1 = SMGKnownAddressValue.valueOf(obj1, 0);
   SMGValue val2 = SMGKnownExpValue.valueOf(2);
 
   SMGEdgePointsTo pt1to1 = new SMGEdgePointsTo(val1, obj1, 0);
@@ -126,7 +127,7 @@ public class SMGTest {
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
 
     SMGObject third_object = new SMGRegion(128, "object-3");
-    SMGValue third_value = SMGKnownExpValue.valueOf(3);
+    SMGAddressValue third_value = SMGKnownAddressValue.valueOf(third_object, 0);
     smg_copy.addObject(third_object);
     smg_copy.addValue(third_value);
     smg_copy.addHasValueEdge(new SMGEdgeHasValue(smg_copy.getMachineModel(), mockType, 0, third_object,  third_value));
@@ -168,9 +169,9 @@ public class SMGTest {
   @Test
   public void removeObjectTest() {
     SMG smg1 = getNewSMG64();
-    SMGValue newValue = SMGKnownSymValue.of();
-
     SMGObject object = new SMGRegion(64, "object");
+    SMGAddressValue newValue = SMGKnownAddressValue.valueOf(object, 0);
+
     SMGEdgeHasValue hv0 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 0, object, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue hv4 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 32, object, SMGZeroValue.INSTANCE);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(newValue, object, 0);
@@ -192,9 +193,9 @@ public class SMGTest {
   @Test
   public void removeObjectAndEdgesTest() {
     SMG smg1 = getNewSMG64();
-    SMGValue newValue = SMGKnownSymValue.of();
-
     SMGObject object = new SMGRegion(64, "object");
+    SMGAddressValue newValue = SMGKnownAddressValue.valueOf(object, 0);
+
     SMGEdgeHasValue hv0 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 0, object, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue hv4 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType, 32, object, SMGZeroValue.INSTANCE);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(newValue, object, 0);
@@ -331,14 +332,13 @@ public class SMGTest {
     SMGObject object_8b = new SMGRegion(64, "object_8b");
     SMGObject object_16b = new SMGRegion(80, "object_10b");
 
-    SMGValue first_value = SMGKnownExpValue.valueOf(6);
-    SMGValue second_value = SMGKnownExpValue.valueOf(8);
-    SMGValue third_value = SMGKnownExpValue.valueOf(10);
+    SMGAddressValue first_value = SMGKnownAddressValue.valueOf(object_8b, 0);
+    SMGAddressValue second_value = SMGKnownAddressValue.valueOf(object_16b, 0);
+    SMGAddressValue third_value = SMGKnownAddressValue.valueOf(object_8b, 32);
 
     SMGEdgePointsTo edge1 = new SMGEdgePointsTo(first_value, object_8b, 0);
     SMGEdgePointsTo edge2 = new SMGEdgePointsTo(third_value, object_8b, 32);
     SMGEdgePointsTo edge3 = new SMGEdgePointsTo(second_value, object_16b, 0);
-    SMGEdgePointsTo edge4 = new SMGEdgePointsTo(first_value, object_16b, 0);
 
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
@@ -357,9 +357,6 @@ public class SMGTest {
     smg1.addObject(object_16b);
     smg1.addPointsToEdge(edge3);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
-
-    smg1.addPointsToEdge(edge4);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
   }
 
   @Test // (expected=IllegalArgumentException.class)

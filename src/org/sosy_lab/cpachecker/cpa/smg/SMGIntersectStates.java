@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
@@ -357,7 +358,7 @@ public final class SMGIntersectStates {
       SMGEdgePointsTo pte1 = heap1.getPointer(pValue1);
       SMGEdgePointsTo pte2 = heap2.getPointer(pValue2);
 
-      boolean defined = intersectPairPointsToEdges(pte1, pte2, destValue);
+      boolean defined = intersectPairPointsToEdges(pte1, pte2, pte1.getValue());
 
       if (!defined) {
         return false;
@@ -395,7 +396,7 @@ public final class SMGIntersectStates {
   }
 
   private boolean intersectPairPointsToEdges(
-      SMGEdgePointsTo pPte1, SMGEdgePointsTo pPte2, SMGValue destValue) {
+      SMGEdgePointsTo pPte1, SMGEdgePointsTo pPte2, SMGAddressValue destValue) {
 
     long offset1 = pPte1.getOffset();
     long offset2 = pPte2.getOffset();

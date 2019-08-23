@@ -24,19 +24,24 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 /**
  * SMGs have two kind of edges: {@link SMGEdgeHasValue} and {@link SMGEdgePointsTo}. {@link
- * SMGEdgePointsTo}s lead from addresses ({@link SMGValue}s to {@link SMGObject}s. {@link
+ * SMGEdgePointsTo}s lead from addresses ({@link SMGAddressValue}s to {@link SMGObject}s. {@link
  * SMGEdgePointsTo} are labeled by an offset and a {@link SMGTargetSpecifier}. The {@link
  * SMGTargetSpecifier} is only meaningful for abstractions like list segments, where it
  * distinguishes whether a given edge represents the address (or addresses) of the first, last, or
  * each concrete region abstracted by the segment.
  */
 public class SMGEdgePointsTo extends SMGEdge {
+
+  public final static SMGEdgePointsTo NULL_POINTER = new SMGEdgePointsTo(SMGZeroValue.INSTANCE, SMGNullObject.INSTANCE, 0);
 
   private final SMGTargetSpecifier tg;
 
@@ -93,6 +98,10 @@ public class SMGEdgePointsTo extends SMGEdge {
   @Override
   public int hashCode() {
     return 31 * super.hashCode() + tg.hashCode();
+  }
+
+  public SMGAddressValue getValue() {
+    return (SMGAddressValue) value;
   }
 
   @Override

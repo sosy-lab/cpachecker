@@ -50,8 +50,16 @@ public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGA
     address = pAddress;
   }
 
+  public static SMGAddressValue valueOf(SMGObject pObject, SMGExplicitValue pOffset) {
+    return valueOf(SMGKnownSymValue.of(), pObject, pOffset);
+  }
+
+  public static SMGAddressValue valueOf(SMGObject pObject, long pOffset) {
+    return valueOf(SMGKnownSymValue.of(), pObject, SMGKnownExpValue.valueOf(pOffset));
+  }
+
   public static SMGAddressValue valueOf(
-      SMGKnownSymbolicValue pAddress, SMGObject pObject, SMGKnownExpValue pOffset) {
+      SMGKnownSymbolicValue pAddress, SMGObject pObject, SMGExplicitValue pOffset) {
     if (pAddress.isZero() && pObject.equals(SMGNullObject.INSTANCE) && pOffset.isZero()) {
       return SMGZeroValue.INSTANCE;
     } else if (pAddress.isUnknown() || pObject == null) {
@@ -69,7 +77,7 @@ public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGA
       return SMGUnknownValue.INSTANCE;
     }
     return new SMGKnownAddressValue(
-        ((SMGSymbolicValue) edge.getValue()).getId(),
+        edge.getValue().getId(),
         SMGAddress.valueOf(edge.getObject(), SMGKnownExpValue.valueOf(edge.getOffset())));
   }
 

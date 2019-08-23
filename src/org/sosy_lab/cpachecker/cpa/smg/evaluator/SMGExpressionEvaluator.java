@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGField;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -688,17 +687,17 @@ public class SMGExpressionEvaluator {
       return singletonList(
           SMGAddressValueAndState.of(
               pSmgState,
-              SMGKnownAddressValue.valueOf(
-                  SMGKnownSymValue.of(), pTarget, (SMGKnownExpValue) pOffset)));
+              SMGKnownAddressValue.valueOf(pTarget, pOffset)));
     }
     if (pTarget instanceof SMGRegion) {
       SMGValue address = pSmgState.getAddress((SMGRegion) pTarget, pOffset.getAsLong());
       if (address == null) {
+        SMGAddressValue addressValue = SMGKnownAddressValue.valueOf(pTarget, pOffset);
+        pSmgState.addPointsToEdge(pTarget, pOffset.getAsLong(), addressValue);
         return singletonList(
             SMGAddressValueAndState.of(
                 pSmgState,
-                SMGKnownAddressValue.valueOf(
-                    SMGKnownSymValue.of(), pTarget, (SMGKnownExpValue) pOffset)));
+                addressValue));
       }
       return pSmgState.getPointerFromValue(address);
     }

@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 final class SMGJoinTargetObjects {
@@ -69,7 +70,7 @@ final class SMGJoinTargetObjects {
   }
 
   private boolean checkAlreadyJoined(
-      SMGObject pObj1, SMGObject pObj2, SMGValue pAddress1, SMGValue pAddress2) {
+      SMGObject pObj1, SMGObject pObj2, SMGAddressValue pAddress1, SMGAddressValue pAddress2) {
     if ((pObj1 == SMGNullObject.INSTANCE && pObj2 == SMGNullObject.INSTANCE)
         || (mapping1.containsKey(pObj1)
             && mapping2.containsKey(pObj2)
@@ -109,8 +110,8 @@ final class SMGJoinTargetObjects {
       SMGNodeMapping pMapping1,
       SMGNodeMapping pMapping2,
       SMGLevelMapping pLevelMapping,
-      SMGValue pAddress1,
-      SMGValue pAddress2,
+      SMGAddressValue pAddress1,
+      SMGAddressValue pAddress2,
       int pLevel1,
       int pLevel2,
       int ldiff,

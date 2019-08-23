@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
@@ -91,18 +92,21 @@ public class SMGStateTest {
       SMGCPA.getNewValue();
     }
 
-    SMGValue value5 = SMGKnownSymValue.valueOf(5);
-    SMGValue value6 = SMGKnownSymValue.valueOf(6);
-    SMGValue value7 = SMGKnownSymValue.valueOf(7);
-    SMGValue value8 = SMGKnownSymValue.valueOf(8);
-    SMGValue value9 = SMGKnownSymValue.valueOf(9);
-    SMGValue value10 = SMGKnownSymValue.valueOf(10);
-
     SMGRegion l1 = new SMGRegion(96, "l1");
     SMGRegion l2 = new SMGRegion(96, "l2");
     SMGRegion l3 = new SMGRegion(96, "l3");
     SMGRegion l4 = new SMGRegion(96, "l4");
     SMGRegion l5 = new SMGRegion(96, "l5");
+
+    SMGRegion head = new SMGRegion(64, "head");
+    smg1.addGlobalObject(head);
+
+    SMGAddressValue value5 = SMGKnownAddressValue.valueOf(head, 0);
+    SMGAddressValue value6 = SMGKnownAddressValue.valueOf(l1, 0);
+    SMGAddressValue value7 = SMGKnownAddressValue.valueOf(l2, 0);
+    SMGAddressValue value8 = SMGKnownAddressValue.valueOf(l3, 0);
+    SMGAddressValue value9 = SMGKnownAddressValue.valueOf(l4, 0);
+    SMGAddressValue value10 = SMGKnownAddressValue.valueOf(l5, 0);
 
     SMGEdgeHasValue l1fn = new SMGEdgeHasValue(smg1.getMachineModel(), pointerType, 0, l1, value7);
     SMGEdgeHasValue l2fn = new SMGEdgeHasValue(smg1.getMachineModel(), pointerType, 0, l2, value8);
@@ -162,7 +166,6 @@ public class SMGStateTest {
     SMGState smg1State = new SMGState(
         logger, new SMGOptions(Configuration.defaultConfiguration()), smg1, 0, HashBiMap.create());
 
-    SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, value5);
 
     smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
@@ -184,17 +187,26 @@ public class SMGStateTest {
 
     CLangSMG heap = new CLangSMG(MachineModel.LINUX32);
 
-    SMGValue value5 = SMGKnownSymValue.valueOf(5);
-    SMGValue value6 = SMGKnownSymValue.valueOf(6);
-    SMGValue value7 = SMGKnownSymValue.valueOf(7);
-    SMGValue value8 = SMGKnownSymValue.valueOf(8);
-    SMGValue value9 = SMGKnownSymValue.valueOf(9);
-    SMGValue value10 = SMGKnownSymValue.valueOf(10);
-    SMGValue value11 = SMGKnownSymValue.valueOf(11);
-    SMGValue value12 = SMGKnownSymValue.valueOf(12);
-    SMGValue value13 = SMGKnownSymValue.valueOf(13);
+    SMGRegion l1 = new SMGRegion(96, "l1", 1);
+    SMGRegion l2 = new SMGRegion(96, "l2", 1);
+    SMGRegion l3 = new SMGRegion(96, "l3", 1);
+    SMGRegion l4 = new SMGRegion(96, "l4", 1);
+    SMGRegion l5 = new SMGRegion(96, "l5", 1);
+
+    SMGRegion head = new SMGRegion(64, "head");
+    heap.addGlobalObject(head);
 
     SMGObject dll = new SMGDoublyLinkedList(96, 0, 0, 32, 0, 0);
+    SMGAddressValue value5 = SMGKnownAddressValue.valueOf(head, 0);
+    SMGAddressValue value6 = SMGKnownAddressValue.valueOf(dll, 0);
+    SMGAddressValue value7 = SMGKnownAddressValue.valueOf(dll, 0);
+    SMGAddressValue value8 = SMGKnownAddressValue.valueOf(l3, 0);
+    SMGAddressValue value9 = SMGKnownAddressValue.valueOf(l4, 0);
+    SMGAddressValue value10 = SMGKnownAddressValue.valueOf(l5, 0);
+    SMGValue value11 = SMGKnownSymValue.valueOf(11);
+    SMGAddressValue value12 = SMGKnownAddressValue.valueOf(l1, 0);
+    SMGAddressValue value13 = SMGKnownAddressValue.valueOf(l2, 0);
+
     SMGEdgeHasValue dllN = new SMGEdgeHasValue(heap.getMachineModel(), pointerType, 0, dll, value5);
     SMGEdgeHasValue dllP = new SMGEdgeHasValue(heap.getMachineModel(), pointerType, 32, dll, value5);
     heap.addHeapObject(dll);
@@ -206,12 +218,6 @@ public class SMGStateTest {
     heap.addHasValueEdge(dllN);
     heap.addPointsToEdge(new SMGEdgePointsTo(value6, dll, 0, SMGTargetSpecifier.FIRST));
     heap.addPointsToEdge(new SMGEdgePointsTo(value7, dll, 0, SMGTargetSpecifier.LAST));
-
-   SMGRegion l1 = new SMGRegion(96, "l1", 1);
-   SMGRegion l2 = new SMGRegion(96, "l2", 1);
-   SMGRegion l3 = new SMGRegion(96, "l3", 1);
-   SMGRegion l4 = new SMGRegion(96, "l4", 1);
-   SMGRegion l5 = new SMGRegion(96, "l5", 1);
 
     SMGEdgeHasValue l1fn = new SMGEdgeHasValue(heap.getMachineModel(), pointerType, 0, l1, value13);
     SMGEdgeHasValue l2fn = new SMGEdgeHasValue(heap.getMachineModel(), pointerType, 0, l2, value8);
@@ -274,7 +280,6 @@ public class SMGStateTest {
         Configuration.defaultConfiguration()), heap, 0, HashBiMap.create());
 
     smg1State.addStackFrame(functionDeclaration3);
-    SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, value5);
 
     smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
@@ -312,8 +317,12 @@ public class SMGStateTest {
     final int ptrSizeInBits = model32.getSizeofPtrInBits();
     CLangSMG heap = new CLangSMG(model32);
 
-    SMGSymbolicValue value6 = SMGKnownSymValue.valueOf(6);
-    SMGSymbolicValue value7 = SMGKnownSymValue.valueOf(7);
+    SMGDoublyLinkedList dll = new SMGDoublyLinkedList(sizeInBits, hfo, nfo, pfo, minLength, level);
+    heap.addHeapObject(dll);
+    heap.setValidity(dll, true);
+
+    SMGAddressValue value6 = SMGKnownAddressValue.valueOf(dll, hfo);
+    SMGAddressValue value7 = SMGKnownAddressValue.valueOf(dll, hfo);
     SMGSymbolicValue value8 = SMGKnownSymValue.valueOf(8);
     SMGSymbolicValue value9 = SMGKnownSymValue.valueOf(9);
 
@@ -322,9 +331,6 @@ public class SMGStateTest {
     heap.addValue(value8);
     heap.addValue(value9);
 
-    SMGDoublyLinkedList dll = new SMGDoublyLinkedList(sizeInBits, hfo, nfo, pfo, minLength, level);
-    heap.addHeapObject(dll);
-    heap.setValidity(dll, true);
     heap.addPointsToEdge(new SMGEdgePointsTo(value6, dll, hfo, SMGTargetSpecifier.FIRST));
     heap.addPointsToEdge(new SMGEdgePointsTo(value7, dll, hfo, SMGTargetSpecifier.LAST));
 
@@ -390,12 +396,12 @@ public class SMGStateTest {
     final int ptrSizeInBits = model32.getSizeofPtrInBits();
     CLangSMG heap = new CLangSMG(model32);
 
-    SMGSymbolicValue value6 = SMGKnownSymValue.valueOf(6);
-    heap.addValue(value6);
-
     SMGSingleLinkedList sll = new SMGSingleLinkedList(sizeInBits, hfo, nfo, minLength, level);
     heap.addHeapObject(sll);
     heap.setValidity(sll, true);
+
+    SMGAddressValue value6 = SMGKnownAddressValue.valueOf(sll, hfo);
+    heap.addValue(value6);
     heap.addPointsToEdge(new SMGEdgePointsTo(value6, sll, hfo, SMGTargetSpecifier.FIRST));
 
     // the whole abstract segment is nullified

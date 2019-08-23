@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
@@ -81,7 +83,7 @@ public class CLangSMGTest {
     SMGRegion obj1 = new SMGRegion(64, "obj1");
     SMGRegion obj2 = new SMGRegion(64, "obj2");
 
-    SMGValue val1 = SMGKnownExpValue.valueOf(1);
+    SMGAddressValue val1 = SMGKnownAddressValue.valueOf(obj1, 0);
     SMGValue val2 = SMGKnownExpValue.valueOf(2);
 
     SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);

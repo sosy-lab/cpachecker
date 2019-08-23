@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
@@ -136,14 +138,15 @@ public class SMGJoinValuesTest {
 
   @Test
   public void joinValuesSinglePointer() throws SMGInconsistentException {
-    smg1.addValue(value1);
+    SMGRegion obj1 = new SMGRegion(64, "Object");
+    SMGAddressValue pointer = SMGKnownAddressValue.valueOf(obj1, 0);
+    smg1.addValue(pointer);
     smg2.addValue(value2);
     smgDest.addValue(value3);
 
-    SMGRegion obj1 = new SMGRegion(64, "Object");
-    SMGEdgePointsTo pt = new SMGEdgePointsTo(value1, obj1, 0);
+    SMGEdgePointsTo pt = new SMGEdgePointsTo(pointer, obj1, 0);
     smg1.addPointsToEdge(pt);
-    SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);
+    SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), pointer, value2, 0, false, 0, 0, 0, dummyState, dummyState);
     Assert.assertFalse(jv.isDefined());
   }
 }

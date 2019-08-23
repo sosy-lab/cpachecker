@@ -40,6 +40,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
@@ -65,8 +67,6 @@ public class SMG implements UnmodifiableSMG {
 
 
   private final MachineModel machine_model;
-
-  private final static SMGEdgePointsTo NULL_POINTER = new SMGEdgePointsTo(SMGZeroValue.INSTANCE, SMGNullObject.INSTANCE, 0);
 
   /**
    * Constructor.
@@ -245,9 +245,18 @@ public class SMG implements UnmodifiableSMG {
    *
    * @param pEdge Points-To edge to add.
    */
-  final public void addPointsToEdge(SMGEdgePointsTo pEdge) {
+  final public SMGEdgePointsTo addPointsToEdge(SMGEdgePointsTo pEdge) {
     Preconditions.checkArgument(values.contains(pEdge.getValue()), "adding an edge without source");
-    pt_edges = pt_edges.addAndCopy(pEdge);
+    if (pEdge.getValue() instanceof SMGAddressValue) {
+      pt_edges = pt_edges.addAndCopy(pEdge);
+      return pEdge;
+    } else {
+      SMGAddressValue newValue = SMGKnownAddressValue.valueOf(pEdge.getObject(), pEdge.getOffset());
+      SMGEdgePointsTo newEdge = new SMGEdgePointsTo(newValue, pEdge.getObject(), pEdge.getOffset());
+      replaceValue(newValue, pEdge.getValue());
+      pt_edges = pt_edges.addAndCopy(newEdge);
+      return newEdge;
+    }
   }
 
   /**
@@ -498,7 +507,8 @@ public class SMG implements UnmodifiableSMG {
    */
   @Override
   public boolean isPointer(SMGValue value) {
-    return pt_edges.containsEdgeWithValue(value);
+    assert pt_edges.containsEdgeWithValue(value) == value instanceof SMGAddressValue;
+    return value instanceof SMGAddressValue;
   }
 
   /**
@@ -569,7 +579,7 @@ public class SMG implements UnmodifiableSMG {
       pt_edges =
           pt_edges.addAndCopy(
               new SMGEdgePointsTo(
-                  fresh, pt_edge.getObject(), pt_edge.getOffset(), pt_edge.getTargetSpecifier()));
+                  (SMGAddressValue) fresh, pt_edge.getObject(), pt_edge.getOffset(), pt_edge.getTargetSpecifier()));
     }
   }
 
@@ -594,7 +604,7 @@ public class SMG implements UnmodifiableSMG {
 
   private void initializeNullAddress() {
     addValue(SMGZeroValue.INSTANCE);
-    addPointsToEdge(NULL_POINTER);
+    addPointsToEdge(SMGEdgePointsTo.NULL_POINTER);
   }
 
   public void clearObjects() {

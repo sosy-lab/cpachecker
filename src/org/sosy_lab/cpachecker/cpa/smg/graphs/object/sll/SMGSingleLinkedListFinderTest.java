@@ -39,7 +39,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGSingleLinkedListFinderTest {
@@ -95,7 +96,7 @@ public class SMGSingleLinkedListFinderTest {
     SMGObject inside = new SMGRegion(128, "pointed_at");
     SMGEdgeHasValue tailConnection = new SMGEdgeHasValue(smg.getMachineModel(), CPointerType.POINTER_TO_VOID, 64, inside, tail);
 
-    SMGValue addressOfInside = SMGKnownSymValue.of();
+    SMGAddressValue addressOfInside = SMGKnownAddressValue.valueOf(inside, 0);
     SMGEdgePointsTo insidePT = new SMGEdgePointsTo(addressOfInside, inside, 0);
     SMGRegion inboundPointer = new SMGRegion(64, "inbound_pointer");
     SMGEdgeHasValue inboundPointerConnection = new SMGEdgeHasValue(smg.getMachineModel(), CPointerType.POINTER_TO_VOID, 0, inboundPointer, addressOfInside);

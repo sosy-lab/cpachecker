@@ -73,7 +73,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
@@ -629,7 +628,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       heap.removeHasValueEdge(oldSllFieldToOldRegion);
     }
 
-    SMGValue oldPointerToSll = pPointerToAbstractObject.getValue();
+    SMGAddressValue oldPointerToSll = pPointerToAbstractObject.getValue();
 
     SMGHasValueEdges oldFieldsEdges =
         heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg));
@@ -657,7 +656,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGEdgePointsTo newPtEdgeToNewRegionFromOutsideSMG =
         new SMGEdgePointsTo(oldPointerToSll, newConcreteRegion, hfo);
 
-    SMGSymbolicValue newPointerToSll = SMGKnownSymValue.of();
+    SMGAddressValue newPointerToSll = SMGKnownAddressValue.valueOf(newSll, hfo);
 
     /*If you can't find the pointer, use generic pointer type*/
     CType typeOfPointerToSll;
@@ -753,8 +752,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       heap.removeHasValueEdge(oldDllFieldToOldRegion);
     }
 
-    SMGKnownSymbolicValue oldPointerToDll =
-        (SMGKnownSymbolicValue) pPointerToAbstractObject.getValue();
+    SMGAddressValue oldPointerToDll = pPointerToAbstractObject.getValue();
 
     heap.removePointsToEdge(oldPointerToDll);
 
@@ -787,7 +785,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         CPointerType.POINTER_TO_VOID,
         oldPointerToRegion);
 
-    SMGSymbolicValue newPointerToDll = SMGKnownSymValue.of();
+    SMGAddressValue newPointerToDll = SMGKnownAddressValue.valueOf(newDll, hfo);
 
     CType typeOfPointerToDll;
 
@@ -855,6 +853,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           if ((level != 0 || tg == SMGTargetSpecifier.ALL) && !newVal.isZero()) {
 
             SMGObject copyOfReachedObject;
+            SMGAddressValue newAdrVal;
 
             if (!newObjectMap.containsKey(reachedObjectSubSmg)) {
               assert level > 0;
@@ -870,9 +869,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
             if (newValueMap.containsKey(subDlsValue)) {
               newVal = newValueMap.get(subDlsValue);
             } else {
-              newVal = SMGKnownSymValue.of();
-              heap.addValue(newVal);
-              newValueMap.put(subDlsValue, newVal);
+              newAdrVal = SMGKnownAddressValue.valueOf(copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset());
+              newVal = newAdrVal;
+              heap.addValue(newAdrVal);
+              newValueMap.put(subDlsValue, newAdrVal);
 
               SMGTargetSpecifier newTg;
 
@@ -882,7 +882,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
                 newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
               }
 
-              SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject,
+              SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newAdrVal, copyOfReachedObject,
                   reachedObjectSubSmgPTEdge.getOffset(), newTg);
               heap.addPointsToEdge(newPtEdge);
             }
@@ -957,6 +957,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
         if ((level != 0 || tg == SMGTargetSpecifier.ALL) && !newVal.isZero()) {
 
+          SMGAddressValue newAdrVal;
           SMGObject copyOfReachedObject;
 
           if (!newObjectMap.containsKey(reachedObjectSubSmg)) {
@@ -973,9 +974,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           if (newValueMap.containsKey(subDlsValue)) {
             newVal = newValueMap.get(subDlsValue);
           } else {
-            newVal = SMGKnownSymValue.of();
-            heap.addValue(newVal);
-            newValueMap.put(subDlsValue, newVal);
+            newAdrVal = SMGKnownAddressValue.valueOf(copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset());
+            newVal = newAdrVal;
+            heap.addValue(newAdrVal);
+            newValueMap.put(subDlsValue, newAdrVal);
 
             SMGTargetSpecifier newTg;
 
@@ -985,7 +987,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
               newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
             }
 
-            SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject,
+            SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newAdrVal, copyOfReachedObject,
                 reachedObjectSubSmgPTEdge.getOffset(),
                 newTg);
             heap.addPointsToEdge(newPtEdge);
@@ -1184,21 +1186,24 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     // If the value represents an address, and the address is known,
     // add the necessary points-To edge.
-    if (pValue instanceof SMGAddressValue) {
-      SMGAddress address = ((SMGAddressValue) pValue).getAddress();
-
-      if (!address.isUnknown()) {
-        addPointsToEdge(
-            address.getObject(),
-            address.getOffset().getAsLong(),
-            value);
-      }
-    }
+//    if (pValue instanceof SMGAddressValue) {
+//      SMGAddress address = ((SMGAddressValue) pValue).getAddress();
+//
+//      if (!address.isUnknown()) {
+//        SMGAddressValue addressValue =
+//            SMGKnownAddressValue.valueOf(address.getObject(), address.getOffset());
+//        value = addressValue;
+//        addPointsToEdge(
+//            address.getObject(),
+//            address.getOffset().getAsLong(),
+//            addressValue);
+//      }
+//    }
 
     return writeValue0(pObject, pOffset, pType, value);
   }
 
-  public void addPointsToEdge(SMGObject pObject, long pOffset, SMGValue pValue) {
+  public void addPointsToEdge(SMGObject pObject, long pOffset, SMGAddressValue pValue) {
     heap.addValue(pValue);
     heap.addPointsToEdge(new SMGEdgePointsTo(pValue, pObject, pOffset));
   }
@@ -1525,7 +1530,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   private SMGAddressValue addHeapAllocation(String label, int size, int offset, boolean external)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(size, label);
-    SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
+    SMGAddressValue new_value = SMGKnownAddressValue.valueOf(new_object, offset);
     heap.addHeapObject(new_object);
     heap.addValue(new_value);
     SMGEdgePointsTo pointsTo = new SMGEdgePointsTo(new_value, new_object, offset);
@@ -1543,7 +1548,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public SMGAddressValue addNewStackAllocation(int pSize, String pLabel)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
-    SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
+    SMGAddressValue new_value = SMGKnownAddressValue.valueOf(new_object, 0);
     heap.addStackObject(new_object);
     heap.addValue(new_value);
     SMGEdgePointsTo pointsTo = new SMGEdgePointsTo(new_value, new_object, 0);
@@ -1810,9 +1815,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     assert !isInNeq(pKnownVal1, pKnownVal2);
     assert !(explicitValues.get(pKnownVal1) != null &&
         explicitValues.get(pKnownVal1).equals(explicitValues.get(pKnownVal2)));
+    assert !(heap.isPointer(pKnownVal1) && heap.isPointer(pKnownVal2));
 
-    // Avoid remove NULL value on merge
-    if (pKnownVal2.isZero()) {
+    // Avoid remove NULL value and pointers on merge
+    if (pKnownVal2.isZero() || heap.isPointer(pKnownVal2)) {
       SMGKnownSymbolicValue tmp = pKnownVal1;
       pKnownVal1 = pKnownVal2;
       pKnownVal2 = tmp;

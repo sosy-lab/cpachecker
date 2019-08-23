@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectVisitor;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
@@ -96,7 +97,7 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
         pAbstractToConcretePointerMap);
   }
 
-  public List<SMG> materialize(SMG pSMG, SMGValue pointer) {
+  public List<SMG> materialize(SMG pSMG, SMGAddressValue pointer) {
     return Lists.transform(
         getSteps(pointer), step -> step.materialize(pSMG, abstractToConcretePointerMap));
   }

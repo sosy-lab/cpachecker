@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -74,14 +76,14 @@ public class SMGJoinFieldsTest {
 
     SMGRegion oth1 = new SMGRegion(128, "oth1");
     SMGRegion oth2 = new SMGRegion(128, "oth2");
-    SMGValue value100 = SMGKnownExpValue.valueOf(100);
+    SMGAddressValue addressValue = SMGKnownAddressValue.valueOf(oth2, 0);
 
     SMGEdgeHasValue obj1hv1at0 = new SMGEdgeHasValue(40, 0, obj1, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue obj1hv2at7 = new SMGEdgeHasValue(16, 56, obj1, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue obj1hv3at9 = new SMGEdgeHasValue(56, 72, obj1, value1);
 
-    SMGEdgeHasValue obj2hv1at0 = new SMGEdgeHasValue(32, 0, obj2, value100);
-    SMGEdgePointsTo obj2pt1to0 = new SMGEdgePointsTo(value100, oth2, 0);
+    SMGEdgeHasValue obj2hv1at0 = new SMGEdgeHasValue(32, 0, obj2, addressValue);
+    SMGEdgePointsTo obj2pt1to0 = new SMGEdgePointsTo(addressValue, oth2, 0);
     SMGEdgeHasValue obj2hv2at4 = new SMGEdgeHasValue(24, 32, obj2, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue obj2hv3at8 = new SMGEdgeHasValue(64, 64, obj2, value2);
 
@@ -89,7 +91,7 @@ public class SMGJoinFieldsTest {
     SMGEdgeHasValue oth1hv2at7 = new SMGEdgeHasValue(16, 56, oth1, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue oth1hv3at9 = new SMGEdgeHasValue(56, 72, oth1, value1);
 
-    SMGEdgeHasValue oth2hv1at0 = new SMGEdgeHasValue(32, 0, oth2, value100);
+    SMGEdgeHasValue oth2hv1at0 = new SMGEdgeHasValue(32, 0, oth2, addressValue);
     SMGEdgeHasValue oth2hv2at4 = new SMGEdgeHasValue(24, 32, oth2, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue oth2hv3at8 = new SMGEdgeHasValue(64, 64, oth2, value2);
 
@@ -100,7 +102,7 @@ public class SMGJoinFieldsTest {
 
     smg1.addValue(value1);
     smg2.addValue(value2);
-    smg2.addValue(value100);
+    smg2.addValue(addressValue);
 
     smg1.addHasValueEdge(obj1hv1at0);
     smg1.addHasValueEdge(obj1hv2at7);
@@ -127,7 +129,7 @@ public class SMGJoinFieldsTest {
     fieldMap1.put(0L, Pair.of(SMGZeroValue.INSTANCE, 40));
     fieldMap1.put(72L, Pair.of(value1, 56));
 
-    fieldMap2.put(0L, Pair.of(value100, 32));
+    fieldMap2.put(0L, Pair.of(addressValue, 32));
     fieldMap2.put(32L, Pair.of(SMGZeroValue.INSTANCE, 8));
     fieldMap2.put(64L, Pair.of(value2, 64));
 
@@ -167,10 +169,11 @@ public class SMGJoinFieldsTest {
   public void getHVSetOfMissingNullValuesTest() {
     SMGRegion obj1 = new SMGRegion(64, "1");
     SMGRegion obj2 = new SMGRegion(64, "2");
+    SMGAddressValue adr2 = SMGKnownAddressValue.valueOf(obj2, 0);
 
     smg1.addObject(obj1);
     smg2.addObject(obj2);
-    smg2.addValue(value2);
+    smg2.addValue(adr2);
 
     SMGEdgeHasValue nullifyObj1 = new SMGEdgeHasValue(64, 0, obj1, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue nonPointer = new SMGEdgeHasValue(smg2.getMachineModel(), mockType4b, 16, obj2, value2);
@@ -182,7 +185,7 @@ public class SMGJoinFieldsTest {
     assertThat(hvSet1).hasSize(1);
 
     // adding a "back" edge should not change anything
-    smg2.addPointsToEdge(new SMGEdgePointsTo(value2, obj2, 0));
+    smg2.addPointsToEdge(new SMGEdgePointsTo(adr2, obj2, 0));
 
     Set<SMGEdgeHasValue> hvSet2 = SMGJoinFields.getHVSetOfMissingNullValues(smg1, smg2, obj1, obj2);
     assertThat(hvSet2).hasSize(1);
@@ -232,12 +235,13 @@ public class SMGJoinFieldsTest {
   public void getCompatibleHVEdgeSetTest() {
     SMGRegion obj = new SMGRegion(256, "Object");
     SMGRegion differentObject = new SMGRegion(128, "Different object");
+    SMGAddressValue adr = SMGKnownAddressValue.valueOf(obj, 160);
 
     smg1.addObject(obj);
     smg2.addObject(obj);
     smg1.addObject(differentObject);
 
-    smg2.addValue(value1);
+    smg2.addValue(adr);
 
     SMGEdgeHasValue hv0for4at0in1 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType4b, 0, obj, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue hv0for4at0in2 = new SMGEdgeHasValue(smg2.getMachineModel(), mockType4b, 0, obj, SMGZeroValue.INSTANCE);
@@ -249,9 +253,9 @@ public class SMGJoinFieldsTest {
     SMGEdgeHasValue hv0for4at16in2 = new SMGEdgeHasValue(smg2.getMachineModel(), mockType4b, 128, obj, SMGZeroValue.INSTANCE);
 
     SMGEdgeHasValue hv0for4at20in1 = new SMGEdgeHasValue(smg1.getMachineModel(), mockType4b, 160, obj, SMGZeroValue.INSTANCE);
-    SMGEdgeHasValue hv666for4at20in2 = new SMGEdgeHasValue(smg2.getMachineModel(), mockType4b, 160, obj, value1);
+    SMGEdgeHasValue hv666for4at20in2 = new SMGEdgeHasValue(smg2.getMachineModel(), mockType4b, 160, obj, adr);
 
-    SMGEdgeHasValue hv666for4at28in2 = new SMGEdgeHasValue(smg2.getMachineModel(), mockType4b, 224, obj, value1);
+    SMGEdgeHasValue hv666for4at28in2 = new SMGEdgeHasValue(smg2.getMachineModel(), mockType4b, 224, obj, adr);
 
     SMGEdgeHasValue diffObjectNullValue = new SMGEdgeHasValue(smg1.getMachineModel(), mockType4b, 0, differentObject, SMGZeroValue.INSTANCE);
 
@@ -265,7 +269,7 @@ public class SMGJoinFieldsTest {
     smg2.addHasValueEdge(hv0for4at7in2);
     smg2.addHasValueEdge(hv0for4at16in2);
     smg2.addHasValueEdge(hv666for4at20in2);
-    smg2.addPointsToEdge(new SMGEdgePointsTo(value1, obj, 160));
+    smg2.addPointsToEdge(new SMGEdgePointsTo(adr, obj, 160));
     smg2.addHasValueEdge(hv666for4at28in2);
 
     SMGJoinFields.setCompatibleHVEdgesToSMG(smg1, smg2, obj, obj);
@@ -422,7 +426,7 @@ public class SMGJoinFieldsTest {
 
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
-    SMGValue value3 = SMGKnownSymValue.of();
+    SMGAddressValue value3 = SMGKnownAddressValue.valueOf(obj1, 0);
     SMGValue value4 = SMGKnownSymValue.of();
 
     smg3.addObject(obj1);

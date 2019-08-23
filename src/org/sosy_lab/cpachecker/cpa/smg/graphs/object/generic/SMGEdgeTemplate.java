@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 public class SMGEdgeTemplate {
 
   private final SMGObjectTemplate abstractObject;
-  private final SMGValue abstractValue;
+  protected final SMGValue abstractValue;
   private final long offset;
 
   public SMGEdgeTemplate(SMGObjectTemplate pAbstractObject, SMGValue pAbstractValue, long pOffset) {
