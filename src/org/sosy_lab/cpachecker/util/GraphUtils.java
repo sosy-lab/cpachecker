@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -127,7 +128,7 @@ public class GraphUtils {
    */
   public static List<List<ARGState>> retrieveSimpleCycles(
       List<ARGState> pStates, ReachedSet pReached) {
-    HashSet<ARGState> filteredStates =
+    Set<ARGState> filteredStates =
         pReached
             .asCollection()
             .stream()
