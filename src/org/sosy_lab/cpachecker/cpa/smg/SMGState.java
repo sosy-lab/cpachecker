@@ -1579,7 +1579,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     if (edges.isEmpty()) {
       return null;
     } else {
-      return (SMGSymbolicValue) Iterables.getOnlyElement(edges).getValue();
+      return Iterables.getOnlyElement(edges).getValue();
     }
   }
 

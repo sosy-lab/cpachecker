@@ -61,6 +61,7 @@ public class SMGEdgePointsTo extends SMGEdge {
 
   public SMGEdgePointsTo(SMGValue pValue, SMGObject pObject, long pOffset, SMGTargetSpecifier pTg) {
     super(pValue, pObject, pOffset);
+    assert pValue instanceof SMGAddressValue;
     tg = pTg;
   }
 
@@ -100,6 +101,7 @@ public class SMGEdgePointsTo extends SMGEdge {
     return 31 * super.hashCode() + tg.hashCode();
   }
 
+  @Override
   public SMGAddressValue getValue() {
     return (SMGAddressValue) value;
   }

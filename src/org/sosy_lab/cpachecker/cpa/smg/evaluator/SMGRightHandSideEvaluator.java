@@ -224,7 +224,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
         SMGExplicitValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
         pValue =
             SMGKnownAddressValue.valueOf(
-                knownValue, SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit);
+                knownValue, SMGNullObject.INSTANCE, explicit);
         pState.addPointsToEdge(SMGNullObject.INSTANCE, explicit.getAsLong(), (SMGKnownAddressValue)pValue);
       }
     }

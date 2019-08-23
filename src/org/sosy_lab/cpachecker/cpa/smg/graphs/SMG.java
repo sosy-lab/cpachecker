@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
@@ -193,6 +192,9 @@ public class SMG implements UnmodifiableSMG {
   final public void removeObjectAndEdges(final SMGObject pObj) {
     Preconditions.checkArgument(pObj != SMGNullObject.INSTANCE, "Can not remove NULL from SMG");
     removeObject(pObj);
+    for (SMGEdgePointsTo ptEdge : SMGEdgePointsToFilter.targetObjectFilter(pObj).filter(pt_edges)) {
+      values = values.removeAndCopy(ptEdge.getValue());
+    }
     hv_edges = hv_edges.removeAllEdgesOfObjectAndCopy(pObj);
     pt_edges = pt_edges.removeAllEdgesOfObjectAndCopy(pObj);
 
@@ -245,18 +247,9 @@ public class SMG implements UnmodifiableSMG {
    *
    * @param pEdge Points-To edge to add.
    */
-  final public SMGEdgePointsTo addPointsToEdge(SMGEdgePointsTo pEdge) {
+  final public void addPointsToEdge(SMGEdgePointsTo pEdge) {
     Preconditions.checkArgument(values.contains(pEdge.getValue()), "adding an edge without source");
-    if (pEdge.getValue() instanceof SMGAddressValue) {
-      pt_edges = pt_edges.addAndCopy(pEdge);
-      return pEdge;
-    } else {
-      SMGAddressValue newValue = SMGKnownAddressValue.valueOf(pEdge.getObject(), pEdge.getOffset());
-      SMGEdgePointsTo newEdge = new SMGEdgePointsTo(newValue, pEdge.getObject(), pEdge.getOffset());
-      replaceValue(newValue, pEdge.getValue());
-      pt_edges = pt_edges.addAndCopy(newEdge);
-      return newEdge;
-    }
+    pt_edges = pt_edges.addAndCopy(pEdge);
   }
 
   /**
@@ -579,7 +572,7 @@ public class SMG implements UnmodifiableSMG {
       pt_edges =
           pt_edges.addAndCopy(
               new SMGEdgePointsTo(
-                  (SMGAddressValue) fresh, pt_edge.getObject(), pt_edge.getOffset(), pt_edge.getTargetSpecifier()));
+                  fresh, pt_edge.getObject(), pt_edge.getOffset(), pt_edge.getTargetSpecifier()));
     }
   }
 
