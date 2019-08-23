@@ -36,23 +36,23 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class AutomatonStateARGCombiningHelper {
 
   private final Map<String, AutomatonInternalState> qualifiedAutomatonStateNameToInternalState;
-  private final Map<String, ControlAutomatonCPA> nameToCPA;
+  private final Map<String, Automaton> nameToAutomaton;
 
   public AutomatonStateARGCombiningHelper() {
     qualifiedAutomatonStateNameToInternalState = new HashMap<>();
-    nameToCPA = new HashMap<>();
+    nameToAutomaton = new HashMap<>();
   }
 
   public boolean registerAutomaton(final AutomatonState pStateOfAutomata) {
-    ControlAutomatonCPA automatonCPA = pStateOfAutomata.getAutomatonCPA();
-    final String prefix = automatonCPA.getAutomaton().getName() + "::";
+    Automaton automaton = pStateOfAutomata.getOwningAutomaton();
+    final String prefix = automaton.getName() + "::";
     String qualifiedName;
 
-    if (nameToCPA.put(automatonCPA.getAutomaton().getName(), automatonCPA) != null) {
+    if (nameToAutomaton.put(automaton.getName(), automaton) != null) {
       return false;
     }
 
-    for (AutomatonInternalState internal : automatonCPA.getAutomaton().getStates()) {
+    for (AutomatonInternalState internal : automaton.getStates()) {
       qualifiedName = prefix + internal.getName();
       if (qualifiedAutomatonStateNameToInternalState.put(qualifiedName, internal) != null) {
         return false;
@@ -77,19 +77,20 @@ public class AutomatonStateARGCombiningHelper {
       return AutomatonState.automatonStateFactory(
           toReplace.getVars(),
           qualifiedAutomatonStateNameToInternalState.get(qualifiedName),
-          nameToCPA.get(toReplace.getOwningAutomatonName()),
+          nameToAutomaton.get(toReplace.getOwningAutomatonName()),
           toReplace.getAssumptions(),
           toReplace.getCandidateInvariants(),
           toReplace.getMatches(),
           toReplace.getFailedMatches(),
-          violatedProp);
+          violatedProp,
+          toReplace.isTreatingErrorsAsTarget());
     }
 
     throw new CPAException("Changing state failed, unknown state.");
   }
 
   public boolean considersAutomaton(final String pAutomatonName) {
-    return nameToCPA.containsKey(pAutomatonName);
+    return nameToAutomaton.containsKey(pAutomatonName);
   }
 
   public static boolean endsInAssumptionTrueState(
