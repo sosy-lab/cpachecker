@@ -95,6 +95,8 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
           SMGEdgePointsTo newPte = new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
               SMGTargetSpecifier.ALL);
           pSMG.addPointsToEdge(newPte);
+        } else {
+          pSMG.removeValue(pte.getValue());
         }
       }
 
@@ -118,7 +120,7 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
       pSMG.addHasValueEdge(nfoHve);
       pSmgState.pruneUnreachable();
 
-      replaceSourceValues(pSMG, newAbsObj);
+//            replaceSourceValues(pSMG, newAbsObj);
     }
 
     return pSMG;

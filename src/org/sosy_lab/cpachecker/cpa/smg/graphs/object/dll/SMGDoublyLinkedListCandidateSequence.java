@@ -115,9 +115,9 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
 
       pSmgState.pruneUnreachable();
 
-      replaceSourceValues(pSMG, newAbsObj);
+      //      replaceSourceValues(pSMG, newAbsObj);
 
-//      SMGDebugTest.dumpPlot("afterAbstractionAfterRemoval", pSmgState);
+      //      SMGDebugTest.dumpPlot("afterAbstractionAfterRemoval", pSmgState);
     }
 
     return pSMG;
