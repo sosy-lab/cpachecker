@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -49,7 +51,7 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
 
   private final Supplier<ProverEnvironment> proverEnvironmentSupplier;
 
-  DnfTransformation(
+  private DnfTransformation(
       ShutdownNotifier pShutdownNotifier,
       FormulaManagerView pFmgr,
       Supplier<ProverEnvironment> pProverEnvironmentSupplier) {
@@ -57,6 +59,24 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     fmgr = pFmgr.getBooleanFormulaManager();
     proverEnvironmentSupplier = checkNotNull(pProverEnvironmentSupplier);
+  }
+
+  static BooleanFormula transformToDnf(
+      BooleanFormula formula,
+      FormulaManagerView fmgr,
+      ShutdownNotifier shutdownNotifier,
+      Supplier<ProverEnvironment> proverEnvironmentSupplier)
+      throws InterruptedException, SolverException {
+    shutdownNotifier.shutdownIfNecessary();
+    final DnfTransformation visitor =
+        new DnfTransformation(shutdownNotifier, fmgr, proverEnvironmentSupplier);
+    try {
+      return fmgr.getBooleanFormulaManager().transformRecursively(formula, visitor);
+    } catch (DnfTransformationException e) {
+      Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+      Throwables.throwIfInstanceOf(e.getCause(), SolverException.class);
+      throw new AssertionError(e);
+    }
   }
 
   @Override
@@ -120,7 +140,7 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
     }
   }
 
-  static class DnfTransformationException extends RuntimeException {
+  private static class DnfTransformationException extends RuntimeException {
 
     private static final long serialVersionUID = 8329172743374361993L;
 
