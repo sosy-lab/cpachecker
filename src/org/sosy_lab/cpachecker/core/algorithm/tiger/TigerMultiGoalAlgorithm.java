@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import javax.management.JMException;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -71,6 +72,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 
 @Options(prefix = "tiger.multigoal")
 public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
@@ -218,7 +220,13 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     // if (testsuite.getTestGoals() != null) {
     // partition.removeAll(testsuite.getTestGoals());
     // }
-    long elapsedTime = -1;
+    long startTime = 0;
+    try {
+      startTime = ProcessCpuTime.read();
+    } catch (JMException e3) {
+      // TODO Auto-generated catch block
+      logger.log(Level.WARNING, "could not read cpu time");
+    }
     ShutdownManager algNotifier =
         ShutdownManager.createWithParent(startupConfig.getShutdownNotifier());
 
@@ -237,9 +245,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       shutdownNotifier.shutdownIfNecessary();
       boolean exceptionOccured = false;
       try {
-        long nanoTime = System.nanoTime();
         Pair<Boolean, Boolean> analysisWasSound_hasTimedOut = runAlgorithm(algorithm, pReachedSet);
-        elapsedTime = System.nanoTime() - nanoTime;
         if (analysisWasSound_hasTimedOut.getSecond()) {
           // timeout, do not retry for other goals
           timedout = true;
@@ -266,7 +272,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
         // TODO for Testcomp continue, might need to remove later
         exceptionOccured = true;
       } finally {
-        handleAnalysisResult(pReachedSet, elapsedTime, exceptionOccured, partition, partitions);
+        handleAnalysisResult(pReachedSet, startTime, exceptionOccured, partition, partitions);
       }
       shutdownNotifier.shutdownIfNecessary();
     }
@@ -286,11 +292,17 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
   private void handleCoveredGoal(
       CFAGoal goal,
       CounterexampleInfo cex,
-      long elapsedTime,
+      long startTime,
       Region testCasePresenceCondition,
       Set<CFAGoal> partition) {
     multiGoalCPA.addCoveredGoal(goal.getCFAEdgesGoal());
     TestCase testcase = createTestcase(cex, testCasePresenceCondition);
+    long elapsedTime = 0;
+    try {
+      elapsedTime = ProcessCpuTime.read() - startTime;
+    } catch (JMException e) {
+      // already logged to logger
+    }
     testcase.setElapsedTime(elapsedTime);
     // only add new Testcase and check for coverage if it does not already exist
 
@@ -333,7 +345,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
   private void handleAnalysisResult(
       ReachedSet pReachedSet,
-      long elapsedTime,
+      long startTime,
       boolean exceptionOccured,
       Set<CFAGoal> partition,
       List<Set<CFAGoal>> partitions) {
@@ -349,7 +361,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
         Optional<CounterexampleInfo> cexi = targetState.getCounterexampleInformation();
         assert cexi.isPresent();
         CounterexampleInfo cex = cexi.get();
-        handleCounterExample(cex, partition, partitions, targetState, elapsedTime);
+        handleCounterExample(cex, partition, partitions, targetState, startTime);
       }
       removeStateAndWeavedParents(targetState, pReachedSet);
 
@@ -364,7 +376,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       Set<CFAGoal> partition,
       List<Set<CFAGoal>> partitions,
       ARGState targetState,
-      long elapsedTime) {
+      long startTime) {
     Region testCasePresenceCondition = bddUtils.getRegionFromWrappedBDDstate(targetState);
     if (cex.isSpurious()) {
       logger.logf(Level.WARNING, "Counterexample is spurious!");
@@ -384,7 +396,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       // TODO do we need presence conditions for goals?
       testCasePresenceCondition = getPresenceConditionFromCex(cex);
       for (CFAGoal goal : coveredGoals) {
-        handleCoveredGoal(goal, cex, elapsedTime, testCasePresenceCondition, partition);
+        handleCoveredGoal(goal, cex, startTime, testCasePresenceCondition, partition);
       }
 
       assert coveredGoals.size() == 1;

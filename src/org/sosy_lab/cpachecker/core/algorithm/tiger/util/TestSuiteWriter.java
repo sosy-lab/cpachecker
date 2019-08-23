@@ -214,7 +214,7 @@ public class TestSuiteWriter {
       builder.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
       builder.append(
           "<!DOCTYPE testcase SYSTEM \"https://gitlab.com/sosy-lab/software/test-format/blob/master/testcase.dtd\">\n");
-      builder.append("<testcase>\n");
+      builder.append("<testcase elapsedTime=\"" + testcase.getElapsedTime() + "\">\n");
       for (TestCaseVariable var : testcase.getInputs()) {
         builder.append("\t<input  variable=\"" + var.getName() + "\">");
         builder.append(var.getValue());

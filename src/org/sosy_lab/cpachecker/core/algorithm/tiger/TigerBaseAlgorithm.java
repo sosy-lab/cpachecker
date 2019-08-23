@@ -20,6 +20,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -190,12 +191,29 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
   }
 
   protected TestCase createTestcase(final CounterexampleInfo cex, final Region pPresenceCondition) {
-    List<TestCaseVariable> inputValues = values.extractInputValues(cex, cfa);
-    List<TestCaseVariable> outputValus = values.extractOutputValues(cex);
+
+    List<TestCaseVariable> inputValues;
+    List<TestCaseVariable> outputValus;
+    List<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPath;
+    if (!cex.isSpurious() && cex.isPreciseCounterExample()) {
+      inputValues = values.extractInputValues(cex, cfa);
+      outputValus = values.extractOutputValues(cex);
+      shrinkedErrorPath =
+          new ErrorPathShrinker()
+              .shrinkErrorPath(cex.getTargetPath(), cex.getCFAPathWithAssignments());
+    } else {
+      inputValues = Collections.emptyList();
+      outputValus = Collections.emptyList();
+      shrinkedErrorPath = Collections.emptyList();
+      logger.log(
+          Level.SEVERE,
+          "Counterexample is either\nSpurios: "
+              + cex.isSpurious()
+              + "or inprecise: "
+              + !cex.isPreciseCounterExample());
+    }
     // calcualte shrinked error path
-    List<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPath =
-        new ErrorPathShrinker()
-            .shrinkErrorPath(cex.getTargetPath(), cex.getCFAPathWithAssignments());
+
     TestCase testcase =
         new TestCase(
             currentTestCaseID,
