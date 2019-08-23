@@ -208,7 +208,7 @@ public class ControlAutomatonCPA
     return lst.get(0);
   }
 
-  public Automaton getAutomaton() {
+  Automaton getAutomaton() {
     return this.automaton;
   }
 
@@ -286,7 +286,7 @@ public class ControlAutomatonCPA
 
   @Override
   public AutomatonTransferRelation getTransferRelation() {
-    return new AutomatonTransferRelation(this, logger, cfa.getMachineModel());
+    return new AutomatonTransferRelation(this, logger, cfa.getMachineModel(), stats);
   }
 
   public AutomatonState getBottomState() {
@@ -295,10 +295,6 @@ public class ControlAutomatonCPA
 
   public AutomatonState getTopState() {
     return this.topState;
-  }
-
-  AutomatonStatistics getStatistics() {
-    return stats;
   }
 
   @Override

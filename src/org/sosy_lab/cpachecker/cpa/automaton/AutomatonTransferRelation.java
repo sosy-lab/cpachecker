@@ -82,18 +82,20 @@ public class AutomatonTransferRelation implements TransferRelation {
   private final StatIntHist automatonSuccessors;
 
   public AutomatonTransferRelation(
-      ControlAutomatonCPA pCpa, LogManager pLogger, MachineModel pMachineModel) {
+      ControlAutomatonCPA pCpa,
+      LogManager pLogger,
+      MachineModel pMachineModel,
+      AutomatonStatistics pStats) {
     this.cpa = pCpa;
     this.logger = pLogger;
     this.machineModel = pMachineModel;
 
-    AutomatonStatistics stats = cpa.getStatistics();
-    totalPostTime = stats.totalPostTime.getNewTimer();
-    matchTime = stats.matchTime.getNewTimer();
-    assertionsTime = stats.assertionsTime.getNewTimer();
-    actionTime = stats.actionTime.getNewTimer();
-    totalStrengthenTime = stats.totalStrengthenTime.getNewTimer();
-    automatonSuccessors = stats.automatonSuccessors;
+    totalPostTime = pStats.totalPostTime.getNewTimer();
+    matchTime = pStats.matchTime.getNewTimer();
+    assertionsTime = pStats.assertionsTime.getNewTimer();
+    actionTime = pStats.actionTime.getNewTimer();
+    totalStrengthenTime = pStats.totalStrengthenTime.getNewTimer();
+    automatonSuccessors = pStats.automatonSuccessors;
   }
 
   @Override
