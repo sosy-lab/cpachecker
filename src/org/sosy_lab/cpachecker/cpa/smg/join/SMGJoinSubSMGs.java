@@ -106,7 +106,7 @@ final class SMGJoinSubSMGs {
 
     SMGHasValueEdges hvEdgesIn1 = inputSMG1.getHVEdges(filterOnSMG1);
     SMGHasValueEdges hvEdgesIn2 = inputSMG2.getHVEdges(filterOnSMG2);
-    if (hvEdgesIn1.size() > 0 && hvEdgesIn1.equals(hvEdgesIn2) && pObj1.equals(pNewObject)) {
+    if (!hvEdgesIn1.isEmpty() && hvEdgesIn1.equals(hvEdgesIn2) && pObj1.equals(pNewObject)) {
       //TODO: copy to SMG and perform join
       destSMG.addHasValueEdges(hvEdgesIn1);
       for (SMGEdgeHasValue hvIn1: hvEdgesIn1) {

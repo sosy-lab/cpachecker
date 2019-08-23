@@ -204,7 +204,7 @@ class SMGJoinFields {
     for (SMGEdgeHasValue edge : pSMG2.getHVEdges(nonNullPtrInSmg2)) {
       nonNullPtrInSmg1.filterAtOffset(edge.getOffset());
 
-      if (pSMG1.getHVEdges(nonNullPtrInSmg1).size() == 0) {
+      if (pSMG1.getHVEdges(nonNullPtrInSmg1).isEmpty()) {
         TreeMap <Long, Integer> newNullEdgesOffsetToSize =
             pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
 
@@ -269,7 +269,7 @@ class SMGJoinFields {
       SMGHasValueEdges hvInSMG2Set = pSMG2.getHVEdges(filter);
 
       SMGEdgeHasValue hvInSMG2;
-      if (hvInSMG2Set.size() > 0) {
+      if (!hvInSMG2Set.isEmpty()) {
         hvInSMG2 = Iterables.getOnlyElement(hvInSMG2Set);
       } else {
         hvInSMG2 = null;

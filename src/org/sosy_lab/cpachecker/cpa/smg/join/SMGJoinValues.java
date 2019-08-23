@@ -492,7 +492,7 @@ final class SMGJoinValues {
     /*Fields of optional objects must have one pointer.*/
     SMGHasValueEdges fieldsOfTarget = pInputSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
 
-    if (fieldsOfTarget.size() == 0) {
+    if (fieldsOfTarget.isEmpty()) {
       return Pair.of(false, true);
     }
 
@@ -742,7 +742,7 @@ final class SMGJoinValues {
     /*Fields of optional objects must have one pointer.*/
     SMGHasValueEdges fieldsOfTarget = pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
 
-    if (fieldsOfTarget.size() == 0) {
+    if (fieldsOfTarget.isEmpty()) {
       return Pair.of(false, true);
     }
 
@@ -956,7 +956,7 @@ final class SMGJoinValues {
     SMGHasValueEdges hvesNp =
         newInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(nf));
 
-    if(hvesNp.size() == 0) {
+    if(hvesNp.isEmpty()) {
       // Edge lost due to join fields, should be zero
       nextPointer = SMGZeroValue.INSTANCE;
     } else {
@@ -1149,7 +1149,7 @@ final class SMGJoinValues {
     SMGHasValueEdges oldNfEdge =
         pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf));
 
-    if (oldNfEdge.size() == 0) {
+    if (oldNfEdge.isEmpty()) {
       return new SMGEdgeHasValue(
               pInputSMG1.getMachineModel().getSizeofPtrInBits(),
               pNf,
@@ -1224,7 +1224,7 @@ final class SMGJoinValues {
 
     SMGValue nextPointer;
 
-    if(npHves.size() == 0) {
+    if(npHves.isEmpty()) {
       // nullified block, but lacks edge
       nextPointer = SMGZeroValue.INSTANCE;
     } else {
@@ -1585,7 +1585,7 @@ final class SMGJoinValues {
         }
       }
 
-      if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(newObj).filterAtOffset(hve.getOffset())).size() == 0) {
+      if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(newObj).filterAtOffset(hve.getOffset())).isEmpty()) {
         if (!pDestSMG.getValues().contains(newVal)) {
           pDestSMG.addValue(newVal);
         }

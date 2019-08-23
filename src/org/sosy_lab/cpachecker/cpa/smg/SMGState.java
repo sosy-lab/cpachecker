@@ -625,7 +625,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo));
     SMGSymbolicValue oldPointerToRegion =
         readValue(pListSeg, nfo, CPointerType.POINTER_TO_VOID).getObject();
-    if (oldSllFieldsToOldRegion.iterator().hasNext()) {
+    if (!oldSllFieldsToOldRegion.isEmpty()) {
       SMGEdgeHasValue oldSllFieldToOldRegion = Iterables.getOnlyElement(oldSllFieldsToOldRegion);
       heap.removeHasValueEdge(oldSllFieldToOldRegion);
     }
