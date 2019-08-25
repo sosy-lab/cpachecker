@@ -62,11 +62,11 @@ def _generate_validation_file(testdef_path):
 
     # Replace the rundefinition with one for witness validation
     witness_file = (
-        "results/" + _strip_xml_extension(os.path.basename(testdef_path)) + ".logfiles/"
+        "results/" + _strip_xml_extension(os.path.basename(testdef_path)) + ".files/"
     )
     if input_rundef_name:
         witness_file = witness_file + input_rundef_name + "."
-    witness_file = witness_file + "${taskdef_name}.files/" + "output/witness.graphml.gz"
+    witness_file = witness_file + "${taskdef_name}/" + "output/witness.graphml.gz"
     test_dir = _get_test_directory()
     rundef.set("name", "witnessValidation")
     analysis_option = etree.Element("option")
