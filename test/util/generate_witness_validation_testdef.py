@@ -61,7 +61,9 @@ def _generate_validation_file(testdef_path):
     rundef.text = None
 
     # Replace the rundefinition with one for witness validation
-    witness_file = "results/" + _strip_xml_extension(os.path.basename(testdef_path)) + ".files/"
+    witness_file = (
+        "results/" + _strip_xml_extension(os.path.basename(testdef_path)) + ".files/"
+    )
     if input_rundef_name:
         witness_file += input_rundef_name + "."
     witness_file += "${taskdef_name}/output/witness.graphml.gz"
@@ -73,7 +75,9 @@ def _generate_validation_file(testdef_path):
     witness_option.text = "test/" + witness_file
     rundef.append(witness_option)
     requiredfiles = etree.Element("requiredfiles")
-    requiredfiles.text = os.path.relpath(test_dir, os.path.dirname(testdef_path)) + "/" + witness_file
+    requiredfiles.text = (
+        os.path.relpath(test_dir, os.path.dirname(testdef_path)) + "/" + witness_file
+    )
     rundef.append(requiredfiles)
 
     # Remove the resultfiles tag
