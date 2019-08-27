@@ -269,7 +269,14 @@ public class ARGState extends AbstractSingleWrapperState
                       currentLoc,
                       childLoc);
             } else if (realEdge instanceof CFunctionReturnEdge) {
-              newEdge = realEdge;
+              CFunctionReturnEdge oldReturn = (CFunctionReturnEdge) realEdge;
+              newEdge =
+                  new EnvironmentActionEdge(
+                      realEdge.getRawStatement(),
+                      oldReturn.getSummaryEdge().getExpression(),
+                      realEdge.getFileLocation(),
+                      currentLoc,
+                      childLoc);
             } else if (realEdge instanceof CAssumeEdge) {
               newEdge = realEdge;
             } else {
