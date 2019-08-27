@@ -49,17 +49,13 @@ public class RecomputeBlockFormulaStrategy extends BlockFormulaStrategy {
 
     List<CFAEdge> partialPath;
     ARGState current = argRoot;
-    PathFormula previousPathFormula = null;
+    PathFormula previousPathFormula = pfmgr.makeEmptyPathFormula();
     for (ARGState next : abstractionStates) {
       final ARGState start = current;
       partialPath = ARGUtils.getOnePathFromTo((x) -> x == start, next).getFullPath();
-      PathFormula partialFormula = pfmgr.makeFormulaForPath(partialPath);
-      if (previousPathFormula != null) {
-        partialFormula =
-            pfmgr.makeNewPathFormula(
-                partialFormula,
-                previousPathFormula.getSsa(),
-                previousPathFormula.getPointerTargetSet());
+      PathFormula partialFormula = pfmgr.makeEmptyPathFormula(previousPathFormula);
+      for (CFAEdge edge : partialPath) {
+        partialFormula = pfmgr.makeAnd(partialFormula, edge);
       }
       formulas.add(partialFormula.getFormula());
       previousPathFormula = partialFormula;

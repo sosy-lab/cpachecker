@@ -86,6 +86,13 @@ public class PredicateCPARefinerFactory {
     predicateCpa.getConfiguration().inject(this);
   }
 
+  public PredicateCPARefinerFactory(ConfigurableProgramAnalysis pCpa, Configuration pConfig)
+      throws InvalidConfigurationException {
+    predicateCpa =
+        CPAs.retrieveCPAOrFail(checkNotNull(pCpa), PredicateCPA.class, PredicateCPARefiner.class);
+    pConfig.inject(this);
+  }
+
   /**
    * Ensure that {@link PredicateStaticRefiner} is not used.
    * This is mostly useful for configurations where static refinements do not make sense,
@@ -116,13 +123,18 @@ public class PredicateCPARefinerFactory {
     return this;
   }
 
+  public ARGBasedRefiner create(RefinementStrategy pRefinementStrategy)
+      throws InvalidConfigurationException {
+    return create(pRefinementStrategy, predicateCpa.getPathFormulaManager());
+  }
+
   /**
    * Create a {@link PredicateCPARefiner}.
    * This factory can be reused afterwards.
    * @param pRefinementStrategy The refinement strategy to use.
    * @return A fresh instance.
    */
-  public ARGBasedRefiner create(RefinementStrategy pRefinementStrategy)
+  public ARGBasedRefiner create(RefinementStrategy pRefinementStrategy, PathFormulaManager pfmgr)
       throws InvalidConfigurationException {
     checkNotNull(pRefinementStrategy);
 
@@ -130,7 +142,6 @@ public class PredicateCPARefinerFactory {
     LogManager logger = predicateCpa.getLogger();
     ShutdownNotifier shutdownNotifier = predicateCpa.getShutdownNotifier();
     Solver solver = predicateCpa.getSolver();
-    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
 
     CFA cfa = predicateCpa.getCfa();
     MachineModel machineModel = cfa.getMachineModel();
@@ -203,6 +214,15 @@ public class PredicateCPARefinerFactory {
               refiner);
     }
 
+    return refiner;
+  }
+
+  public ARGBasedRefiner createGlobalRefiner(RefinementStrategy pStrategy)
+      throws InvalidConfigurationException {
+    boolean store = recomputeBlockFormulas;
+    recomputeBlockFormulas = true;
+    ARGBasedRefiner refiner = create(pStrategy);
+    recomputeBlockFormulas = store;
     return refiner;
   }
 }

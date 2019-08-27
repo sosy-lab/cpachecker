@@ -1783,4 +1783,12 @@ public class CtoFormulaConverter {
    * @param out - output stream
    */
   public void printStatistics(PrintStream out) {}
+
+  public MachineModel getMachineModel() {
+    return machineModel;
+  }
+
+  public Optional<VariableClassification> getVariableClassification() {
+    return variableClassification;
+  }
 }

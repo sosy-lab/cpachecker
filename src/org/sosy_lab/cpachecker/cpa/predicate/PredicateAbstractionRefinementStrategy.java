@@ -386,7 +386,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     argUpdate.stop();
   }
 
-  private final Pair<PredicatePrecision, ARGState> computeNewPrecision(ARGState pUnreachableState,
+  protected Pair<PredicatePrecision, ARGState> computeNewPrecision(
+      ARGState pUnreachableState,
       List<ARGState> pAffectedStates, ARGReachedSet pReached, boolean pRepeatedCounterexample)
       throws RefinementFailedException {
 
