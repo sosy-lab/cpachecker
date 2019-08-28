@@ -147,6 +147,7 @@ public class SLTransferRelation
           }
         }
 
+        // Remove from stack
         try {
           f = getFormulaForVariableName(outOfScopeVar.getName(), true, true);
           for (Formula stackFormula : memDel.getStack().keySet()) {
