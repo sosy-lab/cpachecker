@@ -149,6 +149,7 @@ public class ConfigurationFileChecks {
           "cpa.automaton.breakOnTargetState",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
           "witness.stopNotBreakAtSinkStates",
+          "witness.invariantsSpecificationAutomaton",
           // handled by component that is loaded lazily on demand
           "invariantGeneration.config",
           "invariantGeneration.kInduction.async",
