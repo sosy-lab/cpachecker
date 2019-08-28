@@ -182,8 +182,7 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
 
   @Override
   public SLStateErrors visit(CCastExpression pIastCastExpression) throws Exception {
-    throw new UnsupportedOperationException(
-        CCastExpression.class.getSimpleName() + "is not implemented yet.");
+    return pIastCastExpression.getOperand().accept(this);
   }
 
   @Override
