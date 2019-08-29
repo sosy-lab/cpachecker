@@ -1579,7 +1579,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @param smgObject The memory the given Address belongs to.
    * @return returns a possible new State
    */
-  protected SMGState free(Integer offset, SMGObject smgObject) throws SMGInconsistentException {
+  protected SMGState free(long offset, SMGObject smgObject) throws SMGInconsistentException {
 
     if (!heap.isHeapObject(smgObject) && !heap.isObjectExternallyAllocated(smgObject)) {
       // You may not free any objects not on the heap.
