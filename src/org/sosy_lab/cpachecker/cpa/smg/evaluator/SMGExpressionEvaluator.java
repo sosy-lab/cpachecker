@@ -702,12 +702,9 @@ public class SMGExpressionEvaluator {
       return pSmgState.getPointerFromValue(address);
     }
     if (pTarget == SMGNullObject.INSTANCE) {
-      // TODO return NULL_POINTER instead of new object?
-      return singletonList(
-          SMGAddressValueAndState.of(
-              pSmgState,
-              SMGKnownAddressValue.valueOf(
-                  SMGZeroValue.INSTANCE, pTarget, SMGKnownExpValue.valueOf(pOffset.getAsLong()))));
+      SMGAddressValue addressValue = SMGKnownAddressValue.valueOf(pTarget, pOffset.getAsLong());
+      pSmgState.addPointsToEdge(pTarget, pOffset.getAsLong(), addressValue);
+      return singletonList(SMGAddressValueAndState.of(pSmgState, addressValue));
     }
     throw new AssertionError("Abstraction " + pTarget + " was not materialised.");
   }

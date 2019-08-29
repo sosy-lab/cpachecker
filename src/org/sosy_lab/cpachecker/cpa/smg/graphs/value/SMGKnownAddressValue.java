@@ -60,10 +60,12 @@ public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGA
 
   public static SMGAddressValue valueOf(
       SMGKnownSymbolicValue pAddress, SMGObject pObject, SMGExplicitValue pOffset) {
-    if (pAddress.isZero() && pObject.equals(SMGNullObject.INSTANCE) && pOffset.isZero()) {
-      return SMGZeroValue.INSTANCE;
-    } else if (pAddress.isUnknown() || pObject == null) {
+    if (pAddress.isUnknown() || pObject == null) {
       return SMGUnknownValue.INSTANCE;
+    } else {
+      if (pObject.equals(SMGNullObject.INSTANCE) && pOffset.isZero()) {
+        return SMGZeroValue.INSTANCE;
+      }
     }
     return new SMGKnownAddressValue(pAddress.getId(), SMGAddress.valueOf(pObject, pOffset));
   }
