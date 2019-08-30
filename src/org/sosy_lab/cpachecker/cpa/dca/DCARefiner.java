@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -275,7 +276,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
 
     shutdownNotifier.shutdownIfNecessary();
     Set<StronglyConnectedComponent> SCCs =
-        ARGUtils.retrieveSCCs(reached)
+        GraphUtils.retrieveSCCs(reached)
             .stream()
             .filter(x -> x.getNodes().size() > 1)
             .filter(StronglyConnectedComponent::hasTargetStates)
@@ -286,7 +287,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     for (StronglyConnectedComponent scc : SCCs) {
 
       shutdownNotifier.shutdownIfNecessary();
-      List<List<ARGState>> sscCycles = ARGUtils.retrieveSimpleCycles(scc.getNodes(), reached);
+      List<List<ARGState>> sscCycles = GraphUtils.retrieveSimpleCycles(scc.getNodes(), reached);
       logger.logf(Level.INFO, "Found %d cycle(s) in current SCC", sscCycles.size());
 
       for (List<ARGState> cycle : sscCycles) {

@@ -114,7 +114,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     CollectingNodeVisitor visitor = new CollectingNodeVisitor(pAsARGState);
     visitOutsideSuccessors(pNodeSetIndices, visitor);
 
-    return visitor.setRes.toArray(new AbstractState[visitor.setRes.size()]);
+    return visitor.setRes.toArray(new AbstractState[0]);
   }
 
   public long getNumSuccessorNodesOutsideSet(final Set<Integer> pNodeSetIndices) {
@@ -155,7 +155,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
           "Wrong index set must not be null and all indices must be within [0;" + numNodes
               + "-1].");
     }
-    return listRes.toArray(new AbstractState[listRes.size()]);
+    return listRes.toArray(new AbstractState[0]);
   }
 
 

@@ -114,7 +114,6 @@ public class LassoBuilder {
   private final IfThenElseElimination ifThenElseElimination;
   private final EqualElimination equalElimination;
   private final NotEqualAndNotInequalityElimination notEqualAndNotInequalityElimination;
-  private final DnfTransformation dnfTransformation;
 
   private final LassoAnalysisStatistics stats;
 
@@ -143,8 +142,6 @@ public class LassoBuilder {
     ifThenElseElimination = new IfThenElseElimination(fmgrView, fmgr);
     equalElimination = new EqualElimination(fmgrView);
     notEqualAndNotInequalityElimination = new NotEqualAndNotInequalityElimination(fmgrView);
-    dnfTransformation =
-        new DnfTransformation(logger, shutdownNotifier, fmgrView, proverEnvironmentSupplier);
 
     stats = pLassoAnalysisStats;
   }
@@ -311,12 +308,12 @@ public class LassoBuilder {
     return polyhedra;
   }
 
-  public Dnf toDnf(BooleanFormula pFormula) throws InterruptedException {
+  public Dnf toDnf(BooleanFormula pFormula) throws InterruptedException, SolverException {
     return toDnf(pFormula, Result.empty(fmgr));
   }
 
   public Dnf toDnf(BooleanFormula pFormula, UfElimination.Result eliminatedUfs)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
 
     BooleanFormula simplified;
     if (simplify) {
@@ -339,7 +336,9 @@ public class LassoBuilder {
     BooleanFormula notEqualEliminated =
         transformRecursively(notEqualAndNotInequalityElimination, nnf);
     BooleanFormula equalEliminated = transformRecursively(equalElimination, notEqualEliminated);
-    BooleanFormula dnf = transformRecursively(dnfTransformation, equalEliminated);
+    BooleanFormula dnf =
+        DnfTransformation.transformToDnf(
+            equalEliminated, fmgrView, shutdownNotifier, proverEnvironmentSupplier);
     ImmutableSet<BooleanFormula> clauses =
         ImmutableSet.copyOf(bfmrView.toDisjunctionArgs(dnf, true));
 

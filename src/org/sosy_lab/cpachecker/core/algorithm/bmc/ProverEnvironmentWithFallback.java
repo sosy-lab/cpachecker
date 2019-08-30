@@ -71,7 +71,7 @@ class ProverEnvironmentWithFallback
   }
 
   private ProverOptions[] getOptions() {
-    return proverOptions.toArray(new ProverOptions[proverOptions.size()]);
+    return proverOptions.toArray(new ProverOptions[0]);
   }
 
   @SuppressWarnings("unchecked")

@@ -147,8 +147,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
               "Require that all restart configurations consider a location aware state");
 
           for (AbstractState errorState : from(usedReached).filter(IS_TARGET_STATE)) {
-            logger.log(Level.INFO, "Error state found in reached set ", usedReached,
-                "but not by last configuration. Error state must be infeasible.");
+            /* logger.log(Level.INFO, "Error state found in reached set ", usedReached,
+            "but not by last configuration. Error state must be infeasible.");*/
             logger.log(Level.FINE, "Remove infeasible error state", errorState);
             ((ARGState) errorState).removeFromARG();
           }
@@ -285,7 +285,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     for (AbstractState state : AbstractStates.asIterable(pPredecessor)) {
       if (state instanceof AutomatonState
           && ((AutomatonState) state).getOwningAutomatonName().equals("AssumptionAutomaton")) {
-        if (AutomatonStateARGCombiningHelper.endsInAssumptionTrueState((AutomatonState) state, pSuccEdge)) {
+        if (AutomatonStateARGCombiningHelper.endsInAssumptionTrueState(
+            (AutomatonState) state, pSuccEdge, logger)) {
           return false;
         }
       }

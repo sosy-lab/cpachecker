@@ -1125,6 +1125,27 @@ class WitnessWriter implements EdgeAppender {
       GraphBuilder pGraphBuilder)
       throws IOException {
 
+    writeToGraphMl(
+        processPath(
+            pRootState,
+            pIsRelevantState,
+            pIsRelevantEdge,
+            pIsCyclehead,
+            cycleHeadToQuasiInvariant,
+            pCounterExample,
+            pGraphBuilder),
+        pTarget);
+  }
+
+  private String processPath(
+      final ARGState pRootState,
+      final Predicate<? super ARGState> pIsRelevantState,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
+      final Predicate<? super ARGState> pIsCyclehead,
+      final Optional<Function<? super ARGState, ExpressionTree<Object>>> cycleHeadToQuasiInvariant,
+      Optional<CounterexampleInfo> pCounterExample,
+      GraphBuilder pGraphBuilder) {
+
     BiPredicate<ARGState, ARGState> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
     Map<ARGState, CFAEdgeWithAdditionalInfo> additionalInfo = getAdditionalInfo(pCounterExample);
@@ -1187,11 +1208,16 @@ class WitnessWriter implements EdgeAppender {
         Iterables.addAll(waitlist, mergeNodes(edge));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
+      setLoopHeadInvariantIfApplicable(edge.getTarget());
     }
 
     // merge redundant sibling edges leading to the sink together, if possible
     mergeRedundantSinkEdges();
 
+    return entryStateNodeId;
+  }
+
+  private void writeToGraphMl(String entryStateNodeId, Appendable pTarget) throws IOException {
     // Write elements
     final GraphMlBuilder doc;
     try {
@@ -1330,7 +1356,6 @@ class WitnessWriter implements EdgeAppender {
     while (!waitlist.isEmpty()) {
       String source = waitlist.pop();
       for (Edge edge : leavingEdges.get(source)) {
-        setLoopHeadInvariantIfApplicable(edge.getTarget());
 
         Element targetNode = nodes.get(edge.getTarget());
         if (targetNode == null) {
@@ -1429,11 +1454,6 @@ class WitnessWriter implements EdgeAppender {
 
         @Override
         public boolean apply(final Edge pEdge) {
-          // prevent loss of invariant information by merging potentially different invariants, e.g.
-          // 1 and i==0:
-          if (!getStateInvariant(pEdge.getSource()).equals(getStateInvariant(pEdge.getTarget()))) {
-            return false;
-          }
           if (isNodeRedundant.apply(pEdge.getTarget())) {
             return true;
           }

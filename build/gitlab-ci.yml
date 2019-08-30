@@ -64,6 +64,8 @@ build:jdk-12:
   stage: checks
   dependencies:
     - build-dependencies
+  needs:
+    - build-dependencies
 
 
 .build-project-ecj: &build-project-ecj
@@ -103,6 +105,9 @@ javadoc:
   dependencies:
     - build-dependencies
     - build:jdk-11
+  needs:
+    - build-dependencies
+    - build:jdk-11
   artifacts:
     paths:
       - "Javadoc/"
@@ -113,6 +118,9 @@ spotbugs:
     - 'ant $ANT_PROPS_CHECKS spotbugs'
     - 'test \! -f SpotBugs.html'
   dependencies:
+    - build-dependencies
+    - build:jdk-11
+  needs:
     - build-dependencies
     - build:jdk-11
   artifacts:
@@ -137,6 +145,9 @@ unit-tests:jdk-8:
   dependencies:
     - build-dependencies
     - build:jdk-8
+  needs:
+    - build-dependencies
+    - build:jdk-8
   image: ${CI_REGISTRY_IMAGE}/test:jdk-8
 
 unit-tests:jdk-11:
@@ -144,11 +155,17 @@ unit-tests:jdk-11:
   dependencies:
     - build-dependencies
     - build:jdk-11
+  needs:
+    - build-dependencies
+    - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
 unit-tests:jdk-12:
   <<: *unit-tests
   dependencies:
+    - build-dependencies
+    - build:jdk-12
+  needs:
     - build-dependencies
     - build:jdk-12
   image: ${CI_REGISTRY_IMAGE}/test:jdk-12
@@ -188,6 +205,8 @@ deploy-coverage:
   script: "build/deploy-coverage.sh"
   dependencies:
     - unit-tests:jdk-11
+  needs:
+    - unit-tests:jdk-11
   only:
     refs:
       - master
@@ -205,6 +224,9 @@ deploy-gh-pages:
   stage: deploy
   script: "build/deploy-gh-pages.sh"
   dependencies:
+    - build:jdk-11
+    - javadoc
+  needs:
     - build:jdk-11
     - javadoc
   only:
