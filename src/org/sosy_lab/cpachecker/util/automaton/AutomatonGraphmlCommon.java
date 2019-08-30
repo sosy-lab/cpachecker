@@ -690,15 +690,17 @@ public class AutomatonGraphmlCommon {
         && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
       FileLocation location = pMainEntry.getFileLocation();
       if (!FileLocation.DUMMY.equals(location)) {
-        location = new FileLocation(
-            location.getFileName(),
-            location.getNiceFileName(),
-            location.getNodeOffset(),
-            pMainEntry.getFunctionDefinition().toString().length(),
-            location.getStartingLineNumber(),
-            location.getStartingLineNumber(),
-            location.getStartingLineInOrigin(),
-            location.getStartingLineInOrigin());
+        location =
+            new FileLocation(
+                location.getFileName(),
+                location.getNiceFileName(),
+                location.getNodeOffset(),
+                pMainEntry.getFunctionDefinition().toString().length(),
+                location.getStartingLineNumber(),
+                location.getStartingLineNumber(),
+                location.getStartingLineInOrigin(),
+                location.getStartingLineInOrigin(),
+                location.isOffsetRelatedToOrigin());
       }
       Set<FileLocation> result = Sets.newHashSet(location);
       for (AParameterDeclaration param : pMainEntry.getFunctionDefinition().getParameters()) {

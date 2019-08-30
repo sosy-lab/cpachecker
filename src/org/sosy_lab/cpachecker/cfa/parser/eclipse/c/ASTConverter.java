@@ -1593,7 +1593,8 @@ class ASTConverter {
                   fileLoc.getStartingLineNumber(),
                   declaratorLocation.getEndingLineNumber(),
                   fileLoc.getStartingLineInOrigin(),
-                  fileLoc.getEndingLineInOrigin());
+                  fileLoc.getEndingLineInOrigin(),
+                  fileLoc.isOffsetRelatedToOrigin());
         }
         result.add(createDeclaration(declaratorLocation, cStorageClass, type, c));
       }
