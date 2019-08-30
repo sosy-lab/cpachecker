@@ -223,10 +223,11 @@ public class AutomatonGraphmlParser {
    */
   public List<Automaton> parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
       throws InvalidConfigurationException {
-    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
-        MoreFiles.asByteSource(pInputFile),
-        inputStream -> parseAutomatonFile(inputStream, pProperties),
-        e -> new WitnessParseException(e));
+    return AutomatonGraphmlParser
+        .<List<Automaton>, InvalidConfigurationException>handlePotentiallyGZippedInput(
+            MoreFiles.asByteSource(pInputFile),
+            inputStream -> parseAutomatonFile(inputStream, pProperties),
+            e -> new WitnessParseException(e));
   }
 
   /**
@@ -1969,10 +1970,12 @@ public class AutomatonGraphmlParser {
 
   public static AutomatonGraphmlCommon.WitnessType getWitnessType(Path pPath)
       throws InvalidConfigurationException {
-    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
-        MoreFiles.asByteSource(pPath),
-        inputStream -> getWitnessType(inputStream),
-        e -> new WitnessParseException(e));
+    return AutomatonGraphmlParser
+        .<AutomatonGraphmlCommon.WitnessType, InvalidConfigurationException>
+            handlePotentiallyGZippedInput(
+                MoreFiles.asByteSource(pPath),
+                inputStream -> getWitnessType(inputStream),
+                e -> new WitnessParseException(e));
   }
 
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)
