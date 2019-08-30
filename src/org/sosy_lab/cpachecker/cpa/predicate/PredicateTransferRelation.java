@@ -630,6 +630,8 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       PathFormula currentFormula = precisePathFormulaManager.makeEmptyPathFormula(oldFormula);
 
       if (bfmgr.isTrue(oldAbstraction.asFormula())) {
+        // Do not delete! There may be value effects, and then the composite optimization will not
+        // work
         // Need to omit edge part, so return the same state, but without edge
         PredicateAbstractState newState =
             PredicateAbstractState

@@ -352,4 +352,9 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
       }
     }
   }
+
+  @Override
+  public Collection<CFANode> getAffectedNodes() {
+    return newPredicates.keySet();
+  }
 }
