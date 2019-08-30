@@ -1208,6 +1208,7 @@ class WitnessWriter implements EdgeAppender {
         Iterables.addAll(waitlist, mergeNodes(edge));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
+      setLoopHeadInvariantIfApplicable(edge.getTarget());
     }
 
     // merge redundant sibling edges leading to the sink together, if possible
@@ -1355,7 +1356,6 @@ class WitnessWriter implements EdgeAppender {
     while (!waitlist.isEmpty()) {
       String source = waitlist.pop();
       for (Edge edge : leavingEdges.get(source)) {
-        setLoopHeadInvariantIfApplicable(edge.getTarget());
 
         Element targetNode = nodes.get(edge.getTarget());
         if (targetNode == null) {
