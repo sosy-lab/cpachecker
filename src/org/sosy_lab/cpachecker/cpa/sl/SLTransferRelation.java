@@ -31,12 +31,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -123,7 +120,6 @@ public class SLTransferRelation
         CType varType = outOfScopeVar.getType();
         Formula f = getFormulaForVariableName(outOfScopeVar.getName(), true, true);
         if (varType instanceof CPointerType || varType instanceof CArrayType) {
-          slVisitor.removePtr(outOfScopeVar);
           // Check if a pointer to allocated heap memory is dropped.
           try {
             Formula loc = memDel.checkHeapAllocation(this, f);
@@ -131,7 +127,9 @@ public class SLTransferRelation
               // Check if a copy of the dropped heap pointer exists.
               boolean eqFound = false;
               for (CSimpleDeclaration inScopePtr : slVisitor.getInScopePtrs()) {
-                Formula varFormula = getFormulaForVariableName(inScopePtr.getName(), true, true);
+                Formula varFormula = getFormulaForVariableName(inScopePtr.getName(), true, false);// TODO
+                                                                                                  // check
+                                                                                                  // flags
                 if (!varFormula.equals(f) && checkEquivalence(loc, varFormula, pathFormula)) {
                   eqFound = true;
                   break;
@@ -149,24 +147,11 @@ public class SLTransferRelation
 
         // Remove from stack
         try {
-          f = getFormulaForVariableName(outOfScopeVar.getName(), true, true);
-          for (Formula stackFormula : memDel.getStack().keySet()) {
-            if (checkEquivalence(f, stackFormula, pathFormula)) {
-              memDel.removeFromStack(stackFormula);
-              break;
-            }
-            CIdExpression id = new CIdExpression(outOfScopeVar.getFileLocation(), outOfScopeVar);
-            CExpression e =
-                new CUnaryExpression(
-                    outOfScopeVar.getFileLocation(),
-                    new CPointerType(true, true, varType),
-                    id,
-                    UnaryOperator.AMPER);
-            Formula addrF = getFormulaForExpression(e, true);
-            if (checkEquivalence(addrF, stackFormula, pathFormula)) {
-              memDel.removeFromStack(stackFormula);
-              break;
-            }
+          CExpression e = SLMemoryDelegateImpl.createSymbolicMemLoc(outOfScopeVar);
+          Formula loc = getFormulaForExpression(e, true);
+          memDel.removeFromStack(loc);
+          if (varType instanceof CArrayType) {
+            memDel.removeFromStack(getFormulaForVariableName(outOfScopeVar.getName(), true, false));
           }
         } catch (Exception e1) {
           logger.log(Level.SEVERE, e1.getMessage());
@@ -328,6 +313,7 @@ public class SLTransferRelation
   @Override
   public Formula
       getFormulaForVariableName(String pVariable, boolean addFctName, boolean succSsaIndex) {
+
     String var = addFctName ? functionName + "::" + pVariable : pVariable;
       CType type = pathFormula.getSsa().getType(var);
     return succSsaIndex

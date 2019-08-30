@@ -24,6 +24,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -54,10 +60,6 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
     ifm = fm.getIntegerFormulaManager();
   }
 
-
-  // -------------------------------------------------------------------------------------------------
-  // Delegate methods starting here.
-  // -------------------------------------------------------------------------------------------------
   @Override
   public void handleMalloc(Formula pMemoryLocation, BigInteger pSize)
       throws Exception {
@@ -222,5 +224,10 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
           throws Exception {
     BigInteger length = pLength.multiply(machineModel.getSizeof(pType));
     addToMemory(stack, pMemoryLocation, length, pInitWithZero);
+  }
+
+  public static CExpression createSymbolicMemLoc(CSimpleDeclaration pDecl) {
+    CIdExpression e = new CIdExpression(FileLocation.DUMMY, pDecl);
+    return new CUnaryExpression(FileLocation.DUMMY, pDecl.getType(), e, UnaryOperator.AMPER);
   }
 }

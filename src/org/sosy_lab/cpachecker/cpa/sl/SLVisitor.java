@@ -218,14 +218,14 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
   @Override
   public SLStateErrors visit(CUnaryExpression pIastUnaryExpression) throws Exception {
     CExpression operand = pIastUnaryExpression.getOperand();
-    switch (pIastUnaryExpression.getOperator()) {
-      case AMPER:
-        Formula f = solDelegate.getFormulaForExpression(curLHS, true);
-        memDelegate.handleAddressOf(f, operand.getExpressionType());
-        break;
-      default:
-        break;
-    }
+    // switch (pIastUnaryExpression.getOperator()) {
+    // case AMPER:
+    // Formula f = solDelegate.getFormulaForExpression(curLHS, true);
+    // memDelegate.handleAddressOf(f, operand.getExpressionType());
+    // break;
+    // default:
+    // break;
+    // }
     return operand.accept(this);
   }
 
@@ -257,6 +257,20 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
     if (curLHS == pIastArraySubscriptExpression) {
       val = solDelegate.getFormulaForExpression((CExpression) curRHS, false);
     }
+    // Formula heapLoc = memDelegate.checkHeapAllocation(solDelegate, loc, offset, val);
+    // if (heapLoc == null) {
+    // CExpression e =
+    // new CUnaryExpression(
+    // FileLocation.DUMMY,
+    // arrayExp.getExpressionType(),
+    // arrayExp,
+    // UnaryOperator.AMPER);
+    // loc = solDelegate.getFormulaForExpression(e, false);
+    // return memDelegate.checkStackAllocation(solDelegate, loc, offset, val) == null
+    // ? SLStateErrors.INVALID_DEREF
+    // : null;
+    // }
+    // return null;
     return memDelegate.checkAllocation(solDelegate, loc, offset, val) == null
         ? SLStateErrors.INVALID_DEREF
         : null;
@@ -342,24 +356,24 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
     CType type = pDecl.getType();
     if (type instanceof CArrayType || type instanceof CPointerType) {
       inScopePtrs.add(pDecl);
-    }
-    if (type instanceof CArrayType) {
-      CArrayType aType = (CArrayType) type;
-      OptionalInt s = aType.getLengthAsInt();
-      BigInteger size =
+
+      if (type instanceof CArrayType) {
+        CArrayType aType = (CArrayType) type;
+        type = aType.asPointerType();
+        OptionalInt s = aType.getLengthAsInt();
+        BigInteger size =
             s.isPresent()
                 ? BigInteger.valueOf(s.getAsInt())
                 : solDelegate.getValueForCExpression(aType.getLength());
-      // CExpression e =
-      // new CUnaryExpression(
-      // pDecl.getFileLocation(),
-      // pDecl.getType(),
-      // new CIdExpression(pDecl.getFileLocation(), pDecl),
-      // UnaryOperator.AMPER);
-      // Formula f = solDelegate.getFormulaForExpression(e, true);
-      Formula f = solDelegate.getFormulaForVariableName(pDecl.getName(), true, true);
-      memDelegate.addToStack(f, size, aType.getType(), true);
+        Formula fArray = solDelegate.getFormulaForExpression(curLHS, true);
+        memDelegate.addToStack(fArray, size, aType.getType(), true);
+      }
     }
+
+    CExpression e = SLMemoryDelegateImpl.createSymbolicMemLoc(pDecl);
+    Formula f = solDelegate.getFormulaForExpression(e, false);
+    memDelegate.addToStack(f, BigInteger.ONE, type, true);
+
     CInitializer i = pDecl.getInitializer();
     SLStateErrors error = i != null ? i.accept(this) : null;
     curLHS = null;
