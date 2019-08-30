@@ -28,7 +28,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -50,9 +49,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -224,24 +223,10 @@ public class AutomatonGraphmlParser {
    */
   public List<Automaton> parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
       throws InvalidConfigurationException {
-    return parseAutomatonFile(MoreFiles.asByteSource(pInputFile), pProperties);
-  }
-
-  /**
-   * Parses a witness specification from a ByteSource and returns the Automata found in the source.
-   *
-   * @param pInputSource the ByteSource to parse the witness from.
-   * @param pProperties which are assumed to be witnessed.
-   * @throws InvalidConfigurationException if the configuration is invalid.
-   * @return the automata representing the witnesses found in the source.
-   */
-  private List<Automaton> parseAutomatonFile(ByteSource pInputSource, Set<Property> pProperties)
-      throws InvalidConfigurationException {
-    return AutomatonGraphmlParser
-        .<List<Automaton>, InvalidConfigurationException>handlePotentiallyGZippedInput(
-            pInputSource,
-            inputStream -> parseAutomatonFile(inputStream, pProperties),
-            e -> new WitnessParseException(e));
+    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
+        MoreFiles.asByteSource(pInputFile),
+        inputStream -> parseAutomatonFile(inputStream, pProperties),
+        e -> new WitnessParseException(e));
   }
 
   /**
@@ -279,7 +264,6 @@ public class AutomatonGraphmlParser {
     }
 
     // Build and return the result
-    List<Automaton> result = new ArrayList<>();
     Automaton automaton;
     try {
       automaton = new Automaton(
@@ -293,8 +277,6 @@ public class AutomatonGraphmlParser {
 
     // the automaton will be an ISA if specified
     automaton = invariantsSpecAutomaton.build(automaton, config, logger, cfa);
-
-    result.add(automaton);
 
     if (automatonDumpFile != null) {
       try (Writer w = IO.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
@@ -310,7 +292,7 @@ public class AutomatonGraphmlParser {
       }
     }
 
-    return result;
+    return ImmutableList.of(automaton);
   }
 
   /**
@@ -775,38 +757,24 @@ public class AutomatonGraphmlParser {
   }
 
   private List<AExpression> logAndRemoveUnknown(List<AExpression> pAssumptions) {
-    Multimap<AExpression, AIdExpression> invalid = null;
+    final List<AExpression> filteredAssumptions = new ArrayList<>();
     for (AExpression assumption : pAssumptions) {
       Set<AIdExpression> unknown = getUnknownVariables(assumption);
-      if (!unknown.isEmpty()) {
-        if (invalid == null) {
-          invalid = LinkedHashMultimap.create();
-        }
-        invalid.putAll(assumption, unknown);
-      }
-    }
-    if (invalid != null && !invalid.isEmpty()) {
-      for (Map.Entry<AExpression, Collection<AIdExpression>> invalidExpression :
-          invalid.asMap().entrySet()) {
+      if (unknown.isEmpty()) {
+        filteredAssumptions.add(assumption);
+      } else {
         logger.log(
-            Level.WARNING,
-            String.format(
-                UNKNOWN_VARIABLE_WARNING_MESSAGE,
-                invalidExpression.getKey(), invalidExpression.getValue()));
+            Level.WARNING, String.format(UNKNOWN_VARIABLE_WARNING_MESSAGE, assumption, unknown));
       }
-      return FluentIterable.from(pAssumptions)
-          .filter(Predicates.not(Predicates.in(invalid.keySet())))
-          .toList();
     }
-    return pAssumptions;
+    return filteredAssumptions;
   }
 
   private ExpressionTree<AExpression> logAndRemoveUnknown(ExpressionTree<AExpression> invariant) {
     FluentIterable<AExpression> expressions =
         FluentIterable.from(ExpressionTrees.traverseRecursively(invariant))
-            .filter(
-                Predicates.and(
-                    ExpressionTrees::isLeaf, Predicates.not(ExpressionTrees::isConstant)))
+            .filter(ExpressionTrees::isLeaf)
+            .filter(Predicates.not(ExpressionTrees::isConstant))
             .transform(leaf -> ((LeafExpression<AExpression>) leaf).getExpression());
     Multimap<AExpression, AIdExpression> invalid = LinkedHashMultimap.create();
     for (AExpression assumption : expressions) {
@@ -848,7 +816,7 @@ public class AutomatonGraphmlParser {
     return invariant;
   }
 
-  private Set<AIdExpression> getUnknownVariables(AExpression pExpression) {
+  private static Set<AIdExpression> getUnknownVariables(AExpression pExpression) {
     return CFAUtils.traverseRecursively(pExpression)
         .filter(AIdExpression.class)
         .filter(id -> id.getDeclaration() == null)
@@ -1020,11 +988,11 @@ public class AutomatonGraphmlParser {
       automatonName += "_" + nameAttribute.getTextContent();
     }
 
-    Map<String, GraphMLState> states = new HashMap<>();
-    Multimap<GraphMLState, GraphMLTransition> enteringTransitions = HashMultimap.create();
-    Multimap<GraphMLState, GraphMLTransition> leavingTransitions = HashMultimap.create();
+    Map<String, GraphMLState> states = new LinkedHashMap<>();
+    Multimap<GraphMLState, GraphMLTransition> enteringTransitions = LinkedHashMultimap.create();
+    Multimap<GraphMLState, GraphMLTransition> leavingTransitions = LinkedHashMultimap.create();
     NumericIdProvider numericIdProvider = NumericIdProvider.create();
-    Set<GraphMLState> entryStates = new HashSet<>();
+    Set<GraphMLState> entryStates = new LinkedHashSet<>();
     for (Node transition : docDat.getTransitions()) {
       collectEdgeData(
           docDat,
@@ -1714,9 +1682,7 @@ public class AutomatonGraphmlParser {
   }
 
   private static AutomatonBoolExpr createViolationAssertion() {
-    return and(
-        not(new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY))
-        );
+    return not(new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY));
   }
 
   private static AutomatonTransition createAutomatonTransition(
@@ -1926,19 +1892,17 @@ public class AutomatonGraphmlParser {
       Preconditions.checkNotNull(node);
       Preconditions.checkArgument(node.getNodeType() == Node.ELEMENT_NODE);
 
-      Element nodeElement = (Element) node;
-      Set<Node> dataNodes = findKeyedDataNode(nodeElement, dataKey);
+      Set<Node> dataNodes = findKeyedDataNode((Element) node, dataKey);
 
-      Set<String> result = new HashSet<>();
+      Set<String> result = new LinkedHashSet<>();
       for (Node n: dataNodes) {
         result.add(n.getTextContent());
       }
-
       return result;
     }
 
     private static Set<Node> findKeyedDataNode(Element of, final KeyDef dataKey) {
-      Set<Node> result = new HashSet<>();
+      Set<Node> result = new LinkedHashSet<>();
       Set<Node> alternative = null;
       NodeList dataChilds = of.getElementsByTagName(GraphMLTag.DATA.toString());
       for (Node dataChild : asIterable(dataChilds)) {
@@ -1954,7 +1918,7 @@ public class AutomatonGraphmlParser {
             && result.isEmpty()
             && dataKey.equals(KeyDef.WITNESS_TYPE)
             && nodeKey.equals("type")) {
-          alternative = new HashSet<>();
+          alternative = new LinkedHashSet<>();
           alternative.add(dataChild);
         }
       }
@@ -2005,12 +1969,10 @@ public class AutomatonGraphmlParser {
 
   public static AutomatonGraphmlCommon.WitnessType getWitnessType(Path pPath)
       throws InvalidConfigurationException {
-    return AutomatonGraphmlParser
-        .<AutomatonGraphmlCommon.WitnessType, InvalidConfigurationException>
-            handlePotentiallyGZippedInput(
-                MoreFiles.asByteSource(pPath),
-                inputStream -> getWitnessType(inputStream),
-                e -> new WitnessParseException(e));
+    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
+        MoreFiles.asByteSource(pPath),
+        inputStream -> getWitnessType(inputStream),
+        e -> new WitnessParseException(e));
   }
 
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)
@@ -2068,14 +2030,6 @@ public class AutomatonGraphmlParser {
       return pA;
     }
     return new AutomatonBoolExpr.And(pA, pB);
-  }
-
-  private static AutomatonBoolExpr and(AutomatonBoolExpr... pExpressions) {
-    AutomatonBoolExpr result = AutomatonBoolExpr.TRUE;
-    for (AutomatonBoolExpr e : pExpressions) {
-      result = and(result, e);
-    }
-    return result;
   }
 
   private static AutomatonBoolExpr or(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
