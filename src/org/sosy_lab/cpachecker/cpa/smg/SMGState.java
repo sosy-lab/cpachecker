@@ -1716,7 +1716,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     assert pSourceOffset >= 0;
     assert pTargetOffset >= 0;
     assert copyRange >= 0;
-    assert copyRange <= pTarget.getSize();
+    assert copyRange + pTargetOffset <= pTarget.getSize();
 
     // If copy range is 0, do nothing
     if (copyRange == 0) { return newSMGState; }

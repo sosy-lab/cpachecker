@@ -722,12 +722,45 @@ public class SMGBuiltins {
     long sourceLastCopyBitOffset = sizeValue.getAsLong() * machineModel.getSizeofCharInBits() +
         sourceOffset;
     long targetOffset = targetStr1Address.getOffset().getAsLong();
+    long copyRange = sourceLastCopyBitOffset - sourceOffset;
 
     if (sourceLastCopyBitOffset > source.getSize()) {
-      currentState = currentState.withInvalidRead().withErrorDescription("Overread on memcpy");
-    } else if (targetOffset > target.getSize() - (sizeValue.getAsLong() * machineModel
-        .getSizeofCharInBits())) {
-      currentState = currentState.withInvalidWrite().withErrorDescription("Overwrite on memcpy");
+      currentState =
+          currentState
+              .withInvalidRead()
+              .withErrorDescription(
+                  "Overread on memcpy of "
+                      + source
+                      + " object by "
+                      + sourceLastCopyBitOffset
+                      + " last bit");
+    } else if (sourceOffset < 0) {
+      currentState =
+          currentState
+              .withInvalidRead()
+              .withErrorDescription(
+                  "Underread on memcpy of " + source + " object by " + sourceOffset + " offset");
+    } else if (targetOffset < 0) {
+      currentState =
+          currentState
+              .withInvalidWrite()
+              .withErrorDescription(
+                  "Underwrite on memcpy of " + target + " object by " + targetOffset + " offset");
+    } else if (copyRange < 0) {
+      currentState =
+          currentState
+              .withInvalidWrite()
+              .withErrorDescription("Negative size of memcpy " + copyRange + " bits");
+    } else if (targetOffset + copyRange > target.getSize()) {
+      currentState =
+          currentState
+              .withInvalidWrite()
+              .withErrorDescription(
+                  "Overwrite on memcpy of "
+                      + target
+                      + " object by "
+                      + (targetOffset + copyRange)
+                      + " last bit");
     } else {
       currentState.copy(source, target, sourceOffset, sourceLastCopyBitOffset, targetOffset);
     }
