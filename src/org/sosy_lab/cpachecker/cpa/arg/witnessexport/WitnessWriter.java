@@ -1125,6 +1125,27 @@ class WitnessWriter implements EdgeAppender {
       GraphBuilder pGraphBuilder)
       throws IOException {
 
+    writeToGraphMl(
+        processPath(
+            pRootState,
+            pIsRelevantState,
+            pIsRelevantEdge,
+            pIsCyclehead,
+            cycleHeadToQuasiInvariant,
+            pCounterExample,
+            pGraphBuilder),
+        pTarget);
+  }
+
+  private String processPath(
+      final ARGState pRootState,
+      final Predicate<? super ARGState> pIsRelevantState,
+      final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final Predicate<? super ARGState> pIsCyclehead,
+      final Optional<Function<? super ARGState, ExpressionTree<Object>>> cycleHeadToQuasiInvariant,
+      Optional<CounterexampleInfo> pCounterExample,
+      GraphBuilder pGraphBuilder) {
+
     BiPredicate<ARGState, ARGState> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
     Map<ARGState, CFAEdgeWithAdditionalInfo> additionalInfo = getAdditionalInfo(pCounterExample);
@@ -1192,6 +1213,10 @@ class WitnessWriter implements EdgeAppender {
     // merge redundant sibling edges leading to the sink together, if possible
     mergeRedundantSinkEdges();
 
+    return entryStateNodeId;
+  }
+
+  private void writeToGraphMl(String entryStateNodeId, Appendable pTarget) throws IOException {
     // Write elements
     final GraphMlBuilder doc;
     try {
