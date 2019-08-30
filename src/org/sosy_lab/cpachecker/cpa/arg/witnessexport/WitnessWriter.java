@@ -1140,7 +1140,7 @@ class WitnessWriter implements EdgeAppender {
   private String processPath(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       final Predicate<? super ARGState> pIsCyclehead,
       final Optional<Function<? super ARGState, ExpressionTree<Object>>> cycleHeadToQuasiInvariant,
       Optional<CounterexampleInfo> pCounterExample,
