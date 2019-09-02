@@ -127,4 +127,12 @@ public class ThreadModularReachedSet extends ForwardingReachedSet {
   public int getThreadTransitionsNum() {
     return threadTransitions.size();
   }
+
+  @Override
+  public void clear() {
+    super.clear();
+    threadTransitions.clear();
+    projections.clear();
+  }
+
 }
