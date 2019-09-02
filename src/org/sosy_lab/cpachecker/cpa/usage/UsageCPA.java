@@ -43,8 +43,10 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -63,7 +65,8 @@ import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 
 @Options
 public class UsageCPA extends AbstractSingleWrapperCPA
-    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+    implements ConfigurableProgramAnalysisWithBAM, ConfigurableProgramAnalysisTM,
+    StatisticsProvider {
 
   private final StopOperator stopOperator;
   private final MergeOperator mergeOperator;
@@ -197,5 +200,11 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
   public Configuration getConfig() {
     return config;
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() {
+    return new UsageApplyOperator(
+        ((ConfigurableProgramAnalysisTM) getWrappedCpa()).getApplyOperator());
   }
 }
