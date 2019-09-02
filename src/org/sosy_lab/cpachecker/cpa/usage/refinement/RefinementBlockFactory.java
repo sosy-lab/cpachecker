@@ -144,7 +144,7 @@ public class RefinementBlockFactory {
     if (bamCpa != null) {
       computer = bamCpa.createBAMMultipleSubgraphComputer(idExtractor);
     } else {
-      computer = new ARGPathRestorator();
+      computer = new ARGPathRestorator(idExtractor);
     }
 
     for (int i = RefinementChain.size() - 1; i >= 0; i--) {
