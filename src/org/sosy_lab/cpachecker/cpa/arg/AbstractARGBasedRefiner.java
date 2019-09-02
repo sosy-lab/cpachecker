@@ -100,7 +100,8 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
     assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
 
     final ARGState lastElement = (ARGState)pReached.getLastState();
-    assert lastElement.isTarget() : "Last element in reached is not a target state before refinement";
+    // assert lastElement.isTarget() : "Last element in reached is not a target state before
+    // refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
 
     final @Nullable ARGPath path = computePath(lastElement, reached);

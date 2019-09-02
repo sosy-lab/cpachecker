@@ -493,7 +493,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private void frontier(AbstractState state, Precision precision, ReachedSet reachedSet) {
 
-    if (applyOperator != null) {
+    if (applyOperator != null && reachedSet instanceof ThreadModularReachedSet) {
       // TODO currently there is apply operator in any case!
       stats.applyTimer.start();
       // do not need stop and merge as they has been already performed on projections

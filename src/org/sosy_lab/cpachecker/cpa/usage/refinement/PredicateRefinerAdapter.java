@@ -322,7 +322,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
           pRepeatedCounterexample);
 
       lastAffectedStates.clear();
-      from(pAffectedStates).transform(s -> ((BackwardARGState) s).getARGState())
+      from(pAffectedStates)
           .forEach(lastAffectedStates::add);
     }
 

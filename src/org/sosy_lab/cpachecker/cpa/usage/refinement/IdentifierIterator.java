@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -161,7 +162,14 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
   @Override
   public RefinementResult performBlockRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
 
-    UsageReachedSet uReached = (UsageReachedSet) pReached;
+    UsageReachedSet uReached;
+    if (pReached instanceof UsageReachedSet) {
+      uReached = (UsageReachedSet) pReached;
+    } else if (pReached instanceof ForwardingReachedSet) {
+      uReached = (UsageReachedSet) ((ForwardingReachedSet) pReached).getDelegate();
+    } else {
+      throw new UnsupportedOperationException("UsageRefiner requires UsageReachedSet");
+    }
     UsageContainer container = uReached.getUsageContainer();
     Set<SingleIdentifier> processedUnsafes = new HashSet<>();
 
