@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.mock;
 
-import org.junit.Assert;
+import com.google.common.testing.ClassSanityTester;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
-
-import com.google.common.testing.ClassSanityTester;
 
 public class PrecisionAdjustmentResultTest {
 
@@ -40,9 +39,9 @@ public class PrecisionAdjustmentResultTest {
     Action action = Action.BREAK;
 
     PrecisionAdjustmentResult r = PrecisionAdjustmentResult.create(state, precision, action);
-    Assert.assertSame(state, r.abstractState());
-    Assert.assertSame(precision, r.precision());
-    Assert.assertSame(action, r.action());
+    assertThat(r.abstractState()).isSameInstanceAs(state);
+    assertThat(r.precision()).isSameInstanceAs(precision);
+    assertThat(r.action()).isSameInstanceAs(action);
   }
 
   @Test
@@ -63,12 +62,12 @@ public class PrecisionAdjustmentResultTest {
     AbstractState newState = mock(AbstractState.class);
     PrecisionAdjustmentResult r2 = r1.withAbstractState(newState);
 
-    Assert.assertSame(newState, r2.abstractState());
-    Assert.assertSame(r1.precision(), r2.precision());
-    Assert.assertSame(r1.action(), r2.action());
+    assertThat(r2.abstractState()).isSameInstanceAs(newState);
+    assertThat(r2.precision()).isSameInstanceAs(r1.precision());
+    assertThat(r2.action()).isSameInstanceAs(r1.action());
 
-    Assert.assertNotEquals(r1.abstractState(), r2.abstractState());
-    Assert.assertNotEquals(r1, r2);
+    assertThat(r2.abstractState()).isNotEqualTo(r1.abstractState());
+    assertThat(r2).isNotEqualTo(r1);
   }
 
   @Test
@@ -79,12 +78,12 @@ public class PrecisionAdjustmentResultTest {
     Precision newPrecision = mock(Precision.class);
     PrecisionAdjustmentResult r2 = r1.withPrecision(newPrecision);
 
-    Assert.assertSame(r1.abstractState(), r2.abstractState());
-    Assert.assertSame(newPrecision, r2.precision());
-    Assert.assertSame(r1.action(), r2.action());
+    assertThat(r2.abstractState()).isSameInstanceAs(r1.abstractState());
+    assertThat(r2.precision()).isSameInstanceAs(newPrecision);
+    assertThat(r2.action()).isSameInstanceAs(r1.action());
 
-    Assert.assertNotEquals(r1.precision(), r2.precision());
-    Assert.assertNotEquals(r1, r2);
+    assertThat(r2.precision()).isNotEqualTo(r1.precision());
+    assertThat(r2).isNotEqualTo(r1);
   }
 
   @Test
@@ -95,11 +94,11 @@ public class PrecisionAdjustmentResultTest {
     Action newAction = Action.BREAK;
     PrecisionAdjustmentResult r2 = r1.withAction(newAction);
 
-    Assert.assertSame(r1.abstractState(), r2.abstractState());
-    Assert.assertSame(r1.precision(), r2.precision());
-    Assert.assertSame(newAction, r2.action());
+    assertThat(r2.abstractState()).isSameInstanceAs(r1.abstractState());
+    assertThat(r2.precision()).isSameInstanceAs(r1.precision());
+    assertThat(r2.action()).isSameInstanceAs(newAction);
 
-    Assert.assertNotEquals(r1.action(), r2.action());
-    Assert.assertNotEquals(r1, r2);
+    assertThat(r2.action()).isNotEqualTo(r1.action());
+    assertThat(r2).isNotEqualTo(r1);
   }
 }

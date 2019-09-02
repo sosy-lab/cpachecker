@@ -169,8 +169,7 @@ public class ARGPath extends AbstractAppender {
 
         do { // the chain must not be empty
           if (!(curNode.getNumLeavingEdges() == 1 && curNode.getLeavingSummaryEdge() == null)) {
-
-            return Collections.emptyList();
+            return ImmutableList.of();
           }
 
           CFAEdge intermediateEdge = curNode.getLeavingEdge(0);

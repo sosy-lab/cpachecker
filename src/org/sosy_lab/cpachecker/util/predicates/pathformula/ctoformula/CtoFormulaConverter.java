@@ -362,7 +362,7 @@ public class CtoFormulaConverter {
   }
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
-  protected int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
+  public int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
     int idx = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, idx);
     return idx;
@@ -513,12 +513,11 @@ public class CtoFormulaConverter {
     SSAMapBuilder ssa = pContextSSA.builder();
     Formula formula = makeVariable(pVarName, pType, ssa);
 
-    if (!ssa.build().equals(pContextSSA)) {
-      throw new IllegalArgumentException(
-          "we cannot apply the SSAMap changes to the point where the"
-              + " information would be needed possible problems: uninitialized variables could be"
-              + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
-    }
+    checkArgument(
+        ssa.build().equals(pContextSSA),
+        "we cannot apply the SSAMap changes to the point where the"
+            + " information would be needed possible problems: uninitialized variables could be"
+            + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
 
     return formula;
   }
@@ -1795,4 +1794,12 @@ public class CtoFormulaConverter {
    * @param out - output stream
    */
   public void printStatistics(PrintStream out) {}
+
+  public MachineModel getMachineModel() {
+    return machineModel;
+  }
+
+  public Optional<VariableClassification> getVariableClassification() {
+    return variableClassification;
+  }
 }

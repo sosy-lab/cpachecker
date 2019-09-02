@@ -27,10 +27,12 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -296,6 +298,22 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula resetSharedVariables(PathFormula pPathFormula) {
+    SSAMap oldSSA = pPathFormula.getSsa();
+    PointerTargetSet oldPts = pPathFormula.getPointerTargetSet();
+    SSAMapBuilder ssaBuilder = oldSSA.builder();
+
+    for (String var : oldSSA.allVariables()) {
+      if (var.contains("::")) {
+        // local variable
+      } else {
+        converter.makeFreshIndex(var, oldSSA.getType(var), ssaBuilder);
+      }
+    }
+    return makeNewPathFormula(pPathFormula, ssaBuilder.build(), oldPts);
+  }
+
+  @Override
   public PathFormula makeEmptyPathFormula() {
     return new PathFormula(bfmgr.makeTrue(),
                            SSAMap.emptySSAMap(),
@@ -422,7 +440,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
-    return buildBranchingFormula(elementsOnPath, Collections.emptyMap());
+    return buildBranchingFormula(elementsOnPath, ImmutableMap.of());
   }
 
   /**
@@ -528,7 +546,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     // Do not use fmgr here, this fails if a separate solver is used for interpolation.
     if (!model.iterator().hasNext()) {
       logger.log(Level.WARNING, "No satisfying assignment given by solver!");
-      return Collections.emptyMap();
+      return ImmutableMap.of();
     }
 
     Map<Integer, Boolean> preds = new HashMap<>();

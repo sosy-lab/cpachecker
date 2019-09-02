@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-
 public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageInfoSet, UsageInfoSet>>{
 
   private UsageContainer container;
@@ -137,11 +136,11 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
     UsageInfoSet firstUsageInfoSet = pPair.getFirst();
     UsageInfoSet secondUsageInfoSet = pPair.getSecond();
 
-    if (firstUsageInfoSet.size() == 0) {
+    if (firstUsageInfoSet.isEmpty()) {
       //No reachable usages - remove point
       toRemove.add(firstPoint);
     }
-    if (secondUsageInfoSet.size() == 0) {
+    if (secondUsageInfoSet.isEmpty()) {
       //No reachable usages - remove point
       toRemove.add(secondPoint);
     }

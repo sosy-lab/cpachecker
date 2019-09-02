@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -88,7 +89,9 @@ public class BAMSubgraphComputer {
    * the new CEX-graph contains the states of the most-outer block/reached-set.
    *
    * @param target a state from the reachedSet, is used as the last state of the returned subgraph.
-   * @param pMainReachedSet most outer reached set, contains the target-state.
+   * @param pMainReachedSet most outer reached set corresponding to the current refinement. The
+   *     given reached-set can be nested inside another reached-set, which must not be used in the
+   *     current refinement. The given reached-set contains the target-state.
    * @return root and target of a subgraph, that contains all states on all paths to newTreeTarget.
    *     The subgraph contains only copies of the real ARG states, because one real state can be
    *     used multiple times in one path.
@@ -109,8 +112,12 @@ public class BAMSubgraphComputer {
     assert mainRs.asCollection().containsAll(targets)
       : "target states should be contained in reached-set. The following states are not contained: "
         + Iterables.filter(targets, s -> !mainRs.contains(s));
-    assert !targets.isEmpty() : "cannot compute subgraph without target states";
-    Collection<BackwardARGState> newTargets = from(targets).transform(BackwardARGState::new).toList();
+    if (targets.isEmpty()) {
+      // cannot compute subgraph without target states
+      return Pair.of(new BackwardARGState((ARGState) mainRs.getFirstState()), ImmutableList.of());
+    }
+    Collection<BackwardARGState> newTargets =
+        transformedImmutableListCopy(targets, BackwardARGState::new);
     BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet, newTargets);
     assert mainRs.getFirstState() == root.getARGState();
     return Pair.of(root, newTargets);

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.abe;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -30,9 +31,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Interface to be implemented by the subclassing CPA.
@@ -56,14 +54,9 @@ public interface ABEManager
     AbstractState fullState
   ) throws CPATransferException, InterruptedException;
 
-  /**
-   * Post-abstraction strengthening.
-   */
+  /** Post-abstraction strengthening. */
   Optional<ABEAbstractedState<A>> strengthen(
-      ABEAbstractedState<A> pState,
-      P pPrecision,
-      List<AbstractState> pOtherStates
-  );
+      ABEAbstractedState<A> pState, P pPrecision, Iterable<AbstractState> pOtherStates);
 
   /**
    * Coverage checking on abstracted states.

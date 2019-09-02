@@ -79,7 +79,7 @@ class BAMARGUtils {
 
     worklist.add(firstElement);
 
-    while (worklist.size() != 0) {
+    while (!worklist.isEmpty()) {
       ARGState currentElement = worklist.removeLast();
 
       assert reachedSet.contains(currentElement);
@@ -145,8 +145,7 @@ class BAMARGUtils {
           copyStateInner = stateToCopyElem.get(c);
         }
         copyStateInner.addParent(copyState);
-        if (!visited.contains(c)) {
-          visited.add(c);
+        if (visited.add(c)) {
           toVisit.add(c);
         }
       }
@@ -158,8 +157,7 @@ class BAMARGUtils {
         } else {
           copyStateInner = stateToCopyElem.get(current.getCoveringState());
         }
-        if (!visited.contains(current.getCoveringState())) {
-          visited.add(current.getCoveringState());
+        if (visited.add(current.getCoveringState())) {
           toVisit.add(current.getCoveringState());
         }
         copyState.setCovered(copyStateInner);

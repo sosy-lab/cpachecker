@@ -23,13 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
 import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -58,19 +65,22 @@ public class PredicateMergeOperator implements MergeOperator {
   private final TimerWrapper totalMergeTimer;
 
   private final boolean abstractionLattice;
+  private final boolean joinEffectsIntoUndef;
 
   public PredicateMergeOperator(
       LogManager pLogger,
       BooleanFormulaManager pMngr,
       PathFormulaManager pPfmgr,
       PredicateStatistics pStatistics,
-      boolean pAbstractionLattice) {
+      boolean pAbstractionLattice,
+      boolean pJoin) {
     logger = pLogger;
     formulaManager = pPfmgr;
     statistics = pStatistics;
     mngr = pMngr;
     totalMergeTimer = statistics.totalMergeTime.getNewTimer();
     abstractionLattice = pAbstractionLattice;
+    joinEffectsIntoUndef = pJoin;
   }
 
   @Override
@@ -153,15 +163,81 @@ public class PredicateMergeOperator implements MergeOperator {
 
     assert edge1 instanceof PredicateAbstractEdge && edge2 instanceof PredicateAbstractEdge;
 
-    Collection<CAssignment> formulas1 = ((PredicateAbstractEdge) edge1).getAssignments();
-    Collection<CAssignment> formulas2 = ((PredicateAbstractEdge) edge2).getAssignments();
+    if (edge1 == PredicateAbstractEdge.getHavocEdgeInstance()
+        || edge2 == PredicateAbstractEdge.getHavocEdgeInstance()) {
+      return PredicateAbstractEdge.getHavocEdgeInstance();
+    }
 
-    if (formulas2.containsAll(formulas1)) {
+
+    Collection<CAssignment> formulas2 = ((PredicateAbstractEdge) edge2).getAssignments();
+    Collection<CAssignment> newFormulas1 =
+    from(((PredicateAbstractEdge) edge1).getAssignments()).filter(s -> !formulas2.contains(s)).toSet();
+
+    if (newFormulas1.isEmpty()) {
       return edge2;
     } else {
-      Collection<CAssignment> newFormulas = Sets.newHashSet(formulas1);
-      newFormulas.addAll(formulas2);
-      return new PredicateAbstractEdge(newFormulas);
+
+      if (joinEffectsIntoUndef) {
+        Set<CLeftHandSide> newAssignments1 =
+            from(newFormulas1).transform(CAssignment::getLeftHandSide).toSet();
+        Set<CLeftHandSide> assignments2 =
+            from(formulas2).transform(CAssignment::getLeftHandSide).toSet();
+        Set<CLeftHandSide> commonPart = Sets.intersection(newAssignments1, assignments2);
+        if (commonPart.isEmpty()) {
+          Collection<CAssignment> newFormulas = Sets.newHashSet(formulas2);
+          newFormulas.addAll(newFormulas1);
+          return new PredicateAbstractEdge(newFormulas);
+        } else {
+          Collection<CAssignment> newFormulas = new HashSet<>();
+          copyFormulas(newFormulas, newFormulas1, commonPart);
+          copyFormulas(newFormulas, formulas2, commonPart);
+
+          boolean newFormulasFound = false;
+          // Base on the second to be close to merge def.
+          for (CAssignment asgn : formulas2) {
+            CLeftHandSide left = asgn.getLeftHandSide();
+            if (commonPart.contains(left)) {
+              CRightHandSide right = asgn.getRightHandSide();
+              if (right.toASTString().contains("__VERIFIER_nondet")) {
+                // TODO make it with a special class
+                // Already nondet function, skip
+              } else {
+                CFunctionCallExpression fExp =
+                    PredicateApplyOperator.prepareUndefFunctionFor(right);
+
+                CAssignment newAssignement =
+                    new CFunctionCallAssignmentStatement(fExp.getFileLocation(), left, fExp);
+                newFormulas.add(newAssignement);
+                newFormulasFound = true;
+              }
+            }
+          }
+
+          if (commonPart.equals(newAssignments1) && !newFormulasFound) {
+            // Common part is covered
+            return edge2;
+          }
+
+          return new PredicateAbstractEdge(newFormulas);
+        }
+
+      } else {
+        Collection<CAssignment> newFormulas = Sets.newHashSet(formulas2);
+        newFormulas.addAll(newFormulas1);
+        return new PredicateAbstractEdge(newFormulas);
+      }
+    }
+  }
+
+  private void copyFormulas(
+      Collection<CAssignment> result,
+      Collection<CAssignment> origin,
+      Set<CLeftHandSide> toSkip) {
+    for (CAssignment asgn : origin) {
+      CLeftHandSide left = asgn.getLeftHandSide();
+      if (!toSkip.contains(left)) {
+        result.add(asgn);
+      }
     }
   }
 

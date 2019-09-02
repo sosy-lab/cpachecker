@@ -351,8 +351,8 @@ class AssignmentHandler {
       final boolean pUseOldSSAIndices)
       throws UnrecognizedCodeException, InterruptedException {
 
-    assert pAssignments.size() > 0 : "Cannot handle initialization assignments without an "
-        + "assignment right hand side.";
+    assert !pAssignments.isEmpty()
+        : "Cannot handle initialization assignments without an " + "assignment right hand side.";
 
     final CType lhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getLeftHandSide());
     final CType rhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getRightHandSide());

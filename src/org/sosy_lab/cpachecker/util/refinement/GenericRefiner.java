@@ -96,6 +96,15 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   @Option(secure = true, description="store all refined paths")
   private boolean storeAllRefinedPaths = false;
 
+  @Option(
+      secure = true,
+      description =
+          "completely disable the tracking of found error paths in the refiner, "
+              + "i.e., disable the detection of repeated counterexamples")
+  // tracking repeated counterexamples is useful for developing new approaches.
+  // however, they should (in an ideal world) never occur in an analysis.
+  private boolean disableErrorPathTracking = false;
+
   @Option(secure = true, description="whether or not to add assumptions to counterexamples,"
       + " e.g., for supporting counterexample checks")
   private boolean addAssumptionsToCex = true;
@@ -136,6 +145,10 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   }
 
   private boolean madeProgress(ARGPath path) {
+    if (disableErrorPathTracking) {
+      return true;
+    }
+
     boolean progress = (previousErrorPathIds.isEmpty() || !previousErrorPathIds.contains(obtainErrorPathId(path)));
 
     if (!storeAllRefinedPaths) {

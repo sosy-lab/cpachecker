@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,9 +29,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -49,11 +47,49 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
 /** Prints some BAM related statistics */
 @Options(prefix = "cpa.bam")
 class BAMCPAStatistics implements Statistics {
+
+  // stats about refinement
+  final ThreadSafeTimerContainer computePathTimer =
+      new ThreadSafeTimerContainer("Compute path for refinement");
+  final ThreadSafeTimerContainer computeSubtreeTimer =
+      new ThreadSafeTimerContainer("Constructing flat ARG");
+  final ThreadSafeTimerContainer computeCounterexampleTimer =
+      new ThreadSafeTimerContainer("Searching path to error location");
+  final ThreadSafeTimerContainer removeCachedSubtreeTimer =
+      new ThreadSafeTimerContainer("Removing cached subtrees");
+
+  final StatCounter refinementWithMissingBlocks =
+      new StatCounter("Number of refinements with a missing block");
+  final StatCounter startedRefinements = new StatCounter("Number of started refinements");
+  final StatCounter spuriousCex = new StatCounter("Number of spurious counterexamples");
+  final StatCounter preciseCex = new StatCounter("Number of precise counterexamples");
+
+  final StatCounter algorithmInstances = new StatCounter("Number of created nested algortihms");
+  final StatHist depthsOfTargetStates =
+      new StatHist("Nesting level of target states with caching") {
+        @Override
+        public String toString() {
+          return String.format(
+              "%.2f (#=%d, min=%d, max=%d, hist=%s)",
+              getAvg(), getUpdateCount(), getMin(), getMax(), hist);
+        }
+      };
+  final StatHist depthsOfFoundTargetStates =
+      new StatHist("Nesting level of target states without caching") {
+        @Override
+        public String toString() {
+          return String.format(
+              "%.2f (#=%d, min=%d, max=%d, hist=%s)",
+              getAvg(), getUpdateCount(), getMin(), getMax(), hist);
+        }
+      };
 
   @Option(secure = true, description = "file for exporting detailed statistics about blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -61,7 +97,6 @@ class BAMCPAStatistics implements Statistics {
 
   private final LogManager logger;
   private final AbstractBAMCPA cpa;
-  private List<BAMBasedRefiner> refiners = new ArrayList<>();
 
   private int maxRecursiveDepth = 0;
   private final Map<Block, Timer> timeForBlock = new LinkedHashMap<>();
@@ -76,10 +111,6 @@ class BAMCPAStatistics implements Statistics {
   @Override
   public String getName() {
     return "BAMCPA";
-  }
-
-  public void addRefiner(BAMBasedRefiner pRefiner) {
-    refiners.add(pRefiner);
   }
 
   void updateBlockNestingLevel(int newLevel) {
@@ -103,16 +134,21 @@ class BAMCPAStatistics implements Statistics {
     put(out, 0, cpa.reducerStatistics.expandTime);
     put(out, 0, cpa.reducerStatistics.reducePrecisionTime);
     put(out, 0, cpa.reducerStatistics.expandPrecisionTime);
-
-    for (BAMBasedRefiner refiner : refiners) {
-      // TODO We print these statistics also for use-cases of BAM-refiners, that never use timers.
-      // Can we ignore them?
-      out.println("\n" + refiner.getClass().getSimpleName() + ":");
-      put(out, 1, refiner.computePathTimer);
-      put(out, 1, refiner.computeSubtreeTimer);
-      put(out, 1, refiner.computeCounterexampleTimer);
-      put(out, 1, refiner.removeCachedSubtreeTimer);
+    put(out, 0, algorithmInstances);
+    if (depthsOfTargetStates.getUpdateCount() > 0) {
+      put(out, 0, depthsOfTargetStates);
+      put(out, 0, depthsOfFoundTargetStates);
     }
+
+    out.println("\nBAM-based Refinement:");
+    put(out, 1, computePathTimer);
+    put(out, 1, computeSubtreeTimer);
+    put(out, 1, computeCounterexampleTimer);
+    put(out, 1, removeCachedSubtreeTimer);
+    put(out, 1, refinementWithMissingBlocks);
+    put(out, 1, startedRefinements);
+    put(out, 1, spuriousCex);
+    put(out, 1, preciseCex);
 
     writeBlockStatistics(out);
   }
@@ -134,17 +170,18 @@ class BAMCPAStatistics implements Statistics {
     }
 
     // write data
-    put(out, "Analyzed blocks", timeForBlock.size());
-    put(out, "Avg. time for block analysis", ofMillis((long) allTimers.getAvg()));
-    put(out, "Mean time for block analysis", ofMillis(allTimers.getMean()));
-    put(out, "Min time for block analysis", ofMillis(allTimers.getMin()));
-    put(out, "Max time for block analysis", ofMillis(allTimers.getMax()));
-    put(out, "StdDev time for block analysis", ofMillis((long) allTimers.getStdDeviation()));
-    put(out, "Total time for block analysis", ofMillis((long) allTimers.getSum()));
+    put(out, 1, "Analyzed blocks", timeForBlock.size());
+    put(out, 1, "Avg. time for block analysis", ofMillis((long) allTimers.getAvg()));
+    put(out, 1, "Mean time for block analysis", ofMillis(allTimers.getMean()));
+    put(out, 1, "Min time for block analysis", ofMillis(allTimers.getMin()));
+    put(out, 1, "Max time for block analysis", ofMillis(allTimers.getMax()));
+    put(out, 1, "StdDev time for block analysis", ofMillis((long) allTimers.getStdDeviation()));
+    put(out, 1, "Total time for block analysis", ofMillis((long) allTimers.getSum()));
 
     if (timeForBlock.containsKey(cpa.getBlockPartitioning().getMainBlock())) {
       put(
           out,
+          1,
           "Time for main block",
           String.format(
               "%s (%s)",

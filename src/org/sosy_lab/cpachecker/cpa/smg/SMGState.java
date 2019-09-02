@@ -27,6 +27,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -40,11 +41,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -104,7 +105,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   // use 'id' and 'precessorId' only for debugging or logging, never for important stuff!
   // TODO remove to avoid problems?
-  private static final AtomicInteger ID_COUNTER = new AtomicInteger(0);
+  private static final UniqueIdGenerator ID_COUNTER = new UniqueIdGenerator();
   private final int predecessorId;
   private final int id;
 
@@ -158,8 +159,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         pLogger,
         pOptions,
         new CLangSMG(pMachineModel),
-        ID_COUNTER.getAndIncrement(),
-        Collections.emptyMap());
+        ID_COUNTER.getFreshId(),
+        ImmutableMap.of());
   }
 
   public SMGState(
@@ -184,7 +185,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap = pHeap;
     logger = pLogger;
     predecessorId = pPredId;
-    id = ID_COUNTER.getAndIncrement();
+    id = ID_COUNTER.getFreshId();
     Preconditions.checkArgument(!pExplicitValues.containsKey(null));
     Preconditions.checkArgument(!pExplicitValues.containsValue(null));
     explicitValues.putAll(pExplicitValues);
@@ -197,7 +198,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id = ID_COUNTER.getAndIncrement();
+    id = ID_COUNTER.getFreshId();
     explicitValues.putAll(pOriginalState.explicitValues);
     blockEnded = pOriginalState.blockEnded;
     errorInfo = pOriginalState.errorInfo.withProperty(pProperty);
@@ -223,8 +224,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     if (errorInfo.equals(pOther.errorInfo)) {
       return this;
     }
-    SMGState result =
-        new SMGState(logger, options, heap, ID_COUNTER.getAndIncrement(), explicitValues);
+    SMGState result = new SMGState(logger, options, heap, ID_COUNTER.getFreshId(), explicitValues);
     result.errorInfo = result.errorInfo.mergeWith(pOther.errorInfo);
     return result;
   }
@@ -502,7 +502,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     for (SMGEdgeHasValue edge : fields) {
       heap.addHasValueEdge(
-          new SMGEdgeHasValue(edge.getType(), edge.getOffset(), newObject, edge.getValue()));
+          new SMGEdgeHasValue(
+              edge.getType(), edge.getSizeInBits(), edge.getOffset(), newObject, edge.getValue()));
     }
 
     for (SMGEdgePointsTo edge : pointer) {
@@ -678,7 +679,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     for (SMGEdgeHasValue hve : oldFieldsEdges) {
       heap.addHasValueEdge(
-          new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newSll, hve.getValue()));
+          new SMGEdgeHasValue(
+              hve.getType(), hve.getSizeInBits(), hve.getOffset(), newSll, hve.getValue()));
     }
 
     for (SMGEdgePointsTo ptE : oldPtEdges) {
@@ -796,7 +798,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     for (SMGEdgeHasValue hve : oldFieldsEdges) {
       heap.addHasValueEdge(
-          new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newDll, hve.getValue()));
+          new SMGEdgeHasValue(
+              hve.getType(), hve.getSizeInBits(), hve.getOffset(), newDll, hve.getValue()));
     }
 
     for (SMGEdgePointsTo ptE : oldPtEdges) {
@@ -871,10 +874,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           }
         }
         heap.addHasValueEdge(
-            new SMGEdgeHasValue(hve.getType(), hve.getOffset(), pNewRegion, newVal));
+            new SMGEdgeHasValue(
+                hve.getType(), hve.getSizeInBits(), hve.getOffset(), pNewRegion, newVal));
       } else {
         MachineModel model = heap.getMachineModel();
-        int sizeOfHveInBits = hve.getSizeInBits(model);
+        int sizeOfHveInBits = (int) hve.getSizeInBits();
         /*If a restricted field is 0, and bigger than a pointer, add 0*/
         if (sizeOfHveInBits > model.getSizeofPtrInBits() && hve.getValue().isZero()) {
           long offset = hve.getOffset() + model.getSizeofPtrInBits();
@@ -953,7 +957,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           }
         }
       }
-      heap.addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newObj, newVal));
+      heap.addHasValueEdge(
+          new SMGEdgeHasValue(hve.getType(), hve.getSizeInBits(), hve.getOffset(), newObj, newVal));
     }
   }
 
@@ -1095,12 +1100,18 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return SMGValueAndState.of(newState);
     }
 
-    SMGEdgeHasValue edge = new SMGEdgeHasValue(pType, pOffset, pObject, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue edge =
+        new SMGEdgeHasValue(
+            pType,
+            heap.getMachineModel().getSizeofInBits(pType),
+            pOffset,
+            pObject,
+            SMGZeroValue.INSTANCE);
 
     SMGEdgeHasValueFilter filter =
         SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pOffset);
     for (SMGEdgeHasValue object_edge : heap.getHVEdges(filter)) {
-      if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())) {
+      if (edge.isCompatibleFieldOnSameObject(object_edge)) {
         performConsistencyCheck(SMGRuntimeCheck.HALF);
         addElementToCurrentChain(object_edge);
         return SMGValueAndState.of(this, (SMGSymbolicValue) object_edge.getValue());
@@ -1190,7 +1201,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return new SMGStateEdgePair(newState);
     }
 
-    SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pType, pOffset, pObject, pValue);
+    SMGEdgeHasValue new_edge =
+        new SMGEdgeHasValue(
+            pType, heap.getMachineModel().getSizeofInBits(pType), pOffset, pObject, pValue);
 
     // Check if the edge is  not present already
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
@@ -1210,7 +1223,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
      */
     for (SMGEdgeHasValue hv : edges) {
 
-      boolean hvEdgeOverlaps = new_edge.overlapsWith(hv, heap.getMachineModel());
+      boolean hvEdgeOverlaps = new_edge.overlapsWith(hv);
       boolean hvEdgeIsZero = hv.getValue() == SMGZeroValue.INSTANCE;
 
       if (hvEdgeOverlaps) {
@@ -1269,8 +1282,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGObject object = pNew_edge.getObject();
     long offset = pNew_edge.getOffset();
 
-    MachineModel maModel = heap.getMachineModel();
-    int sizeOfType = pNew_edge.getSizeInBits(maModel);
+    long sizeOfType = pNew_edge.getSizeInBits();
 
     // Shrink overlapping zero edges
     for (SMGEdgeHasValue zeroEdge : pOverlappingZeroEdges) {
@@ -1279,7 +1291,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       long zeroEdgeOffset = zeroEdge.getOffset();
 
       long offset2 = offset + sizeOfType;
-      long zeroEdgeOffset2 = zeroEdgeOffset + zeroEdge.getSizeInBits(maModel);
+      long zeroEdgeOffset2 = zeroEdgeOffset + zeroEdge.getSizeInBits();
 
       if (zeroEdgeOffset < offset) {
         SMGEdgeHasValue newZeroEdge =
@@ -1683,7 +1695,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     // Remove all target edges in range
     for (SMGEdgeHasValue edge : getHVEdges(filterTarget)) {
-      if (edge.overlapsWith(pTargetOffset, targetRangeSize, heap.getMachineModel())) {
+      if (edge.overlapsWith(pTargetOffset, targetRangeSize)) {
         heap.removeHasValueEdge(edge);
 
         // Shrink overlapping zero edge
@@ -1700,7 +1712,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
                     SMGZeroValue.INSTANCE));
           }
 
-          long zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBits(heap.getMachineModel());
+          long zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBits();
           if (targetRangeSize < zeroEdgeOffset2) {
             heap.addHasValueEdge(
                 new SMGEdgeHasValue(
@@ -1716,7 +1728,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // Shift the source edge offset depending on the target range offset
     long copyShift = pTargetOffset - pSourceOffset;
     for (SMGEdgeHasValue edge : getHVEdges(filterSource)) {
-      if (edge.overlapsWith(pSourceOffset, pSourceLastCopyBitOffset, heap.getMachineModel())) {
+      if (edge.overlapsWith(pSourceOffset, pSourceLastCopyBitOffset)) {
         long offset = edge.getOffset() + copyShift;
         newSMGState = writeValue0(pTarget, offset, edge.getType(), edge.getValue()).getState();
       }

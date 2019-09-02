@@ -45,6 +45,10 @@ public interface UnmodifiableCLangSMG extends UnmodifiableSMG {
 
   SMGRegion getObjectForVisibleVariable(String pVariableName);
 
+  /**
+   * Returns the (unmodifiable) stack of frames containing objects. The frames are ordered from
+   * bottom (main function) to top (most local function call).
+   */
   PersistentStack<CLangStackFrame> getStackFrames();
 
   /** return a unmodifiable view on all SMG-objects on the heap. */

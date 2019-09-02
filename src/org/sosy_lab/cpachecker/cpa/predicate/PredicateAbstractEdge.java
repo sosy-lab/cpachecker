@@ -25,6 +25,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 
 public class PredicateAbstractEdge implements AbstractEdge {
 
+  private final static PredicateAbstractEdge havocEdge = new PredicateAbstractEdge(null);
+
   private final Collection<CAssignment> assignment;
 
   PredicateAbstractEdge(Collection<CAssignment> pAssignment) {
@@ -33,5 +35,9 @@ public class PredicateAbstractEdge implements AbstractEdge {
 
   public Collection<CAssignment> getAssignments() {
     return assignment;
+  }
+
+  public static PredicateAbstractEdge getHavocEdgeInstance() {
+    return havocEdge;
   }
 }

@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -313,7 +314,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd) {
 
-    assert (locStack.size() > 0) : "not in a function's scope";
+    assert (!locStack.isEmpty()) : "not in a function's scope";
 
     CFANode prevNode = locStack.pop();
 
@@ -419,7 +420,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category declarations
    */
   private int handleFunctionDefinition(final IASTFunctionDefinition declaration) {
-    if (locStack.size() != 0) {
+    if (!locStack.isEmpty()) {
       throw parseContext.parseError("nested function declarations unsupported", declaration);
     }
 
@@ -845,8 +846,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       if (isReachableNode(prevNode)) {
 
         for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
-          if ((prevEdge instanceof BlankEdge)
-              && prevEdge.getDescription().equals("")) {
+          if ((prevEdge instanceof BlankEdge) && prevEdge.getDescription().isEmpty()) {
 
             // the only entering edge is a BlankEdge, so we delete this edge and prevNode
 
@@ -1310,7 +1310,8 @@ class CFAFunctionBuilder extends ASTVisitor {
               fileLocation.getStartingLineNumber(),
               loc.getEndingLineNumber(),
               fileLocation.getStartingLineInOrigin(),
-              loc.getEndingLineInOrigin());
+              loc.getEndingLineInOrigin(),
+              fileLocation.isOffsetRelatedToOrigin() && loc.isOffsetRelatedToOrigin());
     }
 
     CExpression expression = exp;
@@ -1628,7 +1629,8 @@ class CFAFunctionBuilder extends ASTVisitor {
         f.getStartingLineNumber(),
         f.getStartingLineNumber(),
         f.getStartingLineInOrigin(),
-        f.getStartingLineInOrigin());
+        f.getStartingLineInOrigin(),
+        f.isOffsetRelatedToOrigin());
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -1790,7 +1792,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       case NORMAL:
         assert ASTOperatorConverter.isBooleanExpression(exp);
         addConditionEdges(
-            exp, rootNode, caseNode, notCaseNode, fileLocation, false, Collections.emptySet());
+            exp, rootNode, caseNode, notCaseNode, fileLocation, false, ImmutableSet.of());
         nextCaseStartsAtNode = notCaseNode;
         break;
 
@@ -1862,7 +1864,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           notCaseNode,
           fileLocation,
           false,
-          Collections.emptySet());
+          ImmutableSet.of());
       nextCaseStartsAtNode = notCaseNode;
     }
 

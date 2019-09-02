@@ -56,8 +56,16 @@ class PredicateCpaOptions {
   @Option(secure = true, description = "Merge only effects with equal abstractions.")
   private boolean abstractionLattice = false;
 
+  @Option(secure = true, description = "Join effects into undefs or just combine assignments.")
+  private boolean joinEffectsIntoUndefs = true;
+
   @Option(secure = true, description = "Use formula reporting states for strengthening.")
   private boolean strengthenWithFormulaReportingStates = false;
+
+  @Option(
+      secure = true,
+      description = "Check satisfiability for plain conjunction of edge and assumptions.")
+  private boolean assumptionStrengtheningSatCheck = false;
 
   PredicateCpaOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -89,5 +97,13 @@ class PredicateCpaOptions {
 
   boolean abstractionLattice() {
     return abstractionLattice;
+  }
+
+  boolean joinEffectsIntoUndefs() {
+    return joinEffectsIntoUndefs;
+  }
+
+  public boolean assumptionStrengtheningSatCheck() {
+    return assumptionStrengtheningSatCheck;
   }
 }

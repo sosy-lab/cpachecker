@@ -634,6 +634,7 @@ cfa.callgraph.export = true
 
 # file name for call graph as .dot file
 cfa.callgraph.file = "functionCalls.dot"
+cfa.callgraph.fileUsed = "functionCallsUsed.dot"
 
 # how often do we clone a function?
 cfa.cfaCloner.numberOfCopies = 5
@@ -1011,6 +1012,10 @@ cpa.arg.automaton.splitStrategy = TARGETS
 
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
+
+# prevent the stop-operator from aborting the stop-check early when it
+# crosses a target state
+cpa.arg.coverTargetStates = false
 
 # inform merge operator in CPA enabled analysis that it should delete the
 # subgraph of the merged node which is required to get at most one successor
@@ -1411,6 +1416,15 @@ cpa.constraints.satCheckStrategy = AT_ASSUME
 # Try model of predecessor constraints state before running SMT solver
 cpa.constraints.useLastModel = true
 
+# Set number of refinements for the trace abstraction algorithm
+cpa.dca.refiner.maxRefinementIterations = 0
+
+# Allows to abort the analysis early in order to only produce the ARG
+cpa.dca.refiner.skipAnalysis = false
+
+# Abort the refinement of finite prefixes for the purpose of better debugging
+cpa.dca.refiner.skipFiniteRefinement = false
+
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
@@ -1536,7 +1550,7 @@ cpa.local.allocatefunctions = {}
 cpa.local.conservativefunctions = {}
 
 # variables, which are always local
-cpa.local.localvariables = Collections.emptySet()
+cpa.local.localvariables = {}
 
 # Use special states with edges
 cpa.location.enableStatesWithEdges = false
@@ -1786,6 +1800,9 @@ cpa.predicate.addRangeConstraintsForNondet = false
 # Apply only relevant effects.
 cpa.predicate.applyRelevantEffects = false
 
+# Check satisfiability for plain conjunction of edge and assumptions.
+cpa.predicate.assumptionStrengtheningSatCheck = false
+
 # Enable/disable abstraction reduction at the BAM block entry
 cpa.predicate.bam.useAbstractionReduction = true
 
@@ -1918,6 +1935,9 @@ cpa.predicate.handlePointerAliasing = true
 # assigning a fresh non-det address to it
 cpa.predicate.handleStringLiteralInitializers = false
 
+# reset shared variables values
+cpa.predicate.havocAbstraction2 = false
+
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
 # replaced with Integer or Rational.
 cpa.predicate.ignoreExtractConcat = true
@@ -1994,6 +2014,9 @@ cpa.predicate.invariants.useGlobalInvariants = true
 # analysis, however, the found invariants may also be better for loops as
 # interpolation.)
 cpa.predicate.invariants.useStrongInvariantsOnly = true
+
+# Join effects into undefs or just combine assignments.
+cpa.predicate.joinEffectsIntoUndefs = true
 
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
@@ -2347,6 +2370,9 @@ cpa.predicate.useConstraintOptimization = true
 # of shared variables.
 cpa.predicate.useHavocAbstraction = false
 
+# use a precise path formula manager together with imprecise
+cpa.predicate.useImpreciseFormulaManager = false
+
 # Use regions for pointer analysis. So called Burstall&Bornat (BnB) memory
 # regions will be used for pointer analysis. BnB regions are based not only
 # on type, but also on structure field names. If the field is not accessed by
@@ -2688,6 +2714,11 @@ cpa.threading.useClonedFunctions = true
 # only reads and writes its own variables.
 cpa.threading.useLocalAccessLocks = true
 
+# Instead of updating precision and arg we say that the refinement was not
+# successful after N times of refining. A real error state is not necessary
+# to be found. Use 0 for unlimited refinements (default).
+cpa.threadmodular.refinement.stopAfterNRefinements = 0
+
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
@@ -2863,7 +2894,7 @@ cpa.value.interpolation.manageCallstack = true
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
-  allowed values: [SEP, JOIN]
+  allowed values: [SEP, JOIN, TRANSITIONS]
 
 # Assume that variables used only in a boolean context are either zero or
 # one.
@@ -2886,6 +2917,10 @@ cpa.value.refinement.avoidSimilarRepeatedRefinement = false
 # state's precision is kept.
 cpa.value.refinement.basisStrategy = SUBGRAPH
   enum:     [ALL, SUBGRAPH, TARGET, CUTPOINT]
+
+# completely disable the tracking of found error paths in the refiner, i.e.,
+# disable the detection of repeated counterexamples
+cpa.value.refinement.disableErrorPathTracking = false
 
 # whether or not to do lazy-abstraction
 cpa.value.refinement.doLazyAbstraction = true
@@ -3804,6 +3839,9 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# compress the produced violation-witness automata using GZIP compression.
+termination.compressWitness = true
 
 # When checking for the termination property, use this configuration file
 # instead of the current one.

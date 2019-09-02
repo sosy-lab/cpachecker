@@ -79,7 +79,7 @@ public class FormulaLinearizationManager {
   }
 
   private BooleanFormula annotateDisjunction(List<BooleanFormula> args) {
-    assert args.size() != 0;
+    assert !args.isEmpty();
     if (args.size() == 1) {
       return args.get(0);
     } else {

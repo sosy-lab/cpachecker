@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import com.google.common.base.Predicates;
@@ -192,7 +193,7 @@ public class CounterexampleCheckAlgorithm
               "Error path found, but identified as infeasible by counterexample check with "
                   + checkerType
                   + ".",
-              from(infeasibleErrorPaths).transform(ARGUtils::getOnePathTo).toList());
+              transformedImmutableListCopy(infeasibleErrorPaths, ARGUtils::getOnePathTo));
         }
       } finally {
         checkTime.stop();

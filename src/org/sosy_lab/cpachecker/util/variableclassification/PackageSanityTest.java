@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.util.variableclassification;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.testing.AbstractPackageSanityTests;
-import java.util.Collections;
 import java.util.HashMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -46,10 +46,10 @@ public class PackageSanityTest extends AbstractPackageSanityTests {
 
     CCompositeType dummystruct =
         new CCompositeType(
-            false, false, ComplexTypeKind.STRUCT, Collections.emptyList(), "dummy", "dummy");
+            false, false, ComplexTypeKind.STRUCT, ImmutableList.of(), "dummy", "dummy");
     CCompositeType dummyunion =
         new CCompositeType(
-            false, false, ComplexTypeKind.UNION, Collections.emptyList(), "dummy", "dummy");
+            false, false, ComplexTypeKind.UNION, ImmutableList.of(), "dummy", "dummy");
     setDefault(CCompositeType.class, dummystruct);
 
     setDistinctValues(CCompositeType.class, dummystruct, dummyunion);

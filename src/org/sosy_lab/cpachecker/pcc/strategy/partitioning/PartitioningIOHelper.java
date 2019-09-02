@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -161,7 +163,7 @@ public class PartitioningIOHelper {
 
   public void readPartition(final ObjectInputStream pIn, final PCStrategyStatistics pStats, final Lock pLock)
       throws ClassNotFoundException, IOException {
-    if (pLock == null) { throw new IllegalArgumentException("Cannot protect against parallel access"); }
+    checkArgument(pLock != null, "Cannot protect against parallel access");
     Pair<AbstractState[], AbstractState[]> result = readPartitionContent(pIn);
     int partialProofSize = result.getFirst().length+result.getSecond().length;
     pLock.lock();

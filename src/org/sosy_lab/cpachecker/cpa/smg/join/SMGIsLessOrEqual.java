@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.Iterables;
 import java.util.Iterator;
 import java.util.Map;
@@ -230,13 +232,13 @@ public class SMGIsLessOrEqual {
       SMGObject pSMGObject1,
       SMGObject pSMGObject2) {
 
-    if (pSMGObject1.getSize() != pSMGObject2.getSize()) {
-      throw new IllegalArgumentException("SMGJoinFields object arguments need to have identical size");
-    }
+    checkArgument(
+        pSMGObject1.getSize() == pSMGObject2.getSize(),
+        "SMGJoinFields object arguments need to have identical size");
 
-    if (!(pSMG1.getObjects().contains(pSMGObject1) && pSMG2.getObjects().contains(pSMGObject2))) {
-      throw new IllegalArgumentException("SMGJoinFields object arguments need to be included in parameter SMGs");
-    }
+    checkArgument(
+        (pSMG1.getObjects().contains(pSMGObject1) && pSMG2.getObjects().contains(pSMGObject2)),
+        "SMGJoinFields object arguments need to be included in parameter SMGs");
 
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pSMGObject1);
     SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pSMGObject2);

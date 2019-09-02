@@ -475,7 +475,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private boolean allRelevantVarsArePointers(final Set<CVariableDeclaration> pRelevantVariables) {
-    if (pRelevantVariables.size() == 0) {
+    if (pRelevantVariables.isEmpty()) {
       return false;
     }
     boolean allPointers = true;

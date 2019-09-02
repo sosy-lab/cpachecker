@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.util.Map;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
 
 public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvariant
     implements ExpressionTreeCandidateInvariant {
@@ -105,7 +104,7 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
   public void assumeTruth(ReachedSet pReachedSet) {
     if (expressionTree.equals(ExpressionTrees.getFalse())) {
       Iterable<AbstractState> infeasibleStates =
-          FluentIterable.from(AbstractStates.filterLocation(pReachedSet, getLocation())).toList();
+          ImmutableList.copyOf(AbstractStates.filterLocation(pReachedSet, getLocation()));
       pReachedSet.removeAll(infeasibleStates);
       for (ARGState s : from(infeasibleStates).filter(ARGState.class)) {
         s.removeFromARG();

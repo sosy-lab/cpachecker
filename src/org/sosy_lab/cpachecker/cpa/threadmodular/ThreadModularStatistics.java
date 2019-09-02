@@ -45,6 +45,8 @@ public class ThreadModularStatistics implements Statistics {
   StatCounter numberOfProjectionsConsidered = new StatCounter("Number of considered projections");
   StatCounter numberOfTransitionsInEnvironmentConsidered =
       new StatCounter("Number of considered transitions in environment");
+  StatCounter numberOfValuableTransitionsInEnvironement =
+      new StatCounter("Number of valuable transitions in environment");
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
@@ -65,6 +67,7 @@ public class ThreadModularStatistics implements Statistics {
         .put(numberOfProjectionsProduced)
         .put(numberOfTransitionsInThreadConsidered)
         .put(numberOfTransitionsInEnvironmentConsidered)
+        .put(numberOfValuableTransitionsInEnvironement)
         .put(numberOfProjectionsConsidered);
   }
 

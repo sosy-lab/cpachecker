@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -88,7 +89,7 @@ public class SplitDisjunctionsVisitor<T> implements BooleanFormulaVisitor<T, Lis
 
   @Override
   public List<BooleanFormula<T>> visitFalse() {
-    return Collections.<BooleanFormula<T>>emptyList();
+    return ImmutableList.of();
   }
 
   @Override

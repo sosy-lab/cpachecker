@@ -86,7 +86,11 @@ public class ValueAnalysisCPA extends AbstractCPA
         ProofCheckerCPA,
     ConfigurableProgramAnalysisWithConcreteCex, ConfigurableProgramAnalysisTM {
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(
+    secure = true,
+    name = "merge",
+    toUppercase = true,
+    values = {"SEP", "JOIN", "TRANSITIONS"},
       description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
@@ -236,7 +240,11 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    return buildMergeOperator(mergeType);
+    if (mergeType.equals("TRANSITIONS")) {
+      return new ValueMergeForTransitions();
+    } else {
+      return buildMergeOperator(mergeType);
+    }
   }
 
   @Override

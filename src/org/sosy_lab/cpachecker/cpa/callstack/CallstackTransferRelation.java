@@ -26,9 +26,9 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
@@ -107,7 +107,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       if (pEdge instanceof CFunctionSummaryStatementEdge) {
         if (!shouldGoByFunctionSummaryStatement(e, (CFunctionSummaryStatementEdge) pEdge)) {
           // should go by function call and skip the current edge
-          return Collections.emptySet();
+          return ImmutableSet.of();
         }
         // otherwise use this edge just like a normal edge
       }
@@ -129,7 +129,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
             // skip recursion, don't enter function
             logger.logOnce(Level.WARNING, "Skipping recursive function call from",
                 pred.getFunctionName(), "to", calledFunction);
-            return Collections.emptySet();
+            return ImmutableSet.of();
           } else {
             // recursion is unsupported
             logger.log(Level.INFO, "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the command line.");
@@ -162,7 +162,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
           } else {
             if (!callNode.equals(e.getCallNode())) {
               // this is not the right return edge
-              return Collections.emptySet();
+              return ImmutableSet.of();
             }
 
             // we are in a function return:
@@ -353,7 +353,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState state,
-      List<AbstractState> otherStates,
+      Iterable<AbstractState> otherStates,
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {

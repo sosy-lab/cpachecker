@@ -27,11 +27,11 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
@@ -53,11 +53,11 @@ import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCacheAggressiveImpl;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
 
-  public ARGInPlaceSubtreeRemover(AbstractBAMCPA bamCpa, StatTimer pRemoveCachedSubtreeTimer) {
+  public ARGInPlaceSubtreeRemover(AbstractBAMCPA bamCpa, TimerWrapper pRemoveCachedSubtreeTimer) {
     super(bamCpa, pRemoveCachedSubtreeTimer);
   }
 
@@ -139,7 +139,7 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
                   return Pair.of(pNewPrecisions, pNewPrecisionTypes);
                 } else {
                   // no update of precision needed
-                  return Pair.of(Collections.emptyList(), Collections.emptyList());
+                  return Pair.of(ImmutableList.of(), ImmutableList.of());
                 }
               };
 

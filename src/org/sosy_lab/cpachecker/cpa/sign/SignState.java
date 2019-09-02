@@ -99,9 +99,10 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
   public SignState enterFunction(ImmutableMap<String, SIGN> pArguments) {
     PersistentMap<String, SIGN> newMap = signMap;
 
-    for (String var : pArguments.keySet()) {
-      if (!pArguments.get(var).equals(SIGN.ALL)) {
-        newMap = newMap.putAndCopy(var, pArguments.get(var));
+    for (Map.Entry<String, SIGN> entry : pArguments.entrySet()) {
+      String var = entry.getKey();
+      if (!entry.getValue().equals(SIGN.ALL)) {
+        newMap = newMap.putAndCopy(var, entry.getValue());
       }
     }
 

@@ -169,7 +169,7 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
 
     @Override
     public Set<String> getNondetVariables() {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     public Set<String> getNondetVariablesPreAbstraction() {

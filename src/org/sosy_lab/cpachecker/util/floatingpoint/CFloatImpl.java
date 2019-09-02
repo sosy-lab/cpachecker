@@ -181,10 +181,10 @@ public class CFloatImpl extends CFloat {
       CFloat integral = null;
       CFloat fractional = null;
 
-      if (!parts.get(0).equals("")) {
+      if (!parts.get(0).isEmpty()) {
         integral = makeIntegralPart(parts.get(0), pType);
       }
-      if (parts.size() > 1 && !parts.get(1).equals("")) {
+      if (parts.size() > 1 && !parts.get(1).isEmpty()) {
         fractional = makeFractionalPart(parts.get(1), pType);
       }
 

@@ -33,6 +33,7 @@ sys.dont_write_bytecode = True  # prevent creation of .pyc files
 import json
 import logging
 import os
+import shutil
 import subprocess
 import time
 
@@ -352,6 +353,19 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
 
             if os.path.exists(run.log_file + ".stdError"):
                 runsProducedErrorOutput = True
+
+            # The directory structure differs between direct and webclient mode when using VCloud.
+            # Move all output files from "sibling of log-file" to "sibling of parent directory".
+            rawPath = run.log_file[: -len(".log")]
+            dirname, filename = os.path.split(rawPath)
+            vcloudFilesDirectory = rawPath + ".files"
+            benchexecFilesDirectory = os.path.join(
+                dirname[: -len(".logfiles")] + ".files", filename
+            )
+            if os.path.isdir(vcloudFilesDirectory) and not os.path.isdir(
+                benchexecFilesDirectory
+            ):
+                shutil.move(vcloudFilesDirectory, benchexecFilesDirectory)
 
         output_handler.output_after_run_set(runSet, walltime=usedWallTime)
 

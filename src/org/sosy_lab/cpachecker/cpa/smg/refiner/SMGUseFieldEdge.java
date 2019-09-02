@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 public class SMGUseFieldEdge implements SMGUseGraphEdge<SMGUseFieldVertice> {
 
@@ -47,7 +47,7 @@ public class SMGUseFieldEdge implements SMGUseGraphEdge<SMGUseFieldVertice> {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(source, target);
+    return Objects.hash(source, target);
   }
 
   @Override
@@ -59,7 +59,7 @@ public class SMGUseFieldEdge implements SMGUseGraphEdge<SMGUseFieldVertice> {
       return false;
     }
     SMGUseFieldEdge other = (SMGUseFieldEdge) obj;
-    return Objects.equal(source, other.source) && Objects.equal(target, other.target);
+    return Objects.equals(source, other.source) && Objects.equals(target, other.target);
   }
 
   @Override

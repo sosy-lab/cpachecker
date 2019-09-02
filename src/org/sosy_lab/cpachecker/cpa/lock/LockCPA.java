@@ -74,10 +74,11 @@ public class LockCPA extends AbstractCPA
   @Option(description = "Consider or not special cases with empty lock sets", secure = true)
   private StopMode stopMode = StopMode.DEFAULT;
 
-  @Option(description = "Enable refinement procedure", secure = true)
-  private boolean refinement = false;
   @Option(description = "Consider or not lock guards", secure = true)
   private boolean considerLockGuards = true;
+
+  @Option(description = "Enable refinement procedure", secure = true)
+  private boolean refinement = false;
 
   @Option(
     secure = true,

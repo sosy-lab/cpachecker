@@ -169,10 +169,10 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
 
     // only use a unique name where we are not inside a relevant loop
     if (loopsInPathToRecreate.isEmpty()
-        || !loopsInPathToRecreate
+        || loopsInPathToRecreate
             .keySet()
             .stream()
-            .anyMatch(loop -> loop.getLoopNodes().contains(predecessor))) {
+            .noneMatch(loop -> loop.getLoopNodes().contains(predecessor))) {
       functionName = getFreshFunctionName(functionStartNode);
     }
 

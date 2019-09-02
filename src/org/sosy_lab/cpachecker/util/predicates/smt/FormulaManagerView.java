@@ -1006,7 +1006,7 @@ public class FormulaManagerView {
    * @throws IllegalArgumentException thrown if the given name is invalid
    */
   public static Pair<String, OptionalInt> parseName(final String name) {
-    checkArgument(name.length() > 0, "Invalid empty name");
+    checkArgument(!name.isEmpty(), "Invalid empty name");
     List<String> parts = INDEX_SPLITTER.splitToList(name);
     if (parts.size() == 2) {
       if (parts.get(1).isEmpty()) {

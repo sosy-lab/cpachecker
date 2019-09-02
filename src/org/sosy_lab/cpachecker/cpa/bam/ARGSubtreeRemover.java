@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 public abstract class ARGSubtreeRemover {
 
@@ -53,10 +53,10 @@ public abstract class ARGSubtreeRemover {
   protected final Reducer wrappedReducer;
   protected final BAMCache bamCache;
   protected final LogManager logger;
-  protected final StatTimer removeCachedSubtreeTimer;
+  protected final TimerWrapper removeCachedSubtreeTimer;
   protected final boolean doPrecisionRefinementForAllStates;
 
-  public ARGSubtreeRemover(AbstractBAMCPA bamCpa, StatTimer pRemoveCachedSubtreeTimer) {
+  public ARGSubtreeRemover(AbstractBAMCPA bamCpa, TimerWrapper pRemoveCachedSubtreeTimer) {
     partitioning = bamCpa.getBlockPartitioning();
     data = bamCpa.getData();
     wrappedReducer = bamCpa.getReducer();

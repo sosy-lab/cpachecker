@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.SequentialReadStrategy;
 
-
 public abstract class AbstractARGStrategy extends SequentialReadStrategy {
 
   private ARGState root;
@@ -73,8 +72,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   }
 
   private boolean correctReachedSetFormatForProof(UnmodifiableReachedSet pReached) {
-    if (pReached.getFirstState() == null
-        || !(pReached.getFirstState() instanceof ARGState)
+    if (!(pReached.getFirstState() instanceof ARGState)
         || (extractLocation(pReached.getFirstState()) == null)) {
       logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return false;

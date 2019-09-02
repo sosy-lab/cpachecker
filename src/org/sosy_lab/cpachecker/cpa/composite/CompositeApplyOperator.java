@@ -49,6 +49,7 @@ public class CompositeApplyOperator implements ApplyOperator {
     Iterator<AbstractState> iter2 = state2.getWrappedStates().iterator();
 
     boolean identicalStates = true;
+    boolean emptyEffect = true;
 
     for (ApplyOperator applyOp : applyOperators) {
       AbstractState absState1 = iter1.next();
@@ -65,7 +66,18 @@ public class CompositeApplyOperator implements ApplyOperator {
       if (appliedState != absState1) {
         identicalStates = false;
       }
+      if (appliedState instanceof AbstractStateWithEdge) {
+        if (!((AbstractStateWithEdge) appliedState).hasEmptyEffect()) {
+          // We do not store empty projected states, but applied state may become empty due to
+          // optimizations
+          emptyEffect = false;
+        }
+      }
       appliedStates.add(appliedState);
+    }
+
+    if (emptyEffect) {
+      return null;
     }
 
     if (identicalStates) {

@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -95,7 +95,7 @@ public class TargetFunctionsProvider {
       String variableName = ((CIdExpression) expression).getName();
       return globalsMatching.get(variableName);
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 

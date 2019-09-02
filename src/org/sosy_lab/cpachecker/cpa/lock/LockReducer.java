@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.lock;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -199,21 +199,19 @@ public class LockReducer implements Reducer, StatisticsProvider {
   }
 
   private Pair<Set<LockIdentifier>, Set<LockIdentifier>>
-      getLockSetsFor(AbstractLockState rootState, Block pContext) {
-    Set<LockIdentifier> locksToProcess = Collections.emptySet();
-    Set<LockIdentifier> uselessLocks = Collections.emptySet();
+      getLockSetsFor(AbstractLockState rootState, @SuppressWarnings("unused") Block pContext) {
+    Set<LockIdentifier> locksToProcess = ImmutableSet.of();
+    Set<LockIdentifier> uselessLocks = ImmutableSet.of();
 
-    if (reduceUselessLocks) {
-      uselessLocks =
-          Sets.filter(
-              rootState.getLocks(),
-              l -> !pContext.getCapturedLocks().contains(l)
-                  && !notReducedLocks.get(pContext.getCallNode()).contains(l));
-    }
+    /*
+     * if (reduceUselessLocks) { uselessLocks = Sets.filter( rootState.getLocks(), l ->
+     * !pContext.getCapturedLocks().contains(l) &&
+     * !notReducedLocks.get(pContext.getCallNode()).contains(l)); }
+     */
     switch (reduceLockCounters) {
       case BLOCK:
         locksToProcess = Sets.difference(rootState.getLocks(), uselessLocks);
-        locksToProcess = Sets.difference(locksToProcess, pContext.getCapturedLocks());
+        // locksToProcess = Sets.difference(locksToProcess, pContext.getCapturedLocks());
         break;
       case ALL:
         locksToProcess = Sets.difference(rootState.getLocks(), uselessLocks);

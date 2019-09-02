@@ -57,7 +57,7 @@ public class PresisionParser {
   }
 
   public Map<CFANode, Map<GeneralIdentifier, DataType>> parse(Path file) {
-    Map<CFANode, Map<GeneralIdentifier, DataType>> localStatistics = new IdentityHashMap<>();
+    Map<CFANode, Map<GeneralIdentifier, DataType>> localStatistics = new HashMap<>();
     Map<Integer, CFANode> idToNodeMap = new HashMap<>();
     cfa.getAllNodes().forEach(n -> idToNodeMap.put(n.getNodeNumber(), n));
 
@@ -77,7 +77,7 @@ public class PresisionParser {
           String nodeId = matcher.group().substring(1);
           node = idToNodeMap.get(Integer.parseInt(nodeId));
           info = new TreeMap<>();
-        } else if (line.length() > 0) {
+        } else if (!line.isEmpty()) {
           // it's information about local statistics
           List<String> localSet = Splitter.on(";").splitToList(line);
 

@@ -28,20 +28,17 @@ import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-
+import com.google.common.collect.ImmutableList;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 
 public class PredicatePersistenceUtils {
 
@@ -75,7 +72,7 @@ public class PredicatePersistenceUtils {
 
     if (formulaString.isEmpty()) {
       if (fmgr.getBooleanFormulaManager().isTrue(f)) {
-        declarations = Collections.emptyList();
+        declarations = ImmutableList.of();
         formulaString = "(assert true)";
       } else {
         throw new AssertionError();

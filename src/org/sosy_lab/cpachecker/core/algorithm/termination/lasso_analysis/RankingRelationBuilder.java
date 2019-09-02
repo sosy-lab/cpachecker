@@ -78,7 +78,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.basicimpl.FormulaCreator;
 
-class RankingRelationBuilder {
+public class RankingRelationBuilder {
 
   private final LogManager logger;
 
@@ -94,7 +94,7 @@ class RankingRelationBuilder {
 
   private final FormulaCreator<Term, ?, ?, ?> formulaCreator;
 
-  RankingRelationBuilder(
+  public RankingRelationBuilder(
       MachineModel pMachineModel,
       LogManager pLogger,
       FormulaManagerView pFormulaManagerView,

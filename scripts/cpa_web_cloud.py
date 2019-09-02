@@ -191,13 +191,12 @@ def _init(config):
     if not config.cloud_master:
         sys.exit("No URL of a VerifierCloud instance is given.")
 
-    (svn_branch, svn_revision) = _get_revision(config)
+    revision = ":".join(_get_revision(config))
 
     webclient = WebInterface(
         config.cloud_master,
         config.cloud_user,
-        svn_branch,
-        svn_revision,
+        revision,
         user_agent="cpa_web_cloud.py",
         version=__version__,
     )

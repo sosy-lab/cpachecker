@@ -29,6 +29,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.graph.Traverser;
 import java.util.ArrayList;
@@ -42,6 +44,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -51,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.EnvironmentActionEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -58,6 +62,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractEdge;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateProjectedState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -224,7 +230,7 @@ public class ARGState extends AbstractSingleWrapperState
         while (!currentLoc.equals(childLoc)) {
           // we didn't find a proper connection to the child so we return an empty list
           if (currentLoc.getNumLeavingEdges() != 1) {
-            return Collections.emptyList();
+            return ImmutableList.of();
           }
 
           final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
@@ -246,45 +252,89 @@ public class ARGState extends AbstractSingleWrapperState
         } else if (this.appliedFrom != null) {
           // Origin edge may be not enough as it may be merged with something else
           ARGState projection = this.appliedFrom.getSecond();
-          assert projection.getProjectedFrom() != null;
-          Collection<ARGState> edgeParts = projection.getProjectedFrom();
-          List<CFAEdge> result = new ArrayList<>();
-
-          for (ARGState edgePart : edgeParts) {
-            AbstractEdge edge =
-                ((AbstractStateWithEdge) AbstractStates
-                    .extractStateByType(edgePart, AbstractStateWithLocations.class))
-                        .getAbstractEdge();
-            assert edge instanceof WrapperCFAEdge;
-            CFAEdge realEdge = ((WrapperCFAEdge) edge).getCFAEdge();
-            // Need to replace locations for correct path
-            CFAEdge newEdge;
-            if (realEdge instanceof CStatementEdge) {
-              CStatementEdge oldStatement = (CStatementEdge) realEdge;
-              newEdge =
-                  new EnvironmentActionEdge(
-                      realEdge.getRawStatement(),
-                      oldStatement.getStatement(),
-                      realEdge.getFileLocation(),
-                      currentLoc,
-                      childLoc);
-            } else if (realEdge instanceof CFunctionReturnEdge) {
-              newEdge = realEdge;
-            } else if (realEdge instanceof CAssumeEdge) {
-              newEdge = realEdge;
-            } else {
-              throw new UnsupportedOperationException(
-                  "Edge is not supported: " + realEdge.getClass());
-            }
-            result.add(newEdge);
-          }
-          return result;
+          return predicateWay(projection, currentLoc, childLoc);
         }
       }
       return allEdges;
     } else {
       return Collections.singletonList(singleEdge);
     }
+  }
+
+  private List<CFAEdge> predicateWay(ARGState projection, CFANode currentLoc, CFANode childLoc) {
+    assert projection.getProjectedFrom() != null;
+    PredicateProjectedState predicateState =
+        AbstractStates.extractStateByType(projection, PredicateProjectedState.class);
+
+    AbstractEdge edge = predicateState.getAbstractEdge();
+    List<CFAEdge> result = new ArrayList<>();
+
+    if (edge instanceof PredicateAbstractEdge) {
+      Collection<CAssignment> statements = ((PredicateAbstractEdge) edge).getAssignments();
+      for (CAssignment s : statements) {
+        result.add(
+            new EnvironmentActionEdge(
+                s.toASTString(),
+                s,
+                s.getFileLocation(),
+                currentLoc,
+                childLoc));
+      }
+
+    } else if (edge == EmptyEdge.getInstance()) {
+      result.add(
+          new BlankEdge(
+                  "empty predicate edge",
+                  FileLocation.DUMMY,
+                  currentLoc,
+                  childLoc,
+              "empty predicate edge"));
+    }
+    return result;
+  }
+
+  @SuppressWarnings("unused")
+  private final List<CFAEdge>
+      generalWay(ARGState projection, CFANode currentLoc, CFANode childLoc) {
+
+    assert projection.getProjectedFrom() != null;
+    Collection<ARGState> edgeParts = projection.getProjectedFrom();
+    List<CFAEdge> result = new ArrayList<>();
+
+    for (ARGState edgePart : edgeParts) {
+      AbstractEdge edge =
+          ((AbstractStateWithEdge) AbstractStates
+              .extractStateByType(edgePart, AbstractStateWithLocations.class)).getAbstractEdge();
+      assert edge instanceof WrapperCFAEdge;
+      CFAEdge realEdge = ((WrapperCFAEdge) edge).getCFAEdge();
+      // Need to replace locations for correct path
+      CFAEdge newEdge;
+      if (realEdge instanceof CStatementEdge) {
+        CStatementEdge oldStatement = (CStatementEdge) realEdge;
+        newEdge =
+            new EnvironmentActionEdge(
+                realEdge.getRawStatement(),
+                oldStatement.getStatement(),
+                realEdge.getFileLocation(),
+                currentLoc,
+                childLoc);
+      } else if (realEdge instanceof CFunctionReturnEdge) {
+        CFunctionReturnEdge oldReturn = (CFunctionReturnEdge) realEdge;
+        newEdge =
+            new EnvironmentActionEdge(
+                realEdge.getRawStatement(),
+                oldReturn.getSummaryEdge().getExpression(),
+                realEdge.getFileLocation(),
+                currentLoc,
+                childLoc);
+      } else if (realEdge instanceof CAssumeEdge) {
+        newEdge = realEdge;
+      } else {
+        throw new UnsupportedOperationException("Edge is not supported: " + realEdge.getClass());
+      }
+      result.add(newEdge);
+    }
+    return result;
   }
 
   public Set<ARGState> getSubgraph() {
@@ -328,7 +378,7 @@ public class ARGState extends AbstractSingleWrapperState
   public Set<ARGState> getCoveredByThis() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     if (mCoveredByThis == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     } else {
       return Collections.unmodifiableSet(mCoveredByThis);
     }
@@ -768,7 +818,7 @@ public class ARGState extends AbstractSingleWrapperState
   public void makeTwinOf(ARGState pTemplateState) {
 
     checkState(this.stateId != pTemplateState.stateId);
-    checkState(pTemplateState.destroyed != true);
+    checkState(!pTemplateState.destroyed);
     checkState(pTemplateState.counterexample == null);
 
     this.wasExpanded = pTemplateState.wasExpanded;

@@ -35,6 +35,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
@@ -47,9 +48,10 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -85,7 +87,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 @Options
 public class ReportGenerator {
 
-  private static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+  private static final DateTimeFormatter DATE_TIME_FORMAT =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
 
@@ -235,7 +238,8 @@ public class ReportGenerator {
         } else if (line.contains("GENERATED")) {
           insertDateAndVersion(writer);
         } else {
-          writer.write(line + "\n");
+          writer.write(line);
+          writer.write('\n');
         }
       }
     } catch (IOException e) {
@@ -264,104 +268,94 @@ public class ReportGenerator {
         } else if (line.contains("SOURCE_FILES")) {
           insertSourceFileNames(writer);
         } else {
-          writer.write(line + "\n");
+          writer.write(line);
+          writer.write('\n');
         }
       }
     }
   }
 
   private void insertCfaJson(
-      Writer writer,
-      CFA cfa,
-      DOTBuilder2 dotBuilder,
-      @Nullable CounterexampleInfo counterExample) {
-    try {
-      writer.write("var cfaJson = {\n");
-      insertFunctionNames(writer, cfa);
-      writer.write(",\n");
-      insertFCallEdges(writer, dotBuilder);
-      writer.write(",\n");
-      insertCombinedNodesData(writer, dotBuilder);
-      writer.write(",\n");
-      insertCombinedNodesLabelsData(writer, dotBuilder);
-      writer.write(",\n");
-      insertMergedNodesListData(writer, dotBuilder);
-      writer.write(",\n");
-      if (counterExample != null) {
-        insertErrorPathData(counterExample, writer);
-      }
-      dotBuilder.writeCfaInfo(writer);
-      writer.write("\n}\n");
-    } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report: Inserting CFA Json failed.");
+      Writer writer, CFA cfa, DOTBuilder2 dotBuilder, @Nullable CounterexampleInfo counterExample)
+      throws IOException {
+    writer.write("var cfaJson = {\n");
+
+    // Program entry function at first place is important for the graph generation
+    writer.write("\"functionNames\":");
+    Set<String> allFunctionsEntryFirst =
+        ImmutableSet.<String>builder()
+            .add(cfa.getMainFunction().getFunctionName())
+            .addAll(cfa.getAllFunctionNames())
+            .build();
+    JSON.writeJSONString(allFunctionsEntryFirst, writer);
+
+    writer.write(",\n\"functionCallEdges\":");
+    dotBuilder.writeFunctionCallEdges(writer);
+
+    writer.write(",\n\"combinedNodes\":");
+    dotBuilder.writeCombinedNodes(writer);
+
+    writer.write(",\n\"combinedNodesLabels\":");
+    dotBuilder.writeCombinedNodesLabels(writer);
+
+    writer.write(",\n\"mergedNodes\":");
+    dotBuilder.writeMergedNodesList(writer);
+
+    if (counterExample != null) {
+      writer.write(",\n\"errorPath\":");
+      counterExample.toJSON(writer);
     }
+
+    writer.write(",\n");
+    dotBuilder.writeCfaInfo(writer);
+    writer.write("\n}\n");
   }
 
-  private void insertArgJson(Writer writer) {
-    try {
-      writer.write("var argJson = {");
-      if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
-        writer.write("\n\"nodes\":");
-        JSON.writeJSONString(argNodes.values(), writer);
-        writer.write(",\n\"edges\":");
-        JSON.writeJSONString(argEdges.values(), writer);
-        writer.write("\n");
-      }
-      if(!argRelevantEdges.isEmpty() && !argRelevantNodes.isEmpty()){
-        writer.write(",\n\"relevantnodes\":");
-        JSON.writeJSONString(argRelevantNodes.values(), writer);
-        writer.write(",\n\"relevantedges\":");
-        JSON.writeJSONString(argRelevantEdges.values(), writer);
-        writer.write("\n");
-      }
-      writer.write("}\n");
-    } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report: Inserting ARG Json failed.");
+  private void insertArgJson(Writer writer) throws IOException {
+    writer.write("var argJson = {");
+    if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
+      writer.write("\n\"nodes\":");
+      JSON.writeJSONString(argNodes.values(), writer);
+      writer.write(",\n\"edges\":");
+      JSON.writeJSONString(argEdges.values(), writer);
+      writer.write("\n");
     }
+    if (!argRelevantEdges.isEmpty() && !argRelevantNodes.isEmpty()) {
+      writer.write(",\n\"relevantnodes\":");
+      JSON.writeJSONString(argRelevantNodes.values(), writer);
+      writer.write(",\n\"relevantedges\":");
+      JSON.writeJSONString(argRelevantEdges.values(), writer);
+      writer.write("\n");
+    }
+    writer.write("}\n");
   }
 
   private void insertCss(Writer writer) throws IOException {
-    writer.write("<style>" + "\n");
+    writer.write("<style>\n");
     Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
         .copyTo(writer);
     writer.write("</style>");
   }
 
-  private void insertMetaTags(Writer writer) {
-    try {
-      writer.write("<meta name='generator'" + " content='" + producer + "'>\n");
-    } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report: Inserting metatags failed.");
-    }
+  private void insertMetaTags(Writer writer) throws IOException {
+    writer.write(String.format("<meta name='generator' content='%s'>%n", producer));
   }
 
-  private void insertDateAndVersion(Writer writer) {
-    try {
-      String generated =
-          String.format(
-              "Generated on %s by %s",
-              new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()), producer);
-      writer.write(generated);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Inserting date and version failed.");
-    }
+  private void insertDateAndVersion(Writer writer) throws IOException {
+    writer.write(
+        String.format(
+            "Generated on %s by %s",
+            DATE_TIME_FORMAT.format(LocalDateTime.now(ZoneId.systemDefault())), producer));
   }
 
-  private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer writer) {
-    try {
-      if (counterExample == null) {
-        writer.write(sourceFiles.get(0));
-      } else {
-        String title =
-            String
-                .format("%s (Counterexample %s)", sourceFiles.get(0), counterExample.getUniqueId());
-        writer.write(title);
-      }
-    } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report: Inserting report name failed.");
+  private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer writer)
+      throws IOException {
+    if (counterExample == null) {
+      writer.write(sourceFiles.get(0));
+    } else {
+      String title =
+          String.format("%s (Counterexample %s)", sourceFiles.get(0), counterExample.getUniqueId());
+      writer.write(title);
     }
   }
 
@@ -455,9 +449,6 @@ public class ReportGenerator {
           lineNumber++;
         }
         writer.write("</table></div>\n");
-      } catch (IOException e) {
-        logger
-            .logUserException(WARNING, e, "Could not create report: Inserting source code failed.");
       }
     } else {
       writer.write("<p>No Source-File available</p>");
@@ -542,102 +533,16 @@ public class ReportGenerator {
         }
         String exitTableLine = "</tbody></table>\n";
         writer.write(exitTableLine);
-      } catch (IOException e) {
-        logger.logUserException(WARNING, e, "Could not create report: Adding log failed.");
       }
     } else {
       writer.write("<p>Log not available</p>");
     }
   }
 
-  private void insertFCallEdges(Writer writer, DOTBuilder2 dotBuilder) {
-    try {
-      writer.write("\"functionCallEdges\":");
-      dotBuilder.writeFunctionCallEdges(writer);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of function call edges failed.");
-    }
-  }
-
-  private void insertCombinedNodesData(Writer writer, DOTBuilder2 dotBuilder) {
-    try {
-      writer.write("\"combinedNodes\":");
-      dotBuilder.writeCombinedNodes(writer);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of combined nodes failed.");
-    }
-  }
-
-  private void insertCombinedNodesLabelsData(Writer writer, DOTBuilder2 dotBuilder) {
-    try {
-      writer.write("\"combinedNodesLabels\":");
-      dotBuilder.writeCombinedNodesLabels(writer);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of combined nodes labels failed.");
-    }
-  }
-
-  private void insertMergedNodesListData(Writer writer, DOTBuilder2 dotBuilder) {
-    try {
-      writer.write("\"mergedNodes\":");
-      dotBuilder.writeMergedNodesList(writer);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of merged nodes failed.");
-    }
-  }
-
-  private void insertErrorPathData(CounterexampleInfo counterExample, Writer writer) {
-    try {
-      writer.write("\"errorPath\":");
-      counterExample.toJSON(writer);
-      writer.write(",\n");
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of counter example failed.");
-    }
-  }
-
-  // Program entry function at first place is important for the graph generation
-  private void insertFunctionNames(Writer writer, CFA cfa) {
-    try {
-      writer.write("\"functionNames\":");
-      Set<String> allFunctionsEntryFirst = new LinkedHashSet<>();
-      allFunctionsEntryFirst.add(cfa.getMainFunction().getFunctionName());
-      allFunctionsEntryFirst.addAll(cfa.getAllFunctionNames());
-      JSON.writeJSONString(allFunctionsEntryFirst, writer);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of function names failed.");
-    }
-  }
-
-  private void insertSourceFileNames(Writer writer) {
-    try {
-      writer.write("var sourceFiles = ");
-      JSON.writeJSONString(sourceFiles, writer);
-      writer.write(";\n");
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Insertion of source file names failed.");
-    }
+  private void insertSourceFileNames(Writer writer) throws IOException {
+    writer.write("var sourceFiles = ");
+    JSON.writeJSONString(sourceFiles, writer);
+    writer.write(";\n");
   }
 
   /** Build ARG data for all ARG states in the reached set. */

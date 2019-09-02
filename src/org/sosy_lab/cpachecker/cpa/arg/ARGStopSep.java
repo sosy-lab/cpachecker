@@ -38,6 +38,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
   private final boolean keepCoveredStatesInReached;
   private final boolean inCPAEnabledAnalysis;
+  private final boolean coverTargetStates;
   private final StopOperator wrappedStop;
   private final LogManager logger;
 
@@ -45,11 +46,13 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       StopOperator pWrappedStop,
       LogManager pLogger,
       boolean pInCPAEnabledAnalysis,
-      boolean pKeepCoveredStatesInReached) {
+      boolean pKeepCoveredStatesInReached,
+      boolean pCoverTargetStates) {
     wrappedStop = pWrappedStop;
     logger = pLogger;
     keepCoveredStatesInReached = pKeepCoveredStatesInReached;
     inCPAEnabledAnalysis = pInCPAEnabledAnalysis;
+    coverTargetStates = pCoverTargetStates;
   }
 
   @Override
@@ -95,8 +98,8 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       }
     }
 
-    // Never try to cover target states
-    if (argElement.isTarget()) {
+    // Never try to cover target states except when explicitly stated
+    if (!coverTargetStates && argElement.isTarget()) {
       return false;
     }
 

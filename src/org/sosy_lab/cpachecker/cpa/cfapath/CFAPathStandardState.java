@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cfapath;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -78,13 +80,9 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
   }
 
   public CFAPathStandardState(CFAPathStandardState pPredecessor, CFAEdge pCFAEdge) {
-    if (pPredecessor == null) {
-      throw new IllegalArgumentException();
-    }
+    checkArgument(pPredecessor != null);
 
-    if (pCFAEdge == null) {
-      throw new IllegalArgumentException();
-    }
+    checkArgument(pCFAEdge != null);
 
     mPredecessor = pPredecessor;
     mCFAEdge = pCFAEdge;
@@ -96,9 +94,7 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
   }
 
   public CFAEdge get(int lIndex) {
-    if (lIndex >= mLength || lIndex < 0) {
-      throw new IllegalArgumentException();
-    }
+    checkArgument(lIndex < mLength && lIndex >= 0);
 
     if (lIndex + 1 == mLength) {
       return mCFAEdge;

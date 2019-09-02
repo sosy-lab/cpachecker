@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -37,8 +39,9 @@ public class RandomBalancedWeightedGraphPartitioner extends RandomBalancedGraphP
   @Override
   public List<Set<Integer>> computePartitioning(int pNumPartitions, WeightedGraph wGraph)
       throws InterruptedException {
-    if (pNumPartitions <= 0 || wGraph == null) { throw new IllegalArgumentException(
-        "Partitioniong must contain at most 1 partition. Graph may not be null."); }
+    checkArgument(
+        pNumPartitions > 0 && wGraph != null,
+        "Partitioniong must contain at most 1 partition. Graph may not be null.");
     if (pNumPartitions == 1) { //1-partitioning easy special case (all nodes in one partition)
       //No expensive computations to do
       return wGraph.getGraphAsOnePartition();

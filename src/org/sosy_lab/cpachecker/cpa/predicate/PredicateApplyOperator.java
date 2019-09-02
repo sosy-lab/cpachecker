@@ -360,9 +360,11 @@ public class PredicateApplyOperator implements ApplyOperator {
 
   @Option(
     secure = true,
-    name = "emptyAbstraction",
     description = "do not consider abstraction from inference objects")
   private boolean emptyAbstraction = false;
+
+  @Option(secure = true, description = "reset shared variables values")
+  private boolean havocAbstraction2 = false;
 
   private final Solver solver;
   private final BooleanFormulaManager mngr;
@@ -392,10 +394,18 @@ public class PredicateApplyOperator implements ApplyOperator {
       PredicateProjectedState state2 = (PredicateProjectedState) pState2;
 
       if (compatible(state1, state2)) {
+        AbstractEdge edge;
+        if (mngr.isTrue(state1.getAbstractionFormula().asFormula())) {
+          // Any effect does nothing with true formula
+          edge = EmptyEdge.getInstance();
+        } else {
+          edge = state2.getAbstractEdge();
+        }
+
         if (state1 instanceof NonAbstractionState) {
-          return new PredicateNonAbstractionStateWithEdge(state1, state2.getAbstractEdge());
+          return new PredicateNonAbstractionStateWithEdge(state1, edge);
         } else if (state1 instanceof AbstractionState) {
-          return new PredicateAbstractionStateWithEdge(state1, state2.getAbstractEdge());
+          return new PredicateAbstractionStateWithEdge(state1, edge);
         } else {
           throw new UnsupportedOperationException("Unknown abstract state: " + state1.getClass());
         }
@@ -456,7 +466,10 @@ public class PredicateApplyOperator implements ApplyOperator {
         CRightHandSide right = ((CAssignment) stmnt).getRightHandSide();
         CAssignment newAssignement;
 
-        if (useUndefFuncs
+        if (havocAbstraction2) {
+          creationTimer.stop();
+          return PredicateAbstractEdge.getHavocEdgeInstance();
+        } else if (useUndefFuncs
             || (stmnt instanceof CFunctionCallAssignmentStatement
                 && edge instanceof CStatementEdge)) {
           CFunctionCallExpression fExp = prepareUndefFunctionFor(right);
@@ -493,7 +506,7 @@ public class PredicateApplyOperator implements ApplyOperator {
     return new PredicateProjectedState(newEdge, guard);
   }
 
-  private CFunctionCallExpression prepareUndefFunctionFor(CRightHandSide right) {
+  static CFunctionCallExpression prepareUndefFunctionFor(CRightHandSide right) {
 
     FileLocation loc = right.getFileLocation();
     CType type = right.getExpressionType();

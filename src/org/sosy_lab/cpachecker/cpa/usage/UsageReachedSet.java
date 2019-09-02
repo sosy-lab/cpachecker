@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ObjectOutputStream;
@@ -152,7 +153,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
     if (hasViolatedProperties()) {
       return Collections.singleton(propertyInstance);
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 

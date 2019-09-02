@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.thread;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -109,11 +110,11 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
       if (newState != null) {
         return Collections.singleton(newState);
       } else {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
     } catch (CPATransferException e) {
       if (skipTheSameThread) {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       } else {
         throw e;
       }

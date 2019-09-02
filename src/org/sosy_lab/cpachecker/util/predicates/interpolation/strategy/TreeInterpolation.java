@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
+import com.google.common.primitives.ImmutableIntArray;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -57,7 +58,8 @@ public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
           final InterpolationManager.Interpolator<T> interpolator,
           final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
               throws InterruptedException, SolverException {
-    final Pair<List<Triple<BooleanFormula, AbstractState, T>>, List<Integer>> p = buildTreeStructure(formulasWithStatesAndGroupdIds);
+    final Pair<List<Triple<BooleanFormula, AbstractState, T>>, ImmutableIntArray> p =
+        buildTreeStructure(formulasWithStatesAndGroupdIds);
     final List<BooleanFormula> itps = new ArrayList<>();
     final Deque<Pair<BooleanFormula, Integer>> itpStack = new ArrayDeque<>();
     for (int positionOfA = 0; positionOfA < p.getFirst().size() - 1; positionOfA++) {
@@ -71,9 +73,9 @@ public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
       final InterpolationManager.Interpolator<T> interpolator,
       final Deque<Pair<BooleanFormula, Integer>> itpStack,
       final List<Triple<BooleanFormula, AbstractState, T>> formulas,
-      final List<Integer> startOfSubTree,
+      final ImmutableIntArray startOfSubTree,
       final int positionOfA)
-          throws SolverException, InterruptedException {
+      throws SolverException, InterruptedException {
 
     // use a new prover, because we use several distinct interpolation-queries
     try (final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment()) {

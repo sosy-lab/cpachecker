@@ -24,10 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.lock;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -190,7 +192,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       }
       return Collections.singleton(successor);
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 
@@ -238,7 +240,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       default:
         throw new UnrecognizedCodeException("Unknown edge type", cfaEdge);
     }
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   private List<AbstractLockEffect> handleAssumption(CAssumeEdge cfaEdge) {
@@ -269,12 +271,12 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
         }
       }
     }
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   private ImmutableList<? extends AbstractLockEffect> convertAnnotationToLockEffect(
       Set<LockIdentifier> pAnnotatedIds, LockEffect pEffect) {
-    return from(pAnnotatedIds).transform(pEffect::cloneWithTarget).toList();
+    return transformedImmutableListCopy(pAnnotatedIds, pEffect::cloneWithTarget);
   }
 
   private List<AbstractLockEffect> handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge) {
@@ -290,30 +292,30 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       List<AbstractLockEffect> result = new ArrayList<>();
 
       AnnotationInfo currentAnnotation = annotatedFunctions.get(fName);
-      if (currentAnnotation.getRestoreLocks().size() == 0
-          && currentAnnotation.getFreeLocks().size() == 0
-          && currentAnnotation.getResetLocks().size() == 0
-          && currentAnnotation.getCaptureLocks().size() == 0) {
+      if (currentAnnotation.getRestoreLocks().isEmpty()
+          && currentAnnotation.getFreeLocks().isEmpty()
+          && currentAnnotation.getResetLocks().isEmpty()
+          && currentAnnotation.getCaptureLocks().isEmpty()) {
         // Not specified annotations are considered to be totally restoring
         AbstractLockEffect restoreAll = RestoreAllLockEffect.getInstance();
         return Collections.singletonList(restoreAll);
       } else {
-        if (currentAnnotation.getRestoreLocks().size() > 0) {
+        if (!currentAnnotation.getRestoreLocks().isEmpty()) {
           result.addAll(
               convertAnnotationToLockEffect(
                   currentAnnotation.getRestoreLocks(), RestoreLockEffect.getInstance()));
         }
-        if (currentAnnotation.getFreeLocks().size() > 0) {
+        if (!currentAnnotation.getFreeLocks().isEmpty()) {
           result.addAll(
               convertAnnotationToLockEffect(
                   currentAnnotation.getFreeLocks(), ReleaseLockEffect.getInstance()));
         }
-        if (currentAnnotation.getResetLocks().size() > 0) {
+        if (!currentAnnotation.getResetLocks().isEmpty()) {
           result.addAll(
               convertAnnotationToLockEffect(
                   currentAnnotation.getResetLocks(), ResetLockEffect.getInstance()));
         }
-        if (currentAnnotation.getCaptureLocks().size() > 0) {
+        if (!currentAnnotation.getCaptureLocks().isEmpty()) {
           for (LockIdentifier targetId : currentAnnotation.getCaptureLocks()) {
             result.add(
                 AcquireLockEffect.createEffectForId(
@@ -323,13 +325,13 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
         return result;
       }
     }
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   private List<AbstractLockEffect> handleFunctionCallExpression(CFunctionCallExpression function) {
     String functionName = function.getFunctionNameExpression().toASTString();
     if (!lockDescription.getFunctionEffectDescription().containsKey(functionName)) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
     Pair<LockEffect, LockIdUnprepared> locksWithEffect =
         lockDescription.getFunctionEffectDescription().get(functionName);
@@ -406,7 +408,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       return handleFunctionCallExpression(funcStatement.getFunctionCallExpression());
     }
     // No lock-relating operations
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   private List<AbstractLockEffect> handleFunctionCall(CFunctionCallEdge callEdge) {

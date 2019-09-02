@@ -231,6 +231,26 @@ public final class Solver implements AutoCloseable {
   }
 
   /**
+   * Load and instantiate an SMT solver. The returned instance should be closed by calling {@link
+   * #close} when it is not used anymore.
+   *
+   * <p>Important: If possible, always use {@link Solver#create(Configuration, LogManager,
+   * ShutdownNotifier)} and refrain from using this method.
+   *
+   * <p>Important: Refrain from calling this method and instead always try to use {@link
+   * Solver#create(Configuration, LogManager, ShutdownNotifier)} first.
+   */
+  public static Solver create(
+      SolverContextFactory pSolverFactory,
+      Solvers pSolver,
+      SolverContext pSolverContext,
+      Configuration pConfig,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
+    return new Solver(pSolverFactory, pSolver, pSolverContext, pConfig, pLogger);
+  }
+
+  /**
    * Return the underlying {@link FormulaManagerView}
    * that can be used for creating and manipulating formulas.
    */

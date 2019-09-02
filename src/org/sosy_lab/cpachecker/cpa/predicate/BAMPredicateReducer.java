@@ -597,8 +597,7 @@ public class BAMPredicateReducer
   }
 
   @Override
-  public boolean canBeUsedInCache(AbstractState pState) {
-    PredicateAbstractState predicateState = (PredicateAbstractState) pState;
+  public boolean canBeUsedInCache0(PredicateAbstractState predicateState) {
     return !predicateState.getPathFormula().getPointerTargetSet().hasEmptyDeferredAllocationsSet();
   }
 }

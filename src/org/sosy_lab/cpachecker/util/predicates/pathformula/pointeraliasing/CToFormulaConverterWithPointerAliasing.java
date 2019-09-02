@@ -1349,7 +1349,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
-  protected int makeFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+  public int makeFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(pName)) {
       // Types of pointer-target variables in SSAMap need special treatment (cf. above).
       pType = typeHandler.simplifyTypeForPointerAccess(pType).getCanonicalType();

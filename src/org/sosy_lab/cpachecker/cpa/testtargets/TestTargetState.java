@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -48,7 +48,7 @@ public enum TestTargetState implements AbstractState, Targetable, Graphable {
 
   @Override
   public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override

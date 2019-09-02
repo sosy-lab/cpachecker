@@ -40,8 +40,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -120,7 +120,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class SMGTransferRelation
     extends ForwardingTransferRelation<Collection<SMGState>, SMGState, SMGPrecision> {
 
-  private final static AtomicInteger ID_COUNTER = new AtomicInteger(0);
+  private static final UniqueIdGenerator ID_COUNTER = new UniqueIdGenerator();
 
   private final LogManagerWithoutDuplicates logger;
   private final MachineModel machineModel;
@@ -180,8 +180,8 @@ public class SMGTransferRelation
     if (pState.getPredecessorId() == 0) {
       return String.format("initial-%03d", pState.getId());
     } else {
-      return String.format("%03d-%03d-%03d", pState.getPredecessorId(), pState.getId(),
-          ID_COUNTER.getAndIncrement());
+      return String.format(
+          "%03d-%03d-%03d", pState.getPredecessorId(), pState.getId(), ID_COUNTER.getFreshId());
     }
   }
 
@@ -695,7 +695,7 @@ public class SMGTransferRelation
               "Calling '"
                   + calledFunctionName
                   + "' and not using the result, resulting in memory leak.",
-              Collections.emptyList());
+              ImmutableList.of());
         }
         return newStates;
       }
@@ -1195,11 +1195,15 @@ public class SMGTransferRelation
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements,
-      CFAEdge cfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState element,
+      Iterable<AbstractState> elements,
+      CFAEdge cfaEdge,
+      Precision pPrecision)
+      throws CPATransferException, InterruptedException {
 
-    ArrayList<SMGState> toStrengthen = new ArrayList<>();
-    ArrayList<SMGState> result = new ArrayList<>();
+    List<SMGState> toStrengthen = new ArrayList<>();
+    List<SMGState> result = new ArrayList<>();
     toStrengthen.add((SMGState) element);
     result.add((SMGState) element);
 
@@ -1252,7 +1256,7 @@ public class SMGTransferRelation
     }
 
     if (newElement == null) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     } else {
       SMGUtils.plotWhenConfigured(getDotExportFileName(newElement), newElement, assumeDesc.toString(), logger, SMGExportLevel.EVERY, exportSMGOptions);
       return Collections.singleton(newElement);

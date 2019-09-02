@@ -29,7 +29,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -40,35 +39,10 @@ import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
 public class ThreadState implements LatticeAbstractState<ThreadState>, CompatibleNode {
-
   public enum ThreadStatus {
     PARENT_THREAD,
     CREATED_THREAD,
     SELF_PARALLEL_THREAD;
-  }
-
-  public static class SimpleThreadState extends ThreadState {
-
-    public SimpleThreadState(
-        Map<String, ThreadStatus> Tset,
-        ImmutableMap<ThreadLabel, ThreadStatus> Rset,
-        List<ThreadLabel> pOrder) {
-      super(Tset, Rset, pOrder);
-    }
-
-    @Override
-    public boolean isCompatibleWith(CompatibleState state) {
-      return !Objects.equals(this.getThreadSet(), ((ThreadState) state).getThreadSet());
-    }
-
-    @Override
-    public ThreadState prepareToStore() {
-      return new SimpleThreadState(this.getThreadSet(), ImmutableMap.of(), Collections.emptyList());
-    }
-
-    public static ThreadState emptyState() {
-      return new SimpleThreadState(ImmutableMap.of(), ImmutableMap.of(), Collections.emptyList());
-    }
   }
 
   private final Map<String, ThreadStatus> threadSet;
@@ -160,17 +134,11 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
   @Override
   public ThreadState prepareToStore() {
-    return new ThreadState(
-        this.threadSet,
-        ImmutableMap.of(),
-        Collections.emptyList());
+    return new ThreadState(this.threadSet, ImmutableMap.of(), ImmutableList.of());
   }
 
   public static ThreadState emptyState() {
-    return new ThreadState(
-        ImmutableMap.of(),
-        ImmutableMap.of(),
-        Collections.emptyList());
+    return new ThreadState(ImmutableMap.of(), ImmutableMap.of(), ImmutableList.of());
   }
 
   @Override
@@ -210,6 +178,10 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     return b;
   }
 
+  public boolean hasEmptyEffect() {
+    return true;
+  }
+
   Map<String, ThreadStatus> getThreadSet() {
     return threadSet;
   }
@@ -225,9 +197,5 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   int getThreadSize() {
     // Only for statistics
     return threadSet.size();
-  }
-
-  public boolean hasEmptyEffect() {
-    return true;
   }
 }

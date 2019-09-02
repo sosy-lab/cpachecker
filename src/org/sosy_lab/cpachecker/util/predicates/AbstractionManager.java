@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.primitives.ImmutableIntArray;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -251,7 +252,7 @@ public final class AbstractionManager {
     if (this.varOrderMethod.getIsFrameworkStrategy()) {
       rmgr.reorder(this.varOrderMethod);
     } else {
-      ArrayList<Integer> predicateOrdering = new ArrayList<>(numberOfPredicates);
+      ImmutableIntArray.Builder predicateOrdering = ImmutableIntArray.builder(numberOfPredicates);
       if (varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY)) {
         predicateOrdering.addAll(randomListOfVarIDs);
       } else if (multiplePartitions) {
@@ -268,7 +269,7 @@ public final class AbstractionManager {
         }
       }
 
-      rmgr.setVarOrder(predicateOrdering);
+      rmgr.setVarOrder(predicateOrdering.build());
     }
   }
 

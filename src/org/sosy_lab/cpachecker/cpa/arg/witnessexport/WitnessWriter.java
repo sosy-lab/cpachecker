@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
@@ -53,6 +54,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -62,12 +64,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BiPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -121,6 +125,7 @@ import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -543,33 +548,36 @@ class WitnessWriter implements EdgeAppender {
       }
     }
 
-    Optional<FileLocation> minFileLocation = AutomatonGraphmlCommon.getMinFileLocation(pEdge, cfa
-        .getMainFunction(), pAdditionalInfo);
-    Optional<FileLocation> maxFileLocation = AutomatonGraphmlCommon.getMaxFileLocation(pEdge, cfa
-        .getMainFunction(), pAdditionalInfo);
-    if (witnessOptions.exportLineNumbers() && minFileLocation.isPresent()) {
-      FileLocation min = minFileLocation.get();
+    final Set<FileLocation> locations =
+        AutomatonGraphmlCommon.getFileLocationsFromCfaEdge(
+            pEdge, cfa.getMainFunction(), pAdditionalInfo);
+    // TODO This ignores file names, does this make sense? Replace with natural order?
+    final Comparator<FileLocation> nodeOffsetComparator =
+        Comparator.comparingInt(FileLocation::getNodeOffset);
+    final FileLocation min =
+        locations.isEmpty() ? null : Collections.min(locations, nodeOffsetComparator);
+    final FileLocation max =
+        locations.isEmpty() ? null : Collections.max(locations, nodeOffsetComparator);
+
+    if (witnessOptions.exportLineNumbers() && min != null) {
       if (witnessOptions.exportSourceFileName()
           || !min.getFileName().equals(defaultSourcefileName)) {
         result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
       }
       result = result.putAndCopy(KeyDef.STARTLINE, Integer.toString(min.getStartingLineInOrigin()));
     }
-    if (witnessOptions.exportLineNumbers() && maxFileLocation.isPresent()) {
-      FileLocation max = maxFileLocation.get();
+    if (witnessOptions.exportLineNumbers() && max != null) {
       result = result.putAndCopy(KeyDef.ENDLINE, Integer.toString(max.getEndingLineInOrigin()));
     }
 
-    if (witnessOptions.exportOffset() && minFileLocation.isPresent()) {
-      FileLocation min = minFileLocation.get();
+    if (witnessOptions.exportOffset() && min != null && min.isOffsetRelatedToOrigin()) {
       if (witnessOptions.exportSourceFileName()
           || !min.getFileName().equals(defaultSourcefileName)) {
         result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
       }
       result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
     }
-    if (witnessOptions.exportOffset() && maxFileLocation.isPresent()) {
-      FileLocation max = maxFileLocation.get();
+    if (witnessOptions.exportOffset() && max != null && max.isOffsetRelatedToOrigin()) {
       result =
           result.putAndCopy(
               KeyDef.ENDOFFSET, Integer.toString(max.getNodeOffset() + max.getNodeLength() - 1));
@@ -1017,46 +1025,41 @@ class WitnessWriter implements EdgeAppender {
   }
 
   /**
-   * Starting from the given initial ARG state, collects that state and all
-   * transitive successors (as defined by the successor function) that are
-   * children of their direct predecessor and are accepted by the path state
-   * predicate.
+   * Starting from the given initial ARG state, collects that state and all transitive successors
+   * (as defined by the successor function) that are children of their direct predecessor and are
+   * accepted by the path state predicate.
    *
    * @param pInitialState the initial ARG state.
-   * @param pSuccessorFunction the function defining the successors of a
-   * state.
+   * @param pSuccessorFunction the function defining the successors of a state.
    * @param pPathStates a filter on the nodes.
    * @param pIsRelevantEdge a filter on the successor function.
-   *
    * @return the parents with their children.
    */
   private Iterable<ARGState> collectPathNodes(
       final ARGState pInitialState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
-      final Predicate<? super ARGState> pPathStates, Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge) {
+      final Predicate<? super ARGState> pPathStates,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge) {
     return Iterables.transform(
         collectPathEdges(pInitialState, pSuccessorFunction, pPathStates, pIsRelevantEdge), Pair::getFirst);
   }
 
   /**
-   * Starting from the given initial ARG state, collects that state and all
-   * transitive successors (as defined by the successor function) that are
-   * children of their direct predecessor. Children are only computed for
-   * nodes that are accepted by the path state predicate.
+   * Starting from the given initial ARG state, collects that state and all transitive successors
+   * (as defined by the successor function) that are children of their direct predecessor. Children
+   * are only computed for nodes that are accepted by the path state predicate.
    *
    * @param pInitialState the initial ARG state.
-   * @param pSuccessorFunction the function defining the successors of a
-   * state.
+   * @param pSuccessorFunction the function defining the successors of a state.
    * @param pPathStates a filter on the parent nodes.
    * @param pIsRelevantEdge a filter on the successor function.
-   *
    * @return the parents with their children.
    */
   private Iterable<Pair<ARGState, Iterable<ARGState>>> collectPathEdges(
       final ARGState pInitialState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
       final Predicate<? super ARGState> pPathStates,
-      final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge) {
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge) {
     return new Iterable<Pair<ARGState, Iterable<ARGState>>>() {
 
       private final Set<ARGState> visited = new HashSet<>();
@@ -1094,7 +1097,7 @@ class WitnessWriter implements EdgeAppender {
 
             // Only the children on the path become parents themselves
             for (ARGState child : children.filter(pPathStates)) {
-              if (pIsRelevantEdge.apply(Pair.of(parent, child)) && visited.add(child)) {
+              if (pIsRelevantEdge.test(parent, child) && visited.add(child)) {
                 waitlist.offer(child);
               }
             }
@@ -1115,14 +1118,35 @@ class WitnessWriter implements EdgeAppender {
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       final Predicate<? super ARGState> pIsCyclehead,
       final Optional<Function<? super ARGState, ExpressionTree<Object>>> cycleHeadToQuasiInvariant,
       Optional<CounterexampleInfo> pCounterExample,
       GraphBuilder pGraphBuilder)
       throws IOException {
 
-    Predicate<? super Pair<ARGState, ARGState>> isRelevantEdge = pIsRelevantEdge;
+    writeToGraphMl(
+        processPath(
+            pRootState,
+            pIsRelevantState,
+            pIsRelevantEdge,
+            pIsCyclehead,
+            cycleHeadToQuasiInvariant,
+            pCounterExample,
+            pGraphBuilder),
+        pTarget);
+  }
+
+  private String processPath(
+      final ARGState pRootState,
+      final Predicate<? super ARGState> pIsRelevantState,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
+      final Predicate<? super ARGState> pIsCyclehead,
+      final Optional<Function<? super ARGState, ExpressionTree<Object>>> cycleHeadToQuasiInvariant,
+      Optional<CounterexampleInfo> pCounterExample,
+      GraphBuilder pGraphBuilder) {
+
+    BiPredicate<ARGState, ARGState> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
     Map<ARGState, CFAEdgeWithAdditionalInfo> additionalInfo = getAdditionalInfo(pCounterExample);
     additionalInfoConverters = getAdditionalInfoConverters(pCounterExample);
@@ -1134,7 +1158,7 @@ class WitnessWriter implements EdgeAppender {
                 pCounterExample.get().getExactVariableValues(),
                 ASSUMPTION_FILTER);
       } else {
-        isRelevantEdge = edge -> pIsRelevantState.apply(edge.getFirst()) && pIsRelevantState.apply(edge.getSecond());
+        isRelevantEdge = BiPredicates.bothSatisfy(pIsRelevantState);
       }
     }
 
@@ -1176,7 +1200,7 @@ class WitnessWriter implements EdgeAppender {
     removeUnnecessarySinkEdges();
 
     // Merge nodes with empty or repeated edges
-    TreeSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
+    NavigableSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is redundant, remove it
@@ -1184,11 +1208,16 @@ class WitnessWriter implements EdgeAppender {
         Iterables.addAll(waitlist, mergeNodes(edge));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
+      setLoopHeadInvariantIfApplicable(edge.getTarget());
     }
 
     // merge redundant sibling edges leading to the sink together, if possible
     mergeRedundantSinkEdges();
 
+    return entryStateNodeId;
+  }
+
+  private void writeToGraphMl(String entryStateNodeId, Appendable pTarget) throws IOException {
     // Write elements
     final GraphMlBuilder doc;
     try {
@@ -1327,7 +1356,6 @@ class WitnessWriter implements EdgeAppender {
     while (!waitlist.isEmpty()) {
       String source = waitlist.pop();
       for (Edge edge : leavingEdges.get(source)) {
-        setLoopHeadInvariantIfApplicable(edge.getTarget());
 
         Element targetNode = nodes.get(edge.getTarget());
         if (targetNode == null) {
@@ -1387,7 +1415,7 @@ class WitnessWriter implements EdgeAppender {
     if (!tree.equals(ExpressionTrees.getTrue())) {
       pDoc.addDataElementChild(pNode, KeyDef.INVARIANT, tree.toString());
       String scope = stateScopes.get(pStateId);
-      if (scope != null && !scope.isEmpty() && !tree.equals(ExpressionTrees.getFalse())) {
+      if (!isNullOrEmpty(scope) && !tree.equals(ExpressionTrees.getFalse())) {
         pDoc.addDataElementChild(pNode, KeyDef.INVARIANTSCOPE, scope);
       }
     }
@@ -1706,11 +1734,11 @@ class WitnessWriter implements EdgeAppender {
     if (pState.isTarget() && graphType != WitnessType.CORRECTNESS_WITNESS) {
       return Collections.singleton(NodeFlag.ISVIOLATION);
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   private Collection<Property> extractViolatedProperties(ARGState pState) {
-    ArrayList<Property> result = new ArrayList<>();
+    List<Property> result = new ArrayList<>();
     if (pState.isTarget()) {
       result.addAll(pState.getViolatedProperties());
     }

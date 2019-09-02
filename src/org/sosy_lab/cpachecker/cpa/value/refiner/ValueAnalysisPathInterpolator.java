@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -144,9 +144,10 @@ public class ValueAnalysisPathInterpolator
    */
   private Map<ARGState, ValueAnalysisInterpolant> performPathBasedInterpolation(ARGPath errorPathPrefix) {
 
-    Set<String> booleanVariables = cfa.getVarClassification().isPresent()
-      ? cfa.getVarClassification().get().getIntBoolVars()
-      : Collections.<String>emptySet();
+    Set<String> booleanVariables =
+        cfa.getVarClassification().isPresent()
+            ? cfa.getVarClassification().get().getIntBoolVars()
+            : ImmutableSet.of();
 
     UseDefRelation useDefRelation = new UseDefRelation(errorPathPrefix,
         booleanVariables,

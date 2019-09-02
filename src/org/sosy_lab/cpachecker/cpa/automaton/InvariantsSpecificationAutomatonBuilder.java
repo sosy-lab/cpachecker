@@ -162,23 +162,20 @@ public enum InvariantsSpecificationAutomatonBuilder {
 
     private AutomatonTransition createTransitionWithCheckLocationAndAssumptionToError(
         CFANode pLocation, final List<AExpression> pAssumptions) {
-      return new AutomatonTransition(
+      return new AutomatonTransition.Builder(
           createQueryLocationString(pLocation),
-          Collections.<AutomatonBoolExpr>emptyList(),
-          pAssumptions,
-          Collections.<AutomatonAction>emptyList(),
-          AutomatonInternalState.ERROR,
-          new StringExpression("Invariant not valid"));
+          AutomatonInternalState.ERROR).withAssumptions(pAssumptions)
+              .withViolatedPropertyDescription(new StringExpression("Invariant not valid"))
+              .build();
+
     }
 
     private AutomatonTransition createTransitionWithCheckLocationAndAssumptionToInit(
         CFANode pLocation, final List<AExpression> pAssumptions) {
-      return new AutomatonTransition(
-          createQueryLocationString(pLocation),
-          Collections.<AutomatonBoolExpr>emptyList(),
-          pAssumptions,
-          Collections.<AutomatonAction>emptyList(),
-          "Init");
+      return new AutomatonTransition.Builder(createQueryLocationString(pLocation), "Init")
+          .withAssumptions(pAssumptions)
+          .build();
+
     }
 
     private AutomatonBoolExpr createQueryLocationString(final CFANode pNode) {
@@ -296,31 +293,26 @@ public enum InvariantsSpecificationAutomatonBuilder {
         final List<AExpression> pAssumptions,
         final boolean pSuccessorIsBottom) {
       if (pSuccessorIsBottom) {
-        return new AutomatonTransition(
+        return new AutomatonTransition.Builder(
             createQueryLocationString(pSuccessor),
-            Collections.<AutomatonBoolExpr>emptyList(),
-            pAssumptions,
-            Collections.<AutomatonAction>emptyList(),
-            AutomatonInternalState.BOTTOM);
+            AutomatonInternalState.BOTTOM).withAssumptions(pAssumptions).build();
+
       } else {
-        return new AutomatonTransition(
+        return new AutomatonTransition.Builder(
             createQueryLocationString(pSuccessor),
-            Collections.<AutomatonBoolExpr>emptyList(),
-            pAssumptions,
-            Collections.<AutomatonAction>emptyList(),
-            createStateName(pSuccessor));
+            createStateName(pSuccessor)).withAssumptions(pAssumptions).build();
+
       }
     }
 
     private AutomatonTransition createAutomatonInvariantErrorTransition(
         final CFANode pSuccessor, final List<AExpression> pAssumptions) {
-      return new AutomatonTransition(
+      return new AutomatonTransition.Builder(
           createQueryLocationString(pSuccessor),
-          Collections.<AutomatonBoolExpr>emptyList(),
-          pAssumptions,
-          Collections.<AutomatonAction>emptyList(),
-          AutomatonInternalState.ERROR,
-          new StringExpression("Invariant not valid"));
+          createStateName(pSuccessor)).withAssumptions(pAssumptions)
+              .withViolatedPropertyDescription(new StringExpression("Invariant not valid"))
+              .build();
+
     }
 
     private AutomatonBoolExpr createQueryLocationString(final CFANode pNode) {

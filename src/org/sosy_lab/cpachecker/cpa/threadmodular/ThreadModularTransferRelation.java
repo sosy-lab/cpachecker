@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -83,6 +84,15 @@ public class ThreadModularTransferRelation implements TransferRelation {
         stats.numberOfTransitionsInThreadConsidered.inc();
       } else if (edge == EmptyEdge.getInstance()) {
         stats.numberOfTransitionsInEnvironmentConsidered.inc();
+      }
+    }
+    ARGState argState = AbstractStates.extractStateByType(pState, ARGState.class);
+    if (argState != null) {
+      for (ARGState parent : argState.getParents()) {
+        if (parent.getAppliedFrom() != null) {
+          stats.numberOfValuableTransitionsInEnvironement.inc();
+          break;
+        }
       }
     }
 

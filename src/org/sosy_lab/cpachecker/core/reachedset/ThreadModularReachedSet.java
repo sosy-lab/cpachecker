@@ -22,8 +22,8 @@ package org.sosy_lab.cpachecker.core.reachedset;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
@@ -41,8 +41,8 @@ public class ThreadModularReachedSet extends PartitionedReachedSet {
 
   public ThreadModularReachedSet(WaitlistFactory pWaitlistFactory) {
     super(pWaitlistFactory);
-    threadTransitions = new HashSet<>();
-    projections = new HashSet<>();
+    threadTransitions = new TreeSet<>();
+    projections = new TreeSet<>();
   }
 
   @Override

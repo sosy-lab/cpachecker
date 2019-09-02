@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
@@ -66,7 +67,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.harness.PredefinedTypes;
 
 public class TestCaseExporter {
@@ -83,7 +83,7 @@ public class TestCaseExporter {
   public static Optional<String> writeTestInputNondetValues(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       final CounterexampleInfo pCounterexampleInfo,
       final CFA pCfa,
       final TestValuesToFormat formatter) {
@@ -114,7 +114,7 @@ public class TestCaseExporter {
       ARGState parent = previous;
       Iterable<CFANode> parentLocs = AbstractStates.extractLocations(parent);
       for (ARGState child : parent.getChildren()) {
-        if (pIsRelevantState.apply(child) && pIsRelevantEdge.apply(Pair.of(parent, child))) {
+        if (pIsRelevantState.apply(child) && pIsRelevantEdge.test(parent, child)) {
           Iterable<CFANode> childLocs = AbstractStates.extractLocations(child);
           for (CFANode parentLoc : parentLocs) {
             for (CFANode childLoc : childLocs) {

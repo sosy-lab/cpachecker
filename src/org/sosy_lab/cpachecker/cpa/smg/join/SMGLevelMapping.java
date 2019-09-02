@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import java.util.HashMap;
 
+@SuppressWarnings("checkstyle:IllegalType") // TODO: use composition instead of inheritance
 public class SMGLevelMapping extends HashMap<SMGJoinLevel, Integer> {
 
   private static final long serialVersionUID = 744358511538485682L;

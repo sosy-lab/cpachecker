@@ -23,16 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.argReplay;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 public class ARGReplayTransferRelation extends SingleEdgeTransferRelation {
 
@@ -59,7 +58,7 @@ public class ARGReplayTransferRelation extends SingleEdgeTransferRelation {
       // }
     }
 
-    return Collections.singleton(new ARGReplayState(successors, ((ARGReplayState)pState).getCPA()));
+    return ImmutableSet.of(new ARGReplayState(successors, ((ARGReplayState) pState).getCPA()));
   }
 
   private void getChildren(CFAEdge pCfaEdge, ARGState baseState, Set<ARGState> successors) {

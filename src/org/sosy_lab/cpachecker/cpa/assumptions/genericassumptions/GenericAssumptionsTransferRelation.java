@@ -24,9 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -71,6 +71,6 @@ public class GenericAssumptionsTransferRelation extends SingleEdgeTransferRelati
       allAssumptions.addAll(b.assumptionsForEdge(edge));
     }
 
-    return Collections.singleton(new GenericAssumptionsState(allAssumptions));
+    return ImmutableSet.of(new GenericAssumptionsState(allAssumptions));
   }
 }

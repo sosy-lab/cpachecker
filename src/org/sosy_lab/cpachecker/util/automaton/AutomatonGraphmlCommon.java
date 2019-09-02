@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
@@ -42,7 +45,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -693,7 +696,7 @@ public class AutomatonGraphmlCommon {
   public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode
       pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     if (handleAsEpsilonEdge(pEdge, pAdditionalInfo)) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     return getFileLocationsFromCfaEdge0(pEdge, pMainEntry);
   }
@@ -701,7 +704,7 @@ public class AutomatonGraphmlCommon {
   public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode
       pMainEntry) {
     if (handleAsEpsilonEdge(pEdge)) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     return getFileLocationsFromCfaEdge0(pEdge, pMainEntry);
   }
@@ -713,15 +716,17 @@ public class AutomatonGraphmlCommon {
         && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
       FileLocation location = pMainEntry.getFileLocation();
       if (!FileLocation.DUMMY.equals(location)) {
-        location = new FileLocation(
-            location.getFileName(),
-            location.getNiceFileName(),
-            location.getNodeOffset(),
-            pMainEntry.getFunctionDefinition().toString().length(),
-            location.getStartingLineNumber(),
-            location.getStartingLineNumber(),
-            location.getStartingLineInOrigin(),
-            location.getStartingLineInOrigin());
+        location =
+            new FileLocation(
+                location.getFileName(),
+                location.getNiceFileName(),
+                location.getNodeOffset(),
+                pMainEntry.getFunctionDefinition().toString().length(),
+                location.getStartingLineNumber(),
+                location.getStartingLineNumber(),
+                location.getStartingLineInOrigin(),
+                location.getStartingLineInOrigin(),
+                location.isOffsetRelatedToOrigin());
       }
       Set<FileLocation> result = Sets.newHashSet(location);
       for (AParameterDeclaration param : pMainEntry.getFunctionDefinition().getParameters()) {
@@ -761,10 +766,9 @@ public class AutomatonGraphmlCommon {
         } else {
           SwitchDetector switchDetector = new SwitchDetector(assumeEdge);
           CFATraversal.dfs().backwards().traverseOnce(assumeEdge.getSuccessor(), switchDetector);
-          List<FileLocation> caseLocations = FluentIterable
-              .from(switchDetector.getEdgesBackwardToSwitchNode())
-              .transform(e -> e.getFileLocation())
-              .toList();
+          List<FileLocation> caseLocations =
+              transformedImmutableListCopy(
+                  switchDetector.getEdgesBackwardToSwitchNode(), CFAEdge::getFileLocation);
           location = FileLocation.merge(caseLocations);
         }
 
@@ -781,33 +785,6 @@ public class AutomatonGraphmlCommon {
       }
     }
     return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
-  }
-
-  public static Optional<FileLocation> getMinFileLocation(CFAEdge pEdge, FunctionEntryNode
-      pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
-    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry, pAdditionalInfo);
-    return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l1.getNodeOffset(), l2.getNodeOffset()));
-  }
-
-  public static Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge, FunctionEntryNode
-      pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
-    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry, pAdditionalInfo);
-    return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l2.getNodeOffset(), l1.getNodeOffset()));
-  }
-
-  private static Optional<FileLocation> getMinFileLocation(Iterable<FileLocation> pLocations, Comparator<FileLocation> pComparator) {
-    Iterator<FileLocation> locationIterator = pLocations.iterator();
-    if (!locationIterator.hasNext()) {
-      return Optional.empty();
-    }
-    FileLocation min = locationIterator.next();
-    while (locationIterator.hasNext()) {
-      FileLocation l = locationIterator.next();
-      if (pComparator.compare(l, min) < 0) {
-        min = l;
-      }
-    }
-    return Optional.of(min);
   }
 
   public static boolean isPartOfSwitchStatement(AssumeEdge pAssumeEdge) {

@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.andersen.util;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,9 +44,7 @@ public class ConstraintSystem {
   private final Set<SimpleConstraint> simpleConstraints = new HashSet<>();
   private final Set<ComplexConstraint> complexConstraints = new HashSet<>();
 
-  private final Map<String, String[]> pointsToSets = new HashMap<>();
-
-  private boolean computed = false;
+  @LazyInit private ImmutableListMultimap<String, String> pointsToSets;
 
   public ConstraintSystem() {
 
@@ -72,11 +73,10 @@ public class ConstraintSystem {
    *
    * @return points-to sets for the constraint system.
    */
-  public Map<String, String[]> getPointsToSets() {
-
-    if (!computed) {
-      computeDynTransitiveClosure(baseConstraints, simpleConstraints, complexConstraints, pointsToSets);
-      computed = true;
+  public ImmutableListMultimap<String, String> getPointsToSets() {
+    if (pointsToSets == null) {
+      pointsToSets =
+          computeDynTransitiveClosure(baseConstraints, simpleConstraints, complexConstraints);
     }
 
     return this.pointsToSets;
@@ -152,18 +152,13 @@ public class ConstraintSystem {
    * Computes the dynamic transitive closure of the given constraint system and writes the resulting
    * points-to sets to the {@link Map} <code>ptSets</code>.
    *
-   * @param bConstr
-   *        {@link Set} of {@link BaseConstraint}s in the constraint system.
-   * @param sConstr
-   *        {@link Set} of {@link SimpleConstraint}s in the constraint system.
-   * @param cConstr
-   *        {@link Set} of {@link ComplexConstraint}s in the constraint system.
-   * @param ptSets
-   *        Writes all found points-to relations to this {@link Map}.<br>
-   *        <i>Note:</i> The map is cleared, before the results are written.
+   * @param bConstr {@link Set} of {@link BaseConstraint}s in the constraint system.
+   * @param sConstr {@link Set} of {@link SimpleConstraint}s in the constraint system.
+   * @param cConstr {@link Set} of {@link ComplexConstraint}s in the constraint system.
+   * @return all found points-to relations
    */
-  private static void computeDynTransitiveClosure(Set<BaseConstraint> bConstr, Set<SimpleConstraint> sConstr,
-      Set<ComplexConstraint> cConstr, Map<String, String[]> ptSets) {
+  private static ImmutableListMultimap<String, String> computeDynTransitiveClosure(
+      Set<BaseConstraint> bConstr, Set<SimpleConstraint> sConstr, Set<ComplexConstraint> cConstr) {
 
     // build initial graph
     DirectedGraph g = new DirectedGraph();
@@ -236,15 +231,14 @@ public class ConstraintSystem {
 
     } // while (!workset.isEmpty())
 
-    // clear result map
-    ptSets.clear();
-
+    ImmutableListMultimap.Builder<String, String> ptSets = ImmutableListMultimap.builder();
     // write results to map
     for (Map.Entry<String, DirectedGraph.Node> e : g.getNameMappings()) {
 
       Collection<String> ptSetNode = e.getValue().getPointsToSet();
-      ptSets.put(e.getKey(), ptSetNode.toArray(new String[ptSetNode.size()]));
+      ptSets.putAll(e.getKey(), ptSetNode);
     }
+    return ptSets.build();
   }
 
   /**
@@ -502,21 +496,11 @@ public class ConstraintSystem {
     sb.append('\n');
     sb.append('[').append('\n');
 
-    Map<String, String[]> ptSet = getPointsToSets();
+    ImmutableListMultimap<String, String> ptSet = getPointsToSets();
 
-    for (Entry<String, String[]> entry : ptSet.entrySet()) {
-
+    for (Entry<String, Collection<String>> entry : ptSet.asMap().entrySet()) {
       sb.append(entry.getKey()).append(" -> {");
-      String[] vals = entry.getValue();
-
-      for (String val : vals) {
-        sb.append(val).append(',');
-      }
-
-      if (vals.length > 0) {
-        sb.setLength(sb.length() - 1);
-      }
-
+      Joiner.on(',').appendTo(sb, entry.getValue());
       sb.append('}').append('\n');
     }
 

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -137,8 +139,9 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
             pConfig, logger, pShutdownNotifier, proofFile, cpa, pCfa, specification);
     this.logger = logger;
 
-    if (pReachedSet == null || pReachedSet.hasWaitingState()) { throw new IllegalArgumentException(
-        "Parameter pReachedSet may not be null and may not have any states in its waitlist."); }
+    checkArgument(
+        pReachedSet != null && !pReachedSet.hasWaitingState(),
+        "Parameter pReachedSet may not be null and may not have any states in its waitlist.");
 
     stats.totalTimer.start();
     checkingStrategy.constructInternalProofRepresentation(pReachedSet);
