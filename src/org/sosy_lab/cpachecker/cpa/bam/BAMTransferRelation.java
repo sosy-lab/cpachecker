@@ -248,20 +248,29 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       final Precision reducedInitialPrecision)
       throws CPAException, InterruptedException {
 
+    shutdownNotifier.shutdownIfNecessary();
+
     final Pair<Collection<AbstractState>, ReachedSet> reducedResult =
         getReducedResult(entryState, reducedInitialState, reducedInitialPrecision, innerSubtree);
+
+    shutdownNotifier.shutdownIfNecessary();
 
     if (bamPccManager.isPCCEnabled()) {
       bamPccManager.addBlockAnalysisInfo(reducedInitialState);
     }
 
-    return expandResultStates(
-        reducedResult.getFirst(),
-        reducedResult.getSecond(),
-        innerSubtree,
-        outerSubtree,
-        entryState,
-        precision);
+    final List<AbstractState> expandedStates =
+        expandResultStates(
+            reducedResult.getFirst(),
+            reducedResult.getSecond(),
+            innerSubtree,
+            outerSubtree,
+            entryState,
+            precision);
+
+    shutdownNotifier.shutdownIfNecessary();
+
+    return expandedStates;
   }
 
   /**

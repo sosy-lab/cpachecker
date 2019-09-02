@@ -59,7 +59,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   protected final BlockPartitioning partitioning;
   protected final LogManager logger;
   protected final Reducer wrappedReducer;
-  private final ShutdownNotifier shutdownNotifier;
+  protected final ShutdownNotifier shutdownNotifier;
 
   private final boolean useDynamicAdjustment;
 
