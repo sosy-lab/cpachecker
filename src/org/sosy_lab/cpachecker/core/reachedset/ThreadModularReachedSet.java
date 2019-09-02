@@ -29,18 +29,17 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
-public class ThreadModularReachedSet extends PartitionedReachedSet {
+public class ThreadModularReachedSet extends ForwardingReachedSet {
 
-  private static final long serialVersionUID = -1608561980102557646L;
   private final Set<AbstractState> threadTransitions;
   private final Set<AbstractState> projections;
 
-  public ThreadModularReachedSet(WaitlistFactory pWaitlistFactory) {
-    super(pWaitlistFactory);
+  public ThreadModularReachedSet(ReachedSet wrappedSet) {
+    super(wrappedSet);
     threadTransitions = new TreeSet<>();
     projections = new TreeSet<>();
   }
@@ -48,7 +47,28 @@ public class ThreadModularReachedSet extends PartitionedReachedSet {
   @Override
   public void add(AbstractState pState, Precision pPrecision) {
     super.add(pState, pPrecision);
+    auxiliaryAdd(pState);
+  }
 
+  @Override
+  public void addAll(Iterable<Pair<AbstractState, Precision>> pToAdd) {
+    super.addAll(pToAdd);
+    pToAdd.forEach(p -> this.auxiliaryAdd(p.getFirst()));
+  }
+
+  @Override
+  public void remove(AbstractState pState) {
+    super.remove(pState);
+    auxiliaryRemove(pState);
+  }
+
+  @Override
+  public void removeAll(Iterable<? extends AbstractState> pToRemove) {
+    super.removeAll(pToRemove);
+    pToRemove.forEach(this::auxiliaryRemove);
+  }
+
+  private void auxiliaryAdd(AbstractState pState) {
     AbstractStateWithLocations loc =
         AbstractStates.extractStateByType(pState, AbstractStateWithLocations.class);
     if (loc instanceof AbstractStateWithEdge) {
@@ -63,10 +83,7 @@ public class ThreadModularReachedSet extends PartitionedReachedSet {
     }
   }
 
-  @Override
-  public void remove(AbstractState pState) {
-    super.remove(pState);
-
+  private void auxiliaryRemove(AbstractState pState) {
     AbstractStateWithLocations loc =
         AbstractStates.extractStateByType(pState, AbstractStateWithLocations.class);
     if (loc instanceof AbstractStateWithEdge) {
