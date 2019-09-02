@@ -504,7 +504,7 @@ public class PredicateApplyOperator implements ApplyOperator {
     return new PredicateProjectedState(newEdge, guard);
   }
 
-  private CFunctionCallExpression prepareUndefFunctionFor(CRightHandSide right) {
+  static CFunctionCallExpression prepareUndefFunctionFor(CRightHandSide right) {
 
     FileLocation loc = right.getFileLocation();
     CType type = right.getExpressionType();

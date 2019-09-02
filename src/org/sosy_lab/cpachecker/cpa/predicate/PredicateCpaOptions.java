@@ -56,6 +56,9 @@ class PredicateCpaOptions {
   @Option(secure = true, description = "Merge only effects with equal abstractions.")
   private boolean abstractionLattice = false;
 
+  @Option(secure = true, description = "Join effects into undefs or just combine assignments.")
+  private boolean joinEffectsIntoUndefs = true;
+
   @Option(secure = true, description = "Use formula reporting states for strengthening.")
   private boolean strengthenWithFormulaReportingStates = false;
 
@@ -89,5 +92,9 @@ class PredicateCpaOptions {
 
   boolean abstractionLattice() {
     return abstractionLattice;
+  }
+
+  boolean joinEffectsIntoUndefs() {
+    return joinEffectsIntoUndefs;
   }
 }

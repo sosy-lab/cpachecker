@@ -284,7 +284,8 @@ public class PredicateCPA
             solver.getFormulaManager().getBooleanFormulaManager(),
             preciseFormulaManager,
             statistics,
-            options.abstractionLattice());
+            options.abstractionLattice(),
+            options.joinEffectsIntoUndefs());
       default:
         throw new InternalError("Update list of allowed merge operators");
     }
