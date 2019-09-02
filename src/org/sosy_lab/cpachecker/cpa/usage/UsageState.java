@@ -32,7 +32,9 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -40,7 +42,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /** Represents one abstract state of the Usage CPA. */
 public class UsageState extends AbstractSingleWrapperState
-    implements LatticeAbstractState<UsageState> {
+    implements LatticeAbstractState<UsageState>, AbstractStateWithEdge {
 
   private static final long serialVersionUID = -898577877284268426L;
   private final transient StateStatistics stats;
@@ -207,5 +209,25 @@ public class UsageState extends AbstractSingleWrapperState
         getWrappedState(),
         ImmutableMap.of(),
         new StateStatistics());
+  }
+
+  @Override
+  public AbstractEdge getAbstractEdge() {
+    return ((AbstractStateWithEdge) getWrappedState()).getAbstractEdge();
+  }
+
+  @Override
+  public boolean hasEmptyEffect() {
+    return ((AbstractStateWithEdge) getWrappedState()).hasEmptyEffect();
+  }
+
+  @Override
+  public boolean isProjection() {
+    AbstractState wrapped = getWrappedState();
+    if (wrapped instanceof AbstractStateWithEdge) {
+      return ((AbstractStateWithEdge) wrapped).isProjection();
+    } else {
+      return false;
+    }
   }
 }
