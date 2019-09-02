@@ -210,7 +210,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
 
   @Override
   public boolean equals(Object other) {
-    if (other == null || !(other instanceof ThreadingState)) {
+    if (!(other instanceof ThreadingState)) {
       return false;
     }
     ThreadingState ts = (ThreadingState)other;
@@ -384,7 +384,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
 
     @Override
     public boolean equals(Object o) {
-      if (o == null || !(o instanceof ThreadState)) {
+      if (!(o instanceof ThreadState)) {
         return false;
       }
       ThreadState other = (ThreadState)o;

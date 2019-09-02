@@ -80,8 +80,12 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     edge = pEdge;
   }
 
-  public SMGState getNewState() {
+  public SMGState getState() {
     return smgState;
+  }
+
+  void setState(SMGState pSmgState) {
+    smgState = pSmgState;
   }
 
   CFAEdge getEdge() {
@@ -98,16 +102,12 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     }
     Preconditions.checkState(
         pValue instanceof SMGKnownSymbolicValue, "known value has invalid type");
-    if (!smgState.isExplicit((SMGKnownSymbolicValue) pValue)) {
+    if (!getState().isExplicit((SMGKnownSymbolicValue) pValue)) {
       return SMGUnknownValue.INSTANCE;
     }
     return Preconditions.checkNotNull(
-        smgState.getExplicit((SMGKnownSymbolicValue) pValue),
+        getState().getExplicit((SMGKnownSymbolicValue) pValue),
         "known and existing value cannot be read from state");
-  }
-
-  void setSmgState(SMGState pSmgState) {
-    smgState = pSmgState;
   }
 
   @Override
@@ -121,7 +121,8 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
       List<? extends SMGValueAndState> symValueAndStates;
 
       try {
-        symValueAndStates = smgExpressionEvaluator.evaluateAssumptionValue(smgState, edge, binaryExp);
+        symValueAndStates =
+            smgExpressionEvaluator.evaluateAssumptionValue(getState(), edge, binaryExp);
       } catch (CPATransferException e) {
         UnrecognizedCodeException e2 =
             new UnrecognizedCodeException("SMG cannot be evaluated", binaryExp);
@@ -131,7 +132,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
       SMGValueAndState symValueAndState = getStateAndAddRestForLater(symValueAndStates);
       SMGSymbolicValue symValue = symValueAndState.getObject();
-      smgState = symValueAndState.getSmgState();
+      setState(symValueAndState.getSmgState());
 
       if (symValue.equals(SMGKnownSymValue.TRUE)) {
         return new NumericValue(1);
@@ -154,7 +155,8 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
     List<? extends SMGValueAndState> valueAndStates;
     try {
-      valueAndStates = smgExpressionEvaluator.evaluateExpressionValue(smgState, edge, leftHandSide);
+      valueAndStates =
+          smgExpressionEvaluator.evaluateExpressionValue(getState(), edge, leftHandSide);
     } catch (CPATransferException e) {
       UnrecognizedCodeException e2 =
           new UnrecognizedCodeException("SMG cannot be evaluated", leftHandSide);
@@ -164,7 +166,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
     SMGValueAndState valueAndState = getStateAndAddRestForLater(valueAndStates);
     SMGSymbolicValue value = valueAndState.getObject();
-    smgState = valueAndState.getSmgState();
+    setState(valueAndState.getSmgState());
 
     SMGExplicitValue expValue = getExplicitValue(value);
     if (expValue.isUnknown()) {
@@ -181,10 +183,10 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
   private SMGValueAndState getStateAndAddRestForLater(
       final List<? extends SMGValueAndState> valueAndStates) {
     final SMGValueAndState valueAndState;
-    if (valueAndStates.size() > 0) {
+    if (!valueAndStates.isEmpty()) {
       valueAndState = valueAndStates.get(0);
     } else {
-      valueAndState = SMGValueAndState.of(getNewState());
+      valueAndState = SMGValueAndState.of(getState());
     }
 
     for (int c = 1; c < valueAndStates.size(); c++) {

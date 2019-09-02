@@ -24,18 +24,15 @@
 package org.sosy_lab.cpachecker.util.ci.translators;
 
 import com.google.common.annotations.VisibleForTesting;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ci.CIUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 
 public abstract class CartesianRequirementsTranslator<T extends AbstractState> extends AbstractRequirementsTranslator<T> {
@@ -48,18 +45,13 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
   }
 
   @VisibleForTesting
-  static List<String> writeVarDefinition(
-      final List<String> vars,
-      final SSAMap ssaMap,
-      final @Nullable Collection<String> pRequiredVars) {
+  static List<String> writeVarDefinition(final List<String> vars, final SSAMap ssaMap) {
     List<String> list = new ArrayList<>();
     String def;
     for (String var : vars) {
-      if (pRequiredVars == null || pRequiredVars.contains(var)) {
         def = "(declare-fun " + getVarWithIndex(var, ssaMap);
         def += " () Int)";
         list.add(def);
-      }
     }
     return list;
   }
@@ -76,9 +68,11 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
     return list;
   }
 
+
   @Override
   protected Pair<List<String>, String> convertToFormula(final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars) {
-    List<String> firstReturn = writeVarDefinition(getVarsInRequirements(requirement), indices, pRequiredVars);
+    List<String> firstReturn =
+        writeVarDefinition(getVarsInRequirements(requirement, pRequiredVars), indices);
 
     String secReturn;
     List<String> listOfIndependentRequirements = getListOfIndependentRequirements(requirement, indices, pRequiredVars);

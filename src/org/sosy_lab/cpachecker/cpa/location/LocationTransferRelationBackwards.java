@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -58,7 +59,7 @@ public class LocationTransferRelationBackwards implements TransferRelation {
       return factory.getState(cfaEdge.getPredecessor());
     }
 
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override

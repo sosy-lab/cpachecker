@@ -29,7 +29,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -37,22 +36,19 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionBootstrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -86,7 +82,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * - The following lines of the section contain SMTLIB2 statements of the form
  *   "(assert ...)". Each asserted term will be used as one predicate.
  */
-@Options(prefix="cpa.predicate.abstraction.initialPredicates")
 public class PredicateMapParser {
 
   private static final String FUNCTION_NAME_REGEX = "([_a-zA-Z][_a-zA-Z0-9]*)";
@@ -94,32 +89,27 @@ public class PredicateMapParser {
   private static final Pattern FUNCTION_NAME_PATTERN = Pattern.compile("^" + FUNCTION_NAME_REGEX + "$");
   private static final Pattern CFA_NODE_PATTERN = Pattern.compile("^" + FUNCTION_NAME_REGEX + " " + CFA_NODE_REGEX + "$");
 
-  @Option(secure=true, description="Apply location-specific predicates to all locations in their function")
-  private boolean applyFunctionWide = false;
-
-  @Option(secure=true, description="Apply location- and function-specific predicates globally (to all locations in the program)")
-  private boolean applyGlobally = false;
-
-  @Option(secure=true, description = "when reading predicates from file, convert them from Integer- to BV-theory or reverse.")
-  private PrecisionConverter encodePredicates = PrecisionConverter.DISABLE;
-
   private final CFA cfa;
 
   private final LogManagerWithoutDuplicates logger;
   private final FormulaManagerView fmgr;
   private final AbstractionManager amgr;
 
-  private final Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
+  private final Map<Integer, CFANode> idToNodeMap = new HashMap<>();
 
-  public PredicateMapParser(Configuration pConfig, CFA pCfa,
+  private final PredicatePrecisionBootstrapper.InitialPredicatesOptions options;
+
+  public PredicateMapParser(
+      CFA pCfa,
       LogManager pLogger,
-      FormulaManagerView pFmgr, AbstractionManager pAmgr) throws InvalidConfigurationException {
-    pConfig.inject(this);
-
+      FormulaManagerView pFmgr,
+      AbstractionManager pAmgr,
+      PredicatePrecisionBootstrapper.InitialPredicatesOptions pOptions) {
     cfa = pCfa;
     logger = new LogManagerWithoutDuplicates(pLogger);
     fmgr = pFmgr;
     amgr = pAmgr;
+    options = pOptions;
   }
 
   /**
@@ -133,9 +123,6 @@ public class PredicateMapParser {
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public PredicatePrecision parsePredicates(Path file)
           throws IOException, PredicateParsingFailedException {
-
-    IO.checkReadableFile(file);
-
     try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.US_ASCII)) {
       return parsePredicates(reader, file.getFileName().toString());
     }
@@ -154,8 +141,9 @@ public class PredicateMapParser {
     int lineNo = defParsingResult.getFirst();
     String commonDefinitions = defParsingResult.getSecond();
 
-    final Converter converter = Converter.getConverter(encodePredicates, cfa, logger);
-    if (encodePredicates != PrecisionConverter.DISABLE) {
+    final Converter converter =
+        Converter.getConverter(options.getPrecisionConverter(), cfa, logger);
+    if (options.getPrecisionConverter() != PrecisionConverter.DISABLE) {
       final StringBuilder str = new StringBuilder();
       for (String line : Splitter.on('\n').split(commonDefinitions)) {
         final String converted = convertFormula(converter, line);
@@ -197,7 +185,7 @@ public class PredicateMapParser {
           throw new PredicateParsingFailedException("empty key is not allowed", source, lineNo);
         }
 
-        if (currentLine.equals("*") || applyGlobally) {
+        if (currentLine.equals("*") || options.applyGlobally()) {
           // the section "*"
           currentSet = globalPredicates;
 
@@ -220,7 +208,7 @@ public class PredicateMapParser {
             String function = matcher.group(1);
             int nodeId = Integer.parseInt(matcher.group(2)); // does not fail, we checked with regexp
 
-            if (applyFunctionWide) {
+            if (options.applyFunctionWide()) {
               if (!cfa.getAllFunctionNames().contains(function)) {
                 logger.log(Level.WARNING, "Cannot use predicates for function", function + ", this function does not exist.");
                 currentSet = new ArrayList<>(); // temporary list which will be thrown away and ignored
@@ -247,7 +235,7 @@ public class PredicateMapParser {
         // we expect a predicate
         if (currentLine.startsWith("(assert ") && currentLine.endsWith(")")) {
 
-          if (encodePredicates != PrecisionConverter.DISABLE) {
+          if (options.getPrecisionConverter() != PrecisionConverter.DISABLE) {
             currentLine = convertFormula(converter, currentLine);
             if (currentLine == null) {
               // ignore formula, if converting fails.

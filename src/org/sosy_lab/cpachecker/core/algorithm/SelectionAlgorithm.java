@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -87,9 +88,9 @@ public class SelectionAlgorithm extends NestingAlgorithm {
 
   private static class SelectionAlgorithmCFAVisitor implements CFAVisitor {
 
-    private final HashSet<String> functionNames = new HashSet<>();
-    private Set<String> arrayVariables = new HashSet<>();
-    private HashSet<String> floatVariables = new HashSet<>();
+    private final Set<String> functionNames = new HashSet<>();
+    private final Set<String> arrayVariables = new HashSet<>();
+    private final Set<String> floatVariables = new HashSet<>();
 
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
@@ -497,7 +498,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
         mainFunction,
         singleShutdownManager,
         aggregateReached,
-        Collections.singleton("analysis.selectAnalysisHeuristically"),
+        ImmutableSet.of("analysis.selectAnalysisHeuristically"),
         stats.getSubStatistics());
   }
 

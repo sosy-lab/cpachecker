@@ -12,7 +12,7 @@
   <option name="-heap">2000M</option>
   <option name="-preprocess" />
 
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+  <propertyfile>${inputfile_path}/ALL.prp</propertyfile>
 
   <rundefinition>
 

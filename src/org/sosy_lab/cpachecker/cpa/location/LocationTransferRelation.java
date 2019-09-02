@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -67,7 +68,7 @@ public class LocationTransferRelation implements TransferRelation {
         return result;
       }
 
-      return Collections.emptySet();
+      return ImmutableSet.of();
     } finally {
 
       stats.getSuccessorsForEdgeTimer.stop();

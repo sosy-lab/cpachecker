@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -266,7 +267,7 @@ public class CustomInstructionApplications {
       input.add("x");
       input.add("y");
       CustomInstruction ci = new CustomInstruction(start, Collections.singleton(end),
-          input, Collections.singletonList("r"), shutdownNotifier);
+          input, ImmutableList.of("r"), shutdownNotifier);
 
       // find applied custom instructions in program
       try (Writer aciDef =

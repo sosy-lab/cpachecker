@@ -219,7 +219,7 @@ public class CFAToCTranslator {
           : "branches with more than two options not supported yet (was the program prepocessed with CIL?)"; // TODO: why not btw?
 
       // collect edges of condition branch
-      ArrayList<EdgeAndBlock> result = new ArrayList<>(2);
+      List<EdgeAndBlock> result = new ArrayList<>(2);
       int ind = 0;
       boolean previousTruthAssumption = false;
       String elseCond = null;

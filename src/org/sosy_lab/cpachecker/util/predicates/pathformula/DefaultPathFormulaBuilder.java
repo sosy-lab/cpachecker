@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -33,14 +34,23 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  */
 public class DefaultPathFormulaBuilder extends CachingPathFormulaBuilder {
 
-  private static class PathFormulaAndBuilder extends DefaultPathFormulaBuilder {
+  private static abstract class PathFormulaAndBuilder extends DefaultPathFormulaBuilder {
 
-    private final DefaultPathFormulaBuilder previousPathFormula;
+    protected final DefaultPathFormulaBuilder previousPathFormula;
 
-    private final CFAEdge edge;
-
-    protected PathFormulaAndBuilder(DefaultPathFormulaBuilder pPathFormulaAndBuilder, CFAEdge pEdge) {
+    private PathFormulaAndBuilder(DefaultPathFormulaBuilder pPathFormulaAndBuilder) {
       this.previousPathFormula = pPathFormulaAndBuilder;
+    }
+  }
+
+  private static class EdgePathFormulaAndBuilder extends PathFormulaAndBuilder {
+
+    private CFAEdge edge;
+
+    protected EdgePathFormulaAndBuilder(
+        DefaultPathFormulaBuilder pPathFormulaAndBuilder,
+        CFAEdge pEdge) {
+      super(pPathFormulaAndBuilder);
       this.edge = pEdge;
     }
 
@@ -48,6 +58,24 @@ public class DefaultPathFormulaBuilder extends CachingPathFormulaBuilder {
     protected PathFormula buildImplementation(PathFormulaManager pPfmgr, PathFormula pathFormula)
         throws CPATransferException, InterruptedException {
       return pPfmgr.makeAnd(previousPathFormula.build(pPfmgr, pathFormula), edge);
+    }
+  }
+
+  private static class ExpressionPathFormulaAndBuilder extends PathFormulaAndBuilder {
+
+    private CExpression assumption;
+
+    protected ExpressionPathFormulaAndBuilder(
+        DefaultPathFormulaBuilder pPathFormulaAndBuilder,
+        CExpression pAssumption) {
+      super(pPathFormulaAndBuilder);
+      this.assumption = pAssumption;
+    }
+
+    @Override
+    protected PathFormula buildImplementation(PathFormulaManager pPfmgr, PathFormula pathFormula)
+        throws CPATransferException, InterruptedException {
+      return pPfmgr.makeAnd(previousPathFormula.build(pPfmgr, pathFormula), assumption);
     }
   }
 
@@ -75,7 +103,12 @@ public class DefaultPathFormulaBuilder extends CachingPathFormulaBuilder {
 
   @Override
   public PathFormulaBuilder makeAnd(CFAEdge pEdge) {
-    return new PathFormulaAndBuilder(this, pEdge);
+    return new EdgePathFormulaAndBuilder(this, pEdge);
+  }
+
+  @Override
+  public PathFormulaBuilder makeAnd(CExpression pAssumption) {
+    return new ExpressionPathFormulaAndBuilder(this, pAssumption);
   }
 
   @Override

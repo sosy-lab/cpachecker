@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -124,7 +124,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       MachineModel pMachineModel,
       MemoryLocationExtractor pVariableNameExtractor) {
-    this(pCompoundIntervalManagerFactory, pMachineModel, pVariableNameExtractor, Collections.<MemoryLocation, NumeralFormula<CompoundInterval>>emptyMap());
+    this(pCompoundIntervalManagerFactory, pMachineModel, pVariableNameExtractor, ImmutableMap.of());
   }
 
   /**

@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -59,7 +62,7 @@ public class FrameSet implements AutoCloseable {
   public FrameSet(Solver pSolver, Set<ProverOptions> pProverOptions) {
     solver = pSolver;
     proverOptions =
-        pProverOptions.isEmpty() ? Collections.emptySet() : Sets.immutableEnumSet(pProverOptions);
+        pProverOptions.isEmpty() ? ImmutableSet.of() : Sets.immutableEnumSet(pProverOptions);
     newFrame();
   }
 
@@ -87,7 +90,7 @@ public class FrameSet implements AutoCloseable {
             i -> {
               Iterable<? extends Object> result = frames.get(i);
               if (i == 0) {
-                result = Iterables.concat(Collections.singleton("I"), result);
+                result = Iterables.concat(ImmutableSet.of("I"), result);
               }
               return result;
             })
@@ -117,7 +120,7 @@ public class FrameSet implements AutoCloseable {
       throw new IndexOutOfBoundsException("Illegal frame index: " + pFrameIndex);
     }
     if (pFrameIndex > getFrontierIndex()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     return IntStream.rangeClosed(pFrameIndex, getFrontierIndex())
         .mapToObj(frames::get)
@@ -126,9 +129,7 @@ public class FrameSet implements AutoCloseable {
   }
 
   public void addFrameClause(int pFrameIndex, CandidateInvariant pClause) {
-    if (pFrameIndex > getFrontierIndex()) {
-      throw new IllegalArgumentException("To push the frontier, use pushFrontier");
-    }
+    checkArgument(pFrameIndex <= getFrontierIndex(), "To push the frontier, use pushFrontier");
     Set<CandidateInvariant> frame = frames.get(pFrameIndex);
     boolean added = false;
     for (CandidateInvariant clauseComponent :
@@ -204,6 +205,6 @@ public class FrameSet implements AutoCloseable {
 
   public boolean isConfirmed(CandidateInvariant pRootInvariant) {
     int index = getFrontierIndex(pRootInvariant);
-    return IntStream.range(1, index).filter(emptyFrames::contains).findAny().isPresent();
+    return IntStream.range(1, index).anyMatch(emptyFrames::contains);
   }
 }

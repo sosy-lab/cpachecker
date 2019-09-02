@@ -30,6 +30,7 @@ import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 
 public class NumeralFormulaManagerView
@@ -142,4 +143,8 @@ public class NumeralFormulaManagerView
     return manager.getFormulaType();
   }
 
+  @Override
+  public IntegerFormula floor(ParamFormulaType pFormula) {
+    return manager.floor(pFormula);
+  }
 }

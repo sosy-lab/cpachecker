@@ -34,7 +34,6 @@ import com.google.common.collect.Table.Cell;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -110,7 +109,7 @@ public class DependenceGraph implements Serializable {
 
   public Collection<CFAEdge> getReachable(CFAEdge pStart, TraversalDirection pDirection)
       throws InterruptedException {
-    return getReachable(pStart, pDirection, Collections.emptySet());
+    return getReachable(pStart, pDirection, ImmutableSet.of());
   }
 
   /**

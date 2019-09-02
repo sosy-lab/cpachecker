@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.splitter.heuristics;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 
@@ -39,7 +39,7 @@ public class SplitAtAssumes implements SplitHeuristic {
 
   @Override
   public Collection<Integer> getIndicesToRemove(final CFAEdge pCfaEdge) {
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   @Override

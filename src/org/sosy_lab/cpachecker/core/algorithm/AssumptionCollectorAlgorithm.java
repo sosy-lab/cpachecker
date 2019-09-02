@@ -369,8 +369,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       falseAssumptionStates = Sets.newHashSetWithExpectedSize(pReached.getWaitlist().size());
       for (AbstractState state : pReached.getWaitlist()) {
         try {
-          if (cpa.getTransferRelation().getAbstractSuccessors(state, pReached.getPrecision(state))
-              .size() > 0) {
+          if (!cpa.getTransferRelation()
+              .getAbstractSuccessors(state, pReached.getPrecision(state))
+              .isEmpty()) {
             falseAssumptionStates.add(state);
             if(state instanceof ARGState) {
               ARGState argState = (ARGState) state;
@@ -385,7 +386,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
       return falseAssumptionStates;
     } else {
-      falseAssumptionStates = Sets.newHashSet(pReached.getWaitlist());
+      falseAssumptionStates = new HashSet<>(pReached.getWaitlist());
     }
     return falseAssumptionStates;
   }

@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Objects;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
@@ -142,12 +142,12 @@ public class SymbolicInterpolant
       return false;
     }
     SymbolicInterpolant that = (SymbolicInterpolant)o;
-    return Objects.equal(constraintsInformation, that.constraintsInformation)
-        && Objects.equal(valueInterpolant, that.valueInterpolant);
+    return Objects.equals(constraintsInformation, that.constraintsInformation)
+        && Objects.equals(valueInterpolant, that.valueInterpolant);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(valueInterpolant, constraintsInformation);
+    return Objects.hash(valueInterpolant, constraintsInformation);
   }
 }

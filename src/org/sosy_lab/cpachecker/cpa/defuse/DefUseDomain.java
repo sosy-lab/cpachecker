@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.defuse;
 
+import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
@@ -45,15 +45,9 @@ public class DefUseDomain implements AbstractDomain {
             DefUseState defUseState2 = (DefUseState) element2;
 
             Set<DefUseDefinition> joined = new HashSet<> ();
-            for (DefUseDefinition definition : defUseState1) {
-              joined.add(definition);
-            }
+            Iterables.addAll(joined, defUseState1);
 
-            for (DefUseDefinition definition : defUseState2) {
-                if (!joined.contains(definition)) {
-                  joined.add(definition);
-                }
-            }
+            Iterables.addAll(joined, defUseState2);
 
             return new DefUseState(joined);
     }

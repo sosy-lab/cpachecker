@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.nondeterminism;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -77,7 +77,7 @@ public class NondeterminismCPA implements ConfigurableProgramAnalysis {
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    return new NondeterminismAbstractionState(Collections.emptySet());
+    return new NondeterminismAbstractionState(ImmutableSet.of());
   }
 
   @Override

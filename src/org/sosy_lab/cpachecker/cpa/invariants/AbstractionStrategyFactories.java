@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -141,10 +142,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
             private EnteringEdgesBasedAbstractionState(
                 Set<MemoryLocation> pPreviousWideningTargets,
                 Set<BooleanFormula<CompoundInterval>> pPreviousWideningHints) {
-              this(
-                  Collections.<CFAEdge>emptySet(),
-                  pPreviousWideningTargets,
-                  pPreviousWideningHints);
+              this(ImmutableSet.of(), pPreviousWideningTargets, pPreviousWideningHints);
             }
 
             private EnteringEdgesBasedAbstractionState(
@@ -312,22 +310,21 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                               pMachineModel,
                               pEdge,
                               pWithEnteringEdges,
-                              Collections
-                                  .<MemoryLocation, NumeralFormula<CompoundInterval>>emptyMap()));
+                              ImmutableMap.of()));
                   if (expression instanceof CExpression) {
                     wideningHint = ((CExpression) expression).accept(expressionToFormulaVisitor);
                   } else if (expression instanceof JExpression) {
                     wideningHint = ((JExpression) expression).accept(expressionToFormulaVisitor);
                   } else {
-                    return Collections.emptySet();
+                    return ImmutableSet.of();
                   }
                 } catch (UnrecognizedCodeException e) {
                   // Does not really matter, just no hint
-                  return Collections.emptySet();
+                  return ImmutableSet.of();
                 }
                 return normalize(Collections.singleton(cifm.fromNumeral(wideningHint)));
               }
-              return Collections.emptySet();
+              return ImmutableSet.of();
             }
 
             private ImmutableSet<BooleanFormula<CompoundInterval>> normalize(
@@ -467,8 +464,8 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                 ((EnteringEdgesBasedAbstractionState) pPrevious).wideningTargets;
             previousWideningHints = ((EnteringEdgesBasedAbstractionState) pPrevious).wideningHints;
           } else {
-            previousWideningTargets = Collections.emptySet();
-            previousWideningHints = Collections.emptySet();
+            previousWideningTargets = ImmutableSet.of();
+            previousWideningHints = ImmutableSet.of();
           }
           return new EnteringEdgesBasedAbstractionState(
               previousWideningTargets, previousWideningHints);
@@ -571,7 +568,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
       @Override
       public Set<BooleanFormula<CompoundInterval>> getWideningHints() {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
 
     },
@@ -580,7 +577,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
       @Override
       public Set<MemoryLocation> determineWideningTargets(AbstractionState pOther) {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
 
       @Override
@@ -603,7 +600,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
       @Override
       public Set<BooleanFormula<CompoundInterval>> getWideningHints() {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
 
     }

@@ -31,7 +31,6 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithP
 import com.google.common.base.Preconditions;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -41,6 +40,7 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -84,12 +84,6 @@ class PredicateCPAStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path predmapFile = Paths.get("predmap.txt");
 
-  @Option(secure=true, name="precondition.file", description="File for exporting the weakest precondition.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path preconditionFile = Paths.get("precondition.txt");
-  @Option(secure=true, name="precondition.export", description="Export the weakest precondition?")
-  private boolean preconditionExport = false;
-
   @Option(secure=true, description="export final loop invariants",
           name="invariants.export")
   private boolean exportInvariants = true;
@@ -115,14 +109,6 @@ class PredicateCPAStatistics implements Statistics {
       name="abstractions.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path abstractionsFile = Paths.get("abstractions.txt");
-
-  @Option(description="enable export of all relations that were collected to synthecise the abstract precision?",
-      name="relations.export")
-  private boolean relationsExport = false;
-  @Option(description="file that consists all relations that were collected to synthecise the abstract precision",
-      name="relations.file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path relationsFile = Paths.get("relations.txt");
 
   private final LogManager logger;
 
@@ -194,7 +180,7 @@ class PredicateCPAStatistics implements Statistics {
 
       this.location = MultimapBuilder.treeKeys().linkedHashSetValues().build();
       this.function = MultimapBuilder.treeKeys().linkedHashSetValues().build();
-      this.global = Sets.newLinkedHashSet();
+      this.global = new LinkedHashSet<>();
     }
 
   }
@@ -203,7 +189,7 @@ class PredicateCPAStatistics implements Statistics {
     Preconditions.checkNotNull(targetFile);
     Preconditions.checkNotNull(predicates);
 
-    Set<AbstractionPredicate> allPredicates = Sets.newLinkedHashSet(predicates.global);
+    Set<AbstractionPredicate> allPredicates = new LinkedHashSet<>(predicates.global);
     allPredicates.addAll(predicates.function.values());
     allPredicates.addAll(predicates.location.values());
     allPredicates.addAll(predicates.locationInstance.values());
@@ -275,10 +261,10 @@ class PredicateCPAStatistics implements Statistics {
     out.println("Number of abstractions:            " + numAbstractions + " (" + toPercent(numAbstractions, statistics.postTimer.getNumberOfIntervals()) + " of all post computations)");
     if (numAbstractions > 0) {
       out.println("  Times abstraction was reused:    " + as.numAbstractionReuses);
-      out.println("  Because of function entry/exit:  " + valueWithPercentage(blk.numBlkFunctions, numAbstractions));
-      out.println("  Because of loop head:            " + valueWithPercentage(blk.numBlkLoops, numAbstractions));
-      out.println("  Because of join nodes:           " + valueWithPercentage(blk.numBlkJoins, numAbstractions));
-      out.println("  Because of threshold:            " + valueWithPercentage(blk.numBlkThreshold, numAbstractions));
+      out.println("  Because of function entry/exit:  " + valueWithPercentage(blk.numBlkFunctions.getValue(), numAbstractions));
+      out.println("  Because of loop head:            " + valueWithPercentage(blk.numBlkLoops.getValue(), numAbstractions));
+      out.println("  Because of join nodes:           " + valueWithPercentage(blk.numBlkJoins.getValue(), numAbstractions));
+      out.println("  Because of threshold:            " + valueWithPercentage(blk.numBlkThreshold.getValue(), numAbstractions));
       out.println("  Because of target state:         " + valueWithPercentage(statistics.numTargetAbstractions.getUpdateCount(), numAbstractions));
       out.println("  Times precision was empty:       " + valueWithPercentage(as.numSymbolicAbstractions, as.numCallsAbstraction));
       out.println("  Times precision was {false}:     " + valueWithPercentage(as.numSatCheckAbstractions, as.numCallsAbstraction));

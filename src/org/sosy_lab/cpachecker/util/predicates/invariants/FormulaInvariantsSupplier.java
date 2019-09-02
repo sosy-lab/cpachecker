@@ -29,10 +29,9 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractReportedFormula
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +62,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
   private final AggregatedReachedSets aggregatedReached;
 
-  private Set<UnmodifiableReachedSet> lastUsedReachedSets = Collections.emptySet();
+  private Set<UnmodifiableReachedSet> lastUsedReachedSets = ImmutableSet.of();
   private InvariantSupplier lastInvariantSupplier = TrivialInvariantSupplier.INSTANCE;
 
   private final Map<UnmodifiableReachedSet, ReachedSetBasedFormulaSupplier>
@@ -207,7 +206,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       final BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
 
       if (pContext != null) {
-        List<BooleanFormula> adjustedInvariants = Lists.newArrayListWithCapacity(invariants.size());
+        List<BooleanFormula> adjustedInvariants = new ArrayList<>(invariants.size());
         Set<String> variables = pContext.getSsa().allVariables();
         for (BooleanFormula invariant : invariants) {
           // Handle pointer aliasing

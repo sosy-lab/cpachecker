@@ -229,7 +229,17 @@ public class PredicateCPA
 
     statistics = new PredicateStatistics();
     options = new PredicateCpaOptions(config);
-    precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, abstractionManager, formulaManager);
+    precisionBootstraper =
+        new PredicatePrecisionBootstrapper(
+            config,
+            logger,
+            cfa,
+            abstractionManager,
+            formulaManager,
+            specification,
+            shutdownNotifier,
+            preciseFormulaManager,
+            predicateManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 

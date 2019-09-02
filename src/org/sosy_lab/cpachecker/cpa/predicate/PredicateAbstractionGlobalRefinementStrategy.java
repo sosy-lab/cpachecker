@@ -31,12 +31,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -286,7 +286,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     BooleanFormula interpolant = pInterpolant;
 
     if (bfmgr.isTrue(interpolant)) {
-      return Collections.<AbstractionPredicate>emptySet();
+      return ImmutableSet.of();
     }
 
     Collection<AbstractionPredicate> preds;

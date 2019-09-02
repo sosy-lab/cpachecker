@@ -26,6 +26,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class EnvironmentActionEdge extends CStatementEdge {
 
+  private static final long serialVersionUID = 3308836558483891214L;
+
   public EnvironmentActionEdge(
       String pRawStatement,
       CStatement pStatement,

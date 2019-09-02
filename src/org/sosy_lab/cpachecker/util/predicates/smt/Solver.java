@@ -30,7 +30,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.List;
@@ -104,7 +103,7 @@ public final class Solver implements AutoCloseable {
   private final SolverContext solvingContext;
   private final SolverContext interpolatingContext;
 
-  private final Map<BooleanFormula, Boolean> unsatCache = Maps.newHashMap();
+  private final Map<BooleanFormula, Boolean> unsatCache = new HashMap<>();
 
   /**
    * More complex unsat cache, grouped by an arbitrary key.
@@ -229,6 +228,26 @@ public final class Solver implements AutoCloseable {
     }
     SolverContextFactory factory = new SolverContextFactory(config, logger, shutdownNotifier);
     return new Solver(factory, config, logger);
+  }
+
+  /**
+   * Load and instantiate an SMT solver. The returned instance should be closed by calling {@link
+   * #close} when it is not used anymore.
+   *
+   * <p>Important: If possible, always use {@link Solver#create(Configuration, LogManager,
+   * ShutdownNotifier)} and refrain from using this method.
+   *
+   * <p>Important: Refrain from calling this method and instead always try to use {@link
+   * Solver#create(Configuration, LogManager, ShutdownNotifier)} first.
+   */
+  public static Solver create(
+      SolverContextFactory pSolverFactory,
+      Solvers pSolver,
+      SolverContext pSolverContext,
+      Configuration pConfig,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
+    return new Solver(pSolverFactory, pSolver, pSolverContext, pConfig, pLogger);
   }
 
   /**

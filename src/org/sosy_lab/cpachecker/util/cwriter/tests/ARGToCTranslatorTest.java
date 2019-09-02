@@ -19,15 +19,12 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter.tests;
 
-import static org.junit.Assert.assertNotNull;
-
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.logging.Level;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,29 +33,22 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.TempFile;
-import org.sosy_lab.common.log.BasicLogManager;
-import org.sosy_lab.common.log.ConsoleLogFormatter;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.AbstractARGTranslationTest;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
 @RunWith(Parameterized.class)
-public class ARGToCTranslatorTest {
-
-  private static final String TEST_DIR_PATH = "test/programs/argtoctranslator/";
+public class ARGToCTranslatorTest extends AbstractARGTranslationTest {
 
   private final ARGToCTranslator translator;
   private final Configuration config;
   private final Configuration reConfig;
   private final Path residualProgramPath;
-  private final String verdict;
-  private final String program;
+  private final boolean verdict;
+  private final Path program;
   private final boolean hasGotoDecProblem;
   private final String spec;
 
@@ -70,8 +60,9 @@ public class ARGToCTranslatorTest {
       String pSpec,
       boolean useOverflows)
       throws InvalidConfigurationException, IOException {
-    program = pProgram;
-    verdict = Boolean.toString(pVerdict).toLowerCase();
+    filePrefix = "residual";
+    program = Paths.get(TEST_DIR_PATH, pProgram);
+    verdict = pVerdict;
     hasGotoDecProblem = pHasGotoDecProblem;
     spec = pSpec;
     residualProgramPath =
@@ -92,10 +83,6 @@ public class ARGToCTranslatorTest {
         TestDataTools.configurationForTest()
             .loadFromResource(ARGToCTranslatorTest.class, "predicateAnalysis.properties")
             .build();
-    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
-    stringLogHandler.setLevel(Level.ALL);
-    stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());
-    LogManager logger = BasicLogManager.createWithHandler(stringLogHandler);
     translator = new ARGToCTranslator(logger, config, MachineModel.LINUX32);
   }
 
@@ -155,33 +142,24 @@ public class ARGToCTranslatorTest {
 
   @Test
   public void test() throws Exception {
-    String fullPath = Paths.get(TEST_DIR_PATH, program).toString();
 
     // generate C program:
-    TestResults results = null;
-    try {
-      results = CPATestRunner.run(config, fullPath);
-    } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
-      throw new AssertionError(e);
-    }
-    assertNotNull(results);
-    UnmodifiableReachedSet reached = results.getCheckerResult().getReached();
-    assertNotNull(reached.getFirstState());
-    String res = translator.translateARG((ARGState) reached.getFirstState(), hasGotoDecProblem);
+    ARGState root = run(config, program);
+
+    String res = translator.translateARG(root, hasGotoDecProblem);
     Files.write(residualProgramPath, res.getBytes("utf-8"));
 
     // test whether C program still gives correct verdict:
-    results = null;
-    try {
-      results = CPATestRunner.run(reConfig, residualProgramPath.toString());
-    } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
-      throw new AssertionError(e);
-    }
-    assertNotNull(results);
-    if (verdict.equals("true")) {
+    check(reConfig, residualProgramPath, verdict);
+  }
+
+  private static void check(Configuration config, Path program, boolean verdict) throws Exception {
+    TestResults results = run0(config, program);
+    if (verdict) {
       results.assertIsSafe();
     } else {
       results.assertIsUnsafe();
     }
   }
+
 }

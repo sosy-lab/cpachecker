@@ -182,9 +182,7 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
    */
   public Set<JInterfaceType> getAllSubInterfacesOfInterface() {
 
-    Set<JInterfaceType> result = new HashSet<>();
-
-    result.addAll(directSubInterfaces);
+    Set<JInterfaceType> result = new HashSet<>(directSubInterfaces);
 
     // Recursion stops, if the Set directSubClasses is empty
     for (JInterfaceType directSubInterface : directSubInterfaces) {
@@ -205,9 +203,7 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
    */
   public Set<JInterfaceType> getAllSuperInterfaces() {
 
-    Set<JInterfaceType> result = new HashSet<>();
-
-    result.addAll(superInterfaces);
+    Set<JInterfaceType> result = new HashSet<>(superInterfaces);
 
     // Recursion stops, if the Set superInterfaces is empty
     for (JInterfaceType directSuperInterface : superInterfaces) {

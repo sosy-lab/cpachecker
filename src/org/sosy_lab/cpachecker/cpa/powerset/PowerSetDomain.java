@@ -63,7 +63,9 @@ public class PowerSetDomain implements AbstractDomain {
 
     }
 
-    if (stateSet.size() == 0) { return pState2; }
+    if (stateSet.isEmpty()) {
+      return pState2;
+    }
 
     stateSet.addAll(coverSet);
 

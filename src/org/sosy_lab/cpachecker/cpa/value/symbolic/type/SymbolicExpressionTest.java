@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
-import org.junit.Assert;
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -60,8 +61,8 @@ public class SymbolicExpressionTest {
         PROMOTED_OP_TYPE,
         PROMOTED_OP_TYPE);
 
-    Assert.assertTrue(add1.equals(add2));
-    Assert.assertFalse(add1.equals(sub1));
+    assertThat(add1).isEqualTo(add2);
+    assertThat(add1).isNotEqualTo(sub1);
   }
 
   @SuppressWarnings({ "EqualsBetweenInconvertibleTypes", "unlikely-arg-type" })
@@ -71,7 +72,7 @@ public class SymbolicExpressionTest {
     NegationExpression neg2 = new NegationExpression(CONSTANT_OP1, POINTER_TYPE);
     PointerExpression ptr = new PointerExpression(CONSTANT_OP1, POINTER_TYPE);
 
-    Assert.assertTrue(neg1.equals(neg2));
-    Assert.assertFalse(neg1.equals(ptr));
+    assertThat(neg1).isEqualTo(neg2);
+    assertThat(neg1).isNotEqualTo(ptr);
   }
 }

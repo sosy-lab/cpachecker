@@ -246,9 +246,7 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
           ndeps = merge.contentsecurityclasslevels.get(var);
           initialmap = merge.allowedsecurityclassmapping.get(var);
         }
-        for(E sc: deps){
-          ndeps.add(sc);
-        }
+        ndeps.addAll(deps);
         merge.contentsecurityclasslevels.put(var,ndeps);
         merge.allowedsecurityclassmapping.put(var,initialmap);
       }

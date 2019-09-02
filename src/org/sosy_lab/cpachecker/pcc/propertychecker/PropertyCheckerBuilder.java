@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
-
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
-
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 
 public class PropertyCheckerBuilder {
 
@@ -38,7 +36,7 @@ public class PropertyCheckerBuilder {
     // get list of parameters
     String[] param;
 
-    if (pCheckerParamList.equals("")) {
+    if (pCheckerParamList.isEmpty()) {
       param = new String[0];
     } else {
       String[] result = pCheckerParamList.split(",", -1);

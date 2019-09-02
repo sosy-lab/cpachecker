@@ -23,16 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -49,7 +50,7 @@ public class ConfigurationParser {
   private Configuration config;
 
   @Option(name = "lockinfo", description = "contains all lock names", secure = true)
-  private Set<String> lockinfo = Sets.newHashSet();
+  private Set<String> lockinfo = ImmutableSet.of();
 
   @Option(
     name = "annotate",
@@ -85,7 +86,7 @@ public class ConfigurationParser {
       }
 
       tmpString = config.getProperty(lockName + ".setlevel");
-      if (tmpString != null && !tmpString.isEmpty()) {
+      if (!isNullOrEmpty(tmpString)) {
         functionEffects.put(
             tmpString, Pair.of(SetLockEffect.getInstance(), new LockIdUnprepared(lockName, 0)));
       }
@@ -110,7 +111,7 @@ public class ConfigurationParser {
                       new LockIdUnprepared(
                           lockName, getValue(lockName + "." + f + ".parameters", 0))));
     }
-    return Maps.newHashMap();
+    return new HashMap<>();
   }
 
   @SuppressWarnings("deprecation")
@@ -146,7 +147,7 @@ public class ConfigurationParser {
 
   @SuppressWarnings("deprecation")
   private Set<LockIdentifier> createAnnotationMap(String function, String target) {
-    Set<LockIdentifier> result = Sets.newTreeSet();
+    Set<LockIdentifier> result = new TreeSet<>();
 
     String property = config.getProperty("annotate." + function + "." + target);
     if (property != null) {

@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Function;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -37,7 +36,6 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
@@ -117,8 +115,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
             pTemplateToFormulaConversionManager);
     FormulaLinearizationManager formulaLinearizationManager = new
         FormulaLinearizationManager(fmgr, statistics);
-    PolyhedraWideningManager pPwm = new PolyhedraWideningManager(
-        statistics, logger);
     templatePrecision = new TemplatePrecision(
         logger, config, cfa, pTemplateToFormulaConversionManager
     );
@@ -134,7 +130,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         valueDeterminationFormulaManager,
         statistics,
         formulaLinearizationManager,
-        pPwm,
         stateFormulaConversionManager,
         pTemplateToFormulaConversionManager,
         templatePrecision);
@@ -231,7 +226,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState state,
-      List<AbstractState> otherStates,
+      Iterable<AbstractState> otherStates,
       CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
@@ -243,8 +238,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
 
   @Override
   public Optional<AbstractState> strengthen(
-      AbstractState pState, Precision pPrecision,
-      List<AbstractState> otherStates)
+      AbstractState pState, Precision pPrecision, Iterable<AbstractState> otherStates)
       throws CPAException, InterruptedException {
     return policyIterationManager.strengthen(
         (PolicyState) pState, (TemplatePrecision) pPrecision, otherStates);

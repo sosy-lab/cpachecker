@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -78,12 +78,15 @@ public class BlockToDotWriter {
     final List<CFAEdge> edges = new ArrayList<>();
 
     // dump nodes of all blocks
-    dumpBlock(app, new HashSet<>(), blockPartitioning.getMainBlock(), hierarchy, edges, 0);
+    final Set<CFANode> finished = new HashSet<>();
+    dumpBlock(app, finished, blockPartitioning.getMainBlock(), hierarchy, edges, 0);
 
     // we have to dump edges after the nodes and sub-graphs,
     // because Dot generates wrong graphs for edges from an inner block to an outer block.
     for (CFAEdge edge : edges) {
-      app.append(formatEdge(edge));
+      if (finished.contains(edge.getSuccessor())) {
+        app.append(formatEdge(edge));
+      }
     }
 
     app.append("}");
@@ -97,13 +100,13 @@ public class BlockToDotWriter {
   private Multimap<Block, Block> getHierarchy() {
 
     // sort blocks, largest blocks first
-    List<Block> sortedBlocks = Lists.newArrayList(blockPartitioning.getBlocks());
+    List<Block> sortedBlocks = new ArrayList<>(blockPartitioning.getBlocks());
     Collections.sort(
         sortedBlocks,
         Comparator.<Block>comparingInt((block) -> block.getNodes().size()).reversed());
 
     // build hierarchy, worst case runtime O(n^2), iff mainBlock contains all other blocks 'directly'.
-    final Multimap<Block, Block> hierarchy = HashMultimap.create();
+    final Multimap<Block, Block> hierarchy = LinkedHashMultimap.create();
     while (!sortedBlocks.isEmpty()) {
       // get smallest block and then the smallest outer block, that contains it
       Block currentBlock = sortedBlocks.remove(sortedBlocks.size() - 1); // get smallest block,
@@ -140,7 +143,10 @@ public class BlockToDotWriter {
       dumpBlock(app, finished, innerBlock, hierarchy, edges, depth+1);
     }
 
-    // dump nodes,that are in current block and not in inner blocks (nodes of inner blocks are 'finished')
+    // - dump nodes, that are in current block and not in inner blocks
+    // (nodes of inner blocks are 'finished')
+    // - dump edges later to avoid ugly layouts
+    // (nodes are in correct subgraphs already, but some targets of edges might not yet be handled)
     for (CFANode node : block.getNodes()) {
       if (finished.add(node)) {
         app.append(formatNode(node));

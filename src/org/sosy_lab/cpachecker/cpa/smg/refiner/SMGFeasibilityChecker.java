@@ -209,7 +209,7 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
       boolean pAllTargets)
       throws CPAException, InterruptedException {
 
-    Preconditions.checkArgument(pPath.getInnerEdges().size() > 0);
+    Preconditions.checkArgument(!pPath.getInnerEdges().isEmpty());
     ReachabilityResult result = isReachable(pPath, pStartingPoint, pPrecision);
 
     if (result.isReachable()) {

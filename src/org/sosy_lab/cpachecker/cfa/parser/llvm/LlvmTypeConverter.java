@@ -123,7 +123,7 @@ public class LlvmTypeConverter {
       case Metadata:
       case X86_MMX:
       case Token:
-        logger.log(Level.FINE, "Ignoring type kind " + typeKind);
+        logger.log(Level.FINE, "Ignoring type kind", typeKind);
         return null;
 
       default:

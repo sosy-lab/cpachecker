@@ -23,11 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cfa.export;
 
+import static org.sosy_lab.cpachecker.cfa.export.DOTBuilder.escapeGraphvizLabel;
+
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -49,9 +57,15 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  */
 public class FunctionCallDumper {
 
-  /** This method iterates over the CFA, searches for functioncalls
-   * and after that, dumps them in a dot-format. */
-  public static void dump(final Appendable pAppender, final CFA pCfa) throws IOException {
+  /**
+   * This method iterates over the CFA, searches for function calls and after that, dumps them in a
+   * dot-format.
+   *
+   * @param usedFromMainOnly dump only function calls starting from main-function.
+   */
+  public static void dump(
+      final Appendable pAppender, final CFA pCfa, final boolean usedFromMainOnly)
+      throws IOException {
 
     // get all function calls
     final CFAFunctionCallFinder finder = new CFAFunctionCallFinder();
@@ -69,20 +83,58 @@ public class FunctionCallDumper {
     final String mainFunction = pCfa.getMainFunction().getFunctionName();
     pAppender.append(mainFunction + " [shape=\"box\", color=blue];\n");
 
-    for (final String callerFunctionName : finder.functionCalls.keySet()) {
-      for (final String calleeFunctionName : finder.functionCalls.get(callerFunctionName)) {
-          // call to external function
-          if (!functionNames.contains(calleeFunctionName)) {
-            pAppender.append(calleeFunctionName + " [shape=\"box\", color=grey];\n");
-          }
+    final Map<String, String> escapedNames = new HashMap<>();
+    final Set<String> writtenNames = new HashSet<>();
 
-          pAppender.append(callerFunctionName + " -> " + calleeFunctionName + ";\n");
+    for (final String callerFunctionName :
+        filterCalls(finder.functionCalls, mainFunction, usedFromMainOnly)) {
+      for (final String calleeFunctionName : finder.functionCalls.get(callerFunctionName)) {
+        final String caller = escape(escapedNames, callerFunctionName);
+        final String callee = escape(escapedNames, calleeFunctionName);
+        if (writtenNames.add(calleeFunctionName)) {
+          final String label = escapeGraphvizLabel(calleeFunctionName, " ");
+          // different format for call to external function
+          final String format =
+              functionNames.contains(calleeFunctionName) ? "" : "shape=\"box\", color=grey";
+          pAppender.append(String.format("%s [label=\"%s\", %s];%n", callee, label, format));
+        }
+
+        pAppender.append(caller + " -> " + callee + ";\n");
       }
     }
 
     pAppender.append("}\n");
   }
 
+  /** return the set of functions to be exported. */
+  private static Set<String> filterCalls(
+      final Multimap<String, String> functionCalls,
+      final String mainFunction,
+      final boolean usedFromMainOnly) {
+    if (!usedFromMainOnly) {
+      return functionCalls.keySet();
+    }
+
+    Set<String> calls = new LinkedHashSet<>();
+    Deque<String> worklist = new ArrayDeque<>();
+    worklist.push(mainFunction);
+    while (!worklist.isEmpty()) {
+      String nextFunction = worklist.pop();
+      if (calls.add(nextFunction)) {
+        worklist.addAll(functionCalls.get(nextFunction));
+      }
+    }
+    return calls;
+  }
+
+  /** escape non-graphviz-conform identifiers for nodes */
+  private static String escape(Map<String, String> escapedNames, String functionName) {
+    return escapedNames.computeIfAbsent(
+        functionName,
+        str -> str.matches("[a-zA-Z0-9_]*") ? str : ("escapedFunctionName_" + escapedNames.size()));
+  }
+
+  /** visitor for collecting dependencies, i.e., which function calls which function. */
   private static class CFAFunctionCallFinder extends DefaultCFAVisitor {
 
     /** contains pairs of (functionname, calledFunction) */

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
-import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -270,7 +270,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
 
   public UsagePoint createUsagePoint() {
     List<CompatibleNode> nodes =
-        from(compatibleStates).transform(CompatibleState::getCompatibleNode).toList();
+        transformedImmutableListCopy(compatibleStates, CompatibleState::getCompatibleNode);
 
     return new UsagePoint(nodes, core.accessType);
   }

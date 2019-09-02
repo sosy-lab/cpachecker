@@ -26,7 +26,11 @@ package org.sosy_lab.cpachecker.cpa.sign;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
-
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -34,13 +38,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
-
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 
 public class SignState implements Serializable, LatticeAbstractState<SignState>, AbstractQueryableState, Graphable {
 
@@ -102,9 +99,10 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
   public SignState enterFunction(ImmutableMap<String, SIGN> pArguments) {
     PersistentMap<String, SIGN> newMap = signMap;
 
-    for (String var : pArguments.keySet()) {
-      if (!pArguments.get(var).equals(SIGN.ALL)) {
-        newMap = newMap.putAndCopy(var, pArguments.get(var));
+    for (Map.Entry<String, SIGN> entry : pArguments.entrySet()) {
+      String var = entry.getKey();
+      if (!entry.getValue().equals(SIGN.ALL)) {
+        newMap = newMap.putAndCopy(var, entry.getValue());
       }
     }
 
@@ -180,6 +178,7 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
     out.defaultWriteObject();
   }
 
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
   }

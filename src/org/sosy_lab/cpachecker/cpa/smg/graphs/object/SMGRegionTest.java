@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
-import org.junit.Assert;
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,7 +36,7 @@ public class SMGRegionTest {
   @Test
   public void testIsAbstract() {
     SMGRegion region = new SMGRegion(64, "region");
-    Assert.assertFalse(region.isAbstract());
+    assertThat(region.isAbstract()).isFalse();
   }
 
   @Test
@@ -43,11 +44,11 @@ public class SMGRegionTest {
     SMGRegion region = new SMGRegion(64, "region");
     SMGRegion region_same = new SMGRegion(64, "region");
     SMGObject objectJoint = region.join(region_same, region_same.getLevel());
-    Assert.assertTrue(objectJoint instanceof SMGRegion);
+    assertThat(objectJoint).isInstanceOf(SMGRegion.class);
     SMGRegion regionJoint = (SMGRegion)objectJoint;
 
-    Assert.assertEquals(64, regionJoint.getSize());
-    Assert.assertEquals("region", regionJoint.getLabel());
+    assertThat(regionJoint.getSize()).isEqualTo(64);
+    assertThat(regionJoint.getLabel()).isEqualTo("region");
   }
 
   @Test(expected=UnsupportedOperationException.class)
@@ -64,12 +65,12 @@ public class SMGRegionTest {
     SMGRegion three = new SMGRegion(80, "region");
     SMGRegion four = new SMGRegion(64, "REGION");
 
-    Assert.assertEquals(one.getSize(), two.getSize());
-    Assert.assertNotEquals(one.getSize(), three.getSize());
-    Assert.assertEquals(one.getSize(), four.getSize());
-    Assert.assertEquals(one.getLabel(), two.getLabel());
-    Assert.assertEquals(one.getLabel(), three.getLabel());
-    Assert.assertNotEquals(one.getLabel(), four.getLabel());
+    assertThat(two.getSize()).isEqualTo(one.getSize());
+    assertThat(three.getSize()).isNotEqualTo(one.getSize());
+    assertThat(four.getSize()).isEqualTo(one.getSize());
+    assertThat(two.getLabel()).isEqualTo(one.getLabel());
+    assertThat(three.getLabel()).isEqualTo(one.getLabel());
+    assertThat(four.getLabel()).isNotEqualTo(one.getLabel());
   }
 
 }

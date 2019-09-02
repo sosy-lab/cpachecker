@@ -29,7 +29,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Ordering;
+import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -231,14 +231,15 @@ public class PathChecker {
 
   private void addCounterexampleModel(
       CounterexampleTraceInfo cexInfo, CounterexampleInfo counterexample) {
-    final ImmutableList<ValueAssignment> model =
-        Ordering.usingToString().immutableSortedCopy(cexInfo.getModel());
+    final ImmutableList<ValueAssignment> model = cexInfo.getModel();
 
     counterexample.addFurtherInformation(
         new AbstractAppender() {
           @Override
           public void appendTo(Appendable out) throws IOException {
-            Joiner.on('\n').appendTo(out, model);
+            ImmutableList<String> lines =
+                ImmutableList.sortedCopyOf(Lists.transform(model, Object::toString));
+            Joiner.on('\n').appendTo(out, lines);
           }
         },
         dumpCounterexampleModel);

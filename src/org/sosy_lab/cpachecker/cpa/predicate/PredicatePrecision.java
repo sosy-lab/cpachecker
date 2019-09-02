@@ -410,7 +410,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
    * and a second one.
    */
   public PredicatePrecision mergeWith(PredicatePrecision prec) {
-    if (this.isEmpty()) {
+    if (this == prec || this.isEmpty()) {
       return prec;
     }
     if (prec.isEmpty()) {

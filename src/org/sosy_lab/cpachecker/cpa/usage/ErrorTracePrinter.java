@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -134,7 +134,7 @@ public abstract class ErrorTracePrinter {
     }
     if (path == null) {
       logger.log(Level.SEVERE, "Cannot compute path for: " + usage);
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
     return path.getInnerEdges();
   }

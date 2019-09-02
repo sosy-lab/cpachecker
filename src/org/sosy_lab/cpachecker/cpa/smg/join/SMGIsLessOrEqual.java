@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.Iterables;
 import java.util.Iterator;
 import java.util.Map;
@@ -37,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
@@ -199,8 +202,8 @@ public class SMGIsLessOrEqual {
   /** returns whether two heaps are "maybe LEQ" or "definitely not LEQ". */
   private static boolean maybeHeapLessOrEqual(
       UnmodifiableCLangSMG pSMG1, UnmodifiableCLangSMG pSMG2) {
-    Set<SMGObject> heap_in_smg1 = pSMG1.getHeapObjects();
-    Set<SMGObject> heap_in_smg2 = pSMG2.getHeapObjects();
+    PersistentSet<SMGObject> heap_in_smg1 = pSMG1.getHeapObjects();
+    PersistentSet<SMGObject> heap_in_smg2 = pSMG2.getHeapObjects();
 
     for (SMGObject object_in_smg1 : heap_in_smg1) {
 
@@ -229,13 +232,13 @@ public class SMGIsLessOrEqual {
       SMGObject pSMGObject1,
       SMGObject pSMGObject2) {
 
-    if (pSMGObject1.getSize() != pSMGObject2.getSize()) {
-      throw new IllegalArgumentException("SMGJoinFields object arguments need to have identical size");
-    }
+    checkArgument(
+        pSMGObject1.getSize() == pSMGObject2.getSize(),
+        "SMGJoinFields object arguments need to have identical size");
 
-    if (!(pSMG1.getObjects().contains(pSMGObject1) && pSMG2.getObjects().contains(pSMGObject2))) {
-      throw new IllegalArgumentException("SMGJoinFields object arguments need to be included in parameter SMGs");
-    }
+    checkArgument(
+        (pSMG1.getObjects().contains(pSMGObject1) && pSMG2.getObjects().contains(pSMGObject2)),
+        "SMGJoinFields object arguments need to be included in parameter SMGs");
 
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pSMGObject1);
     SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pSMGObject2);

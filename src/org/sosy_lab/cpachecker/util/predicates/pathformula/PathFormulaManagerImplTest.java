@@ -30,11 +30,9 @@ import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
-import java.util.Collections;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -254,8 +252,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     FunctionEntryNode main =
         new CFunctionEntryNode(
             FileLocation.DUMMY,
-            new CFunctionDeclaration(
-                FileLocation.DUMMY, functionType, name, Collections.emptyList()),
+            new CFunctionDeclaration(FileLocation.DUMMY, functionType, name, ImmutableList.of()),
             new FunctionExitNode(name),
             com.google.common.base.Optional.absent());
 
@@ -275,7 +272,8 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     PathFormula p = pfmgrFwd.makeAnd(emptyWithCustomSSA, a_to_b);
 
     // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
-    Assert.assertEquals(customIdx + FreshValueProvider.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
+    assertThat(p.getSsa().getIndex("x"))
+        .isEqualTo(customIdx + FreshValueProvider.DEFAULT_INCREMENT);
   }
 
   @Test
@@ -304,7 +302,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     pf = pfmgrBwd.makeAnd(pf, x_decl);
 
     // The SSA index must be computed without gaps!!
-    Assert.assertEquals(11, pf.getSsa().getIndex("x"));
+    assertThat(pf.getSsa().getIndex("x")).isEqualTo(11);
   }
 
   @Test
@@ -315,7 +313,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
     pf = pfmgrFwd.makeAnd(pf, x_decl);
 
-    Assert.assertEquals(11, pf.getSsa().getIndex("x"));
+    assertThat(pf.getSsa().getIndex("x")).isEqualTo(11);
   }
 
   @Test

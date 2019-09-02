@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.Sets;
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Set;
 
 /** Represents a local variable of the automaton. So far only integer variables are supported. */
@@ -163,12 +163,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
     private AutomatonSetVariable(String pName) {
       super(pName);
-      set = Sets.newHashSet();
+      set = new HashSet<>();
     }
 
     private AutomatonSetVariable(String pName, Set<T> pSet) {
       super(pName);
-      set = Sets.newHashSet(pSet);
+      set = new HashSet<>(pSet);
     }
 
     public boolean contains(Object obj) {

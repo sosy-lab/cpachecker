@@ -10,6 +10,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -21,7 +22,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -160,7 +160,7 @@ public class PolicyIterationManager {
   private final ValueDeterminationManager vdfmgr;
   private final PolicyIterationStatistics statistics;
   private final FormulaLinearizationManager linearizationManager;
-  private final PolyhedraWideningManager pwm;
+  @Nullable private final PolyhedraWideningManager pwm;
   private final StateFormulaConversionManager stateFormulaConversionManager;
   private final RCNFManager rcnfManager;
   private final TemplatePrecision initialPrecision;
@@ -178,14 +178,12 @@ public class PolicyIterationManager {
       ValueDeterminationManager pValueDeterminationFormulaManager,
       PolicyIterationStatistics pStatistics,
       FormulaLinearizationManager pLinearizationManager,
-      PolyhedraWideningManager pPwm,
       StateFormulaConversionManager pStateFormulaConversionManager,
       TemplateToFormulaConversionManager pTemplateToFormulaConversionManager,
       TemplatePrecision pPrecision)
       throws InvalidConfigurationException {
     templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
     pConfig.inject(this, PolicyIterationManager.class);
-    pwm = pPwm;
     stateFormulaConversionManager = pStateFormulaConversionManager;
     fmgr = pFormulaManager;
     cfa = pCfa;
@@ -199,6 +197,9 @@ public class PolicyIterationManager {
     linearizationManager = pLinearizationManager;
     rcnfManager = new RCNFManager(pConfig);
     initialPrecision = pPrecision;
+
+    pwm =
+        generateTemplatesUsingConvexHull ? new PolyhedraWideningManager(statistics, logger) : null;
   }
 
   /**
@@ -247,11 +248,9 @@ public class PolicyIterationManager {
     return Collections.singleton(out);
   }
 
-  /**
-   * Pre-abstraction strengthening.
-   */
+  /** Pre-abstraction strengthening. */
   Collection<? extends AbstractState> strengthen(
-      PolicyIntermediateState pState, List<AbstractState> pOtherStates)
+      PolicyIntermediateState pState, Iterable<AbstractState> pOtherStates)
       throws CPATransferException, InterruptedException {
 
     // Collect assumptions.
@@ -370,8 +369,7 @@ public class PolicyIterationManager {
    * <p>Injecting new invariants might force us to re-compute the abstraction.
    */
   public Optional<AbstractState> strengthen(
-      PolicyState pState, TemplatePrecision pPrecision,
-      List<AbstractState> pOtherStates)
+      PolicyState pState, TemplatePrecision pPrecision, Iterable<AbstractState> pOtherStates)
       throws CPAException, InterruptedException {
     if (!pState.isAbstract()) {
       return Optional.of(pState);
@@ -383,13 +381,11 @@ public class PolicyIterationManager {
 
     // We re-perform abstraction and value determination.
     BooleanFormula strengthening =
-        bfmgr.and(
-            pOtherStates
-                .stream()
-                .map(state -> AbstractStates.extractReportedFormulas(fmgr, state))
-                .filter(state -> !bfmgr.isTrue(state))
-                .collect(Collectors.toList())
-        );
+        Streams.stream(pOtherStates)
+            .map(state -> AbstractStates.extractReportedFormulas(fmgr, state))
+            .filter(state -> !bfmgr.isTrue(state))
+            .collect(bfmgr.toConjunction());
+
     if (bfmgr.isTrue(strengthening) && !delayAbstractionUntilStrengthen) {
 
       // No interesting strengthening.
@@ -1328,8 +1324,7 @@ public class PolicyIterationManager {
       PolicyBound bound2 = e.getValue();
 
       Optional<PolicyBound> bound1 = aState1.getBound(t);
-      if (!bound1.isPresent()
-          || bound1.get().getBound().compareTo(bound2.getBound()) >= 1) {
+      if (!bound1.isPresent() || bound1.get().getBound().compareTo(bound2.getBound()) > 0) {
         return false;
       }
     }

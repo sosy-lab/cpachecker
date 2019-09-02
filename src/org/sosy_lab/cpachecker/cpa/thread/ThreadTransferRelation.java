@@ -26,10 +26,13 @@ package org.sosy_lab.cpachecker.cpa.thread;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -48,10 +51,8 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.cpa.thread.ThreadLabel.LabelStatus;
-import org.sosy_lab.cpachecker.cpa.thread.ThreadState.SimpleThreadState;
+import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStatus;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
 
 @Options(prefix = "cpa.thread")
 public class ThreadTransferRelation extends SingleEdgeTransferRelation {
@@ -109,11 +110,11 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
       if (newState != null) {
         return Collections.singleton(newState);
       } else {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
     } catch (CPATransferException e) {
       if (skipTheSameThread) {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       } else {
         throw e;
       }
@@ -122,7 +123,9 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private ThreadState handleFunctionCall(ThreadState state, CFunctionCallEdge pCfaEdge)
+  private ThreadState handleFunctionCall(
+      ThreadState state,
+      CFunctionCallEdge pCfaEdge)
       throws CPATransferException {
 
     ThreadState newState = state;
@@ -141,6 +144,87 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     return newState;
   }
 
+  private ThreadState handleParentThread(ThreadState state, CThreadCreateStatement tCall)
+      throws CPATransferException {
+    return createThread(state, tCall, ThreadStatus.PARENT_THREAD);
+  }
+
+  private ThreadState handleChildThread(ThreadState state, CThreadCreateStatement tCall)
+      throws CPATransferException {
+    return createThread(
+        state,
+        tCall,
+        tCall.isSelfParallel() ? ThreadStatus.SELF_PARALLEL_THREAD : ThreadStatus.CREATED_THREAD);
+  }
+
+  private ThreadState
+      createThread(ThreadState state, CThreadCreateStatement tCall, ThreadStatus pParentThread)
+          throws CPATransferException {
+    final String pVarName = tCall.getVariableName();
+    // Just to info
+    final String pFunctionName =
+        tCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
+
+    Map<String, ThreadStatus> tSet = state.getThreadSet();
+    List<ThreadLabel> order = state.getOrder();
+    ThreadStatus status = pParentThread;
+    if (tSet.containsKey(pVarName)) {
+      if (supportSelfCreation) {
+        status = ThreadStatus.SELF_PARALLEL_THREAD;
+
+      } else {
+        throw new CPATransferException(
+            "Can not create thread " + pFunctionName + ", it was already created");
+      }
+    }
+
+    if (!tSet.isEmpty()) {
+      ThreadLabel last = order.get(order.size() - 1);
+      if (tSet.get(last.getVarName()) == ThreadStatus.SELF_PARALLEL_THREAD) {
+        // Can add only the same status
+        status = ThreadStatus.SELF_PARALLEL_THREAD;
+      }
+    }
+    ThreadLabel label = new ThreadLabel(pFunctionName, pVarName);
+    Map<String, ThreadStatus> newSet;
+    List<ThreadLabel> newOrder;
+    if (simpleMode) {
+      // Store only current creation
+      newSet = new TreeMap<>();
+      newOrder = new ArrayList<>();
+    } else {
+      newSet = new TreeMap<>(tSet);
+      newOrder = new ArrayList<>(order);
+    }
+    newSet.put(pVarName, status);
+    newOrder.add(label);
+    return new ThreadState(newSet, state.getRemovedSet(), newOrder);
+  }
+
+  public ThreadState joinThread(ThreadState state, CThreadJoinStatement jCall) {
+    // If we found several labels for different functions
+    // it means, that there are several thread created for one thread variable.
+    // Not a good situation, but it is not forbidden, so join the last assigned thread
+    List<ThreadLabel> order = state.getOrder();
+    Map<String, ThreadStatus> tSet = state.getThreadSet();
+
+    Optional<ThreadLabel> result =
+        from(order).filter(l -> l.getVarName().equals(jCall.getVariableName())).last();
+    // Do not self-join
+    if (result.isPresent()) {
+      ThreadLabel toRemove = result.get();
+      String var = toRemove.getVarName();
+      if (tSet.containsKey(var) && tSet.get(var) != ThreadStatus.CREATED_THREAD) {
+        Map<String, ThreadStatus> newSet = new TreeMap<>(tSet);
+        List<ThreadLabel> newOrder = new ArrayList<>(order);
+        newSet.remove(var);
+        newOrder.remove(toRemove);
+        return new ThreadState(newSet, state.getRemovedSet(), newOrder);
+      }
+    }
+    return state;
+  }
+
   private boolean isThreadCreateFunction(CFunctionCall statement) {
     return (statement instanceof CThreadCreateStatement);
   }
@@ -151,90 +235,6 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
 
   public Statistics getStatistics() {
     return threadStatistics;
-  }
-
-  private ThreadState joinThread(ThreadState state, CThreadJoinStatement stmt) {
-    if (simpleMode) {
-      return state;
-    }
-    // If we found several labels for different functions
-    // it means, that there are several thread created for one thread variable.
-    // Not a good situation, but it is not forbidden, so join the last assigned thread
-    List<ThreadLabel> tSet = state.getThreadSet();
-    Optional<ThreadLabel> result =
-        from(tSet).filter(l -> l.getVarName().equals(stmt.getVariableName())).last();
-    // Do not self-join
-    if (result.isPresent() && !result.get().isCreatedThread()) {
-      List<ThreadLabel> newSet = new ArrayList<>(tSet);
-      newSet.remove(result.get());
-      return createState(newSet, state.getRemovedSet());
-    } else {
-      return null;
-    }
-
-  }
-
-  private ThreadState handleChildThread(ThreadState state, CThreadCreateStatement tCall)
-      throws CPATransferException {
-    return createThread(state, tCall, LabelStatus.CREATED_THREAD);
-  }
-
-  private ThreadState handleParentThread(ThreadState state, CThreadCreateStatement tCall)
-      throws CPATransferException {
-    return createThread(state, tCall, LabelStatus.PARENT_THREAD);
-  }
-
-  private ThreadState createThread(ThreadState state, CThreadCreateStatement tCall, LabelStatus pParentThread)
-      throws CPATransferException {
-    final String pVarName = tCall.getVariableName();
-    // Just to info
-    final String pFunctionName =
-        tCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
-
-    List<ThreadLabel> oldTSet = state.getThreadSet();
-    List<ThreadLabel> newTSet = new ArrayList<>();
-    boolean isSelfParallel = false;
-
-    for (ThreadLabel l : oldTSet) {
-      if (l.getName().equals(pFunctionName)
-          && l.getVarName().equals(pVarName)
-          && pParentThread == LabelStatus.CREATED_THREAD) {
-
-        if (supportSelfCreation) {
-          isSelfParallel = true;
-          continue;
-
-        } else {
-          throw new CPATransferException(
-              "Can not create thread " + pFunctionName + ", it was already created");
-        }
-      } else {
-        newTSet.add(l);
-      }
-      isSelfParallel |= l.isSelfParallel();
-    }
-
-    ThreadLabel label = new ThreadLabel(pFunctionName, pVarName, pParentThread);
-    if (isSelfParallel) {
-      // Can add only the same status
-      label = label.toSelfParallelLabel();
-    }
-
-    if (simpleMode) {
-      // Store only current creation
-      newTSet.clear();
-    }
-
-    newTSet.add(label);
-    return createState(newTSet, state.getRemovedSet());
-  }
-
-  private ThreadState createState(List<ThreadLabel> tSet, List<ThreadLabel> rSet) {
-    if (simpleMode) {
-      return new SimpleThreadState(tSet, rSet);
-    } else {
-      return new ThreadState(tSet, rSet);
-    }
   }
 }
 

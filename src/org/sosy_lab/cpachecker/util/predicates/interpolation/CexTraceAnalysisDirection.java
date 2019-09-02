@@ -40,6 +40,7 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.Random;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -156,6 +157,9 @@ enum CexTraceAnalysisDirection {
    * A random order of the trace
    */
   RANDOM {
+    @SuppressWarnings("ImmutableEnumChecker")
+    private final Random rnd = new Random(0);
+
     @Override
     public ImmutableList<Triple<BooleanFormula, AbstractState, Integer>>
     orderFormulas(List<BooleanFormula> traceFormulas,
@@ -166,7 +170,7 @@ enum CexTraceAnalysisDirection {
       ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
           ImmutableList.builder();
       List<AbstractState> stateList = new ArrayList<>(abstractionStates);
-      Collections.shuffle(stateList);
+      Collections.shuffle(stateList, rnd);
 
       for (int i = 0; i < traceFormulas.size(); i++) {
         AbstractState state = stateList.get(i);
@@ -342,7 +346,7 @@ enum CexTraceAnalysisDirection {
 
     // this is a true or false formula, return 0 as this is the easiest formula
     // we can encounter
-    if (varNames.size() == 0) {
+    if (varNames.isEmpty()) {
       return 0;
     } else {
       return currentScore / varNames.size();

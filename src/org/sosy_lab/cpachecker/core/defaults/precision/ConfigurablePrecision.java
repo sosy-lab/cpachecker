@@ -337,6 +337,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
         .toString();
   }
 
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     vc = GlobalInfo.getInstance().getCFAInfo().get().getCFA().getVarClassification();

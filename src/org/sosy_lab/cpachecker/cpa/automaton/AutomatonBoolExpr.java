@@ -718,6 +718,59 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  static class MatchCFAEdgeNodes implements AutomatonBoolExpr {
+
+    private final int predecessorNodeNumber;
+    private final int successorNodeNumber;
+    private final Pattern pattern; // temp.; will be removed in the future
+
+    public MatchCFAEdgeNodes(
+        int pPredecessorNodeNumber,
+        int pSuccessorNodeNumber,
+        String pPattern) {
+      predecessorNodeNumber = pPredecessorNodeNumber;
+      successorNodeNumber = pSuccessorNodeNumber;
+      pattern = Pattern.compile(pPattern);
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (predecessorNodeNumber == pArgs.getCfaEdge().getPredecessor().getNodeNumber()
+          && successorNodeNumber == pArgs.getCfaEdge().getSuccessor().getNodeNumber()) {
+        return CONST_TRUE;
+      } else {
+        return CONST_FALSE;
+      }
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH TRANSITION ["
+          + predecessorNodeNumber
+          + " -> "
+          + successorNodeNumber
+          + " (\""
+          + pattern
+          + "\") ] ";
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + predecessorNodeNumber;
+      result = prime * result + successorNodeNumber;
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof MatchCFAEdgeNodes
+          && predecessorNodeNumber == ((MatchCFAEdgeNodes) obj).predecessorNodeNumber
+          && successorNodeNumber == ((MatchCFAEdgeNodes) obj).successorNodeNumber;
+    }
+  }
+
   static class MatchCFAEdgeExact implements AutomatonBoolExpr {
 
     private final String pattern;

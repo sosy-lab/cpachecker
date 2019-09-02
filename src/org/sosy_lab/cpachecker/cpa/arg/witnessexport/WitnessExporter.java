@@ -30,13 +30,13 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Queues;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
-import java.io.Writer;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -82,7 +81,7 @@ public class WitnessExporter {
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  protected final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
+  protected final ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
   protected final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
   protected final VerificationTaskMetaData verificationTaskMetaData;
@@ -107,7 +106,7 @@ public class WitnessExporter {
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       CounterexampleInfo pCounterExample)
       throws IOException {
 
@@ -134,10 +133,10 @@ public class WitnessExporter {
   }
 
   public void writeTerminationErrorWitness(
-      final Writer pWriter,
+      final Appendable pWriter,
       final ARGState pRoot,
       final Predicate<? super ARGState> pIsRelevantState,
-      final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       final Predicate<? super ARGState> pIsCycleHead,
       final Function<? super ARGState, ExpressionTree<Object>> toQuasiInvariant)
       throws IOException {
@@ -167,7 +166,7 @@ public class WitnessExporter {
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge)
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge)
       throws IOException {
     writeProofWitness(
         pTarget,
@@ -286,7 +285,7 @@ public class WitnessExporter {
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       InvariantProvider pInvariantProvider)
       throws IOException {
     Preconditions.checkNotNull(pTarget);
@@ -325,7 +324,7 @@ public class WitnessExporter {
       visited.add(l);
       for (CFAEdge e : CFAUtils.leavingEdges(l)) {
         Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
-        if (fileLocations.size() > 0) {
+        if (!fileLocations.isEmpty()) {
           String fileName = fileLocations.iterator().next().getFileName();
           if (fileName != null) {
             return fileName;

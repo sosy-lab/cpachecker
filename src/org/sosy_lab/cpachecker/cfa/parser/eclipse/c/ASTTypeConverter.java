@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 
-import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -192,7 +191,7 @@ class ASTTypeConverter {
       IFunctionType ft = (IFunctionType) t;
 
       IType[] parameters = ft.getParameterTypes();
-      List<CType> newParameters = Lists.newArrayListWithExpectedSize(parameters.length);
+      List<CType> newParameters = new ArrayList<>(parameters.length);
       for (IType p : parameters) {
         if (p instanceof IBasicType && ((IBasicType)p).getKind() == IBasicType.Kind.eVoid) {
           // there may be a function declaration f(void), which is equal to f()

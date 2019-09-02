@@ -23,13 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical;
 
-import static org.junit.Assert.assertEquals;
+import static com.google.common.truth.Truth.assertThat;
 
 import java.math.BigInteger;
-
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
-
 
 public class ISIOperatorTest {
 
@@ -39,8 +37,10 @@ public class ISIOperatorTest {
     BigInteger scalarFive = BigInteger.valueOf(5);
     SimpleInterval zeroToFour = SimpleInterval.of(BigInteger.ZERO, scalarFour);
     SimpleInterval zeroToInf = SimpleInterval.singleton(BigInteger.ZERO).extendToPositiveInfinity();
-    assertEquals(zeroToFour.negate(), ISIOperator.MODULO.apply(zeroToInf.negate(), scalarFive));
-    assertEquals(zeroToFour.negate(), ISIOperator.MODULO.apply(zeroToInf.negate(), scalarFive.negate()));
+    assertThat(ISIOperator.MODULO.apply(zeroToInf.negate(), scalarFive))
+        .isEqualTo(zeroToFour.negate());
+    assertThat(ISIOperator.MODULO.apply(zeroToInf.negate(), scalarFive.negate()))
+        .isEqualTo(zeroToFour.negate());
   }
 
   @Test
@@ -52,14 +52,14 @@ public class ISIOperatorTest {
     SimpleInterval zeroToFive = SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(5));
     SimpleInterval two = SimpleInterval.singleton(BigInteger.valueOf(2));
     SimpleInterval oneThousandTwentyFour = SimpleInterval.singleton(BigInteger.valueOf(1024));
-    assertEquals(zero, ISIOperator.SHIFT_LEFT.apply(zero, BigInteger.ZERO));
-    assertEquals(zero, ISIOperator.SHIFT_LEFT.apply(zero, BigInteger.ONE));
-    assertEquals(zero, ISIOperator.SHIFT_LEFT.apply(zero, BigInteger.TEN));
-    assertEquals(one, ISIOperator.SHIFT_LEFT.apply(one, BigInteger.ZERO));
-    assertEquals(two, ISIOperator.SHIFT_LEFT.apply(one, BigInteger.ONE));
-    assertEquals(oneThousandTwentyFour, ISIOperator.SHIFT_LEFT.apply(one, BigInteger.TEN));
-    assertEquals(ten, ISIOperator.SHIFT_LEFT.apply(ten, BigInteger.ZERO));
-    assertEquals(zeroToTen, ISIOperator.SHIFT_LEFT.apply(zeroToFive, BigInteger.ONE));
+    assertThat(ISIOperator.SHIFT_LEFT.apply(zero, BigInteger.ZERO)).isEqualTo(zero);
+    assertThat(ISIOperator.SHIFT_LEFT.apply(zero, BigInteger.ONE)).isEqualTo(zero);
+    assertThat(ISIOperator.SHIFT_LEFT.apply(zero, BigInteger.TEN)).isEqualTo(zero);
+    assertThat(ISIOperator.SHIFT_LEFT.apply(one, BigInteger.ZERO)).isEqualTo(one);
+    assertThat(ISIOperator.SHIFT_LEFT.apply(one, BigInteger.ONE)).isEqualTo(two);
+    assertThat(ISIOperator.SHIFT_LEFT.apply(one, BigInteger.TEN)).isEqualTo(oneThousandTwentyFour);
+    assertThat(ISIOperator.SHIFT_LEFT.apply(ten, BigInteger.ZERO)).isEqualTo(ten);
+    assertThat(ISIOperator.SHIFT_LEFT.apply(zeroToFive, BigInteger.ONE)).isEqualTo(zeroToTen);
   }
 
   @Test
@@ -69,14 +69,14 @@ public class ISIOperatorTest {
     SimpleInterval ten = SimpleInterval.singleton(BigInteger.TEN);
     SimpleInterval oneToTen = SimpleInterval.span(one, ten);
     SimpleInterval zeroToFive = SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(5));
-    assertEquals(zero, ISIOperator.SHIFT_RIGHT.apply(zero, BigInteger.ZERO));
-    assertEquals(zero, ISIOperator.SHIFT_RIGHT.apply(zero, BigInteger.ONE));
-    assertEquals(zero, ISIOperator.SHIFT_RIGHT.apply(zero, BigInteger.TEN));
-    assertEquals(one, ISIOperator.SHIFT_RIGHT.apply(one, BigInteger.ZERO));
-    assertEquals(zero, ISIOperator.SHIFT_RIGHT.apply(one, BigInteger.ONE));
-    assertEquals(zero, ISIOperator.SHIFT_RIGHT.apply(one, BigInteger.TEN));
-    assertEquals(ten, ISIOperator.SHIFT_RIGHT.apply(ten, BigInteger.ZERO));
-    assertEquals(zeroToFive, ISIOperator.SHIFT_RIGHT.apply(oneToTen, BigInteger.ONE));
+    assertThat(ISIOperator.SHIFT_RIGHT.apply(zero, BigInteger.ZERO)).isEqualTo(zero);
+    assertThat(ISIOperator.SHIFT_RIGHT.apply(zero, BigInteger.ONE)).isEqualTo(zero);
+    assertThat(ISIOperator.SHIFT_RIGHT.apply(zero, BigInteger.TEN)).isEqualTo(zero);
+    assertThat(ISIOperator.SHIFT_RIGHT.apply(one, BigInteger.ZERO)).isEqualTo(one);
+    assertThat(ISIOperator.SHIFT_RIGHT.apply(one, BigInteger.ONE)).isEqualTo(zero);
+    assertThat(ISIOperator.SHIFT_RIGHT.apply(one, BigInteger.TEN)).isEqualTo(zero);
+    assertThat(ISIOperator.SHIFT_RIGHT.apply(ten, BigInteger.ZERO)).isEqualTo(ten);
+    assertThat(ISIOperator.SHIFT_RIGHT.apply(oneToTen, BigInteger.ONE)).isEqualTo(zeroToFive);
   }
 
 }

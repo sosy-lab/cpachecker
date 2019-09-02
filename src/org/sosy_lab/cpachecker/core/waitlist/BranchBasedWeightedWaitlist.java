@@ -23,51 +23,26 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
-import com.google.common.base.Preconditions;
-import java.io.Serializable;
 import java.util.Comparator;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssumeEdgesInPathConditionState;
-import org.sosy_lab.cpachecker.cpa.conditions.path.AssumeEdgesInPathConditionState.AssumeCountComparator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BranchBasedWeightedWaitlist extends WeightedRandomWaitlist {
 
-  public BranchBasedWeightedWaitlist(WaitlistFactory pFactory, Configuration pConfig)
-      throws InvalidConfigurationException {
-    super(new BranchingDepthComparator(), pFactory, pConfig);
+  private static final Comparator<AbstractState> BRANCHING_DEPTH_COMPARATOR =
+      Comparator.<AbstractState>comparingInt(
+          s ->
+              AbstractStates.extractStateByType(s, AssumeEdgesInPathConditionState.class)
+                  .getPathLength());
+
+  public BranchBasedWeightedWaitlist(
+      WaitlistFactory pFactory, WeightedRandomWaitlist.WaitlistOptions pConfig) {
+    super(BRANCHING_DEPTH_COMPARATOR, pFactory, pConfig);
   }
 
-  public static class BranchingDepthComparator  implements Comparator<AbstractState>, Serializable {
-    private final static long serialVersionUID = 121644346L;
-
-    private Comparator<AssumeEdgesInPathConditionState> assumeCountComparator =
-        new AssumeCountComparator();
-
-    @Override
-    public int compare(AbstractState o1, AbstractState o2) {
-      AssumeEdgesInPathConditionState s1 =
-          AbstractStates.extractStateByType(o1, AssumeEdgesInPathConditionState.class);
-      AssumeEdgesInPathConditionState s2 =
-          AbstractStates.extractStateByType(o2, AssumeEdgesInPathConditionState.class);
-
-      Preconditions.checkState(s1 != null && s2 != null,
-          "State not found: " + AssumeEdgesInPathConditionState.class.getSimpleName());
-
-      return assumeCountComparator.compare(s1, s2);
-    }
-  }
-
-  public static WaitlistFactory factory(WaitlistFactory pDelegate, Configuration pConfig) {
-    return () -> {
-      try {
-        return new BranchBasedWeightedWaitlist(pDelegate, pConfig);
-
-      } catch (InvalidConfigurationException pE) {
-        throw new AssertionError(pE);
-      }
-    };
+  public static WaitlistFactory factory(
+      WaitlistFactory pDelegate, WeightedRandomWaitlist.WaitlistOptions pConfig) {
+    return () -> new BranchBasedWeightedWaitlist(pDelegate, pConfig);
   }
 }

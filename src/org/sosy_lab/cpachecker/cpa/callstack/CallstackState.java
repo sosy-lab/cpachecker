@@ -148,6 +148,7 @@ public class CallstackState
     out.writeInt(callerNode.getNodeNumber());
   }
 
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int nodeNumber = in.readInt();

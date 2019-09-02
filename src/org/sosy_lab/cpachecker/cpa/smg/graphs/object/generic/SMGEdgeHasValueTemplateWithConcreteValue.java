@@ -35,4 +35,6 @@ public interface SMGEdgeHasValueTemplateWithConcreteValue {
   long getOffset();
 
   CType getType();
+
+  long getSizeInBits();
 }

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
-import com.google.common.collect.Sets;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -76,7 +76,7 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
 
   private final LogManager logger;
 
-  private final Set<String> printedWarnings = Sets.newHashSet();
+  private final Set<String> printedWarnings = new HashSet<>();
 
   private boolean foundUndefinedIdentifiers = false;
 

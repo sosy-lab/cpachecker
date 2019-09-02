@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
-import java.io.Serializable;
-import java.util.Comparator;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
@@ -53,7 +51,7 @@ public class AssumeEdgesInPathConditionState
     return PreventingHeuristic.ASSUMEEDGESINPATH.getFormula(pMgr, assumeEdgesInPath);
   }
 
-  int getPathLength() {
+  public int getPathLength() {
     return assumeEdgesInPath;
   }
 
@@ -83,17 +81,5 @@ public class AssumeEdgesInPathConditionState
   @Override
   public int hashCode() {
     return Objects.hash(assumeEdgesInPath, thresholdReached);
-  }
-
-  public static class AssumeCountComparator
-      implements Comparator<AssumeEdgesInPathConditionState>, Serializable {
-
-    private static final long serialVersionUID = -1450643968410371993L;
-
-    @Override
-    public int compare(
-        AssumeEdgesInPathConditionState o1, AssumeEdgesInPathConditionState o2) {
-      return Integer.compare(o1.assumeEdgesInPath, o2.assumeEdgesInPath);
-    }
   }
 }

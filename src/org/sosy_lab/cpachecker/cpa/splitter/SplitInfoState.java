@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.splitter;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -185,9 +185,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
         return this;
       }
 
-      Integer[] arr = inSplit.toArray(new Integer[inSplit.size()]);
-      Arrays.sort(arr, Comparator.<Integer>comparingInt(i -> i));
-
+      ImmutableList<Integer> arr = ImmutableList.sortedCopyOf(inSplit);
       int minElem = inSplit.size() / pNumSplitParts;
       int numAdditionalElem = inSplit.size() % pNumSplitParts;
 
@@ -200,7 +198,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
               < ((pSplitPart + 1) * minElem
                   + ((pSplitPart + 1) < numAdditionalElem ? pSplitPart + 1 : numAdditionalElem));
           i++) {
-        newSplit.add(arr[i]);
+        newSplit.add(arr.get(i));
       }
 
       return new SetSplitInfoState(newSplit);
@@ -226,9 +224,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
       Preconditions.checkNotNull(pRemoveIndices);
 
       Set<Integer> newSplit = new HashSet<>(inSplit);
-      for (Integer splitIndex : pRemoveIndices) {
-        newSplit.remove(splitIndex);
-      }
+      newSplit.removeAll(pRemoveIndices);
 
       if (newSplit.size() < 1) {
         return this;

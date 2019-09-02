@@ -11,5 +11,4 @@ RUN apt-get update && apt-get install -y \
   graphviz \
   libgmp10 \
   libgomp1 \
-  libmpfr4 \
   python3

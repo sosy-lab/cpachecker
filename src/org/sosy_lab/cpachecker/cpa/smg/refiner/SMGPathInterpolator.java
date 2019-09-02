@@ -27,9 +27,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -55,7 +55,7 @@ public class SMGPathInterpolator {
   /**
    * Generate unique id for path interpolations.
    */
-  private final static AtomicInteger idGenerator = new AtomicInteger(0);
+  private final static UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   private final StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
   private final StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
@@ -84,7 +84,7 @@ public class SMGPathInterpolator {
       SMGInterpolant pInterpolant, ARGReachedSet pReachedSet) throws InterruptedException, CPAException {
     totalInterpolations.inc();
 
-    int interpolationId = idGenerator.incrementAndGet();
+    int interpolationId = idGenerator.getFreshId();
 
     logger.log(Level.ALL, "Start interpolating path with interpolation id ", interpolationId);
 

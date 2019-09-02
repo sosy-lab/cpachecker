@@ -27,15 +27,16 @@ import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersist
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Queues;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,7 +52,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
 
 public class PredicateAbstractionsWriter {
 
@@ -72,14 +72,14 @@ public class PredicateAbstractionsWriter {
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
     // The order of the definitions is important!
-    Set<String> definitions = Sets.newLinkedHashSet();
+    Set<String> definitions = new LinkedHashSet<>();
 
     // in this set, we collect the string representing each predicate
     // (potentially making use of the above definitions)
-    Map<ARGState, String> stateToAssert = Maps.newHashMap();
+    Map<ARGState, String> stateToAssert = new LinkedHashMap<>();
 
     // Get list of all abstraction states in the set reached
-    Deque<ARGState> worklist = Queues.newArrayDeque();
+    Deque<ARGState> worklist = new ArrayDeque<>();
     SetMultimap<ARGState, ARGState> successors;
     if (!reached.isEmpty()) {
       ARGState rootState =
@@ -95,7 +95,7 @@ public class PredicateAbstractionsWriter {
     } else {
       successors = ImmutableSetMultimap.of();
     }
-    Set<ARGState> done = Sets.newHashSet();
+    Set<ARGState> done = new HashSet<>();
 
     // Write abstraction formulas of the abstraction states to the file
     try (Writer writer = IO.openOutputFile(abstractionsFile, Charset.defaultCharset())) {
@@ -107,9 +107,7 @@ public class PredicateAbstractionsWriter {
         }
 
         // Handle successors
-        for (ARGState successor : successors.get(state)) {
-          worklist.add(successor);
-        }
+        worklist.addAll(successors.get(state));
 
         // Abstraction formula
         PredicateAbstractState predicateState = PredicateAbstractState.getPredicateState(state);

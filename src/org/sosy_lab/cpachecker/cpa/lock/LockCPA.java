@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.TrivialApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
@@ -43,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -74,6 +74,12 @@ public class LockCPA extends AbstractCPA
   @Option(description = "Consider or not special cases with empty lock sets", secure = true)
   private StopMode stopMode = StopMode.DEFAULT;
 
+  @Option(description = "Consider or not lock guards", secure = true)
+  private boolean considerLockGuards = true;
+
+  @Option(description = "Enable refinement procedure", secure = true)
+  private boolean refinement = false;
+
   @Option(
     secure = true,
     name = "merge",
@@ -82,28 +88,14 @@ public class LockCPA extends AbstractCPA
     description = "which merge operator to use for LockCPA")
   private String mergeType = "SEP";
 
-  @Option(description = "Consider or not lock guards", secure = true)
-  private boolean considerLockGuards = true;
-
-  private final Reducer reducer;
+  private final LockReducer reducer;
 
   private LockCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(
         DelegateAbstractDomain.<AbstractLockState>getInstance(),
         new LockTransferRelation(config, logger));
     config.inject(this);
-    switch (analysisMode) {
-      case RACE:
-        reducer = new LockReducer(config);
-        break;
-
-      case DEADLOCK:
-        reducer = NoOpReducer.getInstance();
-        break;
-
-      default:
-        throw new InvalidConfigurationException("Unknown mode: " + analysisMode);
-    }
+    reducer = new LockReducer(config);
   }
 
   @Override
@@ -118,6 +110,16 @@ public class LockCPA extends AbstractCPA
       default:
         // The analysis should fail at CPA creation
         throw new UnsupportedOperationException("Unsupported analysis mode");
+    }
+  }
+
+  @Override
+  public Precision getInitialPrecision(CFANode node, StateSpacePartition pPartition)
+      throws InterruptedException {
+    if (refinement) {
+      return new LockPrecision();
+    } else {
+      return super.getInitialPrecision(node, pPartition);
     }
   }
 
@@ -160,6 +162,7 @@ public class LockCPA extends AbstractCPA
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     LockTransferRelation transfer = (LockTransferRelation) getTransferRelation();
     pStatsCollection.add(transfer.getStatistics());
+    reducer.collectStatistics(pStatsCollection);
   }
 
   @Override

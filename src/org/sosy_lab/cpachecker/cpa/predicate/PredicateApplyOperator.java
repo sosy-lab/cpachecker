@@ -21,7 +21,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import java.util.Collections;
+import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -91,11 +93,11 @@ public class PredicateApplyOperator implements ApplyOperator {
       // local var, rename
       if (s.contains("@")) {
         // instantiated
-        String[] parts = s.split("@");
-        String newName = rename.apply(parts[0]) + "@";
-        if (parts.length > 1) {
+        List<String> parts = Splitter.on('@').splitToList(s);
+        String newName = rename.apply(parts.get(0)) + "@";
+        if (parts.size() > 1) {
           // @ may be last symbol
-          newName += parts[1];
+          newName += parts.get(1);
         }
         return newName;
       } else {
