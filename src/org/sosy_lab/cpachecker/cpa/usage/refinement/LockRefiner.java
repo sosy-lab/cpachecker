@@ -26,9 +26,11 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -71,13 +73,17 @@ public class LockRefiner
   // private StatCounter numberOfRepeatedConstructedPaths = new StatCounter("Number of repeated path
   // computed");
 
+  private final boolean refineOnlyIncompatiblePairs;
+
   public LockRefiner(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
       LockTransferRelation pTransfer,
-      LockReducer pReducer) {
+      LockReducer pReducer,
+      boolean pRefineOnlyIncompatiblePairs) {
     super(pWrapper);
     transfer = pTransfer;
     reducer = pReducer;
+    refineOnlyIncompatiblePairs = pRefineOnlyIncompatiblePairs;
   }
 
   protected AbstractLockState findLastState(List<CFAEdge> edges)
@@ -122,55 +128,59 @@ public class LockRefiner
     AbstractLockState secondRealState = findLastState(secondEdges);
     fullStateTimer.stop();
 
-    Iterable<Entry<CFANode, LockIdentifier>> toPrecision = Collections.emptySet();
+    Set<Entry<CFANode, LockIdentifier>> toPrecision = new HashSet<>();
     List<ARGState> firstPairs;
     List<ARGState> secondPairs;
 
     if (firstRealState == null) {
       // The path is infeasible due to missed lock assumption
-      Iterable<Entry<CFANode, LockIdentifier>> prec = getNewPrecision(null, firstEdges);
-      toPrecision = Iterables.concat(toPrecision, prec);
-      firstPairs =
-          getAffectedStates(prec, firstPath);
       secondPairs = Collections.emptyList();
+      firstPairs = extractStatesAndUpdatePrecision(firstPath, firstEdges, toPrecision);
 
     } else if (secondRealState == null) {
-      Iterable<Entry<CFANode, LockIdentifier>> prec = getNewPrecision(null, secondEdges);
-      toPrecision = Iterables.concat(toPrecision, prec);
-      secondPairs =
-          getAffectedStates(prec, secondPath);
       firstPairs = Collections.emptyList();
+      secondPairs = extractStatesAndUpdatePrecision(secondPath, secondEdges, toPrecision);
 
     } else {
 
-      if (firstRealState.isCompatibleWith(secondRealState)) {
+      boolean areCompatible = firstRealState.isCompatibleWith(secondRealState);
+
+      if (areCompatible && refineOnlyIncompatiblePairs) {
         numberOfTrueResults.inc();
         return wrappedRefiner.performBlockRefinement(pInput);
       }
 
-      Collection<LockIdentifier> ids = firstRealState.getIntersection(secondRealState);
-      assert !ids.isEmpty();
-      // assert firstLastLockState.getCounter(id) == 0 || secondLastLockState.getCounter(id) == 0;
-      LockIdentifier id = Iterables.getLast(ids);
+      LockIdentifier firstId;
+      LockIdentifier secondId;
 
-      if (firstLastLockState.getCounter(id) == 0) {
-        Iterable<Entry<CFANode, LockIdentifier>> prec = getNewPrecision(id, firstEdges);
-        toPrecision = Iterables.concat(toPrecision, prec);
-        firstPairs =
-            getAffectedStates(prec, firstPath);
+      if (areCompatible) {
+        numberOfTrueResults.inc();
+        // Check the consistency of the path
+        firstId = getInconsistentLockId(firstRealState, firstLastLockState);
+        secondId = getInconsistentLockId(secondRealState, secondLastLockState);
+
       } else {
-        firstPairs = Collections.emptyList();
+        // Missed lock which affect compatibility
+        Collection<LockIdentifier> ids = firstRealState.getIntersection(secondRealState);
+        assert !ids.isEmpty();
+
+        LockIdentifier id = Iterables.getLast(ids);
+        // We should refine the identifier, if it is not present right now in the
+        // corresponding state
+        firstId = firstLastLockState.getCounter(id) == 0 ? id : null;
+        secondId = secondLastLockState.getCounter(id) == 0 ? id : null;
       }
-      if (secondLastLockState.getCounter(id) == 0) {
-        Iterable<Entry<CFANode, LockIdentifier>> prec = getNewPrecision(id, secondEdges);
-        toPrecision = Iterables.concat(toPrecision, prec);
-        secondPairs =
-            getAffectedStates(prec, secondPath);
-        if (secondPairs.equals(firstPairs)) {
-          secondPairs = Collections.emptyList();
-        }
-      } else {
+
+      firstPairs = extractStatesAndUpdatePrecision(firstId, firstPath, firstEdges, toPrecision);
+      secondPairs = extractStatesAndUpdatePrecision(secondId, secondPath, secondEdges, toPrecision);
+
+      if (secondPairs.equals(firstPairs)) {
         secondPairs = Collections.emptyList();
+      }
+
+      if (firstPairs.isEmpty() && secondPairs.isEmpty()) {
+        numberOfTrueResults.inc();
+        return wrappedRefiner.performBlockRefinement(pInput);
       }
     }
 
@@ -181,7 +191,44 @@ public class LockRefiner
     return result;
   }
 
-  private Iterable<Entry<CFANode, LockIdentifier>>
+  private LockIdentifier
+      getInconsistentLockId(AbstractLockState pRealState, AbstractLockState pLastState) {
+    Collection<LockIdentifier> ids =
+        from(pRealState.getDifference(pLastState)).transform(e -> e.getAffectedLock()).toList();
+
+    if (!ids.isEmpty()) {
+      return Iterables.getLast(ids);
+    }
+    return null;
+  }
+
+  private List<ARGState> extractStatesAndUpdatePrecision(
+      LockIdentifier id,
+      ExtendedARGPath pPath,
+      List<CFAEdge> pEdges,
+      Set<Entry<CFANode, LockIdentifier>> toPrecision)
+      throws UnrecognizedCodeException {
+
+    if (id != null) {
+      Collection<Map.Entry<CFANode, LockIdentifier>> newPrec = getNewPrecision(id, pEdges);
+      toPrecision.addAll(newPrec);
+      return extractStates(newPrec, pPath);
+    }
+    return Collections.emptyList();
+  }
+
+  private List<ARGState> extractStatesAndUpdatePrecision(
+      ExtendedARGPath pPath,
+      List<CFAEdge> pEdges,
+      Set<Entry<CFANode, LockIdentifier>> toPrecision)
+      throws UnrecognizedCodeException {
+
+    Collection<Map.Entry<CFANode, LockIdentifier>> newPrec = getNewPrecision(null, pEdges);
+    toPrecision.addAll(newPrec);
+    return extractStates(newPrec, pPath);
+  }
+
+  private Collection<Map.Entry<CFANode, LockIdentifier>>
       getNewPrecision(
           LockIdentifier pId,
           List<CFAEdge> pEdges)
@@ -241,6 +288,15 @@ public class LockRefiner
         from(filteredEdges).transform(e -> e.getPredecessor()).toMap(e -> fId);
     newPrecisionTimer.stop();
     return set.entrySet();
+  }
+
+  private List<ARGState>
+      extractStates(Iterable<Entry<CFANode, LockIdentifier>> newPrecision, ExtendedARGPath pPath) {
+    if (Iterables.isEmpty(newPrecision)) {
+      return Collections.emptyList();
+    } else {
+      return getAffectedStates(newPrecision, pPath);
+    }
   }
 
   private List<CFAEdge> filterEdges(ExtendedARGPath pPath) {
