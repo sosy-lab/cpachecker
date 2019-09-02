@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -78,7 +80,7 @@ public class ThreadCreateTransformer {
     name = "cfa.threads.threadCreate",
     description = "A name of thread_create function"
   )
-  private String threadCreate = "pthread_create";
+  private Set<String> threadCreate = ImmutableSet.of("pthread_create");
 
   @Option(
     secure = true,
@@ -132,7 +134,7 @@ public class ThreadCreateTransformer {
 
     private void checkFunctionExpression(CFAEdge edge, CFunctionCallExpression exp) {
       String fName = exp.getFunctionNameExpression().toString();
-      if (fName.equals(threadCreate) || fName.equals(threadCreateN)) {
+      if (threadCreate.contains(fName) || fName.equals(threadCreateN)) {
         threadCreates.put(edge, exp);
       } else if (fName.equals(threadJoin) || fName.equals(threadJoinN)) {
         threadJoins.put(edge, exp);
@@ -189,7 +191,7 @@ public class ThreadCreateTransformer {
               functionParameters,
               functionDeclaration);
 
-      boolean isSelfParallel = !fName.equals(threadCreate);
+      boolean isSelfParallel = fName.equals(threadCreateN);
       CFunctionCallStatement pFunctionCall =
           new CThreadCreateStatement(
               pFileLocation, pFunctionCallExpression, isSelfParallel, varName.getName());
