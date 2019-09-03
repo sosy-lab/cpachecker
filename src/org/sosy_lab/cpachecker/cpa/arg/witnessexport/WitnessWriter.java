@@ -1134,7 +1134,7 @@ class WitnessWriter implements EdgeAppender {
         pTarget);
   }
 
-  private String processPath(
+  private Witness processPath(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
@@ -1211,10 +1211,20 @@ class WitnessWriter implements EdgeAppender {
     // merge redundant sibling edges leading to the sink together, if possible
     mergeRedundantSinkEdges();
 
-    return entryStateNodeId;
+    return new Witness(
+        entryStateNodeId,
+        leavingEdges,
+        enteringEdges,
+        witnessOptions,
+        nodeFlags,
+        violatedProperties,
+        stateInvariants,
+        stateQuasiInvariants,
+        stateScopes,
+        invariantExportStates);
   }
 
-  private void writeToGraphMl(String entryStateNodeId, Appendable pTarget) throws IOException {
+  private void writeToGraphMl(Witness witness, Appendable pTarget) throws IOException {
     // Write elements
     final GraphMlBuilder doc;
     try {
@@ -1222,7 +1232,7 @@ class WitnessWriter implements EdgeAppender {
     } catch (ParserConfigurationException e) {
       throw new IOException(e);
     }
-    WitnessToGraphMlUtils.writeElementsOfGraphToDoc(doc, entryStateNodeId, this);
+    WitnessToGraphMlUtils.writeElementsOfGraphToDoc(doc, witness);
     doc.appendTo(pTarget);
   }
 
@@ -1920,7 +1930,7 @@ class WitnessWriter implements EdgeAppender {
     return pQualifier.get() + "::" + pDeclaration.getOrigName();
   }
 
-  public ExpressionTree<Object> getStateInvariant(String pStateId) {
+  private ExpressionTree<Object> getStateInvariant(String pStateId) {
     ExpressionTree<Object> result = stateInvariants.get(pStateId);
     if (result == null) {
       return ExpressionTrees.getTrue();
@@ -1928,30 +1938,7 @@ class WitnessWriter implements EdgeAppender {
     return result;
   }
 
-  /**
-   * Returns a {@link Multimap} from a state's id {@link String} to its leaving edges {@link Edge}
-   */
-  public Multimap<String, Edge> getLeavingEdges() {
-    return leavingEdges;
-  }
-
-  public WitnessOptions getWitnessOptions() {
-    return witnessOptions;
-  }
-
-  public SetMultimap<String, NodeFlag> getNodeFlags() {
-    return nodeFlags;
-  }
-
-  public Multimap<String, Property> getViolatedProperties() {
-    return violatedProperties;
-  }
-
-  public boolean hasQuasiInvariant(String pEntryStateNodeId) {
-    return stateQuasiInvariants.containsKey(pEntryStateNodeId);
-  }
-
-  public ExpressionTree<Object> getQuasiInvariant(final String pNodeId) {
+  private ExpressionTree<Object> getQuasiInvariant(final String pNodeId) {
     ExpressionTree<Object> result = stateQuasiInvariants.get(pNodeId);
     if (result == null) {
       return ExpressionTrees.getFalse();
@@ -1959,11 +1946,7 @@ class WitnessWriter implements EdgeAppender {
     return result;
   }
 
-  public Set<String> getInvariantExportStates() {
-    return invariantExportStates;
-  }
-
-  public Map<String, String> getStateScopes() {
+  private Map<String, String> getStateScopes() {
     return stateScopes;
   }
 }

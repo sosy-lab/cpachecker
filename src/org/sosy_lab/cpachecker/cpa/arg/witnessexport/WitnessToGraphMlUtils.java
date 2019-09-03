@@ -35,8 +35,8 @@ import org.w3c.dom.Element;
 
 public class WitnessToGraphMlUtils {
 
-  static void writeElementsOfGraphToDoc(
-      GraphMlBuilder doc, String entryStateNodeId, WitnessWriter witness) {
+  static void writeElementsOfGraphToDoc(GraphMlBuilder doc, Witness witness) {
+    String entryStateNodeId = witness.getEntryStateNodeId();
     Map<String, Element> nodes = Maps.newHashMap();
     Deque<String> waitlist = Queues.newArrayDeque();
     waitlist.push(entryStateNodeId);
@@ -61,7 +61,7 @@ public class WitnessToGraphMlUtils {
   }
 
   private static Element createNewNode(
-      GraphMlBuilder pDoc, String pEntryStateNodeId, WitnessWriter witness) {
+      GraphMlBuilder pDoc, String pEntryStateNodeId, Witness witness) {
     Element result = pDoc.createNodeElement(pEntryStateNodeId, NodeType.ONPATH);
 
     if (witness.getWitnessOptions().exportNodeLabel()) {
@@ -85,7 +85,7 @@ public class WitnessToGraphMlUtils {
   }
 
   private static ExpressionTree<Object> addInvariantsData(
-      GraphMlBuilder pDoc, Element pNode, String pStateId, WitnessWriter witness) {
+      GraphMlBuilder pDoc, Element pNode, String pStateId, Witness witness) {
     if (!witness.getInvariantExportStates().contains(pStateId)) {
       return ExpressionTrees.getTrue();
     }
