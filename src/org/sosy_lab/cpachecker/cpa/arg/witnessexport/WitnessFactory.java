@@ -1620,7 +1620,7 @@ class WitnessFactory implements EdgeAppender {
         putStateInvariant(source, ExpressionTrees.getTrue());
         stateScopes.remove(source);
       } else {
-        stateScopes.put(source, newScope);
+        stateScopes.put(source, newScope == null ? "" : newScope);
       }
     }
   }
@@ -1707,12 +1707,13 @@ class WitnessFactory implements EdgeAppender {
       String pStateId, String pOtherStateId) {
     ExpressionTree<Object> prev = stateInvariants.get(pStateId);
     ExpressionTree<Object> other = stateInvariants.get(pOtherStateId);
-    if (prev == null) {
-      stateInvariants.put(pStateId, other);
-      return other;
-    }
-    if (other == null) {
-      return prev;
+    if (prev == null && other == null) {
+      stateInvariants.put(pStateId, ExpressionTrees.getTrue());
+      return ExpressionTrees.getTrue();
+    } else if (prev == null || other == null) {
+      ExpressionTree<Object> existingTree = (prev == null) ? other : prev;
+      stateInvariants.put(pStateId, existingTree);
+      return existingTree;
     }
     ExpressionTree<Object> result = simplifier.simplify(factory.or(prev, other));
     stateInvariants.put(pStateId, result);
