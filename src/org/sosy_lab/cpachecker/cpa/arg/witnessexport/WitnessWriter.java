@@ -134,11 +134,9 @@ import org.sosy_lab.cpachecker.util.NumericIdProvider;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -147,7 +145,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
-import org.w3c.dom.Element;
 
 class WitnessWriter implements EdgeAppender {
 
@@ -1225,7 +1222,7 @@ class WitnessWriter implements EdgeAppender {
     } catch (ParserConfigurationException e) {
       throw new IOException(e);
     }
-    writeElementsOfGraphToDoc(doc, entryStateNodeId);
+    WitnessToGraphMlUtils.writeElementsOfGraphToDoc(doc, entryStateNodeId, this);
     doc.appendTo(pTarget);
   }
 
@@ -1346,30 +1343,6 @@ class WitnessWriter implements EdgeAppender {
     }
   }
 
-  private void writeElementsOfGraphToDoc(GraphMlBuilder doc, String entryStateNodeId) {
-    Map<String, Element> nodes = new HashMap<>();
-    Deque<String> waitlist = new ArrayDeque<>();
-    waitlist.push(entryStateNodeId);
-    Element entryNode = createNewNode(doc, entryStateNodeId);
-    addInvariantsData(doc, entryNode, entryStateNodeId);
-    nodes.put(entryStateNodeId, entryNode);
-    while (!waitlist.isEmpty()) {
-      String source = waitlist.pop();
-      for (Edge edge : leavingEdges.get(source)) {
-
-        Element targetNode = nodes.get(edge.getTarget());
-        if (targetNode == null) {
-          targetNode = createNewNode(doc, edge.getTarget());
-          if (!ExpressionTrees.getFalse()
-              .equals(addInvariantsData(doc, targetNode, edge.getTarget()))) {
-            waitlist.push(edge.getTarget());
-          }
-          nodes.put(edge.getTarget(), targetNode);
-        }
-        createNewEdge(doc, edge, targetNode);
-      }
-    }
-  }
 
   private void setLoopHeadInvariantIfApplicable(String pTarget) {
     if (!ExpressionTrees.getTrue().equals(getStateInvariant(pTarget))) {
@@ -1402,24 +1375,8 @@ class WitnessWriter implements EdgeAppender {
     }
     stateInvariants.put(pTarget, loopHeadInvariant);
     if (scope != null) {
-      stateScopes.put(pTarget, scope);
+      getStateScopes().put(pTarget, scope);
     }
-  }
-
-  private ExpressionTree<Object> addInvariantsData(
-      GraphMlBuilder pDoc, Element pNode, String pStateId) {
-    if (!invariantExportStates.contains(pStateId)) {
-      return ExpressionTrees.getTrue();
-    }
-    ExpressionTree<Object> tree = getStateInvariant(pStateId);
-    if (!tree.equals(ExpressionTrees.getTrue())) {
-      pDoc.addDataElementChild(pNode, KeyDef.INVARIANT, tree.toString());
-      String scope = stateScopes.get(pStateId);
-      if (!isNullOrEmpty(scope) && !tree.equals(ExpressionTrees.getFalse())) {
-        pDoc.addDataElementChild(pNode, KeyDef.INVARIANTSCOPE, scope);
-      }
-    }
-    return tree;
   }
 
   private boolean hasFlagsOrProperties(String pNode) {
@@ -1662,13 +1619,6 @@ class WitnessWriter implements EdgeAppender {
     }
   }
 
-  private ExpressionTree<Object> getQuasiInvariant(final String pNodeId) {
-    ExpressionTree<Object> result = stateQuasiInvariants.get(pNodeId);
-    if (result == null) {
-      return ExpressionTrees.getFalse();
-    }
-    return result;
-  }
 
   private void putEdge(Edge pEdge) {
     assert leavingEdges.size() == enteringEdges.size();
@@ -1691,43 +1641,6 @@ class WitnessWriter implements EdgeAppender {
       return true;
     }
     return false;
-  }
-
-  private Element createNewEdge(GraphMlBuilder pDoc, Edge pEdge, Element pTargetNode) {
-    Element edge = pDoc.createEdgeElement(pEdge.getSource(), pEdge.getTarget());
-    for (Map.Entry<KeyDef, String> entry : pEdge.getLabel().getMapping().entrySet()) {
-      KeyDef keyDef = entry.getKey();
-      String value = entry.getValue();
-      if (keyDef.keyFor.equals(ElementType.EDGE)) {
-        pDoc.addDataElementChild(edge, keyDef, value);
-      } else if (keyDef.keyFor.equals(ElementType.NODE)) {
-        pDoc.addDataElementChild(pTargetNode, keyDef, value);
-      }
-    }
-    return edge;
-  }
-
-  private Element createNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) {
-    Element result = pDoc.createNodeElement(pEntryStateNodeId, NodeType.ONPATH);
-
-    if (witnessOptions.exportNodeLabel()) {
-      // add a printable label that for example is shown in yEd
-      pDoc.addDataElementChild(result, KeyDef.LABEL, pEntryStateNodeId);
-    }
-
-    for (NodeFlag f : nodeFlags.get(pEntryStateNodeId)) {
-      pDoc.addDataElementChild(result, f.key, "true");
-    }
-    for (Property violation : violatedProperties.get(pEntryStateNodeId)) {
-      pDoc.addDataElementChild(result, KeyDef.VIOLATEDPROPERTY, violation.toString());
-    }
-
-    if(stateQuasiInvariants.containsKey(pEntryStateNodeId)) {
-      ExpressionTree<Object> tree = getQuasiInvariant(pEntryStateNodeId);
-        pDoc.addDataElementChild(result, KeyDef.INVARIANT, tree.toString());
-    }
-
-    return result;
   }
 
   private Collection<NodeFlag> extractNodeFlags(ARGState pState) {
@@ -1790,13 +1703,6 @@ class WitnessWriter implements EdgeAppender {
     return result;
   }
 
-  private ExpressionTree<Object> getStateInvariant(String pStateId) {
-    ExpressionTree<Object> result = stateInvariants.get(pStateId);
-    if (result == null) {
-      return ExpressionTrees.getTrue();
-    }
-    return result;
-  }
 
   private boolean exportInvariant(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
     if (pFromState.isPresent()
@@ -2012,5 +1918,52 @@ class WitnessWriter implements EdgeAppender {
       return ambiguousName;
     }
     return pQualifier.get() + "::" + pDeclaration.getOrigName();
+  }
+
+  public ExpressionTree<Object> getStateInvariant(String pStateId) {
+    ExpressionTree<Object> result = stateInvariants.get(pStateId);
+    if (result == null) {
+      return ExpressionTrees.getTrue();
+    }
+    return result;
+  }
+
+  /**
+   * Returns a {@link Multimap} from a state's id {@link String} to its leaving edges {@link Edge}
+   */
+  public Multimap<String, Edge> getLeavingEdges() {
+    return leavingEdges;
+  }
+
+  public WitnessOptions getWitnessOptions() {
+    return witnessOptions;
+  }
+
+  public SetMultimap<String, NodeFlag> getNodeFlags() {
+    return nodeFlags;
+  }
+
+  public Multimap<String, Property> getViolatedProperties() {
+    return violatedProperties;
+  }
+
+  public boolean hasQuasiInvariant(String pEntryStateNodeId) {
+    return stateQuasiInvariants.containsKey(pEntryStateNodeId);
+  }
+
+  public ExpressionTree<Object> getQuasiInvariant(final String pNodeId) {
+    ExpressionTree<Object> result = stateQuasiInvariants.get(pNodeId);
+    if (result == null) {
+      return ExpressionTrees.getFalse();
+    }
+    return result;
+  }
+
+  public Set<String> getInvariantExportStates() {
+    return invariantExportStates;
+  }
+
+  public Map<String, String> getStateScopes() {
+    return stateScopes;
   }
 }
