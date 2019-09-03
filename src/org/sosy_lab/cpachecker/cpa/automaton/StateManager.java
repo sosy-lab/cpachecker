@@ -288,10 +288,7 @@ public class StateManager {
         matchST(String pFollowStateName, CFAEdge pCFAEdge, String pBuechiExpressionString)
             throws InvalidAutomatonException {
       AutomatonBoolExpr.MatchCFAEdgeNodes trigger =
-          new AutomatonBoolExpr.MatchCFAEdgeNodes(
-              pCFAEdge.getPredecessor().getNodeNumber(),
-              pCFAEdge.getSuccessor().getNodeNumber(),
-              pCFAEdge.getRawStatement());
+          new AutomatonBoolExpr.MatchCFAEdgeNodes(pCFAEdge);
       AutomatonBoolExpr.CPAQuery matchCFAEdgeNodes =
           new AutomatonBoolExpr.CPAQuery("DCAState", pBuechiExpressionString);
       And and = new AutomatonBoolExpr.And(trigger, matchCFAEdgeNodes);
