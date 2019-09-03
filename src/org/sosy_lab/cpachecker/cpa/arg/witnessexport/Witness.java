@@ -19,16 +19,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
@@ -54,6 +57,7 @@ class Witness {
   private final Map<String, ExpressionTree<Object>> stateQuasiInvariants;
   private final Map<String, String> stateScopes;
   private final Set<String> invariantExportStates;
+  private final Map<String, Collection<ARGState>> stateToARGStates;
 
   public Witness(
       WitnessType pWitnessType,
@@ -69,7 +73,8 @@ class Witness {
       Map<String, ExpressionTree<Object>> pStateInvariants,
       Map<String, ExpressionTree<Object>> pStateQuasiInvariants,
       Map<String, String> pStateScopes,
-      Set<String> pInvariantExportStates) {
+      Set<String> pInvariantExportStates,
+      Map<String, Collection<ARGState>> pStateToARGStates) {
     witnessType = pWitnessType;
     originFile = pOriginFile;
     cfa = pCfa;
@@ -84,6 +89,7 @@ class Witness {
     stateQuasiInvariants = ImmutableMap.copyOf(pStateQuasiInvariants);
     stateScopes = ImmutableMap.copyOf(pStateScopes);
     invariantExportStates = ImmutableSet.copyOf(pInvariantExportStates);
+    stateToARGStates = ImmutableMap.copyOf(pStateToARGStates);
   }
 
   public WitnessType getWitnessType() {
@@ -155,5 +161,13 @@ class Witness {
 
   public Set<String> getInvariantExportStates() {
     return invariantExportStates;
+  }
+
+  public Collection<ARGState> getARGStatesFor(String id) {
+    if (stateToARGStates.containsKey(id)) {
+      return stateToARGStates.get(id);
+    } else {
+      return ImmutableList.of();
+    }
   }
 }

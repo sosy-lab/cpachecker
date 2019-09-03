@@ -303,6 +303,7 @@ class WitnessFactory implements EdgeAppender {
   private final Set<String> invariantExportStates = new TreeSet<>();
 
   private final Map<Edge, CFANode> loopHeadEnteringEdges = new HashMap<>();
+  private final Map<String, Collection<ARGState>> stateToARGStates = new HashMap<>();
 
   private final String defaultSourcefileName;
   private final WitnessType graphType;
@@ -347,6 +348,9 @@ class WitnessFactory implements EdgeAppender {
       final CFAEdgeWithAdditionalInfo pAdditionalInfo) {
 
     attemptSwitchToFunctionScope(pEdge);
+    if (pFromState.isPresent()) {
+      stateToARGStates.put(pFrom, pFromState.get());
+    }
 
     Iterable<TransitionCondition> transitions =
         constructTransitionCondition(pFrom, pTo, pEdge, pFromState, pValueMap, pAdditionalInfo);
@@ -1156,6 +1160,7 @@ class WitnessFactory implements EdgeAppender {
     stateQuasiInvariants.clear();
     stateScopes.clear();
     invariantExportStates.clear();
+    stateToARGStates.clear();
 
     BiPredicate<ARGState, ARGState> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
@@ -1239,7 +1244,8 @@ class WitnessFactory implements EdgeAppender {
         stateInvariants,
         stateQuasiInvariants,
         stateScopes,
-        invariantExportStates);
+        invariantExportStates,
+        stateToARGStates);
   }
 
   /**
