@@ -1143,6 +1143,16 @@ class WitnessWriter implements EdgeAppender {
       Optional<CounterexampleInfo> pCounterExample,
       GraphBuilder pGraphBuilder) {
 
+    // reset information in case data structures where filled before:
+    leavingEdges.clear();
+    enteringEdges.clear();
+    nodeFlags.clear();
+    violatedProperties.clear();
+    stateInvariants.clear();
+    stateQuasiInvariants.clear();
+    stateScopes.clear();
+    invariantExportStates.clear();
+
     BiPredicate<ARGState, ARGState> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
     Map<ARGState, CFAEdgeWithAdditionalInfo> additionalInfo = getAdditionalInfo(pCounterExample);

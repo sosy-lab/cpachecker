@@ -19,6 +19,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import java.util.Map;
@@ -28,6 +32,10 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
+/**
+ * This class represents the information that is available for exporting a witness. Objects of this
+ * class are designed to be immutable.
+ */
 class Witness {
   private final String entryStateNodeId;
   private final Multimap<String, Edge> leavingEdges;
@@ -52,15 +60,15 @@ class Witness {
       Map<String, String> pStateScopes,
       Set<String> pInvariantExportStates) {
     entryStateNodeId = pEntryStateNodeId;
-    leavingEdges = pLeavingEdges;
-    enteringEdges = pEnteringEdges;
+    leavingEdges = ImmutableMultimap.copyOf(pLeavingEdges);
+    enteringEdges = ImmutableMultimap.copyOf(pEnteringEdges);
     witnessOptions = pWitnessOptions;
-    nodeFlags = pNodeFlags;
-    violatedProperties = pViolatedProperties;
-    stateInvariants = pStateInvariants;
-    stateQuasiInvariants = pStateQuasiInvariants;
-    stateScopes = pStateScopes;
-    invariantExportStates = pInvariantExportStates;
+    nodeFlags = ImmutableSetMultimap.copyOf(pNodeFlags);
+    violatedProperties = ImmutableMultimap.copyOf(pViolatedProperties);
+    stateInvariants = ImmutableMap.copyOf(pStateInvariants);
+    stateQuasiInvariants = ImmutableMap.copyOf(pStateQuasiInvariants);
+    stateScopes = ImmutableMap.copyOf(pStateScopes);
+    invariantExportStates = ImmutableSet.copyOf(pInvariantExportStates);
   }
 
   public String getEntryStateNodeId() {
