@@ -380,11 +380,11 @@ class WitnessFactory implements EdgeAppender {
           if (exportInvariant) {
             invariantExportStates.add(to);
           }
-          if (exportInvariant || isEdgeRedundant.apply(edge)) {
+          if (exportInvariant || isEdgeIrrelevant.apply(edge)) {
             invariant =
                 simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
           }
-          putStateInvariant(pTo, invariant);
+          addToStateInvariant(pTo, invariant);
           String functionName = pEdge.getSuccessor().getFunctionName();
           stateScopes.put(pTo, isFunctionScope ? functionName : "");
         }
@@ -1214,8 +1214,8 @@ class WitnessFactory implements EdgeAppender {
     NavigableSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
-      // If the edge still exists in the graph and is redundant, remove it
-      if (leavingEdges.get(edge.getSource()).contains(edge) && isEdgeRedundant.apply(edge)) {
+      // If the edge still exists in the graph and is irrelevant, remove it
+      if (leavingEdges.get(edge.getSource()).contains(edge) && isEdgeIrrelevant.apply(edge)) {
         Iterables.addAll(waitlist, mergeNodes(edge));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
@@ -1267,7 +1267,7 @@ class WitnessFactory implements EdgeAppender {
   /** Remove edges that lead to the sink but have a sibling edge that has the same label.
    *
    * <p>
-   * We additionally remove redundant edges.
+   * We additionally remove irrelevant edges.
    * This is needed for concurrency witnesses at thread-creation.
    * </p>
    */
@@ -1279,8 +1279,8 @@ class WitnessFactory implements EdgeAppender {
           for (Edge otherEdge : leavingEdgesCollection) {
             // ignore the edge itself, as well as already handled edges.
             if (edge != otherEdge && !toRemove.contains(otherEdge)) {
-              // remove edges with either identical labels or redundant edge-transition
-              if (edge.getLabel().equals(otherEdge.getLabel()) || isEdgeRedundant.apply(edge)) {
+              // remove edges with either identical labels or irrelevant edge-transition
+              if (edge.getLabel().equals(otherEdge.getLabel()) || isEdgeIrrelevant.apply(edge)) {
                 toRemove.add(edge);
                 break;
               }
@@ -1399,7 +1399,11 @@ class WitnessFactory implements EdgeAppender {
     return !nodeFlags.get(pNode).isEmpty() || !violatedProperties.get(pNode).isEmpty();
   }
 
-  private final Predicate<String> isNodeRedundant =
+  /**
+   * this predicate marks intermediate nodes that do not contain relevant information and can
+   * therefore be shortcut.
+   */
+  private final Predicate<String> isIrrelevantNode =
       new Predicate<String>() {
 
         @Override
@@ -1422,12 +1426,16 @@ class WitnessFactory implements EdgeAppender {
         }
       };
 
-  private final Predicate<Edge> isEdgeRedundant =
+  /**
+   * this predicate marks intermediate edges that do not contain relevant information and can
+   * therefore be shortcut.
+   */
+  private final Predicate<Edge> isEdgeIrrelevant =
       new Predicate<Edge>() {
 
         @Override
         public boolean apply(final Edge pEdge) {
-          if (isNodeRedundant.apply(pEdge.getTarget())) {
+          if (isIrrelevantNode.apply(pEdge.getTarget())) {
             return true;
           }
 
@@ -1447,7 +1455,7 @@ class WitnessFactory implements EdgeAppender {
             return false;
           }
 
-          // An edge is never redundant if there are conflicting scopes
+          // An edge is never irrelevant if there are conflicting scopes
           ExpressionTree<Object> sourceTree = getStateInvariant(pEdge.getSource());
           if (sourceTree != null) {
             String sourceScope = stateScopes.get(pEdge.getSource());
@@ -1457,7 +1465,7 @@ class WitnessFactory implements EdgeAppender {
             }
           }
 
-          // An edge is redundant if it is the only leaving edge of a
+          // An edge is irrelevant if it is the only leaving edge of a
           // node and it is empty or all its non-assumption contents
           // are summarized by a preceding edge
           boolean summarizedByPreceedingEdge =
@@ -1490,11 +1498,11 @@ class WitnessFactory implements EdgeAppender {
       };
 
   /**
-   * Merge two consecutive nodes into one new node, if the edge between the nodes is redundant. The
+   * Merge two consecutive nodes into one new node, if the edge between the nodes is irrelevant. The
    * merge also merges the information of the nodes, e.g. disjuncts their invariants.
    */
   private Iterable<Edge> mergeNodes(final Edge pEdge) {
-    Preconditions.checkArgument(isEdgeRedundant.apply(pEdge));
+    Preconditions.checkArgument(isEdgeIrrelevant.apply(pEdge));
 
     // Always merge into the predecessor, unless the successor is the sink
     boolean intoPredecessor =
@@ -1617,7 +1625,7 @@ class WitnessFactory implements EdgeAppender {
     ExpressionTree<Object> newTree = mergeStateInvariantsIntoFirst(source, target);
     if (newTree != null) {
       if (newScope == null && !ExpressionTrees.isConstant(newTree)) {
-        putStateInvariant(source, ExpressionTrees.getTrue());
+        addToStateInvariant(source, ExpressionTrees.getTrue());
         stateScopes.remove(source);
       } else {
         stateScopes.put(source, newScope == null ? "" : newScope);
@@ -1685,7 +1693,7 @@ class WitnessFactory implements EdgeAppender {
    * @param pStateId the state id.
    * @param pValue the invariant to be added.
    */
-  private void putStateInvariant(String pStateId, ExpressionTree<Object> pValue) {
+  private void addToStateInvariant(String pStateId, ExpressionTree<Object> pValue) {
     ExpressionTree<Object> prev = stateInvariants.get(pStateId);
     if (prev == null) {
       stateInvariants.put(pStateId, simplifier.simplify(pValue));
