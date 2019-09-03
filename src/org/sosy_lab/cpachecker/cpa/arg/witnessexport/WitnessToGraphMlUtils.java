@@ -19,6 +19,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import java.io.IOException;
@@ -118,7 +120,7 @@ public class WitnessToGraphMlUtils {
     if (!tree.equals(ExpressionTrees.getTrue())) {
       pDoc.addDataElementChild(pNode, KeyDef.INVARIANT, tree.toString());
       String scope = witness.getStateScopes().get(pStateId);
-      if (scope != null && !scope.isEmpty() && !tree.equals(ExpressionTrees.getFalse())) {
+      if (!isNullOrEmpty(scope) && !tree.equals(ExpressionTrees.getFalse())) {
         pDoc.addDataElementChild(pNode, KeyDef.INVARIANTSCOPE, scope);
       }
     }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
@@ -1634,7 +1635,7 @@ class WitnessFactory implements EdgeAppender {
         addToStateInvariant(source, ExpressionTrees.getTrue());
         stateScopes.remove(source);
       } else {
-        stateScopes.put(source, newScope == null ? "" : newScope);
+        stateScopes.put(source, nullToEmpty(newScope));
       }
     }
   }
