@@ -1029,13 +1029,13 @@ class WitnessFactory implements EdgeAppender {
    * @param pIsRelevantEdge a filter on the successor function.
    * @return the parents with their children.
    */
-  private Iterable<ARGState> collectPathNodes(
+  private Iterable<ARGState> collectReachableNodes(
       final ARGState pInitialState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
       final Predicate<? super ARGState> pPathStates,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge) {
     return Iterables.transform(
-        collectPathEdges(pInitialState, pSuccessorFunction, pPathStates, pIsRelevantEdge), Pair::getFirst);
+        collectReachableEdges(pInitialState, pSuccessorFunction, pPathStates, pIsRelevantEdge), Pair::getFirst);
   }
 
   /**
@@ -1049,7 +1049,7 @@ class WitnessFactory implements EdgeAppender {
    * @param pIsRelevantEdge a filter on the successor function.
    * @return the parents with their children.
    */
-  private Iterable<Pair<ARGState, Iterable<ARGState>>> collectPathEdges(
+  private Iterable<Pair<ARGState, Iterable<ARGState>>> collectReachableEdges(
       final ARGState pInitialState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
       final Predicate<? super ARGState> pPathStates,
@@ -1176,7 +1176,7 @@ class WitnessFactory implements EdgeAppender {
     final String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
     // Collect node flags in advance
-    for (ARGState s : collectPathNodes(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge)) {
+    for (ARGState s : collectReachableNodes(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge)) {
       String sourceStateNodeId = pGraphBuilder.getId(s);
       EnumSet<NodeFlag> sourceNodeFlags = EnumSet.noneOf(NodeFlag.class);
       if (sourceStateNodeId.equals(entryStateNodeId)) {
@@ -1204,7 +1204,7 @@ class WitnessFactory implements EdgeAppender {
         isRelevantEdge,
         valueMap,
         additionalInfo,
-        collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge),
+        collectReachableEdges(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge),
         this);
 
     // remove unnecessary edges leading to sink
