@@ -21,8 +21,10 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+import java.io.IOException;
 import java.util.Deque;
 import java.util.Map;
+import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
@@ -35,7 +37,30 @@ import org.w3c.dom.Element;
 
 public class WitnessToGraphMlUtils {
 
-  static void writeElementsOfGraphToDoc(GraphMlBuilder doc, Witness witness) {
+  /**
+   * Appends the witness as GraphML to the supplied {@link Appendable}
+   *
+   * @param witness contains the information necessary to generate the GraphML representation
+   * @param pTarget where to append the GraphML
+   */
+  public static void writeToGraphMl(Witness witness, Appendable pTarget) throws IOException {
+    // Write elements
+    final GraphMlBuilder doc;
+    try {
+      doc =
+          new GraphMlBuilder(
+              witness.getWitnessType(),
+              witness.getOriginFile(),
+              witness.getCfa(),
+              witness.getMetaData());
+    } catch (ParserConfigurationException e) {
+      throw new IOException(e);
+    }
+    WitnessToGraphMlUtils.writeElementsOfGraphToDoc(doc, witness);
+    doc.appendTo(pTarget);
+  }
+
+  private static void writeElementsOfGraphToDoc(GraphMlBuilder doc, Witness witness) {
     String entryStateNodeId = witness.getEntryStateNodeId();
     Map<String, Element> nodes = Maps.newHashMap();
     Deque<String> waitlist = Queues.newArrayDeque();

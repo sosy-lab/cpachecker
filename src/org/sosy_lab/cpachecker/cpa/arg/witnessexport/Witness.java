@@ -27,8 +27,11 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
+import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
@@ -37,6 +40,10 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
  * class are designed to be immutable.
  */
 class Witness {
+  private final WitnessType witnessType;
+  private final String originFile;
+  private final CFA cfa;
+  private final VerificationTaskMetaData metaData;
   private final String entryStateNodeId;
   private final Multimap<String, Edge> leavingEdges;
   private final Multimap<String, Edge> enteringEdges;
@@ -49,6 +56,10 @@ class Witness {
   private final Set<String> invariantExportStates;
 
   public Witness(
+      WitnessType pWitnessType,
+      String pOriginFile,
+      CFA pCfa,
+      VerificationTaskMetaData pMetaData,
       String pEntryStateNodeId,
       Multimap<String, Edge> pLeavingEdges,
       Multimap<String, Edge> pEnteringEdges,
@@ -59,6 +70,10 @@ class Witness {
       Map<String, ExpressionTree<Object>> pStateQuasiInvariants,
       Map<String, String> pStateScopes,
       Set<String> pInvariantExportStates) {
+    witnessType = pWitnessType;
+    originFile = pOriginFile;
+    cfa = pCfa;
+    metaData = pMetaData;
     entryStateNodeId = pEntryStateNodeId;
     leavingEdges = ImmutableMultimap.copyOf(pLeavingEdges);
     enteringEdges = ImmutableMultimap.copyOf(pEnteringEdges);
@@ -69,6 +84,22 @@ class Witness {
     stateQuasiInvariants = ImmutableMap.copyOf(pStateQuasiInvariants);
     stateScopes = ImmutableMap.copyOf(pStateScopes);
     invariantExportStates = ImmutableSet.copyOf(pInvariantExportStates);
+  }
+
+  public WitnessType getWitnessType() {
+    return witnessType;
+  }
+
+  public String getOriginFile() {
+    return originFile;
+  }
+
+  public CFA getCfa() {
+    return cfa;
+  }
+
+  public VerificationTaskMetaData getMetaData() {
+    return metaData;
   }
 
   public String getEntryStateNodeId() {

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
@@ -75,7 +74,6 @@ import java.util.function.BiPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.xml.parsers.ParserConfigurationException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -134,7 +132,6 @@ import org.sosy_lab.cpachecker.util.NumericIdProvider;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
@@ -146,7 +143,7 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 
-class WitnessWriter implements EdgeAppender {
+class WitnessFactory implements EdgeAppender {
 
   private static final EnumSet<KeyDef> INSUFFICIENT_KEYS =
       EnumSet.of(
@@ -321,7 +318,7 @@ class WitnessWriter implements EdgeAppender {
   private final Multimap<String, ASimpleDeclaration> seenDeclarations = HashMultimap.create();
   protected Set<AdditionalInfoConverter> additionalInfoConverters = ImmutableSet.of();
 
-  WitnessWriter(
+  WitnessFactory(
       WitnessOptions pOptions,
       CFA pCfa,
       VerificationTaskMetaData pMetaData,
@@ -604,7 +601,7 @@ class WitnessWriter implements EdgeAppender {
   /**
    * Method is used for additional check if TransitionCondition.empty() is applicable.
    *
-   * @param pAdditionalInfo is used at {@link ExtendedWitnessWriter}
+   * @param pAdditionalInfo is used at {@link ExtendedWitnessFactory}
    * @return true if TransitionCondition.empty is applicable.
    */
   protected boolean isEmptyTransitionPossible(CFAEdgeWithAdditionalInfo pAdditionalInfo) {
@@ -894,7 +891,7 @@ class WitnessWriter implements EdgeAppender {
   }
 
   /**
-   * Overwritten at {@link ExtendedWitnessWriter}
+   * Overwritten at {@link ExtendedWitnessFactory}
    *
    * @param pCondition current {@link TransitionCondition}
    * @param pAdditionalInfo exported additional info
@@ -1111,7 +1108,13 @@ class WitnessWriter implements EdgeAppender {
     };
   }
 
-  public void writePath(
+  /**
+   * Creates a {@link Witness} using the supplied parameters and appends this witness as GraphML to
+   * the supplied {@link Appendable}.
+   *
+   * @return the created {@link Witness}
+   */
+  public Witness writePath(
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
@@ -1121,20 +1124,21 @@ class WitnessWriter implements EdgeAppender {
       Optional<CounterexampleInfo> pCounterExample,
       GraphBuilder pGraphBuilder)
       throws IOException {
-
-    writeToGraphMl(
-        processPath(
+    Witness witness =
+        produceWitness(
             pRootState,
             pIsRelevantState,
             pIsRelevantEdge,
             pIsCyclehead,
             cycleHeadToQuasiInvariant,
             pCounterExample,
-            pGraphBuilder),
-        pTarget);
+            pGraphBuilder);
+    WitnessToGraphMlUtils.writeToGraphMl(witness,pTarget);
+    return witness;
   }
 
-  private Witness processPath(
+  /** Creates a {@link Witness} using the supplied parameters */
+  Witness produceWitness(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
@@ -1222,6 +1226,10 @@ class WitnessWriter implements EdgeAppender {
     mergeRedundantSinkEdges();
 
     return new Witness(
+        graphType,
+        defaultSourcefileName,
+        cfa,
+        verificationTaskMetaData,
         entryStateNodeId,
         leavingEdges,
         enteringEdges,
@@ -1234,20 +1242,8 @@ class WitnessWriter implements EdgeAppender {
         invariantExportStates);
   }
 
-  private void writeToGraphMl(Witness witness, Appendable pTarget) throws IOException {
-    // Write elements
-    final GraphMlBuilder doc;
-    try {
-      doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
-    } catch (ParserConfigurationException e) {
-      throw new IOException(e);
-    }
-    WitnessToGraphMlUtils.writeElementsOfGraphToDoc(doc, witness);
-    doc.appendTo(pTarget);
-  }
-
   /**
-   * Getter for additional information. Overwritten at {@link ExtendedWitnessWriter}
+   * Getter for additional information. Overwritten at {@link ExtendedWitnessFactory}
    *
    * @param pCounterExample current {@link CounterexampleInfo}
    * @return additional information
@@ -1258,7 +1254,7 @@ class WitnessWriter implements EdgeAppender {
   }
 
   /**
-   * Getter of {@link AdditionalInfoConverter}. Overwritten at {@link ExtendedWitnessWriter}
+   * Getter of {@link AdditionalInfoConverter}. Overwritten at {@link ExtendedWitnessFactory}
    *
    * @param pCounterExample current {@link CounterexampleInfo}
    * @return set of InfoConverters
