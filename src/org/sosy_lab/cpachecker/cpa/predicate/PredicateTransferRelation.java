@@ -183,7 +183,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     satCheckTimer.stop();
 
     if (unsat) {
-      statistics.numSatChecksFalse.setNextValue(1);
+      statistics.numSatChecksFalse.inc();
       logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
     }
 
@@ -478,7 +478,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     strengthenCheckTimer.stop();
 
     if (unsat) {
-      statistics.numStrengthenChecksFalse.setNextValue(1);
+      statistics.numStrengthenChecksFalse.inc();
       logger.log(Level.FINEST, "Path is infeasible.");
       return null;
     } else {
