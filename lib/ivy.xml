@@ -127,7 +127,9 @@
 
         <!-- JavaSMT -->
         <!--<dependency org="org.sosy_lab" name="java-smt" rev="2.2.0" conf="runtime->runtime; contrib->sources"/>-->
-        <dependency org="org.sosy_lab" name="java-smt" rev="2.0.0-alpha-170-g6d148c3c" conf="runtime->runtime; contrib->sources"/>
+        <!--<dependency org="org.sosy_lab" name="java-smt" rev="2.0.0-alpha-170-g6d148c3c" conf="runtime->runtime; contrib->sources"/>-->
+        <dependency org="org.sosy_lab" name="java-smt" rev="3.1.0-105-gcaeb5960" conf="runtime->runtime; contrib->sources"/>
+        
  
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
