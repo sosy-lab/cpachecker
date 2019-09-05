@@ -58,7 +58,6 @@ public class RefinementBlockFactory {
     UsageIterator(currentInnerBlockType.UsageInfo),
     PathIterator(currentInnerBlockType.ExtendedARGPath),
     SinglePathIterator(currentInnerBlockType.ExtendedARGPath),
-    PathProvider(currentInnerBlockType.ExtendedARGPath),
     PredicateRefiner(currentInnerBlockType.ExtendedARGPath),
     SharedRefiner(currentInnerBlockType.ExtendedARGPath),
     LockRefiner(currentInnerBlockType.ExtendedARGPath);
@@ -201,15 +200,6 @@ public class RefinementBlockFactory {
                     idExtractor,
                     notifier,
                     1);
-            currentBlockType = currentInnerBlockType.UsageInfo;
-            break;
-
-          case PathProvider:
-            currentBlock =
-                new SinglePathProvider(
-                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                    computer,
-                    idExtractor);
             currentBlockType = currentInnerBlockType.UsageInfo;
             break;
 
