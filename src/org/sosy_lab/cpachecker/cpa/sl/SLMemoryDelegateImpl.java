@@ -39,7 +39,7 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
   private final FormulaManagerView fm;
   private final BitvectorFormulaManager bvfm;
   private final IntegerFormulaManager ifm;
-  private HashMap<BooleanFormula, BooleanFormula> heap = new HashMap<>();
+  private HashMap<Formula, Formula> heap = new HashMap<>();
   private HashMap<Formula, Formula> stack = new HashMap<>();
   private final HashMap<Formula, BigInteger> allocationSizes = new HashMap<>();
 

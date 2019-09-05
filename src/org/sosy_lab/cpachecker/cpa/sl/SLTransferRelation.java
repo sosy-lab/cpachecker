@@ -351,10 +351,11 @@ public class SLTransferRelation
   }
 
   @Override
-  public boolean checkAllocation(BooleanFormula pFormula, Map<Formula, Formula> pHeap) {
+  public boolean checkAllocation(Formula pFormula, Map<Formula, Formula> pHeap) {
     BooleanFormula heapFormula = getHeapFormulaForMap(pHeap);
+    BooleanFormula toBeChecked = slfm.makePointsTo(pFormula, slfm.makeNilElement(null));
     try (ProverEnvironment prover = solver.newProverEnvironment()) {
-      prover.addConstraint(slfm.makeStar(pFormula, heapFormula));
+      prover.addConstraint(slfm.makeStar(toBeChecked, heapFormula));
       return prover.isUnsat();
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
