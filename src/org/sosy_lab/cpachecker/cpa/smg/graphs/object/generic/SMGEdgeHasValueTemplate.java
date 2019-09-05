@@ -30,16 +30,27 @@ public class SMGEdgeHasValueTemplate extends SMGEdgeTemplate
     implements SMGEdgeHasValueTemplateWithConcreteValue {
 
   private final CType type;
+  private final long sizeInBits;
 
   public SMGEdgeHasValueTemplate(
-      SMGObjectTemplate pAbstractObject, SMGValue pAbstractValue, long pOffset, CType pType) {
+      SMGObjectTemplate pAbstractObject,
+      SMGValue pAbstractValue,
+      long pOffset,
+      CType pType,
+      long pSizeInBits) {
     super(pAbstractObject, pAbstractValue, pOffset);
     type = pType;
+    sizeInBits = pSizeInBits;
   }
 
   @Override
   public CType getType() {
     return type;
+  }
+
+  @Override
+  public long getSizeInBits() {
+    return sizeInBits;
   }
 
   @Override

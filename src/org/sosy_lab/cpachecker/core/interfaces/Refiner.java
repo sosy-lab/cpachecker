@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -47,6 +49,8 @@ public interface Refiner {
   boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException;
 
   interface Factory {
-    Refiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException;
+    Refiner create(
+        ConfigurableProgramAnalysis cpa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+        throws InvalidConfigurationException;
   }
 }

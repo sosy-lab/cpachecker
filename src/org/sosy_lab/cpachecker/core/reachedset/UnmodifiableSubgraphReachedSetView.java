@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -99,7 +100,7 @@ public class UnmodifiableSubgraphReachedSetView implements UnmodifiableReachedSe
 
   @Override
   public Collection<AbstractState> getWaitlist() {
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override

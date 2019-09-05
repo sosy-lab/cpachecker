@@ -165,7 +165,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
   // This boolean is for keeping track of when this shortcut is allowed:
   private Boolean mayShortcutSlicing = null;
 
-  private HashMap<ARGState,ARGState> forkedStateMap;
+  private Map<ARGState, ARGState> forkedStateMap;
 
   public SlicingAbstractionsStrategy(final PredicateCPA pPredicateCpa, final Configuration config)
       throws InvalidConfigurationException {

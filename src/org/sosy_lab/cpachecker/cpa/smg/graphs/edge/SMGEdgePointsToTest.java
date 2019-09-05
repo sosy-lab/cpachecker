@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
-import org.junit.Assert;
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
@@ -38,9 +39,9 @@ public class SMGEdgePointsToTest {
     SMGObject obj = new SMGRegion(64, "object");
     SMGEdgePointsTo edge = new SMGEdgePointsTo(val, obj, 0);
 
-    Assert.assertEquals(val, edge.getValue());
-    Assert.assertEquals(obj, edge.getObject());
-    Assert.assertEquals(0, edge.getOffset());
+    assertThat(edge.getValue()).isEqualTo(val);
+    assertThat(edge.getObject()).isEqualTo(obj);
+    assertThat(edge.getOffset()).isEqualTo(0);
   }
 
   @Test
@@ -56,15 +57,15 @@ public class SMGEdgePointsToTest {
     SMGEdgePointsTo edge4 = new SMGEdgePointsTo(val1, obj2, 0);
 
     // An edge is consistent with itself
-    Assert.assertTrue(edge1.isConsistentWith(edge1));
+    assertThat(edge1.isConsistentWith(edge1)).isTrue();
 
     // Different vals pointing to same place: violates "injective"
-    Assert.assertFalse(edge1.isConsistentWith(edge2));
+    assertThat(edge1.isConsistentWith(edge2)).isFalse();
 
     // Same val pointing to different offsets
-    Assert.assertFalse(edge1.isConsistentWith(edge3));
+    assertThat(edge1.isConsistentWith(edge3)).isFalse();
 
     // Same val pointing to different objects
-    Assert.assertFalse(edge1.isConsistentWith(edge4));
+    assertThat(edge1.isConsistentWith(edge4)).isFalse();
   }
 }

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg.path;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -235,7 +235,7 @@ public abstract class PathIterator {
     checkState(pos > 0, "Exclusive prefix of first state in path would be empty.");
 
     if (pos == 1) {
-      return new ARGPath(path.asStatesList().subList(0, pos), Collections.<CFAEdge>emptyList());
+      return new ARGPath(path.asStatesList().subList(0, pos), ImmutableList.of());
     } else {
       return new ARGPath(
           path.asStatesList().subList(0, pos), path.getInnerEdges().subList(0, pos - 1));

@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
@@ -161,7 +162,7 @@ public class PartitioningIOHelper {
 
   public void readPartition(final ObjectInputStream pIn, final PCStrategyStatistics pStats, final Lock pLock)
       throws ClassNotFoundException, IOException {
-    if (pLock == null) { throw new IllegalArgumentException("Cannot protect against parallel access"); }
+    checkArgument(pLock != null, "Cannot protect against parallel access");
     Pair<AbstractState[], AbstractState[]> result = readPartitionContent(pIn);
     int partialProofSize = result.getFirst().length+result.getSecond().length;
     pLock.lock();
@@ -263,8 +264,8 @@ public class PartitioningIOHelper {
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       if (numPartitions > 0 && partitions != null) {
-        pOut.format("Number of partitions: %d%n", numPartitions);
-        pOut.format("The following numbers are given in number of states.%n");
+        pOut.printf("Number of partitions: %d%n", numPartitions);
+        pOut.printf("The following numbers are given in number of states.%n");
         computeAndPrintDetailedPartitioningStats(pOut);
       }
 
@@ -296,14 +297,14 @@ public class PartitioningIOHelper {
         totalS+=current;
       }
 
-      pOut.format("Certificate size: %d %n", totalS);
-      pOut.format("Total overhead:  %d%n", totalO);
-      pOut.format(Locale.ENGLISH,"Avg. partition size:  %.2f%n", ((double)totalS)/numPartitions);
-      pOut.format(Locale.ENGLISH,"Avg. partition overhead: %.2f%n", ((double)totalO)/numPartitions);
-      pOut.format("Max partition size: %d%n", maxP);
-      pOut.format("Max partition overhead: %d%n", maxO);
-      pOut.format("Min partition size: %d%n", minP);
-      pOut.format("Min partition overhead: %d%n", minO);
+      pOut.printf("Certificate size: %d %n", totalS);
+      pOut.printf("Total overhead:  %d%n", totalO);
+      pOut.printf("Avg. partition size:  %.2f%n", ((double) totalS) / numPartitions);
+      pOut.printf("Avg. partition overhead: %.2f%n", ((double) totalO) / numPartitions);
+      pOut.printf("Max partition size: %d%n", maxP);
+      pOut.printf("Max partition overhead: %d%n", maxO);
+      pOut.printf("Min partition size: %d%n", minP);
+      pOut.printf("Min partition overhead: %d%n", minO);
     }
 
     @Override

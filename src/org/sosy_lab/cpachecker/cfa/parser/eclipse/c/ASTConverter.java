@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
@@ -30,7 +31,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.LongSummaryStatistics;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
@@ -1004,7 +1005,7 @@ class ASTConverter {
       }
     }
 
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
@@ -1592,7 +1593,8 @@ class ASTConverter {
                   fileLoc.getStartingLineNumber(),
                   declaratorLocation.getEndingLineNumber(),
                   fileLoc.getStartingLineInOrigin(),
-                  fileLoc.getEndingLineInOrigin());
+                  fileLoc.getEndingLineInOrigin(),
+                  fileLoc.isOffsetRelatedToOrigin());
         }
         result.add(createDeclaration(declaratorLocation, cStorageClass, type, c));
       }
@@ -1781,7 +1783,7 @@ class ASTConverter {
       name = declarator.getThird();
     }
 
-    if (name == null || name.equals("")) {
+    if (isNullOrEmpty(name)) {
       name = "__anon_type_member_" + nofMember;
     }
 
@@ -2183,6 +2185,10 @@ class ASTConverter {
     return enumType;
   }
 
+  private static final ImmutableList<CSimpleType> ENUM_REPRESENTATION_CANDIDATE_TYPES =
+      ImmutableList.of( // list of types with incrementing size
+          CNumericTypes.SIGNED_INT, CNumericTypes.UNSIGNED_INT, CNumericTypes.SIGNED_LONG_LONG_INT);
+
   /**
    * Compute a matching integer type for an enumeration. We use SIGNED_INT and switch to larger type
    * if needed.
@@ -2192,26 +2198,17 @@ class ASTConverter {
    * representing the values of all the members of the enumeration.
    */
   private CSimpleType getEnumerationType(final CEnumType enumType) {
-    final List<Long> values = new ArrayList<>();
-    for (CEnumerator enumValue : enumType.getEnumerators()) {
-      if (enumValue.hasValue()) {
-        values.add(enumValue.getValue());
-      } else {
-        // happens when values are constant expressions
-        // that are not simplified and evaluated when parsing the expression.
-      }
-    }
+    LongSummaryStatistics enumStatistics =
+        enumType.getEnumerators().stream()
+            .filter(CEnumerator::hasValue) // some values might not have been simplified
+            .mapToLong(CEnumerator::getValue)
+            .summaryStatistics();
+
     Preconditions.checkState(
-        !values.isEmpty(), "enumeration does not provide any values: " + enumType);
-    Collections.sort(values);
-    final BigInteger minValue = BigInteger.valueOf(values.get(0));
-    final BigInteger maxValue = BigInteger.valueOf(values.get(values.size() - 1));
-    for (CSimpleType integerType :
-        Lists.newArrayList(
-            // list of types with incrementing size
-            CNumericTypes.SIGNED_INT,
-            CNumericTypes.UNSIGNED_INT,
-            CNumericTypes.SIGNED_LONG_LONG_INT)) {
+        enumStatistics.getCount() > 0, "enumeration does not provide any values: %s", enumType);
+    final BigInteger minValue = BigInteger.valueOf(enumStatistics.getMin());
+    final BigInteger maxValue = BigInteger.valueOf(enumStatistics.getMax());
+    for (CSimpleType integerType : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
       if (minValue.compareTo(machinemodel.getMinimalIntegerValue(integerType)) >= 0
           && maxValue.compareTo(machinemodel.getMaximalIntegerValue(integerType)) <= 0) {
         // if all enumeration values are matching into the range, we use it
@@ -2251,11 +2248,8 @@ class ASTConverter {
 
       if (v instanceof CIntegerLiteralExpression) {
         value = ((CIntegerLiteralExpression)v).asLong();
-        if (negate) {
-          value = -value;
-        } else if(complement) {
-          value = ~value;
-        }
+      } else if (v instanceof CCharLiteralExpression) {
+        value = (long) ((CCharLiteralExpression) v).getCharacter();
       } else {
         // ignore unsupported enum value and set it to NULL.
         // TODO bug? constant enums are ignored, if 'cfa.simplifyConstExpressions' is disabled.
@@ -2264,6 +2258,14 @@ class ASTConverter {
             "enum constant '%s = %s' was not simplified and will be ignored in the following.",
             e.getName(),
             v.toQualifiedASTString());
+      }
+
+      if (value != null) {
+        if (negate) {
+          value = -value;
+        } else if (complement) {
+          value = ~value;
+        }
       }
     }
 

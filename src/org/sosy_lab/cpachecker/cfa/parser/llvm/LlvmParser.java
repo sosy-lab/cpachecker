@@ -92,8 +92,10 @@ public class LlvmParser implements Parser {
         Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
         libDirs.add(runtimeLibDir);
       } else {
-        logger.log(Level.INFO,
-            "Base path % of CPAchecker seems to have no parent directory", decodedBasePath);
+        logger.logf(
+            Level.INFO,
+            "Base path %s of CPAchecker seems to have no parent directory",
+            decodedBasePath);
       }
 
     } catch (UnsupportedEncodingException e) {
@@ -101,7 +103,7 @@ public class LlvmParser implements Parser {
     }
 
     for (Path p : libDirs) {
-      logger.log(Level.FINE, "Adding llvm shared library lookup dir: %s", p);
+      logger.logf(Level.FINE, "Adding llvm shared library lookup dir: %s", p);
     }
     Module.addLibraryLookupPaths(libDirs);
   }

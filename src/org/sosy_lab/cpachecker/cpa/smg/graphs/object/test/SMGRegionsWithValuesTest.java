@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.test;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
 import java.util.Collection;
 import java.util.Set;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -111,7 +112,7 @@ public class SMGRegionsWithValuesTest {
             smg, addresses[0], GLOBAL_LIST_POINTER_LABEL);
 
     SMGObject segment = smg.getObjectPointedBy(addresses[0]);
-    Assert.assertFalse(segment.isAbstract());
+    assertThat(segment.isAbstract()).isFalse();
     Truth.assertThat(segment.getKind()).isSameInstanceAs(SMGObjectKind.REG);
     Truth.assertThat(segment.getLevel()).isEqualTo(LEVEL_ZERO);
     Truth.assertThat(segment.getSize()).isEqualTo(regionSize);
@@ -124,7 +125,7 @@ public class SMGRegionsWithValuesTest {
 
     Set<SMGEdgeHasValue> hvs =
         smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
-    Truth.assertThat(hvs.size()).isEqualTo(1);
+    assertThat(hvs).hasSize(1);
 
     SMGEdgePointsTo pt = smg.getPointer(Iterables.getOnlyElement(hvs).getValue());
     SMGObject abstractionResult = pt.getObject();

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ltl;
 
-import static org.junit.Assert.assertEquals;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -72,7 +72,9 @@ public class LtlFormulaParserTest {
                 new Until(new Literal("b"), new Release(new Literal("c"), new Literal("a")))));
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
+      assertWithMessage(in.get(i))
+          .that(out.get(i))
+          .isEqualTo(LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 
@@ -101,7 +103,9 @@ public class LtlFormulaParserTest {
             BooleanConstant.TRUE);
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
+      assertWithMessage(in.get(i))
+          .that(out.get(i))
+          .isEqualTo(LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 
@@ -154,7 +158,9 @@ public class LtlFormulaParserTest {
             BooleanConstant.TRUE);
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
+      assertWithMessage(in.get(i))
+          .that(out.get(i))
+          .isEqualTo(LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 
@@ -215,7 +221,9 @@ public class LtlFormulaParserTest {
             new Literal("a"));
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
+      assertWithMessage(in.get(i))
+          .that(out.get(i))
+          .isEqualTo(LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 }

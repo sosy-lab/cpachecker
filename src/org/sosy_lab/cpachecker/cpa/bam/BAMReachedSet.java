@@ -33,13 +33,13 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableSubgraphReachedSetVie
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   private final AbstractBAMCPA bamCpa;
   private final ARGPath path;
-  private final StatTimer removeCachedSubtreeTimer;
+  private final TimerWrapper removeCachedSubtreeTimer;
 
   /**
    * Constructor for a ReachedSet containing all states, from where the last state of the path is
@@ -50,7 +50,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       AbstractBAMCPA cpa,
       ARGReachedSet pMainReachedSet,
       ARGPath pPath,
-      StatTimer pRemoveCachedSubtreeTimer) {
+      TimerWrapper pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
     this.bamCpa = cpa;
     this.path = pPath;

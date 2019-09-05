@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -32,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
@@ -47,7 +50,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class CompoundIntervalFormulaManager {
 
-  private static final Map<MemoryLocation, NumeralFormula<CompoundInterval>> EMPTY_ENVIRONMENT = Collections.emptyMap();
+  private static final ImmutableMap<MemoryLocation, NumeralFormula<CompoundInterval>>
+      EMPTY_ENVIRONMENT = ImmutableMap.of();
 
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
@@ -158,7 +162,8 @@ public class CompoundIntervalFormulaManager {
     if (pFormula instanceof Collection<?>) {
       return definitelyImplies((Collection<BooleanFormula<CompoundInterval>>) pFormulas, pFormula, true, newMap, false, pDisableOverflowCheck);
     }
-    return definitelyImplies(FluentIterable.from(pFormulas).toSet(), pFormula, true, newMap, false, pDisableOverflowCheck);
+    return definitelyImplies(
+        ImmutableSet.copyOf(pFormulas), pFormula, true, newMap, false, pDisableOverflowCheck);
   }
 
   /**
@@ -196,7 +201,7 @@ public class CompoundIntervalFormulaManager {
     for (BooleanFormula<CompoundInterval> formula : formulas) {
       Collection<BooleanFormula<CompoundInterval>> disjunctions = formula.accept(SPLIT_DISJUNCTIONS_VISITOR);
       if (disjunctions.size() > 1) {
-        ArrayList<BooleanFormula<CompoundInterval>> newFormulas = new ArrayList<>(formulas);
+        List<BooleanFormula<CompoundInterval>> newFormulas = new ArrayList<>(formulas);
         Map<MemoryLocation, NumeralFormula<CompoundInterval>> newBaseEnvironment = new HashMap<>(pInformationBaseEnvironment);
         newFormulas.remove(formula);
         for (BooleanFormula<CompoundInterval> disjunctivePart : disjunctions) {
@@ -227,7 +232,7 @@ public class CompoundIntervalFormulaManager {
 
   public boolean definitelyImplies(final Map<MemoryLocation, NumeralFormula<CompoundInterval>> pCompleteEnvironment,
       final BooleanFormula<CompoundInterval> pFormula) {
-    return definitelyImplies(Collections.<BooleanFormula<CompoundInterval>>emptyList(), pCompleteEnvironment, pFormula, false);
+    return definitelyImplies(ImmutableList.of(), pCompleteEnvironment, pFormula, false);
   }
 
   public boolean definitelyImplies(

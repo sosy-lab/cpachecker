@@ -41,7 +41,7 @@ public class AutomatonInternalState {
 
   /** State representing BOTTOM */
   static final AutomatonInternalState BOTTOM =
-      new AutomatonInternalState("_predefinedState_BOTTOM", Collections.emptyList()) {
+      new AutomatonInternalState("_predefinedState_BOTTOM", ImmutableList.of()) {
         @Override
         public String toString() {
           return "STOP";
@@ -53,13 +53,9 @@ public class AutomatonInternalState {
       new AutomatonInternalState(
           "_predefinedState_ERROR",
           Collections.singletonList(
-              new AutomatonTransition(
-                  AutomatonBoolExpr.TRUE,
-                  Collections.emptyList(),
-                  null,
-                  Collections.emptyList(),
-                  BOTTOM,
-                  new StringExpression(""))),
+              new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, BOTTOM)
+                  .withViolatedPropertyDescription(new StringExpression(""))
+                  .build()),
           true,
           false,
           false) {
@@ -74,13 +70,7 @@ public class AutomatonInternalState {
       new AutomatonInternalState(
           "_predefinedState_BREAK",
           Collections.singletonList(
-              new AutomatonTransition(
-                  AutomatonBoolExpr.TRUE,
-                  Collections.emptyList(),
-                  null,
-                  Collections.emptyList(),
-                  BOTTOM,
-                  null)),
+              new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, BOTTOM).build()),
           false,
           false,
           false);
@@ -168,10 +158,6 @@ public class AutomatonInternalState {
     }
 
     return false;
-  }
-
-  public boolean getDoesMatchAll() {
-    return mAllTransitions;
   }
 
   public ImmutableList<AutomatonTransition> getTransitions() {

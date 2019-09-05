@@ -27,8 +27,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -245,6 +245,5 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
-  public void setVarOrder(ArrayList<Integer> pOrder) {
-  }
+  public void setVarOrder(ImmutableIntArray pOrder) {}
 }

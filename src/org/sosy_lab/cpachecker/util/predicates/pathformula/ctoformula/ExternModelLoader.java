@@ -54,7 +54,7 @@ public class ExternModelLoader {
   }
 
   public BooleanFormula handleExternModelFunction(List<CExpression> parameters, SSAMapBuilder ssa) {
-    assert (parameters.size()>0): "No external model given!";
+    assert (!parameters.isEmpty()) : "No external model given!";
     // the parameter comes in C syntax (with ")
     String filename = parameters.get(0).toASTString().replaceAll("\"", "");
     Path modelFile = Paths.get(filename);
@@ -75,7 +75,7 @@ public class ExternModelLoader {
       throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
     }
     try (BufferedReader br = Files.newBufferedReader(pModelFile, StandardCharsets.UTF_8)) {
-      ArrayList<String> predicates = new ArrayList<>(10000);
+      List<String> predicates = new ArrayList<>(10000);
       //var ids in dimacs files start with 1, so we want the first var at position 1
       predicates.add("RheinDummyVar");
       BooleanFormula externalModel = bfmgr.makeTrue();
@@ -100,7 +100,7 @@ public class ExternModelLoader {
           // +1 because of the dummy var
           assert predicates.size() == Integer.parseInt(parts.get(2)) + 1
               : "did not get all dimcas variables?";
-        } else if (line.trim().length()>0) {
+        } else if (!line.trim().isEmpty()) {
           //-17552 -11882 1489 48905 0
           // constraints
           BooleanFormula constraint = bfmgr.makeFalse();

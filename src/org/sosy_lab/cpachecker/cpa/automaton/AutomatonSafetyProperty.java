@@ -27,7 +27,6 @@ import com.google.common.base.Preconditions;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
-
 public class AutomatonSafetyProperty implements Property {
 
   private final @NonNull Automaton automaton;
@@ -52,7 +51,7 @@ public class AutomatonSafetyProperty implements Property {
 
   @Override
   public String toString() {
-    return propertyInstanceDescription.length() > 0
+    return !propertyInstanceDescription.isEmpty()
         ? propertyInstanceDescription
         : automaton.getName();
   }

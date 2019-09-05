@@ -43,7 +43,6 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -51,6 +50,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
@@ -507,9 +507,10 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
     final Set<CandidateInvariant> candidates = new LinkedHashSet<>();
 
-    for (CandidateInvariant candidate : pOptions.guessCandidatesFromCFA.create(pCFA, pSpecification, pTargetLocationProvider, pLogger)) {
-      candidates.add(candidate);
-    }
+    Iterables.addAll(
+        candidates,
+        pOptions.guessCandidatesFromCFA.create(
+            pCFA, pSpecification, pTargetLocationProvider, pLogger));
 
     final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
     if (pOptions.invariantsAutomatonFile != null) {
@@ -642,7 +643,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           Specification pSpecification,
           TargetLocationProvider pTargetLocationProvider,
           LogManager pLogger) {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
     },
 
@@ -853,7 +854,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                     varClassification.getAssumedVariables().elementSet(),
                     varClassification.getIntAddVars()));
         Map<String, CIdExpression> idExpressions = new LinkedHashMap<>();
-        TreeSet<BigInteger> constants = new TreeSet<>();
+        NavigableSet<BigInteger> constants = new TreeSet<>();
         Multimap<CType, String> typePartitions = LinkedHashMultimap.create();
         Map<CIdExpression, String> functions = new HashMap<>();
         for (String var : vars) {

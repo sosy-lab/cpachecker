@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.Ordering;
+import com.google.common.collect.Comparators;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -108,7 +108,7 @@ public class RedundantRequirementsRemover {
           if (!loc.equals(AbstractStates.extractLocation(end))) { throw new CPAException(""); }
         }
 
-        intermediate.add(getAbstractValues(extractState(start), inputVarsAndConsts));
+        intermediate.add(getAbstractValues(extractState(end), inputVarsAndConsts));
       }
 
       Collections.sort(intermediate, sortHelper);
@@ -201,8 +201,7 @@ public class RedundantRequirementsRemover {
           return Integer.compare(arg1.length, arg0.length); // reverse
         }
 
-        return Ordering.from(RedundantRequirementsRemoverImplementation.this)
-            .lexicographical()
+        return Comparators.lexicographical(RedundantRequirementsRemoverImplementation.this)
             .compare(Arrays.asList(arg0), Arrays.asList(arg1));
       }
 
@@ -242,8 +241,7 @@ public class RedundantRequirementsRemover {
           return Integer.compare(secondArg.length, firstArg.length); // reverse
         }
 
-        return Ordering.from(sortHelper)
-            .lexicographical()
+        return Comparators.lexicographical(sortHelper)
             .compare(
                 Arrays.asList(firstArg).subList(1, firstArg.length),
                 Arrays.asList(secondArg).subList(1, secondArg.length));

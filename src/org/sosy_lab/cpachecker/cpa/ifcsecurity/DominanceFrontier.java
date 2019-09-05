@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -44,7 +45,7 @@ public class DominanceFrontier {
 // private int mode;
 // @SuppressWarnings("unused")
 // private Collection<CFANode> nodes;
-  private Map<CFANode,TreeSet<CFANode>> df=new TreeMap<>();
+  private Map<CFANode, NavigableSet<CFANode>> df = new TreeMap<>();
 
   @SuppressWarnings("unused")
   public DominanceFrontier(CFA pCfa, Map<CFANode, CFANode> pDom){
@@ -62,7 +63,7 @@ public class DominanceFrontier {
     //Compute Dominator Frontier
 
     for(CFANode m: cfa.getAllNodes()){
-      TreeSet<CFANode> dfset=new TreeSet<>();
+      NavigableSet<CFANode> dfset = new TreeSet<>();
       for(CFANode r: dominators.keySet()){
         if (!r.equals(exit)) {
           int n=r.getNumLeavingEdges();
@@ -113,7 +114,7 @@ public class DominanceFrontier {
     }
   }
 
-  public Map<CFANode,TreeSet<CFANode>> getDominanceFrontier(){
+  public Map<CFANode, NavigableSet<CFANode>> getDominanceFrontier() {
     return df;
   }
 

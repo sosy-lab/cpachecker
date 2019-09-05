@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -98,7 +97,7 @@ public interface TransferRelation {
    */
   default Collection<? extends AbstractState> strengthen(
       AbstractState state,
-      List<AbstractState> otherStates,
+      Iterable<AbstractState> otherStates,
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {

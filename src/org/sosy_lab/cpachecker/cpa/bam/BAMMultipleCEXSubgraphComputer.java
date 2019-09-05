@@ -24,11 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -219,7 +220,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer implemen
 
   @Override
   public ARGPath computePath(ARGState pLastElement) {
-    return computePath(pLastElement, Collections.emptySet());
+    return computePath(pLastElement, ImmutableSet.of());
   }
 
   @Override
@@ -228,10 +229,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer implemen
   }
 
   boolean checkThePathHasRepeatedStates(ARGPath path, Set<List<Integer>> pRefinedStates) {
-    List<Integer> ids =
-        from(path.asStatesList())
-        .transform(getStateId)
-        .toList();
+    List<Integer> ids = transformedImmutableListCopy(path.asStatesList(), getStateId);
 
     return from(pRefinedStates)
         .anyMatch(ids::containsAll);

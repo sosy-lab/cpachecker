@@ -94,7 +94,7 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
           ((ARGState)targetState).addCounterexampleInformation(counterexample);
           return false;
         } else {
-          if (SlicingAbstractionsUtils.checkProgress(pReached, errorPath) == false) {
+          if (!SlicingAbstractionsUtils.checkProgress(pReached, errorPath)) {
             throw new RefinementFailedException(Reason.RepeatedCounterexample, errorPath);
           }
         }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Splitter;
@@ -85,7 +86,7 @@ public class ConfigurationParser {
       }
 
       tmpString = config.getProperty(lockName + ".setlevel");
-      if (tmpString != null && !tmpString.isEmpty()) {
+      if (!isNullOrEmpty(tmpString)) {
         functionEffects.put(
             tmpString, Pair.of(SetLockEffect.getInstance(), new LockIdUnprepared(lockName, 0)));
       }

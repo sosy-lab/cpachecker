@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
+import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -81,7 +81,7 @@ public class PrecisionAdjustmentResult {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(abstractState, action, precision);
+    return Objects.hash(abstractState, action, precision);
   }
 
   @Override

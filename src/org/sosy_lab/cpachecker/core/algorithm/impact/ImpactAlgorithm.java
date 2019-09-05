@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.impact;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -217,7 +218,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       CounterexampleTraceInfo cex = imgr.buildCounterexampleTrace(formulas);
 
       if (!cex.isSpurious()) {
-        return Collections.emptyList(); // real counterexample
+        return ImmutableList.of(); // real counterexample
       }
 
       logger.log(Level.FINER, "Refinement successful");

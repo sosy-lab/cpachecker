@@ -107,8 +107,12 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
         uPointerToPointer.put(uPointerTemplate, pointerTemplate);
 
         SMGEdgeHasValueTemplate templateOEdge =
-            new SMGEdgeHasValueTemplate(root, uPointerTemplate,
-                oPointer.getOffset(), oPointer.getType());
+            new SMGEdgeHasValueTemplate(
+                root,
+                uPointerTemplate,
+                oPointer.getOffset(),
+                oPointer.getType(),
+                oPointer.getSizeInBits());
         SMGEdgePointsToTemplate templateIEdge =
             new SMGEdgePointsToTemplate(abstraction, uPointerTemplate,
                 iPointerTemplate.getOffset());
@@ -146,7 +150,8 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
 
     for (SMGEdgeHasValue field : pSharedFields) {
       SMGEdgeHasValueTemplateWithConcreteValue edgeTemplate =
-          new SMGEdgeHasValueTemplate(pRoot, field.getValue(), field.getOffset(), field.getType());
+          new SMGEdgeHasValueTemplate(
+              pRoot, field.getValue(), field.getOffset(), field.getType(), field.getSizeInBits());
       abstractFields.add(edgeTemplate);
     }
 
@@ -166,10 +171,14 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
         new HashSet<>(abstractAdressesToOPointer.size());
 
     for (Pair<SMGEdgeHasValue, SMGEdgeHasValue> edges : pSharedOPointer) {
-    //TODO different Values of edge
+      // TODO different Values of edge
       SMGEdgeHasValueTemplate edgeTemplate =
-          new SMGEdgeHasValueTemplate(pRoot, abstractPointerValue,
-              edges.getFirst().getOffset(), edges.getFirst().getType());
+          new SMGEdgeHasValueTemplate(
+              pRoot,
+              abstractPointerValue,
+              edges.getFirst().getOffset(),
+              edges.getFirst().getType(),
+              edges.getFirst().getSizeInBits());
       abstractFieldsToOPointer.add(edgeTemplate);
       abstractPointerValue = SMGKnownSymValue.of();
     }

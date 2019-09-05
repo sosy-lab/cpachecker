@@ -107,9 +107,7 @@ public class PredicateAbstractionsWriter {
         }
 
         // Handle successors
-        for (ARGState successor : successors.get(state)) {
-          worklist.add(successor);
-        }
+        worklist.addAll(successors.get(state));
 
         // Abstraction formula
         PredicateAbstractState predicateState = PredicateAbstractState.getPredicateState(state);

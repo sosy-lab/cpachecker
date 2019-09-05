@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
 class AutomatonStatistics implements Statistics {
 
-  private final ControlAutomatonCPA mCpa;
+  private final Automaton automaton;
 
   ThreadSafeTimerContainer totalPostTime       = new ThreadSafeTimerContainer("Total time for successor computation");
   ThreadSafeTimerContainer matchTime           = new ThreadSafeTimerContainer("Time for transition matches");
@@ -43,18 +43,18 @@ class AutomatonStatistics implements Statistics {
   ThreadSafeTimerContainer totalStrengthenTime = new ThreadSafeTimerContainer("Total time for strengthen operator");
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
-  public AutomatonStatistics(ControlAutomatonCPA pCpa) {
-    mCpa = pCpa;
+  public AutomatonStatistics(Automaton pAutomaton) {
+    automaton = pAutomaton;
   }
 
   @Override
   public String getName() {
-    return "AutomatonAnalysis (" + mCpa.getAutomaton().getName() + ")";
+    return "AutomatonAnalysis (" + automaton.getName() + ")";
   }
 
   @Override
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
-    put(out, 0, "Number of states", mCpa.getAutomaton().getNumberOfStates());
+    put(out, 0, "Number of states", automaton.getNumberOfStates());
     put(out, 0, totalPostTime);
 
     if (totalPostTime.getSumTime().compareTo(TimeSpan.ofMillis(500)) >= 0) {
@@ -77,9 +77,8 @@ class AutomatonStatistics implements Statistics {
     put(out, 0, automatonSuccessors);
 
     int statesWithAssumptionTransitions = 0;
-    for (AutomatonInternalState state : mCpa.getAutomaton().getStates()) {
-      if (state.getTransitions().stream().filter(p -> p.isTransitionWithAssumptions()).count()
-          > 0) {
+    for (AutomatonInternalState state : automaton.getStates()) {
+      if (state.getTransitions().stream().anyMatch(p -> p.isTransitionWithAssumptions())) {
         statesWithAssumptionTransitions++;
       }
     }

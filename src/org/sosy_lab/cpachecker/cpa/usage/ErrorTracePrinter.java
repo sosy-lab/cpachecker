@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -35,7 +36,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -316,7 +316,7 @@ public abstract class ErrorTracePrinter {
       }
       if (aPath == null) {
         logger.log(Level.SEVERE, "Cannot compute path for: " + usage);
-        return Collections.emptyList();
+        return ImmutableList.of();
       }
       return aPath.getInnerEdges();
     }

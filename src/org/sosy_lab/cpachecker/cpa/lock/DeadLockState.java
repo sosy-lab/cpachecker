@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
 public class DeadLockState extends AbstractLockState {
 
+  @SuppressWarnings("checkstyle:IllegalType") // TODO: use composition instead of inheritance
   public static class DeadLockTreeNode extends ArrayList<LockIdentifier> implements CompatibleNode {
 
     private static final long serialVersionUID = 5757759799394605077L;
@@ -230,7 +232,7 @@ public class DeadLockState extends AbstractLockState {
 
   @Override
   public String toString() {
-    if (lockList.size() > 0) {
+    if (!lockList.isEmpty()) {
       StringBuilder sb = new StringBuilder();
       return Joiner.on(",").appendTo(sb, lockList).toString();
     } else {
@@ -310,6 +312,6 @@ public class DeadLockState extends AbstractLockState {
 
   @Override
   protected Set<LockIdentifier> getLocks() {
-    return from(lockList).toSet();
+    return ImmutableSet.copyOf(lockList);
   }
 }

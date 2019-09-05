@@ -43,13 +43,13 @@ public class EdgeSet implements Serializable {
   private CFAEdge selected;
 
   public EdgeSet(Set<CFAEdge> edges) {
-    checkArgument(edges.size() > 0);
+    checkArgument(!edges.isEmpty());
     this.edges = edges;
     this.selected = null;
   }
 
   public EdgeSet(EdgeSet other) {
-    checkArgument(other.edges.size() > 0);
+    checkArgument(!other.edges.isEmpty());
     this.edges = new LinkedHashSet<>(other.edges);
   }
 

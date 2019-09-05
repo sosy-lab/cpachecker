@@ -122,7 +122,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       Block block;
       BAMARGBlockStartState bamState;
       Collection<ARGState> returnNodes;
-      ArrayList<ARGState> partialReturnNodes = new ArrayList<>();
+      List<ARGState> partialReturnNodes = new ArrayList<>();
       List<ARGState> argStates;
       int numElems;
       for (int i = 0; i < args.length - 2; i++) {
@@ -217,14 +217,12 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       current = toVisit.pop();
 
       if (current.isCovered()) {
-        if (!seen.contains(current.getCoveringState())) {
-          seen.add(current.getCoveringState());
+        if (seen.add(current.getCoveringState())) {
           toVisit.add(current.getCoveringState());
         }
       } else {
         for (ARGState state : current.getChildren()) {
-          if (!seen.contains(state)) {
-            seen.add(state);
+          if (seen.add(state)) {
             toVisit.add(state);
           }
         }
@@ -279,8 +277,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   }
 
   private boolean correctReachedSetFormatForProof(UnmodifiableReachedSet pReached) {
-    if (pReached.getFirstState() == null
-        || !(pReached.getFirstState() instanceof ARGState)
+    if (!(pReached.getFirstState() instanceof ARGState)
         || (extractLocation(pReached.getFirstState()) == null)) {
       logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return false;
@@ -322,8 +319,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       current = toVisit.pop();
 
       if (current.isCovered()) {
-        if (!seen.contains(current.getCoveringState())) {
-          seen.add(current.getCoveringState());
+        if (seen.add(current.getCoveringState())) {
           toVisit.add(current.getCoveringState());
         }
       } else {
@@ -335,8 +331,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
         }
 
         for (ARGState state : current.getChildren()) {
-          if (!seen.contains(state)) {
-            seen.add(state);
+          if (seen.add(state)) {
             toVisit.add(state);
           }
         }
@@ -366,8 +361,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       current = toVisit.pop();
 
       if (current.isCovered()) {
-        if (!seen.contains(current.getCoveringState())) {
-          seen.add(current.getCoveringState());
+        if (seen.add(current.getCoveringState())) {
           toVisit.add(current.getCoveringState());
         }
       } else {
@@ -382,8 +376,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
         }
 
         for (ARGState state : current.getChildren()) {
-          if (!seen.contains(state)) {
-            seen.add(state);
+          if (seen.add(state)) {
             toVisit.add(state);
           }
         }
@@ -398,11 +391,11 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     ARGState[] result = new ARGState[pMap.size() + 1];
 
     int nextPos = 0, size = 0;
-    ArrayList<Integer> deleteEdges = new ArrayList<>();
-    ArrayList<BAMARGBlockStartState> consider = new ArrayList<>(pMap.keySet());
+    List<Integer> deleteEdges = new ArrayList<>();
+    List<BAMARGBlockStartState> consider = new ArrayList<>(pMap.keySet());
     BitSet set;
 
-    while (consider.size() > 0) {
+    while (!consider.isEmpty()) {
       if (size == consider.size()) {
         logger.log(Level.WARNING, "Cannot topology sort ARGs for blocks due to recursion.");
         return new ARGState[1];
@@ -468,7 +461,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     @Override
     public void run() {
       int end;
-      ArrayList<ARGState> returnNodes = new ArrayList<>();
+      List<ARGState> returnNodes = new ArrayList<>();
       boolean fail = false;
       try {
         do {
@@ -511,7 +504,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     private boolean success = true;
     private int max;
     private int numSetResults;
-    private ArrayList<ARGState> returnNodes;
+    private List<ARGState> returnNodes;
 
     public CommonResult(int maxParticipants) {
       max = maxParticipants;

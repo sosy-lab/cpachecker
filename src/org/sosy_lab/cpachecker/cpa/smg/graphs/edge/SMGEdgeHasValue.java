@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.annotations.VisibleForTesting;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -38,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 public class SMGEdgeHasValue extends SMGEdge {
 
   final private CType type;
+  private final BigInteger sizeInBits;
 
   /**
    * @param pType type of the object's memory starting at offset.
@@ -47,14 +50,24 @@ public class SMGEdgeHasValue extends SMGEdge {
    * @param pObject the target object pointed to.
    * @param pValue the value that points to some object.
    */
-  public SMGEdgeHasValue(CType pType, long pOffset, SMGObject pObject, SMGValue pValue) {
+  public SMGEdgeHasValue(
+      CType pType, BigInteger pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
     super(pValue, pObject, pOffset);
     type = pType;
+    sizeInBits = pSizeInBits;
+  }
+
+  public SMGEdgeHasValue(
+      CType pType, long pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
+    super(pValue, pObject, pOffset);
+    type = pType;
+    sizeInBits = BigInteger.valueOf(pSizeInBits);
   }
 
   public SMGEdgeHasValue(int pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
     super(pValue, pObject, pOffset);
     type = TypeUtils.createTypeWithLength(pSizeInBits);
+    sizeInBits = BigInteger.valueOf(pSizeInBits);
   }
 
   @Override
@@ -68,8 +81,8 @@ public class SMGEdgeHasValue extends SMGEdge {
     return type;
   }
 
-  public int getSizeInBits(MachineModel pMachineModel) {
-    return pMachineModel.getSizeofInBits(type).intValueExact();
+  public long getSizeInBits() {
+    return sizeInBits.longValueExact();
   }
 
   @Override
@@ -87,23 +100,21 @@ public class SMGEdgeHasValue extends SMGEdge {
     return true;
   }
 
-  public boolean overlapsWith(SMGEdgeHasValue other, MachineModel pModel) {
-    if (object != other.object) {
-      throw new IllegalArgumentException("Call of overlapsWith() on Has-Value edges pair not originating from the same object");
-    }
+  public boolean overlapsWith(SMGEdgeHasValue other) {
+    checkArgument(
+        object == other.object,
+        "Call of overlapsWith() on Has-Value edges pair not originating from the same object");
 
     long otStart = other.getOffset();
-
-    long otEnd = otStart + pModel.getSizeofInBits(other.getType()).longValueExact();
-
-    return overlapsWith(otStart, otEnd, pModel);
+    long otEnd = otStart + other.getSizeInBits();
+    return overlapsWith(otStart, otEnd);
   }
 
-  public boolean overlapsWith(long pOtStart, long pOtEnd, MachineModel pModel) {
+  public boolean overlapsWith(long pOtStart, long pOtEnd) {
 
     long myStart = getOffset();
 
-    long myEnd = myStart + pModel.getSizeofInBits(type).longValueExact();
+    long myEnd = myStart + getSizeInBits();
 
     if (myStart < pOtStart) {
       return (myEnd > pOtStart);
@@ -121,9 +132,9 @@ public class SMGEdgeHasValue extends SMGEdge {
     return type.equals(other.type) && (getOffset() == other.getOffset());
   }
 
-  public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
-    return pModel.getSizeofInBits(type).equals(pModel.getSizeofInBits(other.type))
-        && (getOffset() == other.getOffset())
+  public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other) {
+    return getSizeInBits() == other.getSizeInBits()
+        && getOffset() == other.getOffset()
         && object == other.object;
   }
 

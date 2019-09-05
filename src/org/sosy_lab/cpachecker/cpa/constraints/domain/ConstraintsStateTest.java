@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import java.util.Iterator;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -72,20 +73,20 @@ public class ConstraintsStateTest {
 
     it.next();
     it.remove();
-    Assert.assertTrue(state.size() == 2);
-    Assert.assertTrue(it.hasNext());
-    Assert.assertTrue(state.contains(constr2));
-    Assert.assertTrue(state.contains(constr3));
+    assertThat(state).hasSize(2);
+    assertThat(it.hasNext()).isTrue();
+    assertThat(state).contains(constr2);
+    assertThat(state).contains(constr3);
 
     it.next();
     it.remove();
-    Assert.assertTrue(it.hasNext());
-    Assert.assertTrue(state.size() == 1);
-    Assert.assertTrue(state.contains(constr3));
+    assertThat(it.hasNext()).isTrue();
+    assertThat(state).hasSize(1);
+    assertThat(state).contains(constr3);
 
     it.next();
     it.remove();
-    Assert.assertFalse(it.hasNext());
-    Assert.assertTrue(state.isEmpty());
+    assertThat(it.hasNext()).isFalse();
+    assertThat(state).isEmpty();
   }
 }

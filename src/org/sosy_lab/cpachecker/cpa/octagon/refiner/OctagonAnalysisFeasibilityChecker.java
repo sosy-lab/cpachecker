@@ -27,10 +27,10 @@ import static org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPr
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -100,7 +100,7 @@ public class OctagonAnalysisFeasibilityChecker {
    * of the last (failing) assume edge in the found error path.
    */
   private FluentIterable<MemoryLocation> getMemoryLocationsFromUseDefRelation() {
-    UseDefRelation useDefRelation = new UseDefRelation(foundPath, Collections.<String>emptySet(), false);
+    UseDefRelation useDefRelation = new UseDefRelation(foundPath, ImmutableSet.of(), false);
 
     return FluentIterable.from(useDefRelation.getUsesAsQualifiedName())
         .transform(MemoryLocation::valueOf);

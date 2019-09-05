@@ -216,7 +216,7 @@ class ASTLiteralConverter {
       if (c == 'x' || c == 'X') {
         // something like '\xFF'
         s = s.substring(1); // remove leading x
-        check(s.length() > 0 && s.length() <= 3, "character literal with illegal hex number", e);
+        check(!s.isEmpty() && s.length() <= 3, "character literal with illegal hex number", e);
         try {
           result = (char) Integer.parseInt(s, 16);
           check(result <= 0xFF, "hex escape sequence out of range", e);

@@ -588,7 +588,7 @@ public class ExpressionToFormulaVisitor
 
       } else if (BuiltinFloatFunctions.matchesInfinity(functionName)) {
 
-        if (parameters.size() == 0) {
+        if (parameters.isEmpty()) {
           CType resultType = getTypeOfBuiltinFloatFunction(functionName);
 
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
@@ -600,7 +600,7 @@ public class ExpressionToFormulaVisitor
 
       } else if (BuiltinFloatFunctions.matchesHugeVal(functionName)) {
 
-        if (parameters.size() == 0) {
+        if (parameters.isEmpty()) {
           CType resultType = getTypeOfBuiltinFloatFunction(functionName);
 
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);

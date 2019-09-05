@@ -1,10 +1,10 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import java.io.PrintStream;
 import java.math.BigInteger;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -158,7 +158,7 @@ public class PolicyIterationStatistics implements Statistics {
 
     @Override
     public int hashCode() {
-      return Objects.hashCode(locationID, template);
+      return Objects.hash(locationID, template);
     }
 
     @Override

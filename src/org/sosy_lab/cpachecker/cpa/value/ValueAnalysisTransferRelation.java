@@ -1245,12 +1245,15 @@ public class ValueAnalysisTransferRelation
 
   @Override
   public Collection<? extends AbstractState> strengthen(
-      AbstractState pElement, List<AbstractState> pElements, CFAEdge pCfaEdge, Precision pPrecision)
-    throws CPATransferException {
+      AbstractState pElement,
+      Iterable<AbstractState> pElements,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException {
     assert pElement instanceof ValueAnalysisState;
 
-    ArrayList<ValueAnalysisState> toStrengthen = new ArrayList<>();
-    ArrayList<ValueAnalysisState> result = new ArrayList<>();
+    List<ValueAnalysisState> toStrengthen = new ArrayList<>();
+    List<ValueAnalysisState> result = new ArrayList<>();
     toStrengthen.add((ValueAnalysisState) pElement);
     result.add((ValueAnalysisState) pElement);
 
@@ -1541,7 +1544,7 @@ public class ValueAnalysisTransferRelation
     }
 
     if (newState == null) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     } else {
       return Collections.singleton(newState);
     }

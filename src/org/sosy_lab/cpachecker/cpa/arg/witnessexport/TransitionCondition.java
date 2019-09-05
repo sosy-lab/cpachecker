@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
@@ -71,9 +73,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
 
   public TransitionCondition putAllAndCopy(TransitionCondition tc) {
     Optional<Scope> newScope = scope.mergeWith(tc.scope);
-    if (!newScope.isPresent()) {
-      throw new IllegalArgumentException("Cannot merge transitions due to conflicting scopes.");
-    }
+    checkArgument(newScope.isPresent(), "Cannot merge transitions due to conflicting scopes.");
     EnumMap<KeyDef, String> newMap = null;
     for (Entry<KeyDef, String> e : keyValues.entrySet()) {
       if (!tc.keyValues.containsKey(e.getKey())) {
@@ -223,9 +223,9 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       for (ASimpleDeclaration decl : pUsedDeclarations.values()) {
         if (decl instanceof AVariableDeclaration) {
           AVariableDeclaration varDecl = (AVariableDeclaration) decl;
-          if (!varDecl.isGlobal() && !functionName.isPresent()) {
-            throw new IllegalArgumentException("Cannot create a global scope with non-global variable declarations.");
-          }
+          checkArgument(
+              varDecl.isGlobal() || functionName.isPresent(),
+              "Cannot create a global scope with non-global variable declarations.");
         }
       }
     }

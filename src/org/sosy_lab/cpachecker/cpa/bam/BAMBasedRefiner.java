@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
@@ -56,19 +56,15 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
  */
 public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
 
-  final StatTimer computePathTimer = new StatTimer("Compute path for refinement");
-  final StatTimer computeSubtreeTimer = new StatTimer("Constructing flat ARG");
-  final StatTimer computeCounterexampleTimer = new StatTimer("Searching path to error location");
-  final StatTimer removeCachedSubtreeTimer = new StatTimer("Removing cached subtrees");
-
   private final AbstractBAMCPA bamCpa;
+  private final BAMCPAStatistics stats;
 
   private BAMBasedRefiner(
       ARGBasedRefiner pRefiner, ARGCPA pArgCpa, AbstractBAMCPA pBamCpa, LogManager pLogger) {
     super(pRefiner, pArgCpa, pLogger);
 
     bamCpa = pBamCpa;
-    bamCpa.getStatistics().addRefiner(this);
+    stats = bamCpa.getStatistics();
   }
 
   /**
@@ -103,12 +99,24 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
       // During the counter-example-path-building we already re-added the start-states of all blocks,
       // that lead to the missing block, to the waitlists of those blocks.
       // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
+
+      stats.refinementWithMissingBlocks.inc();
       return CounterexampleInfo.spurious();
     } else {
 
+      stats.startedRefinements.inc();
       // wrap the original reached-set to have a valid "view" on all reached states.
-      pReached = new BAMReachedSet(bamCpa, pReached, pPath, removeCachedSubtreeTimer);
-      return super.performRefinementForPath(pReached, pPath);
+      pReached =
+          new BAMReachedSet(bamCpa, pReached, pPath, stats.removeCachedSubtreeTimer.getNewTimer());
+      final CounterexampleInfo cexInfo = super.performRefinementForPath(pReached, pPath);
+
+      if (cexInfo.isSpurious()) {
+        stats.spuriousCex.inc();
+      } else if (cexInfo.isPreciseCounterExample()) {
+        stats.preciseCex.inc();
+      }
+
+      return cexInfo;
     }
   }
 
@@ -118,6 +126,10 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
     assert pMainReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
     assert BAMReachedSetValidator.validateData(
         bamCpa.getData(), bamCpa.getBlockPartitioning(), pMainReachedSet);
+
+    final TimerWrapper computePathTimer = stats.computePathTimer.getNewTimer();
+    final TimerWrapper computeSubtreeTimer = stats.computeSubtreeTimer.getNewTimer();
+    final TimerWrapper computeCounterexampleTimer = stats.computeCounterexampleTimer.getNewTimer();
 
     computePathTimer.start();
     try {

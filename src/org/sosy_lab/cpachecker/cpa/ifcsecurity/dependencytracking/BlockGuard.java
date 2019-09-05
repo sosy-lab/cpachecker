@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -77,9 +78,7 @@ public class BlockGuard implements Cloneable, Serializable{
         boolean truth=value.second.first.second.booleanValue();
         SortedSet<Variable> scs=value.second.second;
         SortedSet<Variable> secsec=new TreeSet<>();
-        for(Variable sc: scs){
-          secsec.add(sc);
-        }
+        secsec.addAll(scs);
 
         Pair<CExpression,Boolean> secfirst=new Pair<>(expr,truth);
         Pair<Pair<CExpression,Boolean>,SortedSet<Variable>> sec= new Pair<>(secfirst,secsec);
@@ -107,9 +106,7 @@ public class BlockGuard implements Cloneable, Serializable{
       int size=contextstack.size();
       if(size>0){
         SortedSet<Variable> end=contextstack.get(size-1).second.second;
-        for(Variable var: end){
-          varl.add(var);
-        }
+        varl.addAll(end);
       }
 
       Pair<CExpression,Boolean> secfirst=new Pair<>(pExpression,pValue);
@@ -119,12 +116,14 @@ public class BlockGuard implements Cloneable, Serializable{
       contextstack.add(elem);
     }
 
-   /**
-    * Removes all Control Dependency information from the context stack that does not influence <i>currentNode</i>.
-    * @param pCurrentNode Node for which controlDependencies that stacks should be reduced to.
-    * @param pDependencies Control Dependencies of <i>currentNode</i>.
-    */
-   public void changeContextStack(CFANode pCurrentNode, TreeSet<CFANode> pDependencies){
+  /**
+   * Removes all Control Dependency information from the context stack that does not influence
+   * <i>currentNode</i>.
+   *
+   * @param pCurrentNode Node for which controlDependencies that stacks should be reduced to.
+   * @param pDependencies Control Dependencies of <i>currentNode</i>.
+   */
+  public void changeContextStack(CFANode pCurrentNode, NavigableSet<CFANode> pDependencies) {
      int size=contextstack.size();
      for(int i=size;i>0;i--){
        Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, SortedSet<Variable>>> elem=contextstack.get(i-1);

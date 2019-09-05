@@ -70,7 +70,7 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
       totalRefinementsFinished.add(new StatCounter("Number of finished refinement"));
     }
 
-    assert refiners.size() > 0;
+    assert !refiners.isEmpty();
     assert refiners.size() == totalRefinementsSelected.size();
     assert refiners.size() == totalRefinementsFinished.size();
   }

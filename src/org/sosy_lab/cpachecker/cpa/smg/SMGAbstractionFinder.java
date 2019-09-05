@@ -129,8 +129,7 @@ public abstract class SMGAbstractionFinder {
           SMGEdgePointsTo reachedObjectSubSmgPTEdge = inputSmg.getPointer(subSmgValue);
           SMGObject reachedObjectSubSmg = reachedObjectSubSmgPTEdge.getObject();
 
-          if (!pObjects.contains(reachedObjectSubSmg)) {
-            pObjects.add(reachedObjectSubSmg);
+          if (pObjects.add(reachedObjectSubSmg)) {
             toBeChecked.add(reachedObjectSubSmg);
           }
         }
@@ -166,8 +165,7 @@ public abstract class SMGAbstractionFinder {
         SMGEdgePointsTo reachedObjectSubSmgPTEdge = pInputSmg.getPointer(subDlsValue);
         SMGObject reachedObjectSubSmg = reachedObjectSubSmgPTEdge.getObject();
 
-        if (!pObjects.contains(reachedObjectSubSmg)) {
-          pObjects.add(reachedObjectSubSmg);
+        if (pObjects.add(reachedObjectSubSmg)) {
           pToBeChecked.add(reachedObjectSubSmg);
         }
       }
