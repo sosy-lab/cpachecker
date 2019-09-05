@@ -199,8 +199,25 @@ public class AutomatonGraphmlParser {
       secure = true,
       name = "optimizeInvariantsSpecificationAutomaton",
       description =
-          "remove assumptions from transitions in the ISA where they are not strictly neccessary.")
+          "remove assumptions from transitions in the ISA where they are not strictly neccessary."
+              + "This option is intended to be used with an ISA (c.f. option witness.invariantsSpecificationAutomaton)")
   private boolean optimizeISA = true;
+
+  @Option(
+      secure = true,
+      name = "checkInvariantViolations",
+      description =
+          "remove assumptions from transitions in the ISA where they are not strictly neccessary."
+              + "This option is intended to be used with an ISA (c.f. option witness.invariantsSpecificationAutomaton)")
+  private boolean checkInvariantViolations = true;
+
+  @Option(
+      secure = true,
+      name = "useInvariantsAsAssumptions",
+      description =
+          "remove assumptions from transitions in the ISA where they are not strictly neccessary."
+              + "This option is intended to be used with an ISA (c.f. option witness.invariantsSpecificationAutomaton)")
+  private boolean useInvariantsAsAssumptions = true;
 
   private Scope scope;
   private final LogManager logger;
@@ -1800,9 +1817,12 @@ public class AutomatonGraphmlParser {
       AutomatonBoolExpr nonChangingTransition =
           and(pTransitionCondition, matchAnyEdgeOf(nonStateChangingEdges));
 
-      // only transition to the error state if an edge matches that can change the data state:
-      pTransitions.add(
-          createAutomatonInvariantErrorTransition(changingTransition, assumptionWithNegCExpr));
+      if (checkInvariantViolations) {
+        // only transition to the error state if an edge matches that can change the data state,
+        // i.e., use changingTransition here instead of pTransitionCondition:
+        pTransitions.add(
+            createAutomatonInvariantErrorTransition(changingTransition, assumptionWithNegCExpr));
+      }
 
       if (pSourceState.getInvariants().equals(pTargetState.getInvariants())) {
         // if we stay in the invariant state on an edge that could change the data state, we need to
@@ -1811,7 +1831,7 @@ public class AutomatonGraphmlParser {
             createAutomatonTransition(
                 changingTransition,
                 ImmutableList.of(),
-                assumptionWithCExpr,
+                useInvariantsAsAssumptions ? assumptionWithCExpr : ImmutableList.of(),
                 pInvariant,
                 pActions,
                 pTargetState,
@@ -1832,7 +1852,7 @@ public class AutomatonGraphmlParser {
       }
     }
 
-    if (!optimizeISA) {
+    if (!optimizeISA && checkInvariantViolations) {
       pTransitions.add(
           createAutomatonInvariantErrorTransition(pTransitionCondition, assumptionWithNegCExpr));
     }
@@ -1841,7 +1861,7 @@ public class AutomatonGraphmlParser {
           createAutomatonTransition(
               pTransitionCondition,
               ImmutableList.of(),
-              assumptionWithCExpr,
+              useInvariantsAsAssumptions ? assumptionWithCExpr : ImmutableList.of(),
               pInvariant,
               pActions,
               pTargetState,
