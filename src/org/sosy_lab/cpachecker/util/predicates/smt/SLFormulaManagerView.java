@@ -19,7 +19,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.SLFormulaManager;
 
 public class SLFormulaManagerView extends BaseManagerView implements SLFormulaManager {
@@ -33,30 +35,29 @@ public class SLFormulaManagerView extends BaseManagerView implements SLFormulaMa
     slMgr = pFormulaManager;
   }
 
-
   @Override
-  public Formula makeStar(Formula pF1, Formula pF2) {
-    return slMgr.makeStar(unwrap(pF1), unwrap(pF2));
+  public BooleanFormula makeStar(BooleanFormula pF1, BooleanFormula pF2) {
+    return slMgr.makeStar(pF1, pF2);
   }
 
   @Override
-  public Formula makePointsTo(Formula pPtr, Formula pTo) {
-    return slMgr.makePointsTo(unwrap(pPtr), unwrap(pTo));
+  public <AF extends Formula, VF extends Formula> BooleanFormula makePointsTo(AF pPtr, VF pTo) {
+    return slMgr.makePointsTo(pPtr, pTo);
   }
 
   @Override
-  public Formula makeMagicWand(Formula pF1, Formula pF2) {
+  public BooleanFormula makeMagicWand(BooleanFormula pF1, BooleanFormula pF2) {
     return slMgr.makeMagicWand(pF1, pF2);
   }
 
   @Override
-  public Formula makeEmptyHeap(Formula pFormula, Formula pFormula2) {
-    return slMgr.makeEmptyHeap(pFormula, pFormula2);
+  public <AF extends Formula, VF extends Formula, AT extends FormulaType<AF>, VT extends FormulaType<VF>>
+      BooleanFormula makeEmptyHeap(AT pAdressType, VT pValueType) {
+    return slMgr.makeEmptyHeap(pAdressType, pValueType);
   }
 
   @Override
-  public Formula makeNilElement(Formula pT) {
-    return slMgr.makeNilElement(pT);
+  public <AF extends Formula, AT extends FormulaType<AF>> AF makeNilElement(AT pAdressType) {
+    return slMgr.makeNilElement(pAdressType);
   }
-
 }
