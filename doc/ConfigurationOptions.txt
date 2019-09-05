@@ -3921,6 +3921,10 @@ witness.matchOffset = true
 # markers).
 witness.matchOriginLine = true
 
+# remove assumptions from transitions in the ISA where they are not strictly
+# neccessary.
+witness.optimizeInvariantsSpecificationAutomaton = true
+
 # Represent sink states by bottom state instead of break state
 witness.stopNotBreakAtSinkStates = true
 
