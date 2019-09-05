@@ -92,7 +92,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     PredicateCPA predicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(PredicateCPA.class);
 
     boolean withBAM = bamPredicateCpa != null;
-    predicateCpa = (withBAM) ? bamPredicateCpa : predicateCpa;
+    predicateCpa = withBAM ? bamPredicateCpa : predicateCpa;
     assert predicateCpa != null;
 
     BlockFormulaStrategy blockFormulaStrategy;
