@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 
-public class ExtendedWitnessWriter extends WitnessWriter {
-  ExtendedWitnessWriter(
+public class ExtendedWitnessFactory extends WitnessFactory {
+  ExtendedWitnessFactory(
       WitnessOptions pOptions,
       CFA pCfa,
       VerificationTaskMetaData pMetaData,

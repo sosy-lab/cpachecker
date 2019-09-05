@@ -199,6 +199,7 @@ refaster:
       - $REFASTER_REPO_REVISION == null # required for job
       - $REFASTER_VERSION == null # required for job
 
+
 deploy-coverage:
   stage: deploy
   script: "build/deploy-coverage.sh"

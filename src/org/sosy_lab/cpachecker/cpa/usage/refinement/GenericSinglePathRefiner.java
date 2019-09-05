@@ -85,7 +85,7 @@ public abstract class GenericSinglePathRefiner extends
 
     numberOfRefinements.inc();
     RefinementResult result = call(path);
-    if (result.isTrue() || result.isUnknown()) {
+    if (result.isTrue()) {
       path.setAsTrueBy(this);
       return result;
     } else {

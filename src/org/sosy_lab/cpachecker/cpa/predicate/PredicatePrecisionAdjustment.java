@@ -132,7 +132,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       return true;
     }
     if (AbstractStates.isTargetState(fullState)) {
-      statistics.numTargetAbstractions.setNextValue(1);
+      statistics.numTargetAbstractions.inc();
       return true;
     }
     return false;
@@ -155,7 +155,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     Optional<CallstackStateEqualsWrapper> callstackWrapper =
         AbstractStates.extractOptionalCallstackWraper(fullState);
 
-    statistics.numAbstractions.setNextValue(1);
+    statistics.numAbstractions.inc();
     logger.log(Level.FINEST, "Computing abstraction at instance", newLocInstance, "of node", loc, "in path.");
 
     statistics.blockSize.setNextValue(pathFormula.getLength());
@@ -199,7 +199,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     // if the abstraction is false, return bottom (represented by empty set)
     if (newAbstractionFormula.isFalse()) {
-      statistics.numAbstractionsFalse.setNextValue(1);
+      statistics.numAbstractionsFalse.inc();
       logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
       return Optional.empty();
     }

@@ -111,8 +111,8 @@ public class WitnessExporter {
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer =
-        new WitnessWriter(
+    WitnessFactory writer =
+        new WitnessFactory(
             options,
             cfa,
             verificationTaskMetaData,
@@ -141,8 +141,8 @@ public class WitnessExporter {
       final Function<? super ARGState, ExpressionTree<Object>> toQuasiInvariant)
       throws IOException {
     String defaultFileName = getInitialFileName(pRoot);
-    WitnessWriter writer =
-        new WitnessWriter(
+    WitnessFactory writer =
+        new WitnessFactory(
             options,
             cfa,
             verificationTaskMetaData,
@@ -265,7 +265,7 @@ public class WitnessExporter {
               ConcreteState concreteState =
                   ValueAnalysisConcreteErrorPathAllocator.createConcreteState(valueAnalysisState);
               Iterable<AExpressionStatement> invariants =
-                  WitnessWriter.ASSUMPTION_FILTER
+                  WitnessFactory.ASSUMPTION_FILTER
                       .apply(
                           assumptionToEdgeAllocator.allocateAssumptionsToEdge(pEdge, concreteState))
                       .getExpStmts();
@@ -295,8 +295,8 @@ public class WitnessExporter {
     Preconditions.checkNotNull(pInvariantProvider);
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer =
-        new WitnessWriter(
+    WitnessFactory writer =
+        new WitnessFactory(
             options,
             cfa,
             verificationTaskMetaData,

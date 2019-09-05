@@ -724,6 +724,13 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     private final int successorNodeNumber;
     private final Pattern pattern; // temp.; will be removed in the future
 
+    public MatchCFAEdgeNodes(CFAEdge pEdge) {
+      this(
+          pEdge.getPredecessor().getNodeNumber(),
+          pEdge.getSuccessor().getNodeNumber(),
+          Pattern.quote(pEdge.getRawStatement()));
+    }
+
     public MatchCFAEdgeNodes(
         int pPredecessorNodeNumber,
         int pSuccessorNodeNumber,

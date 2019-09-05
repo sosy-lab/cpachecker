@@ -886,7 +886,6 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       resultPrec =
           Precisions.replaceByType(
               resultPrec, loopPrec, Predicates.instanceOf(LoopBoundPrecision.class));
-
     }
 
     predPrec = Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);

@@ -19,6 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
@@ -39,9 +40,10 @@ public class PredicateStatistics {
       new ThreadSafeTimerContainer("Time for prec operator");
   final ThreadSafeTimerContainer computingAbstractionTime =
       new ThreadSafeTimerContainer("Time for abstraction");
-  final StatInt numAbstractions = new StatInt(StatKind.COUNT, "Number of abstractions");
-  final StatInt numTargetAbstractions = new StatInt(StatKind.COUNT, "Times abstraction because of target state");
-  final StatInt numAbstractionsFalse = new StatInt(StatKind.COUNT, "Times abstraction was 'false'");
+  final StatCounter numAbstractions = new StatCounter("Number of abstractions");
+  final StatCounter numTargetAbstractions =
+      new StatCounter("Times abstraction because of target state");
+  final StatCounter numAbstractionsFalse = new StatCounter("Times abstraction was 'false'");
   final StatInt blockSize = new StatInt(StatKind.AVG, "Avg ABE block size");
 
   // domain

@@ -19,6 +19,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Collections;
@@ -153,7 +155,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
         AutomatonInternalState initState =
             new AutomatonInternalState(initialStateName, initTransitions, false, true, false);
         states.add(initState);
-        Map<String, AutomatonVariable> vars = Collections.emptyMap();
+        Map<String, AutomatonVariable> vars = ImmutableMap.of();
         return new Automaton(automatonName, vars, states, initialStateName);
       } catch (InvalidAutomatonException | UnrecognizedCodeException e) {
         throw new RuntimeException("The passed invariants produce an inconsistent automaton", e);
@@ -163,11 +165,10 @@ public enum InvariantsSpecificationAutomatonBuilder {
     private AutomatonTransition createTransitionWithCheckLocationAndAssumptionToError(
         CFANode pLocation, final List<AExpression> pAssumptions) {
       return new AutomatonTransition.Builder(
-          createQueryLocationString(pLocation),
-          AutomatonInternalState.ERROR).withAssumptions(pAssumptions)
-              .withViolatedPropertyDescription(new StringExpression("Invariant not valid"))
-              .build();
-
+              createQueryLocationString(pLocation), AutomatonInternalState.ERROR)
+          .withAssumptions(pAssumptions)
+          .withViolatedPropertyDescription(new StringExpression("Invariant not valid"))
+          .build();
     }
 
     private AutomatonTransition createTransitionWithCheckLocationAndAssumptionToInit(
@@ -175,7 +176,6 @@ public enum InvariantsSpecificationAutomatonBuilder {
       return new AutomatonTransition.Builder(createQueryLocationString(pLocation), "Init")
           .withAssumptions(pAssumptions)
           .build();
-
     }
 
     private AutomatonBoolExpr createQueryLocationString(final CFANode pNode) {
@@ -241,8 +241,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
                     pCfa, pLogger, transitions, successor, invA, successorIsBottom);
               } else {
                 transitions.add(
-                    createAutomatonTransition(
-                        successor, Collections.<AExpression>emptyList(), successorIsBottom));
+                    createAutomatonTransition(successor, ImmutableList.of(), successorIsBottom));
               }
             }
             AutomatonInternalState state =
@@ -250,11 +249,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
             states.add(state);
           }
         }
-        return new Automaton(
-            automatonName,
-            Collections.<String, AutomatonVariable>emptyMap(),
-            states,
-            initialStateName);
+        return new Automaton(automatonName, ImmutableMap.of(), states, initialStateName);
       } catch (InvalidAutomatonException | UnrecognizedCodeException e) {
         throw new RuntimeException("The passed invariants produce an inconsistent automaton", e);
       }
@@ -294,25 +289,24 @@ public enum InvariantsSpecificationAutomatonBuilder {
         final boolean pSuccessorIsBottom) {
       if (pSuccessorIsBottom) {
         return new AutomatonTransition.Builder(
-            createQueryLocationString(pSuccessor),
-            AutomatonInternalState.BOTTOM).withAssumptions(pAssumptions).build();
-
+                createQueryLocationString(pSuccessor), AutomatonInternalState.BOTTOM)
+            .withAssumptions(pAssumptions)
+            .build();
       } else {
         return new AutomatonTransition.Builder(
-            createQueryLocationString(pSuccessor),
-            createStateName(pSuccessor)).withAssumptions(pAssumptions).build();
-
+                createQueryLocationString(pSuccessor), createStateName(pSuccessor))
+            .withAssumptions(pAssumptions)
+            .build();
       }
     }
 
     private AutomatonTransition createAutomatonInvariantErrorTransition(
         final CFANode pSuccessor, final List<AExpression> pAssumptions) {
       return new AutomatonTransition.Builder(
-          createQueryLocationString(pSuccessor),
-          createStateName(pSuccessor)).withAssumptions(pAssumptions)
-              .withViolatedPropertyDescription(new StringExpression("Invariant not valid"))
-              .build();
-
+              createQueryLocationString(pSuccessor), createStateName(pSuccessor))
+          .withAssumptions(pAssumptions)
+          .withViolatedPropertyDescription(new StringExpression("Invariant not valid"))
+          .build();
     }
 
     private AutomatonBoolExpr createQueryLocationString(final CFANode pNode) {

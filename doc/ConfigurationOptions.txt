@@ -1797,9 +1797,6 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
-# Apply only relevant effects.
-cpa.predicate.applyRelevantEffects = false
-
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
 
@@ -3520,10 +3517,6 @@ pdr.abstractionStrategy = NO_ABSTRACTION
 pdr.conditionAdjustmentCriterion = NEVER
   enum:     [NEVER, ALWAYS]
 
-# Try to shorten the lifted state further by checking if the lifting query is
-# still valid after dropping each literal in turn.
-pdr.dropLiteralsBeyondUnsatCoreAfterLifting = false
-
 # Which strategy to use to perform invariant refinement on successful proof
 # results.
 pdr.invariantRefinementStrategy = NO_STRENGTHENING
@@ -3536,14 +3529,6 @@ pdr.liftingAbstractionFailureThreshold = 0
 # Which strategy to use to abstract counterexamples to inductivity.
 pdr.liftingStrategy = NO_LIFTING
   enum:     [NO_LIFTING, UNSAT_CORE_BASED_LIFTING, ABSTRACTION_BASED_LIFTING]
-
-# The maximum number of attempts at dropping literals during the inductive
-# generalization of states.
-pdr.maxAttemptsToDropLiteralsDuringGeneralization = 10
-
-# The maximum number of literals that should be dropped during the inductive
-# generalization of states.
-pdr.maxLiteralsToDropDuringGeneralization = 5
 
 # Maximum number of accepted spurious transitions within a proof-obligation
 # trace before a consecution abstraction failure triggers a refinement.
@@ -3976,6 +3961,11 @@ usage.processCoveredUsages = true
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value
 
+# remove assumptions from transitions in the ISA where they are not strictly
+# neccessary.This option is intended to be used with an ISA (c.f. option
+# witness.invariantsSpecificationAutomaton)
+witness.checkInvariantViolations = true
+
 # Check that the value of the programhash field of the witness matches the
 # SHA-256 hash value computed for the source code.
 witness.checkProgramHash = true
@@ -3998,12 +3988,22 @@ witness.matchOffset = true
 # markers).
 witness.matchOriginLine = true
 
+# remove assumptions from transitions in the ISA where they are not strictly
+# neccessary.This option is intended to be used with an ISA (c.f. option
+# witness.invariantsSpecificationAutomaton)
+witness.optimizeInvariantsSpecificationAutomaton = true
+
 # Represent sink states by bottom state instead of break state
 witness.stopNotBreakAtSinkStates = true
 
 # Enforce strict validity checks regarding the witness format, such as
 # checking for the presence of required fields.
 witness.strictChecking = true
+
+# remove assumptions from transitions in the ISA where they are not strictly
+# neccessary.This option is intended to be used with an ISA (c.f. option
+# witness.invariantsSpecificationAutomaton)
+witness.useInvariantsAsAssumptions = true
 
 # When validating a correctness witness, use this configuration file instead
 # of the current one.

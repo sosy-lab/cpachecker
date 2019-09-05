@@ -144,6 +144,5 @@ public class TestTargetProvider implements Statistics {
       pOut.println(edge.toString());
     }
     }
-    pOut.flush(); // TODO check if makes sense
   }
 }

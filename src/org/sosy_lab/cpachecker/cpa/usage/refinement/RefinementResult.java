@@ -37,8 +37,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class RefinementResult {
   public enum RefinementStatus {
     TRUE,
-    FALSE,
-    UNKNOWN
+    FALSE
   }
   private final Map<Class<? extends RefinementInterface>, Object> auxiliaryInfo = new HashMap<>();
   private final Pair<UsageInfo, UsageInfo> trueRace;
@@ -76,10 +75,6 @@ public class RefinementResult {
     return status == RefinementStatus.FALSE;
   }
 
-  public boolean isUnknown() {
-    return status == RefinementStatus.UNKNOWN;
-  }
-
   public static RefinementResult createTrue(ExtendedARGPath firstPath, ExtendedARGPath secondPath) {
 
     UsageInfo firstUsage = firstPath.getUsageInfo();
@@ -100,10 +95,6 @@ public class RefinementResult {
 
   public static RefinementResult createFalse() {
     return new RefinementResult(RefinementStatus.FALSE, null, null);
-  }
-
-  public static RefinementResult createUnknown() {
-    return new RefinementResult(RefinementStatus.UNKNOWN, null, null);
   }
 
   public Pair<UsageInfo, UsageInfo> getTrueRace() {
