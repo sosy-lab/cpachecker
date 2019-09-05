@@ -60,10 +60,7 @@ public class RefinementBlockFactory {
     SinglePathIterator(currentInnerBlockType.ExtendedARGPath),
     PathProvider(currentInnerBlockType.ExtendedARGPath),
     PredicateRefiner(currentInnerBlockType.ExtendedARGPath),
-    CallstackFilter(currentInnerBlockType.ExtendedARGPath),
-    ProbeFilter(currentInnerBlockType.ExtendedARGPath),
     SharedRefiner(currentInnerBlockType.ExtendedARGPath),
-    LockFilter(currentInnerBlockType.ExtendedARGPath),
     LockRefiner(currentInnerBlockType.ExtendedARGPath);
 
     public final currentInnerBlockType innerType;
@@ -222,16 +219,6 @@ public class RefinementBlockFactory {
                     logger);
             break;
 
-          case CallstackFilter:
-            currentBlock = new CallstackFilter((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                config);
-            break;
-
-          case ProbeFilter:
-            currentBlock = new ProbeFilter((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                config);
-            break;
-
           case SharedRefiner:
             //LocalCPA CPAForSharedRefiner = CPAs.retrieveCPA(cpa, LocalCPA.class);
             //assert(CPAForSharedRefiner != null);
@@ -241,20 +228,9 @@ public class RefinementBlockFactory {
 
             break;
 
-          case LockFilter:
-            LockTransferRelation lockTransfer =
-                (LockTransferRelation) CPAs.retrieveCPA(cpa, LockCPA.class).getTransferRelation();
-
-            currentBlock =
-                new ReducedPathFilter(
-                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                    lockTransfer);
-
-            break;
-
           case LockRefiner:
             LockCPA lCPA = CPAs.retrieveCPA(cpa, LockCPA.class);
-            lockTransfer =
+            LockTransferRelation lockTransfer =
                 (LockTransferRelation) lCPA.getTransferRelation();
             LockReducer lReducer = (LockReducer) lCPA.getReducer();
 
