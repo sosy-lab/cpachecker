@@ -66,13 +66,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateErrors;
+import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.java_smt.api.Formula;
 
 /**
  * Keeps the separation logic heap up-to-date.
  */
-public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
+public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
 
   private final SLMemoryDelegate memDelegate;
   private final SLSolverDelegate solDelegate;
@@ -86,32 +86,32 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
   }
 
   @Override
-  public SLStateErrors visit(CArrayDesignator pArrayDesignator) throws Exception {
+  public SLStateError visit(CArrayDesignator pArrayDesignator) throws Exception {
     throw new UnsupportedOperationException(
         CArrayDesignator.class.getSimpleName() + "is not implemented yet.");
   }
 
   @Override
-  public SLStateErrors visit(CArrayRangeDesignator pArrayRangeDesignator) throws Exception {
+  public SLStateError visit(CArrayRangeDesignator pArrayRangeDesignator) throws Exception {
     throw new UnsupportedOperationException(
         CArrayRangeDesignator.class.getSimpleName() + "is not implemented yet.");
   }
 
   @Override
-  public SLStateErrors visit(CFieldDesignator pFieldDesignator) throws Exception {
+  public SLStateError visit(CFieldDesignator pFieldDesignator) throws Exception {
     throw new UnsupportedOperationException(
         CFieldDesignator.class.getSimpleName() + "is not implemented yet.");
   }
 
   @Override
-  public SLStateErrors visit(CInitializerExpression pInitializerExpression) throws Exception {
+  public SLStateError visit(CInitializerExpression pInitializerExpression) throws Exception {
     return pInitializerExpression.getExpression().accept(this);
   }
 
   @Override
-  public SLStateErrors visit(CInitializerList pInitializerList) throws Exception {
+  public SLStateError visit(CInitializerList pInitializerList) throws Exception {
     for (CInitializer i : pInitializerList.getInitializers()) {
-      SLStateErrors error = i.accept(this);
+      SLStateError error = i.accept(this);
       if(error != null) {
         return error;
       }
@@ -120,13 +120,13 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
   }
 
   @Override
-  public SLStateErrors visit(CDesignatedInitializer pCStructInitializerPart) throws Exception {
+  public SLStateError visit(CDesignatedInitializer pCStructInitializerPart) throws Exception {
     throw new UnsupportedOperationException(
         CDesignatedInitializer.class.getSimpleName() + "is not implemented yet.");
   }
 
   @Override
-  public SLStateErrors visit(CFunctionCallExpression pIastFunctionCallExpression) throws Exception {
+  public SLStateError visit(CFunctionCallExpression pIastFunctionCallExpression) throws Exception {
     CIdExpression fctExp = (CIdExpression) pIastFunctionCallExpression.getFunctionNameExpression();
     final List<CExpression> params = pIastFunctionCallExpression.getParameterExpressions();
     BigInteger length;
@@ -135,7 +135,7 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
     switch (SLHeapFunction.get(fctExp.getName())) {
       case MALLOC:
         if (curLHS == null) {
-          return SLStateErrors.UNFREED_MEMORY;
+          return SLStateError.UNFREED_MEMORY;
         }
         loc = solDelegate.getFormulaForExpression(curLHS, true);
         length = solDelegate.getValueForCExpression(params.get(0));
@@ -144,7 +144,7 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
 
       case CALLOC:
         if (curLHS == null) {
-          return SLStateErrors.UNFREED_MEMORY;
+          return SLStateError.UNFREED_MEMORY;
         }
         loc = solDelegate.getFormulaForExpression(curLHS, true);
         length = solDelegate.getValueForCExpression(params.get(0));
@@ -154,16 +154,16 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
 
       case REALLOC:
         if (curLHS == null) {
-          return SLStateErrors.UNFREED_MEMORY;
+          return SLStateError.UNFREED_MEMORY;
         }
         loc = solDelegate.getFormulaForExpression(curLHS, true);
         final Formula oldLoc = solDelegate.getFormulaForExpression(params.get(0), false);
         length = solDelegate.getValueForCExpression(params.get(1));
-        return memDelegate.handleRealloc(loc, oldLoc, length) ? null : SLStateErrors.INVALID_DEREF;
+        return memDelegate.handleRealloc(loc, oldLoc, length) ? null : SLStateError.INVALID_DEREF;
 
       case FREE:
         loc = solDelegate.getFormulaForExpression(params.get(0), false);
-        return memDelegate.handleFree(solDelegate, loc) ? null : SLStateErrors.INVALID_DEREF;
+        return memDelegate.handleFree(solDelegate, loc) ? null : SLStateError.INVALID_DEREF;
 
       default:
         break;
@@ -172,8 +172,8 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
   }
 
   @Override
-  public SLStateErrors visit(CBinaryExpression pIastBinaryExpression) throws Exception {
-    SLStateErrors error = pIastBinaryExpression.getOperand1().accept(this);
+  public SLStateError visit(CBinaryExpression pIastBinaryExpression) throws Exception {
+    SLStateError error = pIastBinaryExpression.getOperand1().accept(this);
     if (error != null) {
       return error;
     }
@@ -181,42 +181,42 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
   }
 
   @Override
-  public SLStateErrors visit(CCastExpression pIastCastExpression) throws Exception {
+  public SLStateError visit(CCastExpression pIastCastExpression) throws Exception {
     return pIastCastExpression.getOperand().accept(this);
   }
 
   @Override
-  public SLStateErrors visit(CCharLiteralExpression pIastCharLiteralExpression) throws Exception {
+  public SLStateError visit(CCharLiteralExpression pIastCharLiteralExpression) throws Exception {
     return null;
   }
 
   @Override
-  public SLStateErrors visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws Exception {
+  public SLStateError visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws Exception {
     throw new UnsupportedOperationException(
         CCastExpression.class.getSimpleName() + "is not implemented yet.");
   }
 
   @Override
-  public SLStateErrors visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
+  public SLStateError visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
       throws Exception {
     return null;
   }
 
   @Override
-  public SLStateErrors visit(CStringLiteralExpression pIastStringLiteralExpression)
+  public SLStateError visit(CStringLiteralExpression pIastStringLiteralExpression)
       throws Exception {
     throw new UnsupportedOperationException(
         CStringLiteralExpression.class.getSimpleName() + "is not implemented yet.");
   }
 
   @Override
-  public SLStateErrors visit(CTypeIdExpression pIastTypeIdExpression) throws Exception {
+  public SLStateError visit(CTypeIdExpression pIastTypeIdExpression) throws Exception {
     throw new UnsupportedOperationException(
         CTypeIdExpression.class.getSimpleName() + "is not implemented yet.");
   }
 
   @Override
-  public SLStateErrors visit(CUnaryExpression pIastUnaryExpression) throws Exception {
+  public SLStateError visit(CUnaryExpression pIastUnaryExpression) throws Exception {
     CExpression operand = pIastUnaryExpression.getOperand();
     // switch (pIastUnaryExpression.getOperator()) {
     // case AMPER:
@@ -230,22 +230,22 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
   }
 
   @Override
-  public SLStateErrors visit(CImaginaryLiteralExpression PIastLiteralExpression) throws Exception {
+  public SLStateError visit(CImaginaryLiteralExpression PIastLiteralExpression) throws Exception {
     throw new UnsupportedOperationException(
         CImaginaryLiteralExpression.class.getSimpleName() + "is not implemented yet.");
   }
 
   @Override
-  public SLStateErrors visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws Exception {
+  public SLStateError visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws Exception {
     throw new UnsupportedOperationException(
         CAddressOfLabelExpression.class.getSimpleName() + "is not implemented yet.");
   }
 
   @Override
-  public SLStateErrors visit(CArraySubscriptExpression pIastArraySubscriptExpression)
+  public SLStateError visit(CArraySubscriptExpression pIastArraySubscriptExpression)
       throws Exception {
     CExpression subscriptExp = pIastArraySubscriptExpression.getSubscriptExpression();
-    SLStateErrors error = subscriptExp.accept(this);
+    SLStateError error = subscriptExp.accept(this);
     if (error != null) {
       return error;
     }
@@ -272,24 +272,24 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
     // }
     // return null;
     return memDelegate.checkAllocation(solDelegate, loc, offset, val) == null
-        ? SLStateErrors.INVALID_DEREF
+        ? SLStateError.INVALID_DEREF
         : null;
   }
 
   @Override
-  public SLStateErrors visit(CFieldReference pIastFieldReference) throws Exception {
+  public SLStateError visit(CFieldReference pIastFieldReference) throws Exception {
     if (pIastFieldReference.isPointerDereference()) {
       CExpression e = pIastFieldReference.getFieldOwner();
       Formula loc = solDelegate.getFormulaForExpression(e, false);
       return memDelegate.checkAllocation(solDelegate, loc, null, null) == null
-          ? SLStateErrors.INVALID_DEREF
+          ? SLStateError.INVALID_DEREF
           : null;
     }
     return null;
   }
 
   @Override
-  public SLStateErrors visit(CIdExpression pIastIdExpression) throws Exception {
+  public SLStateError visit(CIdExpression pIastIdExpression) throws Exception {
     // if (curLHS == pIastIdExpression) {
     // Formula fCurrent = solDelegate.getFormulaForExpression(pIastIdExpression, true, false);
     // Formula fNew = solDelegate.getFormulaForExpression(pIastIdExpression, true, true);
@@ -305,9 +305,9 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
   }
 
   @Override
-  public SLStateErrors visit(CPointerExpression pPointerExpression) throws Exception {
+  public SLStateError visit(CPointerExpression pPointerExpression) throws Exception {
     CExpression operand = pPointerExpression.getOperand();
-    SLStateErrors error = operand.accept(this);
+    SLStateError error = operand.accept(this);
     if (error != null) {
       return error;
     }
@@ -317,20 +317,20 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
       val = solDelegate.getFormulaForExpression((CExpression) curRHS, false);
     }
     return memDelegate.checkAllocation(solDelegate, loc, null, val) == null
-        ? SLStateErrors.INVALID_DEREF
+        ? SLStateError.INVALID_DEREF
         : null;
   }
 
   @Override
-  public SLStateErrors visit(CComplexCastExpression pComplexCastExpression) throws Exception {
+  public SLStateError visit(CComplexCastExpression pComplexCastExpression) throws Exception {
     throw new UnsupportedOperationException(
         CComplexCastExpression.class.getSimpleName() + "is not implemented yet.");
   }
 
   @Override
-  public SLStateErrors visit(CFunctionDeclaration pDecl) throws Exception {
+  public SLStateError visit(CFunctionDeclaration pDecl) throws Exception {
     for (CParameterDeclaration dec : pDecl.getParameters()) {
-      SLStateErrors error = dec.accept(this);
+      SLStateError error = dec.accept(this);
       if (error != null) {
         return error;
       }
@@ -339,19 +339,19 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
   }
 
   @Override
-  public SLStateErrors visit(CComplexTypeDeclaration pDecl) throws Exception {
+  public SLStateError visit(CComplexTypeDeclaration pDecl) throws Exception {
     // throw new UnsupportedOperationException(
     // CComplexTypeDeclaration.class.getSimpleName() + "is not implemented yet.");
     return null;
   }
 
   @Override
-  public SLStateErrors visit(CTypeDefDeclaration pDecl) throws Exception {
+  public SLStateError visit(CTypeDefDeclaration pDecl) throws Exception {
     return null;
   }
 
   @Override
-  public SLStateErrors visit(CVariableDeclaration pDecl) throws Exception {
+  public SLStateError visit(CVariableDeclaration pDecl) throws Exception {
     curLHS = new CIdExpression(pDecl.getFileLocation(), pDecl);
     CType type = pDecl.getType();
     if (type instanceof CArrayType || type instanceof CPointerType) {
@@ -370,38 +370,38 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
       }
     }
 
-    CExpression e = SLMemoryDelegateImpl.createSymbolicMemLoc(pDecl);
+    CExpression e = SLMemoryDelegate.createSymbolicMemLoc(pDecl);
     Formula f = solDelegate.getFormulaForExpression(e, false);
     memDelegate.addToStack(f, BigInteger.ONE, type, true);
 
     CInitializer i = pDecl.getInitializer();
-    SLStateErrors error = i != null ? i.accept(this) : null;
+    SLStateError error = i != null ? i.accept(this) : null;
     curLHS = null;
     return error;
   }
 
   @Override
-  public SLStateErrors visit(CParameterDeclaration pDecl) throws Exception {
+  public SLStateError visit(CParameterDeclaration pDecl) throws Exception {
     return null;
   }
 
   @Override
-  public SLStateErrors visit(CEnumerator pDecl) throws Exception {
+  public SLStateError visit(CEnumerator pDecl) throws Exception {
     throw new UnsupportedOperationException(
         CEnumerator.class.getSimpleName() + "is not implemented yet.");
   }
 
   @Override
-  public SLStateErrors visit(CExpressionStatement pIastExpressionStatement) throws Exception {
+  public SLStateError visit(CExpressionStatement pIastExpressionStatement) throws Exception {
     return pIastExpressionStatement.getExpression().accept(this);
   }
 
   @Override
-  public SLStateErrors visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement)
+  public SLStateError visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement)
       throws Exception {
     curLHS = pIastExpressionAssignmentStatement.getLeftHandSide();
     curRHS = pIastExpressionAssignmentStatement.getRightHandSide();
-    SLStateErrors error = curLHS.accept(this);
+    SLStateError error = curLHS.accept(this);
     if(error == null) {
       error = curRHS.accept(this);
     }
@@ -411,11 +411,11 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
   }
 
   @Override
-  public SLStateErrors visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement)
+  public SLStateError visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement)
       throws Exception {
     curLHS = pIastFunctionCallAssignmentStatement.getLeftHandSide();
     curRHS = pIastFunctionCallAssignmentStatement.getRightHandSide();
-    SLStateErrors error = curLHS.accept(this);
+    SLStateError error = curLHS.accept(this);
     if (error == null) {
       error = curRHS.accept(this);
     }
@@ -425,12 +425,12 @@ public class SLVisitor implements CAstNodeVisitor<SLStateErrors, Exception> {
   }
 
   @Override
-  public SLStateErrors visit(CFunctionCallStatement pIastFunctionCallStatement) throws Exception {
+  public SLStateError visit(CFunctionCallStatement pIastFunctionCallStatement) throws Exception {
     return pIastFunctionCallStatement.getFunctionCallExpression().accept(this);
   }
 
   @Override
-  public SLStateErrors visit(CReturnStatement pNode) throws Exception {
+  public SLStateError visit(CReturnStatement pNode) throws Exception {
     throw new UnsupportedOperationException(
         CReturnStatement.class.getSimpleName() + "is not implemented yet.");
   }

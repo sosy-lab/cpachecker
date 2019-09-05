@@ -32,7 +32,7 @@ import org.sosy_lab.java_smt.api.Formula;
 
 public class SLState implements AbstractState, Targetable {
 
-  public enum SLStateErrors {
+  public enum SLStateError {
     INVALID_DEREF,
     UNFREED_MEMORY;
   }
@@ -43,7 +43,7 @@ public class SLState implements AbstractState, Targetable {
   private final Map<Formula, Formula> stack;
 
   private boolean isTarget;
-  private SLStateErrors error = null;
+  private SLStateError error = null;
 
   public SLState(PathFormula pPathFormula) {
     this(pPathFormula, new HashMap<>(), new HashMap<>(), null);
@@ -53,7 +53,7 @@ public class SLState implements AbstractState, Targetable {
       PathFormula pPathFormula,
       Map<Formula, Formula> pHeap,
       Map<Formula, Formula> pStack,
-      SLStateErrors pError) {
+      SLStateError pError) {
     pathFormula = pPathFormula;
     heap = pHeap;
     stack = pStack;
@@ -95,7 +95,7 @@ public class SLState implements AbstractState, Targetable {
     return isTarget;
   }
 
-  public void setTarget(SLStateErrors pError) {
+  public void setTarget(SLStateError pError) {
     error = pError;
     isTarget = pError != null;
   }

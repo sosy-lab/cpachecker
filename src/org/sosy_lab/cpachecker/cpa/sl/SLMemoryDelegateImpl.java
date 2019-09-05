@@ -24,12 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -45,7 +39,7 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
   private final FormulaManagerView fm;
   private final BitvectorFormulaManager bvfm;
   private final IntegerFormulaManager ifm;
-  private HashMap<Formula, Formula> heap = new HashMap<>();
+  private HashMap<BooleanFormula, BooleanFormula> heap = new HashMap<>();
   private HashMap<Formula, Formula> stack = new HashMap<>();
   private final HashMap<Formula, BigInteger> allocationSizes = new HashMap<>();
 
@@ -119,6 +113,11 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
     if (pOffset != null) {
       fLoc = fm.makePlus(fLoc, pOffset);
     }
+    boolean match1 = pSolDel.checkAllocation(fLoc, heap);
+    if (match1) {
+
+    }
+
     Formula match = checkMemoryForMatch(pSolDel, heap, fLoc, pVal);
     return match != null ? match : checkMemoryForMatch(pSolDel, stack, fLoc, pVal);
   }
@@ -133,6 +132,7 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
     if (pOffset != null) {
       pHeapLocation = fm.makePlus(pHeapLocation, pOffset);
     }
+
     return checkMemoryForMatch(pSolDel, heap, pHeapLocation, pVal);
   }
 
@@ -224,10 +224,5 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
           throws Exception {
     BigInteger length = pLength.multiply(machineModel.getSizeof(pType));
     addToMemory(stack, pMemoryLocation, length, pInitWithZero);
-  }
-
-  public static CExpression createSymbolicMemLoc(CSimpleDeclaration pDecl) {
-    CIdExpression e = new CIdExpression(FileLocation.DUMMY, pDecl);
-    return new CUnaryExpression(FileLocation.DUMMY, pDecl.getType(), e, UnaryOperator.AMPER);
   }
 }

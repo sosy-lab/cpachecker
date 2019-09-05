@@ -21,6 +21,12 @@ package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.java_smt.api.Formula;
 
@@ -173,4 +179,9 @@ public interface SLMemoryDelegate {
           throws Exception;
 
   public void handleAddressOf(Formula pVar, CType pType) throws Exception;
+
+  public static CExpression createSymbolicMemLoc(CSimpleDeclaration pDecl) {
+    CIdExpression e = new CIdExpression(FileLocation.DUMMY, pDecl);
+    return new CUnaryExpression(FileLocation.DUMMY, pDecl.getType(), e, UnaryOperator.AMPER);
+  }
 }

@@ -20,8 +20,10 @@
 package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 public interface SLSolverDelegate {
@@ -64,4 +66,6 @@ public interface SLSolverDelegate {
    * @return Formula - the formula representing the given @Expression.
    */
   public Formula getFormulaForExpression(CExpression pExp, boolean hasNextSsaIndex) throws Exception;
+
+  public boolean checkAllocation(BooleanFormula pFormula, Map<Formula, Formula> pHeap);
 }
