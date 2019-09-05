@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
@@ -164,7 +163,7 @@ public class SMGStateTest {
     smg1.setValidity(l5, true);
 
     SMGState smg1State = new SMGState(
-        logger, new SMGOptions(Configuration.defaultConfiguration()), smg1, 0, HashBiMap.create());
+        logger, new SMGOptions(Configuration.defaultConfiguration()), smg1, 0);
 
     smg1State.addPointsToEdge(head, 0, value5);
 
@@ -277,7 +276,7 @@ public class SMGStateTest {
    heap.setValidity(l5, true);
 
     SMGState smg1State = new SMGState(logger, new SMGOptions(
-        Configuration.defaultConfiguration()), heap, 0, HashBiMap.create());
+        Configuration.defaultConfiguration()), heap, 0);
 
     smg1State.addStackFrame(functionDeclaration3);
     smg1State.addPointsToEdge(head, 0, value5);
@@ -339,7 +338,7 @@ public class SMGStateTest {
     heap.addHasValueEdge(nextField);
 
     SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
-    SMGState smg1State = new SMGState(logger, options, heap, 0, HashBiMap.create());
+    SMGState smg1State = new SMGState(logger, options, heap, 0);
 
     smg1State.addStackFrame(functionDeclaration3);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");
@@ -411,7 +410,7 @@ public class SMGStateTest {
     heap.addHasValueEdge(initialDataField);
 
     SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
-    SMGState smg1State = new SMGState(logger, options, heap, 0, HashBiMap.create());
+    SMGState smg1State = new SMGState(logger, options, heap, 0);
 
     smg1State.addStackFrame(functionDeclaration3);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");

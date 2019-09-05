@@ -47,9 +47,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public final class SMGPlotter {
@@ -140,8 +139,7 @@ public final class SMGPlotter {
 
   public static void debuggingPlot(
       UnmodifiableCLangSMG pSmg,
-      String pId,
-      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues)
+      String pId)
       throws IOException {
     PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg-debug-%s.dot");
     pId = pId.replace("\"", "");
@@ -151,7 +149,7 @@ public final class SMGPlotter {
     IO.writeFile(
         outputFile,
         Charset.defaultCharset(),
-        plotter.smgAsDot(pSmg, pId, "debug plot", explicitValues));
+        plotter.smgAsDot(pSmg, pId, "debug plot"));
   }
 
   private final Map<SMGObject, SMGObjectNode> objectIndex = new HashMap<>();
@@ -167,8 +165,7 @@ public final class SMGPlotter {
   public String smgAsDot(
       UnmodifiableCLangSMG smg,
       String name,
-      String location,
-      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
+      String location) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph gr_").append(name.replace('-', '_')).append("{\n");
@@ -192,7 +189,7 @@ public final class SMGPlotter {
 
     for (SMGValue value : smg.getValues()) {
       if (!value.isZero()) {
-        sb.append(newLineWithOffset(smgValueAsDot(value, explicitValues)));
+        sb.append(newLineWithOffset(smgValueAsDot(value, smg.getExplicitBySymbolic(value))));
       }
     }
 
@@ -329,12 +326,12 @@ public final class SMGPlotter {
   }
 
   private static String smgValueAsDot(
-      SMGValue value, Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
-    String explicitValue = "";
-    if (explicitValues.containsKey(value)) {
-      explicitValue = " : " + String.valueOf(explicitValues.get(value).getAsLong());
+      SMGValue value, SMGExplicitValue explicitValue) {
+    String explicitValueString = "";
+    if (explicitValue != null) {
+      explicitValueString = " : " + explicitValue.getAsLong();
     }
-    String prefix = "value_" + value.asDotId() + "[label=\"#" + value.asDotId() + explicitValue;
+    String prefix = "value_" + value.asDotId() + "[label=\"#" + value.asDotId() + explicitValueString;
     if (value instanceof SMGKnownAddressValue) {
       SMGKnownAddressValue kav = (SMGKnownAddressValue) value;
       return prefix + "\\n" + kav.getObject() + "\"];";

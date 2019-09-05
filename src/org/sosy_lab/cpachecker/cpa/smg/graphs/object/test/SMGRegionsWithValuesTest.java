@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.test;
 
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
 import java.util.Collection;
@@ -87,8 +86,7 @@ public class SMGRegionsWithValuesTest {
             LogManager.createTestLogManager(),
             new SMGOptions(Configuration.defaultConfiguration()),
             smg,
-            0,
-            HashBiMap.create());
+            0);
 
     final int intSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofInt();
     final int ptrSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofPtr();

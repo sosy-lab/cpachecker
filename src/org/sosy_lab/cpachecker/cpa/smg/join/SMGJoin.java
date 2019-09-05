@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.Map;
@@ -38,8 +36,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 
 /**
@@ -55,7 +53,6 @@ public final class SMGJoin {
   private final SMGNodeMapping mapping1 = new SMGNodeMapping();
   private final SMGNodeMapping mapping2 = new SMGNodeMapping();
   final SMGLevelMapping levelMap = SMGLevelMapping.createDefaultLevelMap();
-  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> mergedExplicitValues = HashBiMap.create();
 
   /**
    * Algorithm 10 from FIT-TR-2012-04.
@@ -137,18 +134,18 @@ public final class SMGJoin {
 
     //Merge explicit values, if mapping contradicts with explicit values then mark join as failed
     //TODO: add strategy to remove some explicit values on join
-    for (Entry<SMGKnownSymbolicValue, SMGKnownExpValue> entry : pStateOfSmg1.getExplicitValues()) {
-      SMGKnownSymbolicValue value = (SMGKnownSymbolicValue)mapping1.get(entry.getKey());
+    for (Entry<SMGSymbolicValue, SMGExplicitValue> entry : opSMG1.getExplicitValuesMap().entrySet()) {
+      SMGSymbolicValue value = (SMGSymbolicValue)mapping1.get(entry.getKey());
       if (value != null) {
-        mergedExplicitValues.put(value, entry.getValue());
+        smg.addExplicitValue(value, entry.getValue());
       } else {
-        mergedExplicitValues.put(entry.getKey(), entry.getValue());
+        smg.addExplicitValue(entry.getKey(), entry.getValue());
       }
     }
 
-    for (Entry<SMGKnownSymbolicValue, SMGKnownExpValue> entry : pStateOfSmg2.getExplicitValues()) {
-      SMGKnownSymbolicValue value = (SMGKnownSymbolicValue)mapping2.get(entry.getKey());
-      if (mergedExplicitValues.containsValue(entry.getValue())&& !mergedExplicitValues.inverse().get(entry.getValue()).equals(value)) {
+    for (Entry<SMGSymbolicValue, SMGExplicitValue> entry : opSMG2.getExplicitValuesMap().entrySet()) {
+      SMGSymbolicValue value = (SMGSymbolicValue)mapping2.get(entry.getKey());
+      if (smg.getExplicitBySymbolic(entry.getValue()) != null && !smg.getSymbolicByExplicit(entry.getValue()).equals(value)) {
         defined = false;
         return;
       }
@@ -157,11 +154,11 @@ public final class SMGJoin {
         value = entry.getKey();
       }
 
-      if (mergedExplicitValues.containsKey(value) && !mergedExplicitValues.get(value).equals(entry.getValue())) {
+      if (smg.getExplicitBySymbolic(value) != null && !smg.getExplicitBySymbolic(value).equals(entry.getValue())) {
         defined = false;
         return;
       }
-      mergedExplicitValues.put(value, entry.getValue());
+      smg.addExplicitValue(value, entry.getValue());
     }
   }
 
@@ -246,9 +243,5 @@ public final class SMGJoin {
 
   public CLangSMG getJointSMG() {
     return smg;
-  }
-
-  public Map<SMGKnownSymbolicValue, SMGKnownExpValue> getMergedExplicitValues() {
-    return mergedExplicitValues;
   }
 }

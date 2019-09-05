@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.BiMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -39,8 +36,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -62,7 +57,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * Returns mutable instance of subclass, with the given SMG and ExplicitValues. Changes to the
    * returned instance are independent of this immutable instance and do not change it.
    */
-  SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> pValues);
+  SMGState copyWith(CLangSMG pSmg);
 
   /**
    * Returns mutable instance of subclass, with the flag for blockEnd. Changes to the returned
@@ -128,8 +123,6 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   boolean isBlockEnded();
 
-  Set<Entry<SMGKnownSymbolicValue, SMGKnownExpValue>> getExplicitValues();
-
   @Override
   UnmodifiableSMGState join(UnmodifiableSMGState reachedState) throws SMGInconsistentException;
 
@@ -170,9 +163,9 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   PredRelation getErrorPredicateRelation();
 
-  boolean isExplicit(SMGKnownSymbolicValue value);
+  boolean isExplicit(SMGSymbolicValue value);
 
-  SMGExplicitValue getExplicit(SMGKnownSymbolicValue pKey);
+  SMGExplicitValue getExplicit(SMGSymbolicValue pKey);
 
   boolean hasMemoryErrors();
 

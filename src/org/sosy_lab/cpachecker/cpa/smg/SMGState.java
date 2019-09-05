@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -105,7 +103,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   private final int predecessorId;
   private final int id;
 
-  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues = HashBiMap.create();
   private final CLangSMG heap;
 
   private final boolean blockEnded;
@@ -137,7 +134,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         options,
         heap.copyOf(),
         id,
-        explicitValues,
         errorInfo.withErrorMessage(pErrorDescription),
         blockEnded);
   }
@@ -155,17 +151,15 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         pLogger,
         pOptions,
         new CLangSMG(pMachineModel),
-        ID_COUNTER.get(),
-        Collections.emptyMap());
+        ID_COUNTER.get());
   }
 
   public SMGState(
       LogManager pLogger,
       SMGOptions pOptions,
       CLangSMG pHeap,
-      int pPredId,
-      Map<SMGKnownSymbolicValue, SMGKnownExpValue> pMergedExplicitValues) {
-    this(pLogger, pOptions, pHeap, pPredId, pMergedExplicitValues, SMGErrorInfo.of(), false);
+      int pPredId) {
+    this(pLogger, pOptions, pHeap, pPredId, SMGErrorInfo.of(), false);
   }
 
   /** Copy constructor. */
@@ -174,7 +168,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGOptions pOptions,
       CLangSMG pHeap,
       int pPredId,
-      Map<SMGKnownSymbolicValue, SMGKnownExpValue> pExplicitValues,
       SMGErrorInfo pErrorInfo,
       boolean pBlockEnded) {
     options = pOptions;
@@ -182,9 +175,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     logger = pLogger;
     predecessorId = pPredId;
     id = ID_COUNTER.getAndIncrement();
-    Preconditions.checkArgument(!pExplicitValues.containsKey(null));
-    Preconditions.checkArgument(!pExplicitValues.containsValue(null));
-    explicitValues.putAll(pExplicitValues);
     errorInfo = pErrorInfo;
     blockEnded = pBlockEnded;
   }
@@ -195,24 +185,23 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
     id = ID_COUNTER.getAndIncrement();
-    explicitValues.putAll(pOriginalState.explicitValues);
     blockEnded = pOriginalState.blockEnded;
     errorInfo = pOriginalState.errorInfo.withProperty(pProperty);
   }
 
   @Override
   public SMGState copyOf() {
-    return new SMGState(logger, options, heap.copyOf(), id, explicitValues, errorInfo, blockEnded);
+    return new SMGState(logger, options, heap.copyOf(), id, errorInfo, blockEnded);
   }
 
   @Override
-  public SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> pValues) {
-    return new SMGState(logger, options, pSmg, id, pValues, errorInfo, blockEnded);
+  public SMGState copyWith(CLangSMG pSmg) {
+    return new SMGState(logger, options, pSmg, id, errorInfo, blockEnded);
   }
 
   @Override
   public SMGState copyWithBlockEnd(boolean isBlockEnd) {
-    return new SMGState(logger, options, heap.copyOf(), id, explicitValues, errorInfo, isBlockEnd);
+    return new SMGState(logger, options, heap.copyOf(), id, errorInfo, isBlockEnd);
   }
 
   @Override
@@ -221,7 +210,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return this;
     }
     SMGState result =
-        new SMGState(logger, options, heap, id, explicitValues);
+        new SMGState(logger, options, heap, id);
     result.errorInfo = result.errorInfo.mergeWith(pOther.errorInfo);
     return result;
   }
@@ -367,7 +356,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public String toDot(String pName, String pLocation) {
     SMGPlotter plotter = new SMGPlotter();
-    return plotter.smgAsDot(heap, pName, pLocation, explicitValues);
+    return plotter.smgAsDot(heap, pName, pLocation);
   }
 
   /**
@@ -1408,7 +1397,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     CLangSMG destHeap = join.getJointSMG();
 
-    return new SMGState(logger, options, destHeap, predecessorId, join.getMergedExplicitValues());
+    return new SMGState(logger, options, destHeap, predecessorId);
   }
 
   /**
@@ -1800,8 +1789,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public void identifyEqualValues(SMGKnownSymbolicValue pKnownVal1, SMGKnownSymbolicValue pKnownVal2) {
 
     assert !isInNeq(pKnownVal1, pKnownVal2);
-    assert !(explicitValues.get(pKnownVal1) != null &&
-        explicitValues.get(pKnownVal1).equals(explicitValues.get(pKnownVal2)));
+    assert !(heap.getExplicitBySymbolic(pKnownVal1) != null &&
+        heap.getExplicitBySymbolic(pKnownVal1).equals(heap.getExplicitBySymbolic(pKnownVal2)));
     assert !(heap.isPointer(pKnownVal1) && heap.isPointer(pKnownVal2));
 
     // Avoid remove NULL value and pointers on merge
@@ -1813,9 +1802,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     heap.replaceValue(pKnownVal1, pKnownVal2);
     Preconditions.checkArgument(!pKnownVal2.isZero());
-    SMGKnownExpValue expVal = explicitValues.remove(pKnownVal2);
+    SMGExplicitValue expVal = heap.getExplicitBySymbolic(pKnownVal2);
     if (expVal != null) {
-      explicitValues.put(pKnownVal1, expVal);
+      heap.removeExplicitValue(pKnownVal2);
+      heap.addExplicitValue(pKnownVal1, expVal);
     }
   }
 
@@ -1894,21 +1884,21 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @param pValue the value.
    * @return explicit value merged with pKey, or Null if not merged
    */
-  public SMGKnownSymbolicValue putExplicit(SMGKnownSymbolicValue pKey, SMGKnownExpValue pValue) {
+  public SMGSymbolicValue putExplicit(SMGKnownSymbolicValue pKey, SMGExplicitValue pValue) {
     Preconditions.checkNotNull(pKey);
     Preconditions.checkNotNull(pValue);
 
-    if (explicitValues.inverse().containsKey(pValue)) {
-      SMGKnownSymbolicValue symValue = explicitValues.inverse().get(pValue);
+    SMGSymbolicValue symValue = heap.getSymbolicByExplicit(pValue);
+    if (symValue != null) {
 
       if (!pKey.equals(symValue)) {
         if (symValue.isZero()) { // swap values, we prefer ZERO in the SMG.
           heap.replaceValue(symValue, pKey);
         } else {
           Preconditions.checkArgument(!symValue.isZero());
-          explicitValues.remove(symValue);
+          heap.removeExplicitValue(symValue);
           heap.replaceValue(pKey, symValue);
-          explicitValues.put(pKey, pValue);
+          heap.addExplicitValue(pKey, pValue);
           return symValue;
         }
       }
@@ -1916,33 +1906,32 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return null;
     }
 
-    explicitValues.put(pKey, pValue);
+    heap.addExplicitValue(pKey, pValue);
     return null;
   }
 
-  @Deprecated // unused
-  public void clearExplicit(SMGKnownSymbolicValue pKey) {
+  public void clearExplicit(SMGSymbolicValue pKey) {
     Preconditions.checkArgument(!pKey.isZero());
-    explicitValues.remove(pKey);
+    heap.removeExplicitValue(pKey);
   }
 
   @Override
-  public boolean isExplicit(SMGKnownSymbolicValue value) {
-    return explicitValues.containsKey(value);
+  public boolean isExplicit(SMGSymbolicValue value) {
+    return heap.getExplicitBySymbolic(value) != null;
   }
 
   @Override
   @Nullable
-  public SMGExplicitValue getExplicit(SMGKnownSymbolicValue pKey) {
-    return explicitValues.get(pKey);
+  public SMGExplicitValue getExplicit(SMGSymbolicValue pKey) {
+    return heap.getExplicitBySymbolic(pKey);
   }
 
   @Nullable
-  public SMGKnownSymbolicValue getSymbolicOfExplicit(SMGExplicitValue pExplicitValue) {
+  public SMGSymbolicValue getSymbolicOfExplicit(SMGExplicitValue pExplicitValue) {
     if (pExplicitValue.isZero()) {
       return SMGZeroValue.INSTANCE;
     }
-    return explicitValues.inverse().get(pExplicitValue);
+    return heap.getSymbolicByExplicit(pExplicitValue);
   }
 
   enum Property {
@@ -2190,10 +2179,5 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public UnmodifiableCLangSMG getHeap() {
     return heap;
-  }
-
-  @Override
-  public Set<Entry<SMGKnownSymbolicValue, SMGKnownExpValue>> getExplicitValues() {
-    return Collections.unmodifiableSet(explicitValues.entrySet());
   }
 }

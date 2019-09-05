@@ -31,6 +31,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -40,6 +42,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
@@ -53,6 +57,8 @@ public class SMG implements UnmodifiableSMG {
   private PersistentSet<SMGValue> values;
   private SMGHasValueEdges hv_edges;
   private SMGPointsToEdges pt_edges;
+  private PersistentMap<SMGSymbolicValue, SMGExplicitValue> explicitValues;
+  private PersistentMap<SMGExplicitValue, SMGSymbolicValue> explicitValuesReversed;
 
   /** {@link #validObjects} is a subset of {@link #objects} */
   private PersistentSet<SMGObject> validObjects;
@@ -82,6 +88,8 @@ public class SMG implements UnmodifiableSMG {
     validObjects = PersistentSet.of();
     externalObjectAllocation = PersistentSet.of();
     machine_model = pMachineModel;
+    explicitValues = PathCopyingPersistentTreeMap.of();
+    explicitValuesReversed = PathCopyingPersistentTreeMap.of();
 
     initializeNullObject();
     initializeNullAddress();
@@ -105,6 +113,8 @@ public class SMG implements UnmodifiableSMG {
     externalObjectAllocation = pHeap.externalObjectAllocation;
     objects = pHeap.objects;
     values = pHeap.values;
+    explicitValues = pHeap.explicitValues;
+    explicitValuesReversed = pHeap.explicitValuesReversed;
   }
 
   @Override
@@ -165,6 +175,7 @@ public class SMG implements UnmodifiableSMG {
     neq = neq.removeValueAndCopy(pValue);
     pathPredicate.removeValue(pValue);
     errorPredicate.removeValue(pValue);
+    removeExplicitValue(pValue);
     assert hv_edges.filter(SMGEdgeHasValueFilter.valueFilter(pValue)).isEmpty();
   }
   /**
@@ -400,6 +411,32 @@ public class SMG implements UnmodifiableSMG {
     return pt_edges;
   }
 
+  public SMGSymbolicValue getSymbolicByExplicit(SMGExplicitValue pExpValue) {
+    return explicitValuesReversed.get(pExpValue);
+  }
+
+  @Override
+  public PersistentMap<SMGSymbolicValue, SMGExplicitValue> getExplicitValuesMap() {
+    return explicitValues;
+  }
+
+  @Override
+  public SMGExplicitValue getExplicitBySymbolic(SMGValue pSymValue) {
+    return explicitValues.get(pSymValue);
+  }
+
+  public void addExplicitValue(SMGSymbolicValue pSymbolicValue, SMGExplicitValue pExplicitValue) {
+    explicitValues = explicitValues.putAndCopy(pSymbolicValue, pExplicitValue);
+    explicitValuesReversed = explicitValuesReversed.putAndCopy(pExplicitValue, pSymbolicValue);
+  }
+
+  public void removeExplicitValue(SMGValue pSymbolicValue) {
+    SMGExplicitValue explicitValue = explicitValues.get(pSymbolicValue);
+    if (explicitValue != null) {
+      explicitValues = explicitValues.removeAndCopy(pSymbolicValue);
+      explicitValuesReversed = explicitValuesReversed.removeAndCopy(explicitValue);
+    }
+  }
   /**
    * Getter for obtaining an object, pointed by a value pValue. Constant.
    *

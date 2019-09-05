@@ -354,7 +354,7 @@ public class SMGTransferRelation
           SMGState newStateWithReadSymbolicValue = stateValue.getSmgState();
           SMGSymbolicValue value = stateValue.getObject();
 
-          for (Pair<SMGState, SMGKnownSymbolicValue> newStateWithExpVal :
+          for (Pair<SMGState, SMGSymbolicValue> newStateWithExpVal :
               assignExplicitValueToSymbolicValue(
                   newStateWithReadSymbolicValue, callEdge, value, exp)) {
 
@@ -813,13 +813,13 @@ public class SMGTransferRelation
   }
 
   // Assign symbolic value to the explicit value calculated from pRvalue
-  private List<Pair<SMGState, SMGKnownSymbolicValue>> assignExplicitValueToSymbolicValue(
+  private List<Pair<SMGState, SMGSymbolicValue>> assignExplicitValueToSymbolicValue(
       SMGState pNewState, CFAEdge pCfaEdge, SMGSymbolicValue value, CRightHandSide pRValue)
       throws CPATransferException {
 
     SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
 
-    List<Pair<SMGState, SMGKnownSymbolicValue>> result = new ArrayList<>();
+    List<Pair<SMGState, SMGSymbolicValue>> result = new ArrayList<>();
 
     for (SMGExplicitValueAndState expValueAndState :
         expEvaluator.evaluateExplicitValue(pNewState, pCfaEdge, pRValue)) {
@@ -827,8 +827,8 @@ public class SMGTransferRelation
       SMGState newState = expValueAndState.getSmgState();
 
       if (!expValue.isUnknown()) {
-        SMGKnownSymbolicValue mergedSymValue =
-            newState.putExplicit((SMGKnownSymbolicValue) value, (SMGKnownExpValue) expValue);
+        SMGSymbolicValue mergedSymValue =
+            newState.putExplicit((SMGKnownSymbolicValue) value, expValue);
         result.add(Pair.of(newState, mergedSymValue));
       } else {
         result.add(Pair.of(newState, null));

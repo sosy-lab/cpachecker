@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -45,7 +43,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -67,10 +64,6 @@ public final class SMGIntersectStates {
 
   /** the destination SMG will be build up when calling {@link #intersect}. */
   private final CLangSMG destSMG;
-
-  /** the destination values will be build up when calling {@link #intersect}. */
-  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> destExplicitValues =
-      HashBiMap.create();
 
   /** initialize the intersection-process. */
   public SMGIntersectStates(UnmodifiableSMGState pSmgState1, UnmodifiableSMGState pSmgState2) {
@@ -198,7 +191,7 @@ public final class SMGIntersectStates {
       intersectHveEdgeWithTop(hve2, heap2, smgState2, mapping2);
     }
 
-    UnmodifiableSMGState pIntersectResult = smgState1.copyWith(destSMG, destExplicitValues);
+    UnmodifiableSMGState pIntersectResult = smgState1.copyWith(destSMG);
 
     return new SMGIntersectionResult(smgState1, smgState2, pIntersectResult, true);
   }
@@ -233,7 +226,7 @@ public final class SMGIntersectStates {
 
     SMGKnownSymbolicValue symVal = (SMGKnownSymbolicValue) pValue;
     if (pSmgState.isExplicit(symVal)) {
-      destExplicitValues.put(symVal, (SMGKnownExpValue) pSmgState.getExplicit(symVal));
+      destSMG.addExplicitValue(symVal, pSmgState.getExplicit(symVal));
     }
 
     if (pSmg.isPointer(pValue)) {
@@ -382,14 +375,14 @@ public final class SMGIntersectStates {
 
     if (!expVal1.isUnknown() && !expVal2.isUnknown()) {
       if (expVal1.equals(expVal2)) {
-        destExplicitValues.put(symDestVal, (SMGKnownExpValue) expVal1);
+        destSMG.addExplicitValue(symDestVal, expVal1);
       } else {
         return false;
       }
     } else if (!expVal1.isUnknown()) {
-      destExplicitValues.put(symDestVal, (SMGKnownExpValue) expVal1);
+      destSMG.addExplicitValue(symDestVal, expVal1);
     } else if (!expVal2.isUnknown()) {
-      destExplicitValues.put(symDestVal, (SMGKnownExpValue) expVal2);
+      destSMG.addExplicitValue(symDestVal, expVal2);
     }
 
     return true;

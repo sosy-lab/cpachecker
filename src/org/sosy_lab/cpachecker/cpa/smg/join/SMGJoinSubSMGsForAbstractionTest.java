@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import java.util.Set;
 import org.junit.Assert;
@@ -61,8 +60,7 @@ public class SMGJoinSubSMGsForAbstractionTest {
             logger,
             new SMGOptions(Configuration.defaultConfiguration()),
             smg,
-            0,
-            HashBiMap.create());
+            0);
 
     int NODE_SIZE = 64;
     int SEGMENT_LENGTH = 4;
