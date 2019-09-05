@@ -46,6 +46,7 @@ class SMGJoinFields {
   private final SMG newSMG1;
   private final SMG newSMG2;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
+  private boolean intersects = false;
 
   /** Algorithm 3 from FIT-TR-2012-04 */
   public SMGJoinFields(
@@ -81,6 +82,11 @@ class SMGJoinFields {
       newSMG2.addValue(edge.getValue());
       newSMG2.addHasValueEdge(edge);
     }
+
+    // Non covered by article corner case when values from different SMGs intersects
+    if (intersects) {
+      status = SMGJoinStatus.INCOMPARABLE;
+    }
   }
 
   public SMGJoinStatus getStatus() {
@@ -96,7 +102,7 @@ class SMGJoinFields {
   }
 
   @VisibleForTesting
-  public static SMGHasValueEdges mergeNonNullHasValueEdges(
+  public SMGHasValueEdges mergeNonNullHasValueEdges(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     SMGHasValueEdges returnSet = new SMGHasValueEdgeSet();
 
@@ -108,15 +114,24 @@ class SMGJoinFields {
     filterForSMG1.filterNotHavingValue(SMGZeroValue.INSTANCE);
 
     for (SMGEdgeHasValue edge : pSMG1.getHVEdges(filterForSMG1)) {
-      if (!pSMG2
-          .getHVEdges(filterForSMG2)
-          .getOverlapping(
-              new SMGEdgeHasValue(edge.getSizeInBits(), edge.getOffset(), pObj2, edge.getValue()))
-          .iterator()
-          .hasNext()) {
+      Iterable<SMGEdgeHasValue> overlapping =
+          pSMG2
+              .getHVEdges(filterForSMG2)
+              .getOverlapping(
+                  new SMGEdgeHasValue(
+                      edge.getSizeInBits(), edge.getOffset(), pObj2, edge.getValue()));
+      if (!overlapping.iterator().hasNext()) {
         returnSet =
             returnSet.addEdgeAndCopy(
                 new SMGEdgeHasValue(pSMG1.getMachineModel(), edge.getType(), edge.getOffset(), pObj2, SMGKnownSymValue.of()));
+      } else {
+        for (SMGEdgeHasValue next : overlapping) {
+          if (!next.getValue().isZero()
+              && (next.getOffset() != edge.getOffset()
+                  || next.getSizeInBits() != edge.getSizeInBits())) {
+            intersects = true;
+          }
+        }
       }
     }
 

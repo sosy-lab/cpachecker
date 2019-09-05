@@ -88,8 +88,12 @@ final class SMGJoinSubSMGs {
       SMGJoinFields.checkResultConsistency(inputSMG1, inputSMG2, pObj1, pObj2);
     }
 
+    if (status == SMGJoinStatus.INCOMPARABLE) {
+      defined = false;
+      return;
+    }
     /*
-     * After joinFields, the objects have identical set of fields. Therefore, to iterate
+     * After successful joinFields, the objects have identical set of fields. Therefore, to iterate
      * over them, it is sufficient to loop over HV set in the first SMG, and just
      * obtain the (always just single one) corresponding edge from the second
      * SMG.

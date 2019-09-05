@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
@@ -300,7 +301,13 @@ public class SMGJoinFieldsTest {
 
     smg2.addObject(object);
 
-    SMGHasValueEdges hvSet = SMGJoinFields.mergeNonNullHasValueEdges(smg1, smg2, object, object);
+    SMGJoinFields joinFields =
+        new SMGJoinFields(
+            new SMG(MachineModel.LINUX64),
+            new SMG(MachineModel.LINUX64),
+            SMGNullObject.INSTANCE,
+            SMGNullObject.INSTANCE);
+    SMGHasValueEdges hvSet = joinFields.mergeNonNullHasValueEdges(smg1, smg2, object, object);
     assertThat(hvSet).hasSize(2);
 
     boolean seenZero = false;
@@ -323,7 +330,13 @@ public class SMGJoinFieldsTest {
 
     smg2.addValue(value1);
     smg2.addHasValueEdge(smg1_4bFrom0ToV1);
-    hvSet = SMGJoinFields.mergeNonNullHasValueEdges(smg1, smg2, object, object);
+    SMGJoinFields joinFields1 =
+        new SMGJoinFields(
+            new SMG(MachineModel.LINUX64),
+            new SMG(MachineModel.LINUX64),
+            SMGNullObject.INSTANCE,
+            SMGNullObject.INSTANCE);
+    hvSet = joinFields1.mergeNonNullHasValueEdges(smg1, smg2, object, object);
     assertThat(hvSet).hasSize(1);
   }
 
