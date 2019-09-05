@@ -157,7 +157,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       logger.log(Level.WARNING, "Solver exception: " + e.getMessage());
       solverFailures.inc();
       externalRefinement.stop();
-      result = RefinementResult.createUnknown();
+      result = RefinementResult.createTrue();
     } catch (RefinementFailedException e) {
       logger.log(Level.WARNING, "Path is repeated, BAM is looped");
       pInput.getUsageInfo().setAsLooped();

@@ -127,10 +127,6 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
 
     List<UsageInfo> unreachableUsages = (List<UsageInfo>) r.getInfo(PathPairIterator.class);
 
-    if (unreachableUsages == null) {
-      unreachableUsages = (List<UsageInfo>) r.getInfo(SinglePathProvider.class);
-    }
-
     if (unreachableUsages != null && unreachableUsages.contains(second)) {
       logger.log(Level.FINE, "Usage " + secondUsageIterator + " is not reachable, remove it from container");
       secondUsageIterator.remove();
