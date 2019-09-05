@@ -26,7 +26,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
@@ -57,11 +57,12 @@ public abstract class ThreadModularPredicateRefiner implements Refiner {
     PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(pCpa, newConfig);
     ARGBasedRefiner refiner = factory.create(strategy);
 
-    return new ThreadModularCPARefiner(
+    return AbstractARGBasedRefiner.forARGBasedRefiner(
+        new ThreadModularCPARefiner(
         logger,
         strategy,
-        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, PredicateGlobalRefiner.class),
         config,
-        refiner);
+            refiner),
+        pCpa);
   }
 }

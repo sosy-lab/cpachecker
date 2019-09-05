@@ -22,16 +22,14 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,17 +40,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -60,7 +53,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "cpa.threadmodular.refinement")
-public class ThreadModularCPARefiner implements Refiner, StatisticsProvider {
+public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvider {
 
   @Option(
     secure = true,
@@ -78,12 +71,10 @@ public class ThreadModularCPARefiner implements Refiner, StatisticsProvider {
 
   private final LogManager logger;
   private final GlobalRefinementStrategy strategy;
-  private final ARGCPA argCPA;
 
   public ThreadModularCPARefiner(
       LogManager pLogger,
       GlobalRefinementStrategy pStrategy,
-      @NonNull ARGCPA pArgcpa,
       Configuration pConfig,
       ARGBasedRefiner pDelegate)
       throws InvalidConfigurationException {
@@ -91,33 +82,27 @@ public class ThreadModularCPARefiner implements Refiner, StatisticsProvider {
     pConfig.inject(this);
     logger = pLogger;
     strategy = pStrategy;
-    argCPA = pArgcpa;
     delegate = pDelegate;
   }
 
   @Override
-  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+  public CounterexampleInfo
+      performRefinementForPath(final ARGReachedSet pReached, final ARGPath allStatesTrace)
+          throws CPAException, InterruptedException {
     totalTime.start();
     try {
 
       int iterationCounter = 0;
-      List<AbstractState> targets =
-          FluentIterable.from(pReached).filter(AbstractStates.IS_TARGET_STATE).toList();
-      assert !targets.isEmpty();
-      Collection<CFANode> previousNodes = Collections.emptySet();
-
-      ARGReachedSet argReachedSet = new ARGReachedSet(pReached, argCPA);
+      Collection<CFANode> previousNodes = ImmutableSet.of();
       strategy.initializeGlobalRefinement();
+      CounterexampleInfo counterexample;
 
-      // Is it necessary to have more than one?
-      ARGPath refinedPath = ARGUtils.getOnePathTo((ARGState) targets.get(0));
-      assert refinedPath != null;
-
-      while (refinedPath != null) {
+      ARGPath refinedPath = allStatesTrace;
+      do {
         iterationCounter++;
         delegatingTime.start();
-        CounterexampleInfo counterexample =
-            delegate.performRefinementForPath(argReachedSet, refinedPath);
+        counterexample =
+            delegate.performRefinementForPath(pReached, refinedPath);
         delegatingTime.stop();
 
         // TODO fix handling of counterexamples
@@ -126,7 +111,7 @@ public class ThreadModularCPARefiner implements Refiner, StatisticsProvider {
           if (iterationCounter == 1) {
             // real ARG path
             strategy.resetGlobalRefinement();
-            return false;
+            return counterexample;
           } else {
             // need to rebuild abstraction with new predicates to obtain the potentially true path
             break;
@@ -147,10 +132,10 @@ public class ThreadModularCPARefiner implements Refiner, StatisticsProvider {
         modifingPathTime.start();
         refinedPath = modifyThePathWithEffects(refinedPath, newBlock);
         modifingPathTime.stop();
-      }
+      } while (refinedPath != null);
 
       strategy.updatePrecisionAndARG();
-      return true;
+      return counterexample;
 
     } finally {
       totalTime.stop();
