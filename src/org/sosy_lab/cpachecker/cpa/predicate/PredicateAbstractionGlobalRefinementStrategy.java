@@ -71,7 +71,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * they all need to be refined.
  */
 @Options(prefix = "cpa.predicate")
-class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrategy {
+public class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrategy {
 
   @Option(
     secure = true,
@@ -100,7 +100,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   private StatTimer precisionUpdate = new StatTimer(StatKind.SUM, "Precision update");
   private StatTimer argUpdate = new StatTimer(StatKind.SUM, "ARG update");
 
-  private ListMultimap<CFANode, AbstractionPredicate> newPredicates;
+  protected ListMultimap<CFANode, AbstractionPredicate> newPredicates;
   private ARGReachedSet reached;
   private ARGState refinementRoot;
 

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -49,8 +50,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionGlobalRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefinerFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -125,31 +126,28 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
   @Override
   public RefinementResult call(ExtendedARGPath pInput) throws CPAException, InterruptedException {
-    RefinementResult result;
+    RefinementResult result = RefinementResult.createTrue();
 
-    /*
-     * if (!totalARGCleaning) {
-     * subtreesRemover.addStateForRemoving((ARGState)target.getKeyState()); for (ARGState state :
-     * strategy.lastAffectedStates) { subtreesRemover.addStateForRemoving(state); } }
-     */
     try {
+      strategy.initializeGlobalRefinement();
       externalRefinement.start();
       CounterexampleInfo cex = refiner.performRefinementForPath(ARGReached, pInput);
       externalRefinement.stop();
 
-      if (!cex.isSpurious()) {
-        result = RefinementResult.createTrue();
-      } else {
+      if (cex.isSpurious()) {
         result = RefinementResult.createFalse();
         List<ARGState> affectedStates = strategy.getLastAffectedStates();
         if (!affectedStates.isEmpty()) {
           // it may be, if there are no valuable interpolants: ..., true, false, ...
           result.addInfo(PredicateRefinerAdapter.class, affectedStates);
-          PredicatePrecision lastPrecision = strategy.getLastPrecision();
+          PredicatePrecision lastPrecision = strategy.getNewPrecision();
           assert (lastPrecision != null);
+          assert (!lastPrecision.isEmpty());
           result.addPrecision(lastPrecision);
         }
       }
+
+      strategy.resetGlobalRefinement();
 
     } catch (IllegalStateException e) {
       // msat_solver return -1 <=> unknown
@@ -157,12 +155,10 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       logger.log(Level.WARNING, "Solver exception: " + e.getMessage());
       solverFailures.inc();
       externalRefinement.stop();
-      result = RefinementResult.createTrue();
     } catch (RefinementFailedException e) {
       logger.log(Level.WARNING, "Path is repeated, BAM is looped");
       pInput.getUsageInfo().setAsLooped();
       externalRefinement.stop();
-      result = RefinementResult.createTrue();
     }
     return result;
   }
@@ -181,7 +177,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   protected void handleFinishSignal(Class<? extends RefinementInterface> pCallerClass) {
     if (pCallerClass.equals(IdentifierIterator.class)) {
       ARGReached = null;
-      strategy.flush();
+      strategy.resetGlobalRefinement();
     }
   }
 
@@ -205,10 +201,9 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   }
 
   protected static class UsageStatisticsRefinementStrategy
-      extends PredicateAbstractionRefinementStrategy {
+      extends PredicateAbstractionGlobalRefinementStrategy {
 
-    private List<ARGState> lastAffectedStates = new ArrayList<>();
-    private PredicatePrecision lastAddedPrecision;
+    private List<ARGState> affectedStates = new ArrayList<>();
     private Function<ARGState, ARGState> transformer;
 
     public UsageStatisticsRefinementStrategy(
@@ -236,21 +231,25 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
           abstractionStatesTrace,
           pRepeatedCounterexample);
 
-        lastAffectedStates.clear();
         from(pAffectedStates)
           .transform(transformer)
-            .forEach(lastAffectedStates::add);
+          .forEach(affectedStates::add);
+    }
+
+    public PredicatePrecision getNewPrecision() {
+      PredicatePrecision newPrecision = PredicatePrecision.empty();
+      return newPrecision.addLocalPredicates(newPredicates.entries());
     }
 
     @Override
-    protected PredicatePrecision addPredicatesToPrecision(PredicatePrecision basePrecision) {
-      PredicatePrecision newPrecision = super.addPredicatesToPrecision(basePrecision);
-      lastAddedPrecision = (PredicatePrecision) newPrecision.subtract(basePrecision);
-      return newPrecision;
+    public void resetGlobalRefinement() {
+      super.resetGlobalRefinement();
+      affectedStates.clear();
     }
 
     @Override
-    protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot, ARGReachedSet pReached) throws InterruptedException {
+    protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot)
+        throws InterruptedException {
       //Do not update ARG for race analysis
     }
 
@@ -271,16 +270,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     }
 
     public List<ARGState> getLastAffectedStates() {
-      return lastAffectedStates;
-    }
-
-    public PredicatePrecision getLastPrecision() {
-      return lastAddedPrecision;
-    }
-
-    public void flush() {
-      lastAddedPrecision = null;
-      lastAffectedStates.clear();
+      return ImmutableList.copyOf(affectedStates);
     }
   }
 }
