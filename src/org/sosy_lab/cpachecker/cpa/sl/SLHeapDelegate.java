@@ -28,9 +28,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-public interface SLMemoryDelegate {
+public interface SLHeapDelegate {
 
 
 
@@ -49,10 +51,15 @@ public interface SLMemoryDelegate {
    * @param pNewLocation - formula representing the new memory location.
    * @param pOldLocation - formula representing the old memory location.
    * @param pSize - size of memory range in bytes.
+   * @param pContext - the context to be reallocated in.
    * @return true if memory was reallocated successfully, false otherwise.
    */
   public boolean
-      handleRealloc(Formula pNewLocation, Formula pOldLocation, BigInteger pSize)
+      handleRealloc(
+          Formula pNewLocation,
+          Formula pOldLocation,
+          BigInteger pSize,
+          PathFormula pContext)
       throws Exception;
 
   /**
@@ -73,9 +80,9 @@ public interface SLMemoryDelegate {
    * @param pMemoryLocation - name of the pointer to the allocated memory.
    * @return true if memory was freed successfully, false otherwise.
    */
-  public boolean handleFree(SLSolverDelegate pSolverDelegate, Formula pMemoryLocation)
+  public boolean
+      handleFree(SLFormulaBuilder pSolverDelegate, Formula pMemoryLocation, PathFormula pContext)
       throws Exception;
-
 
   /**
    * Checks whether the given address is allocated (on heap or stack). The associated value can be
@@ -84,104 +91,72 @@ public interface SLMemoryDelegate {
    * @param pMemoryLocation - formula representing the memory location to be checked.
    * @param pOffset - optional array offset, null otherwise.
    * @param pVal - optional value to be updated, null otherwise.
+   * @param pContext - the state's path formula to be checked in.
    *
    * @return The formula if allocated, null otherwise.
    */
   public Formula checkAllocation(
-      SLSolverDelegate pSolDel,
       Formula pMemoryLocation,
       Formula pOffset,
-      Formula pVal)
-      throws Exception;
-
-  /**
-   * Checks whether the given address is allocated on the heap. The associated value can be updated.
-   *
-   * @param pHeapLocation - formula representing the memory location to be checked.
-   * @param pOffset - optional array offset, null otherwise.
-   * @param pVal - optional value to be updated, null otherwise.
-   *
-   * @return The formula if allocated on the heap, null otherwise.
-   */
-  public Formula checkHeapAllocation(
-      SLSolverDelegate pSolDel,
-      Formula pHeapLocation,
-      Formula pOffset,
-      Formula pVal)
+      Formula pVal,
+      PathFormula pContext)
       throws Exception;
 
   /**
    * Checks whether the given address is allocated.
    *
-   * @see SLMemoryDelegate#checkAllocation(SLSolverDelegate, Formula, Formula, Formula)
+   * @see SLHeapDelegate#checkAllocation(SLFormulaBuilder, Formula, Formula, Formula, PathFormula)
    */
-  default public Formula checkHeapAllocation(SLSolverDelegate pSolDel, Formula pLocation)
-      throws Exception {
-    return checkHeapAllocation(pSolDel, pLocation, null, null);
+  default public Formula checkAllocation(Formula pLocation, PathFormula pContext) throws Exception {
+    return checkAllocation(pLocation, null, null, pContext);
   }
 
   /**
-   * Checks whether the given address is allocated on the stack. The associated value can be
-   * updated.
-   *
-   * @param pStackLocation - formula representing the memory location to be checked.
-   * @param pOffset - optional array offset, null otherwise.
-   * @param pVal - optional value to be updated, null otherwise.
-   *
-   * @return The formula if allocated on the heap, null otherwise.
-   */
-  public Formula checkStackAllocation(
-      SLSolverDelegate pSolDel,
-      Formula pStackLocation,
+   * Checks whether the given location is allocated.
+   **/
+  public boolean isAllocated(
+      Formula pLocation,
       Formula pOffset,
-      Formula pVal)
+      PathFormula pContext)
       throws Exception;
 
   /**
-   * Checks whether the given address is allocated on the stack.
+   * Checks whether the given location is allocated.
    *
-   * @see SLMemoryDelegate#checkAllocation(SLSolverDelegate, Formula, Formula, Formula)
+   * @see SLHeapDelegate#isAllocated(Formula, Formula)
    */
-  default public Formula checkStackAllocation(SLSolverDelegate pSolDel, Formula pLocation)
-      throws Exception {
-    return checkStackAllocation(pSolDel, pLocation, null, null);
+  default public boolean isAllocated(Formula pLocation, PathFormula pContext) throws Exception {
+    return isAllocated(pLocation, null, pContext);
   }
 
-  /**
-   * Checks whether the given address is allocated.
-   *
-   * @see SLMemoryDelegate#checkAllocation(SLSolverDelegate, Formula, Formula, Formula)
-   */
-  default public Formula checkAllocation(SLSolverDelegate pSolDel, Formula pLocation)
-      throws Exception {
-    return checkAllocation(pSolDel, pLocation, null, null);
-  }
 
   public Map<Formula, Formula> getHeap();
 
-  public Map<Formula, Formula> getStack();
-
-  /**
-   * Removes the given variable from the stack.
-   */
-  public void removeFromStack(Formula pVar);
-
-  /**
-   * A new range of consecutive fresh cells is allocated on the heap.
-   *
-   * @param pMemoryLocation - @Formula representing the memory location.
-   * @param pSize - size of the range.
-   * @param pType - type of the value to be stored on the heap.
-   * @param pInitWithZero - if true, the new added location is pointing to zero, otherwise to @null.
-   */
-  public void
-      addToStack(Formula pMemoryLocation, BigInteger pSize, CType pType, boolean pInitWithZero)
-          throws Exception;
-
-  public void handleAddressOf(Formula pVar, CType pType) throws Exception;
-
-  public static CExpression createSymbolicMemLoc(CSimpleDeclaration pDecl) {
+  public static CExpression createSymbolicLocation(CSimpleDeclaration pDecl) {
     CIdExpression e = new CIdExpression(FileLocation.DUMMY, pDecl);
     return new CUnaryExpression(FileLocation.DUMMY, pDecl.getType(), e, UnaryOperator.AMPER);
   }
+
+  /**
+   * Deallocates the given location from the heap.
+   *
+   * @param pLoc - Heap location to be deallocated.
+   */
+  public void removeFromHeap(Formula pLoc);
+
+  public BooleanFormula getHeapFormula();
+
+  public void addToHeap(Formula pHeapLocation, BigInteger pSize, boolean initWithZero)
+      throws Exception;
+
+  public void
+      addToHeap(Formula pHeapLocation, BigInteger pLength, CType pType, boolean pInitWithZero)
+      throws Exception;
+
+  /**
+   * Checks whether two formulae are semantically equivalent in the given state's context.
+   *
+   * @return f0 <=> f1
+   */
+  boolean checkEquivalence(Formula pF0, Formula pF1, PathFormula pContext);
 }

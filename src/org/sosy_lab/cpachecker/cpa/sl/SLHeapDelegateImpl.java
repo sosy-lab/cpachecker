@@ -26,38 +26,57 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SLFormulaManager;
 
-public class SLMemoryDelegateImpl implements SLMemoryDelegate {
+public class SLHeapDelegateImpl implements SLHeapDelegate {
 
   private final LogManager logger;
   private final MachineModel machineModel;
+  private final Solver solver;
+
   private final FormulaManagerView fm;
   private final BitvectorFormulaManager bvfm;
   private final IntegerFormulaManager ifm;
+  private final SLFormulaManager slfm;
+  private final BooleanFormulaManager bfm;
+
   private HashMap<Formula, Formula> heap = new HashMap<>();
-  private HashMap<Formula, Formula> stack = new HashMap<>();
   private final HashMap<Formula, BigInteger> allocationSizes = new HashMap<>();
 
-  public SLMemoryDelegateImpl(
+  private final FormulaType<BitvectorFormula> heapValueFormulaType =
+      FormulaType.getBitvectorTypeWithSize(16); // TODO BitVector Support
+  private final FormulaType<IntegerFormula> heapAddresFormulaType = FormulaType.IntegerType;
+
+  public SLHeapDelegateImpl(
       LogManager pLogger,
-      MachineModel pMachineModel,
-      FormulaManagerView pFm) {
+      Solver pSolver,
+      MachineModel pMachineModel) {
     logger = pLogger;
+    solver = pSolver;
     machineModel = pMachineModel;
-    fm = pFm;
+    fm = solver.getFormulaManager();
     bvfm = fm.getBitvectorFormulaManager();
     ifm = fm.getIntegerFormulaManager();
+    slfm = fm.getSLFormulaManager();
+    bfm = fm.getBooleanFormulaManager();
   }
 
   @Override
   public void handleMalloc(Formula pMemoryLocation, BigInteger pSize)
       throws Exception {
-    addToMemory(heap, pMemoryLocation, pSize, false);
+    addToHeap(pMemoryLocation, pSize, false);
   }
 
   @Override
@@ -65,122 +84,84 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
       handleRealloc(
           Formula pNewMemoryLocation,
           Formula pOldMemoryLocation,
-          BigInteger pSize)
+          BigInteger pSize,
+          PathFormula pContext)
           throws Exception {
-    if (!heap.containsKey(pOldMemoryLocation)) {
+    Formula f = checkAllocation(pOldMemoryLocation, pContext);
+    if (f == null) {
       logger.log(Level.SEVERE, "REALLOC() failed - address not allocated.");
       return false;
     }
-    removeFromMemory(heap, pOldMemoryLocation);
-    addToMemory(heap, pNewMemoryLocation, pSize, false);
+    removeFromHeap(pOldMemoryLocation);
+    addToHeap(pNewMemoryLocation, pSize, false);
     return true;
   }
 
   @Override
   public void handleCalloc(Formula pMemoryLocation, BigInteger pNum, BigInteger pSize)
       throws Exception {
-    addToMemory(heap, pMemoryLocation, pNum.multiply(pSize), true);
+    addToHeap(pMemoryLocation, pNum.multiply(pSize), true);
   }
 
   @Override
-  public void handleAddressOf(Formula pMemoryLocation, CType pType) throws Exception {
-    addToMemory(stack, pMemoryLocation, machineModel.getSizeof(pType), true);
-
-  }
-
-  private void removeFromMemory(Map<Formula, Formula> memory, Formula pAddrFormula) {
+  public void removeFromHeap(Formula pAddrFormula) {
     BigInteger size = allocationSizes.get(pAddrFormula);
     for (int i = 0; i < size.intValueExact(); i++) {
       if (i == 0) {
-        memory.remove(pAddrFormula);
+        heap.remove(pAddrFormula);
       } else {
         Formula tmp =
             bvfm.add((BitvectorFormula) pAddrFormula, bvfm.makeBitvector(size.bitLength(), i));
-        memory.remove(tmp);
+        heap.remove(tmp);
       }
     }
   }
 
-
   @Override
   public Formula checkAllocation(
-      SLSolverDelegate pSolDel,
       Formula pMemoryLocation,
       Formula pOffset,
-      Formula pVal)
+      Formula pVal,
+      PathFormula pContext)
       throws Exception {
     Formula fLoc = pMemoryLocation;
     if (pOffset != null) {
       fLoc = fm.makePlus(fLoc, pOffset);
     }
-    boolean match1 = pSolDel.checkAllocation(fLoc, heap);
-    if (match1) {
-
-    }
-
-    Formula match = checkMemoryForMatch(pSolDel, heap, fLoc, pVal);
-    return match != null ? match : checkMemoryForMatch(pSolDel, stack, fLoc, pVal);
+    return checkAllocation(fLoc, pVal, pContext);
   }
 
-  @Override
-  public Formula checkHeapAllocation(
-      SLSolverDelegate pSolDel,
-      Formula pHeapLocation,
-      Formula pOffset,
-      Formula pVal)
-      throws Exception {
-    if (pOffset != null) {
-      pHeapLocation = fm.makePlus(pHeapLocation, pOffset);
-    }
-
-    return checkMemoryForMatch(pSolDel, heap, pHeapLocation, pVal);
-  }
-
-  @Override
-  public Formula checkStackAllocation(
-      SLSolverDelegate pSolDel,
-      Formula pStackLocation,
-      Formula pOffset,
-      Formula pVal)
-      throws Exception {
-    if (pOffset != null) {
-      pStackLocation = fm.makePlus(pStackLocation, pOffset);
-    }
-    return checkMemoryForMatch(pSolDel, stack, pStackLocation, pVal);
-  }
-
-  private Formula checkMemoryForMatch(
-      SLSolverDelegate pSolDel,
-      Map<Formula, Formula> pMemory,
+  private Formula checkAllocation(
       Formula fLoc,
-      Formula pVal) {
+      Formula pVal,
+      PathFormula pContext) {
     // Syntactical check for performance.
-    if (pMemory.containsKey(fLoc)) {
+    if (heap.containsKey(fLoc)) {
       if (pVal != null) {
-        pMemory.put(fLoc, pVal);
+        heap.put(fLoc, pVal);
       }
       return fLoc;
     }
     // Semantical check.
-    for (Formula formulaOnMemory : pMemory.keySet()) {
-      if (pSolDel.checkEquivalence(fLoc, formulaOnMemory)) {
+    for (Formula formulaOnHeap : heap.keySet()) {
+      if (checkEquivalence(fLoc, formulaOnHeap, pContext)) {
         if (pVal != null) {
-          pMemory.put(formulaOnMemory, pVal);
+          heap.put(formulaOnHeap, pVal);
         }
-        return formulaOnMemory;
+        return formulaOnHeap;
       }
     }
     return null;
-
   }
 
   @Override
-  public boolean handleFree(SLSolverDelegate pSolDel, Formula pLocation) throws Exception {
-    Formula loc = checkAllocation(pSolDel, pLocation);
+  public boolean handleFree(SLFormulaBuilder pSolDel, Formula pLocation, PathFormula pContext)
+      throws Exception {
+    Formula loc = checkAllocation(pLocation, pContext);
     if (loc == null) {
       return false;
     }
-    removeFromMemory(heap, loc);
+    removeFromHeap(loc);
     return true;
   }
 
@@ -190,39 +171,85 @@ public class SLMemoryDelegateImpl implements SLMemoryDelegate {
   }
 
   @Override
-  public Map<Formula, Formula> getStack() {
-    return stack;
-  }
-
-  @Override
-  public void removeFromStack(Formula pVar) {
-    removeFromMemory(stack, pVar);
-  }
-
-  private void addToMemory(
-      Map<Formula, Formula> memory,
-      Formula pMemoryLocation,
-      BigInteger pLength,
-      boolean pInitWithZero)
-      throws Exception {
-
-    for (int i = 0; i < pLength.intValueExact(); i++) {
-      Formula f = pMemoryLocation;
+  public void addToHeap(Formula pHeapLocation, BigInteger pSize, boolean initWithZero) {
+    for (int i = 0; i < pSize.intValueExact(); i++) {
+      Formula f = pHeapLocation;
       if (i > 0) {
-        // stack and heap of bytes/chars.
-        f = bvfm.add((BitvectorFormula) pMemoryLocation, bvfm.makeBitvector(8, i));
+        // heap of bytes/chars.
+        f = bvfm.add((BitvectorFormula) f, bvfm.makeBitvector(16, i));
       } else {
-        allocationSizes.put(f, pLength);
+        allocationSizes.put(f, pSize);
       }
-      memory.put(f, pInitWithZero ? ifm.makeNumber(0) : null);
+
+      heap.put(f, initWithZero ? ifm.makeNumber(0) : ifm.makeNumber(0)); // TODO nil element
     }
   }
 
   @Override
-  public void
-      addToStack(Formula pMemoryLocation, BigInteger pLength, CType pType, boolean pInitWithZero)
-          throws Exception {
+  public void addToHeap(
+      Formula pHeapLocation,
+      BigInteger pLength,
+      CType pType,
+      boolean initWithZero)
+      throws Exception {
+
     BigInteger length = pLength.multiply(machineModel.getSizeof(pType));
-    addToMemory(stack, pMemoryLocation, length, pInitWithZero);
+    addToHeap(pHeapLocation, length, initWithZero);
+  }
+
+  @Override
+  public boolean isAllocated(Formula pLocation, Formula pOffset, PathFormula pContext)
+      throws Exception {
+    BooleanFormula heapFormula = getHeapFormula();
+    BooleanFormula toBeChecked =
+        slfm.makePointsTo(pLocation, ifm.makeNumber(0));
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+      prover.addConstraint(pContext.getFormula());
+      prover.addConstraint(slfm.makeStar(toBeChecked, heapFormula));
+      return prover.isUnsat();
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, e.getMessage());
+    }
+    return false;
+  }
+
+  /***
+   * Generates a SL heap formula.
+   *
+   * @return Formula - key0->val0 * key1->val1 * ... * keyX->valX
+   */
+  @Override
+  public BooleanFormula getHeapFormula() {
+    BooleanFormula formula = slfm.makeEmptyHeap(heapAddresFormulaType, heapValueFormulaType);
+    for (Formula f : heap.keySet()) {
+      Formula target = heap.get(f);
+      BooleanFormula ptsTo =
+          slfm.makePointsTo(f, target != null ? target : ifm.makeNumber(0));
+      formula = slfm.makeStar(formula, ptsTo);
+    }
+    return formula;
+  }
+
+  @Override
+  public boolean checkEquivalence(Formula pF0, Formula pF1, PathFormula pContext) {
+    BooleanFormula tmp = fm.makeEqual(pF0, pF1);
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+      prover.addConstraint(pContext.getFormula());
+      prover.addConstraint(tmp);
+      if (prover.isUnsat()) {
+        return false;
+      }
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, e.getMessage());
+    }
+    // Check tautology.
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+      prover.addConstraint(pContext.getFormula());
+      prover.addConstraint(bfm.not(tmp));
+      return prover.isUnsat();
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, e.getMessage());
+    }
+    return false;
   }
 }

@@ -20,51 +20,44 @@
 package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
-import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-public interface SLSolverDelegate {
+public interface SLFormulaBuilder {
 
   /**
    * Evaluates a CEpression's numeric value.
    *
    * @param pExp - The expression to be evaluated.
+   * @param pContext - The context to be evaluated in.
    * @return numeric value
    */
-  public BigInteger getValueForCExpression(CExpression pExp) throws Exception;
-
-  /**
-   * Checks whether two formulae are semantically equivalent in the current state's context.
-   *
-   * @return f0 <=> f1
-   */
-  public boolean checkEquivalence(Formula f0, Formula f1);
+  public BigInteger getValueForCExpression(CExpression pExp, PathFormula pContext) throws Exception;
 
   /**
    * Returns a formula for the given variable name
    *
    * @param pVariable - the variable name.
-   * @param addFctName - adds the function scope to the formula (e.g. @null for global variables).
-   * @param succSsaIndex - whether the formula should be generated using the successor's @SSAMap.
+   * @param addFctScope - adds the function scope to the formula (e.g. @null for global variables).
+   * @param pContext - The context to be evaluated in.
    * @return formula of variable
    */
   public Formula
-      getFormulaForVariableName(String pVariable, boolean addFctName, boolean succSsaIndex);
+      getFormulaForVariableName(String pVariable, boolean addFctScope, PathFormula pContext);
 
   default public Formula
-      getFormulaForExpression(CIdExpression pExp, boolean addFctName, boolean succSsaIndex) {
-    return getFormulaForVariableName(pExp.getName(), addFctName, succSsaIndex);
+      getFormulaForExpression(CIdExpression pExp, boolean addFctScope, PathFormula pContext) {
+    return getFormulaForVariableName(pExp.getName(), addFctScope, pContext);
   }
 
   /**
    *
    * @param pExp - the expression.
-   * @param hasNextSsaIndex - pass true, if the formula should have the SSAIndices of the successor.
+   * @param pContext - The context to be evaluated in.
    * @return Formula - the formula representing the given @Expression.
    */
-  public Formula getFormulaForExpression(CExpression pExp, boolean hasNextSsaIndex) throws Exception;
+  public Formula getFormulaForExpression(CExpression pExp, PathFormula pContext) throws Exception;
 
-  public boolean checkAllocation(Formula pFormula, Map<Formula, Formula> pHeap);
 }

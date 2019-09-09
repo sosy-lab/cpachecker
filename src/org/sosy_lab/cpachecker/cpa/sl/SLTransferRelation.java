@@ -24,7 +24,6 @@ import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -59,31 +58,24 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.SLFormulaManager;
 
 public class SLTransferRelation
     extends ForwardingTransferRelation<Collection<SLState>, SLState, Precision>
-    implements SLSolverDelegate {
+    implements SLFormulaBuilder {
 
   private final LogManager logger;
   private final Solver solver;
   private final PathFormulaManager pfm;
   private final FormulaManagerView fm;
-  private final BooleanFormulaManager bfm;
   private final BitvectorFormulaManager bvfm;
-  private final IntegerFormulaManager ifm;
-  private final SLFormulaManager slfm;
 
   private final SLVisitor slVisitor;
-  private final SLMemoryDelegate memDel;
+  private final SLHeapDelegate memDel;
 
   private PathFormula pathFormula;
-  private PathFormula pathFormulaPrev;
   private CFAEdge edge;
 
 
@@ -91,14 +83,11 @@ public class SLTransferRelation
       LogManager pLogger,
       Solver pSolver,
       PathFormulaManager pPfm,
-      SLMemoryDelegate pMemDel) {
+      SLHeapDelegate pMemDel) {
     logger = pLogger;
     solver = pSolver;
     fm = solver.getFormulaManager();
-    bfm = fm.getBooleanFormulaManager();
     bvfm = fm.getBitvectorFormulaManager();
-    ifm = fm.getIntegerFormulaManager();
-    slfm = fm.getSLFormulaManager();
     pfm = pPfm;
     memDel = pMemDel;
     slVisitor = new SLVisitor(this, pMemDel);
@@ -108,13 +97,15 @@ public class SLTransferRelation
   protected void
       setInfo(AbstractState pAbstractState, Precision pAbstractPrecision, CFAEdge pCfaEdge) {
     super.setInfo(pAbstractState, pAbstractPrecision, pCfaEdge);
-    pathFormulaPrev = pfm.makeAnd(state.getPathFormula(), bfm.makeTrue());
+
+    // pathFormulaPred = pfm.makeAnd(state.getPathFormula(), bfm.makeTrue()); // clone
     try {
       pathFormula = pfm.makeAnd(state.getPathFormula(), pCfaEdge);
     } catch (CPATransferException | InterruptedException e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
     edge = pCfaEdge;
+    slVisitor.setPathFormulae(pathFormula, state.getPathFormula());
   }
 
   @Override
@@ -124,19 +115,19 @@ public class SLTransferRelation
       Set<CSimpleDeclaration> vars = pEdge.getSuccessor().getOutOfScopeVariables();
       for (CSimpleDeclaration outOfScopeVar : vars) {
         CType varType = outOfScopeVar.getType();
-        Formula f = getFormulaForVariableName(outOfScopeVar.getName(), true, true);
+        Formula f = getFormulaForVariableName(outOfScopeVar.getName(), true, pathFormula);
         if (varType instanceof CPointerType || varType instanceof CArrayType) {
           // Check if a pointer to allocated heap memory is dropped.
           try {
-            Formula loc = memDel.checkHeapAllocation(this, f);
+            Formula loc = memDel.checkAllocation(f, pathFormula);
             if (loc != null) {
               // Check if a copy of the dropped heap pointer exists.
               boolean eqFound = false;
               for (CSimpleDeclaration inScopePtr : slVisitor.getInScopePtrs()) {
-                Formula varFormula = getFormulaForVariableName(inScopePtr.getName(), true, false);// TODO
-                                                                                                  // check
-                                                                                                  // flags
-                if (!varFormula.equals(f) && checkEquivalence(loc, varFormula, pathFormula)) {
+                Formula varFormula =
+                    getFormulaForVariableName(inScopePtr.getName(), true, pathFormula);
+                if (!varFormula.equals(f)
+                    && memDel.checkEquivalence(loc, varFormula, pathFormula)) {
                   eqFound = true;
                   break;
                 }
@@ -151,13 +142,13 @@ public class SLTransferRelation
           }
         }
 
-        // Remove from stack
+        // Remove from heap.
         try {
-          CExpression e = SLMemoryDelegate.createSymbolicMemLoc(outOfScopeVar);
-          Formula loc = getFormulaForExpression(e, true);
-          memDel.removeFromStack(loc);
+          CExpression e = SLHeapDelegate.createSymbolicLocation(outOfScopeVar);
+          Formula loc = getFormulaForExpression(e, pathFormula);
+          memDel.removeFromHeap(loc);
           if (varType instanceof CArrayType) {
-            memDel.removeFromStack(getFormulaForVariableName(outOfScopeVar.getName(), true, false));
+            memDel.removeFromHeap(f);
           }
         } catch (Exception e1) {
           logger.log(Level.SEVERE, e1.getMessage());
@@ -177,8 +168,8 @@ public class SLTransferRelation
   @Override
   protected void resetInfo() {
     super.resetInfo();
+    slVisitor.setPathFormulae(null, null);
     pathFormula = null;
-    pathFormulaPrev = null;
     edge = null;
   }
 
@@ -193,7 +184,7 @@ public class SLTransferRelation
       logger.log(Level.SEVERE, e.getMessage());
     }
     return ImmutableList
-        .of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), error));
+        .of(new SLState(pathFormula, memDel.getHeap(), error));
   }
 
   @Override
@@ -206,7 +197,7 @@ public class SLTransferRelation
     // TODO Auto-generated method stub. Not yet implemented.
     // return super.handleFunctionCallEdge(pCfaEdge, pArguments, pParameters, pCalledFunctionName);
     return Collections
-        .singleton(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), null));
+        .singleton(new SLState(pathFormula, memDel.getHeap(), null));
   }
 
   @Override
@@ -219,7 +210,7 @@ public class SLTransferRelation
     // TODO Auto-generated method stub. Not yet implemented.
     // return super.handleFunctionReturnEdge(pCfaEdge, pFnkCall, pSummaryExpr, pCallerFunctionName);
     return Collections
-        .singleton(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), null));
+        .singleton(new SLState(pathFormula, memDel.getHeap(), null));
   }
 
   @Override
@@ -233,7 +224,7 @@ public class SLTransferRelation
       logger.log(Level.SEVERE, e.getMessage());
     }
     return ImmutableList
-        .of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), error));
+        .of(new SLState(pathFormula, memDel.getHeap(), error));
   }
 
   @Override
@@ -248,29 +239,30 @@ public class SLTransferRelation
       logger.log(Level.SEVERE, e.getMessage());
     }
     return ImmutableList
-        .of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), error));
+        .of(new SLState(pathFormula, memDel.getHeap(), error));
   }
 
   @Override
   protected Collection<SLState> handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
-    return ImmutableList.of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), null));
+    return ImmutableList.of(new SLState(pathFormula, memDel.getHeap(), null));
   }
 
   @Override
   protected Set<SLState> handleBlankEdge(BlankEdge pCfaEdge) {
     return Collections
-        .singleton(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), null));
+        .singleton(new SLState(pathFormula, memDel.getHeap(), null));
   }
 
   @Override
-  public BigInteger getValueForCExpression(CExpression pExp) throws Exception {
-    Formula f = pfm.expressionToFormula(pathFormulaPrev, pExp, edge);
+  public BigInteger getValueForCExpression(CExpression pExp, PathFormula pContext)
+      throws Exception {
+    Formula f = pfm.expressionToFormula(pContext, pExp, edge);
     final String dummyVarName = "0_allocationSize";
     f = fm.makeEqual(bvfm.makeVariable(32, dummyVarName), f);
 
     try(ProverEnvironment env = solver.newProverEnvironment()) {
-      env.addConstraint(pathFormulaPrev.getFormula());
+      env.addConstraint(pContext.getFormula());
       env.addConstraint((BooleanFormula) f);
       if (!env.isUnsat()) {
         List<ValueAssignment> assignments = env.getModelAssignments();
@@ -289,78 +281,19 @@ public class SLTransferRelation
     return null;
   }
 
-  @Override
-  public boolean checkEquivalence(Formula pF0, Formula pF1) {
-    return checkEquivalence(pF0, pF1, pathFormulaPrev);
-  }
-
-  private boolean checkEquivalence(Formula pF0, Formula pF1, PathFormula pContext) {
-    BooleanFormula tmp = fm.makeEqual(pF0, pF1);
-    try (ProverEnvironment prover = solver.newProverEnvironment()) {
-      prover.addConstraint(pContext.getFormula());
-      prover.addConstraint(tmp);
-      if (prover.isUnsat()) {
-        return false;
-      }
-    } catch (Exception e) {
-      logger.log(Level.SEVERE, e.getMessage());
-    }
-    // Check tautology.
-    try (ProverEnvironment prover = solver.newProverEnvironment()) {
-      prover.addConstraint(pContext.getFormula());
-      prover.addConstraint(bfm.not(tmp));
-      return prover.isUnsat();
-    } catch (Exception e) {
-      logger.log(Level.SEVERE, e.getMessage());
-    }
-    return false;
-  }
 
   @Override
   public Formula
-      getFormulaForVariableName(String pVariable, boolean addFctName, boolean succSsaIndex) {
+      getFormulaForVariableName(String pVariable, boolean addFctScope, PathFormula pContext) {
 
-    String var = addFctName ? functionName + "::" + pVariable : pVariable;
-      CType type = pathFormula.getSsa().getType(var);
-    return succSsaIndex
-        ? pfm.makeFormulaForVariable(pathFormula, var, type)
-        : pfm.makeFormulaForVariable(pathFormulaPrev, var, type);
+    String var = addFctScope ? functionName + "::" + pVariable : pVariable;
+    CType type = pContext.getSsa().getType(var);
+    return pfm.makeFormulaForVariable(pContext, var, type);
   }
 
   @Override
-  public Formula getFormulaForExpression(CExpression pExp, boolean succSsaIndex)
+  public Formula getFormulaForExpression(CExpression pExp, PathFormula pContext)
       throws UnrecognizedCodeException {
-    return succSsaIndex
-        ? pfm.expressionToFormula(pathFormula, pExp, edge)
-        : pfm.expressionToFormula(pathFormulaPrev, pExp, edge);
+    return pfm.expressionToFormula(pContext, pExp, edge);
   }
-
-  /***
-   * Generates a SL heap formula.
-   *
-   * @param pMap - heap represented by map.
-   * @return Formula - key0->val0 * key1->val1 * ... * keyX->valX
-   */
-  public BooleanFormula getHeapFormulaForMap(Map<Formula, Formula> pMap) {
-    BooleanFormula formula = slfm.makeEmptyHeap(null, null);
-    for (Formula f : pMap.keySet()) {
-      BooleanFormula ptsTo = slfm.makePointsTo(f, pMap.get(f));
-      formula = slfm.makeStar(formula, ptsTo);
-    }
-    return formula;
-  }
-
-  @Override
-  public boolean checkAllocation(Formula pFormula, Map<Formula, Formula> pHeap) {
-    BooleanFormula heapFormula = getHeapFormulaForMap(pHeap);
-    BooleanFormula toBeChecked = slfm.makePointsTo(pFormula, slfm.makeNilElement(null));
-    try (ProverEnvironment prover = solver.newProverEnvironment()) {
-      prover.addConstraint(slfm.makeStar(toBeChecked, heapFormula));
-      return prover.isUnsat();
-    } catch (Exception e) {
-      logger.log(Level.SEVERE, e.getMessage());
-    }
-    return false;
-  }
-
 }

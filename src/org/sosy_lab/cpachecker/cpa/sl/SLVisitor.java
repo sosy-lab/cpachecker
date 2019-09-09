@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 /**
@@ -74,15 +75,19 @@ import org.sosy_lab.java_smt.api.Formula;
  */
 public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
 
-  private final SLMemoryDelegate memDelegate;
-  private final SLSolverDelegate solDelegate;
+  private final SLHeapDelegate heapDelegate;
+  private final SLFormulaBuilder builder;
   private CLeftHandSide curLHS;
   private CRightHandSide curRHS;
+  private PathFormula pf;
+  private PathFormula pfPred;
   private final Set<CSimpleDeclaration> inScopePtrs = new HashSet<>();
 
-  public SLVisitor(SLSolverDelegate pSolDelegate, SLMemoryDelegate pMemDelegate) {
-    solDelegate = pSolDelegate;
-    memDelegate = pMemDelegate;
+
+
+  public SLVisitor(SLFormulaBuilder pFormulaBuilder, SLHeapDelegate pMemDelegate) {
+    builder = pFormulaBuilder;
+    heapDelegate = pMemDelegate;
   }
 
   @Override
@@ -137,33 +142,37 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
         if (curLHS == null) {
           return SLStateError.UNFREED_MEMORY;
         }
-        loc = solDelegate.getFormulaForExpression(curLHS, true);
-        length = solDelegate.getValueForCExpression(params.get(0));
-        memDelegate.handleMalloc(loc, length);
+        loc = builder.getFormulaForExpression(curLHS, pfPred);
+        length = builder.getValueForCExpression(params.get(0), pfPred);
+        heapDelegate.handleMalloc(loc, length);
         break;
 
       case CALLOC:
         if (curLHS == null) {
           return SLStateError.UNFREED_MEMORY;
         }
-        loc = solDelegate.getFormulaForExpression(curLHS, true);
-        length = solDelegate.getValueForCExpression(params.get(0));
-        final BigInteger size = solDelegate.getValueForCExpression(params.get(1));
-        memDelegate.handleCalloc(loc, length, size);
+        loc = builder.getFormulaForExpression(curLHS, pf);
+        length = builder.getValueForCExpression(params.get(0), pfPred);
+        final BigInteger size = builder.getValueForCExpression(params.get(1), pfPred);
+        heapDelegate.handleCalloc(loc, length, size);
         break;
 
       case REALLOC:
         if (curLHS == null) {
           return SLStateError.UNFREED_MEMORY;
         }
-        loc = solDelegate.getFormulaForExpression(curLHS, true);
-        final Formula oldLoc = solDelegate.getFormulaForExpression(params.get(0), false);
-        length = solDelegate.getValueForCExpression(params.get(1));
-        return memDelegate.handleRealloc(loc, oldLoc, length) ? null : SLStateError.INVALID_DEREF;
+        loc = builder.getFormulaForExpression(curLHS, pf);
+        final Formula oldLoc = builder.getFormulaForExpression(params.get(0), pfPred);
+        length = builder.getValueForCExpression(params.get(1), pfPred);
+        return heapDelegate.handleRealloc(loc, oldLoc, length, pfPred)
+            ? null
+            : SLStateError.INVALID_DEREF;
 
       case FREE:
-        loc = solDelegate.getFormulaForExpression(params.get(0), false);
-        return memDelegate.handleFree(solDelegate, loc) ? null : SLStateError.INVALID_DEREF;
+        loc = builder.getFormulaForExpression(params.get(0), pfPred);
+        return heapDelegate.handleFree(builder, loc, pfPred)
+            ? null
+            : SLStateError.INVALID_DEREF;
 
       default:
         break;
@@ -218,14 +227,6 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
   @Override
   public SLStateError visit(CUnaryExpression pIastUnaryExpression) throws Exception {
     CExpression operand = pIastUnaryExpression.getOperand();
-    // switch (pIastUnaryExpression.getOperator()) {
-    // case AMPER:
-    // Formula f = solDelegate.getFormulaForExpression(curLHS, true);
-    // memDelegate.handleAddressOf(f, operand.getExpressionType());
-    // break;
-    // default:
-    // break;
-    // }
     return operand.accept(this);
   }
 
@@ -251,11 +252,11 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
     }
 
     CExpression arrayExp = pIastArraySubscriptExpression.getArrayExpression();
-    Formula loc = solDelegate.getFormulaForExpression(arrayExp, false);
-    Formula offset = solDelegate.getFormulaForExpression(subscriptExp, false);
+    Formula loc = builder.getFormulaForExpression(arrayExp, pfPred);
+    Formula offset = builder.getFormulaForExpression(subscriptExp, pfPred);
     Formula val = null;
     if (curLHS == pIastArraySubscriptExpression) {
-      val = solDelegate.getFormulaForExpression((CExpression) curRHS, false);
+      val = builder.getFormulaForExpression((CExpression) curRHS, pfPred);
     }
     // Formula heapLoc = memDelegate.checkHeapAllocation(solDelegate, loc, offset, val);
     // if (heapLoc == null) {
@@ -271,7 +272,7 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
     // : null;
     // }
     // return null;
-    return memDelegate.checkAllocation(solDelegate, loc, offset, val) == null
+    return heapDelegate.checkAllocation(loc, offset, val, pfPred) == null
         ? SLStateError.INVALID_DEREF
         : null;
   }
@@ -280,8 +281,8 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
   public SLStateError visit(CFieldReference pIastFieldReference) throws Exception {
     if (pIastFieldReference.isPointerDereference()) {
       CExpression e = pIastFieldReference.getFieldOwner();
-      Formula loc = solDelegate.getFormulaForExpression(e, false);
-      return memDelegate.checkAllocation(solDelegate, loc, null, null) == null
+      Formula loc = builder.getFormulaForExpression(e, pfPred);
+      return heapDelegate.checkAllocation(loc, null, null, pfPred) == null
           ? SLStateError.INVALID_DEREF
           : null;
     }
@@ -311,12 +312,12 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
     if (error != null) {
       return error;
     }
-    Formula loc = solDelegate.getFormulaForExpression(operand, false);
+    Formula loc = builder.getFormulaForExpression(operand, pfPred);
     Formula val = null;
     if (curLHS == pPointerExpression) {
-      val = solDelegate.getFormulaForExpression((CExpression) curRHS, false);
+      val = builder.getFormulaForExpression((CExpression) curRHS, pfPred);
     }
-    return memDelegate.checkAllocation(solDelegate, loc, null, val) == null
+    return heapDelegate.checkAllocation(loc, null, val, pfPred) == null
         ? SLStateError.INVALID_DEREF
         : null;
   }
@@ -361,18 +362,18 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
         CArrayType aType = (CArrayType) type;
         type = aType.asPointerType();
         OptionalInt s = aType.getLengthAsInt();
-        BigInteger size =
+        BigInteger length =
             s.isPresent()
                 ? BigInteger.valueOf(s.getAsInt())
-                : solDelegate.getValueForCExpression(aType.getLength());
-        Formula fArray = solDelegate.getFormulaForExpression(curLHS, true);
-        memDelegate.addToStack(fArray, size, aType.getType(), true);
+                : builder.getValueForCExpression(aType.getLength(), pfPred);
+        Formula fArray = builder.getFormulaForExpression(curLHS, pf);
+        heapDelegate.addToHeap(fArray, length, aType.getType(), false);
       }
     }
 
-    CExpression e = SLMemoryDelegate.createSymbolicMemLoc(pDecl);
-    Formula f = solDelegate.getFormulaForExpression(e, false);
-    memDelegate.addToStack(f, BigInteger.ONE, type, true);
+    CExpression e = SLHeapDelegate.createSymbolicLocation(pDecl);
+    Formula f = builder.getFormulaForExpression(e, pfPred);
+    heapDelegate.addToHeap(f, BigInteger.ONE, type, true);
 
     CInitializer i = pDecl.getInitializer();
     SLStateError error = i != null ? i.accept(this) : null;
@@ -441,6 +442,11 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
 
   public void removePtr(CSimpleDeclaration pPtr) {
     inScopePtrs.remove(pPtr);
+  }
+
+  public void setPathFormulae(PathFormula pPathFormula, PathFormula pPathFormulaPred) {
+    pf = pPathFormula;
+    pfPred = pPathFormulaPred;
   }
 }
 
