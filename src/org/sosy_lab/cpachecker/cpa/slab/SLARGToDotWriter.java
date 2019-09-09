@@ -232,18 +232,6 @@ public class SLARGToDotWriter {
             // stay in state 2
           }
           break;
-        case 3:
-          assert false;
-          if (currentLocation != lastNumber + 1) {
-            builder.append("-").append(lastNumber).append(",").append(currentLocation);
-            state = 1;
-          } else if (currentLocation == locationNumbers.last()) {
-            builder.append("-").append(currentLocation);
-            state = -1; // we should be finished, next transition would lead to exception
-          } else {
-            // stay in state 3
-          }
-          break;
         default:
           throw new RuntimeException("Unexpected state in location string generation automaton");
       }
