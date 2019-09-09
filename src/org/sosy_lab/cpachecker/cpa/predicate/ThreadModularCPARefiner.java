@@ -94,7 +94,7 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
 
       int iterationCounter = 0;
       Collection<CFANode> previousNodes = ImmutableSet.of();
-      strategy.initializeGlobalRefinement();
+      // strategy.initializeGlobalRefinement();
       CounterexampleInfo counterexample;
 
       ARGPath refinedPath = allStatesTrace;
@@ -110,7 +110,7 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
         if (!counterexample.isSpurious()) {
           if (iterationCounter == 1) {
             // real ARG path
-            strategy.resetGlobalRefinement();
+            // strategy.resetGlobalRefinement();
             return counterexample;
           } else {
             // need to rebuild abstraction with new predicates to obtain the potentially true path
@@ -134,7 +134,7 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
         modifingPathTime.stop();
       } while (refinedPath != null);
 
-      strategy.updatePrecisionAndARG();
+      // strategy.updatePrecisionAndARG();
       return counterexample;
 
     } finally {

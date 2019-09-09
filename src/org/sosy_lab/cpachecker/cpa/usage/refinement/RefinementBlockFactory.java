@@ -59,6 +59,8 @@ public class RefinementBlockFactory {
     PathIterator(currentInnerBlockType.ExtendedARGPath),
     SinglePathIterator(currentInnerBlockType.ExtendedARGPath),
     PredicateRefiner(currentInnerBlockType.ExtendedARGPath),
+    ImprecisePredicateRefiner(currentInnerBlockType.ExtendedARGPath),
+    ThreadModularRefiner(currentInnerBlockType.ExtendedARGPath),
     SharedRefiner(currentInnerBlockType.ExtendedARGPath),
     LockRefiner(currentInnerBlockType.ExtendedARGPath);
 
@@ -203,8 +205,26 @@ public class RefinementBlockFactory {
             currentBlockType = currentInnerBlockType.UsageInfo;
             break;
 
+          case ImprecisePredicateRefiner:
+            currentBlock =
+                PredicateRefinerAdapter.createImpreciseRefiner(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
+                    cpa,
+                    logger);
+            break;
+
           case PredicateRefiner:
-            currentBlock = new PredicateRefinerAdapter((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
+            currentBlock =
+                PredicateRefinerAdapter.createPlainRefiner(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
+                    cpa,
+                    logger);
+            break;
+
+          case ThreadModularRefiner:
+            currentBlock =
+                PredicateRefinerAdapter.createThreadModularRefiner(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
                     cpa,
                     logger);
             break;

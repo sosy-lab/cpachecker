@@ -139,7 +139,27 @@ public class ARGPathRestorator implements PathRestorator {
 
   @Override
   public PathIterator iterator(ARGState pTarget) {
-    throw new UnsupportedOperationException("Not implemented yet");
+    return new DummyPathIterator(pTarget);
   }
 
+  class DummyPathIterator implements PathIterator {
+    final ARGState target;
+    boolean computeOnePath;
+
+    DummyPathIterator(ARGState pTarget) {
+      target = pTarget;
+      computeOnePath = false;
+    }
+
+    @Override
+    public ARGPath nextPath(Set<List<Integer>> pRefinedStatesIds) {
+      if (computeOnePath) {
+        return null;
+      } else {
+        computeOnePath = true;
+        return ARGPathRestorator.this.computePath(target, pRefinedStatesIds);
+      }
+    }
+
+  }
 }
