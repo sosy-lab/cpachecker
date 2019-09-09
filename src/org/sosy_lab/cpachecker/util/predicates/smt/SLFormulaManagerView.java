@@ -37,12 +37,12 @@ public class SLFormulaManagerView extends BaseManagerView implements SLFormulaMa
 
   @Override
   public BooleanFormula makeStar(BooleanFormula pF1, BooleanFormula pF2) {
-    return slMgr.makeStar(pF1, pF2);
+    return slMgr.makeStar((BooleanFormula) unwrap(pF1), (BooleanFormula) unwrap(pF2));
   }
 
   @Override
   public <AF extends Formula, VF extends Formula> BooleanFormula makePointsTo(AF pPtr, VF pTo) {
-    return slMgr.makePointsTo(pPtr, pTo);
+    return slMgr.makePointsTo(unwrap(pPtr), unwrap(pTo));
   }
 
   @Override
