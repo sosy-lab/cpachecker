@@ -19,7 +19,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.xml.XmlEscapers;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -28,7 +27,6 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -86,8 +84,16 @@ public class TestSuiteWriter {
 
   private void writeMetaData() throws IOException {
     StringBuilder builder = new StringBuilder();
-    Preconditions.checkArgument(cfa.getFileNames().size() == 1);
-    Path programFile = cfa.getFileNames().get(0);
+    String programFile = "";
+    if (cfa.getFileNames().size() == 1) {
+      programFile = cfa.getFileNames().get(0).toString();
+
+    } else {
+      for (int i = 0; i < cfa.getFileNames().size(); i++) {
+        programFile += cfa.getFileNames().get(i).toString() + ";";
+      }
+      programFile = programFile.substring(0, programFile.length() - 1);
+    }
 
     builder.append(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
@@ -115,7 +121,11 @@ public class TestSuiteWriter {
     builder.append("</programfile>\n");
 
     builder.append("\t<programhash>");
-    builder.append(AutomatonGraphmlCommon.computeHash(programFile));
+    if (cfa.getFileNames().size() == 1) {
+      builder.append(AutomatonGraphmlCommon.computeHash(cfa.getFileNames().get(0)));
+    } else {
+      builder.append(programFile.hashCode());
+    }
     builder.append("</programhash>\n");
 
     builder.append("\t<entryfunction>");
