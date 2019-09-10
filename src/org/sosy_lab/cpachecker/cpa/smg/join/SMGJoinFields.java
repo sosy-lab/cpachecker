@@ -260,9 +260,10 @@ class SMGJoinFields {
     for (SMGEdgeHasValue edgeInSMG1 : pSMG1.getHVEdges(nullEdges1)) {
       long start = edgeInSMG1.getOffset();
       long byte_after_end = start + edgeInSMG1.getSizeInBits();
-      SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObj2)
-                                                          .filterAtOffset(edgeInSMG1.getOffset())
-                                                          .filterByType(edgeInSMG1.getType());
+      SMGEdgeHasValueFilter filter =
+          SMGEdgeHasValueFilter.objectFilter(pObj2)
+              .filterAtOffset(edgeInSMG1.getOffset())
+              .filterBySize(edgeInSMG1.getSizeInBits());
       Set<SMGEdgeHasValue> hvInSMG2Set = pSMG2.getHVEdges(filter);
 
       SMGEdgeHasValue hvInSMG2;

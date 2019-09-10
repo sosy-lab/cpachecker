@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -42,7 +42,7 @@ public class SMGEdgeHasValueFilter {
   private SMGValue value = null;
   private boolean valueComplement = false;
   private Long offset = null;
-  private CType type = null;
+  private long sizeInBits = -1;
 
   @VisibleForTesting
   public SMGEdgeHasValueFilter filterByObject(SMGObject pObject) {
@@ -67,8 +67,9 @@ public class SMGEdgeHasValueFilter {
     return this;
   }
 
-  public SMGEdgeHasValueFilter filterByType(CType pType) {
-    type = pType;
+  public SMGEdgeHasValueFilter filterBySize(long pSizeInBits) {
+    Preconditions.checkArgument(pSizeInBits >= 0, "negative sizes not allowed for filtering");
+    sizeInBits = pSizeInBits;
     return this;
   }
 
@@ -89,7 +90,7 @@ public class SMGEdgeHasValueFilter {
       return false;
     }
 
-    if (type != null && ! type.getCanonicalType().equals(pEdge.getType().getCanonicalType())) {
+    if (sizeInBits >= 0 && sizeInBits != pEdge.getSizeInBits()) {
       return false;
     }
 
@@ -122,7 +123,7 @@ public class SMGEdgeHasValueFilter {
   @Override
   public String toString() {
     return String.format(
-        "Filter %s<object=%s@%d, value=%s, type=%s>",
-        valueComplement ? "" : "NOT", object, offset, value, type);
+        "Filter %s<object=%s@%d, value=%s, size=%d>",
+        valueComplement ? "" : "NOT", object, offset, value, sizeInBits);
   }
 }

@@ -121,12 +121,9 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
       return;
     }
 
-    for (SMGEdgeHasValue hveNext : hvesOfObject) {
+    for (final SMGEdgeHasValue hveNext : hvesOfObject) {
 
-      long nfo = hveNext.getOffset();
-      CType nfoType = hveNext.getType();
       SMGValue nextPointer = hveNext.getValue();
-
       if (!pSmg.isPointer(nextPointer)) {
         continue;
       }
@@ -134,7 +131,6 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
       SMGEdgePointsTo nextPointerEdge = pSmg.getPointer(nextPointer);
       long hfo = nextPointerEdge.getOffset();
       SMGTargetSpecifier nextPointerTg = nextPointerEdge.getTargetSpecifier();
-
       if (!(nextPointerTg == SMGTargetSpecifier.REGION
           || nextPointerTg == SMGTargetSpecifier.FIRST)) {
         continue;
@@ -142,7 +138,8 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
       SMGObject nextObject = nextPointerEdge.getObject();
 
-      Set<SMGEdgeHasValue> nextObjectHves = pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject));
+      Set<SMGEdgeHasValue> nextObjectHves =
+          pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject));
 
       if (nextObjectHves.size() < 2) {
         continue;
@@ -164,6 +161,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         continue;
       }
 
+      long nfo = hveNext.getOffset();
       for (SMGEdgeHasValue hvePrev : nextObjectHves) {
 
         long pfo = hvePrev.getOffset();
@@ -210,7 +208,14 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
         SMGDoublyLinkedListCandidate candidate =
             new SMGDoublyLinkedListCandidate(
-                pObject, pObject, hfo, pfo, nfo, pfoType, nfoType, pSmg.getMachineModel());
+                pObject,
+                pObject,
+                hfo,
+                pfo,
+                nfo,
+                pfoType,
+                hveNext.getType(),
+                pSmg.getMachineModel());
         pProgress.initializeCandidiate(candidate);
         continueTraversal(nextPointer, candidate, pSmg, pSMGState, pProgress);
       }
