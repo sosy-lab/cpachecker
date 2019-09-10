@@ -63,17 +63,13 @@ public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidat
 
   @Override
   public int getScore() {
-    int score = getLength() + getStatusScore() + getRecursivScore();
+    int score = getLength() + getStatusScore();
 
     if (includesList) {
       score = score + 2;
     }
 
     return score;
-  }
-
-  private int getRecursivScore() {
-    return candidate.hasRecursiveFields() ? 10 : 0;
   }
 
   private int getStatusScore() {

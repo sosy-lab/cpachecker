@@ -228,7 +228,13 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
                 knownValue, SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit);
       }
     }
-    return pState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue).getState();
+    return pState
+        .writeValue(
+            pMemoryOfField,
+            pFieldOffset,
+            machineModel.getSizeofInBits(pRValueType).longValueExact(),
+            pValue)
+        .getState();
   }
 
   public SMGState assignFieldToState(

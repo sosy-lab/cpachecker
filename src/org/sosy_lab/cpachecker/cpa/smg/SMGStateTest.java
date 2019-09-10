@@ -29,7 +29,6 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
-import java.math.BigInteger;
 import java.util.List;
 import java.util.Set;
 import org.junit.Before;
@@ -72,8 +71,8 @@ public class SMGStateTest {
   private SMGState consistent_state;
   private SMGState inconsistent_state;
 
-  static private final CType mockType16b = TypeUtils.createTypeWithLength(16);
-  static private final CType mockType8b = TypeUtils.createTypeWithLength(8);
+  private static final int mockSize16b = 16;
+  private static final int mockSize8b = 8;
 
   private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   private final CFunctionDeclaration functionDeclaration3 =
@@ -81,7 +80,7 @@ public class SMGStateTest {
   private CSimpleType unspecifiedType = new CSimpleType(false, false, CBasicType.UNSPECIFIED, false, false, true, false, false, false, false);
   private CType pointerType = new CPointerType(false, false, unspecifiedType);
   private static final MachineModel MM = MachineModel.LINUX32;
-  private final BigInteger ptrSize = MM.getSizeofInBits(pointerType);
+  private final long ptrSize = MM.getSizeofInBits(pointerType).longValueExact();
 
   @Test
   public void abstractionTest() throws SMGInconsistentException, InvalidConfigurationException {
@@ -168,8 +167,8 @@ public class SMGStateTest {
     SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, value5);
 
-    smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
-    smg1State.writeValue(head, 4, pointerType, SMGKnownSymValue.valueOf(10));
+    smg1State.writeValue(head, 0, ptrSize, SMGKnownSymValue.valueOf(6));
+    smg1State.writeValue(head, 4, ptrSize, SMGKnownSymValue.valueOf(10));
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
 
@@ -280,8 +279,8 @@ public class SMGStateTest {
     SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, value5);
 
-    smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
-    smg1State.writeValue(head, 4, pointerType, SMGKnownSymValue.valueOf(10));
+    smg1State.writeValue(head, 0, ptrSize, SMGKnownSymValue.valueOf(6));
+    smg1State.writeValue(head, 4, ptrSize, SMGKnownSymValue.valueOf(10));
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
 
@@ -341,7 +340,7 @@ public class SMGStateTest {
 
     smg1State.addStackFrame(functionDeclaration3);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");
-    smg1State.writeValue(head, hfo, pointerType, value6);
+    smg1State.writeValue(head, hfo, ptrSize, value6);
     smg1State.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     List<SMGAddressValueAndState> valAndStates1 = smg1State.getPointerFromValue(value6);
@@ -416,7 +415,7 @@ public class SMGStateTest {
 
     smg1State.addStackFrame(functionDeclaration3);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");
-    smg1State.writeValue(head, 0, pointerType, value6);
+    smg1State.writeValue(head, 0, ptrSize, value6);
     smg1State.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // trigger materialisation
@@ -495,7 +494,7 @@ public class SMGStateTest {
 
     smgState.addStackFrame(functionDeclaration3);
     SMGObject head = smgState.addGlobalVariable(ptrSizeInBits, "head");
-    smgState.writeValue(head, 0, pointerType, value6);
+    smgState.writeValue(head, 0, ptrSizeInBits, value6);
     smgState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // trigger materialisation
@@ -629,7 +628,7 @@ public class SMGStateTest {
     // Add an 16b object and write a 16b value into it
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
     SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
-    SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, new_value).getNewEdge();
+    SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockSize16b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Check the object values and assert it has only the written 16b value
@@ -640,7 +639,7 @@ public class SMGStateTest {
     assertThat(values_for_obj).contains(hv);
 
     // Write a same 16b value into it and assert that the state did not change
-    state.writeValue(pt.getObject(), 0, mockType16b, new_value);
+    state.writeValue(pt.getObject(), 0, mockSize16b, new_value);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
     assertThat(values_for_obj).hasSize(1);
@@ -648,7 +647,8 @@ public class SMGStateTest {
 
     // Write a *different* 16b value into it and assert that the state *did* change
     SMGKnownSymbolicValue newer_value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
-    SMGEdgeHasValue new_hv = state.writeValue(pt.getObject(), 0, mockType16b, newer_value).getNewEdge();
+    SMGEdgeHasValue new_hv =
+        state.writeValue(pt.getObject(), 0, mockSize16b, newer_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
     assertThat(values_for_obj).hasSize(1);
@@ -656,14 +656,16 @@ public class SMGStateTest {
     assertThat(values_for_obj).doesNotContain(hv);
 
     // Write a 8b value at index 0 and see that the old value got overwritten
-    SMGEdgeHasValue hv8at0 = state.writeValue(pt.getObject(), 0, mockType8b, new_value).getNewEdge();
+    SMGEdgeHasValue hv8at0 =
+        state.writeValue(pt.getObject(), 0, mockSize8b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
     assertThat(values_for_obj).hasSize(1);
     assertThat(values_for_obj).contains(hv8at0);
 
     // Write a 8b value at index 8 and see that the old value did *not* get overwritten
-    SMGEdgeHasValue hv8at8 = state.writeValue(pt.getObject(), 8, mockType8b, new_value).getNewEdge();
+    SMGEdgeHasValue hv8at8 =
+        state.writeValue(pt.getObject(), 8, mockSize8b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
     assertThat(values_for_obj).hasSize(2);
@@ -671,7 +673,8 @@ public class SMGStateTest {
     assertThat(values_for_obj).contains(hv8at8);
 
     // Write a 8b value at index 4 and see that the old value got overwritten
-    SMGEdgeHasValue hv8at4 = state.writeValue(pt.getObject(), 4, mockType8b, new_value).getNewEdge();
+    SMGEdgeHasValue hv8at4 =
+        state.writeValue(pt.getObject(), 4, mockSize8b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
     assertThat(values_for_obj).hasSize(1);
@@ -689,7 +692,7 @@ public class SMGStateTest {
     // Add an 16b object and write a 16b zero value into it
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
     SMGEdgeHasValue hv =
-        state.writeValue(pt.getObject(), 0, mockType16b, SMGZeroValue.INSTANCE).getNewEdge();
+        state.writeValue(pt.getObject(), 0, mockSize16b, SMGZeroValue.INSTANCE).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Check the object values and assert it has only the written 16b value
@@ -699,7 +702,8 @@ public class SMGStateTest {
 
     // Write a 8b value at index 4
     // We should see three Has-Value edges: 4b zero, 8b just written, 4b zero
-    SMGEdgeHasValue hv8at4 = state.writeValue(pt.getObject(), 4, mockType8b, SMGUnknownValue.INSTANCE).getNewEdge();
+    SMGEdgeHasValue hv8at4 =
+        state.writeValue(pt.getObject(), 4, mockSize8b, SMGUnknownValue.INSTANCE).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()));
     assertThat(values_for_obj).hasSize(3);
@@ -748,7 +752,7 @@ public class SMGStateTest {
 
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
     SMGKnownSymbolicValue nonpointer = SMGKnownSymValue.of();
-    state.writeValue(pt.getObject(), 0, mockType16b, nonpointer);
+    state.writeValue(pt.getObject(), 0, mockSize16b, nonpointer);
 
     state.getPointerFromValue(nonpointer);
   }

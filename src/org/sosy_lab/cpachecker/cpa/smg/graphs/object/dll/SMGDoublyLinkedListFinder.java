@@ -28,7 +28,6 @@ import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
@@ -205,7 +204,6 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
           continue;
         }
 
-        CType pfoType = hvePrev.getType();
         SMGDoublyLinkedListCandidate candidate =
             new SMGDoublyLinkedListCandidate(
                 pObject,
@@ -213,8 +211,8 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
                 hfo,
                 pfo,
                 nfo,
-                pfoType,
-                hveNext.getType(),
+                hvePrev.getSizeInBits(),
+                hveNext.getSizeInBits(),
                 pSmg.getMachineModel());
         pProgress.initializeCandidiate(candidate);
         continueTraversal(nextPointer, candidate, pSmg, pSMGState, pProgress);
@@ -286,8 +284,8 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
               hfo,
               pfo,
               nfo,
-              pfoField.getType(),
-              nfoField.getType(),
+              pfoField.getSizeInBits(),
+              nfoField.getSizeInBits(),
               pSmg.getMachineModel());
       pProgress.initializeLastInSequenceCandidate(candidate);
     } else {
