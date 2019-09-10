@@ -59,15 +59,25 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   public SMGEdgeHasValue(
       CType pType, long pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
-    super(pValue, pObject, pOffset);
-    type = pType;
-    sizeInBits = BigInteger.valueOf(pSizeInBits);
+    this(pType, BigInteger.valueOf(pSizeInBits), pOffset, pObject, pValue);
   }
 
-  public SMGEdgeHasValue(int pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
-    super(pValue, pObject, pOffset);
-    type = TypeUtils.createTypeWithLength(pSizeInBits);
-    sizeInBits = BigInteger.valueOf(pSizeInBits);
+  public SMGEdgeHasValue(BigInteger pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
+    this(
+        TypeUtils.createTypeWithLength(pSizeInBits.intValueExact()),
+        pSizeInBits,
+        pOffset,
+        pObject,
+        pValue);
+  }
+
+  public SMGEdgeHasValue(long pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
+    this(
+        TypeUtils.createTypeWithLength((int) pSizeInBits),
+        BigInteger.valueOf(pSizeInBits),
+        pOffset,
+        pObject,
+        pValue);
   }
 
   @Override
@@ -93,7 +103,7 @@ public class SMGEdgeHasValue extends SMGEdge {
 
     if (object == other.object
         && getOffset() == other.getOffset()
-        && type == ((SMGEdgeHasValue) other).type) {
+        && sizeInBits.equals(((SMGEdgeHasValue) other).sizeInBits)) {
       return value.equals(other.value);
     }
 
@@ -129,18 +139,18 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   @VisibleForTesting
   public boolean isCompatibleField(SMGEdgeHasValue other) {
-    return type.equals(other.type) && (getOffset() == other.getOffset());
+    return sizeInBits.equals(other.sizeInBits) && (getOffset() == other.getOffset());
   }
 
   public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other) {
-    return getSizeInBits() == other.getSizeInBits()
+    return sizeInBits.equals(other.sizeInBits)
         && getOffset() == other.getOffset()
         && object == other.object;
   }
 
   @Override
   public int hashCode() {
-    return 31 * super.hashCode() + type.hashCode();
+    return 31 * super.hashCode() + sizeInBits.hashCode();
   }
 
   @Override
@@ -149,7 +159,6 @@ public class SMGEdgeHasValue extends SMGEdge {
       return false;
     }
     SMGEdgeHasValue other = (SMGEdgeHasValue) obj;
-    return super.equals(obj)
-        && type.getCanonicalType().equals(other.type.getCanonicalType());
+    return super.equals(obj) && sizeInBits.equals(other.sizeInBits);
   }
 }

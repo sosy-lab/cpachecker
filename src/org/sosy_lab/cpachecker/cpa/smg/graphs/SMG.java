@@ -572,7 +572,6 @@ public class SMG implements UnmodifiableSMG {
     for (SMGEdgeHasValue old_hve : getHVEdges(SMGEdgeHasValueFilter.valueFilter(old))) {
       SMGEdgeHasValue newHvEdge =
           new SMGEdgeHasValue(
-              old_hve.getType(),
               old_hve.getSizeInBits(),
               old_hve.getOffset(),
               old_hve.getObject(),

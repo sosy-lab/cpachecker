@@ -52,7 +52,7 @@ public class SMGEdgeHasValueTest {
 
     assertThat(hv.getObject()).isEqualTo(obj);
     assertThat(hv.getOffset()).isEqualTo(32);
-    assertThat(hv.getType()).isEqualTo(mockType);
+    assertThat(hv.getSizeInBits()).isEqualTo(mockTypeSize);
     assertThat(hv.getSizeInBits()).isEqualTo(32);
   }
 

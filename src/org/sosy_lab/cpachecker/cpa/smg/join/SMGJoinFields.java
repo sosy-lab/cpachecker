@@ -107,7 +107,6 @@ class SMGJoinFields {
       if (pSMG2.getHVEdges(filterForSMG2).isEmpty()) {
         returnSet.add(
             new SMGEdgeHasValue(
-                edge.getType(),
                 edge.getSizeInBits(),
                 edge.getOffset(),
                 pObj2,
@@ -206,7 +205,6 @@ class SMGJoinFields {
         if (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= max ) {
           retset.add(
               new SMGEdgeHasValue(
-                  edge.getType(),
                   edge.getSizeInBits(),
                   edge.getOffset(),
                   pObj1,

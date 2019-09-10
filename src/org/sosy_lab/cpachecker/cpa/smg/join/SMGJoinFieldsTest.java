@@ -332,7 +332,7 @@ public class SMGJoinFieldsTest {
         seenTwo = true;
       }
       assertThat(edge.getOffset()).isAnyOf(0L, 16L);
-      assertThat(edge.getType()).isEqualTo(mockType4b);
+      assertThat(edge.getSizeInBits()).isEqualTo(mockType4bSize);
       assertThat(values).doesNotContain(edge.getValue());
       values.add(edge.getValue());
     }

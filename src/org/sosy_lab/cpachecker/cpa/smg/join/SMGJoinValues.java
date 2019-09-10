@@ -29,7 +29,6 @@ import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
@@ -609,7 +608,6 @@ final class SMGJoinValues {
       if (field.getValue() == nextPointer) {
         newHve =
             new SMGEdgeHasValue(
-                field.getType(),
                 field.getSizeInBits(),
                 field.getOffset(),
                 optionalObject,
@@ -628,8 +626,7 @@ final class SMGJoinValues {
         }
 
         newHve =
-            new SMGEdgeHasValue(
-                field.getType(), field.getSizeInBits(), field.getOffset(), optionalObject, newVal);
+            new SMGEdgeHasValue(field.getSizeInBits(), field.getOffset(), optionalObject, newVal);
       }
       if (!pDestSMG.getValues().contains(newHve.getValue())) {
         pDestSMG.addValue(newHve.getValue());
@@ -867,7 +864,6 @@ final class SMGJoinValues {
       if (field.getValue().equals(nextPointer)) {
         newHve =
             new SMGEdgeHasValue(
-                field.getType(),
                 field.getSizeInBits(),
                 field.getOffset(),
                 optionalObject,
@@ -886,8 +882,7 @@ final class SMGJoinValues {
         }
 
         newHve =
-            new SMGEdgeHasValue(
-                field.getType(), field.getSizeInBits(), field.getOffset(), optionalObject, newVal);
+            new SMGEdgeHasValue(field.getSizeInBits(), field.getOffset(), optionalObject, newVal);
       }
       if (!pDestSMG.getValues().contains(newHve.getValue())) {
         pDestSMG.addValue(newHve.getValue());
@@ -1108,48 +1103,29 @@ final class SMGJoinValues {
       return Pair.of(false, false);
     }
 
-    CType nfType = getType(pTarget, nf, newInputSMG1);
     long nfSize = getSize(pTarget, nf, newInputSMG1);
 
     // Algorithm 9 from FIT-TR-2012-04, line 11
-    SMGEdgeHasValue newHve = new SMGEdgeHasValue(nfType, nfSize, nf, list, newAdressFromDLS);
+    SMGEdgeHasValue newHve = new SMGEdgeHasValue(nfSize, nf, list, newAdressFromDLS);
 
     if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list).filterAtOffset(nf).filterHavingValue(newAdressFromDLS)).isEmpty()) {
       pDestSMG.addHasValueEdge(newHve);
     }
 
     if (smgState1.getAddress(pTarget, hfo, SMGTargetSpecifier.FIRST) == null) {
-      CType nfType2 = getType(pTarget, nfo, newInputSMG1);
       long nfSize2 = getSize(pTarget, nfo, newInputSMG1);
-      SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfType2, nfSize2, nfo, list, newAdressFromDLS);
+      SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfSize2, nfo, list, newAdressFromDLS);
       pDestSMG.addHasValueEdge(newHve2);
     }
 
     if (pTarget.getKind() == SMGObjectKind.DLL
         && smgState1.getAddress(pTarget, hfo, SMGTargetSpecifier.LAST) == null) {
-      CType nfType2 = getType(pTarget, pfo, newInputSMG1);
       long nfSize2 = getSize(pTarget, pfo, newInputSMG1);
-      SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfType2, nfSize2, pfo, list, newAdressFromDLS);
+      SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfSize2, pfo, list, newAdressFromDLS);
       pDestSMG.addHasValueEdge(newHve2);
     }
 
     return Pair.of(true, true);
-  }
-
-  private CType getType(SMGObject pTarget, long pNf, UnmodifiableSMG pInputSMG1) {
-    Set<SMGEdgeHasValue> oldNfEdge =
-        pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf));
-
-    if (oldNfEdge.isEmpty()) {
-      return new SMGEdgeHasValue(
-              pInputSMG1.getMachineModel().getSizeofPtrInBits(),
-              pNf,
-              pTarget,
-              SMGZeroValue.INSTANCE)
-          .getType();
-    } else {
-      return Iterables.getOnlyElement(oldNfEdge).getType();
-    }
   }
 
   private long getSize(SMGObject pTarget, long pNf, UnmodifiableSMG pInputSMG1) {
@@ -1367,26 +1343,23 @@ final class SMGJoinValues {
       return Pair.of(false, false);
     }
 
-    CType nfType = getType(pTarget, nf, newInputSMG2);
     long nfSize = getSize(pTarget, nf, newInputSMG2);
-    SMGEdgeHasValue newHve = new SMGEdgeHasValue(nfType, nfSize, nf, list, newAdressFromDLS);
+    SMGEdgeHasValue newHve = new SMGEdgeHasValue(nfSize, nf, list, newAdressFromDLS);
 
     if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list).filterAtOffset(nf).filterHavingValue(newAdressFromDLS)).isEmpty()) {
       pDestSMG.addHasValueEdge(newHve);
     }
 
     if (smgState2.getAddress(pTarget, hfo, SMGTargetSpecifier.FIRST) == null) {
-      CType nfType2 = getType(pTarget, nfo, newInputSMG2);
       long nfSize2 = getSize(pTarget, nfo, newInputSMG2);
-      SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfType2, nfSize2, nfo, list, newAdressFromDLS);
+      SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfSize2, nfo, list, newAdressFromDLS);
       pDestSMG.addHasValueEdge(newHve2);
     }
 
     if (pTarget.getKind() == SMGObjectKind.DLL
         && smgState2.getAddress(pTarget, hfo, SMGTargetSpecifier.LAST) == null) {
-      CType nfType2 = getType(pTarget, nfo, newInputSMG2);
       long nfSize2 = getSize(pTarget, nfo, newInputSMG2);
-      SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfType2, nfSize2, pfo, list, newAdressFromDLS);
+      SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfSize2, pfo, list, newAdressFromDLS);
       pDestSMG.addHasValueEdge(newHve2);
     }
 
@@ -1491,8 +1464,7 @@ final class SMGJoinValues {
             pMapping.map(subDlsValue, newVal);
           }
           pDestSMG.addHasValueEdge(
-              new SMGEdgeHasValue(
-                  hve.getType(), hve.getSizeInBits(), hve.getOffset(), listCopy, newVal));
+              new SMGEdgeHasValue(hve.getSizeInBits(), hve.getOffset(), listCopy, newVal));
         }
       }
     }
@@ -1579,8 +1551,7 @@ final class SMGJoinValues {
           pMapping.map(subDlsValue, newVal);
         }
         pDestSMG.addHasValueEdge(
-            new SMGEdgeHasValue(
-                hve.getType(), hve.getSizeInBits(), hve.getOffset(), newObj, newVal));
+            new SMGEdgeHasValue(hve.getSizeInBits(), hve.getOffset(), newObj, newVal));
       }
     }
   }

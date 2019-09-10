@@ -111,7 +111,6 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
                 root,
                 uPointerTemplate,
                 oPointer.getOffset(),
-                oPointer.getType(),
                 oPointer.getSizeInBits());
         SMGEdgePointsToTemplate templateIEdge =
             new SMGEdgePointsToTemplate(abstraction, uPointerTemplate,
@@ -151,7 +150,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
     for (SMGEdgeHasValue field : pSharedFields) {
       SMGEdgeHasValueTemplateWithConcreteValue edgeTemplate =
           new SMGEdgeHasValueTemplate(
-              pRoot, field.getValue(), field.getOffset(), field.getType(), field.getSizeInBits());
+              pRoot, field.getValue(), field.getOffset(), field.getSizeInBits());
       abstractFields.add(edgeTemplate);
     }
 
@@ -177,7 +176,6 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
               pRoot,
               abstractPointerValue,
               edges.getFirst().getOffset(),
-              edges.getFirst().getType(),
               edges.getFirst().getSizeInBits());
       abstractFieldsToOPointer.add(edgeTemplate);
       abstractPointerValue = SMGKnownSymValue.of();

@@ -165,13 +165,12 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
       for (SMGEdgeHasValue hvePrev : nextObjectHves) {
 
         long pfo = hvePrev.getOffset();
-        CType pfoType = hvePrev.getType();
-        SMGValue prevPointer = hvePrev.getValue();
 
         if(!(nfo < pfo)) {
           continue;
         }
 
+        SMGValue prevPointer = hvePrev.getValue();
         if (!pSmg.isPointer(prevPointer)) {
           continue;
         }
@@ -206,6 +205,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
           continue;
         }
 
+        CType pfoType = hvePrev.getType();
         SMGDoublyLinkedListCandidate candidate =
             new SMGDoublyLinkedListCandidate(
                 pObject,
