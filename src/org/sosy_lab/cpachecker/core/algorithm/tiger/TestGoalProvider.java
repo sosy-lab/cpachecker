@@ -161,8 +161,9 @@ public class TestGoalProvider {
       String[] edgeLabels = goal.split("->");
       List<CFAEdge> goalEdges = new ArrayList<>();
       for (String edgeLabel : edgeLabels) {
+        String label = "Label: " + edgeLabel.trim();
         for (CFAEdge edge : edges) {
-          if (edge.getDescription().contains("Label: " + edgeLabel.trim())) {
+          if (edge.getDescription().contains(label)) {
             goalEdges.add(edge);
             break;
           }
