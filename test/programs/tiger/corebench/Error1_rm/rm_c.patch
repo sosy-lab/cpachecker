@@ -1,0 +1,104 @@
+From 5ee7d8f55bb0a48fd2cd5bc3c12b3db588d98beb Mon Sep 17 00:00:00 2001
+From: Sergio Durigan Junior <sergiodj@sergiodj.net>
+Date: Wed, 25 Sep 2013 11:02:08 +0100
+Subject: rm: with -I, prompt before deleting a write protected file
+
+This regression was introduced in commit v6.7-71-g0928c24
+
+* src/rm.c (main): Make the -I option behave like --interactive=once.
+* tests/rm/interactive-once.sh: Add cases for single and multiple files.
+* NEWS: Mention the bug fix.
+Fixes http://bugs.gnu.org/9308
+---
+ NEWS                         |  3 +++
+ src/rm.c                     |  2 +-
+ tests/rm/interactive-once.sh | 26 ++++++++++++++++++++++++++
+ 3 files changed, 30 insertions(+), 1 deletion(-)
+
+diff --git a/NEWS b/NEWS
+index c152bbf..39dd3d6 100644
+--- a/NEWS
++++ b/NEWS
+@@ -34,6 +34,9 @@ GNU coreutils NEWS                                    -*- outline -*-
+   print approximately 2*N bytes of extraneous padding.
+   [Bug introduced in coreutils-7.0]
+ 
++  rm -I now prompts for confirmation before removing a write protected file.
++  [Bug introduced in coreutils-6.8]
++
+   tail --retry -f now waits for the files specified to appear.  Before, tail
+   would immediately exit when such a file is inaccessible during the initial
+   open.
+diff --git a/src/rm.c b/src/rm.c
+index 4b87c12..7a51eef 100644
+--- a/src/rm.c
++++ b/src/rm.c
+@@ -244,7 +244,7 @@ main (int argc, char **argv)
+           break;
+ 
+         case 'I':
+-          x.interactive = RMI_NEVER;
++          x.interactive = RMI_SOMETIMES;
+           x.ignore_missing_files = false;
+           prompt_once = true;
+           break;
+diff --git a/tests/rm/interactive-once.sh b/tests/rm/interactive-once.sh
+index dcda5b8..1064c08 100755
+--- a/tests/rm/interactive-once.sh
++++ b/tests/rm/interactive-once.sh
+@@ -35,6 +35,15 @@ rm -I file1-* < in-n >> out 2>> err || fail=1
+ echo . >> err || fail=1
+ test -f file1-1 && fail=1
+ 
++if ls /dev/stdin >/dev/null 2>&1; then
++  echo 'one file, read only, answer no' >> err || fail=1
++  touch file1-1 || framework_failure_
++  chmod a-w file1-1 || framework_failure_
++  rm ---presume-input-tty -I file1-* < in-n >> out 2>> err || fail=1
++  echo . >> err || fail=1
++  test -f file1-1 || fail=1
++fi
++
+ echo 'three files, no recursion' >> err || fail=1
+ rm -I file2-* < in-n >> out 2>> err || fail=1
+ echo . >> err || fail=1
+@@ -58,6 +67,19 @@ test -f file3-2 && fail=1
+ test -f file3-3 && fail=1
+ test -f file3-4 && fail=1
+ 
++if ls /dev/stdin >/dev/null 2>&1; then
++  echo 'four files, no recursion, 1 read only, answer yes no' >> err || fail=1
++  touch file3-1 file3-2 file3-3 file3-4 || framework_failure_
++  echo non_empty > file3-4 || framework_failure_ # to shorten diagnostic
++  chmod a-w file3-4 || framework_failure_
++  cat in-y in-n | rm ---presume-input-tty -I file3-* >> out 2>> err || fail=1
++  echo . >> err || fail=1
++  test -f file3-1 && fail=1
++  test -f file3-2 && fail=1
++  test -f file3-3 && fail=1
++  test -f file3-4 || fail=1
++fi
++
+ echo 'one file, recursion, answer no' >> err || fail=1
+ rm -I -R dir1-* < in-n >> out 2>> err || fail=1
+ echo . >> err || fail=1
+@@ -85,12 +107,16 @@ EOF
+ cat <<\EOF > experr || fail=1
+ one file, no recursion
+ .
++one file, read only, answer no
++rm: remove write-protected regular empty file 'file1-1'? .
+ three files, no recursion
+ .
+ four files, no recursion, answer no
+ rm: remove 4 arguments? .
+ four files, no recursion, answer yes
+ rm: remove 4 arguments? .
++four files, no recursion, 1 read only, answer yes no
++rm: remove 4 arguments? rm: remove write-protected regular file 'file3-4'? .
+ one file, recursion, answer no
+ rm: remove 1 argument recursively? .
+ one file, recursion, answer yes
+-- 
+cgit v1.0-41-gc330
+

@@ -1,0 +1,117 @@
+Specification1   function   1110 elevator_variant_19.c void Specification1() {
+Specification2   function   1117 elevator_variant_19.c void Specification2() {
+Specification3   function   1122 elevator_variant_19.c void Specification3() {
+aliceCall        function   1030 elevator_variant_19.c void aliceCall() { initPersonOnFloor(1, getOrigin(1)); }
+angelinaCall     function   1032 elevator_variant_19.c void angelinaCall() { initPersonOnFloor(2, getOrigin(2)); }
+anyStopRequested function    252 elevator_variant_19.c int anyStopRequested () {
+areDoorsOpen     function    224 elevator_variant_19.c int areDoorsOpen() {
+bigMacCall       function   1038 elevator_variant_19.c void bigMacCall() { initPersonOnFloor(5, getOrigin(5)); }
+bobCall          function   1028 elevator_variant_19.c void bobCall() { initPersonOnFloor(0, getOrigin(0)); }
+buttonForFloorIsPressed function    228 elevator_variant_19.c int buttonForFloorIsPressed(int floorID) {
+callOnFloor      function    702 elevator_variant_19.c void callOnFloor(int floorID) {
+calls_0          variable    572 elevator_variant_19.c int calls_0;
+calls_1          variable    574 elevator_variant_19.c int calls_1;
+calls_2          variable    576 elevator_variant_19.c int calls_2;
+calls_3          variable    578 elevator_variant_19.c int calls_3;
+calls_4          variable    580 elevator_variant_19.c int calls_4;
+chuckCall        function   1034 elevator_variant_19.c void chuckCall() { initPersonOnFloor(3, getOrigin(3)); }
+cleanup          function   1042 elevator_variant_19.c void cleanup() {
+cleanupTimeShifts variable    993 elevator_variant_19.c int cleanupTimeShifts = 12;
+continueInDirection function    328 elevator_variant_19.c void continueInDirection(int dir) {
+currentFloorID   variable     99 elevator_variant_19.c int currentFloorID = 0;
+currentHeading   variable     97 elevator_variant_19.c int currentHeading = 1;
+doorState        variable    114 elevator_variant_19.c int doorState = 1;
+enterElevator    function    184 elevator_variant_19.c void enterElevator(int p) {
+enterElevator__wrappee__base function    172 elevator_variant_19.c void enterElevator__wrappee__base (int p) {
+executiveFloor   variable     89 elevator_variant_19.c int executiveFloor;
+executiveFloor   variable    475 elevator_variant_19.c int executiveFloor = 4;
+existInLiftCallsInDirection function    448 elevator_variant_19.c int existInLiftCallsInDirection(int d) {
+floorButtons_0   variable    116 elevator_variant_19.c int floorButtons_0;
+floorButtons_1   variable    118 elevator_variant_19.c int floorButtons_1;
+floorButtons_2   variable    120 elevator_variant_19.c int floorButtons_2;
+floorButtons_3   variable    122 elevator_variant_19.c int floorButtons_3;
+floorButtons_4   variable    124 elevator_variant_19.c int floorButtons_4;
+getCurrentFloorID function    220 elevator_variant_19.c int getCurrentFloorID() {
+getCurrentHeading function    237 elevator_variant_19.c int getCurrentHeading() {
+getDestination   function    906 elevator_variant_19.c int getDestination(int person) {
+getOrigin        function    888 elevator_variant_19.c int getOrigin(int person) {
+getReverseHeading function    365 elevator_variant_19.c int getReverseHeading(int ofHeading) {
+getWeight        function    869 elevator_variant_19.c int getWeight(int person) {
+get_nondet       function    998 elevator_variant_19.c int get_nondet() {
+get_nondetMinMax07 function   1005 elevator_variant_19.c int get_nondetMinMax07() {
+initBottomUp     function    149 elevator_variant_19.c void initBottomUp() {
+initFloors       function    644 elevator_variant_19.c void initFloors() {
+initPersonOnFloor function    751 elevator_variant_19.c void initPersonOnFloor(int person, int floor) {
+initTopDown      function    132 elevator_variant_19.c void initTopDown() {
+isAnyLiftButtonPressed function    319 elevator_variant_19.c int isAnyLiftButtonPressed() {
+isBlocked        function    167 elevator_variant_19.c int isBlocked() {
+isEmpty          function    241 elevator_variant_19.c int isEmpty() {
+isExecutiveFloor function    482 elevator_variant_19.c int isExecutiveFloor(int floorID) {
+isExecutiveFloorCalling function    478 elevator_variant_19.c int isExecutiveFloorCalling() {
+isFloorCalling   function    683 elevator_variant_19.c int isFloorCalling(int floorID) {
+isIdle           function    266 elevator_variant_19.c int isIdle() {
+isPersonOnFloor  function    711 elevator_variant_19.c int isPersonOnFloor(int person, int floor) {
+isTopFloor       function    831 elevator_variant_19.c int isTopFloor(int floorID) {
+leaveElevator    function    199 elevator_variant_19.c void leaveElevator(int p) {
+leaveElevator__wrappee__base function    189 elevator_variant_19.c void leaveElevator__wrappee__base (int p) {
+main             function   1152 elevator_variant_19.c main (void)
+maximumWeight    variable    473 elevator_variant_19.c int maximumWeight = 100;
+monicaCall       function   1036 elevator_variant_19.c void monicaCall() { initPersonOnFloor(4, getOrigin(4)); }
+personOnFloor_0_0 variable    583 elevator_variant_19.c int personOnFloor_0_0;
+personOnFloor_0_1 variable    585 elevator_variant_19.c int personOnFloor_0_1;
+personOnFloor_0_2 variable    587 elevator_variant_19.c int personOnFloor_0_2;
+personOnFloor_0_3 variable    589 elevator_variant_19.c int personOnFloor_0_3;
+personOnFloor_0_4 variable    591 elevator_variant_19.c int personOnFloor_0_4;
+personOnFloor_1_0 variable    593 elevator_variant_19.c int personOnFloor_1_0;
+personOnFloor_1_1 variable    595 elevator_variant_19.c int personOnFloor_1_1;
+personOnFloor_1_2 variable    597 elevator_variant_19.c int personOnFloor_1_2;
+personOnFloor_1_3 variable    599 elevator_variant_19.c int personOnFloor_1_3;
+personOnFloor_1_4 variable    601 elevator_variant_19.c int personOnFloor_1_4;
+personOnFloor_2_0 variable    603 elevator_variant_19.c int personOnFloor_2_0;
+personOnFloor_2_1 variable    605 elevator_variant_19.c int personOnFloor_2_1;
+personOnFloor_2_2 variable    607 elevator_variant_19.c int personOnFloor_2_2;
+personOnFloor_2_3 variable    609 elevator_variant_19.c int personOnFloor_2_3;
+personOnFloor_2_4 variable    611 elevator_variant_19.c int personOnFloor_2_4;
+personOnFloor_3_0 variable    613 elevator_variant_19.c int personOnFloor_3_0;
+personOnFloor_3_1 variable    615 elevator_variant_19.c int personOnFloor_3_1;
+personOnFloor_3_2 variable    617 elevator_variant_19.c int personOnFloor_3_2;
+personOnFloor_3_3 variable    619 elevator_variant_19.c int personOnFloor_3_3;
+personOnFloor_3_4 variable    621 elevator_variant_19.c int personOnFloor_3_4;
+personOnFloor_4_0 variable    623 elevator_variant_19.c int personOnFloor_4_0;
+personOnFloor_4_1 variable    625 elevator_variant_19.c int personOnFloor_4_1;
+personOnFloor_4_2 variable    627 elevator_variant_19.c int personOnFloor_4_2;
+personOnFloor_4_3 variable    629 elevator_variant_19.c int personOnFloor_4_3;
+personOnFloor_4_4 variable    631 elevator_variant_19.c int personOnFloor_4_4;
+personOnFloor_5_0 variable    633 elevator_variant_19.c int personOnFloor_5_0;
+personOnFloor_5_1 variable    635 elevator_variant_19.c int personOnFloor_5_1;
+personOnFloor_5_2 variable    637 elevator_variant_19.c int personOnFloor_5_2;
+personOnFloor_5_3 variable    639 elevator_variant_19.c int personOnFloor_5_3;
+personOnFloor_5_4 variable    641 elevator_variant_19.c int personOnFloor_5_4;
+persons_0        variable    101 elevator_variant_19.c int persons_0;
+persons_1        variable    103 elevator_variant_19.c int persons_1;
+persons_2        variable    105 elevator_variant_19.c int persons_2;
+persons_3        variable    107 elevator_variant_19.c int persons_3;
+persons_4        variable    109 elevator_variant_19.c int persons_4;
+persons_5        variable    111 elevator_variant_19.c int persons_5;
+pressInLiftFloorButton function    204 elevator_variant_19.c void pressInLiftFloorButton(int floorID) {
+printState       function    443 elevator_variant_19.c void printState() {
+processWaitingOnFloor function    372 elevator_variant_19.c void processWaitingOnFloor(int floorID) {
+randomSequenceOfActions function   1057 elevator_variant_19.c void randomSequenceOfActions() {
+removePersonFromFloor function    791 elevator_variant_19.c void removePersonFromFloor(int person, int floor) {
+resetCallOnFloor function    693 elevator_variant_19.c void resetCallOnFloor(int floorID) {
+resetFloorButton function    212 elevator_variant_19.c void resetFloorButton(int floorID) {
+runTest          function   1145 elevator_variant_19.c void runTest() {
+runTest_Simple   function   1102 elevator_variant_19.c void runTest_Simple() {
+select_features  function    510 elevator_variant_19.c void select_features() {
+select_helpers   function    516 elevator_variant_19.c void select_helpers() {
+select_one       function    507 elevator_variant_19.c int select_one() {if (__VERIFIER_nondet_int()) return 1; else return 0;}
+setup            function   1140 elevator_variant_19.c void setup() {
+stopRequestedAtCurrentFloor function    359 elevator_variant_19.c int stopRequestedAtCurrentFloor() {
+stopRequestedAtCurrentFloor__wrappee__weight function    348 elevator_variant_19.c int stopRequestedAtCurrentFloor__wrappee__weight () {
+stopRequestedInDirection function    311 elevator_variant_19.c int stopRequestedInDirection (int dir, int respectFloorCalls, int respectInLiftCalls) {
+stopRequestedInDirection__wrappee__weight function    270 elevator_variant_19.c int stopRequestedInDirection__wrappee__weight (int dir, int respectFloorCalls, int respectInLiftCalls) {
+test             function    927 elevator_variant_19.c void test() {
+threeTS          function   1040 elevator_variant_19.c void threeTS() { timeShift(); timeShift(); timeShift(); }
+timeShift        function    407 elevator_variant_19.c void timeShift() {
+valid_product    function    521 elevator_variant_19.c int valid_product() {
+weight           variable    471 elevator_variant_19.c int weight = 0;

@@ -1,0 +1,61 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	0.0.0	/9b28d8c/
+calls_0	elevator_variant_19.c	/^int calls_0;$/;"	v	typeref:typename:int
+calls_1	elevator_variant_19.c	/^int calls_1;$/;"	v	typeref:typename:int
+calls_2	elevator_variant_19.c	/^int calls_2;$/;"	v	typeref:typename:int
+calls_3	elevator_variant_19.c	/^int calls_3;$/;"	v	typeref:typename:int
+calls_4	elevator_variant_19.c	/^int calls_4;$/;"	v	typeref:typename:int
+cleanupTimeShifts	elevator_variant_19.c	/^int cleanupTimeShifts = 12;$/;"	v	typeref:typename:int
+currentFloorID	elevator_variant_19.c	/^int currentFloorID = 0;$/;"	v	typeref:typename:int
+currentHeading	elevator_variant_19.c	/^int currentHeading = 1;$/;"	v	typeref:typename:int
+doorState	elevator_variant_19.c	/^int doorState = 1;$/;"	v	typeref:typename:int
+executiveFloor	elevator_variant_19.c	/^ int executiveFloor = 4;$/;"	v	typeref:typename:int
+executiveFloor	elevator_variant_19.c	/^ int executiveFloor;$/;"	v	typeref:typename:int
+floorButtons_0	elevator_variant_19.c	/^int floorButtons_0;$/;"	v	typeref:typename:int
+floorButtons_1	elevator_variant_19.c	/^int floorButtons_1;$/;"	v	typeref:typename:int
+floorButtons_2	elevator_variant_19.c	/^int floorButtons_2;$/;"	v	typeref:typename:int
+floorButtons_3	elevator_variant_19.c	/^int floorButtons_3;$/;"	v	typeref:typename:int
+floorButtons_4	elevator_variant_19.c	/^int floorButtons_4;$/;"	v	typeref:typename:int
+maximumWeight	elevator_variant_19.c	/^int maximumWeight = 100;$/;"	v	typeref:typename:int
+personOnFloor_0_0	elevator_variant_19.c	/^int personOnFloor_0_0;$/;"	v	typeref:typename:int
+personOnFloor_0_1	elevator_variant_19.c	/^int personOnFloor_0_1;$/;"	v	typeref:typename:int
+personOnFloor_0_2	elevator_variant_19.c	/^int personOnFloor_0_2;$/;"	v	typeref:typename:int
+personOnFloor_0_3	elevator_variant_19.c	/^int personOnFloor_0_3;$/;"	v	typeref:typename:int
+personOnFloor_0_4	elevator_variant_19.c	/^int personOnFloor_0_4;$/;"	v	typeref:typename:int
+personOnFloor_1_0	elevator_variant_19.c	/^int personOnFloor_1_0;$/;"	v	typeref:typename:int
+personOnFloor_1_1	elevator_variant_19.c	/^int personOnFloor_1_1;$/;"	v	typeref:typename:int
+personOnFloor_1_2	elevator_variant_19.c	/^int personOnFloor_1_2;$/;"	v	typeref:typename:int
+personOnFloor_1_3	elevator_variant_19.c	/^int personOnFloor_1_3;$/;"	v	typeref:typename:int
+personOnFloor_1_4	elevator_variant_19.c	/^int personOnFloor_1_4;$/;"	v	typeref:typename:int
+personOnFloor_2_0	elevator_variant_19.c	/^int personOnFloor_2_0;$/;"	v	typeref:typename:int
+personOnFloor_2_1	elevator_variant_19.c	/^int personOnFloor_2_1;$/;"	v	typeref:typename:int
+personOnFloor_2_2	elevator_variant_19.c	/^int personOnFloor_2_2;$/;"	v	typeref:typename:int
+personOnFloor_2_3	elevator_variant_19.c	/^int personOnFloor_2_3;$/;"	v	typeref:typename:int
+personOnFloor_2_4	elevator_variant_19.c	/^int personOnFloor_2_4;$/;"	v	typeref:typename:int
+personOnFloor_3_0	elevator_variant_19.c	/^int personOnFloor_3_0;$/;"	v	typeref:typename:int
+personOnFloor_3_1	elevator_variant_19.c	/^int personOnFloor_3_1;$/;"	v	typeref:typename:int
+personOnFloor_3_2	elevator_variant_19.c	/^int personOnFloor_3_2;$/;"	v	typeref:typename:int
+personOnFloor_3_3	elevator_variant_19.c	/^int personOnFloor_3_3;$/;"	v	typeref:typename:int
+personOnFloor_3_4	elevator_variant_19.c	/^int personOnFloor_3_4;$/;"	v	typeref:typename:int
+personOnFloor_4_0	elevator_variant_19.c	/^int personOnFloor_4_0;$/;"	v	typeref:typename:int
+personOnFloor_4_1	elevator_variant_19.c	/^int personOnFloor_4_1;$/;"	v	typeref:typename:int
+personOnFloor_4_2	elevator_variant_19.c	/^int personOnFloor_4_2;$/;"	v	typeref:typename:int
+personOnFloor_4_3	elevator_variant_19.c	/^int personOnFloor_4_3;$/;"	v	typeref:typename:int
+personOnFloor_4_4	elevator_variant_19.c	/^int personOnFloor_4_4;$/;"	v	typeref:typename:int
+personOnFloor_5_0	elevator_variant_19.c	/^int personOnFloor_5_0;$/;"	v	typeref:typename:int
+personOnFloor_5_1	elevator_variant_19.c	/^int personOnFloor_5_1;$/;"	v	typeref:typename:int
+personOnFloor_5_2	elevator_variant_19.c	/^int personOnFloor_5_2;$/;"	v	typeref:typename:int
+personOnFloor_5_3	elevator_variant_19.c	/^int personOnFloor_5_3;$/;"	v	typeref:typename:int
+personOnFloor_5_4	elevator_variant_19.c	/^int personOnFloor_5_4;$/;"	v	typeref:typename:int
+persons_0	elevator_variant_19.c	/^int persons_0;$/;"	v	typeref:typename:int
+persons_1	elevator_variant_19.c	/^int persons_1;$/;"	v	typeref:typename:int
+persons_2	elevator_variant_19.c	/^int persons_2;$/;"	v	typeref:typename:int
+persons_3	elevator_variant_19.c	/^int persons_3;$/;"	v	typeref:typename:int
+persons_4	elevator_variant_19.c	/^int persons_4;$/;"	v	typeref:typename:int
+persons_5	elevator_variant_19.c	/^int persons_5;$/;"	v	typeref:typename:int
+weight	elevator_variant_19.c	/^int weight = 0;$/;"	v	typeref:typename:int
