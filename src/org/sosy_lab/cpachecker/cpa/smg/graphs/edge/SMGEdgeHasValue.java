@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
  */
 public class SMGEdgeHasValue extends SMGEdge {
 
-  final private CType type;
   private final BigInteger sizeInBits;
 
   /**
@@ -53,7 +52,6 @@ public class SMGEdgeHasValue extends SMGEdge {
   public SMGEdgeHasValue(
       CType pType, BigInteger pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
     super(pValue, pObject, pOffset);
-    type = pType;
     sizeInBits = pSizeInBits;
   }
 
@@ -83,12 +81,7 @@ public class SMGEdgeHasValue extends SMGEdge {
   @Override
   public String toString() {
     return String.format(
-        "sizeof(%s)b @ %s+%db has value %s",
-        type.toASTString(""), object.getLabel(), getOffset(), value);
-  }
-
-  public CType getType() {
-    return type;
+        "%sb @ %s+%db has value %s", sizeInBits, object.getLabel(), getOffset(), value);
   }
 
   public long getSizeInBits() {
