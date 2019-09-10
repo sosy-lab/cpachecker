@@ -218,7 +218,7 @@ public final class SMGListAbstractionTestHelpers {
       SMGEdgeHasValue previousHvNext;
       if (i == 0) {
         if (pCircularity == SMGListCircularity.OPEN && pLinkage == SMGListLinkage.DOUBLY_LINKED) {
-          hvPrev = new SMGEdgeHasValue(ptrType, ptrSize, pPfo, node, SMGZeroValue.INSTANCE);
+          hvPrev = new SMGEdgeHasValue(ptrSize, pPfo, node, SMGZeroValue.INSTANCE);
           pSmg.addHasValueEdge(hvPrev);
         }
       } else {
@@ -238,14 +238,14 @@ public final class SMGListAbstractionTestHelpers {
             } else {
               address2 = Iterables.getOnlyElement(pte).getValue();
             }
-            hvPrev = new SMGEdgeHasValue(ptrType, ptrSize, pPfo, node, address2);
+            hvPrev = new SMGEdgeHasValue(ptrSize, pPfo, node, address2);
             pSmg.addHasValueEdge(hvPrev);
           } else {
-            hvPrev = new SMGEdgeHasValue(ptrType, ptrSize, pPfo, node, previousAddress);
+            hvPrev = new SMGEdgeHasValue(ptrSize, pPfo, node, previousAddress);
             pSmg.addHasValueEdge(hvPrev);
           }
         }
-        previousHvNext = new SMGEdgeHasValue(ptrType, ptrSize, pNfo, previousNode, address);
+        previousHvNext = new SMGEdgeHasValue(ptrSize, pNfo, previousNode, address);
         pSmg.addHasValueEdge(previousHvNext);
       }
     }
@@ -253,7 +253,7 @@ public final class SMGListAbstractionTestHelpers {
     SMGEdgeHasValue hvNext;
     SMGEdgeHasValue hvPrev;
     if (pCircularity.equals(SMGListCircularity.CIRCULAR)) {
-      hvNext = new SMGEdgeHasValue(ptrType, ptrSize, pNfo, node, firstAddress);
+      hvNext = new SMGEdgeHasValue(ptrSize, pNfo, node, firstAddress);
       if (pLinkage == SMGListLinkage.DOUBLY_LINKED) {
         if (node.getKind() == SMGObjectKind.DLL) {
           SMGValue address2 = null;
@@ -270,15 +270,15 @@ public final class SMGListAbstractionTestHelpers {
           } else {
             address2 = Iterables.getOnlyElement(pte).getValue();
           }
-          hvPrev = new SMGEdgeHasValue(ptrType, ptrSize, pPfo, firstNode, address2);
+          hvPrev = new SMGEdgeHasValue(ptrSize, pPfo, firstNode, address2);
           pSmg.addHasValueEdge(hvPrev);
         } else {
-          hvPrev = new SMGEdgeHasValue(ptrType, ptrSize, pPfo, firstNode, address);
+          hvPrev = new SMGEdgeHasValue(ptrSize, pPfo, firstNode, address);
           pSmg.addHasValueEdge(hvPrev);
         }
       }
     } else {
-      hvNext = new SMGEdgeHasValue(ptrType, ptrSize, pNfo, node, SMGZeroValue.INSTANCE);
+      hvNext = new SMGEdgeHasValue(ptrSize, pNfo, node, SMGZeroValue.INSTANCE);
     }
     pSmg.addHasValueEdge(hvNext);
 
@@ -438,7 +438,7 @@ public final class SMGListAbstractionTestHelpers {
     CSimpleType ptrType = pSmg.getMachineModel().getPointerEquivalentSimpleType();
     SMGEdgeHasValue hv =
         new SMGEdgeHasValue(
-            ptrType, pSmg.getMachineModel().getSizeofInBits(ptrType), 0, globalVar, pHeadAddress);
+            pSmg.getMachineModel().getSizeofInBits(ptrType), 0, globalVar, pHeadAddress);
     pSmg.addGlobalObject(globalVar);
     pSmg.addHasValueEdge(hv);
     return globalVar;

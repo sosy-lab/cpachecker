@@ -1100,7 +1100,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     SMGEdgeHasValue edge =
         new SMGEdgeHasValue(
-            pType,
             heap.getMachineModel().getSizeofInBits(pType),
             pOffset,
             pObject,

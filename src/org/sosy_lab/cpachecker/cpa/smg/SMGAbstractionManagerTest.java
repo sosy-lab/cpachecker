@@ -62,7 +62,6 @@ public class SMGAbstractionManagerTest {
         SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
         hv =
             new SMGEdgeHasValue(
-                CPointerType.POINTER_TO_VOID,
                 smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
                 64,
                 node,
@@ -79,7 +78,6 @@ public class SMGAbstractionManagerTest {
     SMGValue address = SMGKnownSymValue.of();
     SMGEdgeHasValue hv =
         new SMGEdgeHasValue(
-            CPointerType.POINTER_TO_VOID,
             smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
             64,
             globalVar,

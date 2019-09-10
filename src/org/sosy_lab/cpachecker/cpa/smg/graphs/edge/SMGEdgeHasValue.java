@@ -27,8 +27,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.math.BigInteger;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
@@ -42,40 +40,19 @@ public class SMGEdgeHasValue extends SMGEdge {
   private final BigInteger sizeInBits;
 
   /**
-   * @param pType type of the object's memory starting at offset.
    * @param pOffset the offset relative to the start of the source object, i.e. ZERO represents an
    *     direct access, a positive number accessed within or after the object and is used for
    *     array-element or struct-member access.
    * @param pObject the target object pointed to.
    * @param pValue the value that points to some object.
    */
-  public SMGEdgeHasValue(
-      CType pType, BigInteger pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
+  public SMGEdgeHasValue(BigInteger pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
     super(pValue, pObject, pOffset);
     sizeInBits = pSizeInBits;
   }
 
-  public SMGEdgeHasValue(
-      CType pType, long pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
-    this(pType, BigInteger.valueOf(pSizeInBits), pOffset, pObject, pValue);
-  }
-
-  public SMGEdgeHasValue(BigInteger pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
-    this(
-        TypeUtils.createTypeWithLength(pSizeInBits.intValueExact()),
-        pSizeInBits,
-        pOffset,
-        pObject,
-        pValue);
-  }
-
   public SMGEdgeHasValue(long pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
-    this(
-        TypeUtils.createTypeWithLength((int) pSizeInBits),
-        BigInteger.valueOf(pSizeInBits),
-        pOffset,
-        pObject,
-        pValue);
+    this(BigInteger.valueOf(pSizeInBits), pOffset, pObject, pValue);
   }
 
   @Override

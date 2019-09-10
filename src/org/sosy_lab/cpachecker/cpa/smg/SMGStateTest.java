@@ -106,17 +106,17 @@ public class SMGStateTest {
     SMGRegion l4 = new SMGRegion(96, "l4");
     SMGRegion l5 = new SMGRegion(96, "l5");
 
-    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l1, value7);
-    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l2, value8);
-    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l3, value9);
-    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l4, value10);
-    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l5, value5);
+    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(ptrSize, 0, l1, value7);
+    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(ptrSize, 0, l2, value8);
+    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(ptrSize, 0, l3, value9);
+    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(ptrSize, 0, l4, value10);
+    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(ptrSize, 0, l5, value5);
 
-    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, ptrSize, 4, l1, value5);
-    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, ptrSize, 4, l2, value6);
-    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(pointerType, ptrSize, 4, l3, value7);
-    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(pointerType, ptrSize, 4, l4, value8);
-    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(pointerType, ptrSize, 4, l5, value9);
+    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(ptrSize, 4, l1, value5);
+    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(ptrSize, 4, l2, value6);
+    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(ptrSize, 4, l3, value7);
+    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(ptrSize, 4, l4, value8);
+    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(ptrSize, 4, l5, value9);
 
     SMGEdgePointsTo l1t = new SMGEdgePointsTo(value6, l1, 0);
     SMGEdgePointsTo l2t = new SMGEdgePointsTo(value7, l2, 0);
@@ -197,8 +197,8 @@ public class SMGStateTest {
     SMGValue value13 = SMGKnownSymValue.valueOf(13);
 
     SMGObject dll = new SMGDoublyLinkedList(96, 0, 0, 4, 0, 0);
-    SMGEdgeHasValue dllN = new SMGEdgeHasValue(pointerType, ptrSize, 0, dll, value5);
-    SMGEdgeHasValue dllP = new SMGEdgeHasValue(pointerType, ptrSize, 4, dll, value5);
+    SMGEdgeHasValue dllN = new SMGEdgeHasValue(ptrSize, 0, dll, value5);
+    SMGEdgeHasValue dllP = new SMGEdgeHasValue(ptrSize, 4, dll, value5);
     heap.addHeapObject(dll);
     heap.setValidity(dll, true);
     heap.addValue(value5);
@@ -215,18 +215,18 @@ public class SMGStateTest {
    SMGRegion l4 = new SMGRegion(96, "l4", 1);
    SMGRegion l5 = new SMGRegion(96, "l5", 1);
 
-    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l1, value13);
-    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l2, value8);
-    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l3, value9);
-    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l4, value10);
-    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l5, value11);
-    SMGEdgeHasValue dllSub = new SMGEdgeHasValue(pointerType, ptrSize, 8, dll, value12);
+    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(ptrSize, 0, l1, value13);
+    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(ptrSize, 0, l2, value8);
+    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(ptrSize, 0, l3, value9);
+    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(ptrSize, 0, l4, value10);
+    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(ptrSize, 0, l5, value11);
+    SMGEdgeHasValue dllSub = new SMGEdgeHasValue(ptrSize, 8, dll, value12);
 
-    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, ptrSize, 4, l1, value11);
-    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, ptrSize, 4, l2, value12);
-    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(pointerType, ptrSize, 4, l3, value13);
-    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(pointerType, ptrSize, 4, l4, value8);
-    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(pointerType, ptrSize, 4, l5, value9);
+    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(ptrSize, 4, l1, value11);
+    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(ptrSize, 4, l2, value12);
+    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(ptrSize, 4, l3, value13);
+    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(ptrSize, 4, l4, value8);
+    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(ptrSize, 4, l5, value9);
 
     SMGEdgePointsTo l1t = new SMGEdgePointsTo(value12, l1, 0);
     SMGEdgePointsTo l2t = new SMGEdgePointsTo(value13, l2, 0);
