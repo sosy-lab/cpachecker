@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
@@ -266,5 +268,25 @@ public class UsageContainer {
 
   public Set<SingleIdentifier> getNotInterestingUnsafes() {
     return new TreeSet<>(Sets.union(falseUnsafes, refinedIds.keySet()));
+  }
+
+  public List<Pair<UsageInfo, UsageInfo>> calculateStableUnsafes() {
+    calculateUnsafesIfNecessary();
+    List<Pair<UsageInfo, UsageInfo>> result = new ArrayList<>();
+
+    addUnsafesFrom(refinedIds, result);
+    addUnsafesFrom(unrefinedIds, result);
+    return result;
+  }
+
+  private void addUnsafesFrom(
+      SortedMap<SingleIdentifier, ? extends AbstractUsagePointSet> storage,
+      List<Pair<UsageInfo, UsageInfo>> pResult) {
+
+    for (Entry<SingleIdentifier, ? extends AbstractUsagePointSet> entry : storage.entrySet()) {
+      Pair<UsageInfo, UsageInfo> tmpPair = detector.getUnsafePair(entry.getValue());
+      assert tmpPair != null;
+      pResult.add(tmpPair);
+    }
   }
 }

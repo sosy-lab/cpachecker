@@ -102,6 +102,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
   private final LogManager logger;
 
   private UsageContainer container = null;
+  private List<Pair<UsageInfo, UsageInfo>> stableUnsafes = null;
 
   public UsageReachedSet(
       WaitlistFactory waitlistFactory, Configuration pConfig, LogManager pLogger) {
@@ -159,6 +160,10 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   public UsageContainer getUsageContainer() {
     return container;
+  }
+
+  public List<Pair<UsageInfo, UsageInfo>> getUnsafes() {
+    return stableUnsafes;
   }
 
   private void writeObject(@SuppressWarnings("unused") ObjectOutputStream stream) {
@@ -301,6 +306,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
       logger.log(Level.INFO, "Usage extraction is finished");
       totalTimer.stop();
     }
+    stableUnsafes = container.calculateStableUnsafes();
   }
 
   private void process(

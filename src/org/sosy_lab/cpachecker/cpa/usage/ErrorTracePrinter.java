@@ -56,13 +56,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
-import org.sosy_lab.cpachecker.cpa.usage.storage.AbstractUsagePointSet;
-import org.sosy_lab.cpachecker.cpa.usage.storage.RefinedUsagePointSet;
-import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -133,7 +131,6 @@ public abstract class ErrorTracePrinter {
   protected final LockTransferRelation lockTransfer;
 
   private final StatTimer preparationTimer = new StatTimer("Time for preparation");
-  private final StatTimer unsafeDetectionTimer = new StatTimer("Time for unsafe detection");
   private final StatTimer writingUnsafeTimer = new StatTimer("Time for dumping the unsafes");
   private final StatTimer filteringUnsafeTimer = new StatTimer("Time for filtering unsafes");
   private final StatCounter emptyLockSetUnsafes =
@@ -187,40 +184,28 @@ public abstract class ErrorTracePrinter {
 
   public void printErrorTraces(UsageReachedSet uReached) {
     preparationTimer.start();
-    container = uReached.getUsageContainer();
-    UnsafeDetector detector = container.getUnsafeDetector();
 
     logger.log(Level.FINEST, "Processing unsafe identifiers");
-    Iterator<SingleIdentifier> unsafeIterator = container.getUnsafeIterator();
+    List<Pair<UsageInfo, UsageInfo>> unsafes = uReached.getUnsafes();
+    container = uReached.getUsageContainer();
 
     init();
     preparationTimer.stop();
-    while (unsafeIterator.hasNext()) {
-      SingleIdentifier id = unsafeIterator.next();
-      final AbstractUsagePointSet uinfo = container.getUsages(id);
-
-      if (uinfo == null || uinfo.size() == 0) {
-        continue;
+    for (Pair<UsageInfo, UsageInfo> unsafe : unsafes) {
+      UsageInfo uinfo1 = unsafe.getFirst();
+      UsageInfo uinfo2 = unsafe.getSecond();
+      SingleIdentifier id = uinfo1.getId();
+      if (id instanceof StructureIdentifier) {
+        id = ((StructureIdentifier) id).toStructureFieldIdentifier();
       }
 
-      boolean refined = uinfo instanceof RefinedUsagePointSet;
+      boolean refined = uinfo1.getPath() != null && uinfo2.getPath() != null;
 
       if (printOnlyTrueUnsafes && !refined) {
         continue;
       }
 
-      unsafeDetectionTimer.start();
-      if (!detector.isUnsafe(uinfo)) {
-        // In case of interruption during refinement,
-        // We may get a situation, when a path is removed, but the verdict is not updated
-        unsafeDetectionTimer.stop();
-        continue;
-      }
-      Pair<UsageInfo, UsageInfo> tmpPair = detector.getUnsafePair(uinfo);
-      unsafeDetectionTimer.stop();
-
-      if (tmpPair.getFirst().getLockState().getSize() == 0
-          && tmpPair.getSecond().getLockState().getSize() == 0) {
+      if (uinfo1.getLockState().getSize() == 0 && uinfo2.getLockState().getSize() == 0) {
         if (printEmptyLockStates) {
           emptyLockSetUnsafes.inc();
         } else {
@@ -228,12 +213,13 @@ public abstract class ErrorTracePrinter {
         }
       }
 
-      if (filterSimilarUnsafes && shouldBeSkipped(tmpPair, id)) {
+      if (filterSimilarUnsafes && shouldBeSkipped(unsafe, id)) {
         continue;
       }
 
+      printedUnsafes.inc();
       writingUnsafeTimer.start();
-      printUnsafe(id, tmpPair, refined);
+      printUnsafe(id, unsafe, refined);
       writingUnsafeTimer.stop();
     }
     if (printFalseUnsafes) {
@@ -277,7 +263,6 @@ public abstract class ErrorTracePrinter {
 
     out.spacer()
         .put(preparationTimer)
-        .put(unsafeDetectionTimer)
         .put(writingUnsafeTimer)
         .put(filteringUnsafeTimer)
         .put(printedUnsafes)
