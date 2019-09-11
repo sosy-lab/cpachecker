@@ -537,7 +537,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     long nfo = pListSeg.getNfo();
     long hfo = pListSeg.getHfo();
 
-    SMGValue nextPointer = readValue(pListSeg, nfo, CPointerType.POINTER_TO_VOID).getObject();
+    SMGValue nextPointer = readValue(pListSeg, nfo, sizeOfVoidPointerInBits).getObject();
 
     SMGValue firstPointer = getAddress(pListSeg, hfo, SMGTargetSpecifier.FIRST);
 
@@ -572,8 +572,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     long pfo = pListSeg.getPfo();
     long hfo = pListSeg.getHfo();
 
-    SMGValue nextPointer = readValue(pListSeg, nfo, CPointerType.POINTER_TO_VOID).getObject();
-    SMGValue prevPointer = readValue(pListSeg, pfo, CPointerType.POINTER_TO_VOID).getObject();
+    SMGValue nextPointer = readValue(pListSeg, nfo, sizeOfVoidPointerInBits).getObject();
+    SMGValue prevPointer = readValue(pListSeg, pfo, sizeOfVoidPointerInBits).getObject();
 
     SMGSymbolicValue firstPointer = getAddress(pListSeg, hfo, SMGTargetSpecifier.FIRST);
     SMGSymbolicValue lastPointer = getAddress(pListSeg, hfo, SMGTargetSpecifier.LAST);
@@ -627,7 +627,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     Set<SMGEdgeHasValue> oldSllFieldsToOldRegion =
         heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo));
     SMGSymbolicValue oldPointerToRegion =
-        readValue(pListSeg, nfo, CPointerType.POINTER_TO_VOID).getObject();
+        readValue(pListSeg, nfo, sizeOfVoidPointerInBits).getObject();
     if (!oldSllFieldsToOldRegion.isEmpty()) {
       SMGEdgeHasValue oldSllFieldToOldRegion = Iterables.getOnlyElement(oldSllFieldsToOldRegion);
       heap.removeHasValueEdge(oldSllFieldToOldRegion);
@@ -740,7 +740,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         heap.getHVEdges(
             SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(offsetPointingToRegion));
     SMGSymbolicValue oldPointerToRegion =
-        readValue(pListSeg, offsetPointingToRegion, CPointerType.POINTER_TO_VOID).getObject();
+        readValue(pListSeg, offsetPointingToRegion, sizeOfVoidPointerInBits).getObject();
     if (!oldDllFieldsToOldRegion.isEmpty()) {
       SMGEdgeHasValue oldDllFieldToOldRegion = Iterables.getOnlyElement(oldDllFieldsToOldRegion);
       heap.removeHasValueEdge(oldDllFieldToOldRegion);
@@ -1044,8 +1044,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    */
   public SMGValueAndState forceReadValue(SMGObject pObject, long pOffset, CType pType)
       throws SMGInconsistentException {
-    SMGValueAndState valueAndState = readValue(pObject, pOffset, pType);
     long sizeInBits = heap.getMachineModel().getSizeofInBits(pType).longValueExact();
+    SMGValueAndState valueAndState = readValue(pObject, pOffset, sizeInBits);
 
     // Do not create a value if the read is invalid.
     if (valueAndState.getObject().isUnknown()
@@ -1086,10 +1086,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    *
    * @param pObject SMGObject representing the memory the field belongs to.
    * @param pOffset offset of field being read.
-   * @param pType type of field
+   * @param pSizeInBits size of the field being read.
    * @return the value and the state (may be the given state)
    */
-  public SMGValueAndState readValue(SMGObject pObject, long pOffset, CType pType)
+  public SMGValueAndState readValue(SMGObject pObject, long pOffset, long pSizeInBits)
       throws SMGInconsistentException {
     if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
       SMGState newState =
@@ -1099,11 +1099,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
 
     SMGEdgeHasValue edge =
-        new SMGEdgeHasValue(
-            heap.getMachineModel().getSizeofInBits(pType),
-            pOffset,
-            pObject,
-            SMGZeroValue.INSTANCE);
+        new SMGEdgeHasValue(pSizeInBits, pOffset, pObject, SMGZeroValue.INSTANCE);
 
     SMGEdgeHasValueFilter filter =
         SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pOffset);

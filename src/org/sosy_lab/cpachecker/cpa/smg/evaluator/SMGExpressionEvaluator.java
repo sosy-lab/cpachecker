@@ -219,7 +219,10 @@ public class SMGExpressionEvaluator {
     }
 
     // We don't want to modify the state while reading
-    SMGSymbolicValue value = pSmgState.readValue(pObject, fieldOffset, pType).getObject();
+    SMGSymbolicValue value =
+        pSmgState
+            .readValue(pObject, fieldOffset, machineModel.getSizeofInBits(pType).longValueExact())
+            .getObject();
 
     return SMGValueAndState.of(pSmgState, value);
   }
