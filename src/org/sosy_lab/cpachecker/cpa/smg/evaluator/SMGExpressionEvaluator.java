@@ -182,7 +182,7 @@ public class SMGExpressionEvaluator {
         if (fieldReference.isPointerDereference()) {
           newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
         }
-        result.add(SMGAddressAndState.of(newState));
+        result.add(SMGAddressAndState.withUnknownAddress(newState));
       } else {
         SMGAddress addressOfFieldOwner = fieldOwnerAddress.getAddress();
         SMGExplicitValue fieldOffset = addressOfFieldOwner.add(field.getOffset()).getOffset();
@@ -577,7 +577,7 @@ public class SMGExpressionEvaluator {
             newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
           }
 
-          result.add(SMGAddressAndState.of(newState));
+          result.add(SMGAddressAndState.withUnknownAddress(newState));
           continue;
         }
 

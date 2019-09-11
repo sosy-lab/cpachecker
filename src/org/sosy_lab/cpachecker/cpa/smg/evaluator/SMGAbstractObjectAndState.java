@@ -101,7 +101,7 @@ public abstract class SMGAbstractObjectAndState<T> {
       super(pState, pAddress);
     }
 
-    public static SMGAddressAndState of(SMGState pState) {
+    public static SMGAddressAndState withUnknownAddress(SMGState pState) {
       return new SMGAddressAndState(pState, SMGAddress.UNKNOWN);
     }
 
