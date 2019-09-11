@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
@@ -674,16 +675,19 @@ public class SMGExpressionEvaluator {
       SMGState pSmgState, SMGObject pTarget, SMGExplicitValue pOffset)
       throws SMGInconsistentException {
     if (pTarget == null || pOffset.isUnknown()) {
+      // TODO how does this even work?
+      // This code looks like it causes NullPointer and IllegalStateException.
       return singletonList(
           SMGAddressValueAndState.of(
-              pSmgState, SMGKnownSymValue.of(), pTarget, (SMGKnownExpValue) pOffset));
+              pSmgState, new SMGEdgePointsTo(SMGKnownSymValue.of(), pTarget, pOffset.getAsLong())));
     }
     if (pTarget instanceof SMGRegion) {
       SMGValue address = pSmgState.getAddress((SMGRegion) pTarget, pOffset.getAsLong());
       if (address == null) {
         return singletonList(
             SMGAddressValueAndState.of(
-                pSmgState, SMGKnownSymValue.of(), pTarget, (SMGKnownExpValue) pOffset));
+                pSmgState,
+                new SMGEdgePointsTo(SMGKnownSymValue.of(), pTarget, pOffset.getAsLong())));
       }
       return pSmgState.getPointerFromValue(address);
     }
@@ -691,10 +695,7 @@ public class SMGExpressionEvaluator {
       // TODO return NULL_POINTER instead of new object?
       return singletonList(
           SMGAddressValueAndState.of(
-              pSmgState,
-              SMGZeroValue.INSTANCE,
-              pTarget,
-              SMGKnownExpValue.valueOf(pOffset.getAsLong())));
+              pSmgState, new SMGEdgePointsTo(SMGZeroValue.INSTANCE, pTarget, pOffset.getAsLong())));
     }
     throw new AssertionError("Abstraction " + pTarget + " was not materialised.");
   }

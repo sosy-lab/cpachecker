@@ -517,9 +517,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     return SMGAddressValueAndState.of(
         this,
-        (SMGKnownSymbolicValue) pPointerToAbstractObject.getValue(),
-        newObject,
-        SMGKnownExpValue.valueOf(pPointerToAbstractObject.getOffset()));
+        new SMGEdgePointsTo(
+            pPointerToAbstractObject.getValue(), newObject, pPointerToAbstractObject.getOffset()));
   }
 
   private List<SMGAddressValueAndState> removeSll(
