@@ -122,7 +122,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     if (pOffset.isUnknown() || pObject == null) {
       SMGState errState =
           pSmgState.withInvalidRead().withErrorDescription("Can't evaluate offset or object");
-      return SMGValueAndState.of(errState);
+      return SMGValueAndState.withUnknownValue(errState);
     }
 
     long fieldOffset = pOffset.getAsLong();
@@ -157,7 +157,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
         description = "NULL pointer dereference on read";
       }
       errState = errState.withErrorDescription(description);
-      return SMGValueAndState.of(errState);
+      return SMGValueAndState.withUnknownValue(errState);
     }
 
     return pSmgState.forceReadValue(pObject, fieldOffset, pType);

@@ -1095,7 +1095,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGState newState =
           withInvalidRead().withErrorDescription("Try to read from deallocated object");
       newState.addInvalidObject(pObject);
-      return SMGValueAndState.of(newState);
+      return SMGValueAndState.withUnknownValue(newState);
     }
 
     SMGEdgeHasValueFilter filter =
@@ -1117,7 +1117,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
 
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return SMGValueAndState.of(this);
+    return SMGValueAndState.withUnknownValue(this);
   }
 
   @Override

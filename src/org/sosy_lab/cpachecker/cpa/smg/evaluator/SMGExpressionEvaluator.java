@@ -200,7 +200,7 @@ public class SMGExpressionEvaluator {
       throws SMGInconsistentException, UnrecognizedCodeException {
 
     if (pOffset.isUnknown() || pObject == null) {
-      return SMGValueAndState.of(pSmgState);
+      return SMGValueAndState.withUnknownValue(pSmgState);
     }
 
     long fieldOffset = pOffset.getAsLong();
@@ -215,7 +215,7 @@ public class SMGExpressionEvaluator {
           + fieldOffset + ", " + pType.toASTString("") + ")"
           + " does not fit object " + pObject + ".");
 
-      return SMGValueAndState.of(pSmgState);
+      return SMGValueAndState.withUnknownValue(pSmgState);
     }
 
     // We don't want to modify the state while reading
@@ -708,7 +708,7 @@ public class SMGExpressionEvaluator {
 
   /** @param edge the edge to handle */
   SMGValueAndState handleUnknownDereference(SMGState smgState, CFAEdge edge) {
-    return SMGValueAndState.of(smgState);
+    return SMGValueAndState.withUnknownValue(smgState);
   }
 
   private StructAndUnionVisitor getStructAndUnionVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
