@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState.Status;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
@@ -47,9 +49,18 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
       final AbstractState pState, final Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
     checkNotNull(testTargets);
+    Preconditions.checkArgument(
+        pState instanceof TestTargetState,
+        "Abstract state in TestTargetTransferRelation not an element of TestTargetState");
+
+    if (((TestTargetState) pState).isStop()) {
+      return Collections.emptySet();
+    }
 
     return Collections.singleton(
-        testTargets.contains(pCfaEdge) ? TestTargetState.TARGET : TestTargetState.NO_TARGET);
+        testTargets.contains(pCfaEdge)
+            ? new TestTargetState(Status.NO_TARGET)
+            : TestTargetState.noTargetState());
   }
 
   public Set<CFAEdge> getTestTargets() {

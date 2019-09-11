@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -69,7 +70,7 @@ public class TestTargetCPA extends AbstractCPA {
 
   public TestTargetCPA(final CFA pCfa, final Configuration pConfig)
       throws InvalidConfigurationException {
-    super("sep", "sep", null);
+    super("sep", "sep", DelegateAbstractDomain.<TestTargetState>getInstance(), null);
 
     pConfig.inject(this);
 
@@ -87,7 +88,7 @@ public class TestTargetCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(final CFANode pNode, final StateSpacePartition pPartition)
       throws InterruptedException {
-    return TestTargetState.NO_TARGET;
+    return TestTargetState.noTargetState();
   }
 
   @Override
