@@ -353,7 +353,7 @@ public class SMGExpressionEvaluator {
       }
     }
 
-    return SMGExplicitValueAndState.of(newState);
+    return SMGExplicitValueAndState.of(newState, SMGUnknownValue.INSTANCE);
 
   }
 

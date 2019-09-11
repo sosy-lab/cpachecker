@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1191,7 +1192,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       newState
           .withErrorDescription("Attempt to write to deallocated object")
           .addInvalidObject(pObject);
-      return new SMGStateEdgePair(newState);
+      return new SMGStateEdgePair(newState, null);
     }
 
     SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pSizeInBits, pOffset, pObject, pValue);
@@ -1207,7 +1208,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     heap.addValue(pValue);
 
-    Set<SMGEdgeHasValue> overlappingZeroEdges = new HashSet<>();
+    Set<SMGEdgeHasValue> overlappingZeroEdges = new LinkedHashSet<>();
 
     /* We need to remove all non-zero overlapping edges
      * and remember all overlapping zero edges to shrink them later
@@ -1242,16 +1243,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public static class SMGStateEdgePair {
 
     private final SMGState smgState;
-    private final SMGEdgeHasValue edge;
+    @Nullable private final SMGEdgeHasValue edge;
 
-    private SMGStateEdgePair(SMGState pState, SMGEdgeHasValue pEdge) {
+    private SMGStateEdgePair(SMGState pState, @Nullable SMGEdgeHasValue pEdge) {
       smgState = pState;
       edge = pEdge;
-    }
-
-    private SMGStateEdgePair(SMGState pNewState) {
-      smgState = pNewState;
-      edge = null;
     }
 
     public boolean smgStateHasNewEdge() {

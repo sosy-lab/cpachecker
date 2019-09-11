@@ -131,10 +131,6 @@ public abstract class SMGAbstractObjectAndState<T> {
       super(pState, pValue);
     }
 
-    public static SMGExplicitValueAndState of(SMGState pState) {
-      return of(pState, SMGUnknownValue.INSTANCE);
-    }
-
     public static SMGExplicitValueAndState of(SMGState pState, SMGExplicitValue pValue) {
       return new SMGExplicitValueAndState(pState, pValue);
     }
