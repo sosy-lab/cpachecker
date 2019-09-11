@@ -47,7 +47,7 @@ public class TestTargetState
     NO_TARGET(false),
     STOP_POSSIBLY_INFEASIBLE_TARGET(false);
 
-    boolean isConsideredTarget;
+    private final boolean isConsideredTarget;
 
     private Status(final boolean isTarget) {
       this.isConsideredTarget = isTarget;
