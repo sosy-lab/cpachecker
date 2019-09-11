@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.annotations.VisibleForTesting;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -105,17 +104,6 @@ public class SMGEdgeHasValue extends SMGEdge {
 
     // Start offsets are equal, always overlap
     return true;
-  }
-
-  @VisibleForTesting
-  public boolean isCompatibleField(SMGEdgeHasValue other) {
-    return sizeInBits.equals(other.sizeInBits) && (getOffset() == other.getOffset());
-  }
-
-  public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other) {
-    return sizeInBits.equals(other.sizeInBits)
-        && getOffset() == other.getOffset()
-        && object == other.object;
   }
 
   @Override

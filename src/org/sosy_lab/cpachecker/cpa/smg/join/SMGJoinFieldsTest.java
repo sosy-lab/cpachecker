@@ -192,7 +192,6 @@ public class SMGJoinFieldsTest {
       assertThat(hv.getObject()).isSameInstanceAs(obj1);
       assertThat(hv.getSizeInBits()).isEqualTo(32);
       assertThat(hv.getOffset()).isEqualTo(16);
-      assertThat(hv.isCompatibleField(nonPointer)).isTrue();
     }
   }
 

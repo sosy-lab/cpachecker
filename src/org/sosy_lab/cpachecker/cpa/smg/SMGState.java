@@ -1098,19 +1098,20 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return SMGValueAndState.of(newState);
     }
 
-    SMGEdgeHasValue edge =
-        new SMGEdgeHasValue(pSizeInBits, pOffset, pObject, SMGZeroValue.INSTANCE);
-
     SMGEdgeHasValueFilter filter =
-        SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pOffset);
-    for (SMGEdgeHasValue object_edge : heap.getHVEdges(filter)) {
-      if (edge.isCompatibleFieldOnSameObject(object_edge)) {
-        performConsistencyCheck(SMGRuntimeCheck.HALF);
-        addElementToCurrentChain(object_edge);
-        return SMGValueAndState.of(this, (SMGSymbolicValue) object_edge.getValue());
-      }
+        SMGEdgeHasValueFilter.objectFilter(pObject)
+            .filterAtOffset(pOffset)
+            .filterBySize(pSizeInBits);
+    Set<SMGEdgeHasValue> matchingEdges = heap.getHVEdges(filter);
+    if (!matchingEdges.isEmpty()) {
+      SMGEdgeHasValue object_edge = Iterables.getOnlyElement(matchingEdges);
+      performConsistencyCheck(SMGRuntimeCheck.HALF);
+      addElementToCurrentChain(object_edge);
+      return SMGValueAndState.of(this, (SMGSymbolicValue) object_edge.getValue());
     }
 
+    SMGEdgeHasValue edge =
+        new SMGEdgeHasValue(pSizeInBits, pOffset, pObject, SMGZeroValue.INSTANCE);
     if (heap.isCoveredByNullifiedBlocks(edge)) {
       return SMGValueAndState.of(this, SMGZeroValue.INSTANCE);
     }
