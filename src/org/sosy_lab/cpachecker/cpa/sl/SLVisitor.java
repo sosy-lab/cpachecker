@@ -246,9 +246,9 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
       return error;
     }
     if (curLHS == pPointerExpression) { // is assignment?
-      return heapDelegate.handleDereferenceAssignment(curLHS, null, (CExpression) curRHS);
+      return heapDelegate.handleDereferenceAssignment(operand, null, (CExpression) curRHS);
     } else {
-      return heapDelegate.handleDereference(curLHS, null);
+      return heapDelegate.handleDereference(operand, null);
     }
   }
 
