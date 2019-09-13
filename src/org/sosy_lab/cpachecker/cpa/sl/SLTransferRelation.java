@@ -60,6 +60,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 
 public class SLTransferRelation
     extends ForwardingTransferRelation<Collection<SLState>, SLState, Precision>
@@ -219,10 +220,10 @@ public class SLTransferRelation
       throws Exception {
     PathFormula context = usePredContext ? getPredPathFormula() : pathFormula;
     Formula f = pfm.expressionToFormula(context, pExp, edge);
-    final String dummyVarName = "0_allocationSize";
+    final String dummyVarName = "0_allocationSize"; // must not be a valid C variable name.
     f = fm.makeEqual(bvfm.makeVariable(32, dummyVarName), f);
 
-    try(ProverEnvironment env = solver.newProverEnvironment()) {
+    try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       env.addConstraint(context.getFormula());
       env.addConstraint((BooleanFormula) f);
       if (!env.isUnsat()) {
