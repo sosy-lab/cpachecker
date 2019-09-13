@@ -40,20 +40,23 @@ public class SLState implements AbstractState, Targetable {
 
   private final PathFormula pathFormula;
   private final Map<Formula, Formula> heap;
+  private final Map<Formula, Formula> stack;
 
   private boolean isTarget;
   private SLStateError error = null;
 
   public SLState(PathFormula pPathFormula) {
-    this(pPathFormula, new HashMap<>(), null);
+    this(pPathFormula, new HashMap<>(), new HashMap<>(), null);
   }
 
   public SLState(
       PathFormula pPathFormula,
       Map<Formula, Formula> pHeap,
+      Map<Formula, Formula> pStack,
       SLStateError pError) {
     pathFormula = pPathFormula;
     heap = pHeap;
+    stack = pStack;
     error = pError;
     isTarget = error != null;
   }
@@ -69,16 +72,14 @@ public class SLState implements AbstractState, Targetable {
         + pathFormula.toString()
         + "\nHeap:     "
         + heap.toString()
+        + "\nStack:     "
+        + stack.toString()
         + "\nError: "
         + (error != null ? error.name() : "nope.");
   }
 
   public Map<Formula, Formula> getHeap() {
     return heap;
-  }
-
-  public boolean isOnHeap(Formula var) {
-    return heap.values().contains(var);
   }
 
   @Override

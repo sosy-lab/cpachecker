@@ -21,7 +21,6 @@ package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
@@ -31,33 +30,35 @@ public interface SLFormulaBuilder {
    * Evaluates a CEpression's numeric value.
    *
    * @param pExp - The expression to be evaluated.
-   * @param pContext - The context to be evaluated in.
+   * @param usePredContext - true if the SSAIndices should be inferred by the predecessor context
+   *        (e.g. RHS).
    * @return numeric value
    */
-  public BigInteger getValueForCExpression(CExpression pExp, PathFormula pContext) throws Exception;
+  public BigInteger getValueForCExpression(CExpression pExp, boolean usePredContext)
+      throws Exception;
 
   /**
    * Returns a formula for the given variable name
    *
    * @param pVariable - the variable name.
-   * @param addFctScope - adds the function scope to the formula (e.g. @null for global variables).
-   * @param pContext - The context to be evaluated in.
+   * @param usePredContext - true if the SSAIndices should be inferred by the predecessor context
+   *        (e.g. RHS).
    * @return formula of variable
    */
   public Formula
-      getFormulaForVariableName(String pVariable, boolean addFctScope, PathFormula pContext);
-
-  default public Formula
-      getFormulaForExpression(CIdExpression pExp, boolean addFctScope, PathFormula pContext) {
-    return getFormulaForVariableName(pExp.getName(), addFctScope, pContext);
-  }
+      getFormulaForVariableName(String pVariable, boolean usePredContext);
 
   /**
    *
    * @param pExp - the expression.
-   * @param pContext - The context to be evaluated in.
+   * @param usePredContext - true if the SSAIndices should be inferred by the predecessor context
+   *        (e.g. RHS).
    * @return Formula - the formula representing the given @Expression.
    */
-  public Formula getFormulaForExpression(CExpression pExp, PathFormula pContext) throws Exception;
+  public Formula getFormulaForExpression(CExpression pExp, boolean usePredContext) throws Exception;
+
+  PathFormula getPathFormula();
+
+  PathFormula getPredPathFormula();
 
 }

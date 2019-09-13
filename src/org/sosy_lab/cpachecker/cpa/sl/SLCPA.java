@@ -86,8 +86,6 @@ public class SLCPA extends AbstractCPA {
 
   @Override
   public TransferRelation getTransferRelation() {
-    SLHeapDelegate memDel =
-        new SLHeapDelegateImpl(logger, solver, cfa.getMachineModel());
-    return new SLTransferRelation(logger, solver, pfm, memDel);
+    return new SLTransferRelation(logger, solver, pfm, cfa.getMachineModel());
   }
 }

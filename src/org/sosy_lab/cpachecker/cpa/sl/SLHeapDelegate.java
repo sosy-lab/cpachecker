@@ -19,17 +19,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.sl;
 
-import java.math.BigInteger;
 import java.util.Map;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.java_smt.api.Formula;
 
 public interface SLHeapDelegate {
@@ -39,124 +32,85 @@ public interface SLHeapDelegate {
   /**
    * Manipulates the heap concerning malloc().
    *
-   * @param pMemoryLocation - formula representing the memory location.
-   * @param pLength - size of memory range in bytes.
+   * @param pMemoryLocation - CExpression representing the memory location.
+   * @param pSize - size of memory range in bytes.
    */
-  public void handleMalloc(Formula pMemoryLocation, BigInteger pLength)
+  public void handleMalloc(CExpression pMemoryLocation, CExpression pSize)
       throws Exception;
 
   /**
    * Manipulates the heap concerning realloc().
    *
-   * @param pNewLocation - formula representing the new memory location.
-   * @param pOldLocation - formula representing the old memory location.
+   * @param pNewLocation - CExpression representing the new memory location.
+   * @param pOldLocation - CExpression representing the old memory location.
    * @param pSize - size of memory range in bytes.
-   * @param pContext - the context to be reallocated in.
    * @return true if memory was reallocated successfully, false otherwise.
    */
-  public boolean
+  public SLStateError
       handleRealloc(
-          Formula pNewLocation,
-          Formula pOldLocation,
-          BigInteger pSize,
-          PathFormula pContext)
+          CExpression pNewLocation,
+          CExpression pOldLocation,
+          CExpression pSize)
       throws Exception;
 
   /**
    * Manipulates the heap concerning calloc().
    *
-   * @param pMemoryLocation - formula representing the memory location.
+   * @param pMemoryLocation - CExpression representing the memory location.
    * @param pLength - length of memory range.
    * @param pSize - size of each object in bytes.
    */
-  public void handleCalloc(Formula pMemoryLocation, BigInteger pLength, BigInteger pSize)
+  public void handleCalloc(CExpression pMemoryLocation, CExpression pLength, CExpression pSize)
       throws Exception;
 
   /**
    * Frees allocated memory.
    *
-   * @param pSolverDelegate - a @SLSolverDelegate to check whether the location that has to be
-   *        deallocated is on the heap.
    * @param pMemoryLocation - name of the pointer to the allocated memory.
    * @return true if memory was freed successfully, false otherwise.
    */
-  public boolean
-      handleFree(SLFormulaBuilder pSolverDelegate, Formula pMemoryLocation, PathFormula pContext)
+  public SLStateError
+      handleFree(CExpression pMemoryLocation)
       throws Exception;
 
   /**
-   * Checks whether the given address is allocated (on heap or stack). The associated value can be
-   * updated.
+   * Checks if memory leaks occur caused by out of scope variable.
    *
-   * @param pMemoryLocation - formula representing the memory location to be checked.
-   * @param pOffset - optional array offset, null otherwise.
-   * @param pVal - optional value to be updated, null otherwise.
-   * @param pContext - the state's path formula to be checked in.
-   *
-   * @return The formula if allocated, null otherwise.
+   * @param pVar - The variable, that is no longer in scope.
+   * @return SLStateError - UNFREED Memory if a heap pointer is lost that causes memory leaks, null
+   *         otherwise.
    */
-  public Formula checkAllocation(
-      Formula pMemoryLocation,
-      Formula pOffset,
-      Formula pVal,
-      PathFormula pContext)
-      throws Exception;
+  public SLStateError handleOutOfScopeVariable(CSimpleDeclaration pVar) throws Exception;
 
   /**
-   * Checks whether the given address is allocated.
    *
-   * @see SLHeapDelegate#checkAllocation(SLFormulaBuilder, Formula, Formula, Formula, PathFormula)
    */
-  default public Formula checkAllocation(Formula pLocation, PathFormula pContext) throws Exception {
-    return checkAllocation(pLocation, null, null, pContext);
-  }
+  public void handleDeclaration(CSimpleDeclaration pDecl) throws Exception;
 
   /**
-   * Checks whether the given location is allocated.
-   **/
-  public boolean isAllocated(
-      Formula pLocation,
-      Formula pOffset,
-      PathFormula pContext)
-      throws Exception;
+   *
+   * @param pExp
+   * @return
+   * @throws Exception
+   */
+  default public SLStateError handleDereference(CExpression pExp) throws Exception {
+    return handleDereference(pExp, null);
+  };
+
+
+  public SLStateError handleDereference(CExpression pExp, CExpression pOffset) throws Exception;
 
   /**
-   * Checks whether the given location is allocated.
    *
-   * @see SLHeapDelegate#isAllocated(Formula, Formula)
    */
-  default public boolean isAllocated(Formula pLocation, PathFormula pContext) throws Exception {
-    return isAllocated(pLocation, null, pContext);
-  }
+  public SLStateError
+      handleDereferenceAssignment(CExpression pLHS, CExpression pOffset, CExpression pRHS)
+          throws Exception;
 
 
+
+  public Map<Formula, Formula> getStack();
   public Map<Formula, Formula> getHeap();
 
-  public static CExpression createSymbolicLocation(CSimpleDeclaration pDecl) {
-    CIdExpression e = new CIdExpression(FileLocation.DUMMY, pDecl);
-    return new CUnaryExpression(FileLocation.DUMMY, pDecl.getType(), e, UnaryOperator.AMPER);
-  }
 
-  /**
-   * Deallocates the given location from the heap.
-   *
-   * @param pLoc - Heap location to be deallocated.
-   */
-  public void removeFromHeap(Formula pLoc);
-
-  public BooleanFormula getHeapFormula();
-
-  public void addToHeap(Formula pHeapLocation, BigInteger pSize, boolean initWithZero)
-      throws Exception;
-
-  public void
-      addToHeap(Formula pHeapLocation, BigInteger pLength, CType pType, boolean pInitWithZero)
-      throws Exception;
-
-  /**
-   * Checks whether two formulae are semantically equivalent in the given state's context.
-   *
-   * @return f0 <=> f1
-   */
-  boolean checkEquivalence(Formula pF0, Formula pF1, PathFormula pContext);
 }
