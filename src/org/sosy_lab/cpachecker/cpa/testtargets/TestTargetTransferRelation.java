@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.testtargets;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -54,7 +55,7 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
         "Abstract state in TestTargetTransferRelation not an element of TestTargetState");
 
     if (((TestTargetState) pState).isStop()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     return Collections.singleton(
