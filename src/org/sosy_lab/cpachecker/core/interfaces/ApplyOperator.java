@@ -26,4 +26,6 @@ public interface ApplyOperator {
   public AbstractState project(AbstractState pParent, AbstractState pChild);
 
   public AbstractState project(AbstractState pParent, AbstractState pChild, AbstractEdge pEdge);
+
+  public boolean isInvariantToEffects(AbstractState pState);
 }
