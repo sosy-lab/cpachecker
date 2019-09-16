@@ -449,7 +449,7 @@ public class SMG implements UnmodifiableSMG {
   @Override
   public final @Nullable SMGObject getObjectPointedBy(SMGValue pValue) {
     // TODO: precondition check is slow because values size is commonly bigger then pt_edges size
-    Preconditions.checkArgument(values.contains(pValue), "Value [" + pValue + "] not in SMG");
+    assert (values.contains(pValue));
     SMGEdgePointsTo ptEdge = pt_edges.getEdgeWithValue(pValue);
     if (ptEdge != null) {
       return ptEdge.getObject();
