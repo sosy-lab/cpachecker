@@ -86,4 +86,10 @@ public class ARGApplyOperator implements ApplyOperator {
     return result;
   }
 
+  @Override
+  public boolean isInvariantToEffects(AbstractState pState) {
+    ARGState state = (ARGState) pState;
+    return wrappedApply.isInvariantToEffects(state.getWrappedState());
+  }
+
 }

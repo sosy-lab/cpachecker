@@ -499,10 +499,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       // do not need stop and merge as they has been already performed on projections
       Map<AbstractState, Precision> toAdd = new HashMap<>();
 
+      boolean isProjection = ((AbstractStateWithEdge) state).isProjection();
+      if (!isProjection && applyOperator.isInvariantToEffects(state)) {
+        stats.applyTimer.stop();
+        return;
+      }
+
       Collection<AbstractState> toApply =
           ((ThreadModularReachedSet) reachedSet).getStatesForApply(state);
-
-      boolean isProjection = ((AbstractStateWithEdge) state).isProjection();
 
       stats.mainLoop.start();
       for (AbstractState oldState : toApply) {

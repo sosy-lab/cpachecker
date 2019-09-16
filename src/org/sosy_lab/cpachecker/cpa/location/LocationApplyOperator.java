@@ -61,4 +61,9 @@ public class LocationApplyOperator implements ApplyOperator {
     return ProjectedLocationStateWithEdge.getInstance();
   }
 
+  @Override
+  public boolean isInvariantToEffects(AbstractState pState) {
+    return true;
+  }
+
 }

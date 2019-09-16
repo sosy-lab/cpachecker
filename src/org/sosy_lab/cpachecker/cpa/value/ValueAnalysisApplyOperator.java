@@ -148,4 +148,10 @@ public class ValueAnalysisApplyOperator implements ApplyOperator {
     return new ValueAnalysisStateWithEdge(guard, edge);
   }
 
+  @Override
+  public boolean isInvariantToEffects(AbstractState pState) {
+    ValueAnalysisState state = (ValueAnalysisState) pState;
+    return state.getSize() == 0;
+  }
+
 }

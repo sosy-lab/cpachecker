@@ -138,4 +138,20 @@ public class CompositeApplyOperator implements ApplyOperator {
       return null;
     }
   }
+
+  @Override
+  public boolean isInvariantToEffects(AbstractState pState) {
+    CompositeState state = (CompositeState) pState;
+    Iterator<AbstractState> iter = state.getWrappedStates().iterator();
+
+    for (ApplyOperator applyOp : applyOperators) {
+      AbstractState absState = iter.next();
+
+      boolean res = applyOp.isInvariantToEffects(absState);
+      if (!res) {
+        return false;
+      }
+    }
+    return true;
+  }
 }

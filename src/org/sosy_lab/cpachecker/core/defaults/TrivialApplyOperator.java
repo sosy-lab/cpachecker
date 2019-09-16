@@ -48,4 +48,9 @@ public class TrivialApplyOperator implements ApplyOperator {
     return pParent;
   }
 
+  @Override
+  public boolean isInvariantToEffects(AbstractState pState) {
+    return true;
+  }
+
 }

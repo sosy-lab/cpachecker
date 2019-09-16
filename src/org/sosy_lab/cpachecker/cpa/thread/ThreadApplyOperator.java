@@ -47,4 +47,9 @@ public class ThreadApplyOperator implements ApplyOperator {
     return pParent;
   }
 
+  @Override
+  public boolean isInvariantToEffects(AbstractState pState) {
+    return true;
+  }
+
 }

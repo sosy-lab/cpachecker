@@ -44,4 +44,9 @@ public class CallstackApplyOperator implements ApplyOperator {
     return project(pParent, pChild);
   }
 
+  @Override
+  public boolean isInvariantToEffects(AbstractState pState) {
+    return true;
+  }
+
 }

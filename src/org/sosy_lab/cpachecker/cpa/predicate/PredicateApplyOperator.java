@@ -393,22 +393,22 @@ public class PredicateApplyOperator implements ApplyOperator {
       PredicateAbstractState state1 = (PredicateAbstractState) pState1;
       PredicateProjectedState state2 = (PredicateProjectedState) pState2;
 
-      if (compatible(state1, state2)) {
-        AbstractEdge edge;
-        if (mngr.isTrue(state1.getAbstractionFormula().asFormula())) {
-          // Any effect does nothing with true formula
-          edge = EmptyEdge.getInstance();
-        } else {
-          edge = state2.getAbstractEdge();
-        }
+      AbstractEdge edge;
+      if (mngr.isTrue(state1.getAbstractionFormula().asFormula())) {
+        // Any effect does nothing with true formula
+        edge = EmptyEdge.getInstance();
+      } else if (compatible(state1, state2)) {
+        edge = state2.getAbstractEdge();
+      } else {
+        return null;
+      }
 
-        if (state1 instanceof NonAbstractionState) {
-          return new PredicateNonAbstractionStateWithEdge(state1, edge);
-        } else if (state1 instanceof AbstractionState) {
-          return new PredicateAbstractionStateWithEdge(state1, edge);
-        } else {
-          throw new UnsupportedOperationException("Unknown abstract state: " + state1.getClass());
-        }
+      if (state1 instanceof NonAbstractionState) {
+        return new PredicateNonAbstractionStateWithEdge(state1, edge);
+      } else if (state1 instanceof AbstractionState) {
+        return new PredicateAbstractionStateWithEdge(state1, edge);
+      } else {
+        throw new UnsupportedOperationException("Unknown abstract state: " + state1.getClass());
       }
     }
     return null;
@@ -532,6 +532,15 @@ public class PredicateApplyOperator implements ApplyOperator {
     }
     BooleanFormula result = fmngr.renameFreeVariablesAndUFs(formula, localRename);
     return result;
+  }
+
+  @Override
+  public boolean isInvariantToEffects(AbstractState pState) {
+    PredicateAbstractState state = (PredicateAbstractState) pState;
+    if (mngr.isTrue(state.getAbstractionFormula().asFormula())) {
+      return true;
+    }
+    return false;
   }
 
 }
