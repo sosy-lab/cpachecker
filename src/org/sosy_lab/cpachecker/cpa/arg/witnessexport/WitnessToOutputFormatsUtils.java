@@ -108,7 +108,7 @@ public class WitnessToOutputFormatsUtils {
         String nodeString = SLARGToDotWriter.generateLocationString(nodeIds).toString();
         StringBuilder labelBuilder = new StringBuilder(source);
         if (!nodeString.isEmpty()) {
-          labelBuilder.append(String.format("\nARG node%s: ", nodeIds.size() == 1 ? "" : "s"));
+          labelBuilder.append(String.format("%nARG node%s: ", nodeIds.size() == 1 ? "" : "s"));
           labelBuilder.append(nodeString);
         }
 
