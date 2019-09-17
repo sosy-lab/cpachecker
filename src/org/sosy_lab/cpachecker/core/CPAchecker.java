@@ -466,8 +466,7 @@ public class CPAchecker {
       CPAs.closeIfPossible(algorithm, logger);
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(
-        result, violatedPropertyDescription, reached, cfa, stats, specification);
+    return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
   }
 
   private Path checkIfOneValidFile(List<String> fileDenotation)
