@@ -2173,11 +2173,17 @@ function init() {
 		d3.selectAll(".arg-edge")
 			.on("mouseover", function (d) {
 				d3.select(this).select("path").style("stroke-width", "3px");
-				var edge = argJson.edges.find(function (it) {
+				var edge = [ ...argJson.edges, ...argJson.relevantedges ].find(function (it) {
 					return it.source === parseInt(d.v) && it.target === parseInt(d.w);
 				})
+				var message = "";
+				Object.keys(edge).forEach(function(key,index) {
+					if ($.inArray(key,["target", "source", "label", "line"])==-1) {
+						message += "<span class=\" bold \">"+key+"<\span>: "+edge[key]+"<br>";
+					}
+				});
 				if (edge) {
-					showToolTipBox(d3.event, "<span class=\" bold \">type</span>: " + edge.type);
+					showToolTipBox(d3.event, message);
 				} else {
 					showToolTipBox(d3.event, "<span class=\" bold \">type</span>: graph connecting edge")
 				}
