@@ -339,6 +339,7 @@ public class CPAchecker {
     CFA cfa = null;
     Result result = Result.NOT_YET_STARTED;
     String violatedPropertyDescription = "";
+    Specification specification = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -360,7 +361,6 @@ public class CPAchecker {
         shutdownNotifier.shutdownIfNecessary();
 
         ConfigurableProgramAnalysis cpa;
-        Specification specification;
         stats.cpaCreationTime.start();
         try {
           specification =
@@ -466,7 +466,8 @@ public class CPAchecker {
       CPAs.closeIfPossible(algorithm, logger);
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
+    return new CPAcheckerResult(
+        result, violatedPropertyDescription, reached, cfa, stats, specification);
   }
 
   private Path checkIfOneValidFile(List<String> fileDenotation)

@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -145,9 +146,11 @@ public class ReportGenerator {
     producer = htmlEscaper().escape(CPAchecker.getVersion(pConfig));
   }
 
-  public void generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
+  public void generate(
+      CFA pCfa, UnmodifiableReachedSet pReached, Statistics pStats, String pStatistics) {
     checkNotNull(pCfa);
     checkNotNull(pReached);
+    checkNotNull(pStats);
     checkNotNull(pStatistics);
 
     if (!generateReport || (reportFile == null && counterExampleFiles == null)) {

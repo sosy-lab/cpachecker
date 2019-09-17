@@ -64,17 +64,21 @@ public class CPAcheckerResult {
 
   private @Nullable Statistics proofGeneratorStats = null;
 
+  private @Nullable Specification specification = null;
+
   CPAcheckerResult(
       Result result,
       String violatedPropertyDescription,
       @Nullable ReachedSet reached,
       @Nullable CFA cfa,
-      @Nullable Statistics stats) {
+      @Nullable Statistics stats,
+      @Nullable Specification pSpecification) {
     this.violatedPropertyDescription = checkNotNull(violatedPropertyDescription);
     this.result = checkNotNull(result);
     this.reached = reached;
     this.cfa = cfa;
     this.stats = stats;
+    this.specification = pSpecification;
   }
 
   /**
@@ -154,5 +158,9 @@ public class CPAcheckerResult {
       default:
         throw new AssertionError(result);
     }
+  }
+
+  public Statistics getStatistics() {
+    return stats;
   }
 }
