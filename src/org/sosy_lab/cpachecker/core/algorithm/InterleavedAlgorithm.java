@@ -184,6 +184,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
+    @Override
     public Collection<Statistics> getSubStatistics() {
       return currentSubStat;
     }

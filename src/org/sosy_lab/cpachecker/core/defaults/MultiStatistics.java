@@ -39,6 +39,7 @@ public abstract class MultiStatistics implements Statistics {
   }
 
   /** returns a modifiable collection of statistics. */
+  @Override
   public Collection<Statistics> getSubStatistics() {
     return subStats;
   }

@@ -206,6 +206,7 @@ class MainCPAStatistics implements Statistics {
     }
   }
 
+  @Override
   public Collection<Statistics> getSubStatistics() {
     return subStats;
   }
