@@ -177,6 +177,7 @@ enum GraphBuilder {
 
   },
 
+  @Deprecated
   CFA_FROM_ARG {
 
     @Override
