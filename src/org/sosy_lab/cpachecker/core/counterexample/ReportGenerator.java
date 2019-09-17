@@ -32,6 +32,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -52,12 +53,14 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.JSON;
@@ -78,13 +81,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.BiPredicates;
 
 @Options
 public class ReportGenerator {
@@ -154,7 +161,9 @@ public class ReportGenerator {
     producer = htmlEscaper().escape(CPAchecker.getVersion(pConfig));
   }
 
-  public void generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
+  public void generate(
+      Result pResult, CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
+    checkNotNull(pResult);
     checkNotNull(pCfa);
     checkNotNull(pReached);
     checkNotNull(pStatistics);
@@ -173,7 +182,7 @@ public class ReportGenerator {
       return;
     }
 
-    extractWitness(pReached);
+    extractWitness(pResult, pCfa, pReached);
 
     // we cannot export the graph for some special analyses, e.g., termination analysis
     if (!pReached.isEmpty() && pReached.getFirstState() instanceof ARGState) {
@@ -215,8 +224,25 @@ public class ReportGenerator {
     }
   }
 
-  private void extractWitness(@SuppressWarnings("unused") UnmodifiableReachedSet pReached) {
-    // TODO: find mechanism to generate witness information from reachedset;
+  private void extractWitness(Result pResult, CFA pCfa, UnmodifiableReachedSet pReached) {
+    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
+      ImmutableSet<ARGState> rootStates = ARGUtils.getRootStates(pReached);
+      if (rootStates.size() != 1) {
+        logger.log(Level.INFO, "Could not determine ARG root for witness view");
+        return;
+      }
+      ARGState rootState = rootStates.iterator().next();
+      try {
+        WitnessExporter argWitnessExporter =
+            new WitnessExporter(config, logger, Specification.alwaysSatisfied(), pCfa);
+        witnessOptional =
+            Optional.of(
+                argWitnessExporter.generateProofWitness(
+                    rootState, Predicates.alwaysTrue(), BiPredicates.alwaysTrue()));
+      } catch (InvalidConfigurationException e) {
+        logger.logUserException(Level.WARNING, e, "Could not generate witness for witness view");
+      }
+    }
   }
 
   private void fillOutTemplate(
