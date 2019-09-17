@@ -86,8 +86,6 @@ public class WitnessExporter {
 
   protected final VerificationTaskMetaData verificationTaskMetaData;
 
-  protected Optional<Witness> witness = Optional.empty();
-
   public WitnessExporter(
       final Configuration pConfig,
       final LogManager pLogger,
@@ -133,7 +131,6 @@ public class WitnessExporter {
             Optional.ofNullable(pCounterExample),
             GraphBuilder.ARG_PATH);
     WitnessToOutputFormatsUtils.writeToGraphMl(generatedWitness, pTarget);
-    witness = Optional.ofNullable(generatedWitness);
   }
 
   public void writeTerminationErrorWitness(
@@ -319,7 +316,6 @@ public class WitnessExporter {
             Optional.empty(),
             GraphBuilder.CFA_FULL);
     WitnessToOutputFormatsUtils.writeToGraphMl(generatedWitness, pTarget);
-    witness = Optional.ofNullable(generatedWitness);
   }
 
   protected String getInitialFileName(ARGState pRootState) {
@@ -343,9 +339,5 @@ public class WitnessExporter {
     }
 
     throw new RuntimeException("Could not determine file name based on abstract state!");
-  }
-
-  public Optional<Witness> getWitnessIfAlreadyGenerated() {
-    return witness;
   }
 }

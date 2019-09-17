@@ -747,8 +747,7 @@ public class CPAMain {
 
     // export report
     if (mResult.getResult() != Result.NOT_YET_STARTED) {
-      reportGenerator.generate(
-          mResult.getCfa(), mResult.getReached(), mResult.getStatistics(), statistics.toString());
+      reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
     }
   }
 

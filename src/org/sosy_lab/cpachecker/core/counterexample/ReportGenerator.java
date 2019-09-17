@@ -51,11 +51,8 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -82,10 +79,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
@@ -159,11 +154,9 @@ public class ReportGenerator {
     producer = htmlEscaper().escape(CPAchecker.getVersion(pConfig));
   }
 
-  public void generate(
-      CFA pCfa, UnmodifiableReachedSet pReached, Statistics pStats, String pStatistics) {
+  public void generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
     checkNotNull(pCfa);
     checkNotNull(pReached);
-    checkNotNull(pStats);
     checkNotNull(pStatistics);
 
     if (!generateReport || (reportFile == null && counterExampleFiles == null)) {
@@ -180,7 +173,7 @@ public class ReportGenerator {
       return;
     }
 
-    extractWitness(pStats);
+    extractWitness(pReached);
 
     // we cannot export the graph for some special analyses, e.g., termination analysis
     if (!pReached.isEmpty() && pReached.getFirstState() instanceof ARGState) {
@@ -222,24 +215,8 @@ public class ReportGenerator {
     }
   }
 
-  private void extractWitness(Statistics pStats) {
-    Deque<Statistics> waitlist = new ArrayDeque<>();
-    Collection<Statistics> seenStats = new LinkedHashSet<>();
-    waitlist.add(pStats);
-    while (!waitlist.isEmpty()) {
-      Statistics currentStats = waitlist.pop();
-      seenStats.add(currentStats);
-      if (currentStats instanceof ARGStatistics &&( (ARGStatistics)currentStats).getWitnessIfAlreadyGenerated().isPresent()) {
-        witnessOptional = ((ARGStatistics) currentStats).getWitnessIfAlreadyGenerated();
-        break;
-      }
-      waitlist.addAll(
-          currentStats
-              .getSubStatistics()
-              .stream()
-              .filter(x -> !seenStats.contains(x))
-              .collect(ImmutableList.toImmutableList()));
-    }
+  private void extractWitness(@SuppressWarnings("unused") UnmodifiableReachedSet pReached) {
+    // TODO: find mechanism to generate witness information from reachedset;
   }
 
   private void fillOutTemplate(
