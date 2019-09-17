@@ -50,6 +50,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
@@ -76,6 +77,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExportOptions;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
@@ -544,5 +546,9 @@ public class ARGStatistics implements Statistics {
     if (dumpArgInEachCpaIteration) {
       exportARG(pReached, getAllCounterexamples(pReached), CPAcheckerResult.Result.UNKNOWN);
     }
+  }
+
+  public Optional<Witness> getWitnessIfAlreadyGenerated() {
+    return argWitnessExporter.getWitnessIfAlreadyGenerated();
   }
 }

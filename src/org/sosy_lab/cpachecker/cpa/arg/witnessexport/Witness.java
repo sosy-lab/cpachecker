@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
  * This class represents the information that is available for exporting a witness. Objects of this
  * class are designed to be immutable.
  */
-class Witness {
+public class Witness {
   private final WitnessType witnessType;
   private final String originFile;
   private final CFA cfa;
