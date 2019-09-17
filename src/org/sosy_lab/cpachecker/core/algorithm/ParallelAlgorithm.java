@@ -54,7 +54,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownManager;
@@ -684,15 +683,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       }
       return pResult;
     }
-
-    @Override
-    public Collection<Statistics> getSubStatistics() {
-      return allAnalysesStats
-          .stream()
-          .map(x -> x.getSubStatistics())
-          .flatMap(Collection::stream)
-          .collect(Collectors.toList());
-    }
   }
 
   @Override
@@ -718,10 +708,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       name = Objects.requireNonNull(pName);
       rLimit = pRLimit;
       terminated = Objects.requireNonNull(pTerminated);
-    }
-
-    public Collection<Statistics> getSubStatistics() {
-       return subStatistics;
     }
 
   }
