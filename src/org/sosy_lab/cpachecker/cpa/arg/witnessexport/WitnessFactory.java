@@ -304,7 +304,8 @@ class WitnessFactory implements EdgeAppender {
   private final Set<String> invariantExportStates = new TreeSet<>();
 
   private final Map<Edge, CFANode> loopHeadEnteringEdges = new HashMap<>();
-  private final Map<String, Collection<ARGState>> stateToARGStates = new HashMap<>();
+  private final Multimap<String, ARGState> stateToARGStates = LinkedHashMultimap.create();
+  private final Multimap<Edge, CFAEdge> edgeToCFAEdges = LinkedHashMultimap.create();
 
   private final String defaultSourcefileName;
   private final WitnessType graphType;
@@ -350,7 +351,7 @@ class WitnessFactory implements EdgeAppender {
 
     attemptSwitchToFunctionScope(pEdge);
     if (pFromState.isPresent()) {
-      stateToARGStates.put(pFrom, pFromState.get());
+      stateToARGStates.putAll(pFrom, pFromState.get());
     }
 
     Iterable<TransitionCondition> transitions =
@@ -396,6 +397,7 @@ class WitnessFactory implements EdgeAppender {
       }
 
       putEdge(edge);
+      edgeToCFAEdges.put(edge, pEdge);
       from = to;
       ++i;
     }
@@ -1143,7 +1145,7 @@ class WitnessFactory implements EdgeAppender {
   }
 
   /** Creates a {@link Witness} using the supplied parameters */
-  Witness produceWitness(
+  public Witness produceWitness(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
@@ -1162,6 +1164,7 @@ class WitnessFactory implements EdgeAppender {
     stateScopes.clear();
     invariantExportStates.clear();
     stateToARGStates.clear();
+    edgeToCFAEdges.clear();
 
     BiPredicate<ARGState, ARGState> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
@@ -1246,7 +1249,8 @@ class WitnessFactory implements EdgeAppender {
         stateQuasiInvariants,
         stateScopes,
         invariantExportStates,
-        stateToARGStates);
+        stateToARGStates,
+        edgeToCFAEdges);
   }
 
   /**
@@ -1355,6 +1359,10 @@ class WitnessFactory implements EdgeAppender {
 
               // Add the merged edge to the graph
               putEdge(merged.get());
+              edgeToCFAEdges.putAll(merged.get(), edgeToCFAEdges.get(edge));
+              edgeToCFAEdges.putAll(merged.get(), edgeToCFAEdges.get(other));
+              edgeToCFAEdges.removeAll(edge);
+              edgeToCFAEdges.removeAll(other);
 
               // Add the merged edge to the set of siblings to consider it for further merges
               edgeToSinkIterator.add(merged.get());
@@ -1538,6 +1546,9 @@ class WitnessFactory implements EdgeAppender {
     // Merge the violated properties
     violatedProperties.putAll(nodeToKeep, violatedProperties.removeAll(nodeToRemove));
 
+    // Merge mapping
+    stateToARGStates.putAll(nodeToKeep, (stateToARGStates.removeAll(nodeToRemove)));
+
     Set<Edge> replacementEdges = new HashSet<>();
 
     // Move the leaving edges
@@ -1559,6 +1570,8 @@ class WitnessFactory implements EdgeAppender {
         label = label.putAllAndCopy(leavingEdge.getLabel());
         Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.getTarget(), label);
         putEdge(replacementEdge);
+        edgeToCFAEdges.putAll(replacementEdge, edgeToCFAEdges.get(leavingEdge));
+        edgeToCFAEdges.removeAll(leavingEdge);
         replacementEdges.add(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
         if (loopHead != null) {
@@ -1570,6 +1583,7 @@ class WitnessFactory implements EdgeAppender {
     // Remove the old edges from their successors
     for (Edge leavingEdge : leavingEdgesToMove) {
       boolean removed = removeEdge(leavingEdge);
+      edgeToCFAEdges.removeAll(leavingEdge);
       assert removed;
     }
 
@@ -1583,6 +1597,7 @@ class WitnessFactory implements EdgeAppender {
         TransitionCondition label = pEdge.getLabel().putAllAndCopy(enteringEdge.getLabel());
         Edge replacementEdge = new Edge(enteringEdge.getSource(), nodeToKeep, label);
         putEdge(replacementEdge);
+        edgeToCFAEdges.putAll(replacementEdge, edgeToCFAEdges.get(pEdge));
         replacementEdges.add(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
         if (loopHead != null) {
@@ -1591,11 +1606,14 @@ class WitnessFactory implements EdgeAppender {
         }
       }
     }
+
     // Remove the old edges from their predecessors
     for (Edge enteringEdge : enteringEdgesToMove) {
       boolean removed = removeEdge(enteringEdge);
+      edgeToCFAEdges.removeAll(enteringEdge);
       assert removed : "could not remove edge: " + enteringEdge;
     }
+    edgeToCFAEdges.removeAll(pEdge);
 
     return replacementEdges;
   }
