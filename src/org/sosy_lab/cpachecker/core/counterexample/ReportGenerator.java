@@ -133,7 +133,7 @@ public class ReportGenerator {
   private final Map<String, Object> argRelevantEdges;
   private final Map<Integer, Object> argRelevantNodes;
   private final Map<String, Object> argReducedEdges;
-  private final Map<Integer, Object> argReducedNodes;
+  private final Map<String, Object> argReducedNodes;
   private Optional<Witness> witnessOptional;
 
   private final String producer; // HTML-escaped producer string

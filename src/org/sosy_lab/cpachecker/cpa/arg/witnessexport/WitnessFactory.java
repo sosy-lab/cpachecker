@@ -1547,7 +1547,7 @@ class WitnessFactory implements EdgeAppender {
     violatedProperties.putAll(nodeToKeep, violatedProperties.removeAll(nodeToRemove));
 
     // Merge mapping
-    stateToARGStates.putAll(nodeToKeep, (stateToARGStates.removeAll(nodeToRemove)));
+    stateToARGStates.putAll(nodeToKeep, stateToARGStates.removeAll(nodeToRemove));
 
     Set<Edge> replacementEdges = new HashSet<>();
 

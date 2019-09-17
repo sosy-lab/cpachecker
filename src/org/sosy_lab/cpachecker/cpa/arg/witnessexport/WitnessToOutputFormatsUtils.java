@@ -81,7 +81,7 @@ public class WitnessToOutputFormatsUtils {
    * @param edgesMap map that will be filled with information about the edges
    */
   public static void witnessToMapsForHTMLReport(
-      Witness witness, Map<Integer, Object> nodesMap, Map<String, Object> edgesMap) {
+      Witness witness, Map<String, Object> nodesMap, Map<String, Object> edgesMap) {
     NumericIdProvider idProvider = NumericIdProvider.create();
     String entryStateNode = witness.getEntryStateNodeId();
     Set<String> nodes = Sets.newHashSet();
@@ -127,7 +127,7 @@ public class WitnessToOutputFormatsUtils {
         sourceNode.put("label", labelBuilder.toString());
         sourceNode.put("type", determineNodeType(witness, source));
         sourceNode.put("func", "main"); // TODO: add actual function here (but what if it's mixed?!)
-        nodesMap.put(idProvider.provideNumericId(source), sourceNode);
+        nodesMap.put(source, sourceNode);
       }
 
       for (Edge edge : witness.getLeavingEdges().get(source)) {
