@@ -1140,7 +1140,7 @@ class WitnessFactory implements EdgeAppender {
             cycleHeadToQuasiInvariant,
             pCounterExample,
             pGraphBuilder);
-    WitnessToGraphMlUtils.writeToGraphMl(witness,pTarget);
+    WitnessToOutputFormatsUtils.writeToGraphMl(witness,pTarget);
     return witness;
   }
 

@@ -21,13 +21,23 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Deque;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.xml.parsers.ParserConfigurationException;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.slab.SLARGToDotWriter;
+import org.sosy_lab.cpachecker.util.NumericIdProvider;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
@@ -37,7 +47,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.w3c.dom.Element;
 
-public class WitnessToGraphMlUtils {
+public class WitnessToOutputFormatsUtils {
 
   /**
    * Appends the witness as GraphML to the supplied {@link Appendable}
@@ -58,8 +68,107 @@ public class WitnessToGraphMlUtils {
     } catch (ParserConfigurationException e) {
       throw new IOException(e);
     }
-    WitnessToGraphMlUtils.writeElementsOfGraphToDoc(doc, witness);
+    WitnessToOutputFormatsUtils.writeElementsOfGraphToDoc(doc, witness);
     doc.appendTo(pTarget);
+  }
+
+  /**
+   * This method can be used to extract information about the nodes and edges in the witness which
+   * then can be used e.g. for display in the HTML report (c.f. @link ReportGenerator).
+   *
+   * @param witness the information that will be extracted
+   * @param nodesMap map that will be filled with information about the nodes
+   * @param edgesMap map that will be filled with information about the edges
+   */
+  public static void witnessToMapsForHTMLReport(
+      Witness witness, Map<Integer, Object> nodesMap, Map<String, Object> edgesMap) {
+    NumericIdProvider idProvider = NumericIdProvider.create();
+    String entryStateNode = witness.getEntryStateNodeId();
+    Set<String> nodes = Sets.newHashSet();
+    Deque<String> waitlist = Queues.newArrayDeque();
+    waitlist.push(entryStateNode);
+    // Element entryNode = createNewNode(doc, entryStateNodeId, witness);
+    // addInvariantsData(doc, entryNode, entryStateNodeId, witness);
+    nodes.add(entryStateNode);
+
+    while (!waitlist.isEmpty()) {
+      String source = waitlist.pop();
+
+      @SuppressWarnings("unchecked")
+      Map<String, Object> sourceNode = (Map<String, Object>) nodesMap.get(source);
+      if (sourceNode == null) {
+        // targetNode = createNewNode(doc, edge.getTarget(), witness);
+        sourceNode = Maps.newHashMap();
+
+        List<Integer> nodeIds = witness
+            .getARGStatesFor(source)
+            .stream()
+            .map(ARGState::getStateId)
+            .collect(ImmutableList.toImmutableList());
+        String nodeString = SLARGToDotWriter.generateLocationString(nodeIds).toString();
+        StringBuilder labelBuilder = new StringBuilder(source);
+        if (!nodeString.isEmpty()) {
+          labelBuilder.append(String.format("\nARG node%s: ", nodeIds.size() == 1 ? "" : "s"));
+          labelBuilder.append(nodeString);
+        }
+
+        ExpressionTree<Object> tree = witness.getStateInvariant(source);
+        if (!tree.equals(ExpressionTrees.getTrue())) {
+          sourceNode.put(KeyDef.INVARIANT.toString(), tree.toString());
+          String scope = witness.getStateScopes().get(source);
+          labelBuilder.append(System.lineSeparator()).append(tree.toString());
+          if (!isNullOrEmpty(scope) && !tree.equals(ExpressionTrees.getFalse())) {
+            sourceNode.put(KeyDef.INVARIANTSCOPE.toString(), scope);
+            labelBuilder.append(System.lineSeparator()).append(scope);
+          }
+        }
+
+        sourceNode.put("index", idProvider.provideNumericId(source));
+        sourceNode.put("label", labelBuilder.toString());
+        sourceNode.put("type", determineNodeType(witness, source));
+        sourceNode.put("func", "main"); // TODO: add actual function here (but what if it's mixed?!)
+        nodesMap.put(idProvider.provideNumericId(source), sourceNode);
+      }
+
+      for (Edge edge : witness.getLeavingEdges().get(source)) {
+        ExpressionTree<Object> tree = witness.getStateInvariant(edge.getTarget());
+
+        List<CFAEdge> edges = witness.getCFAEdgeFor(edge);
+        Map<String, Object> edgeMap =
+            ReportGenerator.createArgEdge(
+                idProvider.provideNumericId(source),
+                idProvider.provideNumericId(edge.getTarget()),
+                edges);
+        for (java.util.Map.Entry<KeyDef, String> e : edge.getLabel().getMapping().entrySet()) {
+          edgeMap.put(e.getKey().toString(), e.getValue());
+        }
+        edgesMap.put(
+            edge.getSource() + "->" + edge.getTarget(),
+            edgeMap);
+
+        if (!nodes.contains(edge.getTarget())) {
+          nodes.add(edge.getTarget());
+          if (!ExpressionTrees.getFalse().equals(tree)) {
+          waitlist.push(edge.getTarget());
+          }
+        } else {
+          continue;
+        }
+      }
+    }
+  }
+
+  private static String determineNodeType(Witness witness, String source) {
+    Collection<ARGState> states = witness.getARGStatesFor(source);
+    if (!witness.getViolatedProperties().get(source).isEmpty()
+        || states.stream().anyMatch(ARGState::isTarget)) {
+      return "target";
+    } else if (!states.stream().allMatch(ARGState::wasExpanded)) {
+      return "not-expanded";
+    } else if (states.stream().anyMatch(ARGState::shouldBeHighlighted)){
+      return "highlighted";
+    }
+    return "";
   }
 
   private static void writeElementsOfGraphToDoc(GraphMlBuilder doc, Witness witness) {

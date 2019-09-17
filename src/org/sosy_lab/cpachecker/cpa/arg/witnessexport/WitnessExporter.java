@@ -123,15 +123,17 @@ public class WitnessExporter {
             defaultFileName,
             WitnessType.VIOLATION_WITNESS,
             InvariantProvider.TrueInvariantProvider.INSTANCE);
-    writer.writePath(
-        pTarget,
-        pRootState,
-        pIsRelevantState,
-        pIsRelevantEdge,
-        Predicates.alwaysFalse(),
-        Optional.empty(),
-        Optional.ofNullable(pCounterExample),
-        GraphBuilder.ARG_PATH);
+    Witness generatedWitness =
+        writer.produceWitness(
+            pRootState,
+            pIsRelevantState,
+            pIsRelevantEdge,
+            Predicates.alwaysFalse(),
+            Optional.empty(),
+            Optional.ofNullable(pCounterExample),
+            GraphBuilder.ARG_PATH);
+    WitnessToOutputFormatsUtils.writeToGraphMl(generatedWitness, pTarget);
+    witness = Optional.ofNullable(generatedWitness);
   }
 
   public void writeTerminationErrorWitness(
@@ -316,7 +318,7 @@ public class WitnessExporter {
             Optional.empty(),
             Optional.empty(),
             GraphBuilder.CFA_FULL);
-    WitnessToGraphMlUtils.writeToGraphMl(generatedWitness, pTarget);
+    WitnessToOutputFormatsUtils.writeToGraphMl(generatedWitness, pTarget);
     witness = Optional.ofNullable(generatedWitness);
   }
 

@@ -51,11 +51,15 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -81,7 +85,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options
@@ -125,6 +132,9 @@ public class ReportGenerator {
   private final Map<String, Object> argEdges;
   private final Map<String, Object> argRelevantEdges;
   private final Map<Integer, Object> argRelevantNodes;
+  private final Map<String, Object> argReducedEdges;
+  private final Map<Integer, Object> argReducedNodes;
+  private Optional<Witness> witnessOptional;
 
   private final String producer; // HTML-escaped producer string
 
@@ -143,6 +153,9 @@ public class ReportGenerator {
     argEdges = new HashMap<>();
     argRelevantEdges = new HashMap<>();
     argRelevantNodes = new HashMap<>();
+    argReducedEdges = new HashMap<>();
+    argReducedNodes = new HashMap<>();
+    witnessOptional = Optional.empty();
     producer = htmlEscaper().escape(CPAchecker.getVersion(pConfig));
   }
 
@@ -167,10 +180,13 @@ public class ReportGenerator {
       return;
     }
 
+    extractWitness(pStats);
+
     // we cannot export the graph for some special analyses, e.g., termination analysis
     if (!pReached.isEmpty() && pReached.getFirstState() instanceof ARGState) {
       buildArgGraphData(pReached);
       buildRelevantArgGraphData(pReached);
+      buildReducedArgGraphData();
     }
 
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
@@ -203,6 +219,26 @@ public class ReportGenerator {
               counterExamples.transform(cex -> counterExampleFiles.getPath(cex.getUniqueId())));
       counterExFiles.append("\".");
       console.println(counterExFiles.toString());
+    }
+  }
+
+  private void extractWitness(Statistics pStats) {
+    Deque<Statistics> waitlist = new ArrayDeque<>();
+    Collection<Statistics> seenStats = new LinkedHashSet<>();
+    waitlist.add(pStats);
+    while (!waitlist.isEmpty()) {
+      Statistics currentStats = waitlist.pop();
+      seenStats.add(currentStats);
+      if (currentStats instanceof ARGStatistics &&( (ARGStatistics)currentStats).getWitnessIfAlreadyGenerated().isPresent()) {
+        witnessOptional = ((ARGStatistics) currentStats).getWitnessIfAlreadyGenerated();
+        break;
+      }
+      waitlist.addAll(
+          currentStats
+              .getSubStatistics()
+              .stream()
+              .filter(x -> !seenStats.contains(x))
+              .collect(ImmutableList.toImmutableList()));
     }
   }
 
@@ -327,6 +363,13 @@ public class ReportGenerator {
       JSON.writeJSONString(argRelevantNodes.values(), writer);
       writer.write(",\n\"relevantedges\":");
       JSON.writeJSONString(argRelevantEdges.values(), writer);
+      writer.write("\n");
+    }
+    if (!argReducedEdges.isEmpty() || !argReducedNodes.isEmpty()) {
+      writer.write(",\n\"reducednodes\":");
+      JSON.writeJSONString(argReducedNodes.values(), writer);
+      writer.write(",\n\"reducededges\":");
+      JSON.writeJSONString(argReducedEdges.values(), writer);
       writer.write("\n");
     }
     writer.write("}\n");
@@ -605,6 +648,15 @@ public class ReportGenerator {
     }
   }
 
+  /** Build graph data for the reduced ARG */
+  private void buildReducedArgGraphData() {
+    if (!witnessOptional.isPresent()) {
+      return;
+    }
+    Witness witness = witnessOptional.get();
+    WitnessToOutputFormatsUtils.witnessToMapsForHTMLReport(witness, argReducedNodes, argReducedEdges);
+  }
+
   private Map<String, Object> createArgNode(int parentStateId, CFANode node, ARGState argState) {
     String dotLabel =
         argState.toDOTLabel().length() > 2
@@ -670,7 +722,7 @@ public class ReportGenerator {
     argEdges.put("" + coveringStateId + "->" + parentStateId, coveredEdge);
   }
 
-  private Map<String, Object> createArgEdge(
+  public static Map<String, Object> createArgEdge(
       int parentStateId, int childStateId, List<CFAEdge> edges) {
     Map<String, Object> argEdge = new HashMap<>();
     argEdge.put("source", parentStateId);
