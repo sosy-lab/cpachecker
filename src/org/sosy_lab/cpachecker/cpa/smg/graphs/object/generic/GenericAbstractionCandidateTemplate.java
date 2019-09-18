@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -202,11 +201,8 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
 
   @Override
   public SMGObject createConcreteObject(Map<SMGValue, SMGValue> pAbstractToConcretePointerMap) {
-    return new GenericAbstraction(
-        100 * machineModel.getSizeofCharInBits(),
-        "generic abtraction ID " + SMGCPA.getNewValue(),
-        abstractPointerToMaterlisationSteps,
-        pAbstractToConcretePointerMap);
+    return GenericAbstraction.valueOf(
+        machineModel, abstractPointerToMaterlisationSteps, pAbstractToConcretePointerMap);
   }
 
   /**
