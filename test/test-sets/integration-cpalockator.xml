@@ -12,7 +12,7 @@
   <!--Very simple tests, which do not use thread creation functions -->
   <tasks name="very-simple-tests">
     <option name="-config">config/includes/lockator/lockStatistics-linux.properties</option>
-    <option name="-setprop">CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.lock.LockCPA, cpa.predicate.BAMPredicateCPA</option>
+    <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.lock.LockCPA,cpa.predicate.BAMPredicateCPA</option>
     <option name="-setprop">cpa.usage.unsafedetector.ignoreEmptyLockset=false</option>
     <option name="-skipRecursion"/>
     <include>../programs/cpalockator/simple/*.c</include>
