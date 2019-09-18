@@ -31,8 +31,8 @@ import com.google.common.primitives.ImmutableLongArray;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -368,7 +368,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   private Map<MemoryLocation, SMGValue> getMapOfMemoryLocationsWithValue() {
-    Map<MemoryLocation, SMGValue> result = new HashMap<>();
+    Map<MemoryLocation, SMGValue> result = new LinkedHashMap<>();
 
     for (SMGEdgeHasValue hvedge : getHVEdges()) {
       MemoryLocation memloc = resolveMemLoc(hvedge);
