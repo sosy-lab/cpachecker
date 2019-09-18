@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -40,17 +41,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
-/**
- * Represents a C language stack frame.
- *
- * <p>This is an immutable class.
- */
+/** Represents a C language stack frame. */
+@Immutable
 public final class CLangStackFrame {
   public static final String RETVAL_LABEL = "___cpa_temp_result_var_";
 
-  /**
-   * Function to which this stack frame belongs
-   */
+  /** Function to which this stack frame belongs */
+  @SuppressWarnings("Immutable")
   private final CFunctionDeclaration stack_function;
 
   /** A mapping from variable names to a set of SMG objects, representing local variables. */
