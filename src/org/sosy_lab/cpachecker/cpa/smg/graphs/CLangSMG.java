@@ -683,11 +683,16 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     return info;
   }
 
+  /**
+   * extract some information about the object from the SMG.
+   *
+   * <p>This does not include the full subgraph, but only one level from the graph!
+   */
   private SMGStateInformation createStateInfo(SMGObject pObj) {
 
     Set<SMGEdgeHasValue> hves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj));
     Set<SMGEdgePointsTo> ptes = getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(pObj));
-    Set<SMGEdgePointsTo> resultPtes = new HashSet<>(ptes);
+    Set<SMGEdgePointsTo> resultPtes = new LinkedHashSet<>(ptes);
 
     for (SMGEdgeHasValue edge : hves) {
       if (isPointer(edge.getValue())) {
@@ -695,8 +700,8 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
       }
     }
 
-    return SMGStateInformation.of(hves, resultPtes, isObjectValid(pObj),
-        isObjectExternallyAllocated(pObj));
+    return SMGStateInformation.of(
+        hves, resultPtes, isObjectValid(pObj), isObjectExternallyAllocated(pObj));
   }
 
   /** returns information about the removed variable if 'createInfo' is set, else Null. */
@@ -739,7 +744,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     rememberEdges(pInfo);
   }
 
-  public void rememberEdges(SMGStateInformation pForgottenInformation) {
+  private void rememberEdges(SMGStateInformation pForgottenInformation) {
     for(SMGEdgeHasValue edge : Sets.difference(pForgottenInformation.getHvEdges(), getHVEdges())) {
       addHasValueEdge(edge);
     }

@@ -44,8 +44,11 @@ public class SMGStateInformation {
     external = false;
   }
 
-  private SMGStateInformation(Set<SMGEdgeHasValue> pHves,
-      Set<SMGEdgePointsTo> pPtes, boolean pIsRegionValid, boolean pIsRegionExternallyAllocated) {
+  private SMGStateInformation(
+      Set<SMGEdgeHasValue> pHves,
+      Set<SMGEdgePointsTo> pPtes,
+      boolean pIsRegionValid,
+      boolean pIsRegionExternallyAllocated) {
     hvEdges = ImmutableSet.copyOf(pHves);
     ptEdges = ImmutableSet.copyOf(pPtes);
     valid = pIsRegionValid;
@@ -77,10 +80,11 @@ public class SMGStateInformation {
     return hvEdges + "\n" + ptEdges;
   }
 
-  public static SMGStateInformation of(Set<SMGEdgeHasValue> pHves,
-      Set<SMGEdgePointsTo> ptes, boolean pIsRegionValid,
+  public static SMGStateInformation of(
+      Set<SMGEdgeHasValue> pHves,
+      Set<SMGEdgePointsTo> ptes,
+      boolean pIsRegionValid,
       boolean pIsRegionExternallyAllocated) {
-    return new SMGStateInformation(pHves, ptes, pIsRegionValid,
-        pIsRegionExternallyAllocated);
+    return new SMGStateInformation(pHves, ptes, pIsRegionValid, pIsRegionExternallyAllocated);
   }
 }
