@@ -66,8 +66,8 @@ public final class CLangStackFrame {
       CFunctionDeclaration pDeclaration,
       PersistentMap<String, SMGRegion> pVariables,
       SMGRegion pReturnValueObject) {
-    stack_variables = pVariables;
-    stack_function = pDeclaration;
+    stack_variables = Preconditions.checkNotNull(pVariables);
+    stack_function = Preconditions.checkNotNull(pDeclaration);
     returnValueObject = pReturnValueObject;
   }
 
@@ -90,18 +90,6 @@ public final class CLangStackFrame {
       returnValueObject = new SMGRegion(return_value_size, CLangStackFrame.RETVAL_LABEL);
     }
   }
-
-  /**
-   * Copy constructor.
-   *
-   * @param pFrame Original frame
-   */
-  public CLangStackFrame(CLangStackFrame pFrame) {
-    stack_function = pFrame.stack_function;
-    stack_variables = pFrame.stack_variables;
-    returnValueObject = pFrame.returnValueObject;
-  }
-
 
   /**
    * Adds a SMG object pObj to a stack frame, representing variable pVariableName
