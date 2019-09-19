@@ -767,18 +767,14 @@ public class CFABuilder {
       functionDeclaration = functionDeclarations.get(functionName);
     }
 
-    if (functionDeclaration == null) {
-      logger.logf(
-          Level.WARNING,
-          "Declaration for function %s not found, trying to derive it.",
-          functionName);
-    }
-
     List<CExpression> parameters = new ArrayList<>(argumentCount);
     CFunctionType functionType;
+    List<CParameterDeclaration> parameterDeclarations;
 
     if (functionDeclaration == null) {
-      // Try to derive a function type from the call.
+      // This is a call of undeclared function or a call via function pointer.
+      // Derive the function type from the call.
+
       // For normal CallInst the numer of parameters is argumentCount - 1,
       // but for intrinsic calls it is just argumentCount, so let's use that.
       List<CType> parameterTypes = new ArrayList<>(argumentCount);
@@ -792,12 +788,13 @@ public class CFABuilder {
 
       functionType = new CFunctionType(returnType, parameterTypes, false);
 
+      parameterDeclarations = new ArrayList<>();
+      for (CType paramType : parameterTypes) {
+        parameterDeclarations.add(
+            new CParameterDeclaration(FileLocation.DUMMY, paramType, getTempVar(false)));
+      }
+
       if (functionName != null) {
-        List<CParameterDeclaration> parameterDeclarations = new ArrayList<>();
-        for (CType paramType : parameterTypes) {
-          parameterDeclarations.add(
-              new CParameterDeclaration(FileLocation.DUMMY, paramType, getTempVar(false)));
-        }
         CFunctionDeclaration derivedDeclaration =
             new CFunctionDeclaration(
                 FileLocation.DUMMY, functionType, functionName, parameterDeclarations);
@@ -805,26 +802,27 @@ public class CFABuilder {
       }
     } else {
       functionType = functionDeclaration.getType();
-      List<CParameterDeclaration> parameterDeclarations = functionDeclaration.getParameters();
-      // i = 1 to skip the function name, we only want to look at arguments
-      for (int i = 0; i < argumentCount; i++) {
-        Value functionArg = pItem.getArgOperand(i);
-        CType expectedType;
+      parameterDeclarations = functionDeclaration.getParameters();
+    }
 
-        if (i < parameterDeclarations.size()) {
-          // Fixed parameter
-          expectedType = parameterDeclarations.get(i).getType();
-        } else {
-          // var arg
-          assert functionType.takesVarArgs() : "Too many arguments for function "
-              + functionDeclaration + ": " + functionArg;
-          expectedType = typeConverter.getCType(functionArg.typeOf());
-        }
+    // map parameters
+    for (int i = 0; i < argumentCount; i++) {
+      Value functionArg = pItem.getArgOperand(i);
+      CType expectedType;
 
-        assert functionArg.isConstant()
-            || variableDeclarations.containsKey(functionArg.getAddress());
-        parameters.add(getExpression(functionArg, expectedType, pFileName));
+      if (i < parameterDeclarations.size()) {
+        // Fixed parameter
+        expectedType = parameterDeclarations.get(i).getType();
+      } else {
+        // var arg
+        assert functionType.takesVarArgs() : "Too many arguments for function "
+            + functionDeclaration + ": " + functionArg;
+        expectedType = typeConverter.getCType(functionArg.typeOf());
       }
+
+      assert functionArg.isConstant()
+          || variableDeclarations.containsKey(functionArg.getAddress());
+      parameters.add(getExpression(functionArg, expectedType, pFileName));
     }
 
     CExpression functionNameExp = getExpression(calledFunction, functionType, pFileName);
