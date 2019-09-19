@@ -1742,9 +1742,18 @@ public class CFABuilder {
         CCompositeTypeMemberDeclaration field =
             ((CCompositeType) currentType).getMembers().get(memberIndex);
         String fieldName = field.getName();
-        currentExpression =
+
+        /* use "ptr_to_struct->elem" instead of "(*ptr_to_struct).elem" */
+        if (currentExpression instanceof CPointerExpression) {
+            currentExpression =
+                new CFieldReference(fileLocation, currentType, fieldName,
+                                    ((CPointerExpression)currentExpression).getOperand(),
+                                    true /* is ptr deref */);
+        } else {
+            currentExpression =
                 new CFieldReference(fileLocation, currentType, fieldName,
                                     currentExpression, false);
+        }
       }
 
       /* update the expression type */
