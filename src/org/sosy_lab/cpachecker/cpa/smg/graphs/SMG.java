@@ -152,6 +152,8 @@ public class SMG implements UnmodifiableSMG {
    *
    */
   final public void addObject(final SMGObject pObj) {
+    Preconditions.checkArgument(
+        SMGNullObject.INSTANCE != pObj, "NULL can not be added as valid object");
     addObject(pObj, true, false);
   }
 
