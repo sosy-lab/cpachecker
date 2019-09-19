@@ -1192,7 +1192,15 @@ public class CFABuilder {
 
     } else if (pItem.isUndef()) {
       CType constantType = typeConverter.getCType(pItem.typeOf());
-      String undefName = "__VERIFIER_undef_" + constantType.toString().replace(' ', '_');
+      /* get the name of the type and sanitize it
+       * to form a correct C identifier */
+      String typeName = constantType.toString().replace(' ', '_');
+      typeName = typeName.replace('(', '_');
+      typeName = typeName.replace(')', '_');
+      typeName = typeName.replace(':', '_');
+      typeName = typeName.replace("*", "_ptr_");
+
+      String undefName = "__VERIFIER_undef_" + typeName;
       CSimpleDeclaration undefDecl =
           new CVariableDeclaration(
               location,
