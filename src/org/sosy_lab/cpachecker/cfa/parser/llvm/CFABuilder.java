@@ -1767,7 +1767,7 @@ public class CFABuilder {
   private List<CAstNode> handleCmpInst(final Value pItem, String pFunctionName, String pFileName)
       throws LLVMException {
     // the only one supported now
-    assert pItem.isICmpInst();
+    assert pItem.isICmpInst() : "Unsupported cmp instruction: " + pItem;
     boolean isUnsignedCmp = false;
 
     BinaryOperator operator;
