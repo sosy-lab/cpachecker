@@ -1470,13 +1470,12 @@ public class CFABuilder {
       CType typePointingTo = ((CPointerType) pExpectedType).getType().getCanonicalType();
       if (expressionType.canBeAssignedFrom(typePointingTo)
           || expressionType.equals(typePointingTo)) {
-        return new CUnaryExpression(
-            location, pExpectedType, expression, UnaryOperator.AMPER);
+        return getReference(location, expression);
       } else {
         throw new AssertionError("Unhandled type structure: " + expressionType);
       }
     } else if (expressionType instanceof CPointerType) {
-      return new CPointerExpression(location, pExpectedType, expression);
+      return getDereference(location, expression);
     } else {
       throw new AssertionError("Unhandled type structure: " + expressionType);
     }
