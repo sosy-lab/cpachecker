@@ -115,7 +115,11 @@ public final class CLangStackFrame {
    */
   @Override
   public String toString() {
-    return "<" + Joiner.on(" ").join(stack_variables.values()) + ">";
+    return String.format(
+        "%s=[%s%s]",
+        stack_function.getName(),
+        Joiner.on(", ").join(stack_variables.values()),
+        returnValueObject == null ? "" : (", " + returnValueObject));
   }
 
   public CLangStackFrame removeVariable(String pName) {

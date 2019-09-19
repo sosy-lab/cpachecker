@@ -56,8 +56,7 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   @Override
   public String toString() {
-    return String.format(
-        "%sb @ %s+%db has value %s", sizeInBits, object.getLabel(), getOffset(), value);
+    return String.format("%s+%db[%sb]->%s", object.getLabel(), getOffset(), sizeInBits, value);
   }
 
   public long getSizeInBits() {

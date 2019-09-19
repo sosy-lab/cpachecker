@@ -358,13 +358,14 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    */
   @Override
   public String toString() {
-    return "CLangSMG [\n stack_objects=" + stack_objects
-        + "\n heap_objects=" + heap_objects
-        + "\n global_objects=" + global_objects
-        + "\n values=" + getValues()
-        + "\n pointsTo=" + getPTEdges()
-        + "\n hasValue=" + getHVEdges()
-        + "\n" + getMapOfMemoryLocationsWithValue() + "\n]";
+    return "CLangSMG ["
+        + "\n  stack_objects=" + stack_objects
+        + "\n  heap_objects=" + heap_objects
+        + "\n  global_objects=" + global_objects
+        + "\n  values=" + getValues()
+        + "\n  pointsTo=" + getPTEdges()
+        + "\n  hasValue=" + getHVEdges()
+        + "\n  " + getMapOfMemoryLocationsWithValue() + "\n]";
   }
 
   private Map<MemoryLocation, SMGValue> getMapOfMemoryLocationsWithValue() {
