@@ -1456,6 +1456,29 @@ public class CFABuilder {
     return variableDeclarations.get(itemId);
   }
 
+  private CExpression castToExpectedType(CExpression expression, final CType pExpectedType,
+                                         final FileLocation location) {
+    CType expressionType = expression.getExpressionType();
+
+    if (expressionType.canBeAssignedFrom(pExpectedType)) {
+      return expression;
+
+    } else if (pointerOf(pExpectedType, expressionType)) {
+      CType typePointingTo = ((CPointerType) pExpectedType).getType().getCanonicalType();
+      if (expressionType.canBeAssignedFrom(typePointingTo)
+          || expressionType.equals(typePointingTo)) {
+        return new CUnaryExpression(
+            location, pExpectedType, expression, UnaryOperator.AMPER);
+      } else {
+        throw new AssertionError("Unhandled type structure");
+      }
+    } else if (expressionType instanceof CPointerType) {
+      return new CPointerExpression(location, pExpectedType, expression);
+    } else {
+      throw new AssertionError("Unhandled types structure");
+    }
+  }
+
   /**
    * Returns the id expression to an already declared variable. Returns it as a cast, if necessary
    * to match the expected type.
@@ -1475,23 +1498,7 @@ public class CFABuilder {
         new CIdExpression(
             getLocation(pItem, pFileName), expressionType, assignedVarName, assignedVarDeclaration);
 
-    if (expressionType.canBeAssignedFrom(pExpectedType)) {
-      return idExpression;
-
-    } else if (pointerOf(pExpectedType, expressionType)) {
-      CType typePointingTo = ((CPointerType) pExpectedType).getType().getCanonicalType();
-      if (expressionType.canBeAssignedFrom(typePointingTo)
-          || expressionType.equals(typePointingTo)) {
-        return new CUnaryExpression(
-            getLocation(pItem, pFileName), pExpectedType, idExpression, UnaryOperator.AMPER);
-      } else {
-        throw new AssertionError("Unhandled type structure");
-      }
-    } else if (expressionType instanceof CPointerType) {
-      return new CPointerExpression(getLocation(pItem, pFileName), pExpectedType, idExpression);
-    } else {
-      throw new AssertionError("Unhandled types structure");
-    }
+    return castToExpectedType(idExpression, pExpectedType, getLocation(pItem, pFileName));
   }
 
   /**
