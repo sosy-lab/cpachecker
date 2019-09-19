@@ -1177,6 +1177,7 @@ public class CFABuilder {
 
   private CRightHandSide getConstant(final Value pItem, CType pExpectedType, final String pFileName)
       throws LLVMException {
+    assert pItem.isConstant() : "getConstant called on non-constant value";
     FileLocation location = getLocation(pItem, pFileName);
     if (pItem.isConstantInt()) {
       BigInteger constantValue = BigInteger.valueOf(pItem.constIntGetSExtValue());
@@ -1218,8 +1219,12 @@ public class CFABuilder {
         return funcId;
       }
 
-    } else if (pItem.isGlobalConstant() && pItem.isGlobalVariable()) {
-      return getAssignedIdExpression(pItem, pExpectedType, pFileName);
+    } else if (pItem.isGlobalVariable()) {
+        if (!pItem.isExternallyInitialized() || pItem.isGlobalConstant()) {
+            return getAssignedIdExpression(pItem, pExpectedType, pFileName);
+        } else {
+            throw new UnsupportedOperationException("LLVM parsing does not support this global variable: " + pItem);
+        }
     } else {
       throw new UnsupportedOperationException("LLVM parsing does not support constant " + pItem);
     }
