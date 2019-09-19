@@ -1157,8 +1157,11 @@ public class CFABuilder {
       final Value pItem, final CType pExpectedType, final String pFileName) throws LLVMException {
 
     if (pItem.isConstantExpr()) {
-      return createFromOpCode(pItem, pFileName, pItem.getConstOpCode());
-
+      CExpression expr = createFromOpCode(pItem, pFileName, pItem.getConstOpCode());
+      /* FIXME we should really return just the expression and perform any casting
+       * in the top-level code. This is just a mess... But for that we must change
+       * a lot of places where the code assume that the expression is already casted */
+      return castToExpectedType(expr, pExpectedType, getLocation(pItem, pFileName));
     } else if (pItem.isConstant() && !pItem.isGlobalVariable()) {
       return (CExpression) getConstant(pItem, pExpectedType, pFileName);
 
