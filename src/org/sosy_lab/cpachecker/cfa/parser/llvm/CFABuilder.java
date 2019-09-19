@@ -1697,7 +1697,8 @@ public class CFABuilder {
 
       CType stringType = new CPointerType(false, false, constCharType);
 
-      return new CStringLiteralExpression(fileLocation, stringType, constant);
+      return new CStringLiteralExpression(fileLocation, stringType,
+                                          '"' + constant + '"');
     }
 
     CType currentType = typeConverter.getCType(startPointer.typeOf());
