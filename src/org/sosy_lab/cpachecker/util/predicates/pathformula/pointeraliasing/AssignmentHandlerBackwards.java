@@ -81,9 +81,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-/**
- * Implements a handler for assignments.
- */
+/** Implements a handler for assignments. */
+@SuppressWarnings("unused") // TODO fix unused variables
 class AssignmentHandlerBackwards implements AssignmentHandlerInterface {
 
   private final FormulaEncodingWithPointerAliasingOptions options;
