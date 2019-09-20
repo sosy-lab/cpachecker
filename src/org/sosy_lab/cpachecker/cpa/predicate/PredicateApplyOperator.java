@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -75,8 +76,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.AbstractionState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.NonAbstractionState;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -369,17 +373,21 @@ public class PredicateApplyOperator implements ApplyOperator {
   private final Solver solver;
   private final BooleanFormulaManager mngr;
   private final FormulaManagerView fmngr;
+  private final PathFormulaManager pmngr;
   // private final PredicateAbstractionManager amngr;
 
   final Timer creationTimer = new Timer();
+  final Timer convertingTimer = new Timer();
 
   public PredicateApplyOperator(
       Solver s,
       FormulaManagerView pFormulaManager,
+      PathFormulaManager pPathFormulaManager,
       Configuration pConfig) {
     solver = s;
     mngr = solver.getFormulaManager().getBooleanFormulaManager();
     fmngr = pFormulaManager;
+    pmngr = pPathFormulaManager;
     try {
       pConfig.inject(this);
     } catch (InvalidConfigurationException e) {
@@ -489,7 +497,31 @@ public class PredicateApplyOperator implements ApplyOperator {
                   newRight.getFirst());
         }
         creationTimer.stop();
-        return new PredicateAbstractEdge(Collections.singleton(newAssignement));
+
+        convertingTimer.start();
+        CFAEdge fakeEdge =
+            new CStatementEdge(
+                "environment",
+                newAssignement,
+                newAssignement.getFileLocation(),
+                new CFANode("dummy"),
+                new CFANode("dummy"));
+
+        PathFormula pFormula = pmngr.makeEmptyPathFormula();
+
+        try {
+          pFormula = pmngr.makeAnd(pFormula, fakeEdge);
+        } catch (CPATransferException e) {
+          return EmptyEdge.getInstance();
+        } catch (InterruptedException e) {
+          return EmptyEdge.getInstance();
+        }
+
+        convertingTimer.stop();
+
+        return new PredicateAbstractEdge(
+            pFormula,
+            Collections.singleton(newAssignement));
       }
     }
     // TODO Assumptions!

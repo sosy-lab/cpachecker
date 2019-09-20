@@ -70,6 +70,8 @@ public class PredicateStatistics {
       new ThreadSafeTimerContainer("Time for make or");
   final ThreadSafeTimerContainer relevanceTimer =
       new ThreadSafeTimerContainer("Time for relevance calculation");
+  final ThreadSafeTimerContainer instantiateTimer =
+      new ThreadSafeTimerContainer("Time for instantiating formula");
   final ThreadSafeTimerContainer prepareTimer =
       new ThreadSafeTimerContainer("Time for preparation");
   final ThreadSafeTimerContainer environmentTimer =

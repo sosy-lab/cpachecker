@@ -22,19 +22,26 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 public class PredicateAbstractEdge implements AbstractEdge {
 
-  private final static PredicateAbstractEdge havocEdge = new PredicateAbstractEdge(null);
+  private final static PredicateAbstractEdge havocEdge = new PredicateAbstractEdge(null, null);
 
-  private final Collection<CAssignment> assignment;
+  private final Collection<CAssignment> assignements;
+  private final PathFormula formula;
 
-  PredicateAbstractEdge(Collection<CAssignment> pAssignment) {
-    assignment = pAssignment;
+  PredicateAbstractEdge(PathFormula pFormula, Collection<CAssignment> pAssignements) {
+    formula = pFormula;
+    assignements = pAssignements;
+  }
+
+  public PathFormula getFormula() {
+    return formula;
   }
 
   public Collection<CAssignment> getAssignments() {
-    return assignment;
+    return assignements;
   }
 
   public static PredicateAbstractEdge getHavocEdgeInstance() {

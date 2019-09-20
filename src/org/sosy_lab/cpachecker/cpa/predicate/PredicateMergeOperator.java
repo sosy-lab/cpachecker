@@ -153,7 +153,8 @@ public class PredicateMergeOperator implements MergeOperator {
     }
   }
 
-  private AbstractEdge mergeEdges(AbstractEdge edge1, AbstractEdge edge2) {
+  private AbstractEdge mergeEdges(AbstractEdge edge1, AbstractEdge edge2)
+      throws InterruptedException {
 
     if (edge1 == EmptyEdge.getInstance()) {
       return edge2;
@@ -168,10 +169,11 @@ public class PredicateMergeOperator implements MergeOperator {
       return PredicateAbstractEdge.getHavocEdgeInstance();
     }
 
-
-    Collection<CAssignment> formulas2 = ((PredicateAbstractEdge) edge2).getAssignments();
+    PredicateAbstractEdge predEdge1 = ((PredicateAbstractEdge) edge1);
+    PredicateAbstractEdge predEdge2 = ((PredicateAbstractEdge) edge2);
+    Collection<CAssignment> formulas2 = predEdge2.getAssignments();
     Collection<CAssignment> newFormulas1 =
-    from(((PredicateAbstractEdge) edge1).getAssignments()).filter(s -> !formulas2.contains(s)).toSet();
+    from(predEdge1.getAssignments()).filter(s -> !formulas2.contains(s)).toSet();
 
     if (newFormulas1.isEmpty()) {
       return edge2;
@@ -186,7 +188,7 @@ public class PredicateMergeOperator implements MergeOperator {
         if (commonPart.isEmpty()) {
           Collection<CAssignment> newFormulas = Sets.newHashSet(formulas2);
           newFormulas.addAll(newFormulas1);
-          return new PredicateAbstractEdge(newFormulas);
+          return new PredicateAbstractEdge(null, newFormulas);
         } else {
           Collection<CAssignment> newFormulas = new HashSet<>();
           copyFormulas(newFormulas, newFormulas1, commonPart);
@@ -218,13 +220,16 @@ public class PredicateMergeOperator implements MergeOperator {
             return edge2;
           }
 
-          return new PredicateAbstractEdge(newFormulas);
+          return new PredicateAbstractEdge(null, newFormulas);
         }
 
       } else {
         Collection<CAssignment> newFormulas = Sets.newHashSet(formulas2);
         newFormulas.addAll(newFormulas1);
-        return new PredicateAbstractEdge(newFormulas);
+        PathFormula formula1 = predEdge1.getFormula();
+        PathFormula formula2 = predEdge2.getFormula();
+        PathFormula newFormula = formulaManager.makeOr(formula1, formula2);
+        return new PredicateAbstractEdge(newFormula, newFormulas);
       }
     }
   }
