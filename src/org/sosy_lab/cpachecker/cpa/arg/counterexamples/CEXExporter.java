@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 
 @Options(prefix="counterexample.export", deprecatedPrefix="cpa.arg.errorPath")
@@ -162,8 +163,7 @@ public class CEXExporter {
    *     targetPath is available, it will be used for the output. Otherwise we use backwards
    *     reachable states from pTargetState.
    */
-  public void exportCounterexample(
-      final ARGState targetState, final CounterexampleInfo counterexample) {
+  public void exportCounterexample(ARGState targetState, final CounterexampleInfo counterexample) {
     checkNotNull(targetState);
     checkNotNull(counterexample);
     if (options.disabledCompletely()) {
@@ -173,8 +173,10 @@ public class CEXExporter {
     boolean backwardsCounterexample = false;
     final ARGPath targetPath = counterexample.getTargetPath();
     final CFANode targetLocation = AbstractStates.extractLocation(targetState);
+    final String mainFunction =
+        GlobalInfo.getInstance().getCFAInfo().get().getCFA().getMainFunction().getFunctionName();
     if (targetLocation instanceof CFunctionEntryNode
-        && targetLocation.getFunctionName().equals("main")) {
+        && targetLocation.getFunctionName().equals(mainFunction)) {
       // If it is a backwards analysis targetLocation is CFunctionEntryNode of the main function but
       // for the counterexample export target State has to be switched
       targetState = targetPath.getLastState();
@@ -183,7 +185,6 @@ public class CEXExporter {
     final ARGState rootState = targetPath.getFirstState();
     final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge = Predicates.in(
         new HashSet<>(targetPath.getStatePairs()));
-    final ARGState rootState = targetPath.getFirstState();
     // If it is a backwards analysis the targetState is a CFunctionEntryNode
     // Either change rootState to targetPath.getLastState() and reverse Path
     // Or do the whole export for different start Node Type
