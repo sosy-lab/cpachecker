@@ -105,10 +105,16 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
 
       do {
         iterationCounter++;
+        int initialSize = strategy.getSizeOfPrecision();
+
         delegatingTime.start();
         counterexample =
             delegate.performRefinementForPath(pReached, refinedPath);
         delegatingTime.stop();
+
+        if (envRefinement && strategy.getSizeOfPrecision() > initialSize) {
+          numberOfUsefulRefinements.inc();
+        }
 
         // TODO fix handling of counterexamples
         // + 1 for update count as the current interval is not finished
@@ -130,9 +136,6 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
           if (!previousNodes.contains(n)) {
             newBlock.add(n);
           }
-        }
-        if (envRefinement && !newBlock.isEmpty()) {
-          numberOfUsefulRefinements.inc();
         }
         previousNodes = strategy.getAllAffectedNodes();
 

@@ -20,31 +20,76 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class PredicateAbstractEdge implements AbstractEdge {
 
-  private final static PredicateAbstractEdge havocEdge = new PredicateAbstractEdge(null, null);
+  public static class FormulaDescription {
+    private final CAssignment assignment;
+    private final BooleanFormula formula;
 
-  private final Collection<CAssignment> assignements;
-  private final PathFormula formula;
+    private final Map<String, CType> types;
 
-  PredicateAbstractEdge(PathFormula pFormula, Collection<CAssignment> pAssignements) {
+    public FormulaDescription(
+        CAssignment pAssignment,
+        BooleanFormula pFormula,
+        Map<String, CType> pInfo) {
+      assignment = pAssignment;
+      formula = pFormula;
+      types = pInfo;
+    }
+
+    public BooleanFormula getFormula() {
+      return formula;
+    }
+
+    public Map<String, CType> getInfo() {
+      return types;
+    }
+
+    public CAssignment getAssignment() {
+      return assignment;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(assignment);
+    }
+
+    @Override
+    public boolean equals(Object pOther) {
+      if (pOther == this) {
+        return true;
+      }
+      if (pOther instanceof FormulaDescription) {
+        return Objects.equals(assignment, ((FormulaDescription) pOther).assignment);
+      } else {
+        return false;
+      }
+    }
+  }
+
+  private final static PredicateAbstractEdge havocEdge =
+      new PredicateAbstractEdge(Collections.emptyList());
+
+  private final Collection<FormulaDescription> formula;
+
+  PredicateAbstractEdge(Collection<FormulaDescription> pFormula) {
     formula = pFormula;
-    assignements = pAssignements;
   }
 
-  public PathFormula getFormula() {
+  public Collection<FormulaDescription> getFormulas() {
     return formula;
-  }
-
-  public Collection<CAssignment> getAssignments() {
-    return assignements;
   }
 
   public static PredicateAbstractEdge getHavocEdgeInstance() {
     return havocEdge;
   }
+
 }

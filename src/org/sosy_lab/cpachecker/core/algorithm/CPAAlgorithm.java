@@ -138,12 +138,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       if (mergeTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for merge operator:        " + mergeTimer);
       }
-      out.println("  Time for stop operator:         " + stopTimer);
-      out.println("  Time for adding to reached set: " + addTimer);
-      out.println("  Time for applying states:       " + applyTimer);
-      out.println("    Time for applying states:     " + mainLoop);
-      out.println("      Time for apply states:      " + apply);
-      out.println("    Time for apply states:        " + add);
+      out.println("  Time for stop operator:           " + stopTimer);
+      out.println("  Time for adding to reached set:   " + addTimer);
+      out.println("  Time for applying states:         " + applyTimer);
+      out.println("    Time for iterating over reached:" + mainLoop);
+      out.println("      Time for inner apply:         " + apply);
+      out.println("    Time for adding into reached:   " + add);
 
     }
   }

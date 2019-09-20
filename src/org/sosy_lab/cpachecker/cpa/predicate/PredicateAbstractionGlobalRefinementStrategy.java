@@ -372,4 +372,9 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   public Collection<CFANode> getNodesWithUniquePredicates() {
     return uniqueNodes;
   }
+
+  @Override
+  public int getSizeOfPrecision() {
+    return newPredicates.size();
+  }
 }

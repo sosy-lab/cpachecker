@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractEdge.FormulaDescription;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
@@ -153,8 +154,7 @@ public class PredicateMergeOperator implements MergeOperator {
     }
   }
 
-  private AbstractEdge mergeEdges(AbstractEdge edge1, AbstractEdge edge2)
-      throws InterruptedException {
+  private AbstractEdge mergeEdges(AbstractEdge edge1, AbstractEdge edge2) {
 
     if (edge1 == EmptyEdge.getInstance()) {
       return edge2;
@@ -171,15 +171,24 @@ public class PredicateMergeOperator implements MergeOperator {
 
     PredicateAbstractEdge predEdge1 = ((PredicateAbstractEdge) edge1);
     PredicateAbstractEdge predEdge2 = ((PredicateAbstractEdge) edge2);
-    Collection<CAssignment> formulas2 = predEdge2.getAssignments();
-    Collection<CAssignment> newFormulas1 =
-    from(predEdge1.getAssignments()).filter(s -> !formulas2.contains(s)).toSet();
+    Collection<FormulaDescription> desc1 = predEdge1.getFormulas();
+    Collection<FormulaDescription> desc2 = predEdge2.getFormulas();
 
-    if (newFormulas1.isEmpty()) {
+    Collection<CAssignment> formulas2 =
+        from(desc2).transform(FormulaDescription::getAssignment).toList();
+
+    Collection<FormulaDescription> newDesc1 =
+        from(desc1)
+            .filter(s -> !formulas2.contains(s.getAssignment()))
+            .toSet();
+
+    if (newDesc1.isEmpty()) {
       return edge2;
     } else {
 
       if (joinEffectsIntoUndef) {
+        Collection<CAssignment> newFormulas1 =
+            from(newDesc1).transform(FormulaDescription::getAssignment).toSet();
         Set<CLeftHandSide> newAssignments1 =
             from(newFormulas1).transform(CAssignment::getLeftHandSide).toSet();
         Set<CLeftHandSide> assignments2 =
@@ -188,7 +197,7 @@ public class PredicateMergeOperator implements MergeOperator {
         if (commonPart.isEmpty()) {
           Collection<CAssignment> newFormulas = Sets.newHashSet(formulas2);
           newFormulas.addAll(newFormulas1);
-          return new PredicateAbstractEdge(null, newFormulas);
+          return new PredicateAbstractEdge(null);
         } else {
           Collection<CAssignment> newFormulas = new HashSet<>();
           copyFormulas(newFormulas, newFormulas1, commonPart);
@@ -220,16 +229,13 @@ public class PredicateMergeOperator implements MergeOperator {
             return edge2;
           }
 
-          return new PredicateAbstractEdge(null, newFormulas);
+          return new PredicateAbstractEdge(null);
         }
 
       } else {
-        Collection<CAssignment> newFormulas = Sets.newHashSet(formulas2);
-        newFormulas.addAll(newFormulas1);
-        PathFormula formula1 = predEdge1.getFormula();
-        PathFormula formula2 = predEdge2.getFormula();
-        PathFormula newFormula = formulaManager.makeOr(formula1, formula2);
-        return new PredicateAbstractEdge(newFormula, newFormulas);
+        Collection<FormulaDescription> newFormulas = Sets.newHashSet(desc2);
+        newFormulas.addAll(newDesc1);
+        return new PredicateAbstractEdge(newFormulas);
       }
     }
   }

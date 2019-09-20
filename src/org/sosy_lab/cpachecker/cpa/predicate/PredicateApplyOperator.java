@@ -22,8 +22,12 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.OptionalInt;
+import java.util.TreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -74,6 +78,7 @@ import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractEdge.FormulaDescription;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.AbstractionState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.NonAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -81,6 +86,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -519,9 +525,10 @@ public class PredicateApplyOperator implements ApplyOperator {
 
         convertingTimer.stop();
 
-        return new PredicateAbstractEdge(
-            pFormula,
-            Collections.singleton(newAssignement));
+        FormulaDescription desc =
+            new FormulaDescription(newAssignement, pFormula.getFormula(), getTypes(pFormula));
+
+        return new PredicateAbstractEdge(Collections.singleton(desc));
       }
     }
     // TODO Assumptions!
@@ -573,6 +580,24 @@ public class PredicateApplyOperator implements ApplyOperator {
       return true;
     }
     return false;
+  }
+
+  public Map<String, CType> getTypes(PathFormula pFormula) {
+    Map<String, CType> result = new TreeMap<>();
+    BooleanFormula bFormula = pFormula.getFormula();
+    SSAMap ssa = pFormula.getSsa();
+    Collection<String> varsAndUFs = fmngr.extractFunctionNames(bFormula);
+
+    for (String var : varsAndUFs) {
+      Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(var);
+      String varName = parsed.getFirst();
+      CType type = ssa.getType(varName);
+      if (type != null) {
+        // Type may be null, if it is ADRESS_OF, thus it type does not need
+        result.put(varName, type);
+      }
+    }
+    return result;
   }
 
 }

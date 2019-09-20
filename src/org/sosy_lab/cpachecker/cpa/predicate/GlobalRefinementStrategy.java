@@ -42,4 +42,6 @@ public abstract class GlobalRefinementStrategy extends RefinementStrategy {
   public abstract Collection<CFANode> getAllAffectedNodes();
 
   public abstract Collection<CFANode> getNodesWithUniquePredicates();
+
+  public abstract int getSizeOfPrecision();
 }
