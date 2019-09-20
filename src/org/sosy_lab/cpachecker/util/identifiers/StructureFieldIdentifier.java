@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.identifiers;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -70,7 +70,7 @@ public class StructureFieldIdentifier extends StructureIdentifier {
 
   @Override
   public Collection<AbstractIdentifier> getComposedIdentifiers() {
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override

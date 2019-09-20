@@ -28,7 +28,6 @@ import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
@@ -145,25 +144,24 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         continue;
       }
 
-      Set<CType> typesOfThisObject = new HashSet<>();
+      Set<Long> typeSizesOfThisObject = new HashSet<>();
 
       for (SMGEdgePointsTo edge : SMGUtils.getPointerToThisObject(pObject, pSmg)) {
         Set<SMGEdgeHasValue> hves =
             pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(edge.getValue()));
         for (SMGEdgeHasValue hve : hves) {
-          typesOfThisObject.add(hve.getType());
+          typeSizesOfThisObject.add(hve.getSizeInBits());
         }
       }
 
-      CType nextType = hveNext.getType();
+      long nextSize = hveNext.getSizeInBits();
 
-      if (!typesOfThisObject.contains(nextType)) {
+      if (!typeSizesOfThisObject.contains(nextSize)) {
         continue;
       }
 
       SMGSingleLinkedListCandidate candidate =
-          new SMGSingleLinkedListCandidate(pObject, nfo, hfo, nextType,
-              pSmg.getMachineModel());
+          new SMGSingleLinkedListCandidate(pObject, nfo, hfo, nextSize, pSmg.getMachineModel());
       pProgress.initializeCandidiate(candidate);
       continueTraversal(nextPointer, candidate, pSmg, pSMGState, pProgress);
     }
@@ -223,8 +221,9 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         return;
       }
 
-      candidate = new SMGSingleLinkedListCandidate(nextObject, nfo, hfo, nextEdge.getType(),
-          pSmg.getMachineModel());
+      candidate =
+          new SMGSingleLinkedListCandidate(
+              nextObject, nfo, hfo, nextEdge.getSizeInBits(), pSmg.getMachineModel());
       pProgress.initializeLastInSequenceCandidate(candidate);
 
     } else {

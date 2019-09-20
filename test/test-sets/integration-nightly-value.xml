@@ -9,6 +9,11 @@
     <option name="-valueAnalysis"/>
   </rundefinition>
 
+  <columns>
+    <column title="cex check" >Time for counterexample checks</column>
+    <column title="transfer"  >Time for transfer relation</column>
+  </columns>
+
   <!-- SV-Comp files assume that malloc always succeeds -->
   <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 

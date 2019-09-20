@@ -23,12 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.Lists;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -43,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -65,12 +59,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 @Options(prefix = "cpa.smg")
@@ -191,7 +182,7 @@ public class SMGCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new SMGPrecisionAdjustment(logger, exportOptions, blockOperator);
+    return new SMGPrecisionAdjustment(logger, exportOptions, blockOperator, stats);
   }
 
   @Override
@@ -267,54 +258,7 @@ public class SMGCPA
 
   @Override
   public CFAPathWithAdditionalInfo createExtendedInfo(ARGPath pPath) {
-    // inject additional info for extended witness
-    PathIterator rIterator = pPath.reverseFullPathIterator();
-    ARGState lastArgState = rIterator.getAbstractState();
-    UnmodifiableSMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
-    Set<Object> invalidChain = new HashSet<>(state.getInvalidChain());
-    String description = state.getErrorDescription();
-    boolean isMemoryLeakError = state.hasMemoryLeaks();
-    UnmodifiableSMGState prevSMGState = state;
-    Set<Object> visitedElems = new HashSet<>();
-    List<CFAEdgeWithAdditionalInfo> pathWithExtendedInfo = new ArrayList<>();
-
-    while (rIterator.hasNext()) {
-      rIterator.advance();
-      ARGState argState = rIterator.getAbstractState();
-      UnmodifiableSMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
-      CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo =
-          CFAEdgeWithAdditionalInfo.of(rIterator.getOutgoingEdge());
-      // Move memory leak on return edge
-      if (!isMemoryLeakError && description != null && !description.isEmpty()) {
-        edgeWithAdditionalInfo.addInfo(SMGConvertingTags.WARNING, description);
-        description = null;
-      }
-
-      isMemoryLeakError = false;
-      Set<Object> toCheck = new HashSet<>();
-      for (Object elem : invalidChain) {
-        if (!visitedElems.contains(elem)) {
-          if (!smgState.getHeap().containsInvalidElement(elem)) {
-            visitedElems.add(elem);
-            for (Object additionalElem : prevSMGState.getCurrentChain()) {
-              if (!visitedElems.contains(additionalElem)
-                  && !invalidChain.contains(additionalElem)) {
-                toCheck.add(additionalElem);
-              }
-            }
-            edgeWithAdditionalInfo.addInfo(
-                SMGConvertingTags.NOTE, prevSMGState.getHeap().getNoteMessageOnElement(elem));
-
-          } else {
-            toCheck.add(elem);
-          }
-        }
-      }
-      invalidChain = toCheck;
-      prevSMGState = smgState;
-      pathWithExtendedInfo.add(edgeWithAdditionalInfo);
-    }
-    return CFAPathWithAdditionalInfo.of(Lists.reverse(pathWithExtendedInfo));
+    return new AdditionalInfoExtractor().createExtendedInfo(pPath);
   }
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();

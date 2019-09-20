@@ -23,11 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
-
 import java.util.SortedSet;
 import java.util.TreeSet;
-
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 
 /**
  * Class, that offers the Algebra for specification of arbitrary (finite) Security Policies.
@@ -170,9 +168,7 @@ public class PolicyAlgebra<E extends Comparable<? super E>> {
   public SortedSet<E> getRange(ConglomeratePolicy<E> pThisPol){
     SortedSet<E> result=new TreeSet<>();
     for(Edge<E> edge: pThisPol.getEdges()){
-      for(E elem: edge.getTo()){
-        result.add(elem);
-      }
+      result.addAll(edge.getTo());
     }
     return result;
   }

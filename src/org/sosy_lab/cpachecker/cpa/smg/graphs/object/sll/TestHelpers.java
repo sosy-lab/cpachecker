@@ -42,9 +42,18 @@ public final class TestHelpers {
       SMGEdgeHasValue hv;
       if (value == null) {
         hv =
-            new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pOffset, node, SMGZeroValue.INSTANCE);
+            new SMGEdgeHasValue(
+                pSmg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
+                pOffset,
+                node,
+                SMGZeroValue.INSTANCE);
       } else {
-        hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pOffset, node, value);
+        hv =
+            new SMGEdgeHasValue(
+                pSmg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
+                pOffset,
+                node,
+                value);
       }
       value = SMGKnownSymValue.of();
       SMGEdgePointsTo pt = new SMGEdgePointsTo(value, node, 0);
@@ -59,7 +68,12 @@ public final class TestHelpers {
   static public SMGEdgeHasValue createGlobalList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pVariable) {
     SMGValue value = TestHelpers.createList(pSmg, pLength, pSize, pOffset, pVariable);
     SMGRegion globalVar = new SMGRegion(64, pVariable);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 0, globalVar, value);
+    SMGEdgeHasValue hv =
+        new SMGEdgeHasValue(
+            pSmg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
+            0,
+            globalVar,
+            value);
     pSmg.addGlobalObject(globalVar);
     pSmg.addHasValueEdge(hv);
 

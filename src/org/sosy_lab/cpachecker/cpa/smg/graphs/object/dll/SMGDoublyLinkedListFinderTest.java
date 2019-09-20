@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
 import java.util.Set;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -52,14 +54,16 @@ public class SMGDoublyLinkedListFinderTest {
   private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation
       .DUMMY, functionType, "main", ImmutableList.of());
   private CSimpleType intType = CNumericTypes.SIGNED_INT;
+  private final MachineModel MM = MachineModel.LINUX32;
   private CType pointerType = new CPointerType(false, false, intType);
+  private final BigInteger ptrSize = MM.getSizeofInBits(pointerType);
 
   private CLangSMG smg1;
 
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    smg1 = new CLangSMG(MachineModel.LINUX32);
+    smg1 = new CLangSMG(MM);
   }
 
   @Test
@@ -67,21 +71,9 @@ public class SMGDoublyLinkedListFinderTest {
 
     smg1.addStackFrame(functionDeclaration3);
 
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
-    SMGCPA.getNewValue();
+    for (int i = 0; i < 15; i++) {
+      SMGCPA.getNewValue();
+    }
 
     SMGRegion l1 = new SMGRegion(96, "l1");
     SMGRegion l2 = new SMGRegion(96, "l2");
@@ -97,19 +89,19 @@ public class SMGDoublyLinkedListFinderTest {
     SMGValue value9 = SMGKnownExpValue.valueOf(9);
     SMGValue value10 = SMGKnownExpValue.valueOf(10);
 
-    SMGEdgeHasValue headfn = new SMGEdgeHasValue(pointerType, 0, head, value6);
-    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, 0, l1, value7);
-    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(pointerType, 0, l2, value8);
-    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(pointerType, 0, l3, value9);
-    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(pointerType, 0, l4, value10);
-    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(pointerType, 0, l5, value5);
+    SMGEdgeHasValue headfn = new SMGEdgeHasValue(ptrSize, 0, head, value6);
+    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(ptrSize, 0, l1, value7);
+    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(ptrSize, 0, l2, value8);
+    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(ptrSize, 0, l3, value9);
+    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(ptrSize, 0, l4, value10);
+    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(ptrSize, 0, l5, value5);
 
-    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, 32, l1, value5);
-    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, 32, l2, value6);
-    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(pointerType, 32, l3, value7);
-    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(pointerType, 32, l4, value8);
-    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(pointerType, 32, l5, value9);
-    SMGEdgeHasValue headfp = new SMGEdgeHasValue(pointerType, 32, head, value10);
+    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(ptrSize, 32, l1, value5);
+    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(ptrSize, 32, l2, value6);
+    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(ptrSize, 32, l3, value7);
+    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(ptrSize, 32, l4, value8);
+    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(ptrSize, 32, l5, value9);
+    SMGEdgeHasValue headfp = new SMGEdgeHasValue(ptrSize, 32, head, value10);
 
     SMGEdgePointsTo lht = new SMGEdgePointsTo(value5, head, 0);
     SMGEdgePointsTo l1t = new SMGEdgePointsTo(value6, l1, 0);
@@ -164,6 +156,6 @@ public class SMGDoublyLinkedListFinderTest {
 
      Set<SMGAbstractionCandidate> s = f.traverse(smg1, null);
 
-     Assert.assertTrue(s.size() > 0);
+    assertThat(s).isNotEmpty();
   }
 }

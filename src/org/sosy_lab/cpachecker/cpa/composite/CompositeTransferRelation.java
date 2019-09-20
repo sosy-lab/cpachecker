@@ -34,6 +34,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,7 +42,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -437,33 +437,27 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       Iterator<List<AbstractState>> it = strengthenedStates.iterator();
       while (it.hasNext()) {
         final List<AbstractState> strengthenedState = it.next();
-        List<AbstractState> assumptionElements =
-            strengthenedState
-                .stream()
-                .filter(CompositeTransferRelation::hasAssumptions)
-                .collect(ImmutableList.toImmutableList());
+        ImmutableList<AbstractState> assumptionElements =
+            from(strengthenedState).filter(CompositeTransferRelation::hasAssumptions).toList();
         if (assumptionElements.isEmpty()) {
           continue;
         }
 
-        Optional<AbstractState> predElement =
-            strengthenedState.stream().filter(x -> x instanceof PredicateAbstractState).findFirst();
-        assert predElement.isPresent()
-            : "cartesian product should ensure that predicates do not vanish!";
-        if (predElement.isPresent()) {
-          int predIndex = strengthenedState.indexOf(predElement.get());
-          Precision predPrecision = compositePrecision.get(predIndex);
-          TransferRelation predTransfer = transferRelations.get(predIndex);
-          Collection<? extends AbstractState> predResult =
-              predTransfer.strengthen(
-                  predElement.get(), assumptionElements, cfaEdge, predPrecision);
-          if (predResult.isEmpty()) {
-            it.remove();
-            resultCount--;
-          } else {
-            assert predResult.size() == 1;
-            strengthenedState.set(predIndex, predResult.iterator().next());
-          }
+        final int predIndex =
+            Iterables.indexOf(strengthenedState, x -> x instanceof PredicateAbstractState);
+        Preconditions.checkState(
+            predIndex >= 0, "cartesian product should ensure that predicates do not vanish!");
+        AbstractState predElement = strengthenedState.get(predIndex);
+        Precision predPrecision = compositePrecision.get(predIndex);
+        TransferRelation predTransfer = transferRelations.get(predIndex);
+        Collection<? extends AbstractState> predResult =
+            predTransfer.strengthen(predElement, assumptionElements, cfaEdge, predPrecision);
+        if (predResult.isEmpty()) {
+          it.remove();
+          resultCount--;
+        } else {
+          assert predResult.size() == 1;
+          strengthenedState.set(predIndex, predResult.iterator().next());
         }
       }
     }
@@ -523,7 +517,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     switch (resultCount) {
     case 0:
         // at least one CPA decided that there is no successor
-        allResultingElements = Collections.emptySet();
+        allResultingElements = ImmutableSet.of();
       break;
 
     case 1:
@@ -535,8 +529,9 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       break;
 
     default:
-      // create cartesian product of all componentSuccessors and store the result in allResultingElements
-      List<AbstractState> initialPrefix = Collections.emptyList();
+        // create cartesian product of all componentSuccessors and store the result in
+        // allResultingElements
+        List<AbstractState> initialPrefix = ImmutableList.of();
       allResultingElements = new ArrayList<>(resultCount);
       createCartesianProduct0(allComponentsSuccessors, initialPrefix, allResultingElements);
     }
@@ -567,9 +562,10 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState element,
-      List<AbstractState> otherElements,
+      Iterable<AbstractState> otherElements,
       CFAEdge cfaEdge,
-      Precision precision) throws CPATransferException, InterruptedException {
+      Precision precision)
+      throws CPATransferException, InterruptedException {
 
     CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision) precision;

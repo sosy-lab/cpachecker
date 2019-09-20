@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -79,7 +79,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
       final InterpolationManager.Interpolator<T> interpolator,
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStateAndGroupId)
       throws InterruptedException, SolverException {
-    final List<T> formulas = Lists.transform(formulasWithStateAndGroupId, Triple::getThird);
+    final List<T> formulas = projectToThird(formulasWithStateAndGroupId);
 
     switch (sequentialStrategy) {
       case FWD_FALLBACK:
@@ -134,8 +134,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
   private List<BooleanFormula> getFwdInterpolants(
       final InterpolationManager.Interpolator<T> interpolator, final List<T> formulas)
       throws InterruptedException, SolverException {
-    final List<BooleanFormula> interpolants =
-        Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+    final List<BooleanFormula> interpolants = new ArrayList<>(formulas.size() - 1);
     for (int end_of_A = 0; end_of_A < formulas.size() - 1; end_of_A++) {
       // last iteration is left out because B would be empty
       final int start_of_A = 0;
@@ -150,8 +149,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
   private List<BooleanFormula> getBwdInterpolants(
       final InterpolationManager.Interpolator<T> interpolator, final List<T> formulas)
       throws InterruptedException, SolverException {
-    final List<BooleanFormula> interpolants =
-        Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+    final List<BooleanFormula> interpolants = new ArrayList<>(formulas.size() - 1);
     for (int start_of_A = 1; start_of_A < formulas.size(); start_of_A++) {
       // first iteration is left out because B would be empty
       final int end_of_A = formulas.size() - 1;
@@ -179,8 +177,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
 
     switch (sequentialStrategy) {
       case CONJUNCTION:
-        final List<BooleanFormula> interpolants =
-            Lists.newArrayListWithExpectedSize(forward.size());
+        final List<BooleanFormula> interpolants = new ArrayList<>(forward.size());
         for (int i = 0; i < forward.size(); i++) {
           interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
         }

@@ -196,7 +196,7 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
         Set<AbstractState> falseAssumptionStates =
             new HashSet<>(
                 FluentIterable.from(splitConditionStates)
-                    .filter(state -> state.getChildren().size() == 0)
+                    .filter(state -> state.getChildren().isEmpty())
                     .toSet());
 
         IO.writeGZIPFile(

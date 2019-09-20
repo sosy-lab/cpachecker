@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa;
 
-import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.Truth.assert_;
 import static org.junit.Assume.assumeNoException;
 
@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.dca.DCACPA;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
@@ -110,6 +111,7 @@ public class CPAsTest {
     cpas.remove(BAMCPAWithBreakOnMissingBlock.class);
     cpas.remove(BackwardCPA.class);
     cpas.remove(CacheCPA.class);
+    cpas.remove(DCACPA.class);
     cpas.remove(UsageCPA.class);
     cpas.remove(CompositeCPA.class);
     cpas.remove(MonitorCPA.class);
@@ -215,7 +217,7 @@ public class CPAsTest {
 
   @Test
   public void getInitialState() throws InterruptedException {
-    assertThat(cpa.getInitialState(main, partition)).named("initial state").isNotNull();
+    assertWithMessage("initial state").that(cpa.getInitialState(main, partition)).isNotNull();
   }
 
   @Test
@@ -228,7 +230,7 @@ public class CPAsTest {
       assumeNoException(e);
       throw new AssertionError(e);
     }
-    assertThat(joined).named("result of join").isNotNull();
+    assertWithMessage("result of join").that(joined).isNotNull();
     assert_()
         .withMessage("Join of same elements is unsound")
         .that(isLessOrEqual(initial, joined))
@@ -240,7 +242,7 @@ public class CPAsTest {
     AbstractState initial = cpa.getInitialState(main, partition);
     Precision initialPrec = cpa.getInitialPrecision(main, partition);
     AbstractState merged = cpa.getMergeOperator().merge(initial, initial, initialPrec);
-    assertThat(merged).named("result of merge").isNotNull();
+    assertWithMessage("result of merge").that(merged).isNotNull();
     assert_()
         .withMessage("Merging same elements was unsound")
         .that(isLessOrEqual(initial, merged))

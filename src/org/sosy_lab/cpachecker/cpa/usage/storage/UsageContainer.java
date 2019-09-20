@@ -239,7 +239,7 @@ public class UsageContainer {
 
       if (initialSet == null) {
         assert refinedIds.isEmpty();
-        initialSet = Sets.newHashSet(unrefinedIds.keySet());
+        initialSet = new HashSet<>(unrefinedIds.keySet());
         initialUsages = unsafeUsages;
       }
     }

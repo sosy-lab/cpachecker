@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashSet;
@@ -61,7 +62,7 @@ public class CLangSMGConsistencyVerifier {
   private static boolean verifyDisjunctHeapAndGlobal(
       LogManager pLogger, UnmodifiableCLangSMG pSmg) {
     Map<String, SMGRegion> globals = pSmg.getGlobalObjects();
-    Set<SMGObject> heap = pSmg.getHeapObjects();
+    Set<SMGObject> heap = pSmg.getHeapObjects().asSet();
 
     boolean toReturn = Collections.disjoint(globals.values(), heap);
 
@@ -84,7 +85,7 @@ public class CLangSMGConsistencyVerifier {
     for (CLangStackFrame frame : pSmg.getStackFrames()) {
       stack.addAll(frame.getAllObjects());
     }
-    Set<SMGObject> heap = pSmg.getHeapObjects();
+    Set<SMGObject> heap = pSmg.getHeapObjects().asSet();
 
     boolean toReturn = Collections.disjoint(stack, heap);
 
@@ -129,22 +130,32 @@ public class CLangSMGConsistencyVerifier {
   private static boolean verifyStackGlobalHeapUnion(LogManager pLogger, UnmodifiableCLangSMG pSmg) {
     Set<SMGObject> object_union = new HashSet<>();
 
-    object_union.addAll(pSmg.getHeapObjects());
+    Iterables.addAll(object_union, pSmg.getHeapObjects());
     object_union.addAll(pSmg.getGlobalObjects().values());
 
     for (CLangStackFrame frame : pSmg.getStackFrames()) {
       object_union.addAll(frame.getAllObjects());
     }
 
-    boolean toReturn =
-        object_union.containsAll(pSmg.getObjects().asSet())
-            && pSmg.getObjects().asSet().containsAll(object_union);
-
-    if (! toReturn) {
-      pLogger.log(Level.SEVERE, "CLangSMG inconsistent: union of stack, heap and global object is not the same set as the set of SMG objects");
+    if (!object_union.containsAll(pSmg.getObjects().asSet())) {
+      pLogger.log(
+          Level.SEVERE,
+          "CLangSMG inconsistent: union of stack, heap and global object "
+              + "contains less objects than the set of SMG objects. Missing object:",
+          Sets.difference(pSmg.getObjects().asSet(), object_union));
+      return false;
     }
 
-    return toReturn;
+    if (!pSmg.getObjects().asSet().containsAll(object_union)) {
+      pLogger.log(
+          Level.SEVERE,
+          "CLangSMG inconsistent: union of stack, heap and global object "
+              + "contains more objects than the set of SMG objects. Additional object:",
+          Sets.difference(object_union, pSmg.getObjects().asSet()));
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -208,8 +219,12 @@ public class CLangSMGConsistencyVerifier {
 
     for (String label: pSmg.getGlobalObjects().keySet()) {
       String globalLabel = globals.get(label).getLabel();
-      if (! globalLabel.equals(label)) {
-        pLogger.log(Level.SEVERE,  "CLangSMG inconsistent: label [" + label + "] points to an object with label [" + pSmg.getGlobalObjects().get(label).getLabel() + "]");
+      if (!globalLabel.equals(label)) {
+        pLogger.logf(
+            Level.SEVERE,
+            "CLangSMG inconsistent: label [%s] points to an object with label [%s]",
+            label,
+            pSmg.getGlobalObjects().get(label).getLabel());
         return false;
       }
     }

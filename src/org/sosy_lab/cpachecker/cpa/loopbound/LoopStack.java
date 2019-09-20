@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopbound;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -65,9 +67,7 @@ final class LoopStack implements Iterable<LoopIterationState> {
   }
 
   public LoopStack pop() {
-    if (isEmpty()) {
-      throw new IllegalStateException("Stack is empty.");
-    }
+    checkState(!isEmpty(), "Stack is empty.");
     return tail;
   }
 

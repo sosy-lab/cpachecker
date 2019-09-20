@@ -95,12 +95,13 @@ public class ExpressionSimplificationVisitor
   private CExpression convertExplicitValueToExpression(final CExpression expr, Value value) {
     // TODO: handle cases other than numeric values
     NumericValue numericResult = value.asNumericValue();
-    if (numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
-      CSimpleType type = (CSimpleType) expr.getExpressionType();
-      if (type.getType().isIntegerType()) {
-        return new CIntegerLiteralExpression(expr.getFileLocation(),
-                expr.getExpressionType(), BigInteger.valueOf(numericResult.longValue()));
-      } else if (type.getType().isFloatingPointType()) {
+    CType type = expr.getExpressionType().getCanonicalType();
+    if (numericResult != null && type instanceof CSimpleType) {
+      CSimpleType simpleType = ((CSimpleType) type);
+      if (simpleType.getType().isIntegerType()) {
+        return new CIntegerLiteralExpression(
+            expr.getFileLocation(), expr.getExpressionType(), numericResult.bigInteger());
+      } else if (simpleType.getType().isFloatingPointType()) {
         try {
           return new CFloatLiteralExpression(expr.getFileLocation(),
               expr.getExpressionType(), numericResult.bigDecimalValue());

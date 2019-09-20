@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -131,7 +132,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
     // the path is not fulfilled
     if (pState.getRegion().isFalse()) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
     return null;
   }
@@ -1062,7 +1063,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   @Override
   public Collection<? extends AbstractState> strengthen(
-      AbstractState pState, List<AbstractState> states, CFAEdge cfaEdge, Precision pPrecision)
+      AbstractState pState, Iterable<AbstractState> states, CFAEdge cfaEdge, Precision pPrecision)
       throws CPATransferException {
     BDDState bddState = (BDDState) pState;
 
@@ -1072,7 +1073,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         bddState = strengthenWithPointerInformation((PointerState) otherState, cfaEdge);
         super.resetInfo();
         if (bddState == null) {
-          return Collections.emptyList();
+          return ImmutableList.of();
         }
       }
     }

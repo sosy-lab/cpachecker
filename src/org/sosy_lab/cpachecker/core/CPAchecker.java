@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,6 +65,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -345,6 +346,7 @@ public class CPAchecker {
     CFA cfa = null;
     Result result = Result.NOT_YET_STARTED;
     String violatedPropertyDescription = "";
+    Specification specification = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -366,7 +368,6 @@ public class CPAchecker {
         shutdownNotifier.shutdownIfNecessary();
 
         ConfigurableProgramAnalysis cpa;
-        Specification specification;
         stats.cpaCreationTime.start();
         try {
           specification =
@@ -500,17 +501,21 @@ public class CPAchecker {
     final CFA cfa;
     if (serializedCfaFile == null) {
       // parse file and create CFA
+      logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
       CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
       stats.setCFACreator(cfaCreator);
       cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
 
     } else {
       // load CFA from serialization file
+      logger.logf(Level.INFO, "Reading CFA from file \"%s\"", serializedCfaFile);
       try (InputStream inputStream = Files.newInputStream(serializedCfaFile);
           InputStream gzipInputStream = new GZIPInputStream(inputStream);
           ObjectInputStream ois = new ObjectInputStream(gzipInputStream)) {
         cfa = (CFA) ois.readObject();
       }
+
+      assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel());
     }
 
     stats.setCFA(cfa);
@@ -549,11 +554,13 @@ public class CPAchecker {
         status = status.update(algorithm.run(reached));
 
         if (cexLimit > 0) {
-          counterExampleCount = Optionals.presentInstances(
-              from(reached)
-              .filter(IS_TARGET_STATE)
-              .filter(ARGState.class)
-              .transform(ARGState::getCounterexampleInformation)).toList().size();
+          counterExampleCount =
+              Optionals.presentInstances(
+                      from(reached)
+                          .filter(IS_TARGET_STATE)
+                          .filter(ARGState.class)
+                          .transform(ARGState::getCounterexampleInformation))
+                  .size();
         }
         // either run only once (if stopAfterError == true)
         // or until the waitlist is empty

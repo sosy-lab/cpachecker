@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
-import org.junit.Assert;
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -67,9 +68,9 @@ public class SymbolicValuesTest {
     SymbolicExpression constr1 = factory.lessThan(exp1, exp3, defType, defType);
     SymbolicExpression constr2 = factory.lessThan(exp1, exp2, defType, defType);
 
-    Assert.assertTrue(SymbolicValues.representSameCCodeExpression(exp1, exp1));
-    Assert.assertTrue(SymbolicValues.representSameCCodeExpression(constr1, constr2));
-    Assert.assertFalse(SymbolicValues.representSameCCodeExpression(exp1, exp2));
+    assertThat(SymbolicValues.representSameCCodeExpression(exp1, exp1)).isTrue();
+    assertThat(SymbolicValues.representSameCCodeExpression(constr1, constr2)).isTrue();
+    assertThat(SymbolicValues.representSameCCodeExpression(exp1, exp2)).isFalse();
   }
 
   @Test
@@ -81,6 +82,6 @@ public class SymbolicValuesTest {
     constraint = factory.lessThan(constraint, expWithLocation2, defType, defType);
     final SymbolicExpression negation = factory.negate(constraint, defType);
 
-    Assert.assertFalse(SymbolicValues.representSameCCodeExpression(constraint, negation));
+    assertThat(SymbolicValues.representSameCCodeExpression(constraint, negation)).isFalse();
   }
 }

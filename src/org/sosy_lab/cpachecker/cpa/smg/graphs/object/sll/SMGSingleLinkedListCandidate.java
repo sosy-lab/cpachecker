@@ -25,24 +25,17 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 public class SMGSingleLinkedListCandidate extends SMGListCandidate<SMGSingleLinkedListShape> {
 
-  private final CType nfoType;
+  private final long nfoSize;
 
-  public SMGSingleLinkedListCandidate(SMGObject pStartObject, long pNfo, long pHfo, CType pNfoType,
-      MachineModel pModel) {
+  public SMGSingleLinkedListCandidate(
+      SMGObject pStartObject, long pNfo, long pHfo, long pNfoSize, MachineModel pModel) {
     super(pStartObject, pModel, new SMGSingleLinkedListShape(pHfo, pNfo));
-    nfoType = pNfoType;
-  }
-
-  @Override
-  public boolean hasRecursiveFields() {
-    return SMGUtils.isRecursiveOnOffset(nfoType, getShape().getNfo(), model);
+    nfoSize = pNfoSize;
   }
 
   @Override
@@ -53,7 +46,7 @@ public class SMGSingleLinkedListCandidate extends SMGListCandidate<SMGSingleLink
 
   @Override
   public int hashCode() {
-    return super.hashCode() * 13 + nfoType.hashCode();
+    return super.hashCode() * 13 + Long.hashCode(nfoSize);
   }
 
   @Override
@@ -62,6 +55,6 @@ public class SMGSingleLinkedListCandidate extends SMGListCandidate<SMGSingleLink
       return false;
     }
     SMGSingleLinkedListCandidate other = (SMGSingleLinkedListCandidate) o;
-    return super.equals(other) && Objects.equals(nfoType, other.nfoType);
+    return super.equals(other) && Objects.equals(nfoSize, other.nfoSize);
   }
 }

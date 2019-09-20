@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import java.util.HashSet;
 import java.util.Set;
-import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -69,11 +70,11 @@ public class ConstraintsMergeOperatorTest {
 
     ConstraintsState mergeResult = (ConstraintsState) op.merge(state1, state2, SingletonPrecision.getInstance());
 
-    Assert.assertTrue(mergeResult.size() + 1 == state2.size());
-    Assert.assertTrue(!mergeResult.contains(negConst));
+    assertThat(mergeResult).hasSize(state2.size() - 1);
+    assertThat(mergeResult).doesNotContain(negConst);
 
     state2.remove(negConst);
-    Assert.assertEquals(state2, mergeResult);
+    assertThat(mergeResult).isEqualTo(state2);
   }
 
   private Set<Constraint> getConstraints() {

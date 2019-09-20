@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assert_;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -90,7 +90,7 @@ public class CPAMainTest {
         Configuration newConfig =
             CPAMain.detectFrontendLanguageIfNecessary(options, config, logManager);
 
-        assertEquals(languageToTest.name(), newConfig.getProperty("language"));
+        assertThat(newConfig.getProperty("language")).isEqualTo(languageToTest.name());
       }
     }
   }
@@ -109,7 +109,7 @@ public class CPAMainTest {
       Configuration newConfig =
           CPAMain.detectFrontendLanguageIfNecessary(options, config, logManager);
 
-      assertEquals(Language.JAVA.name(), newConfig.getProperty("language"));
+      assertThat(newConfig.getProperty("language")).isEqualTo(Language.JAVA.name());
     }
   }
 
@@ -127,7 +127,7 @@ public class CPAMainTest {
       Configuration newConfig =
           CPAMain.detectFrontendLanguageIfNecessary(options, config, logManager);
 
-      assertEquals(Language.JAVA.name(), newConfig.getProperty("language"));
+      assertThat(newConfig.getProperty("language")).isEqualTo(Language.JAVA.name());
     }
   }
 
@@ -149,7 +149,7 @@ public class CPAMainTest {
         Configuration newConfig =
             CPAMain.detectFrontendLanguageIfNecessary(options, config, logManager);
 
-        assertEquals(declLanguage, newConfig.getProperty("language"));
+        assertThat(newConfig.getProperty("language")).isEqualTo(declLanguage);
       }
     }
   }
@@ -166,6 +166,6 @@ public class CPAMainTest {
     config.inject(options);
 
     CPAMain.detectFrontendLanguageIfNecessary(options, config, logManager);
-    fail();
+    assert_().fail();
   }
 }

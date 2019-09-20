@@ -148,8 +148,12 @@ final class SMGJoinSubSMGs {
             && joinValues.getValue().equals(hvIn1.getValue())) {
           newHV = hvIn1;
         } else {
-          newHV = new SMGEdgeHasValue(hvIn1.getType(), hvIn1.getOffset(), pNewObject,
-              joinValues.getValue());
+          newHV =
+              new SMGEdgeHasValue(
+                  hvIn1.getSizeInBits(),
+                  hvIn1.getOffset(),
+                  pNewObject,
+                  joinValues.getValue());
         }
 
         destSMG.addHasValueEdge(newHV);

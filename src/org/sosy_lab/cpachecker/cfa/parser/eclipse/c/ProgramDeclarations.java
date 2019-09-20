@@ -100,11 +100,10 @@ public class ProgramDeclarations {
       origNamesToQualifiedNames.put(type.getOrigName(), type.getQualifiedName());
     }
 
-
     // check if there are elaborated types that need to be completed from other
     // files with the same name, then we complete them this can only happen
     // if the type is not anonymous
-    if (!type.getOrigName().equals("")) {
+    if (!type.getOrigName().isEmpty()) {
       completeElaboratedTypes(type);
     }
 

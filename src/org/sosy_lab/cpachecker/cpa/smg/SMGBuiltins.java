@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGRightHandSideEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
@@ -255,9 +256,8 @@ public class SMGBuiltins {
             + SMGCPA.getNewValue()
             + "_Line:"
             + pFunctionCall.getFileLocation().getStartingLineNumber();
-    SMGAddressValue new_address = pState.addExternalAllocation(allocation_label);
 
-    result.add(SMGAddressValueAndState.of(pState, new_address));
+    result.add(SMGAddressValueAndState.of(pState, pState.addExternalAllocation(allocation_label)));
 
     return result;
   }
@@ -345,11 +345,11 @@ public class SMGBuiltins {
     // TODO line numbers are not unique when we have multiple input files!
     String allocation_label = "alloc_ID" + SMGCPA.getNewValue();
     SMGState state = currentState.copyOf();
-    SMGAddressValue addressValue =
+    SMGEdgePointsTo addressValue =
         state.addNewStackAllocation(
             sizeValue.getAsInt() * machineModel.getSizeofCharInBits(), allocation_label);
 
-    ArrayList<SMGAddressValueAndState> result = new ArrayList<>(2);
+    List<SMGAddressValueAndState> result = new ArrayList<>(2);
     result.add(SMGAddressValueAndState.of(state, addressValue));
 
     // If malloc can fail, handle fail with alternative state
@@ -489,7 +489,7 @@ public class SMGBuiltins {
               + SMGCPA.getNewValue()
               + "_Line:"
               + functionCall.getFileLocation().getStartingLineNumber();
-      SMGAddressValue new_address =
+      SMGEdgePointsTo new_address =
           currentState.addNewHeapAllocation(
               size * machineModel.getSizeofCharInBits(), allocation_label);
 

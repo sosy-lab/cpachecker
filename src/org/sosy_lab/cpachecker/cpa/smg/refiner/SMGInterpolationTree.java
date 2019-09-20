@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
@@ -39,6 +40,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,10 +77,8 @@ public class SMGInterpolationTree {
    */
   private final ARGState root;
 
-  /**
-   * the predecessor relation of the states contained in this tree
-   */
-  private final Map<ARGState, ARGState> predecessorRelation = Maps.newLinkedHashMap();
+  /** the predecessor relation of the states contained in this tree */
+  private final Map<ARGState, ARGState> predecessorRelation = new LinkedHashMap<>();
 
   /**
    * the successor relation of the states contained in this tree
@@ -174,7 +174,7 @@ public class SMGInterpolationTree {
    * This method extracts all targets states from the target paths.
    */
   private Set<ARGState> extractTargets(final Collection<ARGPath> targetsPaths) {
-    return FluentIterable.from(targetsPaths).transform(ARGPath::getLastState).toSet();
+    return transformedImmutableSetCopy(targetsPaths, ARGPath::getLastState);
   }
 
   public ARGState getRoot() {

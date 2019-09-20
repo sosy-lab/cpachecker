@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -51,7 +50,9 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
@@ -76,12 +77,14 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExportOptions;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 
@@ -243,7 +246,7 @@ public class ARGStatistics implements Statistics {
     }
 
     argToCExporter = new ARGToCTranslator(logger, config, cfa.getMachineModel());
-    argToAutomatonSplitter = new ARGToAutomatonConverter(config, cfa, logger);
+    argToAutomatonSplitter = new ARGToAutomatonConverter(config, cfa.getMachineModel(), logger);
 
     if (argCFile == null) {
       translateARG = false;
@@ -366,14 +369,14 @@ public class ARGStatistics implements Statistics {
         : Collections.singleton(AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
 
     for (ARGState rootState: rootStates) {
-      exportARG0(rootState, Predicates.in(allTargetPathEdges), pResult);
+      exportARG0(rootState, BiPredicates.pairIn(allTargetPathEdges), pResult);
     }
   }
 
   @SuppressWarnings("try")
   private void exportARG0(
       final ARGState rootState,
-      final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge,
+      final BiPredicate<ARGState, ARGState> isTargetPathEdge,
       Result pResult) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation =
         ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
@@ -382,8 +385,10 @@ public class ARGStatistics implements Statistics {
     if (proofWitness != null && EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
       try {
         Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
-        Appender content = pAppendable -> argWitnessExporter.writeProofWitness(pAppendable, rootState, Predicates.alwaysTrue(),
-            Predicates.alwaysTrue());
+        Appender content =
+            pAppendable ->
+                argWitnessExporter.writeProofWitness(
+                    pAppendable, rootState, Predicates.alwaysTrue(), BiPredicates.alwaysTrue());
         if (!compressWitness) {
           IO.writeFile(witnessFile, StandardCharsets.UTF_8, content);
         } else {
@@ -420,10 +425,12 @@ public class ARGStatistics implements Statistics {
           IO.openOutputFile(
               adjustPathNameForPartitioning(rootState, simplifiedArgFile),
               Charset.defaultCharset())) {
-        ARGToDotWriter.write(w, rootState,
+        ARGToDotWriter.write(
+            w,
+            rootState,
             relevantSuccessorFunction,
             Predicates.alwaysTrue(),
-            Predicates.alwaysFalse());
+            BiPredicates.alwaysFalse());
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
@@ -433,10 +440,11 @@ public class ARGStatistics implements Statistics {
     if (refinementGraphUnderlyingWriter != null) {
       try (Writer w = refinementGraphUnderlyingWriter) { // for auto-closing
         // TODO: Support for partitioned state spaces
-        refinementGraphWriter.writeSubgraph(rootState,
+        refinementGraphWriter.writeSubgraph(
+            rootState,
             relevantSuccessorFunction,
             Predicates.alwaysTrue(),
-            Predicates.alwaysFalse());
+            BiPredicates.alwaysFalse());
         refinementGraphWriter.finish();
 
       } catch (IOException e) {
@@ -484,7 +492,7 @@ public class ARGStatistics implements Statistics {
           FileSystems.newFileSystem(
               URI.create("jar:" + automatonSpcZipFile.toUri()),
               // create zip-file if not existing, else append
-              Collections.singletonMap("create", "true"))) {
+              ImmutableMap.of("create", "true"))) {
         Path nf = fs.getPath(path.getFileName().toString());
         IO.writeFile(nf, Charset.defaultCharset(), content);
       }
@@ -538,5 +546,9 @@ public class ARGStatistics implements Statistics {
     if (dumpArgInEachCpaIteration) {
       exportARG(pReached, getAllCounterexamples(pReached), CPAcheckerResult.Result.UNKNOWN);
     }
+  }
+
+  public Optional<Witness> getWitnessIfAlreadyGenerated() {
+    return argWitnessExporter.getWitnessIfAlreadyGenerated();
   }
 }

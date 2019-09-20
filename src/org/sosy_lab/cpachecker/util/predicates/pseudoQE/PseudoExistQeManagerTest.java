@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pseudoQE;
 
-import static org.junit.Assert.assertFalse;
+import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.java_smt.api.FormulaType.IntegerType;
 
 import java.util.HashMap;
@@ -107,7 +107,7 @@ public class PseudoExistQeManagerTest extends SolverViewBasedTest0 {
 
     PseudoExistFormula result = pQEmgr.applyDER(input);
 
-    assertFalse(result.hasQuantifiers()); // no longer quantified
+    assertThat(result.hasQuantifiers()).isFalse(); // no longer quantified
     assertThatFormula(result.getInnerFormula()).isEquivalentTo(expectedResult);
 
     // TODO: Ask if okay?
@@ -139,7 +139,7 @@ public class PseudoExistQeManagerTest extends SolverViewBasedTest0 {
 
     PseudoExistFormula result = pQEmgr.applyUPD(input);
 
-    assertFalse(result.hasQuantifiers()); // no longer quantified
+    assertThat(result.hasQuantifiers()).isFalse(); // no longer quantified
     assertThatFormula(result.getInnerFormula()).isEquivalentTo(expectedResult);
   }
   @Test
@@ -168,7 +168,7 @@ public class PseudoExistQeManagerTest extends SolverViewBasedTest0 {
 
     PseudoExistFormula result = pQEmgr.applyDER(input);
 
-    assertFalse(result.hasQuantifiers()); // no longer quantified
+    assertThat(result.hasQuantifiers()).isFalse(); // no longer quantified
     assertThatFormula(result.getInnerFormula()).isEquivalentTo(expectedResult);
   }
 
@@ -221,7 +221,7 @@ public class PseudoExistQeManagerTest extends SolverViewBasedTest0 {
 
     PseudoExistFormula result = pQEmgr.applyUPD(input);
 
-    assertFalse(result.hasQuantifiers()); // no longer quantified
+    assertThat(result.hasQuantifiers()).isFalse(); // no longer quantified
     assertThatFormula(result.getInnerFormula()).isEquivalentTo(expectedResult);
   }
 }

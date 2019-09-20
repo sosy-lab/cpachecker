@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Function;
-import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -54,18 +55,20 @@ public class AssumptionStoragePrecisionAdjustment implements PrecisionAdjustment
   }
 
   @Override
-  public Optional<? extends AbstractState> strengthen(AbstractState pState, Precision pPrecision,
-      List<AbstractState> pOtherStates) throws CPAException, InterruptedException {
+  public Optional<? extends AbstractState> strengthen(
+      AbstractState pState, Precision pPrecision, Iterable<AbstractState> pOtherStates)
+      throws CPAException, InterruptedException {
     AssumptionStorageState state = (AssumptionStorageState) pState;
     CFAEdge edge = getEdge(pOtherStates);
     return Optional.of(transferRelation.strengthen(state.reset(), pOtherStates, edge));
   }
 
-  private CFAEdge getEdge(List<AbstractState> pStates) {
-    Optional<AbstractState> locationState = pStates.stream().filter(LocationState.class::isInstance).findFirst();
+  private CFAEdge getEdge(Iterable<AbstractState> pStates) {
+    com.google.common.base.Optional<LocationState> locationState =
+        from(pStates).filter(LocationState.class).first();
     final CFANode successor;
     if (locationState.isPresent()) {
-      LocationState ls = (LocationState) locationState.get();
+      LocationState ls = locationState.get();
       successor = ls.getLocationNode();
       if (successor.getNumEnteringEdges() == 1) {
         return successor.getEnteringEdge(0);

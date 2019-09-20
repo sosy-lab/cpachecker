@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.andersen;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
@@ -103,7 +104,7 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (successor == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     } else {
       return Collections.singleton(successor);
     }

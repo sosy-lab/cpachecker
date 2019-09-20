@@ -30,12 +30,15 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
@@ -280,7 +283,7 @@ public abstract class PathTranslator {
         newFunction.write("label_" + elemId + ": ;");
 
       } else {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
     }
 
@@ -341,17 +344,17 @@ public abstract class PathTranslator {
       }
       return result;
     }
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   private List<ARGState> chooseIfArbitrary(ARGState parent, List<ARGState> pRelevantChildrenOfElement) {
     if (pRelevantChildrenOfElement.size() <= 1) {
       return pRelevantChildrenOfElement;
     }
-    List<ARGState> relevantChildrenOfElement = new ArrayList<>(pRelevantChildrenOfElement);
-    Collections.sort(
-        relevantChildrenOfElement,
-        (a, b) -> Integer.compare(b.getChildren().size(), a.getChildren().size()));
+    final Comparator<ARGState> childCountComparator =
+        Comparator.<ARGState>comparingInt(s -> s.getChildren().size()).reversed();
+    List<ARGState> relevantChildrenOfElement =
+        ImmutableList.sortedCopyOf(childCountComparator, pRelevantChildrenOfElement);
     List<ARGState> result = new ArrayList<>(2);
     for (ARGState candidate : relevantChildrenOfElement) {
       boolean valid = true;

@@ -23,6 +23,20 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.util.cmc;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,20 +48,6 @@ import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
 
 @Options(prefix = "pcc.cmc")
 public class AssumptionAutomatonGenerator {
@@ -65,7 +65,7 @@ public class AssumptionAutomatonGenerator {
   }
 
   public Set<ARGState> getAllAncestorsFor(final Collection<ARGState> nodes) {
-    TreeSet<ARGState> uncoveredAncestors = new TreeSet<>();
+    NavigableSet<ARGState> uncoveredAncestors = new TreeSet<>();
     Deque<ARGState> toAdd = new ArrayDeque<>(nodes);
 
     while (!toAdd.isEmpty()) {

@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.stream.Collectors.toList;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -464,7 +464,7 @@ public class CPAMain {
       Set<SpecificationProperty> pProperties)
       throws InvalidConfigurationException, IOException {
     Set<Property> properties =
-        pProperties.stream().map(p -> p.getProperty()).collect(ImmutableSet.toImmutableSet());
+        transformedImmutableSetCopy(pProperties, SpecificationProperty::getProperty);
 
     final Path alternateConfigFile;
 
@@ -586,15 +586,14 @@ public class CPAMain {
 
     // set the file from where to read the specification automaton
     ImmutableSet<SpecificationProperty> properties =
-        FluentIterable.from(parser.getProperties())
-            .transform(
-                prop ->
-                    new SpecificationProperty(
-                        parser.getEntryFunction(),
-                        prop,
-                        Optional.ofNullable(SPECIFICATION_FILES.get(prop))
-                            .map(CmdLineArguments::resolveSpecificationFileOrExit)))
-            .toSet();
+        transformedImmutableSetCopy(
+            parser.getProperties(),
+            prop ->
+                new SpecificationProperty(
+                    parser.getEntryFunction(),
+                    prop,
+                    Optional.ofNullable(SPECIFICATION_FILES.get(prop))
+                        .map(CmdLineArguments::resolveSpecificationFileOrExit)));
     assert !properties.isEmpty();
 
     String specFiles =
@@ -748,12 +747,15 @@ public class CPAMain {
 
     // export report
     if (mResult.getResult() != Result.NOT_YET_STARTED) {
-      reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
+      reportGenerator.generate(
+          mResult.getCfa(), mResult.getReached(), mResult.getStatistics(), statistics.toString());
     }
   }
 
-  @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",
-      justification="Default encoding is the correct one for stdout.")
+  @SuppressFBWarnings(
+      value = "DM_DEFAULT_ENCODING",
+      justification = "Default encoding is the correct one for stdout.")
+  @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
   private static PrintStream makePrintStream(OutputStream stream) {
     if (stream instanceof PrintStream) {
       return (PrintStream)stream;

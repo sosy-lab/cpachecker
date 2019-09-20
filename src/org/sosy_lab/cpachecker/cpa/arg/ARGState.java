@@ -29,6 +29,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.graph.Traverser;
 import java.util.ArrayList;
@@ -214,7 +216,7 @@ public class ARGState extends AbstractSingleWrapperState
         while (!currentLoc.equals(childLoc) && !currentLocBw.equals(childLoc)) {
           // we didn't find a proper connection to the child so we return an empty list
           if (currentLoc.getNumLeavingEdges() != 1) {
-            return Collections.emptyList();
+            return ImmutableList.of();
           }
 
           if (currentLoc.getNumEnteringEdges() >= 1) {
@@ -287,7 +289,7 @@ public class ARGState extends AbstractSingleWrapperState
   public Set<ARGState> getCoveredByThis() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     if (mCoveredByThis == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     } else {
       return Collections.unmodifiableSet(mCoveredByThis);
     }
@@ -595,7 +597,7 @@ public class ARGState extends AbstractSingleWrapperState
   public void makeTwinOf(ARGState pTemplateState) {
 
     checkState(this.stateId != pTemplateState.stateId);
-    checkState(pTemplateState.destroyed != true);
+    checkState(!pTemplateState.destroyed);
     checkState(pTemplateState.counterexample == null);
 
     this.wasExpanded = pTemplateState.wasExpanded;

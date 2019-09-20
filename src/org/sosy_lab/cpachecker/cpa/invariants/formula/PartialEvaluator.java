@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -59,14 +59,14 @@ public class PartialEvaluator implements
   private final CompoundIntervalFormulaManager compoundIntervalFormulaManager;
 
   public PartialEvaluator(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
-    this(pCompoundIntervalManagerFactory, Collections.<MemoryLocation, NumeralFormula<CompoundInterval>>emptyMap());
+    this(pCompoundIntervalManagerFactory, ImmutableMap.of());
   }
 
   public PartialEvaluator(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       CompoundIntervalFormulaManager pCompoundIntervalFormulaManager) {
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.environment = Collections.emptyMap();
+    this.environment = ImmutableMap.of();
     this.compoundIntervalFormulaManager = pCompoundIntervalFormulaManager;
   }
 
@@ -471,7 +471,7 @@ public class PartialEvaluator implements
     }
     if (partsFound > atomicUnionParts.size()) {
       NumeralFormula<CompoundInterval> result = null;
-      if (atomicUnionParts.size() > 0) {
+      if (!atomicUnionParts.isEmpty()) {
         Iterator<NumeralFormula<CompoundInterval>> atomicUnionPartsIterator = atomicUnionParts.iterator();
         result = atomicUnionPartsIterator.next();
         while (atomicUnionPartsIterator.hasNext()) {

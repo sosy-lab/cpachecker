@@ -6,6 +6,9 @@ More details can be found in the other files in this directory.
 Please read and follow at least [`StyleGuide.md`](StyleGuide.md),
 [`Logging.md`](Logging.md), [`Test.md`](Test.md), and [`VersionControl.md`](VersionControl.md).
 
+For JavaScript code read [`ReportTemplateStyleGuide.md`](ReportTemplateStyleGuide.md),
+and for Python code read [`PythonStyleGuide.md`](PythonStyleGuide.md).
+
 
 Getting the code
 ----------------

@@ -30,8 +30,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
 import com.google.common.io.MoreFiles;
@@ -45,7 +45,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -118,60 +118,60 @@ public class AutomatonInternalTest {
   public void testAndOr() throws CPATransferException {
     // will always return MaybeBoolean.MAYBE
     AutomatonBoolExpr cannot = new AutomatonBoolExpr.CPAQuery("none", "none");
-    Map<String, AutomatonVariable> vars = Collections.emptyMap();
-    List<AbstractState> elements = Collections.emptyList();
+    Map<String, AutomatonVariable> vars = ImmutableMap.of();
+    List<AbstractState> elements = ImmutableList.of();
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, vars, elements, null, null);
     AutomatonBoolExpr ex;
     AutomatonBoolExpr myTrue= AutomatonBoolExpr.TRUE;
     AutomatonBoolExpr myFalse= AutomatonBoolExpr.FALSE;
 
     ex = new AutomatonBoolExpr.And(myTrue, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.And(myTrue, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(myTrue, cannot);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.And(myFalse, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(myFalse, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(myFalse, cannot);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(cannot, myTrue);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.And(cannot, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(cannot, cannot);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myTrue, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myTrue, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myTrue, cannot);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myFalse, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myFalse, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.Or(myFalse, cannot);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(cannot, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(cannot, myFalse);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
@@ -225,7 +225,7 @@ public class AutomatonInternalTest {
   @Test
   public void automataVariableReplacement() {
     LogManager mockLogger = mock(LogManager.class);
-    Map<String, AutomatonVariable> automatonVariables = Maps.newHashMap();
+    Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
     AutomatonVariable intVar1 = AutomatonVariable.createAutomatonVariable("int", "intVar1");
     AutomatonVariable intVar2 = AutomatonVariable.createAutomatonVariable("Integer", "intVar2");
     ((AutomatonIntVariable) intVar2).setValue(10);
@@ -356,16 +356,18 @@ public class AutomatonInternalTest {
       };
 
   /**
-   * {@link Subject} subclass for testing ASTMatchers with Truth
-   * (allows to use assert_().about(astMatcher).that("ast pattern").matches(...)).
+   * {@link Subject} subclass for testing ASTMatchers with Truth (allows to use
+   * assert_().about(astMatcher).that("ast pattern").matches(...)).
    */
   @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
-  private class ASTMatcherSubject extends Subject<ASTMatcherSubject, String> {
+  private class ASTMatcherSubject extends Subject {
 
+    private final String pattern;
     private final AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
 
     public ASTMatcherSubject(FailureMetadata pMetadata, String pPattern) {
       super(pMetadata, pPattern);
+      pattern = pPattern;
     }
 
     private boolean matches0(String src) throws InvalidAutomatonException {
@@ -376,7 +378,7 @@ public class AutomatonInternalTest {
       } catch (InvalidAutomatonException e) {
         throw new RuntimeException("Cannot parse source code for test", e);
       }
-      matcher = AutomatonASTComparator.generatePatternAST(actual(), parser, CProgramScope.empty());
+      matcher = AutomatonASTComparator.generatePatternAST(pattern, parser, CProgramScope.empty());
 
       return matcher.matches(sourceAST, args);
     }
@@ -388,7 +390,7 @@ public class AutomatonInternalTest {
       } catch (InvalidAutomatonException e) {
         failWithoutActual(
             Fact.simpleFact("expected to be a valid pattern"),
-            Fact.fact("but was", actual()),
+            Fact.fact("but was", pattern),
             Fact.fact("which cannot be parsed", e));
         return new Matches() {
           @Override
@@ -426,15 +428,16 @@ public class AutomatonInternalTest {
           if (args.getTransitionVariables().isEmpty()) {
             failWithActual(Fact.fact("expected to not match", src));
           } else {
-            failWithoutActual(Fact.fact("expected to not match", src),
-                Fact.fact("but was", actual()),
+            failWithoutActual(
+                Fact.fact("expected to not match", src),
+                Fact.fact("but was", pattern),
                 Fact.fact("with transition variables", args.getTransitionVariables()));
           }
         }
       } catch (InvalidAutomatonException e) {
         failWithoutActual(
             Fact.simpleFact("expected to be a valid pattern"),
-            Fact.fact("but was", actual()),
+            Fact.fact("but was", pattern),
             Fact.fact("which cannot be parsed", e));
       }
     }

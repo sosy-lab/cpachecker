@@ -25,11 +25,13 @@ package org.sosy_lab.cpachecker.cpa.termination;
 
 import com.google.common.base.Preconditions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -71,12 +73,13 @@ public class TerminationARGBasedRefiner extends AbstractARGBasedRefiner {
     }
   }
 
-  public static TerminationARGBasedRefiner create(ConfigurableProgramAnalysis pCpa)
+  public static TerminationARGBasedRefiner create(
+      ConfigurableProgramAnalysis pCpa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     TerminationCPA terminationCPA = CPAs.retrieveCPAOrFail(pCpa, TerminationCPA.class, TerminationCPA.class);
     Refiner.Factory refinerFactory =
         new TerminationARGBasedRefinerConfig(terminationCPA.getConfig()).refinerFactory;
-    Refiner refiner = refinerFactory.create(pCpa);
+    Refiner refiner = refinerFactory.create(pCpa, pLogger, pShutdownNotifier);
 
     if (refiner instanceof AbstractARGBasedRefiner) {
       return new TerminationARGBasedRefiner((AbstractARGBasedRefiner) refiner, terminationCPA);

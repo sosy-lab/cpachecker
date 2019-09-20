@@ -38,13 +38,13 @@ public final class FieldReference extends LeftHandSide {
 
   public FieldReference(String pName, String pFunctionName, List<String> pFieldNames) {
     super(pName, pFunctionName);
-    assert pFieldNames.size() > 0;
+    assert !pFieldNames.isEmpty();
     fieldNames = ImmutableList.copyOf(pFieldNames);
   }
 
   public FieldReference(String pName, List<String> pFieldNames) {
     super(pName);
-    assert pFieldNames.size() > 0;
+    assert !pFieldNames.isEmpty();
     fieldNames = ImmutableList.copyOf(pFieldNames);
   }
 

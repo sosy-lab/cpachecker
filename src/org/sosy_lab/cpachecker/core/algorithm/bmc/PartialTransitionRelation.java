@@ -30,10 +30,10 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -409,7 +409,7 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
   }
 
   public CtiWithInputs getCtiWithInputs(List<ValueAssignment> pModelAssignments) {
-    Map<String, CType> types = Maps.newHashMap();
+    Map<String, CType> types = new HashMap<>();
     Multimap<String, Integer> inputs =
         extractInputs(
             filterIterationsUpTo(getReachedSet().getReachedSet(), getDesiredK() + 1), types);
@@ -453,7 +453,7 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
       Iterable<ValueAssignment> pModelAssignments) {
     BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
     BooleanFormula inputAssignments = bfmgr.makeTrue();
-    Map<String, CType> types = Maps.newHashMap();
+    Map<String, CType> types = new HashMap<>();
     Multimap<String, Integer> inputs = extractInputs(pReached, types);
     if (inputs.isEmpty()) {
       return inputAssignments;

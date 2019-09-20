@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.util;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
@@ -32,8 +32,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
  */
 public class ConstraintsInformation {
 
-  public static final ConstraintsInformation EMPTY =
-      new ConstraintsInformation(Collections.<Constraint>emptySet());
+  public static final ConstraintsInformation EMPTY = new ConstraintsInformation(ImmutableSet.of());
 
   private final Set<Constraint> constraints;
 

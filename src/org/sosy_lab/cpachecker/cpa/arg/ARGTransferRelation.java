@@ -24,9 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -65,7 +65,7 @@ public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
 
     // covered elements may be in the reached set, but should always be ignored
     if (element.isCovered()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     element.markExpanded();
@@ -85,7 +85,7 @@ public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
     }
 
     if (successors.isEmpty()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     Collection<ARGState> wrappedSuccessors = new ArrayList<>();

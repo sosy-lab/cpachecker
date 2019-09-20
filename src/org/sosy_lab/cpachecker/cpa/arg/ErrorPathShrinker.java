@@ -31,6 +31,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -128,7 +129,7 @@ public final class ErrorPathShrinker {
     importantVars = new HashSet<>();
 
     // Set for storing recent Assumptions
-    assumptions = new HashSet<>();
+    assumptions = new LinkedHashSet<>();
 
     // the short Path, the result
     final Deque<Pair<CFAEdgeWithAssumptions, Boolean>> shortErrorPath = new ArrayDeque<>();
@@ -482,7 +483,9 @@ public final class ErrorPathShrinker {
     track(str(exp));
   }
 
-  private void track(String var) { importantVars.add(var); }
+  private void track(String var) {
+    importantVars.add(var);
+  }
 
   private void remove(AExpression exp) {
     remove(str(exp));

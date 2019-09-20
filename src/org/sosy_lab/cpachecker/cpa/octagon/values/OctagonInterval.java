@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.values;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -96,9 +98,7 @@ public class OctagonInterval {
   }
 
   private boolean isSane() {
-    if (low.greaterThan(high)) {
-      throw new IllegalStateException("low cannot be larger than high");
-    }
+    checkState(!low.greaterThan(high), "low cannot be larger than high");
 
     return true;
   }

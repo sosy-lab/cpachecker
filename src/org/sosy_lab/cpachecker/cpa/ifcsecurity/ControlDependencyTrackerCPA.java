@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
 import java.util.Map;
-import java.util.TreeSet;
+import java.util.NavigableSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -63,10 +63,8 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
   @SuppressWarnings("unused")
   private CFA cfa;
 
-  /**
-   * Internal Variable: Control Dependencies
-   */
-  private Map<CFANode, TreeSet<CFANode>> rcd;
+  /** Internal Variable: Control Dependencies */
+  private Map<CFANode, NavigableSet<CFANode>> rcd;
 
   @Option(
       secure = true,
@@ -106,17 +104,17 @@ public class ControlDependencyTrackerCPA implements ConfigurableProgramAnalysis 
 
     DominanceFrontier domfron = new DominanceFrontier(cfa, postdominators);
     domfron.execute();
-    Map<CFANode, TreeSet<CFANode>> df = domfron.getDominanceFrontier();
+    Map<CFANode, NavigableSet<CFANode>> df = domfron.getDominanceFrontier();
     logger.log(Level.FINE, "Dominance Frontier");
     logger.log(Level.FINE, df);
 
     ControlDependenceComputer cdcom = new ControlDependenceComputer(cfa, df);
     cdcom.execute();
-    Map<CFANode, TreeSet<CFANode>> cd = cdcom.getControlDependency();
+    Map<CFANode, NavigableSet<CFANode>> cd = cdcom.getControlDependency();
     logger.log(Level.FINE, "Control Dependency");
     logger.log(Level.FINE, cd);
 
-    Map<CFANode, TreeSet<CFANode>> recd = cdcom.getReversedControlDependency();
+    Map<CFANode, NavigableSet<CFANode>> recd = cdcom.getReversedControlDependency();
     logger.log(Level.FINE, "Reversed Control Dependency");
     logger.log(Level.FINE, recd);
     this.rcd = recd;

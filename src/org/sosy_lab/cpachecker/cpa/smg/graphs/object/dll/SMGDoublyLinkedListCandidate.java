@@ -25,16 +25,14 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 public class SMGDoublyLinkedListCandidate extends SMGListCandidate<SMGDoublyLinkedListShape> {
 
   private SMGObject lastObject;
-  private final CType pfoType;
-  private final CType nfoType;
+  private final long pfoSize;
+  private final long nfoSize;
 
   public SMGDoublyLinkedListCandidate(
       SMGObject pStartObject,
@@ -42,19 +40,13 @@ public class SMGDoublyLinkedListCandidate extends SMGListCandidate<SMGDoublyLink
       long pHfo,
       long pPfo,
       long pNfo,
-      CType pPfoType,
-      CType nNfoType,
+      long pPfoSize,
+      long nNfoSize,
       MachineModel pModel) {
     super(pStartObject, pModel, new SMGDoublyLinkedListShape(pHfo, pPfo, pNfo));
     lastObject = pLastObject;
-    pfoType = pPfoType;
-    nfoType = nNfoType;
-  }
-
-  @Override
-  public boolean hasRecursiveFields() {
-    return SMGUtils.isRecursiveOnOffset(pfoType, getShape().getPfo(), model)
-        && SMGUtils.isRecursiveOnOffset(nfoType, getShape().getNfo(), model);
+    pfoSize = pPfoSize;
+    nfoSize = nNfoSize;
   }
 
   @Override
@@ -74,7 +66,7 @@ public class SMGDoublyLinkedListCandidate extends SMGListCandidate<SMGDoublyLink
 
   @Override
   public int hashCode() {
-    return super.hashCode() * 13 + Objects.hash(pfoType, nfoType);
+    return super.hashCode() * 13 + Objects.hash(pfoSize, nfoSize);
   }
 
   public SMGObject getLastObject() {
@@ -93,7 +85,7 @@ public class SMGDoublyLinkedListCandidate extends SMGListCandidate<SMGDoublyLink
     SMGDoublyLinkedListCandidate other = (SMGDoublyLinkedListCandidate) o;
     return super.equals(other)
         && Objects.equals(lastObject, other.getLastObject())
-        && Objects.equals(pfoType, other.pfoType)
-        && Objects.equals(nfoType, other.nfoType);
+        && pfoSize == other.pfoSize
+        && nfoSize == other.nfoSize;
   }
 }

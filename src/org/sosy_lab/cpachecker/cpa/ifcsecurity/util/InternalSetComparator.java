@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.util;
 
-import com.google.common.collect.Ordering;
-
+import com.google.common.collect.Comparators;
 import java.io.Serializable;
 import java.util.Comparator;
 import java.util.SortedSet;
@@ -39,6 +38,9 @@ public class InternalSetComparator<E extends Comparable<? super E>> implements S
 
     private static final long serialVersionUID = -4025316246248802824L;
 
+  private final Comparator<Iterable<E>> setComparator =
+      Comparators.lexicographical(Comparator.<E>naturalOrder());
+
     @Override
     public int compare(SortedSet<E> pObj1, SortedSet<E> pObj2) {
       if(pObj1.size()<pObj2.size()){
@@ -47,6 +49,6 @@ public class InternalSetComparator<E extends Comparable<? super E>> implements S
       if(pObj1.size()>pObj2.size()){
         return 1;
       }
-      return Ordering.<E>natural().lexicographical().compare(pObj1, pObj2);
+    return setComparator.compare(pObj1, pObj2);
     }
   }

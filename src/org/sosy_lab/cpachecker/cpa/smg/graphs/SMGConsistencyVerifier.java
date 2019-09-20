@@ -127,7 +127,7 @@ final class SMGConsistencyVerifier {
       // Verify that the HasValue edge set for this invalid object is empty
       SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj);
 
-      if (pSmg.getHVEdges(filter).size() > 0) {
+      if (!pSmg.getHVEdges(filter).isEmpty()) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: invalid object has a HVEdge");
         return false;
       }
@@ -152,7 +152,7 @@ final class SMGConsistencyVerifier {
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
 
     for (SMGEdgeHasValue hvEdge : pSmg.getHVEdges(filter)) {
-      if ((hvEdge.getOffset() + hvEdge.getSizeInBits(pSmg.getMachineModel())) > pObject.getSize()) {
+      if ((hvEdge.getOffset() + hvEdge.getSizeInBits()) > pObject.getSize()) {
         pLogger.log(Level.SEVERE, "SMG inconistent: field exceedes boundary of the object");
         pLogger.log(Level.SEVERE, "Object: ", pObject);
         pLogger.log(Level.SEVERE, "Field: ", hvEdge);
@@ -195,15 +195,13 @@ final class SMGConsistencyVerifier {
 
       // Verify that the object assigned to the edge exists in the SMG
       if (!pSmg.getObjects().contains(edge.getObject())) {
-        pLogger.log(Level.SEVERE, "SMG inconsistent: Edge from a nonexistent object");
-        pLogger.log(Level.SEVERE, "Edge :", edge);
+        pLogger.log(Level.SEVERE, "SMG inconsistent: Edge from a nonexistent object:", edge);
         return false;
       }
 
       // Verify that the value assigned to the edge exists in the SMG
       if (! pSmg.getValues().contains(edge.getValue())) {
-        pLogger.log(Level.SEVERE, "SMG inconsistent: Edge to a nonexistent value");
-        pLogger.log(Level.SEVERE, "Edge :", edge);
+        pLogger.log(Level.SEVERE, "SMG inconsistent: Edge to a nonexistent value:", edge);
         return false;
       }
 

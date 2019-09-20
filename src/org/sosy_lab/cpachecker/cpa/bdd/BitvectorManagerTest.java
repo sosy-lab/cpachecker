@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -101,25 +102,25 @@ public class BitvectorManagerTest {
   }
 
   private void assertIsTrue(Region r) {
-    Assert.assertTrue(r.isTrue());
+    assertThat(r.isTrue()).isTrue();
   }
 
   private void assertIsFalse(Region r) {
-    Assert.assertTrue(r.isFalse());
+    assertThat(r.isFalse()).isTrue();
   }
 
   private void assertEqual(Region[] r1, Region[] r2) {
-    Assert.assertTrue(r1.length == r2.length);
-    Assert.assertArrayEquals(toString(r1) + " != " + toString(r2), r1, r2);
+    assertThat(r1).hasLength(r2.length);
+    assertWithMessage(toString(r1) + " != " + toString(r2)).that(r2).isEqualTo(r1);
   }
 
   private void assertDistinct(Region[] r1, Region[] r2) {
-    Assert.assertTrue(r1.length == r2.length);
+    assertThat(r1).hasLength(r2.length);
     boolean distinct = false;
     for (int i = 0; i < r1.length; i++) {
       distinct |= r1[i].equals(r2[i]);
     }
-    Assert.assertTrue(distinct);
+    assertThat(distinct).isTrue();
   }
 
   @Test

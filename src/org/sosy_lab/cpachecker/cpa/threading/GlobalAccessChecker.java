@@ -234,9 +234,7 @@ public class GlobalAccessChecker {
     @Override
     public Boolean visit(CIdExpression pE) {
       CSimpleDeclaration decl = pE.getDeclaration();
-      return decl != null
-          && decl instanceof AbstractDeclaration
-          && ((AbstractDeclaration)decl).isGlobal();
+      return decl instanceof AbstractDeclaration && ((AbstractDeclaration) decl).isGlobal();
     }
 
     @Override

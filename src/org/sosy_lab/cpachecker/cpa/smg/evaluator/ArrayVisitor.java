@@ -84,7 +84,8 @@ class ArrayVisitor extends AddressVisitor
 
     if (lVarIsAddress == rVarIsAddress) {
       return Collections.singletonList(
-          SMGAddressAndState.of(getInitialSmgState())); // If both or neither are Addresses,
+          SMGAddressAndState.withUnknownAddress(
+              getInitialSmgState())); // If both or neither are Addresses,
       //  we can't evaluate the address this pointer stores.
     } else if (lVarIsAddress) {
       address = lVarInBinaryExp;
@@ -164,7 +165,7 @@ class ArrayVisitor extends AddressVisitor
       return cast.getOperand().accept(this);
     } else {
       // TODO cast reinterpretation
-      return Collections.singletonList(SMGAddressAndState.of(getInitialSmgState()));
+      return Collections.singletonList(SMGAddressAndState.withUnknownAddress(getInitialSmgState()));
     }
   }
 

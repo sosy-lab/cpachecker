@@ -23,6 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.templates;
 
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -41,12 +46,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.Formula;
-
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
 
 /**
  * Converting {@link Template} to {@link Formula}.
@@ -135,8 +134,8 @@ public class TemplateToFormulaConversionManager {
 
       // The bound obtained is larger than the highest representable
       // value, ignore it.
-      if (v.compareTo(Rational.ofBigInteger(maxValue)) == 1
-          || v.compareTo(Rational.ofBigInteger(minValue)) == -1) {
+      if (v.compareTo(Rational.ofBigInteger(maxValue)) > 0
+          || v.compareTo(Rational.ofBigInteger(minValue)) < 0) {
         return true;
       }
     }

@@ -203,6 +203,7 @@ with considerably less effort */
 						d3.select("#arg-toolbar").style("visibility", "hidden");
 						d3.selectAll(".arg-graph").style("visibility", "hidden");
 						d3.selectAll(".arg-simplified-graph").style("visibility", "hidden");
+						d3.selectAll(".arg-reduced-graph").style("visibility", "hidden");
 						d3.selectAll(".arg-error-graph").style("visibility", "hidden");
 						if (d3.select("#arg-container").classed("arg-content")) {
 							d3.select("#arg-container").classed("arg-content", false);
@@ -227,6 +228,7 @@ with considerably less effort */
 						d3.select("#arg-container").classed("arg-content", true);
 					}
 					d3.selectAll(".arg-simplified-graph").style("display", "none");
+					d3.selectAll(".arg-reduced-graph").style("display", "none");
 					if ($rootScope.displayedARG.indexOf("error") !== -1) {
 						d3.selectAll(".arg-error-graph").style("visibility", "visible");
 						if ($("#arg-container").scrollTop() === 0) {
@@ -251,6 +253,7 @@ with considerably less effort */
 						d3.select("#arg-toolbar").style("visibility", "hidden");
 						d3.selectAll(".arg-graph").style("visibility", "hidden");
 						d3.selectAll(".arg-simplified-graph").style("visibility", "hidden");
+						d3.selectAll(".arg-reduced-graph").style("visibility", "hidden");
 						d3.selectAll(".arg-error-graph").style("visibility", "hidden");
 						if (d3.select("#arg-container").classed("arg-content")) {
 							d3.select("#arg-container").classed("arg-content", false);
@@ -771,6 +774,9 @@ with considerably less effort */
 			if (relevantEdges !== undefined) {
                         	$scope.argSelections.push("simplified");
                         }
+			if (reducedEdges !== undefined) {
+				$scope.argSelections.push("witness");
+			}
 			$rootScope.displayedARG = $scope.argSelections[0];
 
 			$scope.displayARG = function () {
@@ -778,8 +784,11 @@ with considerably less effort */
 					if ($rootScope.displayedARG.indexOf("error") !== -1) {
 						d3.selectAll(".arg-graph").style("display", "none");
 						if (!d3.select(".arg-simplified-graph").empty()) {
-                                                         d3.selectAll(".arg-simplified-graph").style("display", "none");
-                                                }
+							d3.selectAll(".arg-simplified-graph").style("display", "none");
+						}
+						if (!d3.select(".arg-reduced-graph").empty()) {
+							d3.selectAll(".arg-reduced-graph").style("display", "none");
+						}
 						$("#arg-container").scrollTop(0).scrollLeft(0);
 						if (d3.select(".arg-error-graph").empty()) {
 							argWorker.postMessage({
@@ -790,6 +799,7 @@ with considerably less effort */
 						}
 					} else if ($rootScope.displayedARG.indexOf("simplified") !== -1) {
 					        d3.selectAll(".arg-graph").style("display", "none");
+					        d3.selectAll(".arg-reduced-graph").style("display", "none");
 					        $("#arg-container").scrollTop(0).scrollLeft(0);
 					        if (!d3.select(".arg-error-graph").empty()) {
                                                 	d3.selectAll(".arg-error-graph").style("display", "none");
@@ -801,6 +811,21 @@ with considerably less effort */
                                                 } else {
                                                         d3.selectAll(".arg-simplified-graph").style("display", "inline-block").style("visibility", "visible");
                                                 }
+					} else if ($rootScope.displayedARG.indexOf("witness") !== -1) {
+						console.log("reduced graph selected");
+						d3.selectAll(".arg-graph").style("display", "none");
+						d3.selectAll(".arg-simplified-graph").style("display", "none");
+						$("#arg-container").scrollTop(0).scrollLeft(0);
+						if (!d3.select(".arg-error-graph").empty()) {
+							d3.selectAll(".arg-error-graph").style("display", "none");
+						}
+						if (d3.select(".arg-reduced-graph").empty()) {
+							argWorker.postMessage({
+								"reducedGraph": true
+							});
+						} else {
+							d3.selectAll(".arg-reduced-graph").style("display", "inline-block").style("visibility", "visible");
+						}
 					} else {
 						if (!d3.select(".arg-error-graph").empty()) {
 							d3.selectAll(".arg-error-graph").style("display", "none");
@@ -808,6 +833,9 @@ with considerably less effort */
 						if (!d3.select(".arg-simplified-graph").empty()) {
                                                 	d3.selectAll(".arg-simplified-graph").style("display", "none");
                                                 }
+						if (!d3.select(".arg-reduced-graph").empty()) {
+							d3.selectAll(".arg-reduced-graph").style("display", "none");
+						}
 						d3.selectAll(".arg-graph").style("display", "inline-block").style("visibility", "visible");
 						$("#arg-container").scrollLeft(d3.select(".arg-svg").attr("width") / 4);
 					}
@@ -845,6 +873,7 @@ with considerably less effort */
 				}
 				d3.selectAll(".arg-graph").remove();
 				d3.selectAll(".arg-simplified-graph").remove();
+				d3.selectAll(".arg-reduced-graph").remove();
 				d3.selectAll(".arg-error-graph").remove();
 				if ($scope.zoomEnabled) {
 					$scope.argZoomControl();
@@ -906,6 +935,10 @@ if (cfaJson.hasOwnProperty("errorPath")) {
 var relevantEdges;
 if (argJson.hasOwnProperty("relevantedges")) {
         relevantEdges = argJson.relevantedges;
+}
+var reducedEdges;
+if (argJson.hasOwnProperty("reducededges")) {
+        reducedEdges = argJson.reducededges;
 }
 var graphSplitThreshold = 700;
 var zoomEnabled = false;
@@ -1426,19 +1459,26 @@ function init() {
 			self.importScripts("https://www.sosy-lab.org/lib/d3js/5.4.0/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.5.0/dagre-d3.min.js");
 			var json, nodes, edges, errorPath, relevantNodes, relevantEdges, errorGraphMap;
 			var graphSplitThreshold = 700;
-			var graphMap = [],
-				graphCounter = 0, simplifiedGraphMap, simplifiedGraphCounter = 0;
+			var graphMap = [], graphCounter = 0,
+			    simplifiedGraphMap, simplifiedGraphCounter = 0,
+			    reducedGraphMap, reducedGraphCounter = 0;
 			self.addEventListener("message", function (m) {
 				if (m.data.json !== undefined) {
 					json = JSON.parse(m.data.json);
 					nodes = json.nodes;
 					edges = json.edges;
-					buildGraphsAndPrepareResults(nodes, edges, false)
+					buildGraphsAndPrepareResults(nodes, edges, "default")
 					if(json.relevantedges !== undefined && json.relevantnodes !== undefined){
 					        relevantEdges = json.relevantedges;
 					        relevantNodes = json.relevantnodes;
 					        simplifiedGraphMap = [];
-					        buildGraphsAndPrepareResults(relevantNodes, relevantEdges, true);
+					        buildGraphsAndPrepareResults(relevantNodes, relevantEdges, "relevant");
+					}
+					if(json.reducededges !== undefined && json.reducednodes !== undefined){
+				        reducedEdges = json.reducededges;
+				        reducedNodes = json.reducednodes;
+				        reducedGraphMap = [];
+				        buildGraphsAndPrepareResults(reducedNodes, reducedEdges, "witness");
 					}
 				} else if (m.data.errorPath !== undefined) {
 					errorPath = [];
@@ -1468,6 +1508,15 @@ function init() {
 						        simplifiedGraphMap.shift();
 						        simplifiedGraphCounter++;
 						}
+						if (reducedGraphMap.length > 0) {
+					        self.postMessage({
+					              "graph": JSON.stringify(reducedGraphMap[0]),
+					              "id": reducedGraphCounter,
+					              "reducedGraph" : true
+					        });
+					        reducedGraphMap.shift();
+					        reducedGraphCounter++;
+						}
 						if (errorPath !== undefined) {
 							errorGraphMap = [];
 							graphCounter = 0;
@@ -1493,11 +1542,11 @@ function init() {
 				}
 			}, false);
 
-			function buildGraphsAndPrepareResults(nodes, edges, relevant) {
+			function buildGraphsAndPrepareResults(nodes, edges, graphLabel) {
 				if (nodes.length > graphSplitThreshold) {
-					buildMultipleGraphs(nodes, edges, relevant);
+					buildMultipleGraphs(nodes, edges, graphLabel);
 				} else {
-					buildSingleGraph(nodes, edges, relevant);
+					buildSingleGraph(nodes, edges, graphLabel);
 				}
 			}
 
@@ -1525,19 +1574,21 @@ function init() {
 				}
 			}
 
-			function buildSingleGraph(nodes, edges, relevant) {
+			function buildSingleGraph(nodes, edges, graphLabel) {
 				var g = createGraph();
 				setGraphNodes(g, nodes);
 				setGraphEdges(g, edges, false);
-				if(relevant){
-				      simplifiedGraphMap.push(g);
+				if(graphLabel === "relevant"){
+					simplifiedGraphMap.push(g);
+				} else if (graphLabel === "witness") {
+					reducedGraphMap.push(g);
 				} else {
-			              graphMap.push(g);
+					graphMap.push(g);
 				}
 			}
 
 			// Split the ARG graph honoring the split threshold
-			function buildMultipleGraphs(nodes, edges, relevant) {
+			function buildMultipleGraphs(nodes, edges, graphLabel) {
 				nodes.sort(function (firstNode, secondNode) {
 					return firstNode.index - secondNode.index;
 				})
@@ -1556,8 +1607,10 @@ function init() {
 						}
 					}
 					var graph = createGraph();
-					if (relevant) {
-					        simplifiedGraphMap.push(graph);
+					if (graphLabel === "relevant") {
+					    simplifiedGraphMap.push(graph);
+					} else if (graphLabel === "witness") {
+						reducedGraphMap.push(graph);
 					} else {
 						graphMap.push(graph);
 					}
@@ -1888,6 +1941,10 @@ function init() {
 				        id = "arg-simplified-graph" + m.data.id;
 				        argClass = "arg-simplified-graph";
 				}
+				if(m.data.reducedGraph !== undefined) {
+					id = "arg-reduced-graph" + m.data.id;
+					argClass = "arg-reduced-graph";
+				}
 				var g = createGraph();
 				g = Object.assign(g, JSON.parse(m.data.graph));
 				d3.select("#arg-container").append("div").attr("id", id).attr("class", argClass);
@@ -2131,7 +2188,12 @@ function init() {
 		addPanEvent(".arg-svg");
 		d3.selectAll(".arg-node")
 			.on("mouseover", function (d) {
-				var node = argJson.nodes.find(function (it) {
+				var nodesArray = Array.prototype.concat(
+						argJson.nodes,
+						typeof argJson.relevantnodes === "undefined" ? [] : argJson.relevantnodes,
+						typeof argJson.reducednodes === "undefined" ? [] : argJson.reducednodes
+				);
+				var node = nodesArray.find(function (it) {
 					return it.index === parseInt(d);
 				})
 				var message = "<span class=\" bold \">function</span>: " + node.func + "<br>";
@@ -2173,11 +2235,22 @@ function init() {
 		d3.selectAll(".arg-edge")
 			.on("mouseover", function (d) {
 				d3.select(this).select("path").style("stroke-width", "3px");
-				var edge = argJson.edges.find(function (it) {
+				var edgeArray = Array.prototype.concat(
+						argJson.edges,
+						typeof argJson.relevantedges === "undefined" ? [] : argJson.relevantedges,
+						typeof argJson.reducededges === "undefined" ? [] : argJson.reducededges
+						);
+				var edge = edgeArray.find(function (it) {
 					return it.source === parseInt(d.v) && it.target === parseInt(d.w);
 				})
+				var message = "";
+				Object.keys(edge).forEach(function(key,index) {
+					if ($.inArray(key,["target", "source", "label", "line"])==-1) {
+						message += "<span class=\" bold \">"+key+"<\span>: "+edge[key]+"<br>";
+					}
+				});
 				if (edge) {
-					showToolTipBox(d3.event, "<span class=\" bold \">type</span>: " + edge.type);
+					showToolTipBox(d3.event, message);
 				} else {
 					showToolTipBox(d3.event, "<span class=\" bold \">type</span>: graph connecting edge")
 				}

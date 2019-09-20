@@ -36,8 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.annotations.FieldsAreNonnullByDefault;
 import org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault;
 import org.sosy_lab.common.collect.PersistentLinkedList;
@@ -132,18 +132,14 @@ final class VariableAndFieldRelevancyComputer {
         queue.add(pendingMerges);
         while (!queue.isEmpty()) {
           for (VarFieldDependencies deps : queue.poll()) {
-            for (final String e : deps.relevantVariables) {
-              relevantVariables.add(e);
-            }
+            relevantVariables.addAll(deps.relevantVariables);
             for (final Map.Entry<CCompositeType, String> e : deps.relevantFields.entries()) {
               relevantFields.put(e.getKey(), e.getValue());
             }
             for (final Map.Entry<CCompositeType, String> e : deps.addressedFields.entries()) {
               addressedFields.put(e.getKey(), e.getValue());
             }
-            for (final String e : deps.addressedVariables) {
-              addressedVariables.add(e);
-            }
+            addressedVariables.addAll(deps.addressedVariables);
             for (final Map.Entry<VariableOrField, VariableOrField> e :
                 deps.dependencies.entries()) {
               dependencies.put(e.getKey(), e.getValue());

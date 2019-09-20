@@ -155,4 +155,8 @@ public class CPAcheckerResult {
         throw new AssertionError(result);
     }
   }
+
+  public Statistics getStatistics() {
+    return stats;
+  }
 }

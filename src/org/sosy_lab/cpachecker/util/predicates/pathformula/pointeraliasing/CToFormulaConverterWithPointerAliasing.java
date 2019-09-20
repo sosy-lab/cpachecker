@@ -45,7 +45,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -127,7 +126,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   final FormulaType<?> voidPointerFormulaType;
   final Formula nullPointer;
   private MemoryRegionManager regionMgr;
-  private final AnalysisDirection direction;
 
   public CToFormulaConverterWithPointerAliasing(
       final FormulaEncodingWithPointerAliasingOptions pOptions,
@@ -137,11 +135,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final LogManager logger,
       final ShutdownNotifier pShutdownNotifier,
       final TypeHandlerWithPointerAliasing pTypeHandler,
-      final AnalysisDirection pDirection)
-      throws InvalidConfigurationException {
+      final AnalysisDirection pDirection) {
     super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pShutdownNotifier, pTypeHandler, pDirection);
-
-    direction = pDirection;
 
     variableClassification = pVariableClassification;
     options = pOptions;
@@ -1348,13 +1343,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final String ufName = regionMgr.getPointerAccessName(region);
     final FormulaType<?> returnType = getFormulaTypeFromCType(pType);
     return ptsMgr.makePointerDereference(ufName, returnType, address);
-  }
-
-  private void checkBackward() throws AssertionError {
-    if (direction == AnalysisDirection.BACKWARD) {
-      throw new AssertionError(
-          "Backward formula construction is not yet implemented for pointer aliasing.");
-    }
   }
 
   /** {@inheritDoc} */

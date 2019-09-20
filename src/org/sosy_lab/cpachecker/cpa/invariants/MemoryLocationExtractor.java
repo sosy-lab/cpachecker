@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 public class MemoryLocationExtractor {
 
   private final String functionName;
@@ -72,7 +71,7 @@ public class MemoryLocationExtractor {
       final CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       final MachineModel pMachineModel,
       final CFAEdge pEdge) {
-    this(pCompoundIntervalManagerFactory, pMachineModel, pEdge, false, Collections.<MemoryLocation, NumeralFormula<CompoundInterval>>emptyMap());
+    this(pCompoundIntervalManagerFactory, pMachineModel, pEdge, false, ImmutableMap.of());
   }
 
   public MemoryLocationExtractor(

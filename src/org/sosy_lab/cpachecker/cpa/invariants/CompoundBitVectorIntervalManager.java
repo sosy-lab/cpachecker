@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import java.util.Objects;
-
 
 public class CompoundBitVectorIntervalManager implements CompoundIntervalManager {
 
@@ -283,10 +283,9 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
 
   @Override
   public CompoundInterval cast(TypeInfo pInfo, CompoundInterval pToCast) {
-    if (!(pInfo instanceof BitVectorInfo)) {
-      throw new IllegalArgumentException(
-          "Unsupported target type: Not a compound bit vector interval.");
-    }
+    checkArgument(
+        (pInfo instanceof BitVectorInfo),
+        "Unsupported target type: Not a compound bit vector interval.");
     if (pToCast instanceof CompoundBitVectorInterval) {
       return ((CompoundBitVectorInterval) pToCast)
           .cast((BitVectorInfo) pInfo, allowSignedWrapAround, OverflowEventHandler.EMPTY);
@@ -296,9 +295,9 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
   }
 
   private static void checkOperand(CompoundInterval pOperand) {
-    if (!(pOperand instanceof CompoundBitVectorInterval)) {
-      throw new IllegalArgumentException("Operand is not a compound bit vector interval.");
-    }
+    checkArgument(
+        (pOperand instanceof CompoundBitVectorInterval),
+        "Operand is not a compound bit vector interval.");
   }
 
   private static void checkOperands(CompoundInterval pOperand1, CompoundInterval pOperand2) {

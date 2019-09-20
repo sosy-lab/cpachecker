@@ -154,27 +154,27 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     final String activeThread = getActiveThread(cfaEdge, threadingState);
     if (null == activeThread) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     // check if atomic lock exists and is set for current thread
     if (useAtomicLocks && threadingState.hasLock(ATOMIC_LOCK)
         && !threadingState.hasLock(activeThread, ATOMIC_LOCK)) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     // check if a local-access-lock allows to avoid exploration of some threads
     if (useLocalAccessLocks) {
       threadingState = handleLocalAccessLock(cfaEdge, threadingState, activeThread);
       if (threadingState == null) {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
     }
 
     // check, if we can abort the complete analysis of all other threads after this edge.
     if (isEndOfMainFunction(cfaEdge) || isTerminatingEdge(cfaEdge)) {
       // VERIFIER_assume not only terminates the current thread, but the whole program
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     // get all possible successors
@@ -512,7 +512,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       String lockId, final Collection<ThreadingState> results) {
     if (threadingState.hasLock(lockId)) {
       // some thread (including activeThread) has the lock, using it twice is not possible
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     return transform(results, ts -> ts.addLockAndCopy(activeThread, lockId));
@@ -564,7 +564,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     if (threadingState.getThreadIds().contains(extractParamName(statement, 0))) {
       // we wait for an active thread -> nothing to do
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     return results;
@@ -639,7 +639,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState state,
-      List<AbstractState> otherStates,
+      Iterable<AbstractState> otherStates,
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {

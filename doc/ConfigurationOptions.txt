@@ -629,6 +629,7 @@ cfa.callgraph.export = true
 
 # file name for call graph as .dot file
 cfa.callgraph.file = "functionCalls.dot"
+cfa.callgraph.fileUsed = "functionCallsUsed.dot"
 
 # how often do we clone a function?
 cfa.cfaCloner.numberOfCopies = 5
@@ -640,9 +641,6 @@ cfa.checkNullPointers = false
 # Whether to have a single target node per function for all invalid null
 # pointer dereferences or to have separate nodes for each dereference
 cfa.checkNullPointers.singleTargetPerFunction = true
-
-# This option enables the computation of a classification of CFA nodes.
-cfa.classifyNodes = false
 
 # Whether to create dependence graph for the CFA of the program
 cfa.createDependenceGraph = false
@@ -1010,6 +1008,10 @@ cpa.arg.automaton.splitStrategy = TARGETS
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
 
+# prevent the stop-operator from aborting the stop-check early when it
+# crosses a target state
+cpa.arg.coverTargetStates = false
+
 # inform merge operator in CPA enabled analysis that it should delete the
 # subgraph of the merged node which is required to get at most one successor
 # per CFA edge.
@@ -1286,10 +1288,6 @@ cpa.chc.firingRelation = "Always"
 cpa.chc.generalizationOperator = "Widen"
   allowed values: [Top, Widen, WidenMax, WidenSum]
 
-# merge operator to be used
-cpa.chc.merge = "SEP"
-  allowed values: [SEP, JOIN]
-
 # By enabling this option the CompositeTransferRelation will compute abstract
 # successors for as many edges as possible in one call. For any chain of
 # edges in the CFA which does not have more than one outgoing or leaving edge
@@ -1413,6 +1411,15 @@ cpa.constraints.satCheckStrategy = AT_ASSUME
 # Try model of predecessor constraints state before running SMT solver
 cpa.constraints.useLastModel = true
 
+# Set number of refinements for the trace abstraction algorithm
+cpa.dca.refiner.maxRefinementIterations = 0
+
+# Allows to abort the analysis early in order to only produce the ARG
+cpa.dca.refiner.skipAnalysis = false
+
+# Abort the refinement of finite prefixes for the purpose of better debugging
+cpa.dca.refiner.skipFiniteRefinement = false
+
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
@@ -1437,9 +1444,6 @@ cpa.ifcsecurity.defaultsc = "LOW"
 
 # which immediatechecksfile to use for PolicyEnforcementCPA
 cpa.ifcsecurity.immediatechecksfile = "immediatechecks.conf"
-
-# defines security classes of entities
-cpa.ifcsecurity.initialmapfile = no default value
 
 # which merge operator to use for ControlDependencyTrackerCPA
 # which merge operator to use for DependencyTrackerCPA
@@ -1541,15 +1545,12 @@ cpa.local.allocatefunctions = {}
 cpa.local.conservativefunctions = {}
 
 # variables, which are always local
-cpa.local.localvariables = Collections.emptySet()
+cpa.local.localvariables = {}
 
 # With this option enabled, function calls that occur in the CFA are
 # followed. By disabling this option one can traverse a function without
 # following function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
-
-# reduce recursive locks to a single access
-cpa.lock.aggressiveReduction = false
 
 # What are we searching for: race or deadlock
 cpa.lock.analysisMode = RACE
@@ -1559,10 +1560,24 @@ cpa.lock.analysisMode = RACE
 cpa.lock.annotate = no default value
 
 # contains all lock names
-cpa.lock.lockinfo = Sets.newHashSet()
+cpa.lock.lockinfo = {}
+
+# which merge operator to use for LockCPA
+cpa.lock.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# reduce recursive locks to a single access
+cpa.lock.reduceLockCounters = BLOCK
+  enum:     [NONE, BLOCK, ALL]
 
 # reduce unused locks
 cpa.lock.reduceUselessLocks = false
+
+# Enable refinement procedure
+cpa.lock.refinement = false
+
+# stop path exploration if a lock limit is reached
+cpa.lock.stopAfterLockLimit = false
 
 # Consider or not special cases with empty lock sets
 cpa.lock.stopMode = DEFAULT
@@ -1742,6 +1757,9 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
   enum:     [DISABLE, INT2BV, BV2INT]
 
+# initial predicates are added as atomic predicates
+cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
+
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 
@@ -1765,16 +1783,8 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
-# which strategy/heuristic should be used to compute relevant predicates for
-# a block-reduction?
-# AUXILIARY: dependencies between variables.
-# OCCURENCE: occurence of variables in the block.
-# ALL: all variables are relevant.
-cpa.predicate.bam.predicateComputer = "AUXILIARY"
-  allowed values: [AUXILIARY, OCCURRENCE, ALL]
-
-# Enable/disable precision reduction using RelevantPredicateComputer
-cpa.predicate.bam.reduceIrrelevantPrecision = true
+# Check satisfiability for plain conjunction of edge and assumptions.
+cpa.predicate.assumptionStrengtheningSatCheck = false
 
 # Enable/disable abstraction reduction at the BAM block entry
 cpa.predicate.bam.useAbstractionReduction = true
@@ -2048,12 +2058,6 @@ cpa.predicate.precision.sharing = LOCATION
 # generate statistics about precisions (may be slow)
 cpa.predicate.precisionStatistics = true
 
-# Export the weakest precondition?
-cpa.predicate.precondition.export = false
-
-# File for exporting the weakest precondition.
-cpa.predicate.precondition.file = "precondition.txt"
-
 # export final predicate map
 cpa.predicate.predmap.export = true
 
@@ -2086,10 +2090,6 @@ cpa.predicate.refinement.abstractInterpolantOnly = false
 # use only the atoms from the interpolantsas predicates, and not the whole
 # interpolant
 cpa.predicate.refinement.atomicInterpolants = true
-
-# use only atoms from generated invariantsas predicates, and not the whole
-# invariant
-cpa.predicate.refinement.atomicInvariants = false
 
 # Direction for doing counterexample analysis: from start of trace, from end
 # of trace, or alternatingly from start and end of the trace towards the
@@ -2251,14 +2251,6 @@ cpa.predicate.refinement.useUCBRefinement = false
 
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
-
-# enable export of all relations that were collected to synthecise the
-# abstract precision?
-cpa.predicate.relations.export = false
-
-# file that consists all relations that were collected to synthecise the
-# abstract precision
-cpa.predicate.relations.file = "relations.txt"
 
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
@@ -2647,6 +2639,17 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
+# Simple thread analysis from theory paper
+cpa.thread.simpleMode = false
+
+# The case when the same thread is created several times we do not support.We
+# may skip or fail in this case.
+cpa.thread.skipTheSameThread = false
+
+# The case when the same thread is created several times we do not support.We
+# may try to support it with self-parallelizm.
+cpa.thread.supportSelfCreation = false
+
 # allow assignments of a new thread to the same left-hand-side as an existing
 # thread.
 cpa.threading.allowMultipleLHS = false
@@ -2856,6 +2859,10 @@ cpa.value.refinement.avoidSimilarRepeatedRefinement = false
 cpa.value.refinement.basisStrategy = SUBGRAPH
   enum:     [ALL, SUBGRAPH, TARGET, CUTPOINT]
 
+# completely disable the tracking of found error paths in the refiner, i.e.,
+# disable the detection of repeated counterexamples
+cpa.value.refinement.disableErrorPathTracking = false
+
 # whether or not to do lazy-abstraction
 cpa.value.refinement.doLazyAbstraction = true
 
@@ -2970,14 +2977,18 @@ custominstructions.definitionFile = "ci_def.txt"
 # analysis
 custominstructions.dumpCIRequirements = "ci%d.smt"
 
-# Try to remove informations from requirements which is irrelevant for custom
-# instruction behavior
-custominstructions.enableRequirementSlicing = false
+# Try to remove parts of requirements that are not related to custom
+# instruction and are, thus, irrelevant for custom instruction behavior
+custominstructions.enableRequirementsSlicing = false
 
 # Specifies the mode how custom instruction applications in program are
 # identified.
 custominstructions.mode = OPERATOR
   enum:     [MANUAL, OPERATOR]
+
+# Try to remove requirements that are covered by another requirment and are,
+# thus, irrelevant for custom instruction behavior
+custominstructions.removeCoveredRequirements = false
 
 # Qualified name of class for abstract state which provides custom
 # instruction requirements.
@@ -3450,10 +3461,6 @@ pdr.abstractionStrategy = NO_ABSTRACTION
 pdr.conditionAdjustmentCriterion = NEVER
   enum:     [NEVER, ALWAYS]
 
-# Try to shorten the lifted state further by checking if the lifting query is
-# still valid after dropping each literal in turn.
-pdr.dropLiteralsBeyondUnsatCoreAfterLifting = false
-
 # Which strategy to use to perform invariant refinement on successful proof
 # results.
 pdr.invariantRefinementStrategy = NO_STRENGTHENING
@@ -3466,14 +3473,6 @@ pdr.liftingAbstractionFailureThreshold = 0
 # Which strategy to use to abstract counterexamples to inductivity.
 pdr.liftingStrategy = NO_LIFTING
   enum:     [NO_LIFTING, UNSAT_CORE_BASED_LIFTING, ABSTRACTION_BASED_LIFTING]
-
-# The maximum number of attempts at dropping literals during the inductive
-# generalization of states.
-pdr.maxAttemptsToDropLiteralsDuringGeneralization = 10
-
-# The maximum number of literals that should be dropped during the inductive
-# generalization of states.
-pdr.maxLiteralsToDropDuringGeneralization = 5
 
 # Maximum number of accepted spurious transitions within a proof-obligation
 # trace before a consecution abstraction failure triggers a refinement.
@@ -3684,11 +3683,28 @@ restartAlgorithm.printIntermediateStatistics = true
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
 
+# path to condition file
+slicing.conditionFile = "output/AssumptionAutomaton.txt"
+
+# path to condition files plus additional assumption guiding automaton when
+# condition itself is in propriertary format and not in witness format
+slicing.conditionFiles = [
+          Paths.get("output/AssumptionAutomaton.txt"),
+          Paths.get("config/specification/AssumptionGuiding.spc")]
+
+# which type of extractor for slicing criteria to use
+slicing.extractor = ALL
+  enum:     [ALL, REDUCER, SYNTAX]
+
 # Extract and cache unsat cores for satisfiability checking
 solver.cacheUnsatCores = true
 
 # improve sat-checks with additional constraints for UFs
 solver.checkUFs = false
+
+# whether CPAchecker's logger should be used as logger for the solver,
+# otherwise nothing is logged from the solver.
+solver.enableLoggingInSolver = false
 
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
@@ -3753,6 +3769,9 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# compress the produced violation-witness automata using GZIP compression.
+termination.compressWitness = true
 
 # When checking for the termination property, use this configuration file
 # instead of the current one.
@@ -3884,12 +3903,22 @@ undefinedFunctionsCollector.stubsFile = "stubs.c"
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value
 
+# remove assumptions from transitions in the ISA where they are not strictly
+# neccessary.This option is intended to be used with an ISA (c.f. option
+# witness.invariantsSpecificationAutomaton)
+witness.checkInvariantViolations = true
+
 # Check that the value of the programhash field of the witness matches the
 # SHA-256 hash value computed for the source code.
 witness.checkProgramHash = true
 
 # Consider assumptions that are provided with the path automaton?
 witness.considerAssumptions = true
+
+# Validate correctness witness by specifying an invariants specification
+# automaton
+witness.invariantsSpecificationAutomaton = NO_ISA
+  enum:     [NO_ISA, WITNESSBASED_ISA, TWOSTATES_ISA, CFABASED_ISA]
 
 # Match the branching information at a branching location.
 witness.matchAssumeCase = true
@@ -3901,12 +3930,22 @@ witness.matchOffset = true
 # markers).
 witness.matchOriginLine = true
 
+# remove assumptions from transitions in the ISA where they are not strictly
+# neccessary.This option is intended to be used with an ISA (c.f. option
+# witness.invariantsSpecificationAutomaton)
+witness.optimizeInvariantsSpecificationAutomaton = true
+
 # Represent sink states by bottom state instead of break state
 witness.stopNotBreakAtSinkStates = true
 
 # Enforce strict validity checks regarding the witness format, such as
 # checking for the presence of required fields.
 witness.strictChecking = true
+
+# remove assumptions from transitions in the ISA where they are not strictly
+# neccessary.This option is intended to be used with an ISA (c.f. option
+# witness.invariantsSpecificationAutomaton)
+witness.useInvariantsAsAssumptions = true
 
 # When validating a correctness witness, use this configuration file instead
 # of the current one.

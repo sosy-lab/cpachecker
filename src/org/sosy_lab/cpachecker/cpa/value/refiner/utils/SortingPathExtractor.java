@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import com.google.common.base.Functions;
-import com.google.common.collect.Ordering;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import java.util.Collection;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.configuration.Configuration;
@@ -85,14 +85,10 @@ public class SortingPathExtractor extends PathExtractor {
    */
   @Override
   public Collection<ARGState> getTargetStates(final ARGReachedSet pReached) throws RefinementFailedException {
-    Map<ARGState, Integer> targetsWithScores = new LinkedHashMap<>();
-    for (ARGState target : super.getTargetStates(pReached)) {
-      targetsWithScores.put(target, getScore(target));
-    }
+    final Collection<ARGState> targetStates = super.getTargetStates(pReached);
+    final Map<ARGState, Integer> targetsWithScores = Maps.toMap(targetStates, this::getScore);
     // sort keys by their values
-    return Ordering.natural()
-        .onResultOf(Functions.forMap(targetsWithScores))
-        .immutableSortedCopy(targetsWithScores.keySet());
+    return ImmutableList.sortedCopyOf(Comparator.comparing(targetsWithScores::get), targetStates);
   }
 
   private int getScore(ARGState target) {

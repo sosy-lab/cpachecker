@@ -578,5 +578,10 @@ class EclipseCParser implements CParser {
       }
       return result;
     }
+
+    @Override
+    public boolean isMappingToIdenticalLineNumbers() {
+      return delegate.isMappingToIdenticalLineNumbers();
+    }
   }
 }

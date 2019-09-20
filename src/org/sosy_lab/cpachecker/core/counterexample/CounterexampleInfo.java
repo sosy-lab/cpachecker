@@ -31,7 +31,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -88,7 +87,7 @@ public class CounterexampleInfo extends AbstractAppender {
     isPreciseCounterExample = pIsPreciseCEX;
 
     if (!spurious) {
-      furtherInfo = Lists.newArrayListWithExpectedSize(1);
+      furtherInfo = new ArrayList<>(1);
     } else {
       furtherInfo = null;
     }

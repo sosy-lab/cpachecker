@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import org.junit.Assert;
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -31,7 +32,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
 
 public class SMGJoinSubSMGsTest {
 
@@ -58,26 +58,26 @@ public class SMGJoinSubSMGsTest {
 
   @Test
   public void testIsDefined() {
-    Assert.assertTrue(jssDefined.isDefined());
+    assertThat(jssDefined.isDefined()).isTrue();
   }
 
   @Test
   public void testGetStatusOnDefined() {
-    Assert.assertNotNull(jssDefined.getStatus());
+    assertThat(jssDefined.getStatus()).isNotNull();
   }
 
   @Test
   public void testGetSMG1() {
-    Assert.assertNotNull(jssDefined.getSMG1());
+    assertThat(jssDefined.getSMG1()).isNotNull();
   }
 
   @Test
   public void testGetSMG2() {
-    Assert.assertNotNull(jssDefined.getSMG2());
+    assertThat(jssDefined.getSMG2()).isNotNull();
   }
 
   @Test
   public void testGetDestSMG() {
-    Assert.assertNotNull(jssDefined.getDestSMG());
+    assertThat(jssDefined.getDestSMG()).isNotNull();
   }
 }

@@ -30,7 +30,8 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -236,7 +237,7 @@ class CParserUtils {
       }
       return result;
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   private static Collection<CStatement> parseAsCStatements(
@@ -442,7 +443,7 @@ class CParserUtils {
   private static ExpressionTree<AExpression> asExpressionTree(FunctionEntryNode pEntry,
       ParserTools pParserTools) {
     ExpressionTreeFactory<AExpression> factory = pParserTools.expressionTreeFactory;
-    Map<CFANode, ExpressionTree<AExpression>> memo = Maps.newHashMap();
+    Map<CFANode, ExpressionTree<AExpression>> memo = new HashMap<>();
     memo.put(pEntry, ExpressionTrees.<AExpression> getTrue());
     Set<CFANode> ready = new HashSet<>();
     ready.add(pEntry);
@@ -581,12 +582,12 @@ class CParserUtils {
         if (lhs instanceof AIdExpression
             && ((AIdExpression) lhs).getName().contains(CPACHECKER_TMP_PREFIX)) {
           AExpression rhs = expAssignStmt.getRightHandSide();
-          return Collections.<AExpression, AExpression> singletonMap(lhs, rhs);
+          return ImmutableMap.of(lhs, rhs);
         }
       }
     }
 
-    return Collections.emptyMap();
+    return ImmutableMap.of();
   }
 
   /**

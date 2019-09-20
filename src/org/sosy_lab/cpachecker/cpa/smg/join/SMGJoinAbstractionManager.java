@@ -154,8 +154,8 @@ public class SMGJoinAbstractionManager {
     Map<Long, SMGEdgePointsTo> offsetToPte2Map =
         FluentIterable.from(pInboundPointers2).uniqueIndex(pArg0 -> pArg0.getOffset());
 
-    Set<Long> offsets = new HashSet<>();
-    offsets.addAll(offsetToPte1Map.keySet());
+    Set<Long> offsets = new HashSet<>(offsetToPte1Map.keySet());
+
     offsets.addAll(offsetToPte2Map.keySet());
 
     Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>> sharedIPointer = new HashSet<>();
@@ -191,8 +191,8 @@ public class SMGJoinAbstractionManager {
     Map<Long, SMGEdgeHasValue> offsetToHve2Map =
         FluentIterable.from(pFieldsOfObject2).uniqueIndex(pArg0 -> pArg0.getOffset());
 
-    Set<Long> offsets = new HashSet<>();
-    offsets.addAll(offsetToHve1Map.keySet());
+    Set<Long> offsets = new HashSet<>(offsetToHve1Map.keySet());
+
     offsets.addAll(offsetToHve2Map.keySet());
 
     /*

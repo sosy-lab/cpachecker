@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -209,7 +209,7 @@ public abstract class SMGPrecision implements Precision {
     @Override
     public int hashCode() {
       return super.hashCode() * 31
-          + Objects.hashCode(trackedMemoryPaths, trackedStackVariables, abstractionBlocks);
+          + Objects.hash(trackedMemoryPaths, trackedStackVariables, abstractionBlocks);
     }
   }
 
@@ -298,7 +298,7 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public int hashCode() {
-      return Objects.hashCode(fieldAbstraction, heapAbstraction, stackAbstraction);
+      return Objects.hash(fieldAbstraction, heapAbstraction, stackAbstraction);
     }
 
     @Override

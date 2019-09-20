@@ -30,7 +30,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -132,7 +131,7 @@ public class Automaton {
 
   private static String formatState(AutomatonInternalState s, String color) {
     String name = s.getName().replace("_predefinedState_", "");
-    String shape = s.getDoesMatchAll() ? "doublecircle" : "circle";
+    String shape = s.isTarget() ? "doublecircle" : "circle";
     return String.format("%d [shape=\"" + shape + "\" color=\"%s\" label=\"%s\"]\n", s.getStateId(), color, name);
   }
 
@@ -193,7 +192,7 @@ public class Automaton {
 
     for (AutomatonInternalState s : states) {
       str.append("STATE ")
-          .append(s.getDoesMatchAll() ? "USEALL " : "USEFIRST ")
+          .append(s.isNonDetState() ? "USEALL " : "USEFIRST ")
           .append(s.getName())
           .append(":\n");
       for (AutomatonTransition t : s.getTransitions()) {
@@ -225,8 +224,8 @@ public class Automaton {
           AutomatonExpressionArguments args =
               new AutomatonExpressionArguments(
                   null,
-                  Collections.emptyMap(),
-                  Collections.emptyList(),
+                  ImmutableMap.of(),
+                  ImmutableList.of(),
                   edge,
                   LogManager.createNullLogManager());
           try {

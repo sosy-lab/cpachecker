@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -60,7 +59,7 @@ public class SMGInterpolantManager
 
   @Override
   public SMGInterpolant getTrueInterpolant() {
-    return new SMGInterpolant(Collections.emptySet());
+    return new SMGInterpolant(ImmutableSet.of());
   }
 
   @Override

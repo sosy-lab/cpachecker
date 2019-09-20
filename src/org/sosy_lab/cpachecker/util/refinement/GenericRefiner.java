@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.ForOverride;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -96,6 +96,15 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   @Option(secure = true, description="store all refined paths")
   private boolean storeAllRefinedPaths = false;
 
+  @Option(
+      secure = true,
+      description =
+          "completely disable the tracking of found error paths in the refiner, "
+              + "i.e., disable the detection of repeated counterexamples")
+  // tracking repeated counterexamples is useful for developing new approaches.
+  // however, they should (in an ideal world) never occur in an analysis.
+  private boolean disableErrorPathTracking = false;
+
   @Option(secure = true, description="whether or not to add assumptions to counterexamples,"
       + " e.g., for supporting counterexample checks")
   private boolean addAssumptionsToCex = true;
@@ -110,7 +119,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
   private final PathExtractor pathExtractor;
 
-  private Set<Integer> previousErrorPathIds = Sets.newHashSet();
+  private Set<Integer> previousErrorPathIds = new HashSet<>();
 
   // statistics
   private final StatCounter refinementCounter = new StatCounter("Number of refinements");
@@ -136,6 +145,10 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   }
 
   private boolean madeProgress(ARGPath path) {
+    if (disableErrorPathTracking) {
+      return true;
+    }
+
     boolean progress = (previousErrorPathIds.isEmpty() || !previousErrorPathIds.contains(obtainErrorPathId(path)));
 
     if (!storeAllRefinedPaths) {

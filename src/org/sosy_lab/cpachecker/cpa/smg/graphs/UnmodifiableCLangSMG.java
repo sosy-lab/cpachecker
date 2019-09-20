@@ -23,16 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 
 /**
@@ -45,31 +43,27 @@ public interface UnmodifiableCLangSMG extends UnmodifiableSMG {
   @Override
   CLangSMG copyOf();
 
-  boolean containsInvalidElement(Object elem);
-
-  String getNoteMessageOnElement(Object elem);
-
-  boolean isStackEmpty();
-
   SMGRegion getObjectForVisibleVariable(String pVariableName);
 
+  /**
+   * Returns the (unmodifiable) stack of frames containing objects. The frames are ordered from
+   * bottom (main function) to top (most local function call).
+   */
   PersistentStack<CLangStackFrame> getStackFrames();
 
-  Set<SMGObject> getHeapObjects();
+  /** return a unmodifiable view on all SMG-objects on the heap. */
+  PersistentSet<SMGObject> getHeapObjects();
 
+  /** check whether an object is part of the heap. */
   boolean isHeapObject(SMGObject object);
 
   PersistentMap<String, SMGRegion> getGlobalObjects();
 
-  boolean isGlobal(SMGObject object);
-
+  /**
+   * return the FunctionReturn-object for the most recent function call, i.e., from the top-level
+   * stackframe.
+   */
   SMGObject getFunctionReturnObject();
 
-  IDExpression createIDExpression(SMGObject pObject);
-
   Optional<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(SMGMemoryPath pLocation);
-
-  Set<SMGMemoryPath> getMemoryPaths();
-
-  Map<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths();
 }

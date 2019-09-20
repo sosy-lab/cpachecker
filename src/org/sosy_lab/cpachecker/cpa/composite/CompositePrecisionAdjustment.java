@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
-import java.util.List;
+import com.google.common.collect.Iterables;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.ImmutableConcatList;
 
 class CompositePrecisionAdjustment implements PrecisionAdjustment {
   private final ImmutableList<PrecisionAdjustment> precisionAdjustments;
@@ -125,8 +124,8 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   /**
-   * Call {@link #strengthen(AbstractState, Precision, List)} on contained precision adjustments.
-   * Returns identity if all of the strengthening operations are identities.
+   * Call {@link #strengthen(AbstractState, Precision, Iterable)} on contained precision
+   * adjustments. Returns identity if all of the strengthening operations are identities.
    */
   private Optional<CompositeState> callStrengthen(
       CompositeState pCompositeState, CompositePrecision pCompositePrecision)
@@ -141,12 +140,11 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractState oldElement = wrappedStates.get(i);
       Precision oldPrecision = wrappedPrecisions.get(i);
+      Iterable<AbstractState> otherStates =
+          Iterables.concat(wrappedStates.subList(0, i), wrappedStates.subList(i + 1, dim));
+
       Optional<? extends AbstractState> out =
-          precisionAdjustment.strengthen(
-              oldElement,
-              oldPrecision,
-              new ImmutableConcatList<>(
-                  wrappedStates.subList(0, i), wrappedStates.subList(i + 1, dim)));
+          precisionAdjustment.strengthen(oldElement, oldPrecision, otherStates);
       if (!out.isPresent()) {
         return Optional.empty();
       }
