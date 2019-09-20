@@ -195,9 +195,9 @@ public class PredicateMergeOperator implements MergeOperator {
             from(formulas2).transform(CAssignment::getLeftHandSide).toSet();
         Set<CLeftHandSide> commonPart = Sets.intersection(newAssignments1, assignments2);
         if (commonPart.isEmpty()) {
-          Collection<CAssignment> newFormulas = Sets.newHashSet(formulas2);
-          newFormulas.addAll(newFormulas1);
-          return new PredicateAbstractEdge(null);
+          Collection<FormulaDescription> newFormulas = new HashSet<>(desc2);
+          newFormulas.addAll(newDesc1);
+          return new PredicateAbstractEdge(newFormulas);
         } else {
           Collection<CAssignment> newFormulas = new HashSet<>();
           copyFormulas(newFormulas, newFormulas1, commonPart);
@@ -233,7 +233,7 @@ public class PredicateMergeOperator implements MergeOperator {
         }
 
       } else {
-        Collection<FormulaDescription> newFormulas = Sets.newHashSet(desc2);
+        Collection<FormulaDescription> newFormulas = new HashSet<>(desc2);
         newFormulas.addAll(newDesc1);
         return new PredicateAbstractEdge(newFormulas);
       }
