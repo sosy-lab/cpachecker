@@ -522,8 +522,12 @@ public class PredicateApplyOperator implements ApplyOperator {
         } catch (InterruptedException e) {
           return EmptyEdge.getInstance();
         }
-
         convertingTimer.stop();
+
+        if (mngr.isTrue(pFormula.getFormula())) {
+          return EmptyEdge.getInstance();
+        }
+
 
         FormulaDescription desc =
             new FormulaDescription(newAssignement, pFormula.getFormula(), getTypes(pFormula));
