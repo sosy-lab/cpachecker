@@ -384,10 +384,6 @@ class PredicateCPAStatistics implements Statistics {
     out.println();
     put(out, 0, statistics.environmentTimer);
     put(out, 1, statistics.relevanceTimer);
-    put(out, 1, statistics.makeOrTimer);
-    put(out, 1, statistics.convertingTimer);
-    put(out, 1, statistics.instantiateTimer);
-    put(out, 1, statistics.prepareTimer);
     out.println();
     pfmgr.printStatistics(out);
     out.println();

@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -60,7 +59,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -97,10 +95,6 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   private final TimerWrapper strengthenTimer;
   private final TimerWrapper strengthenCheckTimer;
   private final TimerWrapper abstractionCheckTimer;
-  private final TimerWrapper prepareTimer;
-  private final TimerWrapper convertingTimer;
-  private final TimerWrapper instantiateTimer;
-  private final TimerWrapper makeOrTimer;
   private final TimerWrapper environmentTimer;
   private final TimerWrapper relevanceTimer;
 
@@ -131,12 +125,8 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     strengthenTimer = statistics.strengthenTimer.getNewTimer();
     strengthenCheckTimer = statistics.strengthenCheckTimer.getNewTimer();
     abstractionCheckTimer = statistics.abstractionCheckTimer.getNewTimer();
-    prepareTimer = statistics.prepareTimer.getNewTimer();
-    convertingTimer = statistics.convertingTimer.getNewTimer();
-    makeOrTimer = statistics.makeOrTimer.getNewTimer();
     environmentTimer = statistics.environmentTimer.getNewTimer();
     relevanceTimer = statistics.relevanceTimer.getNewTimer();
-    instantiateTimer = statistics.instantiateTimer.getNewTimer();
   }
 
   @Override
@@ -684,7 +674,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
         Map<String, String> updateVariables = new TreeMap<>();
 
         if (options.applyRelevantEffects()) {
-          prepareTimer.start();
+          relevanceTimer.start();
 
           Set<String> absVars = fmgr.extractFunctionNames(oldAbstraction.asFormula());
           Set<String> pathVars =
@@ -693,7 +683,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
           assert pathVars.isEmpty();
 
           skip = Sets.intersection(envVars, absVars).isEmpty();
-          prepareTimer.stop();
+          relevanceTimer.stop();
         }
 
         if (!skip) {
@@ -778,44 +768,5 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       // Without index, nothing to rename
       return pOldVar;
     }
-  }
-
-  private boolean isRelevant(BooleanFormula formula, Pair<Set<String>, Set<String>> predicates) {
-    relevanceTimer.start();
-    Set<String> vars = fmgr.extractVariableNames(fmgr.uninstantiate(formula));
-    Set<String> funcs = fmgr.extractFunctionNames(fmgr.uninstantiate(formula));
-    Set<String> onlyUFs = Sets.difference(funcs, vars);
-    if (vars.isEmpty() && onlyUFs.isEmpty()) {
-      relevanceTimer.stop();
-      return true;
-    }
-    Set<String> predVars = predicates.getFirst();
-    Set<String> predFuncs = predicates.getSecond();
-    if (!Sets.intersection(vars, predVars).isEmpty()
-        || !Sets.intersection(onlyUFs, predFuncs).isEmpty()) {
-      relevanceTimer.stop();
-      return true;
-    }
-    relevanceTimer.stop();
-    return false;
-  }
-
-  private Pair<Set<String>, Set<String>>
-      preparePredicates(Collection<AbstractionPredicate> predicates) {
-    Set<String> resultingVars = new HashSet<>();
-    Set<String> resultingFuncs = new HashSet<>();
-
-    for (AbstractionPredicate pred : predicates) {
-      if (bfmgr.isFalse(pred.getSymbolicAtom())) {
-        // Ignore predicate "false", it means "check for satisfiability".
-        continue;
-      }
-      Set<String> predVars = fmgr.extractVariableNames(pred.getSymbolicAtom());
-      Set<String> predFuncs = fmgr.extractFunctionNames(pred.getSymbolicAtom());
-      Set<String> predOnlyUFs = Sets.difference(predFuncs, predVars);
-      resultingVars.addAll(predVars);
-      resultingFuncs.addAll(predOnlyUFs);
-    }
-    return Pair.of(resultingVars, resultingFuncs);
   }
 }
