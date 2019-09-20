@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -157,9 +156,10 @@ public interface TransferRelation {
   }
 
   /**
-   * Updates an abstract state with information from the abstract states of
-   * other CPAs. An implementation of this method should only modify the
-   * abstract state of the domain it belongs to.
+   * Updates an abstract state with information from the abstract states of other CPAs. An
+   * implementation of this method should only modify the abstract state of the domain it belongs
+   * to.
+   *
    * @param state abstract state of the current domain
    * @param otherStates list of abstract states of all domains
    * @param cfaEdge null or an edge of the CFA
@@ -170,7 +170,7 @@ public interface TransferRelation {
    */
   default Collection<? extends AbstractState> strengthenPredecessor(
       AbstractState state,
-      List<AbstractState> otherStates,
+      Iterable<AbstractState> otherStates,
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
