@@ -115,6 +115,19 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge edge)
           throws CPATransferException, InterruptedException {
+    return getAbstractStates(pElement, edge, AnalysisDirection.FORWARD);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractPredecessorsForEdge(
+      AbstractState pElement, Precision pPrecision, CFAEdge edge)
+      throws CPATransferException, InterruptedException {
+    return getAbstractStates(pElement, edge, AnalysisDirection.BACKWARD);
+  }
+
+  private Collection<? extends AbstractState> getAbstractStates(
+      AbstractState pElement, CFAEdge edge, AnalysisDirection pDirection)
+      throws CPATransferException, InterruptedException {
 
     postTimer.start();
     try {
@@ -127,51 +140,20 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       }
 
       // calculate strongest post
-      PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
+      PathFormula pathFormula;
+      if (pDirection == AnalysisDirection.FORWARD) {
+        pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
+      } else {
+        pathFormula = convertEdgeToPathFormulaBw(element.getPathFormula(), edge);
+      }
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
-      // Check whether we should do a SAT check.s
-      boolean satCheck = shouldDoSatCheck(edge, pathFormula);
-      logger.log(Level.FINEST, "Handling non-abstraction location",
-          (satCheck ? "with satisfiability check" : ""));
-
-      try {
-        if (satCheck && unsatCheck(element.getAbstractionFormula(), pathFormula)) {
-          return ImmutableSet.of();
-        }
-      } catch (SolverException e) {
-        throw new CPATransferException("Solver failed during successor generation", e);
-      }
-
-      return Collections.singleton(
-          mkNonAbstractionStateWithNewPathFormula(pathFormula, element));
-
-    } finally {
-      postTimer.stop();
-    }
-  }
-
-  @Override
-  public Collection<? extends AbstractState>
-      getAbstractPredecessorsForEdge(AbstractState pElement, Precision pPrecision, CFAEdge edge)
-          throws CPATransferException, InterruptedException {
-
-    postTimer.start();
-    try {
-      PredicateAbstractState element = (PredicateAbstractState) pElement;
-
-      // Check whether abstraction is false.
-      // Such elements might get created when precision adjustment computes an abstraction.
-      if (element.getAbstractionFormula().isFalse()) {
-        return Collections.emptySet();
-      }
-
-      // calculate strongest post
-      PathFormula pathFormula = convertEdgeToPathFormulaBw(element.getPathFormula(), edge);
-      logger.log(Level.ALL, "New path formula is", pathFormula);
-
-      // Check whether we should do a SAT check.s
-      boolean satCheck = shouldDoSatCheckBackward(edge, pathFormula);
+      // Check whether we should do a SAT check.
+      CFANode location =
+          pDirection == AnalysisDirection.FORWARD
+              ? getAnalysisSuccessor(edge)
+              : edge.getPredecessor();
+      boolean satCheck = shouldDoSatCheck(location, pathFormula);
       logger.log(
           Level.FINEST,
           "Handling non-abstraction location",
@@ -179,7 +161,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
       try {
         if (satCheck && unsatCheck(element.getAbstractionFormula(), pathFormula)) {
-          return Collections.emptySet();
+          return ImmutableSet.of();
         }
       } catch (SolverException e) {
         throw new CPATransferException("Solver failed during successor generation", e);
@@ -192,27 +174,12 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     }
   }
 
-  private boolean shouldDoSatCheck(CFAEdge edge, PathFormula pathFormula) {
+  private boolean shouldDoSatCheck(CFANode loc, PathFormula pathFormula) {
     if ((options.getSatCheckBlockSize() > 0)
         && (pathFormula.getLength() >= options.getSatCheckBlockSize())) {
       return true;
     }
     if (options.satCheckAtAbstraction()) {
-      CFANode loc = getAnalysisSuccessor(edge);
-      if (blk.isBlockEnd(loc, pathFormula.getLength())) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private boolean shouldDoSatCheckBackward(CFAEdge edge, PathFormula pathFormula) {
-    if ((options.getSatCheckBlockSize() > 0)
-        && (pathFormula.getLength() >= options.getSatCheckBlockSize())) {
-      return true;
-    }
-    if (options.satCheckAtAbstraction()) {
-      CFANode loc = edge.getPredecessor();
       if (blk.isBlockEnd(loc, pathFormula.getLength())) {
         return true;
       }
