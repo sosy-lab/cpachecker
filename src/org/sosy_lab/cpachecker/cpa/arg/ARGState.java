@@ -417,6 +417,7 @@ public class ARGState extends AbstractSingleWrapperState
 
   void addProjectedFrom(ARGState pState) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
+    assert !pState.destroyed : "Don't use destroyed ARGState " + this;
 
     if (projectedFrom == null) {
       projectedFrom = new ArrayList<>();
@@ -784,6 +785,7 @@ public class ARGState extends AbstractSingleWrapperState
 
     if (projectedFrom != null) {
       for (ARGState projection : this.projectedFrom) {
+        assert !projection.destroyed;
         projection.projectedTo = replacement;
       }
       replacement.projectedFrom = this.projectedFrom;

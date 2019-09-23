@@ -340,6 +340,7 @@ public class ARGReachedSet {
     for (ARGState ae : toUnreach) {
       newToUnreach.addAll(ae.getCoveredByThis());
     }
+
     // we remove the covered states completely,
     // maybe we re-explore them later and find coverage again.
     // caution: siblings of the covered state might be re-explored, too,
@@ -414,6 +415,13 @@ public class ARGReachedSet {
       for (ARGState parent : ae.getParents()) {
         if (!elements.contains(parent)) {
           toWaitlist.add(parent);
+        }
+      }
+      if (ae.getProjectedFrom() != null) {
+        for (ARGState parent : ae.getProjectedFrom()) {
+          if (!elements.contains(parent)) {
+            toWaitlist.add(parent);
+          }
         }
       }
 
