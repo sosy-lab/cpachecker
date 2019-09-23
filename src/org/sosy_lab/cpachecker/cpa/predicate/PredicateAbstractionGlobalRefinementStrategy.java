@@ -375,6 +375,6 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
 
   @Override
   public int getSizeOfPrecision() {
-    return newPredicates.size();
+    return newPredicates.entries().size();
   }
 }

@@ -73,6 +73,11 @@ public class PredicateAbstractEdge implements AbstractEdge {
         return false;
       }
     }
+
+    @Override
+    public String toString() {
+      return assignment.toASTString();
+    }
   }
 
   private final static PredicateAbstractEdge havocEdge =
