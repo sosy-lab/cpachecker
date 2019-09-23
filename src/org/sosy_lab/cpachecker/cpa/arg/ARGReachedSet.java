@@ -417,13 +417,6 @@ public class ARGReachedSet {
           toWaitlist.add(parent);
         }
       }
-      if (ae.getProjectedFrom() != null) {
-        for (ARGState parent : ae.getProjectedFrom()) {
-          if (!elements.contains(parent)) {
-            toWaitlist.add(parent);
-          }
-        }
-      }
 
       ae.removeFromARG();
     }
