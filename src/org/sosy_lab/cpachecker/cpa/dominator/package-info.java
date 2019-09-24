@@ -27,10 +27,9 @@
  *
  * <p>This CPA can also be used for post-dominator computation, i.e., to compute all nodes that are
  * part of all paths from a given node to the program exit. To do so, run the CPA with {@link
- * org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards LocationCPABackwards}.
+ * org.sosy_lab.cpachecker.cpa.backward.BackwardCPA}.
  *
- * <p>Note: If run with {@link org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards
- * LocationCPABackwards}, each node will be post-dominated by itself. This is not a problem and not
- * wrong, just don't be confused.
+ * <p>Note: If run with {@link org.sosy_lab.cpachecker.cpa.backward.BackwardCPA}, each node will be
+ * post-dominated by itself. This is not a problem and not wrong, just don't be confused.
  */
 package org.sosy_lab.cpachecker.cpa.dominator;
