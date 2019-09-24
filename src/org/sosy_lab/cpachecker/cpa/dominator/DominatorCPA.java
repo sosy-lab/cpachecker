@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,64 +25,21 @@ package org.sosy_lab.cpachecker.cpa.dominator;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-public class DominatorCPA implements ConfigurableProgramAnalysis {
-
-  private AbstractDomain abstractDomain;
-  private TransferRelation transferRelation;
-  private MergeOperator mergeOperator;
-  private StopOperator stopOperator;
-  private PrecisionAdjustment precisionAdjustment;
+public class DominatorCPA extends AbstractCPA {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(DominatorCPA.class);
   }
 
   public DominatorCPA() {
-    abstractDomain = DelegateAbstractDomain.getInstance();
-    transferRelation = new DominatorTransferRelation();
-    mergeOperator = new MergeJoinOperator(abstractDomain);
-    stopOperator = new StopJoinOperator(abstractDomain);
-    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return transferRelation;
-  }
-
-  @Override
-  public MergeOperator getMergeOperator() {
-    return mergeOperator;
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return stopOperator;
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    super("join", "join", DelegateAbstractDomain.getInstance(), new DominatorTransferRelation());
   }
 
   @Override

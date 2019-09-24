@@ -25,9 +25,10 @@ package org.sosy_lab.cpachecker.cpa.dominator;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ForwardingSet;
 import com.google.common.collect.Sets;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,13 +39,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 public class DominatorState extends ForwardingSet<CFANode>
     implements AbstractState, LatticeAbstractState<DominatorState>, Graphable {
 
-  private Set<CFANode> dominators = new HashSet<>();
-
-  public DominatorState() {}
+  // TODO replace by PersistentSet to avoid many inefficient copies.
+  private final Set<CFANode> dominators;
 
   public DominatorState(Set<CFANode> pDominators) {
     checkNotNull(pDominators);
-    dominators.addAll(pDominators);
+    dominators = new LinkedHashSet<>(pDominators);
   }
 
   @Override
@@ -72,23 +72,7 @@ public class DominatorState extends ForwardingSet<CFANode>
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder();
-    builder.append(getClass().getSimpleName()).append(": ").append("{");
-
-    boolean first = true;
-    for (CFANode dominator : dominators) {
-      if (first) {
-        first = false;
-      } else {
-        builder.append(", ");
-      }
-
-      builder.append(dominator.toString());
-    }
-
-    builder.append("}");
-
-    return builder.toString();
+    return getClass().getSimpleName() + ": {" + Joiner.on(", ").join(dominators) + "}";
   }
 
   @Override

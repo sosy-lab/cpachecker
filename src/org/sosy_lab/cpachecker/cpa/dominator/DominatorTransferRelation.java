@@ -65,4 +65,20 @@ public class DominatorTransferRelation extends SingleEdgeTransferRelation {
 
     return Collections.singleton(successor);
   }
+
+  @Override
+  public Collection<DominatorState> getAbstractPredecessorsForEdge(
+      AbstractState element, Precision prec, CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
+
+    assert element instanceof DominatorState;
+
+    DominatorState dominatorState = (DominatorState) element;
+    Set<CFANode> newDominators = new HashSet<>(dominatorState);
+    // We have to go through the successor to get here
+    newDominators.add(cfaEdge.getSuccessor());
+    DominatorState successor = new DominatorState(newDominators);
+
+    return Collections.singleton(successor);
+  }
 }
