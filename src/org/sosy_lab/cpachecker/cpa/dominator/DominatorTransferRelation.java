@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.dominator;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -54,31 +54,21 @@ public class DominatorTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<DominatorState> getAbstractSuccessorsForEdge(
     AbstractState element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
-
-    assert element instanceof DominatorState;
-
     DominatorState dominatorState = (DominatorState) element;
     Set<CFANode> newDominators = new HashSet<>(dominatorState);
-    // We have to go through the predecessor to get here
-    newDominators.add(cfaEdge.getPredecessor());
+    newDominators.add(cfaEdge.getSuccessor());
     DominatorState successor = new DominatorState(newDominators);
-
-    return Collections.singleton(successor);
+    return ImmutableSet.of(successor);
   }
 
   @Override
   public Collection<DominatorState> getAbstractPredecessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-
-    assert element instanceof DominatorState;
-
     DominatorState dominatorState = (DominatorState) element;
     Set<CFANode> newDominators = new HashSet<>(dominatorState);
-    // We have to go through the successor to get here
-    newDominators.add(cfaEdge.getSuccessor());
+    newDominators.add(cfaEdge.getPredecessor());
     DominatorState successor = new DominatorState(newDominators);
-
-    return Collections.singleton(successor);
+    return ImmutableSet.of(successor);
   }
 }
