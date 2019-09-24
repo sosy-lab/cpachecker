@@ -56,9 +56,6 @@ public class CallstackOptions {
           "Skip recursion if it happens only by going via a void function (this is unsound).")
   private boolean skipVoidRecursion = false;
 
-  @Option(description = "analyse the CFA backwards", secure = true)
-  private boolean traverseBackwards = false;
-
   @Option(
       secure = true,
       name = "domain",
@@ -90,10 +87,6 @@ public class CallstackOptions {
 
   boolean skipVoidRecursion() {
     return skipVoidRecursion;
-  }
-
-  boolean traverseBackwards() {
-    return traverseBackwards;
   }
 
   String getDomainType() {

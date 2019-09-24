@@ -121,11 +121,7 @@ public class CallstackCPA extends AbstractCPA
 
   @Override
   public CallstackTransferRelation getTransferRelation() {
-    if (options.traverseBackwards()) {
-      return new CallstackTransferRelationBackwards(options, logger);
-    } else {
-      return new CallstackTransferRelation(options, logger);
-    }
+    return new CallstackTransferRelation(options, logger);
   }
 
   public CallstackOptions getOptions() {

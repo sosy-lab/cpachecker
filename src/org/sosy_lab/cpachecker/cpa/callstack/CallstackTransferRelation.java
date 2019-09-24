@@ -217,7 +217,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
           if (pEdge instanceof CFunctionSummaryStatementEdge) {
             if (!shouldGoByFunctionSummaryStatement(state, (CFunctionSummaryStatementEdge) pEdge)) {
               // should go by function call and skip the current edge
-              return Collections.emptySet();
+              return ImmutableSet.of();
             }
           }
 
@@ -299,7 +299,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         break;
     }
 
-    return result == null ? Collections.emptySet() : Collections.singleton(result);
+    return result == null ? ImmutableSet.of() : ImmutableSet.of(result);
   }
 
   /**
