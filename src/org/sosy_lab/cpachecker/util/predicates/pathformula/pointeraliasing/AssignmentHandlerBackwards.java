@@ -158,7 +158,7 @@ class AssignmentHandlerBackwards extends AssignmentHandler {
 
       assert !useOldSSAIndices;
       targetName = lhsLocation.asUnaliased().getVariableName();
-      oldIndex = conv.getIndex(targetName, lhsType, ssa);
+      // oldIndex = conv.getIndex(targetName, lhsType, ssa);
       lhsFormula = conv.makeFreshVariable(targetName, lhsType, ssa);
       // final Formula lhsFormula = fmgr.makeVariable(targetType, targetName, oldIndex);
       int newIndex = conv.getFreshIndex(targetName, lhsType, ssa);
@@ -642,7 +642,7 @@ class AssignmentHandlerBackwards extends AssignmentHandler {
       assert !useOldSSAIndices;
 
       final String targetName = lvalue.asUnaliased().getVariableName();
-      final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
+      // final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
 
       if (rhs != null) {
         result = fmgr.assignment(lhsFormula, rhs);

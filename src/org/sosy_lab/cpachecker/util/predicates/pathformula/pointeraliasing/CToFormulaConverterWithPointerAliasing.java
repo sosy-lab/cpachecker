@@ -503,19 +503,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         if (newRegion == null) {
           newRegion = regionMgr.makeMemoryRegion(baseType);
         }
-        // hier neue Variable fuer bw?
-        // int newIndex = makeFreshIndex(baseName, baseType, ssa);
-        if (direction == AnalysisDirection.BACKWARD) {
         constraints.addConstraint(
             fmgr.makeEqual(
-                  makeSafeDereference(baseType, address, ssa, newRegion),
+                makeSafeDereference(baseType, address, ssa, newRegion),
                 makeVariable(baseName, baseType, ssa)));
-        } else {
-          constraints.addConstraint(
-              fmgr.makeEqual(
-                  makeSafeDereference(baseType, address, ssa, newRegion),
-                  makeVariable(baseName, baseType, ssa)));
-        }
       }
     }
   }
