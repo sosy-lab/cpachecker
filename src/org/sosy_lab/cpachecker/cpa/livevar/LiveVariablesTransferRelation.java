@@ -38,8 +38,8 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -102,7 +102,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 @Options(prefix="cpa.liveVar")
 public class LiveVariablesTransferRelation extends ForwardingTransferRelation<LiveVariablesState, LiveVariablesState, Precision> {
 
-  private final Map<CFANode, BitSet> liveVariables = new HashMap<>();
+  private final Map<CFANode, BitSet> liveVariables = new LinkedHashMap<>();
 
   @Option(secure=true, description="With this option the handling of global variables"
       + " during the analysis can be fine-tuned. For example while doing a function-wise"
@@ -212,7 +212,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   public ImmutableList<Wrapper<ASimpleDeclaration>> gatherAllDeclarations(CFA pCFA) {
-    Set<Wrapper<ASimpleDeclaration>> allDecls = new HashSet<>();
+    Set<Wrapper<ASimpleDeclaration>> allDecls = new LinkedHashSet<>();
     for (CFANode node : pCFA.getAllNodes()) {
 
       if (node instanceof FunctionEntryNode) {

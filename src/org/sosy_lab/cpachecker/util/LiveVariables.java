@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Predicates.notNull;
-import static com.google.common.base.Predicates.or;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Equivalence;
@@ -175,11 +174,8 @@ public class LiveVariables {
           from(globalsList)
               .<ASimpleDeclaration>transform(Pair::getFirst)
               .filter(notNull())
-              .filter(
-                  not(
-                      or(
-                          instanceOf(CTypeDeclaration.class),
-                          instanceOf(CFunctionDeclaration.class))))
+              .filter(not(instanceOf(CTypeDeclaration.class)))
+              .filter(not(instanceOf(CFunctionDeclaration.class)))
               .toSet();
 
       final CFATraversal.EdgeCollectingCFAVisitor edgeCollectingVisitor = new CFATraversal.EdgeCollectingCFAVisitor();
@@ -403,11 +399,8 @@ public class LiveVariables {
             from(globalsList)
                 .transform(Pair::getFirst)
                 .filter(notNull())
-                .filter(
-                    not(
-                        or(
-                            instanceOf(CTypeDeclaration.class),
-                            instanceOf(CFunctionDeclaration.class))))
+                .filter(not(instanceOf(CTypeDeclaration.class)))
+                .filter(not(instanceOf(CFunctionDeclaration.class)))
                 .transform(TO_EQUIV_WRAPPER)
                 .toSet();
         break;
