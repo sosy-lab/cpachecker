@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlg
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
+import org.sosy_lab.cpachecker.cpa.backward.BackwardCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
@@ -90,10 +90,14 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
   @Override
   protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
-    if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) != null) { throw new InvalidConfigurationException(
-        "Partial reached set not supported as certificate for backward analysis"); }
-    if (!(pReadProof instanceof Pair)) { throw new InvalidConfigurationException(
-        "Proof Type requires pair of reached set size and reached set as set of abstract states."); }
+    if (CPAs.retrieveCPA(cpa, BackwardCPA.class) != null) {
+      throw new InvalidConfigurationException(
+          "Partial reached set not supported as certificate for backward analysis");
+    }
+    if (!(pReadProof instanceof Pair)) {
+      throw new InvalidConfigurationException(
+          "Proof Type requires pair of reached set size and reached set as set of abstract states.");
+    }
     try {
       @SuppressWarnings("unchecked")
       Pair<Integer, AbstractState[]> proof = (Pair<Integer, AbstractState[]>) pReadProof;
