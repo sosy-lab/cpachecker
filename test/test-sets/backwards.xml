@@ -5,19 +5,27 @@
   <option name="-benchmark" />
   <option name="-heap">5000M</option>
 
+  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+
   <rundefinition name="bdd">
     <option name="-bddAnalysis"/>
-    <!-- deactivated for better tables, as long as BW-analysis does not work with "-spec".
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    -->
   </rundefinition>
+
   <rundefinition name="bdd-backwards">
     <option name="-bddAnalysis-backward"/>
-	</rundefinition>
+  </rundefinition>
 
-	<propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-	
-	<columns>
+  <rundefinition name="pa">
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+  </rundefinition>
+
+  <rundefinition name="pa-backwards">
+    <option name="-predicateAnalysisBackward"/>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+  </rundefinition>
+
+  <columns>
     <column title="#reached">Size of reached set</column>
   </columns>
 
