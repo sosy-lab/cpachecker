@@ -549,6 +549,8 @@ public class ARGStatistics implements Statistics {
   }
 
   public Optional<Witness> getWitnessIfAlreadyGenerated() {
-    return argWitnessExporter.getWitnessIfAlreadyGenerated();
+    return argWitnessExporter == null
+        ? Optional.empty()
+        : argWitnessExporter.getWitnessIfAlreadyGenerated();
   }
 }
