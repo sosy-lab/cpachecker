@@ -73,7 +73,7 @@ public class LocationTransferRelation implements TransferRelation {
       return Collections.singleton(factory.getState(cfaEdge.getPredecessor()));
     }
 
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override

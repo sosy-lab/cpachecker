@@ -234,7 +234,7 @@ public class ARGState extends AbstractSingleWrapperState
 
           if (currentLoc.getNumEnteringEdges() < 1 && currentLocBw.getNumEnteringEdges() < 1) {
             // Come to root and last state in both direction - don't know if this can ever happen
-            return Collections.emptyList();
+            return ImmutableList.of();
           }
         }
       }

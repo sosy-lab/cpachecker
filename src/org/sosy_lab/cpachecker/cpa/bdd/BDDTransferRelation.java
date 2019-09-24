@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -140,7 +141,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   @Override
   protected Collection<BDDState> postProcessing(BDDState newState, CFAEdge edge) {
     if (newState.getRegion().isFalse()) { // assumption is not fulfilled / not possible
-      return Collections.emptySet();
+      return ImmutableSet.of();
     } else {
       return Collections.singleton(newState);
     }
