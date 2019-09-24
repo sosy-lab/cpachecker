@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -81,24 +81,22 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-/**
- * Implements a handler for assignments.
- */
-class AssignmentHandler implements AssignmentHandlerInterface {
+/** Implements a handler for assignments. */
+class AssignmentHandler {
 
-  private final FormulaEncodingWithPointerAliasingOptions options;
-  private final FormulaManagerView fmgr;
-  private final BooleanFormulaManagerView bfmgr;
+  protected final FormulaEncodingWithPointerAliasingOptions options;
+  protected final FormulaManagerView fmgr;
+  protected final BooleanFormulaManagerView bfmgr;
 
-  private final CToFormulaConverterWithPointerAliasing conv;
-  private final TypeHandlerWithPointerAliasing typeHandler;
-  private final CFAEdge edge;
-  private final String function;
-  private final SSAMapBuilder ssa;
-  private final PointerTargetSetBuilder pts;
-  private final Constraints constraints;
-  private final ErrorConditions errorConditions;
-  private final MemoryRegionManager regionMgr;
+  protected final CToFormulaConverterWithPointerAliasing conv;
+  protected final TypeHandlerWithPointerAliasing typeHandler;
+  protected final CFAEdge edge;
+  protected final String function;
+  protected final SSAMapBuilder ssa;
+  protected final PointerTargetSetBuilder pts;
+  protected final Constraints constraints;
+  protected final ErrorConditions errorConditions;
+  protected final MemoryRegionManager regionMgr;
 
   /**
    * Creates a new AssignmentHandler.
@@ -142,7 +140,6 @@ class AssignmentHandler implements AssignmentHandlerInterface {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
-  @Override
   public BooleanFormula handleAssignment(
       final CLeftHandSide lhs,
       final CLeftHandSide lhsForChecking,
@@ -262,7 +259,7 @@ class AssignmentHandler implements AssignmentHandlerInterface {
     return result;
   }
 
-  private Expression createRHSExpression(
+  protected Expression createRHSExpression(
       CRightHandSide pRhs, CType pLhsType, CExpressionVisitorWithPointerAliasing pRhsVisitor)
       throws UnrecognizedCodeException {
     if (pRhs == null) {
@@ -275,12 +272,11 @@ class AssignmentHandler implements AssignmentHandlerInterface {
     return r.accept(pRhsVisitor);
   }
 
-  private CExpressionVisitorWithPointerAliasing newExpressionVisitor() {
+  protected CExpressionVisitorWithPointerAliasing newExpressionVisitor() {
     return new CExpressionVisitorWithPointerAliasing(
         conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
   }
 
-  @Override
   public BooleanFormula handleAssignment(
       final CLeftHandSide lhs,
       final CLeftHandSide lhsForChecking,
@@ -301,7 +297,6 @@ class AssignmentHandler implements AssignmentHandlerInterface {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException It the execution was interrupted.
    */
-  @Override
   public BooleanFormula handleInitializationAssignments(
       final CIdExpression variable, final CType declarationType, final List<CExpressionAssignmentStatement> assignments) throws UnrecognizedCodeException, InterruptedException {
     if (options.useQuantifiersOnArrays()
@@ -321,7 +316,7 @@ class AssignmentHandler implements AssignmentHandlerInterface {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException It the execution was interrupted.
    */
-  private BooleanFormula handleInitializationAssignmentsWithoutQuantifier(
+  protected BooleanFormula handleInitializationAssignmentsWithoutQuantifier(
       final List<CExpressionAssignmentStatement> assignments)
       throws UnrecognizedCodeException, InterruptedException {
     BooleanFormula result = conv.bfmgr.makeTrue();
@@ -348,7 +343,7 @@ class AssignmentHandler implements AssignmentHandlerInterface {
    * @throws InterruptedException If the execution was interrupted.
    * @see #handleInitializationAssignmentsWithoutQuantifier(List)
    */
-  private BooleanFormula handleInitializationAssignmentsWithQuantifier(
+  protected BooleanFormula handleInitializationAssignmentsWithQuantifier(
       final CIdExpression pLeftHandSide,
       final List<CExpressionAssignmentStatement> pAssignments,
       final boolean pUseOldSSAIndices)
@@ -438,7 +433,7 @@ class AssignmentHandler implements AssignmentHandlerInterface {
    * @return Whether all assignments of an initializer have the same value.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
-  private boolean checkEqualityOfInitializers(
+  protected boolean checkEqualityOfInitializers(
       final List<CExpressionAssignmentStatement> pAssignments,
       final CExpressionVisitorWithPointerAliasing pRhsVisitor)
       throws UnrecognizedCodeException {
@@ -454,7 +449,7 @@ class AssignmentHandler implements AssignmentHandlerInterface {
     return true;
   }
 
-  private void finishAssignmentsForUF(
+  protected void finishAssignmentsForUF(
       CType lvalueType,
       final AliasedLocation lvalue,
       final PointerTargetPattern pattern,
@@ -805,7 +800,7 @@ class AssignmentHandler implements AssignmentHandlerInterface {
     return result;
   }
 
-  private Optional<Formula> getValueFormula(CType pRValueType, Expression pRValue)
+  protected Optional<Formula> getValueFormula(CType pRValueType, Expression pRValue)
       throws AssertionError {
     switch (pRValue.getKind()) {
       case ALIASED_LOCATION:
@@ -1066,7 +1061,7 @@ class AssignmentHandler implements AssignmentHandlerInterface {
    * @param pattern The pattern matching the (potentially) written heap cells.
    * @param regionsToRetain The set of regions which were affected by the assignment.
    */
-  private void addRetentionForAssignment(
+  protected void addRetentionForAssignment(
       MemoryRegion region,
       CType lvalueType,
       final Formula startAddress,
@@ -1093,13 +1088,12 @@ class AssignmentHandler implements AssignmentHandlerInterface {
   }
 
   /**
-   * Add retention constraints as specified by
-   * {@link #addRetentionForAssignment(MemoryRegion, CType, Formula, PointerTargetPattern, Set)}
-   * with the help of quantifiers.
-   * Such a constraint is simply {@code forall i : !matches(i) => retention(i)}
-   * where {@code matches(i)} specifies whether address {@code i} was written.
+   * Add retention constraints as specified by {@link #addRetentionForAssignment(MemoryRegion,
+   * CType, Formula, PointerTargetPattern, Set)} with the help of quantifiers. Such a constraint is
+   * simply {@code forall i : !matches(i) => retention(i)} where {@code matches(i)} specifies
+   * whether address {@code i} was written.
    */
-  private void addRetentionConstraintsWithQuantifiers(
+  protected void addRetentionConstraintsWithQuantifiers(
       final CType lvalueType,
       final PointerTargetPattern pattern,
       final Formula startAddress,
@@ -1139,12 +1133,11 @@ class AssignmentHandler implements AssignmentHandlerInterface {
   }
 
   /**
-   * Add retention constraints as specified by
-   * {@link #addRetentionForAssignment(MemoryRegion, CType, Formula, PointerTargetPattern, Set)}
-   * in a bounded way by manually iterating over all possibly written heap cells
-   * and adding a constraint for each of them.
+   * Add retention constraints as specified by {@link #addRetentionForAssignment(MemoryRegion,
+   * CType, Formula, PointerTargetPattern, Set)} in a bounded way by manually iterating over all
+   * possibly written heap cells and adding a constraint for each of them.
    */
-  private void addRetentionConstraintsWithoutQuantifiers(
+  protected void addRetentionConstraintsWithoutQuantifiers(
       MemoryRegion region,
       CType lvalueType,
       final PointerTargetPattern pattern,
@@ -1295,7 +1288,7 @@ class AssignmentHandler implements AssignmentHandlerInterface {
    * @param regions A set of regions that should be added to the SSA map.
    * @param pSsa The current SSA map.
    */
-  private void updateSSA(final Set<MemoryRegion> regions, final SSAMapBuilder pSsa) {
+  protected void updateSSA(final Set<MemoryRegion> regions, final SSAMapBuilder pSsa) {
     for (final MemoryRegion region : regions) {
       final String ufName = regionMgr.getPointerAccessName(region);
       conv.makeFreshIndex(ufName, region.getType(), pSsa);

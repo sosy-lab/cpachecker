@@ -846,29 +846,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     // Probably a new methods handleAssignmentBw is needed here where first the lhs is handled and
     // than the rhs
-    AssignmentHandlerInterface assignmentHandler;
+    AssignmentHandler assignmentHandler;
     if (direction == AnalysisDirection.BACKWARD) {
       assignmentHandler =
           new AssignmentHandlerBackwards(
-              this,
-              edge,
-              function,
-              ssa,
-              pts,
-              constraints,
-              errorConditions,
-              regionMgr);
+              this, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
     } else {
       assignmentHandler =
           new AssignmentHandler(
-              this,
-              edge,
-              function,
-              ssa,
-              pts,
-              constraints,
-              errorConditions,
-              regionMgr);
+              this, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
     }
     return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false);
   }
@@ -1049,29 +1035,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     final CIdExpression lhs =
         new CIdExpression(declaration.getFileLocation(), declaration);
-    final AssignmentHandlerInterface assignmentHandler;
+    final AssignmentHandler assignmentHandler;
     if (direction == AnalysisDirection.BACKWARD) {
       assignmentHandler =
           new AssignmentHandlerBackwards(
-              this,
-              declarationEdge,
-              function,
-              ssa,
-              pts,
-              constraints,
-              errorConditions,
-              regionMgr);
+              this, declarationEdge, function, ssa, pts, constraints, errorConditions, regionMgr);
     } else {
       assignmentHandler =
           new AssignmentHandler(
-              this,
-              declarationEdge,
-              function,
-              ssa,
-              pts,
-              constraints,
-              errorConditions,
-              regionMgr);
+              this, declarationEdge, function, ssa, pts, constraints, errorConditions, regionMgr);
     }
     if (initializer instanceof CInitializerExpression || initializer == null) {
 
