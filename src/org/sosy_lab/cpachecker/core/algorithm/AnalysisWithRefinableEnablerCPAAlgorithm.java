@@ -70,13 +70,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.backward.BackwardCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreeCPAEnabledAnalysisOperator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
@@ -155,10 +155,11 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     this.logger = logger;
     shutdownNotifier = pShutdownNotifier;
 
-
     if (!(cpa instanceof ARGCPA)
-        || (CPAs.retrieveCPA(cpa, LocationCPA.class) == null && CPAs.retrieveCPA(cpa, LocationCPABackwards.class) == null)
-        || CPAs.retrieveCPA(cpa, enablerCPA.cpaClass) == null || CPAs.retrieveCPA(cpa, CompositeCPA.class) == null) { throw new InvalidConfigurationException(
+        || CPAs.retrieveCPA(cpa, LocationCPA.class) == null
+        || CPAs.retrieveCPA(cpa, enablerCPA.cpaClass) == null
+        || CPAs.retrieveCPA(cpa, CompositeCPA.class) == null) {
+      throw new InvalidConfigurationException(
         "Analysis with enabler CPA requires ARG as top CPA and Composite CPA as child. "
             + "Furthermore, it needs Location CPA and enabling CPA to work.");
     }
@@ -180,7 +181,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
     enablerTransfer = CPAs.retrieveCPA(cpa, enablerCPA.cpaClass).getTransferRelation();
 
-    if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) != null) {
+    if (CPAs.retrieveCPA(cpa, BackwardCPA.class) != null) {
       throw new InvalidConfigurationException("Currently only support forward analyses.");
     }
 
