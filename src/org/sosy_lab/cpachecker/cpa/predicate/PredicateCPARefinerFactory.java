@@ -74,7 +74,7 @@ public class PredicateCPARefinerFactory {
 
   private @Nullable BlockFormulaStrategy blockFormulaStrategy = null;
 
-  private boolean isBackwards = false;
+  private final boolean isBackwards;
 
   /**
    * Create a factory instance.
@@ -121,11 +121,12 @@ public class PredicateCPARefinerFactory {
   }
 
   /**
-   * Create a {@link PredicateCPARefiner}.
-   * This factory can be reused afterwards.
+   * Create a {@link PredicateCPARefiner}. This factory can be reused afterwards.
+   *
    * @param pRefinementStrategy The refinement strategy to use.
    * @return A fresh instance.
    */
+  @SuppressWarnings("resource")
   public ARGBasedRefiner create(RefinementStrategy pRefinementStrategy)
       throws InvalidConfigurationException {
     checkNotNull(pRefinementStrategy);
@@ -146,8 +147,7 @@ public class PredicateCPARefinerFactory {
     PredicateCPAInvariantsManager invariantsManager = predicateCpa.getInvariantsManager();
 
     PrefixProvider prefixProvider =
-        new PredicateBasedPrefixProvider(
-            config, logger, solver, predicateCpa.getPathFormulaManager(), shutdownNotifier);
+        new PredicateBasedPrefixProvider(config, logger, solver, pfmgr, shutdownNotifier);
     PrefixSelector prefixSelector = new PrefixSelector(variableClassification, loopStructure);
 
     InterpolationManager interpolationManager =
