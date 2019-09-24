@@ -29,6 +29,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -149,7 +150,9 @@ public class ARGState extends AbstractSingleWrapperState
       // consider only the actual analysis direction
       Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
       for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
-        if (ingoingEdgesOfChild.contains(edge)) { return edge; }
+        if (ingoingEdgesOfChild.contains(edge)) {
+          return edge;
+        }
       }
       // check for backwardsARG - here the edges are directed parent <- child
       Collection<CFAEdge> edgesToChild = Sets.newHashSet(currentLocs.getIngoingEdges());
@@ -184,7 +187,6 @@ public class ARGState extends AbstractSingleWrapperState
         }
       }
     }
-    // check for bw
     // there is no edge
     return null;
   }
@@ -199,18 +201,16 @@ public class ARGState extends AbstractSingleWrapperState
     // no direct connection, this is only possible for ARG holes during dynamic
     // multiedges, it is guaranteed that there is exactly one path and no other
     // leaving edges from the parent to the child
-    // check for bw (run pabw10)
     if (singleEdge == null) {
 
       List<CFAEdge> allEdges = new ArrayList<>();
       CFANode currentLoc = AbstractStates.extractLocation(this);
 
-      // for backwards multiedge the children are in opposite traversion direction
+      // for backwards multiedge the children are in opposite traversal direction
       List<CFAEdge> allEdgesBw = new ArrayList<>();
       CFANode currentLocBw = AbstractStates.extractLocation(this);
 
       final CFANode childLoc = AbstractStates.extractLocation(pChild);
-
 
       if (currentLoc != null && childLoc != null) {
         while (!currentLoc.equals(childLoc) && !currentLocBw.equals(childLoc)) {
@@ -238,6 +238,7 @@ public class ARGState extends AbstractSingleWrapperState
           }
         }
       }
+      Preconditions.checkNotNull(currentLoc);
       if (currentLoc.equals(childLoc)) {
         return allEdges;
       } else {

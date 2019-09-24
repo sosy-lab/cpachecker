@@ -89,9 +89,8 @@ public class ARGPath extends AbstractAppender {
     states = ImmutableList.copyOf(pStates);
 
     // check direction of ARG
-
-    ARGState firstParent = states.get(0);
-    ARGState firstChild = states.get(1);
+    ARGState firstParent = pStates.get(0);
+    ARGState firstChild = pStates.get(1);
     CFAEdge firstEdge = firstParent.getEdgeToChild(firstChild);
     CFAEdge firstEdgeRev = firstChild.getEdgeToChild(firstParent);
     boolean isBackwards = (firstEdge == null && !(firstEdgeRev == null));
@@ -100,11 +99,9 @@ public class ARGPath extends AbstractAppender {
     for (int i = 0; i < states.size() - 1; i++) {
       ARGState parent = states.get(i);
       ARGState child = states.get(i+1);
-      if (isBackwards) {
-        edgesBuilder.add(child.getEdgeToChild(parent));
-      } else {
-        edgesBuilder.add(parent.getEdgeToChild(child)); // may return null
-      }
+      // edge may be null
+      CFAEdge edge = isBackwards ? child.getEdgeToChild(parent) : parent.getEdgeToChild(child);
+      edgesBuilder.add(edge);
     }
 
     edges = Collections.unmodifiableList(edgesBuilder);
