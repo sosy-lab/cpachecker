@@ -1860,10 +1860,6 @@ cpa.predicate.defaultArrayLength = 20
 # actual type of the allocation is figured out.
 cpa.predicate.deferUntypedAllocations = true
 
-# Direction of the analysis?
-cpa.predicate.direction = FORWARD
-  enum:     [FORWARD, BACKWARD]
-
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 

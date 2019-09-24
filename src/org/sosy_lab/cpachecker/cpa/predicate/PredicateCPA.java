@@ -102,9 +102,6 @@ public class PredicateCPA
       description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
   private String stopType = "SEP";
 
-  @Option(secure=true, description="Direction of the analysis?")
-  private AnalysisDirection direction = AnalysisDirection.FORWARD;
-
   @Option(
       secure = true,
       description =
@@ -163,15 +160,12 @@ public class PredicateCPA
     formulaManager = solver.getFormulaManager();
     String libraries = solver.getVersion();
 
-    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, direction);
+    PathFormulaManager pfMgr =
+        new PathFormulaManagerImpl(
+            formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
     PathFormulaManager pfMgrBw =
         new PathFormulaManagerImpl(
-            formulaManager,
-            config,
-            logger,
-            shutdownNotifier,
-            cfa,
-            AnalysisDirection.BACKWARD);
+            formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.BACKWARD);
     if (useCache) {
       pfMgr = new CachingPathFormulaManager(pfMgr);
       pfMgrBw = new CachingPathFormulaManager(pfMgrBw);
@@ -250,7 +244,6 @@ public class PredicateCPA
   public PredicateTransferRelation getTransferRelation() {
     return new PredicateTransferRelation(
         logger,
-        direction,
         formulaManager,
         pathFormulaManager,
         pathFormulaManagerBw,

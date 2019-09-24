@@ -72,7 +72,6 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   private final BlockOperator blk;
   private final FormulaManagerView fmgr;
 
-  private final AnalysisDirection direction;
   private final PredicateStatistics statistics;
   private final PredicateCpaOptions options;
 
@@ -85,7 +84,6 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
   public PredicateTransferRelation(
       LogManager pLogger,
-      AnalysisDirection pDirection,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       PathFormulaManager pPfmgrBw,
@@ -99,7 +97,6 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     pathFormulaManagerBw = pPfmgrBw;
     fmgr = pFmgr;
     blk = pBlk;
-    direction = pDirection;
     statistics = pStatistics;
     options = pOptions;
 
@@ -150,9 +147,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
       // Check whether we should do a SAT check.
       CFANode location =
-          pDirection == AnalysisDirection.FORWARD
-              ? getAnalysisSuccessor(edge)
-              : edge.getPredecessor();
+          pDirection == AnalysisDirection.FORWARD ? edge.getSuccessor() : edge.getPredecessor();
       boolean satCheck = shouldDoSatCheck(location, pathFormula);
       logger.log(
           Level.FINEST,
@@ -185,14 +180,6 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       }
     }
     return false;
-  }
-
-  private CFANode getAnalysisSuccessor(CFAEdge pEdge) {
-    if (direction == AnalysisDirection.BACKWARD) {
-      return pEdge.getPredecessor();
-    } else {
-      return pEdge.getSuccessor();
-    }
   }
 
   /**
@@ -342,7 +329,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       if (edge == null) {
         currentLocation = null;
       } else {
-        currentLocation = getAnalysisSuccessor(edge);
+        currentLocation = edge.getSuccessor();
       }
 
       boolean errorFound = false;
