@@ -51,6 +51,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
@@ -89,6 +90,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -117,6 +119,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
   private final BitSet addressedOrGlobalVars;
   private final LogManager logger;
+  private final LogManagerWithoutDuplicates onceLogger;
   private final CFA cfa;
 
   public LiveVariablesTransferRelation(
@@ -126,6 +129,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       CFA pCFA, LogManager pLogger) throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
+    onceLogger = new LogManagerWithoutDuplicates(logger);
     cfa = pCFA;
 
     if (!cfa.getVarClassification().isPresent() && cfa.getLanguage() == Language.C) {
@@ -259,12 +263,9 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     return Collections.singleton(successor);
   }
 
-
   @Override
-  protected  LiveVariablesState handleAssumption(
-      AssumeEdge cfaEdge,
-      AExpression expression,
-      boolean truthAssumption)
+  protected LiveVariablesState handleAssumptionBackwards(
+      AssumeEdge cfaEdge, AExpression expression, boolean truthAssumption)
       throws CPATransferException {
 
     // all variables in assumption become live
@@ -274,8 +275,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   @Override
-  protected LiveVariablesState handleDeclarationEdge(ADeclarationEdge cfaEdge, ADeclaration decl)
-      throws CPATransferException {
+  protected LiveVariablesState handleDeclarationEdgeBackwards(
+      ADeclarationEdge cfaEdge, ADeclaration decl) throws CPATransferException {
 
     // we do only care about variable declarations
     if (!(decl instanceof AVariableDeclaration)) {
@@ -303,10 +304,9 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     return LiveVariablesState.ofUnique(out, this);
   }
 
-
   @Override
-  protected LiveVariablesState handleStatementEdge(AStatementEdge cfaEdge, AStatement statement)
-      throws CPATransferException {
+  protected LiveVariablesState handleStatementEdgeBackwards(
+      AStatementEdge cfaEdge, AStatement statement) throws CPATransferException {
     BitSet out = state.getDataCopy();
     if (statement instanceof AExpressionAssignmentStatement) {
       handleAssignment((AAssignment) statement, out);
@@ -333,7 +333,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   @Override
-  protected LiveVariablesState handleReturnStatementEdge(AReturnStatementEdge cfaEdge)
+  protected LiveVariablesState handleReturnStatementEdgeBackwards(AReturnStatementEdge cfaEdge)
       throws CPATransferException {
     // this is an empty return statement (return;)
     if (!cfaEdge.asAssignment().isPresent()) {
@@ -345,9 +345,12 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   @Override
-  protected LiveVariablesState handleFunctionCallEdge(FunctionCallEdge cfaEdge,
-      List<? extends AExpression> arguments, List<? extends AParameterDeclaration> parameters,
-      String calledFunctionName) throws CPATransferException {
+  protected LiveVariablesState handleFunctionCallEdgeBackwards(
+      FunctionCallEdge cfaEdge,
+      List<? extends AExpression> arguments,
+      List<? extends AParameterDeclaration> parameters,
+      String calledFunctionName)
+      throws CPATransferException {
     /* This analysis is (mostly) used during cfa creation, when no edges between
      * different functions exist, thus this function is mainly unused. However
      * for the purpose of having a complete CPA which works on the graph with
@@ -368,8 +371,11 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   @Override
-  protected LiveVariablesState handleFunctionReturnEdge(FunctionReturnEdge cfaEdge,
-      FunctionSummaryEdge fnkCall, AFunctionCall summaryExpr, String callerFunctionName)
+  protected LiveVariablesState handleFunctionReturnEdgeBackwards(
+      FunctionReturnEdge cfaEdge,
+      FunctionSummaryEdge fnkCall,
+      AFunctionCall summaryExpr,
+      String callerFunctionName)
       throws CPATransferException {
     /* This analysis is (mostly) used during cfa creation, when no edges between
      * different functions exist, thus this function is mainly unused. However
@@ -396,7 +402,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   @Override
-  protected LiveVariablesState handleFunctionSummaryEdge(FunctionSummaryEdge cfaEdge) throws CPATransferException {
+  protected LiveVariablesState handleFunctionSummaryEdgeBackwards(FunctionSummaryEdge cfaEdge)
+      throws CPATransferException {
     AFunctionCall functionCall = cfaEdge.getExpression();
     BitSet data = state.getDataCopy();
     if (functionCall instanceof AFunctionCallAssignmentStatement) {
@@ -610,5 +617,17 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     for (AExpression expression : parameters) {
       handleExpression(expression, writeInto);
     }
+  }
+
+  @Override
+  @Deprecated
+  // TODO method overridden for backwards compatibility only, we should remove it in the future.
+  public Collection<LiveVariablesState> getAbstractSuccessorsForEdge(
+      final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
+      throws CPATransferException {
+    onceLogger.logOnce(
+        Level.INFO,
+        "LiveVariables analysis should run backwards. Please consider using BackwardCPA!");
+    return getAbstractPredecessorsForEdge(abstractState, abstractPrecision, cfaEdge);
   }
 }
