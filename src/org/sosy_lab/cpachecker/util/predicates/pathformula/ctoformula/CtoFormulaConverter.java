@@ -937,9 +937,12 @@ public class CtoFormulaConverter {
   public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, ErrorConditions errorConditions)
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
 
-    // verkehrt herum fuer bw? muesste getSuccessor sein??
-    String function = (edge.getPredecessor() != null)
-                          ? edge.getPredecessor().getFunctionName() : null;
+    String function = null;
+    if (direction == AnalysisDirection.FORWARD && edge.getPredecessor() != null) {
+      function = edge.getPredecessor().getFunctionName();
+    } else if (direction == AnalysisDirection.BACKWARD && edge.getSuccessor() != null) {
+      function = edge.getSuccessor().getFunctionName();
+    }
 
     SSAMapBuilder ssa = oldFormula.getSsa().builder();
     Constraints constraints = new Constraints(bfmgr);
