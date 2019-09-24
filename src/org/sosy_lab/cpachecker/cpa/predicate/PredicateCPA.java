@@ -415,7 +415,7 @@ public class PredicateCPA
 
   @Override
   public ApplyOperator getApplyOperator() {
-    return new PredicateApplyOperator(solver, formulaManager, config);
+    return new PredicateApplyOperator(solver, formulaManager, preciseFormulaManager, config);
   }
 
   public PathFormulaManager createPathFormulaManager(Configuration pConfig)

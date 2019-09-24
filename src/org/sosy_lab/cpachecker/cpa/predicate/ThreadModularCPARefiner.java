@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -68,6 +69,8 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
   private final StatTimer totalTime = new StatTimer("Time for threadmodular refinement");
   private final StatTimer delegatingTime = new StatTimer("Time for delegate refiner");
   private final StatTimer modifingPathTime = new StatTimer("Time for modifing paths");
+  private final StatCounter numberOfUsefulRefinements =
+      new StatCounter("Number of useful refinements");
 
   private final LogManager logger;
   private final GlobalRefinementStrategy strategy;
@@ -98,12 +101,20 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
       CounterexampleInfo counterexample;
 
       ARGPath refinedPath = allStatesTrace;
+      boolean envRefinement = false;
+
       do {
         iterationCounter++;
+        int initialSize = strategy.getSizeOfPrecision();
+
         delegatingTime.start();
         counterexample =
             delegate.performRefinementForPath(pReached, refinedPath);
         delegatingTime.stop();
+
+        if (envRefinement && strategy.getSizeOfPrecision() > initialSize) {
+          numberOfUsefulRefinements.inc();
+        }
 
         // TODO fix handling of counterexamples
         // + 1 for update count as the current interval is not finished
@@ -121,17 +132,19 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
         }
 
         List<CFANode> newBlock = new ArrayList<>();
-        for (CFANode n : strategy.getAffectedNodes()) {
+        for (CFANode n : strategy.getNodesWithUniquePredicates()) {
           if (!previousNodes.contains(n)) {
             newBlock.add(n);
           }
         }
-        previousNodes = strategy.getAffectedNodes();
+        previousNodes = strategy.getAllAffectedNodes();
 
         logger.log(Level.FINE, "Perform refinement for modified path with effects");
         modifingPathTime.start();
         refinedPath = modifyThePathWithEffects(refinedPath, newBlock);
         modifingPathTime.stop();
+        envRefinement = true;
+
       } while (refinedPath != null);
 
       // strategy.updatePrecisionAndARG();
@@ -223,7 +236,10 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       StatisticsWriter w0 = writingStatisticsTo(out);
-      w0.put(totalTime).put(delegatingTime).put(modifingPathTime);
+      w0.put(totalTime)
+          .put(delegatingTime)
+          .put(modifingPathTime)
+          .put(numberOfUsefulRefinements);
     }
 
     @Override

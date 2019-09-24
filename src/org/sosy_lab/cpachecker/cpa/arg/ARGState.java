@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractEdge;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractEdge.FormulaDescription;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateProjectedState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -270,7 +271,10 @@ public class ARGState extends AbstractSingleWrapperState
     List<CFAEdge> result = new ArrayList<>();
 
     if (edge instanceof PredicateAbstractEdge) {
-      Collection<CAssignment> statements = ((PredicateAbstractEdge) edge).getAssignments();
+      Collection<CAssignment> statements =
+          from(((PredicateAbstractEdge) edge).getFormulas())
+              .transform(FormulaDescription::getAssignment)
+              .toList();
       for (CAssignment s : statements) {
         result.add(
             new EnvironmentActionEdge(
@@ -413,6 +417,7 @@ public class ARGState extends AbstractSingleWrapperState
 
   void addProjectedFrom(ARGState pState) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
+    assert !pState.destroyed : "Don't use destroyed ARGState " + this;
 
     if (projectedFrom == null) {
       projectedFrom = new ArrayList<>();
@@ -780,6 +785,7 @@ public class ARGState extends AbstractSingleWrapperState
 
     if (projectedFrom != null) {
       for (ARGState projection : this.projectedFrom) {
+        assert !projection.destroyed;
         projection.projectedTo = replacement;
       }
       replacement.projectedFrom = this.projectedFrom;

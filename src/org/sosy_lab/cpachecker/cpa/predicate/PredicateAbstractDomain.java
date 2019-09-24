@@ -99,7 +99,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
             return false;
           }
 
-          if (pEdge2.getAssignments().containsAll(pEdge1.getAssignments())) {
+          if (pEdge2.getFormulas().containsAll(pEdge1.getFormulas())) {
             return true;
           }
           return false;

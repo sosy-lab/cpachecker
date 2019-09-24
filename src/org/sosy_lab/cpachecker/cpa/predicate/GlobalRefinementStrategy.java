@@ -39,5 +39,9 @@ public abstract class GlobalRefinementStrategy extends RefinementStrategy {
 
   public abstract void resetGlobalRefinement();
 
-  public abstract Collection<CFANode> getAffectedNodes();
+  public abstract Collection<CFANode> getAllAffectedNodes();
+
+  public abstract Collection<CFANode> getNodesWithUniquePredicates();
+
+  public abstract int getSizeOfPrecision();
 }
