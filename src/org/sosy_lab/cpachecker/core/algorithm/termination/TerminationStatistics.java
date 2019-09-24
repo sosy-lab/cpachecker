@@ -97,7 +97,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisStatistics;
@@ -179,7 +178,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     totalLoops = pTotalNumberOfLoops;
 
     witnessExporter = new WitnessExporter(pConfig, pLogger, pOrigSpec, pCFA);
-    locFac = new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig);
+    locFac = new LocationStateFactory(pCFA, pConfig);
   }
 
   void algorithmStarted() {

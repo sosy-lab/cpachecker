@@ -27,19 +27,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 class LocationCPAFactory extends AbstractCPAFactory {
 
-  private final AnalysisDirection locationType;
-
   private CFA cfa;
 
-  public LocationCPAFactory(AnalysisDirection pLocationType) {
-    locationType = pLocationType;
-  }
+  public LocationCPAFactory() {}
 
   @Override
   public <T> LocationCPAFactory set(T pObject, Class<T> pClass) {
@@ -54,13 +49,6 @@ class LocationCPAFactory extends AbstractCPAFactory {
   @Override
   public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
     checkNotNull(cfa, "CFA instance needed to create LocationCPA");
-
-    switch (locationType) {
-      case BACKWARD:
-        return LocationCPABackwards.create(cfa, getConfiguration());
-      case FORWARD:
-        return LocationCPA.create(cfa, getConfiguration());
-    }
-    throw new AssertionError();
+    return LocationCPA.create(cfa, getConfiguration());
   }
 }

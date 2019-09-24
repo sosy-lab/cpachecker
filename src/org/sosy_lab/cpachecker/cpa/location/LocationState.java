@@ -59,26 +59,6 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
   private final static Predicate<CFAEdge> NOT_FUNCTIONCALL =
       not(or(instanceOf(FunctionReturnEdge.class), instanceOf(FunctionCallEdge.class)));
 
-  static class BackwardsLocationState extends LocationState {
-
-    private static final long serialVersionUID = 6825257572921009531L;
-
-    BackwardsLocationState(CFANode locationNode, boolean pFollowFunctionCalls) {
-      super(locationNode, pFollowFunctionCalls);
-    }
-
-    @Override
-    public Iterable<CFAEdge> getOutgoingEdges() {
-      return super.getIngoingEdges();
-    }
-
-    @Override
-    public Iterable<CFAEdge> getIngoingEdges() {
-      return super.getOutgoingEdges();
-    }
-
-  }
-
   private transient CFANode locationNode;
   private boolean followFunctionCalls;
 

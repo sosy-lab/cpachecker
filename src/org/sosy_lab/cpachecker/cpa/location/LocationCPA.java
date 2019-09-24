@@ -31,7 +31,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -59,12 +58,12 @@ public class LocationCPA extends AbstractCPA
   }
 
   public static CPAFactory factory() {
-    return new LocationCPAFactory(AnalysisDirection.FORWARD);
+    return new LocationCPAFactory();
   }
 
   public static LocationCPA create(CFA pCFA, Configuration pConfig)
       throws InvalidConfigurationException {
-    return new LocationCPA(new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig));
+    return new LocationCPA(new LocationStateFactory(pCFA, pConfig));
   }
 
   @Override
