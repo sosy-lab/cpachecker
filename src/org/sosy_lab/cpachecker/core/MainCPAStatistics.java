@@ -527,7 +527,20 @@ class MainCPAStatistics implements Statistics {
                   StatInt.forStream(
                       StatKind.COUNT,
                       "Number of loops (and loop nodes)",
-                      loops.getAllLoops().stream().mapToInt(loop -> loop.getLoopNodes().size())));
+                      loops.getAllLoops().stream().mapToInt(loop -> loop.getLoopNodes().size())))
+          .putIfPresent(
+              cfa.getLiveVariables(),
+              "Number of all live variables",
+              lv -> lv.getAllLiveVariables().size())
+          .putIfPresent(
+              cfa.getLiveVariables(),
+              lv ->
+                  StatInt.forStream(
+                      StatKind.AVG,
+                      "Number of live variables per CFA node",
+                      cfa.getAllNodes()
+                          .stream()
+                          .mapToInt(node -> lv.getLiveVariablesForNode(node).size())));
     }
   }
 
