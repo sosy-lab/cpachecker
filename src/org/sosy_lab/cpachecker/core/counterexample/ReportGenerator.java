@@ -611,10 +611,7 @@ public class ReportGenerator {
             argEdges.put(
                 parentStateId + "->" + childStateId,
                 createArgEdge(
-                    parentStateId,
-                    childStateId,
-                    ((ARGState) entry),
-                    child));
+                    parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child)));
           }
         }
       }
@@ -645,7 +642,7 @@ public class ReportGenerator {
           }
           argRelevantEdges.put(
               parentStateId + "->" + childStateId,
-              createArgEdge(parentStateId, childStateId, parent, child));
+              createArgEdge(parentStateId, childStateId, parent.getEdgesToChild(child)));
         }
       }
     }
@@ -723,17 +720,6 @@ public class ReportGenerator {
     coveredEdge.put("label", "covered by");
     coveredEdge.put("type", "covered");
     argEdges.put("" + coveringStateId + "->" + parentStateId, coveredEdge);
-  }
-
-  public static Map<String, Object> createArgEdge(
-      int parentStateId, int childStateId, ARGState parent, ARGState child) {
-    List<CFAEdge> edges = parent.getEdgesToChild(child);
-    // if theres no edge parent -> child there might be an edge parent <- child if it is a backwards
-    // ARG
-    if (edges.isEmpty()) {
-      edges = child.getEdgesToChild(parent);
-    }
-    return createArgEdge(parentStateId, childStateId, edges);
   }
 
   public static Map<String, Object> createArgEdge(
