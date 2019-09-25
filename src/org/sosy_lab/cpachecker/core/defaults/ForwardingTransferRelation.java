@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -147,25 +148,27 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   public Collection<T> getAbstractSuccessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException {
-    return getAbstractSuccessorsForEdge0(abstractState, abstractPrecision, cfaEdge, true);
+    return getAbstractSuccessorsForEdge0(
+        abstractState, abstractPrecision, cfaEdge, AnalysisDirection.FORWARD);
   }
 
   @Override
   public Collection<T> getAbstractPredecessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException {
-    return getAbstractSuccessorsForEdge0(abstractState, abstractPrecision, cfaEdge, false);
+    return getAbstractSuccessorsForEdge0(
+        abstractState, abstractPrecision, cfaEdge, AnalysisDirection.BACKWARD);
   }
 
   /**
-   * This is the main method that delegates the control-flow to the
-   * corresponding edge-type-specific methods.
-   * In most cases there is no need to override this method. */
+   * This is the main method that delegates the control-flow to the corresponding edge-type-specific
+   * methods. In most cases there is no need to override this method.
+   */
   private Collection<T> getAbstractSuccessorsForEdge0(
       final AbstractState abstractState,
       final Precision abstractPrecision,
       final CFAEdge cfaEdge,
-      final boolean forwards)
+      final AnalysisDirection direction)
       throws CPATransferException {
 
     setInfo(abstractState, abstractPrecision, cfaEdge);
@@ -180,7 +183,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
       case AssumeEdge:
         final AssumeEdge assumption = (AssumeEdge) cfaEdge;
         successor =
-            forwards
+            AnalysisDirection.FORWARD == direction
                 ? handleAssumption(
                     assumption, assumption.getExpression(), assumption.getTruthAssumption())
                 : handleAssumptionBackwards(
@@ -192,7 +195,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
         final FunctionEntryNode succ = fnkCall.getSuccessor();
         final String calledFunctionName = succ.getFunctionName();
         successor =
-            forwards
+            AnalysisDirection.FORWARD == direction
                 ? handleFunctionCallEdge(
                     fnkCall,
                     fnkCall.getArguments(),
@@ -210,7 +213,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
         final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
         final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
         successor =
-            forwards
+            AnalysisDirection.FORWARD == direction
                 ? handleFunctionReturnEdge(
                     fnkReturnEdge, summaryEdge, summaryEdge.getExpression(), callerFunctionName)
                 : handleFunctionReturnEdgeBackwards(
@@ -220,7 +223,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
       case DeclarationEdge:
         final ADeclarationEdge declarationEdge = (ADeclarationEdge) cfaEdge;
         successor =
-            forwards
+            AnalysisDirection.FORWARD == direction
                 ? handleDeclarationEdge(declarationEdge, declarationEdge.getDeclaration())
                 : handleDeclarationEdgeBackwards(declarationEdge, declarationEdge.getDeclaration());
         break;
@@ -228,7 +231,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
       case StatementEdge:
         final AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
         successor =
-            forwards
+            AnalysisDirection.FORWARD == direction
                 ? handleStatementEdge(statementEdge, statementEdge.getStatement())
                 : handleStatementEdgeBackwards(statementEdge, statementEdge.getStatement());
         break;
@@ -241,21 +244,21 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
         // to the return site of the caller function
         final AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
         successor =
-            forwards
+            AnalysisDirection.FORWARD == direction
                 ? handleReturnStatementEdge(returnEdge)
                 : handleReturnStatementEdgeBackwards(returnEdge);
         break;
 
       case BlankEdge:
         successor =
-            forwards
+            AnalysisDirection.FORWARD == direction
                 ? handleBlankEdge((BlankEdge) cfaEdge)
                 : handleBlankEdgeBackwards((BlankEdge) cfaEdge);
         break;
 
       case CallToReturnEdge:
         successor =
-            forwards
+            AnalysisDirection.FORWARD == direction
                 ? handleFunctionSummaryEdge((FunctionSummaryEdge) cfaEdge)
                 : handleFunctionSummaryEdgeBackwards((FunctionSummaryEdge) cfaEdge);
         break;
