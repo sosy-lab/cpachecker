@@ -760,7 +760,6 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       String pOldVar,
       SSAMapBuilder pNewSsa,
       Map<String, CType> envSsa) {
-    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
 
     Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(pOldVar);
     String varName = parsed.getFirst();
