@@ -349,7 +349,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final MemoryRegion region) {
     checkIsSimplified(type);
     final String ufName = regionMgr.getPointerAccessName(region);
-    int index = getIndex(ufName, type, ssa);
+    final int index = getIndex(ufName, type, ssa);
     final FormulaType<?> returnType = getFormulaTypeFromCType(type);
     return ptsMgr.makePointerDereference(ufName, returnType, index, address);
   }
@@ -1120,6 +1120,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
+
     final CFunctionEntryNode entryNode = edge.getSuccessor();
 
     for (CParameterDeclaration formalParameter : entryNode.getFunctionParameters()) {
@@ -1172,6 +1173,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
+
     final BooleanFormula result = super.makeExitFunction(summaryEdge, calledFunction, ssa, pts, constraints, errorConditions);
 
     DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(this, summaryEdge, ssa, pts, constraints, errorConditions, regionMgr);
@@ -1276,13 +1278,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   public Formula makeFormulaForVariable(
       SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
-
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
     final Formula formula;
     final SSAMapBuilder ssa = pContextSSA.builder();
 
     if (pContextPTS.isActualBase(pVarName)
         || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
+
       final Formula address = makeBaseAddress(pVarName, pType);
       final MemoryRegion region = regionMgr.makeMemoryRegion(pType);
       formula = makeSafeDereference(pType, address, ssa, region);

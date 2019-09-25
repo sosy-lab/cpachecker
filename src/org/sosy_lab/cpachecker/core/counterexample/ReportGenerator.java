@@ -727,7 +727,6 @@ public class ReportGenerator {
     Map<String, Object> argEdge = new HashMap<>();
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
-
     StringBuilder edgeLabel = new StringBuilder();
     if (edges.isEmpty()) {
       edgeLabel.append("dummy edge");
