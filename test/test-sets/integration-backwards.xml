@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="1">
+
+  <!--
+    This is a large collection of different configurations using backwards analysis:
+    - BDD analysis
+    - predicate analysis (without pointer handling)
+  -->
+
+  <columns>
+    <column title="#reached">Size of reached set</column>
+  </columns>
+
+  <option name="-noout"/>
+  <option name="-heap">1800M</option>
+
+  <rundefinition/> <!-- BuildBot does not like names! -->
+
+  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+
+  <tasks name="ReachSafety-BitVectors">
+    <option name="-bddAnalysis-backward"/>
+    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-ControlFlow">
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <option name="-predicateAnalysisBackward"/>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  </tasks>
+  <tasks name="ReachSafety-Loops">
+    <option name="-bddAnalysis-backward"/>
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <exclude reason="mostly timeout">../programs/benchmarks/nla-digbench/*.yml</exclude>
+  </tasks>
+  <tasks name="ReachSafety-ProductLines">
+    <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
+    <exclude reason="mostly timeout">../programs/benchmarks/product-lines/elevator*.yml</exclude>
+    <exclude reason="mostly timeout">../programs/benchmarks/product-lines/email*.yml</exclude>
+    <option name="-predicateAnalysisBackward"/>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  </tasks>
+</benchmark>

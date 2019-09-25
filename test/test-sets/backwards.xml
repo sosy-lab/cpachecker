@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="90 s" hardtimelimit="100 s" memlimit="7 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="300 s" hardtimelimit="330 s" memlimit="7 GB" cpuCores="2">
 
   <option name="-benchmark" />
   <option name="-heap">5000M</option>
@@ -9,6 +9,8 @@
 
   <rundefinition name="bdd">
     <option name="-bddAnalysis"/>
+    <!-- set option like in BW analysis -->
+    <option name="-setprop">BDDCPA.precision.trackVariablesBesidesEqAddBool=true</option>
   </rundefinition>
 
   <rundefinition name="bdd-backwards">
@@ -36,10 +38,10 @@
   <tasks name="ReachSafety-ArraysReach">
     <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
   </tasks>
+  -->
   <tasks name="ReachSafety-BitVectorsReach">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
   </tasks>
-  -->
   <tasks name="ReachSafety-ControlFlow">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
   </tasks>
@@ -57,10 +59,10 @@
   <tasks name="ReachSafety-Loops">
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
   </tasks>
-  <!--
   <tasks name="ReachSafety-ProductLines">
     <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
   </tasks>
+  <!--
   <tasks name="ReachSafety-Recursive">
     <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
   </tasks>
