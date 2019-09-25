@@ -23,7 +23,7 @@
   </rundefinition>
 
   <rundefinition name="pa-backwards">
-    <option name="-predicateAnalysisBackward"/>
+    <option name="-predicateAnalysis-backward"/>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
   </rundefinition>
 

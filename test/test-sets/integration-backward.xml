@@ -25,7 +25,7 @@
   </tasks>
   <tasks name="ReachSafety-ControlFlow">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
-    <option name="-predicateAnalysisBackward"/>
+    <option name="-predicateAnalysis-backward"/>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
@@ -39,7 +39,7 @@
     <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
     <exclude reason="mostly timeout">../programs/benchmarks/product-lines/elevator*.yml</exclude>
     <exclude reason="mostly timeout">../programs/benchmarks/product-lines/email*.yml</exclude>
-    <option name="-predicateAnalysisBackward"/>
+    <option name="-predicateAnalysis-backward"/>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
