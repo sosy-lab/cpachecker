@@ -88,29 +88,16 @@ public class ARGPath extends AbstractAppender {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     states = ImmutableList.copyOf(pStates);
 
-    // check direction of ARG
-    boolean isBackwards = false;
-    if (pStates.size() >= 2) {
-      ARGState firstParent = pStates.get(0);
-      ARGState firstChild = pStates.get(1);
-      CFAEdge firstEdge = firstParent.getEdgeToChild(firstChild);
-      CFAEdge firstEdgeRev = firstChild.getEdgeToChild(firstParent);
-      isBackwards = firstEdge == null && firstEdgeRev != null;
-    }
-
     List<CFAEdge> edgesBuilder = new ArrayList<>(states.size()-1);
     for (int i = 0; i < states.size() - 1; i++) {
       ARGState parent = states.get(i);
       ARGState child = states.get(i+1);
-      // edge may be null
-      CFAEdge edge = isBackwards ? child.getEdgeToChild(parent) : parent.getEdgeToChild(child);
-      edgesBuilder.add(edge);
+      edgesBuilder.add(parent.getEdgeToChild(child)); // edge may be null
     }
 
     edges = Collections.unmodifiableList(edgesBuilder);
     assert states.size() - 1 == edges.size();
   }
-
 
   public ARGPath(List<ARGState> pStates, List<CFAEdge> pEdges) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
