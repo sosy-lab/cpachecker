@@ -101,9 +101,11 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     return getAbstractStates(element, precision, AnalysisDirection.BACKWARD);
   }
 
-  /** As most of the algorithms is identical for FORWARD and BACKWARD-direction,
-   * we merged the methods, use the "shared code" and the flag "direction"
-   * to compute "neighbors" (which are either predecessors or successors). */
+  /**
+   * As most of the steps in here is identical for FORWARD and BACKWARD-direction, the flag
+   * "direction" is the simplest way to compute "neighbors" (which are either predecessors or
+   * successors) without having to duplicate code.
+   */
   private Collection<CompositeState> getAbstractStates(
       AbstractState element, Precision precision, AnalysisDirection direction)
       throws CPATransferException, InterruptedException {
