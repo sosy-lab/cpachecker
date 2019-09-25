@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
@@ -1287,32 +1286,17 @@ public class ARGUtils {
     Optional<CounterexampleInfo> cex = pTargetState.getCounterexampleInformation();
     Objects.requireNonNull(pCPA);
     Objects.requireNonNull(pAssumptionToEdgeAllocator);
-    ARGPath path;
     if (cex.isPresent()) {
-      CFANode targetLocation = AbstractStates.extractLocation(cex.get().getTargetState());
-      if (targetLocation instanceof CFunctionEntryNode
-          && targetLocation.getFunctionName().equals("main")) {
-        // if it is a backwards analysis the path in the counterexample info has to be reversed
-        path = new ARGPath(cex.get().getTargetPath().asStatesList().reverse());
-      } else {
-        return cex;
-      }
-    } else {
-      path = ARGUtils.getOnePathTo(pTargetState);
-      CFANode targetLocation = AbstractStates.extractLocation(path.getLastState());
-      if (targetLocation instanceof CFunctionEntryNode
-          && targetLocation.getFunctionName().equals("main")) {
-        // if it is a backwards analysis the path in the counterexample info has to be reversed
-        path = new ARGPath(path.asStatesList().reverse());
-      }
-      if (path.getFullPath().isEmpty()) {
-        // path is invalid,
-        // this might be a partial path in BAM, from an intermediate TargetState to root of its
-        // ReachedSet.
-        // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
-        return Optional.empty();
-      }
+      return cex;
     }
+    ARGPath path = ARGUtils.getOnePathTo(pTargetState);
+    if (path.getFullPath().isEmpty()) {
+      // path is invalid,
+      // this might be a partial path in BAM, from an intermediate TargetState to root of its ReachedSet.
+      // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
+      return Optional.empty();
+    }
+
     CFAPathWithAdditionalInfo additionalInfo = CFAPathWithAdditionalInfo.of(path, pCPA);
 
     // We should not claim that the counterexample is precise unless we have one unique path
