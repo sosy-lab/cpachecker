@@ -120,6 +120,17 @@ public class ThreadModularReachedSet extends ForwardingReachedSet {
     return Collections.emptySet();
   }
 
+  @Override
+  public Precision getPrecision(AbstractState state) {
+
+    ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
+    if (argState != null && argState.getAppliedFrom() != null && !this.contains(state)) {
+      ARGState baseParent = argState.getAppliedFrom().getFirst();
+      return super.getPrecision(baseParent);
+    }
+    return super.getPrecision(state);
+  }
+
   public int getProjectioinsNum() {
     return projections.size();
   }

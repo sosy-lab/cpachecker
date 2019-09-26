@@ -415,6 +415,9 @@ public class ARGReachedSet {
     for (ARGState ae : elements) {
       for (ARGState parent : ae.getParents()) {
         if (!elements.contains(parent)) {
+          if (parent.getAppliedFrom() != null) {
+            parent = parent.getAppliedFrom().getFirst();
+          }
           toWaitlist.add(parent);
         }
       }

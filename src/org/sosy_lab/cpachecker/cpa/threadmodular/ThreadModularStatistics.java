@@ -33,10 +33,11 @@ public class ThreadModularStatistics implements Statistics {
   StatTimer totalTransfer = new StatTimer("Total time for transfer");
   StatTimer wrappedTransfer = new StatTimer("Total time for wrapped transfer");
   StatTimer allApplyActions = new StatTimer("Total time for environment calculation");
-  StatTimer applyOperator = new StatTimer("Total time for apply operations");
   StatTimer projectOperator = new StatTimer("Total time for project operations");
   StatCounter applyCounter = new StatCounter("Number of apply operations");
   StatCounter relevantApplyCounter = new StatCounter("Number of relevant apply operations");
+  StatTimer innerApply = new StatTimer("Time for inner apply");
+  StatTimer envTransfer = new StatTimer("Time for transfer over environment");
   StatCounter numberOfTransitionsInThreadProduced =
       new StatCounter("Number of obtained transitions in thread");
   StatCounter numberOfProjectionsProduced = new StatCounter("Number of obtained projections");
@@ -56,11 +57,12 @@ public class ThreadModularStatistics implements Statistics {
         .put(wrappedTransfer)
         .put(allApplyActions)
         .beginLevel()
-        .put(applyOperator)
+        .put(innerApply)
+        .endLevel()
         .put(projectOperator)
+        .put(envTransfer)
         .put(applyCounter)
         .put(relevantApplyCounter)
-        .endLevel()
         .endLevel()
         .spacer()
         .put(numberOfTransitionsInThreadProduced)

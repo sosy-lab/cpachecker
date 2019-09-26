@@ -688,7 +688,9 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
           for (String oldVar : varsAndUFs) {
             String newVar =
                 computeNewIndex(oldVar, newSSA, types);
-            updateVariables.put(oldVar, newVar);
+            if (!oldVar.equals(newVar)) {
+              updateVariables.put(oldVar, newVar);
+            }
           }
 
           BooleanFormula newFormula =

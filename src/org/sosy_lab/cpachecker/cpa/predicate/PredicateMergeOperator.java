@@ -37,6 +37,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -44,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractEdge.FormulaDescription;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
@@ -174,12 +178,9 @@ public class PredicateMergeOperator implements MergeOperator {
     Collection<FormulaDescription> desc1 = predEdge1.getFormulas();
     Collection<FormulaDescription> desc2 = predEdge2.getFormulas();
 
-    Collection<CAssignment> formulas2 =
-        from(desc2).transform(FormulaDescription::getAssignment).toList();
-
     Collection<FormulaDescription> newDesc1 =
         from(desc1)
-            .filter(s -> !formulas2.contains(s.getAssignment()))
+            .filter(s -> !desc2.contains(s))
             .toSet();
 
     if (newDesc1.isEmpty()) {
@@ -192,20 +193,21 @@ public class PredicateMergeOperator implements MergeOperator {
         Set<CLeftHandSide> newAssignments1 =
             from(newFormulas1).transform(CAssignment::getLeftHandSide).toSet();
         Set<CLeftHandSide> assignments2 =
-            from(formulas2).transform(CAssignment::getLeftHandSide).toSet();
+            from(desc2).transform(s -> s.getAssignment().getLeftHandSide()).toSet();
         Set<CLeftHandSide> commonPart = Sets.intersection(newAssignments1, assignments2);
         if (commonPart.isEmpty()) {
           Collection<FormulaDescription> newFormulas = new HashSet<>(desc2);
           newFormulas.addAll(newDesc1);
           return new PredicateAbstractEdge(newFormulas);
         } else {
-          Collection<CAssignment> newFormulas = new HashSet<>();
-          copyFormulas(newFormulas, newFormulas1, commonPart);
-          copyFormulas(newFormulas, formulas2, commonPart);
+          Collection<FormulaDescription> newFormulas = new HashSet<>();
+          copyFormulas(newFormulas, newDesc1, commonPart);
+          copyFormulas(newFormulas, desc2, commonPart);
 
           boolean newFormulasFound = false;
           // Base on the second to be close to merge def.
-          for (CAssignment asgn : formulas2) {
+          for (FormulaDescription desc : desc2) {
+            CAssignment asgn = desc.getAssignment();
             CLeftHandSide left = asgn.getLeftHandSide();
             if (commonPart.contains(left)) {
               CRightHandSide right = asgn.getRightHandSide();
@@ -218,7 +220,26 @@ public class PredicateMergeOperator implements MergeOperator {
 
                 CAssignment newAssignement =
                     new CFunctionCallAssignmentStatement(fExp.getFileLocation(), left, fExp);
-                newFormulas.add(newAssignement);
+
+                CFAEdge fakeEdge =
+                    new CStatementEdge(
+                        "environment",
+                        newAssignement,
+                        newAssignement.getFileLocation(),
+                        new CFANode("dummy"),
+                        new CFANode("dummy"));
+
+                PathFormula pFormula = formulaManager.makeEmptyPathFormula();
+
+                try {
+                  pFormula = formulaManager.makeAnd(pFormula, fakeEdge);
+                } catch (CPATransferException | InterruptedException e) {
+                  continue;
+                }
+
+                // TODO finish
+                newFormulas
+                    .add(new FormulaDescription(newAssignement, pFormula.getFormula(), null));
                 newFormulasFound = true;
               }
             }
@@ -229,7 +250,7 @@ public class PredicateMergeOperator implements MergeOperator {
             return edge2;
           }
 
-          return new PredicateAbstractEdge(null);
+          return new PredicateAbstractEdge(newFormulas);
         }
 
       } else {
@@ -241,11 +262,11 @@ public class PredicateMergeOperator implements MergeOperator {
   }
 
   private void copyFormulas(
-      Collection<CAssignment> result,
-      Collection<CAssignment> origin,
+      Collection<FormulaDescription> result,
+      Collection<FormulaDescription> origin,
       Set<CLeftHandSide> toSkip) {
-    for (CAssignment asgn : origin) {
-      CLeftHandSide left = asgn.getLeftHandSide();
+    for (FormulaDescription asgn : origin) {
+      CLeftHandSide left = asgn.getAssignment().getLeftHandSide();
       if (!toSkip.contains(left)) {
         result.add(asgn);
       }
