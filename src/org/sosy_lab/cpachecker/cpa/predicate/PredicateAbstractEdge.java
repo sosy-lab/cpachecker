@@ -68,7 +68,8 @@ public class PredicateAbstractEdge implements AbstractEdge {
         return true;
       }
       if (pOther instanceof FormulaDescription) {
-        return Objects.equals(assignment, ((FormulaDescription) pOther).assignment);
+        boolean res = Objects.equals(formula, ((FormulaDescription) pOther).formula);
+        return res;
       } else {
         return false;
       }
