@@ -84,7 +84,7 @@ public class ARGMergeJoin implements MergeOperator {
       return pElement2;
     }
 
-    ARGState mergedElement = new ARGState(retElement, null);
+    ARGState mergedElement = new ARGState(retElement, null, argElement2.getDirection());
 
     // now replace argElement2 by mergedElement in ARG
     argElement2.replaceInARGWith(mergedElement);

@@ -90,7 +90,7 @@ public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
 
     Collection<ARGState> wrappedSuccessors = new ArrayList<>();
     for (AbstractState absElement : successors) {
-      ARGState successorElem = new ARGState(absElement, element);
+      ARGState successorElem = new ARGState(absElement, element, direction);
       wrappedSuccessors.add(successorElem);
     }
 

@@ -46,6 +46,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -77,6 +78,8 @@ public class ARGState extends AbstractSingleWrapperState
 
   private ARGState mergedWith = null;
 
+  private final AnalysisDirection direction;
+
   private final int stateId;
 
   // If this is a target state, we may store additional information here.
@@ -84,11 +87,28 @@ public class ARGState extends AbstractSingleWrapperState
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
+  /** default constructor for any forward-directed analysis. */
   public ARGState(@Nullable AbstractState pWrappedState, @Nullable ARGState pParentElement) {
+    this(pWrappedState, pParentElement, AnalysisDirection.FORWARD);
+  }
+
+  /**
+   * Create an ARGState wrapping the given state.
+   *
+   * @param pWrappedState some other state that will be wrapped in the new ARGState.
+   * @param pParentState if available, register the relation between the parent and the new state.
+   * @param pDirection the direction of the analysis, in which this state was produced, can be used
+   *     when receiving a {@link CFAEdge}.
+   */
+  public ARGState(
+      @Nullable AbstractState pWrappedState,
+      @Nullable ARGState pParentState,
+      AnalysisDirection pDirection) {
     super(pWrappedState);
     stateId = idGenerator.getFreshId();
-    if (pParentElement != null) {
-      addParent(pParentElement);
+    direction = Preconditions.checkNotNull(pDirection);
+    if (pParentState != null) {
+      addParent(pParentState);
     }
   }
 
@@ -146,30 +166,16 @@ public class ARGState extends AbstractSingleWrapperState
         extractStateByType(pChild, AbstractStateWithLocations.class);
 
     if (currentLocs != null && childLocs != null) {
-      // first try to get a normal edge
-      // consider only the actual analysis direction
-      Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
-      for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
-        if (ingoingEdgesOfChild.contains(edge)) {
-          return edge;
-        }
+      final CFAEdge edge;
+      if (AnalysisDirection.FORWARD == pChild.direction) {
+        edge = getEdgeFromParentToChild(currentLocs, childLocs);
+      } else if (AnalysisDirection.BACKWARD == pChild.direction) {
+        edge = getEdgeFromParentToChild(childLocs, currentLocs);
+      } else {
+        throw new AssertionError("unknown analysis direction: " + pChild.direction);
       }
-      // check for backwardsARG - here the edges are directed parent <- child
-      Collection<CFAEdge> edgesToChild = Sets.newHashSet(currentLocs.getIngoingEdges());
-      for (CFAEdge edge : childLocs.getOutgoingEdges()) {
-        if (edgesToChild.contains(edge)) {
-          return edge;
-        }
-      }
-
-      // then try to get a special edge, just to have some edge.
-      for (CFANode currentLoc : currentLocs.getLocationNodes()) {
-        for (CFANode childLoc : childLocs.getLocationNodes()) {
-          if (currentLoc.getLeavingSummaryEdge() != null
-              && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
-            return currentLoc.getLeavingSummaryEdge();
-          }
-        }
+      if (edge != null) {
+        return edge;
       }
     }
 
@@ -191,6 +197,27 @@ public class ARGState extends AbstractSingleWrapperState
     return null;
   }
 
+  private static CFAEdge getEdgeFromParentToChild(
+      final AbstractStateWithLocations pParentLocs, final AbstractStateWithLocations pChildLocs) {
+    // first try to get a normal edge
+    final Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(pChildLocs.getIngoingEdges());
+    for (CFAEdge edge : pParentLocs.getOutgoingEdges()) {
+      if (ingoingEdgesOfChild.contains(edge)) {
+        return edge;
+      }
+    }
+    // then try to get a special edge, just to have some edge.
+    for (CFANode currentLoc : pParentLocs.getLocationNodes()) {
+      for (CFANode childLoc : pChildLocs.getLocationNodes()) {
+        @Nullable CFAEdge summary = currentLoc.getLeavingSummaryEdge();
+        if (summary != null && summary.getSuccessor().equals(childLoc)) {
+          return summary;
+        }
+      }
+    }
+    return null;
+  }
+
   /**
    * Returns the edges from the current state to the child state, or an empty list
    * if there is no path between both states.
@@ -205,45 +232,34 @@ public class ARGState extends AbstractSingleWrapperState
 
       List<CFAEdge> allEdges = new ArrayList<>();
       CFANode currentLoc = AbstractStates.extractLocation(this);
-
-      // for backwards multiedge the children are in opposite traversal direction
-      List<CFAEdge> allEdgesBw = new ArrayList<>();
-      CFANode currentLocBw = AbstractStates.extractLocation(this);
-
       final CFANode childLoc = AbstractStates.extractLocation(pChild);
 
       if (currentLoc != null && childLoc != null) {
-        while (!currentLoc.equals(childLoc) && !currentLocBw.equals(childLoc)) {
-          // we didn't find a proper connection to the child so we return an empty list
-          if (currentLoc.getNumLeavingEdges() != 1) {
-            return ImmutableList.of();
-          }
+        while (!currentLoc.equals(childLoc)) {
+          final CFAEdge edge;
+          if (AnalysisDirection.FORWARD == pChild.direction) {
+            // we didn't find a proper connection to the child so we return an empty list
+            if (currentLoc.getNumLeavingEdges() != 1) {
+              return ImmutableList.of();
+            }
+            edge = currentLoc.getLeavingEdge(0);
+            currentLoc = edge.getSuccessor();
 
-          if (currentLoc.getNumEnteringEdges() >= 1) {
-            final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
-            allEdges.add(leavingEdge);
-            currentLoc = leavingEdge.getSuccessor();
-          }
+          } else if (AnalysisDirection.BACKWARD == pChild.direction) {
+            // we didn't find a proper connection to the child so we return an empty list
+            if (currentLoc.getNumEnteringEdges() != 1) {
+              return ImmutableList.of();
+            }
+            edge = currentLoc.getEnteringEdge(0);
+            currentLoc = edge.getPredecessor();
 
-          if (currentLocBw.getNumEnteringEdges() >= 1) {
-            // reached root state
-            final CFAEdge ingoingEdge = currentLocBw.getEnteringEdge(0);
-            allEdgesBw.add(ingoingEdge);
-            currentLocBw = ingoingEdge.getPredecessor();
+          } else {
+            throw new AssertionError("unknown analysis direction: " + pChild.direction);
           }
-
-          if (currentLoc.getNumEnteringEdges() < 1 && currentLocBw.getNumEnteringEdges() < 1) {
-            // Come to root and last state in both direction - don't know if this can ever happen
-            return ImmutableList.of();
-          }
+          allEdges.add(edge);
         }
       }
-      Preconditions.checkNotNull(currentLoc);
-      if (currentLoc.equals(childLoc)) {
-        return allEdges;
-      } else {
-        return allEdgesBw;
-      }
+      return allEdges;
     } else {
       return Collections.singletonList(singleEdge);
     }
@@ -381,6 +397,10 @@ public class ARGState extends AbstractSingleWrapperState
     return destroyed;
   }
 
+  public AnalysisDirection getDirection() {
+    return direction;
+  }
+
   /**
    * The ordering of this class is the chronological creation order.
    */
@@ -423,6 +443,7 @@ public class ARGState extends AbstractSingleWrapperState
     }
     sb.append("ARG State (Id: ");
     sb.append(stateId);
+    sb.append(", Direction: ").append(direction);
     if (!destroyed) {
       sb.append(", Parents: ");
       sb.append(stateIdsOf(parents));

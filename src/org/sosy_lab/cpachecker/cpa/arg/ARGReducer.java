@@ -46,7 +46,8 @@ class ARGReducer extends GenericReducer<ARGState, Precision> {
     return new ARGState(
         wrappedReducer.getVariableReducedState(
             pExpandedState.getWrappedState(), pContext, pLocation),
-        null);
+        null,
+        pExpandedState.getDirection());
   }
 
   @Override
@@ -57,7 +58,8 @@ class ARGReducer extends GenericReducer<ARGState, Precision> {
     return new ARGState(
         wrappedReducer.getVariableExpandedState(
             pRootState.getWrappedState(), pReducedContext, pReducedState.getWrappedState()),
-        null);
+        null,
+        pReducedState.getDirection());
   }
 
   @Override
@@ -88,7 +90,8 @@ class ARGReducer extends GenericReducer<ARGState, Precision> {
     return new ARGState(
         wrappedReducer.getVariableReducedStateForProofChecking(
             pExpandedState.getWrappedState(), pContext, pCallNode),
-        null);
+        null,
+        pExpandedState.getDirection());
   }
 
   @Override
@@ -98,7 +101,8 @@ class ARGReducer extends GenericReducer<ARGState, Precision> {
     return new ARGState(
         wrappedReducer.getVariableExpandedStateForProofChecking(
             pRootState.getWrappedState(), pReducedContext, pReducedState.getWrappedState()),
-        null);
+        null,
+        pReducedState.getDirection());
   }
 
   @Override
@@ -113,7 +117,8 @@ class ARGReducer extends GenericReducer<ARGState, Precision> {
             entryState.getWrappedState(),
             expandedState.getWrappedState(),
             exitLocation),
-        null);
+        null,
+        expandedState.getDirection());
   }
 
   @Override
