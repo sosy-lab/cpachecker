@@ -674,7 +674,8 @@ public class ARGUtils {
 
       for (ARGState parent : e.getParents()) {
         assert parent.getChildren().contains(e) : "Reference from parent to child is missing in ARG";
-        assert pReached.contains(parent) : "Referenced parent is missing in reached";
+        assert pReached.contains(parent)
+            || parent.getAppliedFrom() != null : "Referenced parent is missing in reached";
       }
 
       for (ARGState child : e.getChildren()) {
@@ -691,6 +692,7 @@ public class ARGUtils {
 
           assert (child.isCovered() && child.getChildren().isEmpty()) // 1)
               || pReached.getWaitlist().containsAll(child.getParents()) // 2)
+              || child.getAppliedFrom() != null
               : "Referenced child is missing in reached set.";
         }
       }
