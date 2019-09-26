@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.arg.path;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -41,7 +40,6 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder.DefaultARGPathBuilder;
@@ -157,19 +155,11 @@ public class ARGPath extends AbstractAppender {
 
       // compute path between cur and next node
       if (curOutgoingEdge == null) {
-        // we assume a linear chain of edges from 'prev' to 'succ'
-        CFANode curNode = extractLocation(prev);
-        CFANode nextNode = extractLocation(succ);
-
-        do { // the chain must not be empty
-          if (!(curNode.getNumLeavingEdges() == 1 && curNode.getLeavingSummaryEdge() == null)) {
-            return ImmutableList.of();
-          }
-
-          CFAEdge intermediateEdge = curNode.getLeavingEdge(0);
-          newFullPath.add(intermediateEdge);
-          curNode = intermediateEdge.getSuccessor();
-        } while (curNode != nextNode);
+        final List<CFAEdge> intermediateEdges = prev.getEdgesToChild(succ);
+        if (intermediateEdges.isEmpty()) {
+          return ImmutableList.of();
+        }
+        newFullPath.addAll(intermediateEdges);
 
       // we have a normal connection without hole in the edges
       } else {
