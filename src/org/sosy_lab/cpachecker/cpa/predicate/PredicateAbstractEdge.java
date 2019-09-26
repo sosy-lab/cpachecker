@@ -59,7 +59,7 @@ public class PredicateAbstractEdge implements AbstractEdge {
 
     @Override
     public int hashCode() {
-      return Objects.hash(assignment);
+      return Objects.hash(formula);
     }
 
     @Override
