@@ -311,7 +311,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
           ExpressionTrees.getTrue(),
           -1,
           -1,
-          null,
+          pPreviousState.violatedPropertyDescription,
           pPreviousState.isTreatingErrorsAsTarget());
       previousState = pPreviousState;
     }
