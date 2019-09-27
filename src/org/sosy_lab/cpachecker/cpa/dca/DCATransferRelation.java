@@ -45,9 +45,9 @@ public class DCATransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState>
-      getAbstractSuccessorsForEdge(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-          throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+      throws CPATransferException, InterruptedException {
     checkArgument(pState instanceof DCAState);
 
     DCAState state = (DCAState) pState;
@@ -69,11 +69,7 @@ public class DCATransferRelation extends SingleEdgeTransferRelation {
     ImmutableSet.Builder<DCAState> builder = ImmutableSet.<DCAState>builder();
     for (List<AutomatonState> productStates : cartesianProduct) {
       for (AutomatonState buechiSuccessorState : buechiSuccessorsStates) {
-        builder.add(
-            new DCAState(
-                buechiSuccessorState,
-                productStates,
-                state.getBuechiState().getAssumptions()));
+        builder.add(new DCAState(buechiSuccessorState, productStates));
       }
     }
     return builder.build();
@@ -106,14 +102,9 @@ public class DCATransferRelation extends SingleEdgeTransferRelation {
     ImmutableSet.Builder<DCAState> builder = ImmutableSet.<DCAState>builder();
     for (List<AutomatonState> productStates : cartesianProduct) {
       for (AutomatonState buechiStrenghtenState : buechiStrengthenResults) {
-        builder.add(
-            new DCAState(
-                buechiStrenghtenState,
-                productStates,
-                state.getBuechiState().getAssumptions()));
+        builder.add(new DCAState(buechiStrenghtenState, productStates));
       }
     }
     return builder.build();
   }
-
 }
