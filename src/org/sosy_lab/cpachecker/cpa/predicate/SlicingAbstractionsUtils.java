@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import com.google.common.collect.FluentIterable;
@@ -56,7 +55,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.dca.DCAState;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.slab.EdgeSet;
@@ -369,14 +367,6 @@ public class SlicingAbstractionsUtils {
               currentBuilder = finishedBuilders.get(parent);
               for (CFAEdge e : edges) {
                 currentBuilder = currentBuilder.makeAnd(e);
-              }
-            }
-            AutomatonState automatonState =
-                AbstractStates.extractStateByType(currentState, AutomatonState.class);
-            if (automatonState != null) {
-              for (CExpression assumption : from(automatonState.getAssumptions())
-                  .filter(CExpression.class)) {
-                currentBuilder = currentBuilder.makeAnd(assumption);
               }
             }
             DCAState dcaState = AbstractStates.extractStateByType(currentState, DCAState.class);
