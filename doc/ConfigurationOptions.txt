@@ -1411,6 +1411,9 @@ cpa.constraints.satCheckStrategy = AT_ASSUME
 # Try model of predecessor constraints state before running SMT solver
 cpa.constraints.useLastModel = true
 
+# Keep infeasible dummy states that allow for better debugging
+cpa.dca.refiner.keepInfeasibleStates = false
+
 # Set number of refinements for the trace abstraction algorithm
 cpa.dca.refiner.maxRefinementIterations = 0
 
@@ -1418,7 +1421,7 @@ cpa.dca.refiner.maxRefinementIterations = 0
 cpa.dca.refiner.skipAnalysis = false
 
 # Abort the refinement of finite prefixes for the purpose of better debugging
-cpa.dca.refiner.skipFiniteRefinement = false
+cpa.dca.refiner.skipRefinement = false
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
