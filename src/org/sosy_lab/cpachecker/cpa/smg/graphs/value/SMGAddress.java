@@ -83,7 +83,7 @@ public final class SMGAddress {
     if (isUnknown()) {
       return "Unkown";
     }
-    return "Object: " + object + " Offset: " + offset;
+    return "Object: " + object.getLabel() + " Offset: " + offset;
   }
 
   @Override

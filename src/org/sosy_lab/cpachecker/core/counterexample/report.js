@@ -2188,7 +2188,12 @@ function init() {
 		addPanEvent(".arg-svg");
 		d3.selectAll(".arg-node")
 			.on("mouseover", function (d) {
-				var node = [...argJson.nodes, ...argJson.relevantnodes,  ...argJson.reducednodes].find(function (it) {
+				var nodesArray = Array.prototype.concat(
+						argJson.nodes,
+						typeof argJson.relevantnodes === "undefined" ? [] : argJson.relevantnodes,
+						typeof argJson.reducednodes === "undefined" ? [] : argJson.reducednodes
+				);
+				var node = nodesArray.find(function (it) {
 					return it.index === parseInt(d);
 				})
 				var message = "<span class=\" bold \">function</span>: " + node.func + "<br>";
@@ -2230,7 +2235,12 @@ function init() {
 		d3.selectAll(".arg-edge")
 			.on("mouseover", function (d) {
 				d3.select(this).select("path").style("stroke-width", "3px");
-				var edge = [...argJson.edges, ...argJson.relevantedges, ...argJson.reducededges].find(function (it) {
+				var edgeArray = Array.prototype.concat(
+						argJson.edges,
+						typeof argJson.relevantedges === "undefined" ? [] : argJson.relevantedges,
+						typeof argJson.reducededges === "undefined" ? [] : argJson.reducededges
+						);
+				var edge = edgeArray.find(function (it) {
 					return it.source === parseInt(d.v) && it.target === parseInt(d.w);
 				})
 				var message = "";

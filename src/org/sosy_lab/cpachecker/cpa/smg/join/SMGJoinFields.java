@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -96,7 +96,7 @@ class SMGJoinFields {
   @VisibleForTesting
   public static Set<SMGEdgeHasValue> mergeNonNullHasValueEdges(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    Set<SMGEdgeHasValue> returnSet = new HashSet<>();
+    Set<SMGEdgeHasValue> returnSet = new LinkedHashSet<>();
 
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
     SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
@@ -184,7 +184,7 @@ class SMGJoinFields {
   @VisibleForTesting
   static Set<SMGEdgeHasValue> getHVSetOfMissingNullValues(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    Set<SMGEdgeHasValue> retset = new HashSet<>();
+    Set<SMGEdgeHasValue> retset = new LinkedHashSet<>();
 
     SMGEdgeHasValueFilter nonNullPtrInSmg2 =
         SMGEdgeHasValueFilter.objectFilter(pObj2).filterNotHavingValue(SMGZeroValue.INSTANCE);
@@ -227,7 +227,7 @@ class SMGJoinFields {
   @VisibleForTesting
   static Set<SMGEdgeHasValue> getHVSetOfCommonNullValues(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    Set<SMGEdgeHasValue> retset = new HashSet<>();
+    Set<SMGEdgeHasValue> retset = new LinkedHashSet<>();
     TreeMap<Long, Integer> map1 = pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
     TreeMap<Long, Integer> map2 = pSMG2.getNullEdgesMapOffsetToSizeForObject(pObj2);
     for (Entry<Long, Integer> entry1 : map1.entrySet()) {

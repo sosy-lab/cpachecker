@@ -17,7 +17,7 @@
 
     <target name="create-version-file-exact" depends="determine-version-revision">
         <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
-        <condition property="version" value="${version.base} ${version.revision}" else="${version.base}">
+        <condition property="version" value="${version.base}-${version.revision}" else="${version.base}">
             <contains string="${version.base}" substring="-svn"/>
         </condition>
         <echo message="${version}" file="${version.file}"/>
