@@ -55,24 +55,14 @@ module.exports = function (config) {
     reporters: ['progress', 'html'],
 
     htmlReporter: {
-      outputDir: 'unit_testing_report', // where to put the reports 
-      templatePath: null, // set if you moved jasmine_template.html
-      focusOnFailures: true, // reports show failures on start
-      namedFiles: false, // name files instead of creating sub-directories
-      pageTitle: null, // page title for reports; browser info by default
-      urlFriendlyName: false, // simply replaces spaces with _ for files/dirs
-      reportName: 'PhantomJS', // report summary filename; browser info by default
-
-
-      // experimental
-      preserveDescribeNesting: false, // folded suites stay folded 
-      foldAll: false, // reports start folded (only with preserveDescribeNesting)
+      outputFile: 'unit_testing_report.html',
+      useLegacyStyle: true,
     },
 
     // add to plugins
     plugins: [
       // other plugins
-      'karma-html-reporter',
+      'karma-htmlfile-reporter',
       'karma-phantomjs-launcher',
       'karma-jasmine'
     ],

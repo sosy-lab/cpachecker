@@ -128,7 +128,7 @@ javascript-unit-tests:
     - "src/org/sosy_lab/cpachecker/core/counterexample/node_modules/"
   artifacts:
     paths:
-      - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report
+      - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report.html
     when: always
 
 
