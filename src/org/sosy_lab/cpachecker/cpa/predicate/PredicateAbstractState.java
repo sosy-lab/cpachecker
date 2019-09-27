@@ -162,6 +162,33 @@ public abstract class PredicateAbstractState
     }
   }
 
+  public static class InfeasibleDummyState extends NonAbstractionState
+      implements NonMergeableAbstractState, Graphable {
+    private static final long serialVersionUID = 4845812617465441779L;
+
+    private InfeasibleDummyState(
+        PathFormula pF,
+        AbstractionFormula pA,
+        PersistentMap<CFANode, Integer> pAbstractionLocations) {
+      super(pF, pA, pAbstractionLocations);
+    }
+
+    @Override
+    public String toString() {
+      return "Dummy location";
+    }
+
+    @Override
+    public String toDOTLabel() {
+      return toString();
+    }
+
+    @Override
+    public boolean shouldBeHighlighted() {
+      return true;
+    }
+  }
+
   public static PredicateAbstractState mkAbstractionState(
       PathFormula pF, AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
@@ -179,6 +206,13 @@ public abstract class PredicateAbstractState
       AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
     return new NonAbstractionState(pF, pA, pAbstractionLocations);
+  }
+
+  static PredicateAbstractState mkInfeasibleDummyState(
+      PathFormula pF,
+      AbstractionFormula pA,
+      PersistentMap<CFANode, Integer> pAbstractionLocations) {
+    return new InfeasibleDummyState(pF, pA, pAbstractionLocations);
   }
 
   /** The path formula for the path from the last abstraction node to this node.
