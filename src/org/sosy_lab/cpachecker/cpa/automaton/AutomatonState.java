@@ -271,10 +271,18 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   @Override
   public String toDOTLabel() {
     if (!internalState.getName().equals("Init")) {
+      String prettyPrintAsmpts = "";
+      if (!assumptions.isEmpty()) {
+        prettyPrintAsmpts =
+            "\nAssumptions: "
+                + assumptions
+                    .stream()
+                    .map(AExpression::toASTString)
+                    .collect(Collectors.joining("; "));
+      }
       return (automaton != null ? automaton.getName() + ": " : "")
           + internalState.getName()
-          + "\nAssumptions: "
-          + assumptions.stream().map(x -> x.toASTString()).collect(Collectors.joining("; "));
+          + prettyPrintAsmpts;
     }
     return "";
   }
