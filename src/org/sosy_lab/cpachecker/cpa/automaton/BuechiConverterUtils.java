@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -268,7 +267,7 @@ public class BuechiConverterUtils {
      * passed.
      */
     private void addPreBuchiStates(
-        Builder<AutomatonInternalState> pStateListBuilder,
+        ImmutableList.Builder<AutomatonInternalState> pStateListBuilder,
         String pEntryFunctionName,
         String pInitStateName,
         String pInitBuechiStateName) {
