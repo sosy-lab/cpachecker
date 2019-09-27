@@ -39,7 +39,9 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -166,6 +168,17 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
                   + parts.get(1)
                   + "\"");
         }
+      } else if (parts.get(0).toLowerCase().equals("mainentry")) {
+        if (locationNode.getNumEnteringEdges() == 1
+            && locationNode.getFunctionName().equals(parts.get(1))) {
+          CFAEdge enteringEdge = locationNode.getEnteringEdge(0);
+          if (enteringEdge.getDescription().equals("Function start dummy edge")
+              && enteringEdge.getEdgeType() == CFAEdgeType.BlankEdge
+              && enteringEdge.getFileLocation() == FileLocation.DUMMY) {
+            return true;
+          }
+        }
+        return false;
       } else {
         throw new InvalidQueryException(
             "The Query \""
