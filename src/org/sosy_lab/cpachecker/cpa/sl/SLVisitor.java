@@ -193,6 +193,17 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
   @Override
   public SLStateError visit(CUnaryExpression pIastUnaryExpression) throws Exception {
     CExpression operand = pIastUnaryExpression.getOperand();
+    // if(pIastUnaryExpression == curRHS && pIastUnaryExpression.getOperator() ==
+    // UnaryOperator.AMPER) {
+    // if (operand instanceof CIdExpression) {
+    // heapDelegate.handleAddressOf((CIdExpression) operand);
+    // } else {
+    // throw new UnsupportedOperationException(
+    // "Operator "
+    // + UnaryOperator.AMPER
+    // + " not implemented for operands other than CIdExpressions.");
+    // }
+    // }
     return operand.accept(this);
   }
 
