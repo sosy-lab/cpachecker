@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
@@ -268,5 +269,10 @@ public class SLTransferRelation
   @Override
   public PathFormula getPredPathFormula() {
     return state.getPathFormula();
+  }
+
+  @Override
+  public void updateSSAMap(SSAMap pMap) {
+    pathFormula = pfm.makeNewPathFormula(pathFormula, pMap);
   }
 }
