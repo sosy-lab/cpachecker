@@ -108,8 +108,6 @@ public interface SLHeapDelegate {
       handleDereferenceAssignment(CExpression pLHS, CExpression pOffset, CExpression pRHS)
           throws Exception;
 
-
-
   public Map<Formula, Formula> getStack();
   public Map<Formula, Formula> getHeap();
 

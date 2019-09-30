@@ -19,14 +19,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.sl;
 
+import com.google.common.collect.Iterables;
 import java.math.BigInteger;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -42,7 +46,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -83,6 +88,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
 
   private final Map<Formula, BigInteger> allocationSizes = new HashMap<>();
   private final Set<CSimpleDeclaration> inScopePtrs = new HashSet<>();
+  private final Set<String> declarations = new TreeSet<>();
 
   // private final FormulaType<BitvectorFormula> heapValueFormulaType =
 //      FormulaType.getBitvectorTypeWithSize(16); // TODO BitVector Support
@@ -104,7 +110,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     ifm = fm.getIntegerFormulaManager();
     slfm = fm.getSLFormulaManager();
     bfm = fm.getBooleanFormulaManager();
-    NOT_INITIALIZED = ifm.makeVariable("0_null");
+    NOT_INITIALIZED = ifm.makeVariable("__null");
   }
 
   @Override
@@ -159,27 +165,28 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
 
   @Override
   public void handleDeclaration(CVariableDeclaration pDecl) throws Exception {
+    String name = pDecl.getQualifiedName();
+    if (!declarations.add(name)) {
+      incSSAIndex(name);
+    }
     CType type = pDecl.getType();
+    BigInteger length = BigInteger.ONE;
     if (type instanceof CArrayType || type instanceof CPointerType) {
       inScopePtrs.add(pDecl);
 
       if (type instanceof CArrayType) {
         CArrayType aType = (CArrayType) type;
-        type = aType.asPointerType();
+        type = aType.getType();
         OptionalInt s = aType.getLengthAsInt();
-        final BigInteger length =
+        length =
             s.isPresent()
                 ? BigInteger.valueOf(s.getAsInt())
                 : builder.getValueForCExpression(aType.getLength(), true);
-        final Formula loc =
-            builder.getFormulaForVariableName(pDecl.getQualifiedName(), false);
-        BigInteger size = length.multiply(machineModel.getSizeof(aType.getType()));
-        addToMemory(stack, loc, size);
       }
     }
-    CExpression e = SLHeapDelegateImpl.createSymbolicLocation(pDecl);
+    CExpression e = createSymbolicLocation(pDecl);
     Formula f = builder.getFormulaForExpression(e, false);
-    addToMemory(stack, f, machineModel.getSizeof(pDecl.getType()));
+    addToMemory(stack, f, machineModel.getSizeof(type).multiply(length));
     CInitializer init = pDecl.getInitializer();
     if (init != null) {
       Formula val = NOT_INITIALIZED;
@@ -189,12 +196,11 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
       }
       updateMemory(stack, f, val);
     }
-    PointerTargetSet pts = builder.getPredPathFormula().getPointerTargetSet();
   }
 
   @Override
   public SLStateError handleDereference(CExpression pExp, CExpression pOffset) throws Exception {
-    Formula loc;
+    // Formula loc;
     // if (pExp instanceof CPointerExpression) {
     // loc = createFormula(((CPointerExpression) pExp).getOperand(), pOffset, true);
     // loc = checkAllocation(loc, null, true);
@@ -204,38 +210,53 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     // if(heap.containsKey(loc) ) {
     // loc = heap.get(loc);
     // } else if (stack.containsKey(loc)) {
-    //
+    // loc = stack.get(loc);
     // }
-    // } else {
-      loc = createFormula(pExp, pOffset, true);
-      return isAllocated(loc, true) ? null : SLStateError.INVALID_DEREF;
+    // return isAllocated(loc, true) ? null : SLStateError.INVALID_DEREF;
     // }
+
+    Formula loc = createFormula(pExp, pOffset, true);
+    return isAllocated(loc, true) ? null : SLStateError.INVALID_DEREF;
+
   }
 
   @Override
   public SLStateError
       handleDereferenceAssignment(CExpression pLHS, CExpression pOffset, CExpression pRHS)
           throws Exception {
-    Formula loc = createFormula(pLHS, pOffset, false);
-    Formula val = builder.getFormulaForExpression(pRHS, true);
-    return isAllocated(loc, false) ? null : SLStateError.INVALID_DEREF;
-    // return checkAllocation(loc, val, false) != null ? null : SLStateError.INVALID_DEREF;
+    final Formula loc = createFormula(pLHS, pOffset, true);
+    final Formula val = builder.getFormulaForExpression(pRHS, true);
+    // if (pLHS instanceof CPointerExpression) {
+    // loc = createFormula(((CPointerExpression) pLHS).getOperand(), pOffset, true);
+    // loc = checkAllocation(loc, null, true);
+    // if (loc == null) {
+    // return SLStateError.INVALID_DEREF;
+    // }
+    // if (heap.containsKey(loc)) {
+    // loc = heap.get(loc);
+    // } else if (stack.containsKey(loc)) {
+    // loc = stack.get(loc);
+    // } else {
+    // return SLStateError.INVALID_DEREF;
+    // }
+    // } else {
+    //
+    // }
+    final Formula match = checkAllocation(loc, val, true);
+    return match == null ? SLStateError.INVALID_DEREF : null;
   }
 
   @Override
   public SLStateError handleOutOfScopeVariable(CSimpleDeclaration pDecl) throws Exception {
     inScopePtrs.remove(pDecl);
     CType type = pDecl.getType();
-    CExpression e = SLHeapDelegateImpl.createSymbolicLocation(pDecl);
+    CExpression e = createSymbolicLocation(pDecl);
     Formula loc = builder.getFormulaForExpression(e, false);
     removeFromMemory(stack, loc);
     if (!(type instanceof CPointerType || type instanceof CArrayType)) {
       return null;
     }
     loc = builder.getFormulaForVariableName(pDecl.getQualifiedName(), false);
-    if (type instanceof CArrayType) {
-      removeFromMemory(stack, loc);
-    }
     // check heap ptr alias
     Formula match = checkAllocation(heap, loc, null, false);
     if (match != null) {
@@ -268,8 +289,51 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
       Formula fLoc,
       Formula pVal,
       boolean usePredContext) {
-    Formula res = checkAllocation(heap, fLoc, pVal, usePredContext);
-    return res == null ? checkAllocation(stack, fLoc, pVal, usePredContext) : res;
+    Timer timer = new Timer();
+    timer.start();
+
+    Formula res = checkAllocation0(fLoc, usePredContext, heap.keySet());
+    if (res == null) {
+      res = checkAllocation0(fLoc, usePredContext, stack.keySet());
+    }
+    timer.stop();
+    logger.log(Level.INFO, "Solvingtime_new: " + timer.toString());
+
+    timer = new Timer();
+    timer.start();
+    res = checkAllocation(heap, fLoc, pVal, usePredContext);
+    if (res == null) {
+     res = checkAllocation(stack, fLoc, pVal, usePredContext);
+    }
+    timer.stop();
+    logger.log(Level.INFO, "Solvingtime_old: " + timer.toString());
+
+    return res;
+  }
+
+  private Formula
+      checkAllocation0(Formula pLoc, boolean usePredContext, Collection<Formula> pHeap) {
+    if (pHeap.isEmpty()) {
+      return null;
+    }
+    Map<Formula, Formula> heap = new HashMap<>();
+    pHeap.stream().forEach(f -> heap.put(f, null));
+    if (pHeap.size() == 1) {
+      if (isAllocated(pLoc, usePredContext, heap)) {
+        return pHeap.iterator().next();
+      } else {
+        return null;
+      }
+    }
+    // Split heap in two sub-heaps and check each of them.
+    for (Collection<Formula> subHeap : Iterables.partition(pHeap, pHeap.size() / 2)) {
+      Map<Formula, Formula> tmp = new HashMap<>();
+      subHeap.stream().forEach(f -> tmp.put(f, null));
+      if (isAllocated(pLoc, usePredContext, tmp)) {
+        return checkAllocation0(pLoc, usePredContext, subHeap);
+      }
+    }
+    return null;
   }
 
   private Formula checkAllocation(
@@ -325,11 +389,23 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     pMemory.put(pLoc, pVal);
   }
 
-  private boolean isAllocated(Formula pLocation, boolean usePredContext)
+  private void updateMemory(Formula pLoc, Formula pVal) {
+    if (heap.containsKey(pLoc)) {
+      heap.put(pLoc, pVal);
+    } else if (stack.containsKey(pLoc)) {
+      stack.put(pLoc, pVal);
+    }
+  }
+
+  private boolean isAllocated(Formula pLoc, boolean usePredContext)
       throws Exception {
+    return isAllocated(pLoc, usePredContext, stack) || isAllocated(pLoc, usePredContext, heap);
+  }
+
+  private boolean isAllocated(Formula pLoc, boolean usePredContext, Map<Formula, Formula> pHeap) {
     PathFormula context = usePredContext ? builder.getPredPathFormula() : builder.getPathFormula();
-    BooleanFormula heapFormula = getHeapFormula();
-    BooleanFormula toBeChecked = slfm.makePointsTo(pLocation, ifm.makeNumber(0));
+    BooleanFormula heapFormula = createHeapFormula(pHeap);
+    BooleanFormula toBeChecked = slfm.makePointsTo(pLoc, ifm.makeNumber(0));
     try (ProverEnvironment prover = solver.newProverEnvironment()) {
       prover.addConstraint(context.getFormula());
       prover.addConstraint(slfm.makeStar(toBeChecked, heapFormula));
@@ -346,14 +422,17 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
    * @return Formula - key0->val0 * key1->val1 * ... * keyX->valX
    */
 
-  private BooleanFormula getHeapFormula() {
+  private BooleanFormula createHeapFormula() {
+    BooleanFormula stackFormula = createHeapFormula(stack);
+    BooleanFormula heapFormula = createHeapFormula(heap);
+    return slfm.makeStar(stackFormula, heapFormula);
+  }
+
+  private BooleanFormula createHeapFormula(Map<Formula, Formula> pHeap) {
     BooleanFormula formula = slfm.makeEmptyHeap(heapAddresFormulaType, heapValueFormulaType);
-    Map<Formula, Formula> mem = new HashMap<>(stack);
-    mem.putAll(heap);
-    for (Formula f : mem.keySet()) {
-      Formula target = mem.get(f);
-      BooleanFormula ptsTo =
-          slfm.makePointsTo(f, target != null ? target : ifm.makeNumber(0));
+    for (Formula f : pHeap.keySet()) {
+      Formula target = pHeap.get(f);
+      BooleanFormula ptsTo = slfm.makePointsTo(f, target != null ? target : ifm.makeNumber(0));
       formula = slfm.makeStar(formula, ptsTo);
     }
     return formula;
@@ -381,9 +460,11 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     return false;
   }
 
-  private static CExpression createSymbolicLocation(CSimpleDeclaration pDecl) {
+  private CExpression createSymbolicLocation(CSimpleDeclaration pDecl) {
+
     CIdExpression e = new CIdExpression(FileLocation.DUMMY, pDecl);
-    return new CUnaryExpression(FileLocation.DUMMY, pDecl.getType(), e, UnaryOperator.AMPER);
+    CType t = new CPointerType(false, false, pDecl.getType());
+    return new CUnaryExpression(FileLocation.DUMMY, t, e, UnaryOperator.AMPER);
   }
 
   private Formula createFormula(CExpression pExp, CExpression pOffset, boolean usePredContext)
@@ -394,6 +475,16 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
       loc = fm.makePlus(loc, offset);
     }
     return loc;
+  }
+
+  private void incSSAIndex(String pVar) {
+    SSAMap ssaMap = builder.getPathFormula().getSsa();
+    int scopeIndex = pVar.indexOf("::") + 2;
+    String name = pVar.substring(0, scopeIndex) + "&" + pVar.substring(scopeIndex, pVar.length());
+    CType type = ssaMap.getType(name);
+    int index = ssaMap.getIndex(name) + 1;
+    SSAMapBuilder b = ssaMap.builder();
+    builder.updateSSAMap(b.setIndex(name, type, index).build());
   }
 
 }
