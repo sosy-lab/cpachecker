@@ -239,7 +239,12 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
   public SLStateError visit(CFieldReference pIastFieldReference) throws Exception {
     if (pIastFieldReference.isPointerDereference()) {
       CExpression e = pIastFieldReference.getFieldOwner();
-      return heapDelegate.handleDereference(e);
+      if (curLHS == pIastFieldReference) {
+        return heapDelegate.handleDereferenceAssignment(e, null, (CExpression) curRHS);
+      } else {
+        return heapDelegate.handleDereference(e);
+      }
+
     }
     return null;
   }
