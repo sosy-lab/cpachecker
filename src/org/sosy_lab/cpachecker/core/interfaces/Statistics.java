@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
-import java.util.Collection;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -109,9 +107,5 @@ public interface Statistics {
 
   default void put(PrintStream target, int indentLevel, AbstractStatValue stat) {
     StatisticsUtils.write(target, indentLevel, DEFAULT_OUTPUT_NAME_COL_WIDTH, stat);
-  }
-
-  default Collection<Statistics> getSubStatistics() {
-    return ImmutableList.of();
   }
 }
