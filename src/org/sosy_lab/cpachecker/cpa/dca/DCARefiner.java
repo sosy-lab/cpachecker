@@ -58,6 +58,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
@@ -459,16 +460,19 @@ public class DCARefiner implements Refiner, StatisticsProvider {
           Dnf loopDnf = lassoBuilder.toDnf(stemAndLoop.getLoop(), stemDnf.getUfEliminationResult());
 
           LoopStructure loopStructure = cfa.getLoopStructure().get();
+          // TODO: Rewrite the code below so that always the correct loop is selected
+          // The current logic below will most likely not work for programs with several / complex
+          // loops
+          ImmutableList<CFANode> collect =
+              cycle
+                  .stream()
+                  .map(AbstractStates::extractLocation)
+                  .collect(ImmutableList.toImmutableList());
           ImmutableList<Loop> loops =
               loopStructure
                   .getAllLoops()
                   .stream()
-                  .filter(
-                      x ->
-                          cycle
-                              .stream()
-                              .map(AbstractStates::extractLocation)
-                              .allMatch(y -> x.getLoopNodes().contains(y)))
+                  .filter(x -> collect.containsAll(x.getLoopNodes()))
                   .collect(ImmutableList.toImmutableList());
           Loop loop = loops.iterator().next();
 
