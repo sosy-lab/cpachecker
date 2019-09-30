@@ -22,6 +22,7 @@ package org.sosy_lab.cpachecker.cpa.sl;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.Formula;
 
 public interface SLFormulaBuilder {
@@ -61,4 +62,5 @@ public interface SLFormulaBuilder {
 
   PathFormula getPredPathFormula();
 
+  void updateSSAMap(SSAMap pMap);
 }
