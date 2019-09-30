@@ -316,9 +316,10 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     if (pHeap.isEmpty()) {
       return null;
     }
-    Map<Formula, Formula> heap = new HashMap<>();
-    pHeap.stream().forEach(f -> heap.put(f, null));
+
     if (pHeap.size() == 1) {
+      Map<Formula, Formula> heap = new HashMap<>();
+      pHeap.stream().forEach(f -> heap.put(f, null));
       if (isAllocated(pLoc, usePredContext, heap)) {
         return pHeap.iterator().next();
       } else {
@@ -328,6 +329,8 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     // Split heap in two sub-heaps and check each of them.
     for (Collection<Formula> subHeap : Iterables.partition(pHeap, pHeap.size() / 2)) {
       Map<Formula, Formula> tmp = new HashMap<>();
+      // TODO convert map to collection in isAllocated?
+      // leave out values as they are coped by pathformula.
       subHeap.stream().forEach(f -> tmp.put(f, null));
       if (isAllocated(pLoc, usePredContext, tmp)) {
         return checkAllocation0(pLoc, usePredContext, subHeap);
