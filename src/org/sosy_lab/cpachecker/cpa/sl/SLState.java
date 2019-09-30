@@ -72,9 +72,11 @@ public class SLState implements AbstractState, Targetable {
         + pathFormula.toString()
         + "\nHeap:     "
         + heap.toString()
-        + "\nStack:     "
+        + "\nStack:    "
         + stack.toString()
-        + "\nError: "
+        + "\nSSA:      "
+        + pathFormula.getSsa().toString()
+        + "\nError:    "
         + (error != null ? error.name() : "nope.");
   }
 
