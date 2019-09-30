@@ -22,6 +22,7 @@ package org.sosy_lab.cpachecker.cpa.sl;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.java_smt.api.Formula;
 
@@ -85,7 +86,7 @@ public interface SLHeapDelegate {
   /**
    *
    */
-  public void handleDeclaration(CSimpleDeclaration pDecl) throws Exception;
+  public void handleDeclaration(CVariableDeclaration pDecl) throws Exception;
 
   /**
    *
