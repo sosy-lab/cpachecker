@@ -255,6 +255,11 @@ public class SLTransferRelation
   }
 
   @Override
+  public Formula getFormulaForDeclaration(CSimpleDeclaration pDecl) {
+    return pfm.makeFormulaForVariable(pathFormula, pDecl.getQualifiedName(), pDecl.getType());
+  }
+
+  @Override
   public Formula getFormulaForExpression(CExpression pExp, boolean usePredContext)
       throws UnrecognizedCodeException {
     PathFormula context = usePredContext ? getPredPathFormula() : pathFormula;
@@ -273,6 +278,6 @@ public class SLTransferRelation
 
   @Override
   public void updateSSAMap(SSAMap pMap) {
-    pathFormula = pfm.makeNewPathFormula(pathFormula, pMap);
+    pathFormula = pfm.makeNewPathFormula(pathFormula, pMap); // TODO
   }
 }

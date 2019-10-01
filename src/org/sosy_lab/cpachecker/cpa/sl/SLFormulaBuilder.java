@@ -21,6 +21,7 @@ package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.Formula;
@@ -48,6 +49,14 @@ public interface SLFormulaBuilder {
    */
   public Formula
       getFormulaForVariableName(String pVariable, boolean usePredContext);
+
+  /**
+   * Returns a formula for the given variable name
+   *
+   * @param pDecl - the variable declaration.
+   * @return formula of variable
+   */
+  public Formula getFormulaForDeclaration(CSimpleDeclaration pDecl);
 
   /**
    *

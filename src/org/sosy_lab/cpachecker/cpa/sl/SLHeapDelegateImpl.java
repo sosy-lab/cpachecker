@@ -171,6 +171,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     }
     CType type = pDecl.getType();
     BigInteger length = BigInteger.ONE;
+    Formula f;
     if (type instanceof CArrayType || type instanceof CPointerType) {
       inScopePtrs.add(pDecl);
 
@@ -182,10 +183,14 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
             s.isPresent()
                 ? BigInteger.valueOf(s.getAsInt())
                 : builder.getValueForCExpression(aType.getLength(), true);
+
+        f = builder.getFormulaForDeclaration(pDecl);
+        addToMemory(stack, f, machineModel.getSizeof(type).multiply(length));
       }
     }
     CExpression e = createSymbolicLocation(pDecl);
-    Formula f = builder.getFormulaForExpression(e, false);
+    f = builder.getFormulaForExpression(e, false);
+
     addToMemory(stack, f, machineModel.getSizeof(type).multiply(length));
     CInitializer init = pDecl.getInitializer();
     if (init != null) {
@@ -253,9 +258,13 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     CExpression e = createSymbolicLocation(pDecl);
     Formula loc = builder.getFormulaForExpression(e, false);
     removeFromMemory(stack, loc);
+    if (type instanceof CArrayType) {
+      removeFromMemory(stack, builder.getFormulaForDeclaration(pDecl));
+    }
     if (!(type instanceof CPointerType || type instanceof CArrayType)) {
       return null;
     }
+
     loc = builder.getFormulaForVariableName(pDecl.getQualifiedName(), false);
     // check heap ptr alias
     Formula match = checkAllocation(heap, loc, null, false);
@@ -392,13 +401,13 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     pMemory.put(pLoc, pVal);
   }
 
-  private void updateMemory(Formula pLoc, Formula pVal) {
-    if (heap.containsKey(pLoc)) {
-      heap.put(pLoc, pVal);
-    } else if (stack.containsKey(pLoc)) {
-      stack.put(pLoc, pVal);
-    }
-  }
+  // private void updateMemory(Formula pLoc, Formula pVal) {
+  // if (heap.containsKey(pLoc)) {
+  // heap.put(pLoc, pVal);
+  // } else if (stack.containsKey(pLoc)) {
+  // stack.put(pLoc, pVal);
+  // }
+  // }
 
   private boolean isAllocated(Formula pLoc, boolean usePredContext)
       throws Exception {
@@ -419,17 +428,17 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     return false;
   }
 
-  /***
-   * Generates a SL heap formula.
-   *
-   * @return Formula - key0->val0 * key1->val1 * ... * keyX->valX
-   */
-
-  private BooleanFormula createHeapFormula() {
-    BooleanFormula stackFormula = createHeapFormula(stack);
-    BooleanFormula heapFormula = createHeapFormula(heap);
-    return slfm.makeStar(stackFormula, heapFormula);
-  }
+  // /***
+  // * Generates a SL heap formula.
+  // *
+  // * @return Formula - key0->val0 * key1->val1 * ... * keyX->valX
+  // */
+  //
+  // private BooleanFormula createHeapFormula() {
+  // BooleanFormula stackFormula = createHeapFormula(stack);
+  // BooleanFormula heapFormula = createHeapFormula(heap);
+  // return slfm.makeStar(stackFormula, heapFormula);
+  // }
 
   private BooleanFormula createHeapFormula(Map<Formula, Formula> pHeap) {
     BooleanFormula formula = slfm.makeEmptyHeap(heapAddresFormulaType, heapValueFormulaType);
