@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
+package org.sosy_lab.cpachecker.core.algorithm.bmc.pdr;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -39,12 +39,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.ProverEnvironmentWithFallback;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 
-public class FrameSet implements AutoCloseable {
+class FrameSet implements AutoCloseable {
 
   private final Solver solver;
 

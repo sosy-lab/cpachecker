@@ -407,7 +407,7 @@ public final class BMCHelper {
     return visitor.valid;
   }
 
-  static BooleanFormula disjoinStateViolationAssertions(
+  public static BooleanFormula disjoinStateViolationAssertions(
       BooleanFormulaManager pBfmgr,
       Multimap<BooleanFormula, BooleanFormula> pSuccessorViolationAssertions) {
     BooleanFormula disjunction = pBfmgr.makeFalse();
