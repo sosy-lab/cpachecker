@@ -45,6 +45,7 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.GeometricN
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.InfiniteFixpointRepetition;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
+import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Rational;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
@@ -101,6 +102,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -676,6 +678,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       CLiteralExpression litexpr;
 
       for (Entry<IProgramVar, Rational> entry : arg.getStateHonda().entrySet()) {
+        RankVar rankVar = (RankVar) entry.getKey();
+        if (rankVar.getDefinition() instanceof ApplicationTerm
+            && ((ApplicationTerm) rankVar.getDefinition()).getParameters().length != 0) {
+          // ignore UFs
+          continue;
+        }
+
         varName = toOrigName(entry.getKey().getTermVariable());
         litexpr = literalExpressionFrom(entry.getValue());
         result = And.of(result, LeafExpression.of(buildEquals(varName, litexpr)));
