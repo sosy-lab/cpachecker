@@ -52,4 +52,9 @@ public class LockApplyOperator implements ApplyOperator {
     return true;
   }
 
+  @Override
+  public boolean canBeAnythingApplied(AbstractState pState) {
+    return true;
+  }
+
 }

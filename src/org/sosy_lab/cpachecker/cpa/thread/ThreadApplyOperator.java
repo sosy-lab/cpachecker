@@ -52,4 +52,10 @@ public class ThreadApplyOperator implements ApplyOperator {
     return true;
   }
 
+  @Override
+  public boolean canBeAnythingApplied(AbstractState pState) {
+    ThreadState state = (ThreadState) pState;
+    return state.getThreadSize() > 0;
+  }
+
 }

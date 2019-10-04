@@ -200,13 +200,14 @@ public class ARGToDotWriter {
         }
       }
 
-      ARGState projection = currentElement.getProjectedTo();
-      if (projection != null && displayedElements.apply(projection)) {
-        edges.append(currentElement.getStateId());
-        edges.append(" -> ");
-        edges.append(projection.getStateId());
-        edges.append(" [style=\"dashed\" weight=\"0\" label=\"projected to\"]\n");
-        worklist.add(projection);
+      for (ARGState projection : currentElement.getProjectedTo()) {
+        if (projection != null && displayedElements.apply(projection)) {
+          edges.append(currentElement.getStateId());
+          edges.append(" -> ");
+          edges.append(projection.getStateId());
+          edges.append(" [style=\"dashed\" weight=\"0\" label=\"projected to\"]\n");
+          worklist.add(projection);
+        }
       }
 
       for (ARGState child : successorFunction.apply(currentElement)) {

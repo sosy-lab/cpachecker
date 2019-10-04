@@ -721,7 +721,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
         // Need to omit edge part, so return the same state, but without edge
         PredicateAbstractState newState =
             PredicateAbstractState
-                .mkAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
+                .mkNonAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
         return Collections.singleton(newState);
       }
     } else {
@@ -740,13 +740,12 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       Set<String> absVars = fmgr.extractFunctionNames(pOldAbstraction.asFormula());
       Set<String> pathVars =
           fmgr.extractFunctionNames(fmgr.uninstantiate(pOldFormula.getFormula()));
-      assert pathVars.isEmpty();
 
       List<FormulaDescription> result = new ArrayList<>();
       for (FormulaDescription envFormula : pInitialFormulas) {
         Set<String> envVars = envFormula.getInfo().keySet();
 
-        if (!Sets.intersection(envVars, absVars).isEmpty()) {
+        if (!Sets.intersection(envVars, Sets.union(absVars, pathVars)).isEmpty()) {
           result.add(envFormula);
         }
       }

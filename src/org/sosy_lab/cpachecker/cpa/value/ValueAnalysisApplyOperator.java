@@ -154,4 +154,8 @@ public class ValueAnalysisApplyOperator implements ApplyOperator {
     return state.getSize() == 0;
   }
 
+  @Override
+  public boolean canBeAnythingApplied(AbstractState pState) {
+    return true;
+  }
 }

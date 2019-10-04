@@ -43,9 +43,7 @@ public class ARGApplyOperator implements ApplyOperator {
     }
 
     ARGState result = new ARGState(wrappedState, null);
-    result.setAppliedFrom(state1, state2);
-    state1.setAppliedTo(result);
-    state2.setAppliedTo(result);
+    result.setAsAppliedFrom(state1, state2);
 
     // Evil hack to restore path
     result.addParent(state1);
@@ -64,8 +62,7 @@ public class ARGApplyOperator implements ApplyOperator {
     }
 
     ARGState result = new ARGState(wrappedState, null);
-    result.addProjectedFrom(parent);
-    parent.setProjectedTo(result);
+    parent.addProjection(result);
     return result;
   }
 
@@ -81,8 +78,7 @@ public class ARGApplyOperator implements ApplyOperator {
     }
 
     ARGState result = new ARGState(wrappedState, null);
-    result.addProjectedFrom(parent);
-    parent.setProjectedTo(result);
+    parent.addProjection(result);
     return result;
   }
 
@@ -90,6 +86,12 @@ public class ARGApplyOperator implements ApplyOperator {
   public boolean isInvariantToEffects(AbstractState pState) {
     ARGState state = (ARGState) pState;
     return wrappedApply.isInvariantToEffects(state.getWrappedState());
+  }
+
+  @Override
+  public boolean canBeAnythingApplied(AbstractState pState) {
+    ARGState state = (ARGState) pState;
+    return wrappedApply.canBeAnythingApplied(state.getWrappedState());
   }
 
 }

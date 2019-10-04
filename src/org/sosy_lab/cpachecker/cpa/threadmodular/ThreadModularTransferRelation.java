@@ -77,7 +77,7 @@ public class ThreadModularTransferRelation implements TransferRelation {
     boolean isProjection = ((AbstractStateWithEdge) pState).isProjection();
     // do not need stop and merge as they has been already performed on projections
 
-    if (isProjection || !applyOperator.isInvariantToEffects(pState)) {
+    if (isProjection || isRelevant(pState)) {
 
       stats.allApplyActions.start();
       Collection<AbstractState> toApply =
@@ -89,15 +89,18 @@ public class ThreadModularTransferRelation implements TransferRelation {
         if (isProjection) {
           stats.innerApply.start();
           appliedState = applyOperator.apply(oldState, pState);
+          stats.applyCounter.inc();
           stats.innerApply.stop();
           appliedPrecision = pReached.getPrecision(oldState);
         } else {
           stats.innerApply.start();
           appliedState = applyOperator.apply(pState, oldState);
+          stats.applyCounter.inc();
           stats.innerApply.stop();
           appliedPrecision = pPrecision;
         }
         if (appliedState != null) {
+          stats.relevantApplyCounter.inc();
           toAdd.put(appliedState, appliedPrecision);
         }
       }
@@ -179,5 +182,10 @@ public class ThreadModularTransferRelation implements TransferRelation {
           throws CPATransferException, InterruptedException {
     throw new UnsupportedOperationException(
         "Thread Modular CPA does not support transitions without reached set");
+  }
+
+  private boolean isRelevant(AbstractState pState) {
+    return !applyOperator.isInvariantToEffects(pState)
+        && applyOperator.canBeAnythingApplied(pState);
   }
 }

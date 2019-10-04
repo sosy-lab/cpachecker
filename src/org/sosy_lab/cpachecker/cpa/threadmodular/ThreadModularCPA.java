@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 public class ThreadModularCPA extends AbstractSingleWrapperCPA
     implements ConfigurableProgramAnalysisTM {
@@ -67,6 +69,10 @@ public class ThreadModularCPA extends AbstractSingleWrapperCPA
             pShutdownNotifier,
             applyOperator);
 
+    PredicateCPA pcpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
+    if (pcpa != null) {
+      pcpa.setPrecisionAdjustmentExternalCheck(applyOperator::canBeAnythingApplied);
+    }
   }
 
   @Override

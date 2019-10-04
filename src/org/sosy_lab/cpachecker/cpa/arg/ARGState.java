@@ -82,7 +82,7 @@ public class ARGState extends AbstractSingleWrapperState
 
   private ARGState mCoveredBy = null;
   private Collection<ARGState> projectedFrom = null;
-  private ARGState projectedTo = null;
+  private Collection<ARGState> projectedTo = null;
   private Pair<ARGState, ARGState> appliedFrom = null;
   private Collection<ARGState> appliedTo = null;
   private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
@@ -146,7 +146,7 @@ public class ARGState extends AbstractSingleWrapperState
   public Collection<ARGState> getSuccessors() {
     List<ARGState> result = new ArrayList<>(getChildren());
     if (projectedTo != null) {
-      result.add(projectedTo);
+      result.addAll(projectedTo);
     }
     if (appliedTo != null) {
       result.addAll(appliedTo);
@@ -415,47 +415,44 @@ public class ARGState extends AbstractSingleWrapperState
     return mergedWith;
   }
 
-  void addProjectedFrom(ARGState pState) {
+  void addProjection(ARGState pProjection) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    assert !pState.destroyed : "Don't use destroyed ARGState " + this;
+    assert !pProjection.destroyed : "Don't use destroyed ARGState " + this;
 
-    if (projectedFrom == null) {
-      projectedFrom = new ArrayList<>();
+    if (projectedTo == null) {
+      projectedTo = new ArrayList<>();
+    }
+    projectedTo.add(pProjection);
+
+    if (pProjection.projectedFrom == null) {
+      pProjection.projectedFrom = new ArrayList<>();
     }
 
-    projectedFrom.add(pState);
+    pProjection.projectedFrom.add(this);
   }
 
   public Collection<ARGState> getProjectedFrom() {
     return projectedFrom;
   }
 
-  void setProjectedTo(ARGState pState) {
-    assert !destroyed : "Don't use destroyed ARGState " + this;
-    if (projectedTo != null) {
-      // Means we reexplore the state due to refinement,
-      // Moreover, the projection can be different from previous one sue to precision.
-    }
-
-    projectedTo = pState;
+  public Collection<ARGState> getProjectedTo() {
+    return projectedTo == null ? Collections.emptyList() : projectedTo;
   }
 
-  public ARGState getProjectedTo() {
-    return projectedTo;
-  }
-
-  void setAppliedFrom(ARGState pLeftState, ARGState pRightState) {
+  void setAsAppliedFrom(ARGState pLeftState, ARGState pRightState) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     assert appliedFrom == null : "Second applied of element " + this;
 
     appliedFrom = Pair.of(pLeftState, pRightState);
+    pLeftState.setAppliedTo(this);
+    pRightState.setAppliedTo(this);
   }
 
   public Pair<ARGState, ARGState> getAppliedFrom() {
     return appliedFrom;
   }
 
-  void setAppliedTo(ARGState pState) {
+  private void setAppliedTo(ARGState pState) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
 
     if (appliedTo == null) {
@@ -698,13 +695,15 @@ public class ARGState extends AbstractSingleWrapperState
 
     if (projectedFrom != null && !projectedFrom.isEmpty()) {
       for (ARGState projection : projectedFrom) {
-        projection.projectedTo = null;
+        projection.projectedTo.remove(this);
       }
       projectedFrom = null;
     }
 
-    if (projectedTo != null) {
-      projectedTo.projectedFrom.remove(this);
+    if (projectedTo != null && !projectedTo.isEmpty()) {
+      for (ARGState projection : projectedTo) {
+        projection.projectedFrom.remove(this);
+      }
       projectedTo = null;
     }
   }
@@ -786,15 +785,19 @@ public class ARGState extends AbstractSingleWrapperState
     if (projectedFrom != null) {
       for (ARGState projection : this.projectedFrom) {
         assert !projection.destroyed;
-        projection.projectedTo = replacement;
+        projection.projectedTo.remove(this);
+        projection.projectedTo.add(replacement);
       }
       replacement.projectedFrom = this.projectedFrom;
       this.projectedFrom = null;
     }
 
-    if (projectedTo != null) {
-      this.projectedTo.projectedFrom.remove(this);
-      this.projectedTo.projectedFrom.add(replacement);
+    if (projectedTo != null && !projectedTo.isEmpty()) {
+      for (ARGState projection : projectedTo) {
+        assert !projection.destroyed;
+        projection.projectedFrom.remove(this);
+        projection.projectedFrom.add(replacement);
+      }
       replacement.projectedTo = this.projectedTo;
       this.projectedTo = null;
     }

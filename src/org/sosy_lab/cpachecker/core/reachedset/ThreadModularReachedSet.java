@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class ThreadModularReachedSet extends ForwardingReachedSet {
 
+  // Do not optimize with canBeAnythingApplied(), very small effect
   private final Set<AbstractState> threadTransitions;
   private final Set<AbstractState> projections;
 

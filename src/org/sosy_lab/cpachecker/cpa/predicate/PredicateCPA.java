@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -138,6 +139,7 @@ public class PredicateCPA
   private final PredicateProvider predicateProvider;
   private final FormulaManagerView formulaManager;
   private final PredicateCpaOptions options;
+  private final PredicatePrecisionAdjustment prec;
 
   // path formulas for PCC
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulaePcc = new HashMap<>();
@@ -243,6 +245,16 @@ public class PredicateCPA
             abstractionManager,
             predicateManager,
             statistics);
+    prec =
+        new PredicatePrecisionAdjustment(
+            logger,
+            formulaManager,
+            preciseFormulaManager,
+            blk,
+            predicateManager,
+            invariantsManager,
+            predicateProvider,
+            statistics);
   }
 
   @Override
@@ -342,15 +354,7 @@ public class PredicateCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new PredicatePrecisionAdjustment(
-        logger,
-        formulaManager,
-        preciseFormulaManager,
-        blk,
-        predicateManager,
-        invariantsManager,
-        predicateProvider,
-        statistics);
+    return prec;
   }
 
   @Override
@@ -432,5 +436,9 @@ public class PredicateCPA
       pMgr = new CachingPathFormulaManager(pMgr);
     }
     return pMgr;
+  }
+
+  public void setPrecisionAdjustmentExternalCheck(Predicate<AbstractState> pPredicate) {
+    prec.setExternalAbstractionCheck(pPredicate);
   }
 }
