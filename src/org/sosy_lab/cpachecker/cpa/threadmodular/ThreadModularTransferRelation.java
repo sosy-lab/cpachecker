@@ -131,7 +131,16 @@ public class ThreadModularTransferRelation implements TransferRelation {
     List<AbstractState> result = new ArrayList<>();
     Collection<? extends AbstractState> successors;
 
-    if (!isProjection) {
+    // To reexplore appliedState after refinement we have to readd parent state to waitlist, but we
+    // do not need to perform transfer
+    // Moreover it breaks the analysis as produces inconsistent links project-apply
+    boolean reapply = !((ARGState) pState).getChildren().isEmpty();
+
+    if (reapply) {
+      assert !((ARGState) pState).getAppliedTo().isEmpty();
+    }
+
+    if (!isProjection && !reapply) {
       stats.wrappedTransfer.start();
       successors = wrappedTransfer.getAbstractSuccessors(pState, pReached, pPrecision);
       stats.wrappedTransfer.stop();

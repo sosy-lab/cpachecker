@@ -415,47 +415,45 @@ public class ARGState extends AbstractSingleWrapperState
     return mergedWith;
   }
 
-  void addProjectedFrom(ARGState pState) {
+  void addProjection(ARGState pProjection) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    assert !pState.destroyed : "Don't use destroyed ARGState " + this;
+    assert !pProjection.destroyed : "Don't use destroyed ARGState " + this;
 
-    if (projectedFrom == null) {
-      projectedFrom = new ArrayList<>();
+    if (projectedTo != null) {
+      // Means we reexplore the state due to refinement,
+      // Moreover, the projection can be different from previous one sue to precision.
+    }
+    projectedTo = pProjection;
+
+    if (pProjection.projectedFrom == null) {
+      pProjection.projectedFrom = new ArrayList<>();
     }
 
-    projectedFrom.add(pState);
+    pProjection.projectedFrom.add(this);
   }
 
   public Collection<ARGState> getProjectedFrom() {
     return projectedFrom;
   }
 
-  void setProjectedTo(ARGState pState) {
-    assert !destroyed : "Don't use destroyed ARGState " + this;
-    if (projectedTo != null) {
-      // Means we reexplore the state due to refinement,
-      // Moreover, the projection can be different from previous one sue to precision.
-    }
-
-    projectedTo = pState;
-  }
-
   public ARGState getProjectedTo() {
     return projectedTo;
   }
 
-  void setAppliedFrom(ARGState pLeftState, ARGState pRightState) {
+  void setAsAppliedFrom(ARGState pLeftState, ARGState pRightState) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     assert appliedFrom == null : "Second applied of element " + this;
 
     appliedFrom = Pair.of(pLeftState, pRightState);
+    pLeftState.setAppliedTo(this);
+    pRightState.setAppliedTo(this);
   }
 
   public Pair<ARGState, ARGState> getAppliedFrom() {
     return appliedFrom;
   }
 
-  void setAppliedTo(ARGState pState) {
+  private void setAppliedTo(ARGState pState) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
 
     if (appliedTo == null) {
