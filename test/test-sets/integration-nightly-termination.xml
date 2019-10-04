@@ -44,5 +44,6 @@
   <tasks name="Termination-Other">
     <includesfile>../programs/benchmarks/Termination-Other.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+    <option name="-32" />
   </tasks>
 </benchmark>
