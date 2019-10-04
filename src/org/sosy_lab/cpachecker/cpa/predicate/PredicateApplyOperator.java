@@ -604,4 +604,9 @@ public class PredicateApplyOperator implements ApplyOperator {
     return result;
   }
 
+  @Override
+  public boolean canBeAnythingApplied(AbstractState pState) {
+    return true;
+  }
+
 }

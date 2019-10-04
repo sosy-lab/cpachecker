@@ -27,6 +27,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Sets;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -62,6 +63,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final PredicateStatistics statistics;
   private final TimerWrapper totalPrecTime;
   private final TimerWrapper computingAbstractionTime;
+
+  private Predicate<AbstractState> externalAbstractionCheck = null;
 
   public PredicatePrecisionAdjustment(
       LogManager pLogger,
@@ -127,6 +130,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       AbstractState fullState, CFANode location, PredicateAbstractState predicateState) {
     if (predicateState.isAbstractionState()) {
       return false;
+    }
+    if (externalAbstractionCheck != null && externalAbstractionCheck.test(fullState)) {
+      return true;
     }
     if (blk.isBlockEnd(location, predicateState.getPathFormula().getLength())) {
       return true;
@@ -220,5 +226,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
             newAbstractionFormula, abstractionLocations);
     return Optional.of(PrecisionAdjustmentResult.create(
         state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
+  }
+
+  void setExternalAbstractionCheck(Predicate<AbstractState> pPredicate) {
+    externalAbstractionCheck = pPredicate;
   }
 }

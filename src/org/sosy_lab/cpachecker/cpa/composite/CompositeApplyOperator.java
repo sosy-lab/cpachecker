@@ -154,4 +154,20 @@ public class CompositeApplyOperator implements ApplyOperator {
     }
     return true;
   }
+
+  @Override
+  public boolean canBeAnythingApplied(AbstractState pState) {
+    CompositeState state = (CompositeState) pState;
+    Iterator<AbstractState> iter = state.getWrappedStates().iterator();
+
+    for (ApplyOperator applyOp : applyOperators) {
+      AbstractState absState = iter.next();
+
+      boolean res = applyOp.canBeAnythingApplied(absState);
+      if (!res) {
+        return false;
+      }
+    }
+    return true;
+  }
 }

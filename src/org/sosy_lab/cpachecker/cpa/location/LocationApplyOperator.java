@@ -19,6 +19,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import java.util.Map;
+import java.util.TreeMap;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
@@ -27,6 +40,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateWithEdge.ProjectedLocationStateWithEdge;
 
 public class LocationApplyOperator implements ApplyOperator {
+
+  private final Map<CFANode, Boolean> cachedNodes = new TreeMap<>();
 
   @Override
   public AbstractState apply(AbstractState pState1, AbstractState pState2) {
@@ -64,6 +79,53 @@ public class LocationApplyOperator implements ApplyOperator {
   @Override
   public boolean isInvariantToEffects(AbstractState pState) {
     return true;
+  }
+
+  @Override
+  public boolean canBeAnythingApplied(AbstractState pState) {
+    LocationState state = (LocationState) pState;
+    CFANode node = state.locationNode;
+
+    if (cachedNodes.containsKey(node)) {
+      return cachedNodes.get(node);
+    }
+
+    boolean result = false;
+    for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+      CFAEdge edge = node.getLeavingEdge(i);
+      if (!isRedundantEdge(edge)) {
+        result = true;
+      }
+    }
+    cachedNodes.put(node, result);
+    return result;
+  }
+
+  private boolean isRedundantEdge(CFAEdge edge) {
+    if (edge instanceof BlankEdge) {
+      return true;
+    } else if (edge instanceof CDeclarationEdge) {
+      CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
+      if (decl instanceof CVariableDeclaration) {
+        CInitializer init = ((CVariableDeclaration) decl).getInitializer();
+        if (init == null) {
+          return true;
+        }
+        if (init instanceof CInitializerExpression) {
+          CExpression expr = ((CInitializerExpression) init).getExpression();
+          if (expr instanceof CLiteralExpression) {
+            return true;
+          }
+        }
+
+      } else {
+        return true;
+      }
+    } else if (edge instanceof FunctionReturnEdge) {
+      return true;
+    }
+
+    return false;
   }
 
 }

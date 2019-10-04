@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class ThreadModularReachedSet extends PartitionedReachedSet {
 
   private static final long serialVersionUID = -1608561980102557646L;
+  // Do not optimize with canBeAnythingApplied(), very small effect
   private final Set<AbstractState> threadTransitions;
   private final Set<AbstractState> projections;
 
