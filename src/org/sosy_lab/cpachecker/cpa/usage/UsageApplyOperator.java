@@ -79,4 +79,10 @@ public class UsageApplyOperator implements ApplyOperator {
     return wrappedApply.isInvariantToEffects(state.getWrappedState());
   }
 
+  @Override
+  public boolean canBeAnythingApplied(AbstractState pState) {
+    UsageState state = (UsageState) pState;
+    return wrappedApply.canBeAnythingApplied(state.getWrappedState());
+  }
+
 }
