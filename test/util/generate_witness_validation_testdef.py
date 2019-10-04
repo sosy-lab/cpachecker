@@ -63,16 +63,16 @@ def _remove(tag):
 # if needed, add a new option for the machinemodel.
 def _addMachineModelOption(option, mmText, mmValue):
     if mmText is not None and option.attrib["name"] in ["-32", "-64"]:
-        machinemodel = option.attrib["name"][1:] # CPAchecker-specific!
+        machinemodel = option.attrib["name"][1:]  # CPAchecker-specific!
         option.getparent().append(_option(mmText, mmValue.format(machinemodel)))
 
 
 def _fixOptions(benchmark, rundef, mmText=None, mmValue=None):
-    for option in (benchmark.findall('option') + rundef.findall('option')):
+    for option in benchmark.findall("option") + rundef.findall("option"):
         _addMachineModelOption(option, mmText, mmValue)
         _remove(option)
     for task in benchmark.findall("tasks"):
-        for option in task.findall('option'):
+        for option in task.findall("option"):
             _addMachineModelOption(option, mmText, mmValue)
             _remove(option)
 
@@ -116,7 +116,9 @@ def _generate_validation_file(testdef_path, tool):
 
     requiredfiles = etree.Element("requiredfiles")
     requiredfiles.text = (
-        os.path.relpath(test_dir, os.path.dirname(testdef_path)) + "/results/" + witness_file
+        os.path.relpath(test_dir, os.path.dirname(testdef_path))
+        + "/results/"
+        + witness_file
     )
     rundef.append(requiredfiles)
 
