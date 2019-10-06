@@ -70,17 +70,14 @@ public class SLState implements AbstractState, Targetable {
 
   @Override
   public String toString() {
-    // String e = error == null ? "Nope." : error.name();
-    return "Formula:  "
-        + pathFormula.toString()
+    return "Errors:   "
+        + errors
+        + "\nFormula:  "
+        + pathFormula
         + "\nHeap:     "
-        + heap.toString()
+        + heap
         + "\nStack:    "
-        + stack.toString()
-        + "\nSSA:      "
-        + pathFormula.getSsa().toString()
-        + "\nErrors:    "
-        + (errors != null ? errors : "nope.");
+        + stack;
   }
 
   public Map<Formula, Formula> getHeap() {

@@ -19,9 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.sl;
 
-import com.google.common.collect.Iterables;
 import java.math.BigInteger;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -201,10 +199,11 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
             builder.getFormulaForExpression(((CInitializerExpression) init).getExpression(), true);
         updateMemory(stack, f, val);
       } else if (init instanceof CInitializerList) {
-        CInitializerList iList = (CInitializerList) init;
-        for (CInitializer i : iList.getInitializers()) {
-
-        }
+        // TODO
+        // CInitializerList iList = (CInitializerList) init;
+        // for (CInitializer i : iList.getInitializers()) {
+        //
+        // }
 
       }
 
@@ -328,33 +327,33 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     return res;
   }
 
-  private Formula
-      checkAllocation0(Formula pLoc, boolean usePredContext, Collection<Formula> pHeap) {
-    if (pHeap.isEmpty()) {
-      return null;
-    }
-
-    if (pHeap.size() == 1) {
-      Map<Formula, Formula> heap = new HashMap<>();
-      pHeap.stream().forEach(f -> heap.put(f, null));
-      if (isAllocated(pLoc, usePredContext, heap)) {
-        return pHeap.iterator().next();
-      } else {
-        return null;
-      }
-    }
-    // Split heap in two sub-heaps and check each of them.
-    for (Collection<Formula> subHeap : Iterables.partition(pHeap, pHeap.size() / 2)) {
-      Map<Formula, Formula> tmp = new HashMap<>();
-      // TODO convert map to collection in isAllocated?
-      // leave out values as they are coped by pathformula.
-      subHeap.stream().forEach(f -> tmp.put(f, null));
-      if (isAllocated(pLoc, usePredContext, tmp)) {
-        return checkAllocation0(pLoc, usePredContext, subHeap);
-      }
-    }
-    return null;
-  }
+  // private Formula
+  // checkAllocation0(Formula pLoc, boolean usePredContext, Collection<Formula> pHeap) {
+  // if (pHeap.isEmpty()) {
+  // return null;
+  // }
+  //
+  // if (pHeap.size() == 1) {
+  // Map<Formula, Formula> heap = new HashMap<>();
+  // pHeap.stream().forEach(f -> heap.put(f, null));
+  // if (isAllocated(pLoc, usePredContext, heap)) {
+  // return pHeap.iterator().next();
+  // } else {
+  // return null;
+  // }
+  // }
+  // // Split heap in two sub-heaps and check each of them.
+  // for (Collection<Formula> subHeap : Iterables.partition(pHeap, pHeap.size() / 2)) {
+  // Map<Formula, Formula> tmp = new HashMap<>();
+  // // TODO convert map to collection in isAllocated?
+  // // leave out values as they are coped by pathformula.
+  // subHeap.stream().forEach(f -> tmp.put(f, null));
+  // if (isAllocated(pLoc, usePredContext, tmp)) {
+  // return checkAllocation0(pLoc, usePredContext, subHeap);
+  // }
+  // }
+  // return null;
+  // }
 
   private Formula checkAllocation(
       Map<Formula, Formula> pMemory,

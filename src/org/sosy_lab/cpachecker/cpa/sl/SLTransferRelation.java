@@ -278,6 +278,7 @@ public class SLTransferRelation
     return state.getPathFormula();
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public void updateSSAMap(SSAMap pMap) {
     pathFormula = pfm.makeNewPathFormula(pathFormula, pMap); // TODO
