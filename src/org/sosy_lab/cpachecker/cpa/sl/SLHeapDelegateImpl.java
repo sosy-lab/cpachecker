@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -198,8 +199,15 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
       if (init instanceof CInitializerExpression) {
         val =
             builder.getFormulaForExpression(((CInitializerExpression) init).getExpression(), true);
+        updateMemory(stack, f, val);
+      } else if (init instanceof CInitializerList) {
+        CInitializerList iList = (CInitializerList) init;
+        for (CInitializer i : iList.getInitializers()) {
+
+        }
+
       }
-      updateMemory(stack, f, val);
+
     }
   }
 
@@ -299,18 +307,18 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
       Formula pVal,
       boolean usePredContext) {
     Timer timer = new Timer();
+    // timer.start();
+    //
+    // Formula res = checkAllocation0(fLoc, usePredContext, heap.keySet());
+    // if (res == null) {
+    // res = checkAllocation0(fLoc, usePredContext, stack.keySet());
+    // }
+    // timer.stop();
+    // logger.log(Level.INFO, "Solvingtime_new: " + timer.toString());
+    //
+    // timer = new Timer();
     timer.start();
-
-    Formula res = checkAllocation0(fLoc, usePredContext, heap.keySet());
-    if (res == null) {
-      res = checkAllocation0(fLoc, usePredContext, stack.keySet());
-    }
-    timer.stop();
-    logger.log(Level.INFO, "Solvingtime_new: " + timer.toString());
-
-    timer = new Timer();
-    timer.start();
-    res = checkAllocation(heap, fLoc, pVal, usePredContext);
+    Formula res = checkAllocation(heap, fLoc, pVal, usePredContext);
     if (res == null) {
      res = checkAllocation(stack, fLoc, pVal, usePredContext);
     }
@@ -484,6 +492,9 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     Formula loc = builder.getFormulaForExpression(pExp, usePredContext);
     if (pOffset != null) {
       Formula offset = builder.getFormulaForExpression(pOffset, true); // always pred ssa index.
+      BigInteger typeSize = machineModel.getSizeof(pExp.getExpressionType());
+      Formula typeWeight = bvfm.makeBitvector(8, typeSize);
+      offset = fm.makeMultiply(offset, typeWeight);
       loc = fm.makePlus(loc, offset);
     }
     return loc;
