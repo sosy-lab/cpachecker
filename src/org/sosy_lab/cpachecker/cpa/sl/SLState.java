@@ -19,7 +19,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.sl;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -42,8 +44,7 @@ public class SLState implements AbstractState, Targetable {
   private final Map<Formula, Formula> heap;
   private final Map<Formula, Formula> stack;
 
-  private boolean isTarget;
-  private SLStateError error = null;
+  private final Set<SLStateError> errors = new HashSet<>();
 
   public SLState(PathFormula pPathFormula) {
     this(pPathFormula, new HashMap<>(), new HashMap<>(), null);
@@ -57,8 +58,10 @@ public class SLState implements AbstractState, Targetable {
     pathFormula = pPathFormula;
     heap = pHeap;
     stack = pStack;
-    error = pError;
-    isTarget = error != null;
+    if (pError != null) {
+      errors.add(pError);
+    }
+
   }
 
   public PathFormula getPathFormula() {
@@ -76,8 +79,8 @@ public class SLState implements AbstractState, Targetable {
         + stack.toString()
         + "\nSSA:      "
         + pathFormula.getSsa().toString()
-        + "\nError:    "
-        + (error != null ? error.name() : "nope.");
+        + "\nErrors:    "
+        + (errors != null ? errors : "nope.");
   }
 
   public Map<Formula, Formula> getHeap() {
@@ -86,17 +89,18 @@ public class SLState implements AbstractState, Targetable {
 
   @Override
   public boolean isTarget() {
-    return isTarget;
+    return !errors.isEmpty();
   }
 
   public void setTarget(SLStateError pError) {
-    error = pError;
-    isTarget = pError != null;
+    errors.add(pError);
   }
 
   @Override
   @Nonnull
   public Set<Property> getViolatedProperties() throws IllegalStateException {
-    return NamedProperty.singleton(error.name());
+    Set<Property> res = new HashSet<>();
+    errors.stream().forEach(e -> res.add(NamedProperty.create(e.name())));
+    return ImmutableSet.copyOf(res);
   }
 }

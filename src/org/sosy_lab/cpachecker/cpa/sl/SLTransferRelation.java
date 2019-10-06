@@ -114,7 +114,9 @@ public class SLTransferRelation
       for (CSimpleDeclaration outOfScopeVar : vars) {
         try {
           SLStateError error = memDel.handleOutOfScopeVariable(outOfScopeVar);
-          slState.setTarget(error);
+          if (error != null) {
+            slState.setTarget(error);
+          }
         } catch (Exception e) {
           logger.log(Level.SEVERE, "OutOfScopeVariable: " + e.getMessage());
         }
