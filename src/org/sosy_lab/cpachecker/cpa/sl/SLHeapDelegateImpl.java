@@ -212,24 +212,15 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
 
   @Override
   public SLStateError handleDereference(CExpression pExp, CExpression pOffset) throws Exception {
-    // Formula loc;
-    // if (pExp instanceof CPointerExpression) {
-    // loc = createFormula(((CPointerExpression) pExp).getOperand(), pOffset, true);
-    // loc = checkAllocation(loc, null, true);
-    // if(loc == null) {
-    // return SLStateError.INVALID_DEREF;
-    // }
-    // if(heap.containsKey(loc) ) {
-    // loc = heap.get(loc);
-    // } else if (stack.containsKey(loc)) {
-    // loc = stack.get(loc);
-    // }
-    // return isAllocated(loc, true) ? null : SLStateError.INVALID_DEREF;
-    // }
-
     Formula loc = createFormula(pExp, pOffset, true);
-    return isAllocated(loc, true) ? null : SLStateError.INVALID_DEREF;
-
+    CType type = ((CPointerType) pExp.getExpressionType()).getType();
+    for (int i = 0; i < machineModel.getSizeof(type).intValueExact(); i++) {
+      final Formula f = fm.makePlus(loc, bvfm.makeBitvector(8, i));
+      if (!isAllocated(f, true)) {
+        return SLStateError.INVALID_DEREF;
+      }
+    }
+    return null;
   }
 
   @Override
@@ -238,25 +229,18 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
           throws Exception {
     final Formula loc = createFormula(pLHS, pOffset, true);
     final Formula val = builder.getFormulaForExpression(pRHS, true);
-    // if (pLHS instanceof CPointerExpression) {
-    // loc = createFormula(((CPointerExpression) pLHS).getOperand(), pOffset, true);
-    // loc = checkAllocation(loc, null, true);
-    // if (loc == null) {
-    // return SLStateError.INVALID_DEREF;
-    // }
-    // if (heap.containsKey(loc)) {
-    // loc = heap.get(loc);
-    // } else if (stack.containsKey(loc)) {
-    // loc = stack.get(loc);
-    // } else {
-    // return SLStateError.INVALID_DEREF;
-    // }
-    // } else {
-    //
-    // }
-    final Formula match = checkAllocation(loc, val, true);
-    return match == null ? SLStateError.INVALID_DEREF : null;
+    CType type = ((CPointerType) pLHS.getExpressionType()).getType();
+
+    for (int i = 0; i < machineModel.getSizeof(type).intValueExact(); i++) {
+      final Formula f = fm.makePlus(loc, bvfm.makeBitvector(8, i));
+      final Formula match = checkAllocation(f, val, true);
+      if (match == null) {
+        return SLStateError.INVALID_DEREF;
+      }
+    }
+    return null;
   }
+
 
   @Override
   public SLStateError handleOutOfScopeVariable(CSimpleDeclaration pDecl) throws Exception {
@@ -306,16 +290,6 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
       Formula pVal,
       boolean usePredContext) {
     Timer timer = new Timer();
-    // timer.start();
-    //
-    // Formula res = checkAllocation0(fLoc, usePredContext, heap.keySet());
-    // if (res == null) {
-    // res = checkAllocation0(fLoc, usePredContext, stack.keySet());
-    // }
-    // timer.stop();
-    // logger.log(Level.INFO, "Solvingtime_new: " + timer.toString());
-    //
-    // timer = new Timer();
     timer.start();
     Formula res = checkAllocation(heap, fLoc, pVal, usePredContext);
     if (res == null) {
@@ -491,9 +465,15 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     Formula loc = builder.getFormulaForExpression(pExp, usePredContext);
     if (pOffset != null) {
       Formula offset = builder.getFormulaForExpression(pOffset, true); // always pred ssa index.
-      BigInteger typeSize = machineModel.getSizeof(pExp.getExpressionType());
-      Formula typeWeight = bvfm.makeBitvector(8, typeSize);
-      offset = fm.makeMultiply(offset, typeWeight);
+      CPointerType type;
+      CType t = pExp.getExpressionType();
+      if (t instanceof CArrayType) {
+        type = ((CArrayType) t).asPointerType();
+      } else {
+        type = (CPointerType) pExp.getExpressionType();
+      }
+      BigInteger typeSize = machineModel.getSizeof(type.getType());
+      offset = fm.makeMultiply(offset, bvfm.makeBitvector(8, typeSize));
       loc = fm.makePlus(loc, offset);
     }
     return loc;

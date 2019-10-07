@@ -69,9 +69,6 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
   private CLeftHandSide curLHS;
   private CRightHandSide curRHS;
 
-  // private final Stack<CPointerExpression> ptrExps = new Stack<>();
-  // private final Stack<CIdExpression> basePtrs = new Stack<>();
-
   public SLVisitor(SLHeapDelegate pMemDelegate) {
     heapDelegate = pMemDelegate;
   }
@@ -196,17 +193,6 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
   @Override
   public SLStateError visit(CUnaryExpression pIastUnaryExpression) throws Exception {
     CExpression operand = pIastUnaryExpression.getOperand();
-    // if(pIastUnaryExpression == curRHS && pIastUnaryExpression.getOperator() ==
-    // UnaryOperator.AMPER) {
-    // if (operand instanceof CIdExpression) {
-    // heapDelegate.handleAddressOf((CIdExpression) operand);
-    // } else {
-    // throw new UnsupportedOperationException(
-    // "Operator "
-    // + UnaryOperator.AMPER
-    // + " not implemented for operands other than CIdExpressions.");
-    // }
-    // }
     return operand.accept(this);
   }
 
@@ -254,26 +240,26 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
 
   @Override
   public SLStateError visit(CIdExpression pIastIdExpression) throws Exception {
-    // CPointerExpression ptr = ptrExps.peek();
-    // CType type = pIastIdExpression.getExpressionType();
-    // CType expType = ptr.getOperand().getExpressionType();
-
-    // if (type.equals()) {
-    // basePtrs.push(pIastIdExpression);
-    // }
     return null;
   }
 
   @Override
   public SLStateError visit(CPointerExpression pPointerExpression) throws Exception {
-    // ptrExps.push(pPointerExpression);
     CExpression operand = pPointerExpression.getOperand();
     SLStateError error = operand.accept(this);
-    // CIdExpression basePtr = basePtrs.pop();
-    // ptrExps.pop();
     if (error != null) {
       return error;
     }
+    // CExpression offset =
+    // new CBinaryExpression(
+    // FileLocation.DUMMY,
+    // CNumericTypes.INT,
+    // CNumericTypes.INT,
+    // operand,
+    // basePtr,
+    // BinaryOperator.MINUS);
+
+
     if (curLHS == pPointerExpression) { // is assignment?
       return heapDelegate.handleDereferenceAssignment(operand, null, (CExpression) curRHS);
     } else {
