@@ -28,6 +28,7 @@ import static java.util.logging.Level.WARNING;
 import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.io.Resources;
@@ -47,6 +48,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.configuration.Configuration;
@@ -106,6 +108,10 @@ public class CollectorStatistics implements Statistics {
   private final Multimap<Integer, Object> argEdges;
   private int count;
   private LinkedHashMap<Map<Integer, Object>,Multimap<Integer, Object>> linkedNodesAndEdges = new LinkedHashMap<>();
+  private int countDeletedMergePartner;
+  private int removed;
+  private Collection<CollectorState> reachedcollectionCollector = new ArrayList<CollectorState>();
+
 
   public CollectorStatistics(CollectorCPA ccpa, Configuration config,LogManager pLogger) throws InvalidConfigurationException {
     this.cpa = ccpa;
@@ -125,12 +131,19 @@ public class CollectorStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
+    /**for (AbstractState entry : reached.asCollection()){
+      CollectorState entryABs = (CollectorState)entry;
+      reachedcollectionCollector.add(entryABs);
+    }
+    buildArgGraphDataCollector(reachedcollectionCollector);**/
+
     if (!reached.isEmpty() && reached.getFirstState() instanceof CollectorState) {
       reconstructARG(reached);
     }
 
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
-    writer.put("Sonja", 42);//hier können statistics gedruckt werden, siehe andere Klassen
+    writer.put("Deleted MergePartner", countDeletedMergePartner);//hier können statistics gedruckt werden, siehe andere Klassen
+    writer.put("Removed ARGStates", removed);
     writer.put("sonja result", result);
     writer.put("Sonja reached", reached.toString()) ;
     writer.put("Sonja reconstructed", reachedcollectionARG.toString());
@@ -140,6 +153,9 @@ public class CollectorStatistics implements Statistics {
 
     makeAFileDirectory();
     count = 0;
+    countDeletedMergePartner = 0;
+    removed = 0;
+
 
     for (AbstractState entry : reached.asCollection()) {
 
@@ -153,14 +169,14 @@ public class CollectorStatistics implements Statistics {
 
         if (reachedcollectionARG.size() == 0) {
           newarg = new ARGState(parentwrappedmyARG, null);
-          newarg.markExpanded();
+          //newarg.markExpanded();
           linkedparents.put(convertedARGStatetransfer, newarg);
         } else {
 
           if (linkedparents.containsKey(convertedparenttransfer)) {
             ARGState current = linkedparents.get(convertedparenttransfer);
             newarg = new ARGState(wrappedmyARG, current);
-            newarg.markExpanded();
+            //newarg.markExpanded();
             linkedparents.put(convertedARGStatetransfer, newarg);
           } else {
             newarg = new ARGState(wrappedmyARG, null);
@@ -169,7 +185,9 @@ public class CollectorStatistics implements Statistics {
           }
         }
         reachedcollectionARG.add(newarg);
-        makeLinkedData(reachedcollectionARG);
+       // makeLinkedData(reachedcollectionARG, countedReachedCollection);
+        //makeDotFile(reachedcollectionARG);
+        //logger.log(Level.INFO, "countedreachedcollection:\n" + countedReachedCollection);
       }
 
       Boolean merged = ((CollectorState) entry).ismerged();
@@ -196,12 +214,18 @@ public class CollectorStatistics implements Statistics {
             final ARGState current2 = linkedparents.get(convertedparent2);
 
             newarg1 = new ARGState(wrappedmyARG1, current1);
+            newarg1.markToMerge();
             reachedcollectionARG.add(newarg1);
-            makeLinkedData(reachedcollectionARG);
+
+           // makeLinkedData(reachedcollectionARG, countedReachedCollection);
+            //makeDotFile(reachedcollectionARG);
 
             newarg2 = new ARGState(wrappedmyARG2, current2);
+            newarg2.markToMerge();
             reachedcollectionARG.add(newarg2);
-            makeLinkedData(reachedcollectionARG);
+
+           // makeLinkedData(reachedcollectionARG, countedReachedCollection);
+            //makeDotFile(reachedcollectionARG);
 
 
 
@@ -212,11 +236,15 @@ public class CollectorStatistics implements Statistics {
             linkedparents.put(convertedARGState2, newarg2);
             linkedDestroyer.put(newarg2, destroyed2);
 
-            // remove mergepartner nodes
+            //###########################################################################
+            // all this stuff is needed to remove mergepartner-states from reachedcollection and graph
+          /**  // remove mergepartner nodes
             int id1 = newarg1.getStateId();
             int id2 = newarg2.getStateId();
             argNodes.remove(id1);
+            countDeletedMergePartner ++;
             argNodes.remove(id2);
+            countDeletedMergePartner ++;
 
             //remove all edges associated with key(node) id1/id2
             if(argEdges.containsKey(id1)){
@@ -230,24 +258,31 @@ public class CollectorStatistics implements Statistics {
             reachedcollectionARG.remove(newarg2);
             reachedcollectionARG.remove(newarg1);
             newarg1.removeFromARG();
+            removed ++;
             newarg2.removeFromARG();
-
+            removed ++;
+**/
+          //##############################################################################
             newarg3 = new ARGState(c, current2);
             newarg3.addParent(current1);
+            newarg3.markMerged();
 
 
             linkedparents.put(mergedstate, newarg3);
 
             reachedcollectionARG.add(newarg3);
-            makeLinkedData(reachedcollectionARG);
-
+           // makeLinkedData(reachedcollectionARG, countedReachedCollection);
+            //makeDotFile(reachedcollectionARG);
+            //logger.log(Level.INFO, "countedreachedcollection:\n" + countedReachedCollection);
           }
         }
       }
   }
-
+      makeLinkedData(reachedcollectionARG);
+      //makecountedGraph(countedReachedCollection);
     //makeDotFile(reachedcollectionARG);
       makeHTMLFile();
+
 
   }
 
@@ -341,15 +376,22 @@ public class CollectorStatistics implements Statistics {
 
   private void makeLinkedData(Collection<ARGState> pReachedcollectionARG){
 
+    //logger.log(Level.INFO, "reachedcollection:\n" + pReachedcollectionARG);
     buildArgGraphData(pReachedcollectionARG);
 
-    Map<Integer, Object> immutableMapNodes =
-        Collections.unmodifiableMap(new LinkedHashMap<Integer, Object>(argNodes));
+    //which one is to prefer?
+    /**Map<Integer, Object> immutableMapNodes =
+        Collections.unmodifiableMap(new LinkedHashMap<Integer, Object>(argNodes));**/
+    ImmutableMap<Integer, Object> immutableMapNodes = ImmutableMap.<Integer, Object>builder().putAll(argNodes)
+        .build();
 
-    Multimap<Integer, Object> immutableMapEdges = ImmutableMultimap.<Integer, Object>builder().putAll(argEdges)
-            .build();
+    ImmutableMultimap<Integer, Object> immutableMapEdges = ImmutableMultimap.<Integer, Object>builder().putAll(argEdges)
+        .build();
+    //ImmutableMultimap<String, Object> immutableMapEdges = ImmutableMultimap.<String, Object>builder().putAll(argEdgesC)
+     //  .build();
 
     linkedNodesAndEdges.put(immutableMapNodes,immutableMapEdges);
+    //logger.log(Level.INFO, "sonja linkedNodesAndEdges:\n" + linkedNodesAndEdges);
   }
 
 
@@ -376,25 +418,27 @@ public class CollectorStatistics implements Statistics {
       });
     }
   }
-
   private void buildArgGraphData(Collection<ARGState> reached) {
     for (AbstractState entry : reached) {
-      int parentStateId = ((ARGState) entry).getStateId();
-
+      int parentStateID = ((ARGState) entry).getStateId();
       for (CFANode node : AbstractStates.extractLocations(entry)) {
-        if (!argNodes.containsKey(parentStateId)) {
-          argNodes.put(parentStateId, createArgNode(parentStateId, node, (ARGState) entry));
+        if (!argNodes.containsKey(parentStateID)) {
+          argNodes.put(parentStateID, createArgNode(parentStateID, node, (ARGState) entry));
         }}
+      //logger.log(Level.INFO, "argnodes:\n" + argNodes);
       Collection<ARGState> children = ((ARGState) entry).getChildren();
       for (ARGState child : children) {
         int childID = child.getStateId();
-        argEdges.put(
-            childID,
-            createArgEdge(
-                parentStateId, childID, ((ARGState) entry).getEdgesToChild(child)));
+        Map<String, Object> edgeValue = createArgEdge(
+            parentStateID, childID, ((ARGState) entry).getEdgesToChild(child));
+        //if (!argEdges.containsKey(childID) && !argEdges.containsValue(edgevalue)) {
+        if (!argEdges.containsEntry(childID, edgeValue)) {
+          argEdges.put(childID, edgeValue);
+        }
       }
     }
   }
+
 // ReportGenerator methods
   private Map<String, Object> createArgNode(int parentStateId, CFANode node, ARGState argState) {
     String dotLabel =
@@ -415,17 +459,26 @@ public class CollectorStatistics implements Statistics {
             + "\n"
             + dotLabel);
     argNode.put("type", determineNodeType(argState));
+    //argNode.put("count", "node"+ parentStateId);
     return argNode;
   }
+
+
   private String determineNodeType(ARGState argState) {
     if (argState.isTarget()) {
       return "target";
     }
-    if (!argState.wasExpanded()) {
+   /** if (!argState.wasExpanded()) {
       return "not-expanded";
-    }
+    }**/
     if (argState.shouldBeHighlighted()) {
       return "highlighted";
+    }
+    if (argState.merged()) {
+      return "merged";
+    }
+    if (argState.toMerge()) {
+      return "toMerge";
     }
     return "";
   }
@@ -441,6 +494,7 @@ public class CollectorStatistics implements Statistics {
   private Map<String, Object> createArgEdge(
       int parentStateId, int childStateId, List<CFAEdge> edges) {
     Map<String, Object> argEdge = new HashMap<>();
+   // argEdge.put("count", childStateId);
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
     StringBuilder edgeLabel = new StringBuilder();
@@ -481,6 +535,7 @@ public class CollectorStatistics implements Statistics {
     argEdge.put("label", edgeLabel.toString());
     return argEdge;
   }
+
   // Similar to the getEdgeText method in DOTBuilder2
   private static String getEdgeText(CFAEdge edge) {
     return edge.getDescription()

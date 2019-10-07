@@ -31,7 +31,13 @@ g.bla > rect {
     fill: plum
 }
 g.not-expanded > rect {
+    fill: #e5ff00;
+}
+g.merged > rect {
     fill: #00ffd0;
+}
+g.toMerge > rect {
+    fill: plum
 }
 text {
     font-weight: 300;
@@ -88,3 +94,16 @@ text {
     cursor: pointer; /* Cursor on hover */
 }
 
+.blabla > rect {
+    fill: red
+}
+.wannahide {
+    visibility: hidden;
+}
+.hiddenmerge {
+    visibility: hidden;
+}
+
+.contentshow {
+    visibility: visible;
+}

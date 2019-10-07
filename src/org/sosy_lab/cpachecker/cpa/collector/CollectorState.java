@@ -74,12 +74,12 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
                         Boolean merged,
                         @Nullable myARGState pMyARG1,
                         @Nullable myARGState pMyARG2,
-                        LogManager clogger) {
+                        LogManager cLogger) {
     super(pWrappedState);
-    logger = clogger;
+    logger = cLogger;
     ismerged = merged;
     if (myARGtransfer != null) {
-      myARGTransferRelation = myARGtransfer;
+      this.myARGTransferRelation = myARGtransfer;
     }
     if (pMyARG1 != null) {
       this.myARG1 = pMyARG1;
@@ -112,8 +112,8 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    //sb.append("CollectorStateID:  ");
-    //sb.append(stateId );
+    //sb.append("\nCollectorStateID:  ");
+    //sb.append(stateId + "\n");
     if (states != null) {
      sb.append("Current:  ");
      sb.append("Sucessors: ");

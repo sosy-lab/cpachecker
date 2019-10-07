@@ -50,13 +50,13 @@ public class myARGState implements Graphable {
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
   private final int stateId;
 
-  public myARGState(ARGState celement,
+  public myARGState(ARGState cElement,
                     @Nullable ARGState pParentElement,
                     @Nullable Collection<ARGState> cParents,
                     LogManager clogger){
     logger = clogger;
     stateId = idGenerator.getFreshId();
-    element = celement;
+    element = cElement;
     wrappedelement = element.getWrappedState();
     currentID = element.getStateId();
     currentChildren = element.getChildren();

@@ -62,13 +62,12 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
-public class CollectorTransferRelation implements TransferRelation, Graphable {
+public class CollectorTransferRelation implements TransferRelation {
 
   private final TransferRelation transferRelation;
   private final LogManager logger;
-  Map<Integer, Collection<? extends AbstractState>>
-      successorsHashmap = new HashMap<Integer, Collection<? extends AbstractState>>();
   private myARGState mytransferARG;
+  private CollectorState successorElem;
 
 
   public CollectorTransferRelation(TransferRelation tr, LogManager trLogger) {
@@ -84,26 +83,23 @@ public class CollectorTransferRelation implements TransferRelation, Graphable {
 
   assert pElement instanceof CollectorState;
 
-    AbstractState wrappedState = pElement;
+    AbstractState state = pElement;
     //logger.log(Level.INFO, "sonja pElement:\n" + pElement);
-    ARGState wrappedState2 = (ARGState) ((CollectorState) wrappedState).getWrappedState();
-    AbstractState wrappedState3 = wrappedState2;
+    ARGState wrappedState = (ARGState) ((CollectorState) state).getWrappedState();
 
     Collection<? extends AbstractState> successors;
     try {
       assert transferRelation instanceof ARGTransferRelation : "Transfer relation no ARG transfer"
           + " relation, but " + transferRelation.getClass().getSimpleName();
 
-      successors = transferRelation.getAbstractSuccessors(wrappedState2, pPrecision);
+      successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision);
       //logger.log(Level.INFO, "sonja successors:\n" + successors);
 
-      Collection<ARGState> ARGSuccessors = new ArrayList<>();
       Collection<AbstractState> wrappedSuccessors = new ArrayList<>();
       for (AbstractState absElement : successors) {
-        ARGState absARG = (ARGState) absElement;
-        ARGSuccessors.add(absARG);
-        mytransferARG = new myARGState(absARG,wrappedState2,null, logger);
-        CollectorState successorElem = new CollectorState(absElement, null, mytransferARG, false,null,null,logger);
+        ARGState succARG = (ARGState) absElement;
+        mytransferARG = new myARGState(succARG,wrappedState,null, logger);
+        successorElem = new CollectorState(absElement, null, mytransferARG, false,null,null,logger);
         wrappedSuccessors.add(successorElem);
       }
 
@@ -115,6 +111,7 @@ public class CollectorTransferRelation implements TransferRelation, Graphable {
     }
   }
 
+  // same as in ARGTransferRelation
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
@@ -123,19 +120,4 @@ public class CollectorTransferRelation implements TransferRelation, Graphable {
         "ARGCPA needs to be used as the outer-most CPA,"
             + " thus it does not support returning successors for a single edge.");
   }
-
-
-  @Override
-  public String toDOTLabel() {
-    if (successorsHashmap instanceof Graphable) {
-      return ((Graphable)successorsHashmap).toDOTLabel();
-    }
-    return "";
-  }
-
-  @Override
-  public boolean shouldBeHighlighted() {
-    return false;
-  }
-
 }

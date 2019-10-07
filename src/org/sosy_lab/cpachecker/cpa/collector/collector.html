@@ -67,13 +67,15 @@ d3.select('h3').style('font-family', 'sans-serif');
     </div>
     <div id="statButtons">
         <input type="button" class="button" value="NEXT" onclick="buttonUP()">
+        <input type="button" class="button" value="NEXT new!" onclick="shownode()" id="shownode">
         <br />
         <input type="button" class="button" value="PREV" onclick="buttonDN()">
+        <input type="button" class="button" value="PREV new!" onclick="removenode()" id="removenode">
         <br />
     </div>
 </h1>
 
-<svg id="canvas"></svg>
+<svg id="canvas" onclick="showCoords(document.getElementById('canvas'),event)" ></svg>
 
 </body></html>
 
