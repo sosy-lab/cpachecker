@@ -54,8 +54,8 @@ public class ExtendedWitnessExporter extends WitnessExporter {
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer =
-        new ExtendedWitnessWriter(
+    WitnessFactory writer =
+        new ExtendedWitnessFactory(
             options,
             cfa,
             verificationTaskMetaData,

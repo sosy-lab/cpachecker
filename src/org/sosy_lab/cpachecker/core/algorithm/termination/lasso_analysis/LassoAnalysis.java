@@ -454,8 +454,17 @@ public class LassoAnalysis {
 
         try (TerminationArgumentSynthesizer terminationArgumentSynthesizer =
             createTerminationArgumentSynthesizer(lasso, rankingTemplate)) {
-
-          LBool result = terminationArgumentSynthesizer.synthesize();
+          LBool result = null;
+          try {
+            result = terminationArgumentSynthesizer.synthesize();
+          } catch (AssertionError e) {
+            // Workaround for a bug in LassoRanker (terminationArgumentSynthesizer.synthesize()):
+            // An assertion is violated if the time limit is reached.
+            if ("not yet implemented".equals(e.getMessage())) {
+              shutdownNotifier.shutdownIfNecessary();
+            }
+            throw e;
+          }
           if (result.equals(LBool.SAT) && terminationArgumentSynthesizer.synthesisSuccessful()) {
             TerminationArgument terminationArgument = terminationArgumentSynthesizer.getArgument();
             logger.logf(Level.FINE, "Found termination argument: %s", terminationArgument);
@@ -477,14 +486,6 @@ public class LassoAnalysis {
               return LassoAnalysisResult.unknown();
             }
           }
-
-        } catch (AssertionError e) {
-          // Workaround for a bug in LassoRanker (terminationArgumentSynthesizer.synthesize()):
-          // An assertion is violated if the time limit is reached.
-          if (e.getMessage().equals("not yet implemented")) {
-            shutdownNotifier.shutdownIfNecessary();
-          }
-          throw e;
         }
       }
 

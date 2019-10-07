@@ -1416,6 +1416,9 @@ cpa.constraints.satCheckStrategy = AT_ASSUME
 # Try model of predecessor constraints state before running SMT solver
 cpa.constraints.useLastModel = true
 
+# Keep infeasible dummy states that allow for better debugging
+cpa.dca.refiner.keepInfeasibleStates = false
+
 # Set number of refinements for the trace abstraction algorithm
 cpa.dca.refiner.maxRefinementIterations = 0
 
@@ -1423,7 +1426,7 @@ cpa.dca.refiner.maxRefinementIterations = 0
 cpa.dca.refiner.skipAnalysis = false
 
 # Abort the refinement of finite prefixes for the purpose of better debugging
-cpa.dca.refiner.skipFiniteRefinement = false
+cpa.dca.refiner.skipRefinement = false
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
@@ -3739,6 +3742,10 @@ solver.cacheUnsatCores = true
 # improve sat-checks with additional constraints for UFs
 solver.checkUFs = false
 
+# whether CPAchecker's logger should be used as logger for the solver,
+# otherwise nothing is logged from the solver.
+solver.enableLoggingInSolver = false
+
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
@@ -3936,6 +3943,11 @@ undefinedFunctionsCollector.stubsFile = "stubs.c"
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value
 
+# remove assumptions from transitions in the ISA where they are not strictly
+# neccessary.This option is intended to be used with an ISA (c.f. option
+# witness.invariantsSpecificationAutomaton)
+witness.checkInvariantViolations = true
+
 # Check that the value of the programhash field of the witness matches the
 # SHA-256 hash value computed for the source code.
 witness.checkProgramHash = true
@@ -3958,12 +3970,22 @@ witness.matchOffset = true
 # markers).
 witness.matchOriginLine = true
 
+# remove assumptions from transitions in the ISA where they are not strictly
+# neccessary.This option is intended to be used with an ISA (c.f. option
+# witness.invariantsSpecificationAutomaton)
+witness.optimizeInvariantsSpecificationAutomaton = true
+
 # Represent sink states by bottom state instead of break state
 witness.stopNotBreakAtSinkStates = true
 
 # Enforce strict validity checks regarding the witness format, such as
 # checking for the presence of required fields.
 witness.strictChecking = true
+
+# remove assumptions from transitions in the ISA where they are not strictly
+# neccessary.This option is intended to be used with an ISA (c.f. option
+# witness.invariantsSpecificationAutomaton)
+witness.useInvariantsAsAssumptions = true
 
 # When validating a correctness witness, use this configuration file instead
 # of the current one.

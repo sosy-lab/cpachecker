@@ -49,22 +49,18 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
   private static final long serialVersionUID = -3454798281550882095L;
 
   private final AutomatonState buechiState;
+  private final ImmutableList<AutomatonState> compositeStates;
+
   private final ImmutableList<AutomatonState> productStates;
 
-  private final ImmutableList<AutomatonState> compositeStates;
-  private ImmutableList<AExpression> predecessorStateBuechiAssumptions;
-
-  public DCAState(
-      AutomatonState pBuechiState,
-      List<AutomatonState> pCompositeStates,
-      ImmutableList<AExpression> pPredecessorBuechiAssumptions) {
+  public DCAState(AutomatonState pBuechiState, List<AutomatonState> pCompositeStates) {
     buechiState = checkNotNull(pBuechiState);
     compositeStates = ImmutableList.copyOf(pCompositeStates);
     productStates =
-        new ImmutableList.Builder<AutomatonState>().add(buechiState)
+        new ImmutableList.Builder<AutomatonState>()
+            .add(buechiState)
             .addAll(compositeStates)
             .build();
-    predecessorStateBuechiAssumptions = pPredecessorBuechiAssumptions;
   }
 
   @Override
@@ -75,7 +71,8 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
   @Override
   public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
     checkArgument(isTarget());
-    return productStates.stream()
+    return productStates
+        .stream()
         .flatMap(x -> x.getViolatedProperties().stream())
         .collect(ImmutableSet.toImmutableSet());
   }
@@ -95,7 +92,8 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
 
   @Override
   public ImmutableList<AExpression> getAssumptions() {
-    return productStates.stream()
+    return productStates
+        .stream()
         .flatMap(x -> x.getAssumptions().stream())
         .distinct()
         .collect(ImmutableList.toImmutableList());
@@ -161,7 +159,7 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    if (predecessorStateBuechiAssumptions.isEmpty()) {
+    if (buechiState.getAssumptions().isEmpty()) {
       return true;
     }
 
@@ -171,5 +169,4 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
 
     return predecessorStateBuechiExpressions.equals(pProperty);
   }
-
 }

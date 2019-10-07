@@ -137,15 +137,25 @@ public class CLangSMGConsistencyVerifier {
       object_union.addAll(frame.getAllObjects());
     }
 
-    boolean toReturn =
-        object_union.containsAll(pSmg.getObjects().asSet())
-            && pSmg.getObjects().asSet().containsAll(object_union);
-
-    if (! toReturn) {
-      pLogger.log(Level.SEVERE, "CLangSMG inconsistent: union of stack, heap and global object is not the same set as the set of SMG objects");
+    if (!object_union.containsAll(pSmg.getObjects().asSet())) {
+      pLogger.log(
+          Level.SEVERE,
+          "CLangSMG inconsistent: union of stack, heap and global object "
+              + "contains less objects than the set of SMG objects. Missing object:",
+          Sets.difference(pSmg.getObjects().asSet(), object_union));
+      return false;
     }
 
-    return toReturn;
+    if (!pSmg.getObjects().asSet().containsAll(object_union)) {
+      pLogger.log(
+          Level.SEVERE,
+          "CLangSMG inconsistent: union of stack, heap and global object "
+              + "contains more objects than the set of SMG objects. Additional object:",
+          Sets.difference(object_union, pSmg.getObjects().asSet()));
+      return false;
+    }
+
+    return true;
   }
 
   /**

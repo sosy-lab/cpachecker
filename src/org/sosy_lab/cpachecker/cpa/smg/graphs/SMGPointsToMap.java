@@ -94,7 +94,7 @@ public class SMGPointsToMap implements SMGPointsToEdges {
 
   @Override
   public String toString() {
-    return map.toString();
+    return map.values().toString();
   }
 
   @Override

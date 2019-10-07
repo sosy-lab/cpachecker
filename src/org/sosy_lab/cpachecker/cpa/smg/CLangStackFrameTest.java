@@ -64,15 +64,6 @@ public class CLangStackFrameTest {
         .that(variables)
         .isEmpty();
     assertThat(sf.containsVariable("foo")).isFalse();
-
-    // Copy constructor
-    CLangStackFrame sf_copy = new CLangStackFrame(sf);
-    variables = sf_copy.getVariables();
-    assert_()
-        .withMessage("Empty CLangStackFrame contains no variables after copying")
-        .that(variables)
-        .isEmpty();
-    assertThat(sf_copy.containsVariable("foo")).isFalse();
   }
 
   @Test

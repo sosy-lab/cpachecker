@@ -84,13 +84,18 @@ public final class Specification {
         return new Specification(pProperties, ImmutableListMultimap.of());
       }
       if (pProperties.size() == 1) {
-        Property property = Iterables.getOnlyElement(pProperties).getProperty();
-        if (property instanceof LabelledFormula) {
+        SpecificationProperty specProp = Iterables.getOnlyElement(pProperties);
+        if (specProp.getProperty() instanceof LabelledFormula) {
           try {
-            LabelledFormula formula = ((LabelledFormula) property).not();
+            LabelledFormula formula = ((LabelledFormula) specProp.getProperty()).not();
             Automaton automaton =
                 Ltl2BuechiConverter.convertFormula(
-                    formula, config, logger, cfa.getMachineModel(), new CProgramScope(cfa, logger));
+                    formula,
+                    specProp.getEntryFunction(),
+                    config,
+                    logger,
+                    cfa.getMachineModel(),
+                    new CProgramScope(cfa, logger));
             return new Specification(
                 pProperties,
                 ImmutableListMultimap.of(Paths.get(""), automaton));

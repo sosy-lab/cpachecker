@@ -9,6 +9,11 @@
     <option name="-valueAnalysis"/>
   </rundefinition>
 
+  <columns>
+    <column title="cex check" >Time for counterexample checks</column>
+    <column title="transfer"  >Time for transfer relation</column>
+  </columns>
+
   <!-- SV-Comp files assume that malloc always succeeds -->
   <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
@@ -34,34 +39,42 @@
   <tasks name="ReachSafety-BitVectorsReach">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="ReachSafety-ControlFlow">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="ReachSafety-ECA">
     <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="ReachSafety-Floats">
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="ReachSafety-HeapReach">
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="ReachSafety-Loops">
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="ReachSafety-ProductLines">
     <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="ReachSafety-Sequentialized">
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
 
   <tasks name="Systems_DeviceDriversLinux64_ReachSafety">

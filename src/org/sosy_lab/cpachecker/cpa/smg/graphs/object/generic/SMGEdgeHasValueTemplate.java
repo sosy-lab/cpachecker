@@ -23,29 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGEdgeHasValueTemplate extends SMGEdgeTemplate
     implements SMGEdgeHasValueTemplateWithConcreteValue {
 
-  private final CType type;
   private final long sizeInBits;
 
   public SMGEdgeHasValueTemplate(
       SMGObjectTemplate pAbstractObject,
       SMGValue pAbstractValue,
       long pOffset,
-      CType pType,
       long pSizeInBits) {
     super(pAbstractObject, pAbstractValue, pOffset);
-    type = pType;
     sizeInBits = pSizeInBits;
-  }
-
-  @Override
-  public CType getType() {
-    return type;
   }
 
   @Override

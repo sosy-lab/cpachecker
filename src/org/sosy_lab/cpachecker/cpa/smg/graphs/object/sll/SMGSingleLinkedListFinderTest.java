@@ -95,7 +95,6 @@ public class SMGSingleLinkedListFinderTest {
     SMGObject inside = new SMGRegion(128, "pointed_at");
     SMGEdgeHasValue tailConnection =
         new SMGEdgeHasValue(
-            CPointerType.POINTER_TO_VOID,
             smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
             64,
             inside,
@@ -106,7 +105,6 @@ public class SMGSingleLinkedListFinderTest {
     SMGRegion inboundPointer = new SMGRegion(64, "inbound_pointer");
     SMGEdgeHasValue inboundPointerConnection =
         new SMGEdgeHasValue(
-            CPointerType.POINTER_TO_VOID,
             smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
             0,
             inboundPointer,
@@ -130,7 +128,6 @@ public class SMGSingleLinkedListFinderTest {
 
     SMGEdgeHasValue headConnection =
         new SMGEdgeHasValue(
-            CPointerType.POINTER_TO_VOID,
             smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
             64,
             lastFromHead,
@@ -139,7 +136,6 @@ public class SMGSingleLinkedListFinderTest {
     SMGRegion tailPointer = new SMGRegion(64, "tail_pointer");
     SMGEdgeHasValue tailPointerConnection =
         new SMGEdgeHasValue(
-            CPointerType.POINTER_TO_VOID,
             smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
             0,
             tailPointer,

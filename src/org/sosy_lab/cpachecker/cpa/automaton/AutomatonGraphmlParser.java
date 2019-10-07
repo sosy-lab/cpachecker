@@ -86,6 +86,9 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
@@ -191,6 +194,30 @@ public class AutomatonGraphmlParser {
           "Validate correctness witness by specifying an invariants specification automaton")
   private InvariantsSpecificationAutomatonBuilder invariantsSpecAutomaton =
       InvariantsSpecificationAutomatonBuilder.NO_ISA;
+
+  @Option(
+      secure = true,
+      name = "optimizeInvariantsSpecificationAutomaton",
+      description =
+          "remove assumptions from transitions in the ISA where they are not strictly neccessary."
+              + "This option is intended to be used with an ISA (c.f. option witness.invariantsSpecificationAutomaton)")
+  private boolean optimizeISA = true;
+
+  @Option(
+      secure = true,
+      name = "checkInvariantViolations",
+      description =
+          "remove assumptions from transitions in the ISA where they are not strictly neccessary."
+              + "This option is intended to be used with an ISA (c.f. option witness.invariantsSpecificationAutomaton)")
+  private boolean checkInvariantViolations = true;
+
+  @Option(
+      secure = true,
+      name = "useInvariantsAsAssumptions",
+      description =
+          "remove assumptions from transitions in the ISA where they are not strictly neccessary."
+              + "This option is intended to be used with an ISA (c.f. option witness.invariantsSpecificationAutomaton)")
+  private boolean useInvariantsAsAssumptions = true;
 
   private Scope scope;
   private final LogManager logger;
@@ -327,7 +354,7 @@ public class AutomatonGraphmlParser {
       ExpressionTree<AExpression> invariant = stateInvariantsMap.get(pState);
       try {
         createAutomatonInvariantsTransitions(
-            transitions, stutterCondition, ImmutableList.of(), invariant, pState);
+            transitions, stutterCondition, ImmutableList.of(), invariant, pState, pState);
       } catch (UnrecognizedCodeException e) {
         throw new WitnessParseException("Unable to parse invariant to CExpression");
       }
@@ -605,6 +632,7 @@ public class AutomatonGraphmlParser {
               transitionCondition,
               actions,
               candidateInvariants,
+              pTransition.getSource(),
               pTransition.getTarget());
           // Use conjunction of the invariants which should hold for the same state
           ExpressionTree<AExpression> stateInvariantsMapEntry = ExpressionTrees.getTrue();
@@ -1751,8 +1779,10 @@ public class AutomatonGraphmlParser {
       AutomatonBoolExpr pTransitionCondition,
       List<AutomatonAction> pActions,
       ExpressionTree<AExpression> pInvariant,
+      GraphMLState pSourceState,
       GraphMLState pTargetState)
       throws UnrecognizedCodeException {
+
     CExpression cExpr = pInvariant.accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
     if (pInvariant instanceof LeafExpression<?>) {
       // we must swap the c expression when assume truth is false
@@ -1766,19 +1796,87 @@ public class AutomatonGraphmlParser {
         new CBinaryExpressionBuilder(cfa.getMachineModel(), logger)
             .negateExpressionAndSimplify(cExpr);
     List<AExpression> assumptionWithNegCExpr = Collections.singletonList(negCExpr);
-    pTransitions.add(
-        createAutomatonInvariantErrorTransition(pTransitionCondition, assumptionWithNegCExpr));
     List<AExpression> assumptionWithCExpr = Collections.singletonList(cExpr);
-    pTransitions.add(
-        createAutomatonTransition(
-            pTransitionCondition,
-            ImmutableList.of(),
-            assumptionWithCExpr,
-            pInvariant,
-            pActions,
-            pTargetState,
-            pTargetState.isViolationState(),
-            stopNotBreakAtSinkStates));
+
+    if (optimizeISA) {
+      List<CFAEdge> stateChangingEdges = new ArrayList<>();
+      List<CFAEdge> nonStateChangingEdges = new ArrayList<>();
+      for (CFANode node : cfa.getAllNodes()) {
+        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+          CFAEdge edge = node.getLeavingEdge(i);
+          if (EnumSet.of(CFAEdgeType.BlankEdge, CFAEdgeType.AssumeEdge)
+              .contains(edge.getEdgeType())) {
+            nonStateChangingEdges.add(edge);
+          } else {
+            stateChangingEdges.add(edge);
+          }
+        }
+      }
+      AutomatonBoolExpr changingTransition =
+          and(pTransitionCondition, matchAnyEdgeOf(stateChangingEdges));
+      AutomatonBoolExpr nonChangingTransition =
+          and(pTransitionCondition, matchAnyEdgeOf(nonStateChangingEdges));
+
+      if (checkInvariantViolations) {
+        // only transition to the error state if an edge matches that can change the data state,
+        // i.e., use changingTransition here instead of pTransitionCondition:
+        pTransitions.add(
+            createAutomatonInvariantErrorTransition(changingTransition, assumptionWithNegCExpr));
+      }
+
+      if (pSourceState.getInvariants().equals(pTargetState.getInvariants())) {
+        // if we stay in the invariant state on an edge that could change the data state, we need to
+        // assume the invariant again:
+        pTransitions.add(
+            createAutomatonTransition(
+                changingTransition,
+                ImmutableList.of(),
+                useInvariantsAsAssumptions ? assumptionWithCExpr : ImmutableList.of(),
+                pInvariant,
+                pActions,
+                pTargetState,
+                pTargetState.isViolationState(),
+                stopNotBreakAtSinkStates));
+        // we stay in the invariant state, but the edge cannot change the data state => no need to
+        // assume the invariant:
+        pTransitions.add(
+            createAutomatonTransition(
+                nonChangingTransition,
+                ImmutableList.of(),
+                ImmutableList.of(),
+                ExpressionTrees.<AExpression>getTrue(),
+                ImmutableList.of(),
+                pTargetState,
+                pTargetState.isViolationState(),
+                stopNotBreakAtSinkStates));
+      }
+    }
+
+    if (!optimizeISA && checkInvariantViolations) {
+      pTransitions.add(
+          createAutomatonInvariantErrorTransition(pTransitionCondition, assumptionWithNegCExpr));
+    }
+    if (!optimizeISA || !pSourceState.getInvariants().equals(pTargetState.getInvariants())) {
+      pTransitions.add(
+          createAutomatonTransition(
+              pTransitionCondition,
+              ImmutableList.of(),
+              useInvariantsAsAssumptions ? assumptionWithCExpr : ImmutableList.of(),
+              pInvariant,
+              pActions,
+              pTargetState,
+              pTargetState.isViolationState(),
+              stopNotBreakAtSinkStates));
+    }
+  }
+
+  private AutomatonBoolExpr matchAnyEdgeOf(List<CFAEdge> stateChangingEdges) {
+    AutomatonBoolExpr result = null;
+    for (CFAEdge edge : stateChangingEdges) {
+      AutomatonBoolExpr edgeTransition = new AutomatonBoolExpr.MatchCFAEdgeNodes(edge);
+      result = (result == null) ? edgeTransition : or(result, edgeTransition);
+    }
+    return result;
   }
 
   private static class ViolationCopyingAutomatonTransition extends AutomatonTransition {

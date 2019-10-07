@@ -247,7 +247,10 @@ public class SMGIsLessOrEqual {
 
     // TODO Merge Zero.
     for (SMGEdgeHasValue edge1 : pSMG1.getHVEdges(filterForSMG1)) {
-      filterForSMG2.filterAtOffset(edge1.getOffset()).filterByType(edge1.getType()).filterHavingValue(edge1.getValue());
+      filterForSMG2
+          .filterAtOffset(edge1.getOffset())
+          .filterBySize(edge1.getSizeInBits())
+          .filterHavingValue(edge1.getValue());
 
       if (!Iterables.any(HVE2, filterForSMG2::holdsFor)) {
         return false;

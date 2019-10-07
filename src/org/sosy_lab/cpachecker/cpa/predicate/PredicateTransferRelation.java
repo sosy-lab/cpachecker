@@ -25,6 +25,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkInfeasibleDummyState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
 import com.google.common.collect.ImmutableSet;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractEdge.FormulaDescription;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.InfeasibleDummyState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -207,7 +209,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     satCheckTimer.stop();
 
     if (unsat) {
-      statistics.numSatChecksFalse.setNextValue(1);
+      statistics.numSatChecksFalse.inc();
       logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
     }
 
@@ -363,8 +365,8 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
          */
         if (!options.ignoreStateAssumptions() && lElement instanceof AbstractStateWithAssumptions) {
           element = strengthen(element, (AbstractStateWithAssumptions) lElement, edge);
-          if (element == null) {
-            return ImmutableSet.of();
+          if (element instanceof InfeasibleDummyState) {
+            return ImmutableSet.of(element);
           }
         }
 
@@ -449,9 +451,9 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       }
       AbstractionFormula dummy = formulaManager.makeTrueAbstractionFormula(f);
       if (formulaManager.unsat(dummy, f)) {
-        // if automaton has conflict with edge, do not return a successor
-        //        PredicateAbstractState.mkAbstractionState(f, pA, pAbstractionLocations);
-        return null;
+        // if automaton has conflict with edge, return a dummy-successor that can be used to further
+        // elaborate on it at a later stage
+        return mkInfeasibleDummyState(f, dummy, pElement.getAbstractionLocationsOnPath());
       }
     }
 
@@ -533,7 +535,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     strengthenCheckTimer.stop();
 
     if (unsat) {
-      statistics.numStrengthenChecksFalse.setNextValue(1);
+      statistics.numStrengthenChecksFalse.inc();
       logger.log(Level.FINEST, "Path is infeasible.");
       return null;
     } else {

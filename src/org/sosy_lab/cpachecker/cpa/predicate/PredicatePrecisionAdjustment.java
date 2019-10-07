@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.InfeasibleDummyState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -131,6 +132,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     if (predicateState.isAbstractionState()) {
       return false;
     }
+    if (predicateState instanceof InfeasibleDummyState) {
+      return false;
+    }
     if (externalAbstractionCheck != null && externalAbstractionCheck.test(fullState)) {
       return true;
     }
@@ -138,7 +142,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       return true;
     }
     if (AbstractStates.isTargetState(fullState)) {
-      statistics.numTargetAbstractions.setNextValue(1);
+      statistics.numTargetAbstractions.inc();
       return true;
     }
     return false;
@@ -161,7 +165,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     Optional<CallstackStateEqualsWrapper> callstackWrapper =
         AbstractStates.extractOptionalCallstackWraper(fullState);
 
-    statistics.numAbstractions.setNextValue(1);
+    statistics.numAbstractions.inc();
     logger.log(Level.FINEST, "Computing abstraction at instance", newLocInstance, "of node", loc, "in path.");
 
     statistics.blockSize.setNextValue(pathFormula.getLength());
@@ -205,7 +209,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     // if the abstraction is false, return bottom (represented by empty set)
     if (newAbstractionFormula.isFalse()) {
-      statistics.numAbstractionsFalse.setNextValue(1);
+      statistics.numAbstractionsFalse.inc();
       logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
       return Optional.empty();
     }

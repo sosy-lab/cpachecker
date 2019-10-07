@@ -15,7 +15,7 @@
     <option name="-64"/>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>../programs/benchmarks/termination-crafted/2Nested_true-termination_true-valid-memsafety.c</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/termination-crafted/2Nested-1.c</exclude> <!-- flapping timeout -->
   </tasks>
 
   <columns>

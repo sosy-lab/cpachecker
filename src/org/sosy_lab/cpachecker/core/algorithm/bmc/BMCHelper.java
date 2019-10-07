@@ -216,24 +216,20 @@ public final class BMCHelper {
       Algorithm pAlgorithm,
       ConfigurableProgramAnalysis pCPA)
       throws CPAException, InterruptedException {
-    return unroll(pLogger, pReachedSet, (rs) -> {}, pAlgorithm, pCPA);
-  }
-
-  public static AlgorithmStatus unroll(LogManager pLogger, ReachedSet pReachedSet, ReachedSetInitializer pInitializer, Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA) throws CPAException, InterruptedException {
-    adjustReachedSet(pLogger, pReachedSet, pInitializer, pCPA);
+    adjustReachedSet(pLogger, pReachedSet, pCPA);
     return pAlgorithm.run(pReachedSet);
   }
 
   /**
-   * Adjusts the given reached set so that the involved adjustable condition
-   * CPAs are able to operate properly without being negatively influenced by
-   * states generated earlier under different conditions while trying to
-   * retain as many states as possible.
+   * Adjusts the given reached set so that the involved adjustable condition CPAs are able to
+   * operate properly without being negatively influenced by states generated earlier under
+   * different conditions while trying to retain as many states as possible.
    *
    * @param pReachedSet the reached set to be adjusted.
-   * @param pInitializer initializes the reached set.
    */
-  public static void adjustReachedSet(LogManager pLogger, ReachedSet pReachedSet, ReachedSetInitializer pInitializer, ConfigurableProgramAnalysis pCPA) throws CPAException, InterruptedException {
+  public static void adjustReachedSet(
+      LogManager pLogger, ReachedSet pReachedSet, ConfigurableProgramAnalysis pCPA)
+      throws InterruptedException {
     Preconditions.checkArgument(!pReachedSet.isEmpty());
     CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
     for (AdjustableConditionCPA conditionCPA : CPAs.asIterable(pCPA).filter(AdjustableConditionCPA.class)) {
@@ -247,7 +243,6 @@ public final class BMCHelper {
       }
     }
     if (pReachedSet.isEmpty()) {
-      pInitializer.initialize(pReachedSet);
       pReachedSet.add(
           pCPA.getInitialState(initialLocation, StateSpacePartition.getDefaultPartition()),
           pCPA.getInitialPrecision(initialLocation, StateSpacePartition.getDefaultPartition()));
@@ -407,7 +402,7 @@ public final class BMCHelper {
     return visitor.valid;
   }
 
-  static BooleanFormula disjoinStateViolationAssertions(
+  public static BooleanFormula disjoinStateViolationAssertions(
       BooleanFormulaManager pBfmgr,
       Multimap<BooleanFormula, BooleanFormula> pSuccessorViolationAssertions) {
     BooleanFormula disjunction = pBfmgr.makeFalse();

@@ -164,7 +164,7 @@ public class AbstractionBasedLifting implements Lifting {
     }
   }
 
-  interface LiftingAbstractionFailureStrategy {
+  public interface LiftingAbstractionFailureStrategy {
 
     SymbolicCandiateInvariant handleLAF(
         FormulaManagerView pFMGR,

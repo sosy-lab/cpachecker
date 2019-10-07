@@ -31,6 +31,7 @@
   <tasks name="MemSafety-Arrays">
     <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="Systems_BusyBox_MemSafety">
     <includesfile>../programs/benchmarks/Systems_BusyBox_MemSafety.set</includesfile>
@@ -40,18 +41,22 @@
   <tasks name="MemSafety-Heap">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="MemSafety-LinkedLists">
     <includesfile>../programs/benchmarks/MemSafety-LinkedLists.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="MemSafety-Other">
     <includesfile>../programs/benchmarks/MemSafety-Other.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="MemSafety-MemCleanup">
     <includesfile>../programs/benchmarks/MemSafety-MemCleanup.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
     <option name="-setprop">memorycleanup.config=config/svcomp19--memorycleanup.properties</option>
+    <option name="-32"/>
   </tasks>
 </benchmark>

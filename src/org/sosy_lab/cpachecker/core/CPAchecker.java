@@ -339,6 +339,7 @@ public class CPAchecker {
     CFA cfa = null;
     Result result = Result.NOT_YET_STARTED;
     String violatedPropertyDescription = "";
+    Specification specification = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -360,7 +361,6 @@ public class CPAchecker {
         shutdownNotifier.shutdownIfNecessary();
 
         ConfigurableProgramAnalysis cpa;
-        Specification specification;
         stats.cpaCreationTime.start();
         try {
           specification =
