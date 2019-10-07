@@ -648,7 +648,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       PersistentMap<CFANode, Integer> abstractionLocations =
           predecessor.getAbstractionLocationsOnPath();
 
-      PathFormula currentFormula = precisePathFormulaManager.makeEmptyPathFormula(oldFormula);
+      PathFormula currentFormula = oldFormula;
 
       if (bfmgr.isTrue(oldAbstraction.asFormula())) {
         // Do not delete! There may be value effects, and then the composite optimization will not
