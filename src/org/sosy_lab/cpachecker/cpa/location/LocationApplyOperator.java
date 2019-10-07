@@ -19,27 +19,153 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.base.Optional;
 import java.util.Map;
 import java.util.TreeMap;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateWithEdge.ProjectedLocationStateWithEdge;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class LocationApplyOperator implements ApplyOperator {
+
+  private static class GlobalExpressionVisitor
+      implements CRightHandSideVisitor<Boolean, NoException> {
+
+    @Override
+    public Boolean visit(CBinaryExpression pIastBinaryExpression) throws NoException {
+      return pIastBinaryExpression.getOperand1().accept(this)
+          || pIastBinaryExpression.getOperand2().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CCastExpression pIastCastExpression) throws NoException {
+      return pIastCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) throws NoException {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws NoException {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
+        throws NoException {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression) throws NoException {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws NoException {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CUnaryExpression pIastUnaryExpression) throws NoException {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CImaginaryLiteralExpression PIastLiteralExpression) throws NoException {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws NoException {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression)
+        throws NoException {
+      // return pIastArraySubscriptExpression.getArrayExpression().accept(this);
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CFieldReference pIastFieldReference) throws NoException {
+      return pIastFieldReference.isPointerDereference()
+          || pIastFieldReference.getFieldOwner().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CIdExpression pIastIdExpression) throws NoException {
+      CSimpleDeclaration decl = pIastIdExpression.getDeclaration();
+      if (decl instanceof CVariableDeclaration) {
+        return ((CVariableDeclaration) decl).isGlobal();
+      }
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CPointerExpression pPointerExpression) throws NoException {
+      // TODO maybe optimized more, right now just a simple version
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CComplexCastExpression pComplexCastExpression) throws NoException {
+      return pComplexCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CFunctionCallExpression pIastFunctionCallExpression) throws NoException {
+      for (CExpression p : pIastFunctionCallExpression.getParameterExpressions()) {
+        if (p.accept(this)) {
+          return true;
+        }
+      }
+      return false;
+    }
+  }
 
   private final Map<CFANode, Boolean> cachedNodes = new TreeMap<>();
 
@@ -123,6 +249,30 @@ public class LocationApplyOperator implements ApplyOperator {
       }
     } else if (edge instanceof FunctionReturnEdge) {
       return true;
+    } else if (edge instanceof CAssumeEdge) {
+      CExpression expr = ((CAssumeEdge) edge).getExpression();
+      GlobalExpressionVisitor visitor = new GlobalExpressionVisitor();
+      return !expr.accept(visitor);
+    } else if (edge instanceof CStatementEdge) {
+      CStatement stmnt = ((CStatementEdge) edge).getStatement();
+      if (stmnt instanceof CAssignment) {
+        CAssignment asgn = (CAssignment) stmnt;
+        return !asgn.getRightHandSide().accept(new GlobalExpressionVisitor());
+      } else if (stmnt instanceof CFunctionCallStatement) {
+        // Here we get an undefined function without body. Thus, just ignore it
+        return true;
+      }
+    } else if (edge instanceof CFunctionCallEdge) {
+      CFunctionCallExpression fcall =
+          ((CFunctionCallEdge) edge).getSummaryEdge().getExpression().getFunctionCallExpression();
+      return !fcall.accept(new GlobalExpressionVisitor());
+    } else if (edge instanceof CReturnStatementEdge) {
+      Optional<CExpression> oExp = ((CReturnStatementEdge) edge).getExpression();
+      if (oExp.isPresent()) {
+        return oExp.get().accept(new GlobalExpressionVisitor());
+      } else {
+        return true;
+      }
     }
 
     return false;

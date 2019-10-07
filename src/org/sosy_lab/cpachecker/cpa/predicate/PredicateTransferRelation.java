@@ -646,7 +646,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       PersistentMap<CFANode, Integer> abstractionLocations =
           predecessor.getAbstractionLocationsOnPath();
 
-      PathFormula currentFormula = precisePathFormulaManager.makeEmptyPathFormula(oldFormula);
+      PathFormula currentFormula = oldFormula;
       BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
 
       if (bfmgr.isTrue(oldAbstraction.asFormula())) {
