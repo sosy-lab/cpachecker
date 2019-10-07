@@ -68,7 +68,8 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class LocationApplyOperator implements ApplyOperator {
 
-  private class GlobalExpressionVisitor implements CRightHandSideVisitor<Boolean, NoException> {
+  private static class GlobalExpressionVisitor
+      implements CRightHandSideVisitor<Boolean, NoException> {
 
     @Override
     public Boolean visit(CBinaryExpression pIastBinaryExpression) throws NoException {
