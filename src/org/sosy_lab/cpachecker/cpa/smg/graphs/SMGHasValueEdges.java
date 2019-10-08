@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.collect.ImmutableSet;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
@@ -45,6 +44,5 @@ public interface SMGHasValueEdges {
   ImmutableSet<SMGEdgeHasValue> getHvEdges();
 
   /** get all outgoing edges of an {@link SMGObject}, e.g., all values of this object. */
-  @Nullable
   ImmutableSet<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject);
 }
