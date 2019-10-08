@@ -95,7 +95,7 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, CVC4]
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
@@ -3712,11 +3712,11 @@ solver.enableLoggingInSolver = false
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, CVC4]
 
 # Which SMT solver to use.
 solver.solver = MATHSAT5
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, CVC4]
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)

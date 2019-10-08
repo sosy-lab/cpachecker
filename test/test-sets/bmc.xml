@@ -2,49 +2,73 @@
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
   <option name="-heap">13000M</option>
+  <option name="-stack" reason="CVC4 needs a larger stack">50M</option>
   <option name="-noout"/>
-  <option name="-disable-java-assertions"/>
+
   <!-- SV-Comp files assume that malloc always succeeds -->
   <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <tasks name="ControlFlowInteger">
-    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDrivers64">
-    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="ECA">
-    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="HeapManipulation">
-    <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
-    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ProductLines">
-    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
-    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
-  <option name="-bmc"/>
-
-  <rundefinition name="k1">
+  <rundefinition name="k1-mathsat5">
+    <option name="-bmc"/>
     <option name="-setprop">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="-setprop">solver.solver=mathsat5</option>
+  </rundefinition>
+  <rundefinition name="k10-mathsat5">
+    <option name="-bmc"/>
+    <option name="-setprop">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="-setprop">solver.solver=mathsat5</option>
   </rundefinition>
 
-  <rundefinition name="k10">
+  <rundefinition name="k1-z3">
+    <option name="-bmc"/>
+    <option name="-setprop">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="-setprop">solver.solver=z3</option>
+  </rundefinition>
+  <rundefinition name="k10-z3">
+    <option name="-bmc"/>
     <option name="-setprop">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="-setprop">solver.solver=z3</option>
+  </rundefinition>
+
+  <rundefinition name="k1-cvc4">
+    <option name="-bmc"/>
+    <option name="-setprop">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="-setprop">solver.solver=cvc4</option>
+  </rundefinition>
+  <rundefinition name="k10-cvc4">
+    <option name="-bmc"/>
+    <option name="-setprop">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="-setprop">solver.solver=cvc4</option>
   </rundefinition>
 
   <columns>
