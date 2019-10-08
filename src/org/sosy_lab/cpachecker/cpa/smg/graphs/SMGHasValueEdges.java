@@ -41,8 +41,10 @@ public interface SMGHasValueEdges {
 
   // Querying methods
 
+  /** get all outgoing edges of all {@link SMGObject}s. */
   ImmutableSet<SMGEdgeHasValue> getHvEdges();
 
+  /** get all outgoing edges of an {@link SMGObject}, e.g., all values of this object. */
   @Nullable
   ImmutableSet<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject);
 }
