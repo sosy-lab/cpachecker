@@ -193,6 +193,12 @@ public class ReachedSetFactory {
 
   @Option(
     secure = true,
+    name = "useThreadModularWrapper",
+    description = "use thread-modular wrapper to support thread-modular approach")
+  private boolean useThreadModularWrapper = false;
+
+  @Option(
+    secure = true,
     name = "reachedSet",
     description =
         "which reached set implementation to use?"
@@ -293,9 +299,6 @@ public class ReachedSetFactory {
 
     ReachedSet reached;
     switch (reachedSet) {
-      case THREADMODULAR:
-        reached = new ThreadModularReachedSet(waitlistFactory);
-        break;
     case PARTITIONED:
         reached = new PartitionedReachedSet(waitlistFactory);
         break;
@@ -311,6 +314,10 @@ public class ReachedSetFactory {
     case NORMAL:
     default:
         reached = new DefaultReachedSet(waitlistFactory);
+    }
+
+    if (useThreadModularWrapper) {
+      reached = new ThreadModularReachedSet(reached);
     }
 
     if (withStatistics) {
