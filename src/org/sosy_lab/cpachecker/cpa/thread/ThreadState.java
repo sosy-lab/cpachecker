@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.thread;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cpa.thread.ThreadTransferRelation.isThreadCreateFunction;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -34,11 +35,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ThreadIdProvider;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
+import org.sosy_lab.cpachecker.util.Pair;
 
-public class ThreadState implements LatticeAbstractState<ThreadState>, CompatibleNode {
+public class ThreadState
+    implements LatticeAbstractState<ThreadState>, CompatibleNode, ThreadIdProvider {
   public enum ThreadStatus {
     PARENT_THREAD,
     CREATED_THREAD,
@@ -153,7 +163,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     if (createdThread.isPresent()) {
       return createdThread.get().getName();
     } else {
-      return "";
+      return "main";
     }
   }
 
@@ -197,5 +207,35 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   int getThreadSize() {
     // Only for statistics
     return threadSet.size();
+  }
+
+  @Override
+  public String getThreadIdForEdge(CFAEdge pEdge) {
+    return this.toString();
+  }
+
+  @Override
+  public java.util.Optional<Pair<String, String>>
+      getSpawnedThreadIdByEdge(CFAEdge pEdge, ThreadIdProvider pSuccessor) {
+
+    if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+      CFunctionCall fCall = ((CFunctionCallEdge) pEdge).getSummaryEdge().getExpression();
+      if (isThreadCreateFunction(fCall)) {
+        CThreadCreateStatement tCall = (CThreadCreateStatement) fCall;
+        return java.util.Optional
+            .of(Pair.of(tCall.getVariableName(), pEdge.getSuccessor().getFunctionName()));
+      }
+    }
+    if (pEdge instanceof CFunctionSummaryStatementEdge) {
+      CFunctionCall functionCall = ((CFunctionSummaryStatementEdge) pEdge).getFunctionCall();
+      if (isThreadCreateFunction(functionCall)) {
+        CThreadCreateStatement tCall = (CThreadCreateStatement) functionCall;
+        return java.util.Optional.of(
+            Pair.of(
+                tCall.getVariableName(),
+                ((CFunctionSummaryStatementEdge) pEdge).getFunctionName()));
+      }
+    }
+    return java.util.Optional.empty();
   }
 }

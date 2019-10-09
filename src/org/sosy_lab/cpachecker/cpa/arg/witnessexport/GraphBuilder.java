@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import static org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessWriter.isSpecialThreadCreate;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
@@ -162,8 +164,10 @@ enum GraphBuilder {
               }
               if (addArtificialSinkEdge) {
                 // Child does not belong to the path --> add a branch to the SINK node!
-                pEdgeAppender.appendNewEdgeToSink(
+                if (!isSpecialThreadCreate(edgeToNextState)) {
+                  pEdgeAppender.appendNewEdgeToSink(
                     prevStateId, siblingEdge, state, pValueMap, pAdditionalInfo.get(s));
+                }
               }
             }
           } else {
