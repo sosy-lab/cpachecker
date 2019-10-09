@@ -113,9 +113,9 @@ public class ValueAnalysisStateWithEdge extends ValueAnalysisState implements Ab
 
   @Override
   public boolean hasEmptyEffect() {
-    return ((edge instanceof ValueAbstractEdge)
-        && ((ValueAbstractEdge) edge).getDifference().getAssignments().isEmpty())
-        || edge == EmptyEdge.getInstance();
+    return edge == EmptyEdge.getInstance()
+        || ((edge instanceof ValueAbstractEdge)
+            && ((ValueAbstractEdge) edge).getDifference().getAssignments().isEmpty());
   }
 
   @Override

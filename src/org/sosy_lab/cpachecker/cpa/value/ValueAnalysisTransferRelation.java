@@ -1683,11 +1683,12 @@ public class ValueAnalysisTransferRelation
     assert pState instanceof ValueAnalysisStateWithEdge;
     AbstractEdge edge = ((ValueAnalysisStateWithEdge) pState).getAbstractEdge();
 
+    // Cannot use copyOf as it creates ValueAnalysisState with edge
+    ValueAnalysisState result = new ValueAnalysisState((ValueAnalysisState) pState);
+
     if (edge == EmptyEdge.getInstance()) {
-      return Collections.singleton(pState);
+      // Just return a normal state without edge
     } else {
-      // Cannot use copyOf as it creates ValueAnalysisState with edge
-      ValueAnalysisState result = new ValueAnalysisState((ValueAnalysisState) pState);
       ValueAnalysisInformation diff = ((ValueAbstractEdge) edge).getDifference();
 
       Map<MemoryLocation, ValueAndType> values = diff.getAssignments();
@@ -1699,7 +1700,7 @@ public class ValueAnalysisTransferRelation
           result.forget(mem);
         }
       }
-      return Collections.singleton(result);
     }
+    return Collections.singleton(result);
   }
 }

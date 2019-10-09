@@ -23,7 +23,9 @@ import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
@@ -77,7 +79,9 @@ public class ValueAnalysisApplyOperator implements ApplyOperator {
 
     if (pEdge != null && pEdge instanceof WrapperCFAEdge) {
       CFAEdge edge = ((WrapperCFAEdge) pEdge).getCFAEdge();
-      if (edge instanceof CDeclarationEdge) {
+      if (edge instanceof CDeclarationEdge
+          || edge instanceof BlankEdge
+          || edge instanceof CAssumeEdge) {
         return EmptyEdge.getInstance();
       }
     }
