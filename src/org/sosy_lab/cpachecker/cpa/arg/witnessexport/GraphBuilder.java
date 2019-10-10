@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
-import static org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessWriter.isSpecialThreadCreate;
+import static org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessFactory.isSpecialThreadCreate;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
