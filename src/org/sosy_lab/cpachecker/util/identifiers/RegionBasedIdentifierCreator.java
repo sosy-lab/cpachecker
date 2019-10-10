@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public class RegionBasedIdentifierCreator extends IdentifierCreator {
@@ -96,6 +97,9 @@ public class RegionBasedIdentifierCreator extends IdentifierCreator {
     CType structType = owner.getExpressionType();
     if (structType instanceof CPointerType) {
       structType = ((CPointerType) structType).getType();
+    }
+    if (structType instanceof CTypedefType) {
+      structType = ((CTypedefType) structType).getRealType();
     }
     if (structType instanceof CElaboratedType) {
       structType = ((CElaboratedType) structType).getRealType();
