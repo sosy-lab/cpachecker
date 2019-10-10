@@ -77,7 +77,7 @@ public class ValueAnalysisApplyOperator implements ApplyOperator {
   private AbstractEdge
       prepareEdge(ValueAnalysisState pParent, ValueAnalysisState pChild, AbstractEdge pEdge) {
 
-    if (pEdge != null && pEdge instanceof WrapperCFAEdge) {
+    if (pEdge instanceof WrapperCFAEdge) {
       CFAEdge edge = ((WrapperCFAEdge) pEdge).getCFAEdge();
       if (edge instanceof CDeclarationEdge
           || edge instanceof BlankEdge

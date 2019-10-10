@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
 import com.google.common.collect.Sets;
@@ -189,11 +190,11 @@ public class PredicateMergeOperator implements MergeOperator {
 
       if (joinEffectsIntoUndef) {
         Collection<CAssignment> newFormulas1 =
-            from(newDesc1).transform(FormulaDescription::getAssignment).toSet();
+            transformedImmutableSetCopy(newDesc1, FormulaDescription::getAssignment);
         Set<CLeftHandSide> newAssignments1 =
-            from(newFormulas1).transform(CAssignment::getLeftHandSide).toSet();
+            transformedImmutableSetCopy(newFormulas1, CAssignment::getLeftHandSide);
         Set<CLeftHandSide> assignments2 =
-            from(desc2).transform(s -> s.getAssignment().getLeftHandSide()).toSet();
+            transformedImmutableSetCopy(desc2, s -> s.getAssignment().getLeftHandSide());
         Set<CLeftHandSide> commonPart = Sets.intersection(newAssignments1, assignments2);
         if (commonPart.isEmpty()) {
           Collection<FormulaDescription> newFormulas = new HashSet<>(desc2);

@@ -364,7 +364,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       if (aEdge instanceof WrapperCFAEdge) {
         CFAEdge edge = ((WrapperCFAEdge) aEdge).getCFAEdge();
         if (!rightEdge((CallstackState) state, edge)) {
-          return Collections.emptySet();
+          return ImmutableSet.of();
         }
       }
     }

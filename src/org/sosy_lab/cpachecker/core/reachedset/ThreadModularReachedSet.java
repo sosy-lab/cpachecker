@@ -21,7 +21,6 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
@@ -119,7 +118,7 @@ public class ThreadModularReachedSet extends ForwardingReachedSet {
         // applied state, skip
       }
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override
