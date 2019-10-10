@@ -243,7 +243,8 @@ public class LocalTransferRelation
       CInitializer init = ((CVariableDeclaration) decl).getInitializer();
 
       int deref = findDereference(decl.getType());
-      AbstractIdentifier id = IdentifierCreator.createIdentifier(decl, getFunctionName(), 0);
+      IdentifierCreator idCreator = new IdentifierCreator(getFunctionName());
+      AbstractIdentifier id = idCreator.createIdentifier(decl, 0);
       CType type = decl.getType();
       if (type instanceof CComplexType) {
         if (type instanceof CElaboratedType) {

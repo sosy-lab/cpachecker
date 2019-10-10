@@ -119,7 +119,8 @@ public class UsageCPA extends AbstractSingleWrapperCPA
             pConfig,
             logger,
             localMap,
-            transferRelation.getBinderFunctionInfo());
+            transferRelation.getBinderFunctionInfo(),
+            pCfa);
     shutdownNotifier = pShutdownNotifier;
   }
 

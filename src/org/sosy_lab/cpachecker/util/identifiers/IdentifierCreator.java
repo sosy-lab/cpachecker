@@ -40,9 +40,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentifier, NoException> {
   protected int dereference;
@@ -52,9 +52,9 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     function = func;
   }
 
-  public static AbstractIdentifier createIdentifier(
-      CSimpleDeclaration decl, String function, int dereference) {
+  public AbstractIdentifier createIdentifier(CSimpleDeclaration decl, int pDereference) {
     Preconditions.checkNotNull(decl);
+    dereference = pDereference;
     String name = decl.getName();
     CType type = decl.getType();
 
@@ -130,7 +130,7 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
       return new LocalVariableIdentifier(
           expression.getName(), expression.getExpressionType(), function, dereference);
     } else {
-      return createIdentifier(decl, function, dereference);
+      return createIdentifier(decl, dereference);
     }
   }
 

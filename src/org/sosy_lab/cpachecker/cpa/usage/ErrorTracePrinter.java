@@ -51,6 +51,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -179,7 +181,13 @@ public abstract class ErrorTracePrinter {
   }
 
   protected String createUniqueName(SingleIdentifier id) {
-    return id.getType().toASTString("_" + id.toString()).replace(" ", "_");
+    CType type = id.getType();
+    if (type instanceof CCompositeType) {
+      // It includes declarations of all fields
+      return (((CCompositeType) type).getQualifiedName() + "_" + id.toString()).replace(" ", "_");
+    } else {
+      return id.getType().toASTString("_" + id.toString()).replace(" ", "_");
+    }
   }
 
   public void printErrorTraces(UsageReachedSet uReached) {

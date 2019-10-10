@@ -51,6 +51,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
@@ -357,7 +359,14 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
   @Override
   protected String createUniqueName(SingleIdentifier id) {
-    String declaration = id.getType().toASTString(id.toString());
+    CType type = id.getType();
+    String declaration;
+    if (type instanceof CCompositeType) {
+      // It includes declarations of all fields
+      declaration = ((CCompositeType) type).getQualifiedName() + " " + id.toString();
+    } else {
+      declaration = id.getType().toASTString(id.toString());
+    }
     if (id instanceof LocalVariableIdentifier) {
       // To avoid matching the same variables from different functions
       declaration = ((LocalVariableIdentifier) id).getFunction() + "::" + declaration;
