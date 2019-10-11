@@ -58,7 +58,6 @@ import org.eclipse.cdt.core.model.ILanguage;
 import org.eclipse.cdt.core.parser.FileContent;
 import org.eclipse.cdt.core.parser.IParserLogService;
 import org.eclipse.cdt.core.parser.IScannerInfo;
-import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.cdt.internal.core.parser.IMacroDictionary;
 import org.eclipse.cdt.internal.core.parser.InternalParserUtil;
 import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContent;
@@ -83,9 +82,9 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
  */
 class EclipseCParser implements CParser {
 
-  protected final ILanguage language;
+  private final ILanguage language;
 
-  protected final IParserLogService parserLog = ParserFactory.createDefaultLogService();
+  private final IParserLogService parserLog;
 
   private final MachineModel machine;
   private final LogManager logger;
@@ -105,6 +104,7 @@ class EclipseCParser implements CParser {
     machine = pMachine;
     options = pOptions;
     shutdownNotifier = pShutdownNotifier;
+    parserLog = new ShutdownNotifierLogAdapter(pShutdownNotifier);
 
     switch (pOptions.getDialect()) {
     case C99:
