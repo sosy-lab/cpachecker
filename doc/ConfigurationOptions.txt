@@ -1116,6 +1116,17 @@ cpa.arg.witness.removeInsufficientEdges = true
 # Verification witness: Revert escaping/renaming of functions for threads?
 cpa.arg.witness.revertThreadFunctionRenaming = false
 
+# The array that needs to be analyzed
+cpa.arrayContentCPA.arrayName = ""
+
+# which merge operator to use for UsageOfArrayElemensCPA
+cpa.arrayContentCPA.merge = "JOIN"
+  allowed values: [JOIN]
+
+# which stop operator to use for UsageOfArrayElemensCPA
+cpa.arrayContentCPA.stop = "SEP"
+  allowed values: [SEP]
+
 # signal the analysis to break in case the given number of error state is
 # reached 
 cpa.automaton.breakOnTargetState = 1
@@ -1448,6 +1459,7 @@ cpa.ifcsecurity.defaultsc = "LOW"
 # which immediatechecksfile to use for PolicyEnforcementCPA
 cpa.ifcsecurity.immediatechecksfile = "immediatechecks.conf"
 
+# which merge operator to use for DependencyTrackerCPA
 # which merge operator to use for ControlDependencyTrackerCPA
 # which merge operator to use for DependencyTrackerCPA
 # which merge operator to use for PolicyEnforcementCPA
@@ -1463,6 +1475,7 @@ cpa.ifcsecurity.scMappingFile = "betamap.conf"
 # which states shall be checked
 cpa.ifcsecurity.statestocheck = 0
 
+# which stop operator to use for DependencyTrackerCPA
 # which stop operator to use for ControlDependencyTrackerCPA
 # which stop operator to use for DependencyTrackerCPA
 # which stop operator to use for PolicyEnforcementCPA
@@ -2776,6 +2789,17 @@ cpa.usage.unsafedetector.unsafeMode = RACE
 
 # functions, which are marked as write access
 cpa.usage.writeAccessFunctions = {}
+
+# The array that needs to be analyzed
+cpa.usageCPA.arrayName = ""
+
+# which merge operator to use for UsageOfArrayElemensCPA
+cpa.usageCPA.merge = "JOIN"
+  allowed values: [JOIN]
+
+# which stop operator to use for UsageOfArrayElemensCPA
+cpa.usageCPA.stop = "SEP"
+  allowed values: [SEP]
 
 # which merge operator to use for ValidVarsCPA
 cpa.validVars.merge = "JOIN"
