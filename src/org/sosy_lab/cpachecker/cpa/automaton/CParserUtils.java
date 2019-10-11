@@ -100,12 +100,12 @@ class CParserUtils {
   private static final String CPACHECKER_TMP_PREFIX = "__CPAchecker_TMP";
 
   static CStatement parseSingleStatement(String pSource, CParser parser, Scope scope)
-      throws InvalidAutomatonException {
+      throws InvalidAutomatonException, InterruptedException {
     return parse(addFunctionDeclaration(pSource), parser, scope);
   }
 
   static List<CStatement> parseListOfStatements(String pSource, CParser parser, Scope scope)
-      throws InvalidAutomatonException {
+      throws InvalidAutomatonException, InterruptedException {
     return parseBlockOfStatements(addFunctionDeclaration(pSource), parser, scope);
   }
 
@@ -170,7 +170,7 @@ class CParserUtils {
    * @return The AST.
    */
   private static CStatement parse(String code, CParser parser, Scope scope)
-      throws InvalidAutomatonException {
+      throws InvalidAutomatonException, InterruptedException {
     try {
       CAstNode statement = parser.parseSingleStatement(code, scope);
       if (!(statement instanceof CStatement)) {
@@ -192,7 +192,7 @@ class CParserUtils {
    * @return The AST.
    */
   private static List<CStatement> parseBlockOfStatements(String code, CParser parser, Scope scope)
-      throws InvalidAutomatonException {
+      throws InvalidAutomatonException, InterruptedException {
     List<CAstNode> statements;
     try {
       statements = parser.parseStatements(code, scope);
@@ -222,9 +222,12 @@ class CParserUtils {
    * @throws InvalidAutomatonException if the input strings cannot be interpreted as C statements.
    */
   static Collection<CStatement> parseStatements(
-      Set<String> pStatements, Optional<String> pResultFunction, CParser pCParser, Scope pScope,
+      Set<String> pStatements,
+      Optional<String> pResultFunction,
+      CParser pCParser,
+      Scope pScope,
       ParserTools pParserTools)
-      throws InvalidAutomatonException {
+      throws InvalidAutomatonException, InterruptedException {
     if (!pStatements.isEmpty()) {
 
       Set<CStatement> result = new HashSet<>();
@@ -241,9 +244,12 @@ class CParserUtils {
   }
 
   private static Collection<CStatement> parseAsCStatements(
-      String pCode, Optional<String> pResultFunction, CParser pCParser, Scope pScope,
+      String pCode,
+      Optional<String> pResultFunction,
+      CParser pCParser,
+      Scope pScope,
       ParserTools pParserTools)
-      throws InvalidAutomatonException {
+      throws InvalidAutomatonException, InterruptedException {
     Collection<CStatement> result = new HashSet<>();
     boolean fallBack = false;
     ExpressionTree<AExpression> tree =
@@ -289,22 +295,26 @@ class CParserUtils {
   }
 
   /**
-   * Attempt to parse each element of the given set of strings as a C statements,
-   * treats the successfully parsed statements as expression statements,
-   * and conjoins their expressions, creating an expression tree.
-   * This method does <em>not</em> fail if parsing of some or the elements fails;
-   * instead a warning is logged using the given log manager.
+   * Attempt to parse each element of the given set of strings as a C statements, treats the
+   * successfully parsed statements as expression statements, and conjoins their expressions,
+   * creating an expression tree. This method does <em>not</em> fail if parsing of some or the
+   * elements fails; instead a warning is logged using the given log manager.
    *
    * @param pStatements the set of strings to parse as C statements.
    * @param pResultFunction the target function of {@literal "\result"} expressions.
    * @param pCParser the C parser to be used.
    * @param pScope the scope to interpret variables in.
    * @param pParserTools the auxiliary tools to be used for parsing.
-   * @return an expression tree conjoining the expressions of successfully parsed expression statements.
+   * @return an expression tree conjoining the expressions of successfully parsed expression
+   *     statements.
    */
   static ExpressionTree<AExpression> parseStatementsAsExpressionTree(
-      Set<String> pStatements, Optional<String> pResultFunction, CParser pCParser, Scope pScope,
-      ParserTools pParserTools) {
+      Set<String> pStatements,
+      Optional<String> pResultFunction,
+      CParser pCParser,
+      Scope pScope,
+      ParserTools pParserTools)
+      throws InterruptedException {
     ExpressionTree<AExpression> result = ExpressionTrees.getTrue();
     for (String assumeCode : pStatements) {
       try {
@@ -320,9 +330,12 @@ class CParserUtils {
   }
 
   private static ExpressionTree<AExpression> parseStatement(
-      String pAssumeCode, Optional<String> pResultFunction, CParser pCParser, Scope pScope,
+      String pAssumeCode,
+      Optional<String> pResultFunction,
+      CParser pCParser,
+      Scope pScope,
       ParserTools pParserTools)
-      throws InvalidAutomatonException {
+      throws InvalidAutomatonException, InterruptedException {
 
     // Try the old method first; it works for simple expressions
     // and also supports assignment statements and multiple statements easily
@@ -412,9 +425,12 @@ class CParserUtils {
   }
 
   private static ExpressionTree<AExpression> parseExpression(
-      String pAssumeCode, Optional<String> pResultFunction, Scope pScope, CParser pCParser,
+      String pAssumeCode,
+      Optional<String> pResultFunction,
+      Scope pScope,
+      CParser pCParser,
       ParserTools pParserTools)
-      throws InvalidAutomatonException {
+      throws InvalidAutomatonException, InterruptedException {
     String assumeCode = pAssumeCode.trim();
     while (assumeCode.endsWith(";")) {
       assumeCode = assumeCode.substring(0, assumeCode.length() - 1).trim();

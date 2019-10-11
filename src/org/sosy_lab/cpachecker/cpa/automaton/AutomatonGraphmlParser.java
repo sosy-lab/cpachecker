@@ -71,6 +71,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -222,17 +223,24 @@ public class AutomatonGraphmlParser {
   private Scope scope;
   private final LogManager logger;
   private final Configuration config;
+  private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
   private final ParserTools parserTools;
 
   private final Map<GraphMLState, ExpressionTree<AExpression>> stateInvariantsMap;
 
-  public AutomatonGraphmlParser(Configuration pConfig, LogManager pLogger, CFA pCFA, Scope pScope)
+  public AutomatonGraphmlParser(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCFA,
+      Scope pScope)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
     this.scope = pScope;
     this.logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     this.cfa = pCFA;
     this.config = pConfig;
     this.parserTools =
@@ -249,7 +257,7 @@ public class AutomatonGraphmlParser {
    * @return the automata representing the witnesses found in the file.
    */
   public List<Automaton> parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser
         .<List<Automaton>, InvalidConfigurationException>handlePotentiallyGZippedInput(
             MoreFiles.asByteSource(pInputFile),
@@ -267,7 +275,7 @@ public class AutomatonGraphmlParser {
    * @return the automata representing the witnesses found in the stream.
    */
   private List<Automaton> parseAutomatonFile(InputStream pInputStream, Set<Property> pProperties)
-      throws InvalidConfigurationException, IOException {
+      throws InvalidConfigurationException, IOException, InterruptedException {
     final CParser cparser =
         CParser.Factory.getParser(
             /*
@@ -278,7 +286,8 @@ public class AutomatonGraphmlParser {
              */
             LogManager.createNullLogManager(),
             CParser.Factory.getOptions(config),
-            cfa.getMachineModel());
+            cfa.getMachineModel(),
+            shutdownNotifier);
 
     AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream, pProperties);
 
@@ -403,14 +412,16 @@ public class AutomatonGraphmlParser {
   }
 
   /**
-   * Parses all transitions reachable from the entry state and modifies the GraphML parser state accordingly.
+   * Parses all transitions reachable from the entry state and modifies the GraphML parser state
+   * accordingly.
    *
    * @param pCParser the C parser to be used for parsing expressions.
    * @param pGraphMLParserState the GraphML parser state.
    * @throws WitnessParseException if the witness file is invalid and cannot be parsed.
    */
-  private void parseTransitions(final CParser pCParser,
-      AutomatonGraphmlParserState pGraphMLParserState) throws WitnessParseException {
+  private void parseTransitions(
+      final CParser pCParser, AutomatonGraphmlParserState pGraphMLParserState)
+      throws WitnessParseException, InterruptedException {
 
     // The transitions (represented in the GraphML model) already visited
     Set<GraphMLTransition> visitedTransitions = new HashSet<>();
@@ -448,10 +459,11 @@ public class AutomatonGraphmlParser {
    * @param pTransition the transition to parse.
    * @throws WitnessParseException if the witness file is invalid and cannot be parsed.
    */
-  private void parseTransition(CParser pCParser,
+  private void parseTransition(
+      CParser pCParser,
       AutomatonGraphmlParserState pGraphMLParserState,
       GraphMLTransition pTransition)
-      throws WitnessParseException {
+      throws WitnessParseException, InterruptedException {
     if (pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
         && pTransition.getTarget().isSinkState()) {
       throw new WitnessParseException(
@@ -706,7 +718,7 @@ public class AutomatonGraphmlParser {
       AutomatonGraphmlParserState pGraphMLParserState,
       GraphMLTransition pTransition,
       Deque<String> pCallstack)
-      throws WitnessParseException {
+      throws WitnessParseException, InterruptedException {
     if (!pTransition.getTarget().getInvariants().isEmpty()) {
       GraphMLThread thread = pTransition.getThread();
       Optional<String> explicitInvariantScope =
@@ -748,7 +760,7 @@ public class AutomatonGraphmlParser {
       AutomatonGraphmlParserState pGraphMLParserState,
       GraphMLTransition pTransition,
       Deque<String> pCallstack)
-      throws WitnessParseException {
+      throws WitnessParseException, InterruptedException {
     if (considerAssumptions) {
       GraphMLThread thread = pTransition.getThread();
       Optional<String> explicitAssumptionScope =
@@ -2067,7 +2079,7 @@ public class AutomatonGraphmlParser {
   }
 
   public static AutomatonGraphmlCommon.WitnessType getWitnessType(Path pPath)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser
         .<AutomatonGraphmlCommon.WitnessType, InvalidConfigurationException>
             handlePotentiallyGZippedInput(
@@ -2182,14 +2194,14 @@ public class AutomatonGraphmlParser {
 
   private static interface InputHandler<T, E extends Throwable> {
 
-    T handleInput(InputStream pInputStream) throws E, IOException;
+    T handleInput(InputStream pInputStream) throws E, IOException, InterruptedException;
   }
 
   private static <T, E extends Throwable> T handlePotentiallyGZippedInput(
       ByteSource pInputSource,
       InputHandler<T, E> pInputHandler,
       Function<IOException, E> pExceptionHandler)
-      throws E {
+      throws E, InterruptedException {
     try {
       try (InputStream inputStream = pInputSource.openStream();
           InputStream gzipInputStream = new GZIPInputStream(inputStream)) {

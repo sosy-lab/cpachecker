@@ -364,7 +364,8 @@ public class CPAchecker {
         stats.cpaCreationTime.start();
         try {
           specification =
-              Specification.fromFiles(properties, specificationFiles, cfa, config, logger);
+              Specification.fromFiles(
+                  properties, specificationFiles, cfa, config, logger, shutdownNotifier);
           cpa = factory.createCPA(cfa, specification);
         } finally {
           stats.cpaCreationTime.stop();
@@ -649,7 +650,12 @@ public class CPAchecker {
               tlp.tryGetAutomatonTargetLocations(
                   pAnalysisEntryFunction,
                   Specification.fromFiles(
-                      pProperties, backwardSpecificationFiles, pCfa, config, logger));
+                      pProperties,
+                      backwardSpecificationFiles,
+                      pCfa,
+                      config,
+                      logger,
+                      shutdownNotifier));
           break;
       default:
         throw new AssertionError("Unhandled case statement: " + initialStatesFor);

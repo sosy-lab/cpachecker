@@ -51,6 +51,7 @@ import java_cup.runtime.SymbolFactory;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.DummyParser;
@@ -120,7 +121,8 @@ parser code {:
       LogManager pLogger,
       MachineModel pMachine,
       Scope scope,
-      Language pLanguage)
+      Language pLanguage,
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
     try (InputStream inputStream = Files.newInputStream(pInputFile);
@@ -128,13 +130,27 @@ parser code {:
         InputStreamReader unzippedInput =
             new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8)) {
       return parseAutomaton(
-          unzippedInput, Optional.of(pInputFile), config, pLogger, pMachine, scope, pLanguage);
+          unzippedInput,
+          Optional.of(pInputFile),
+          config,
+          pLogger,
+          pMachine,
+          scope,
+          pLanguage,
+          pShutdownNotifier);
 
     } catch (IOException e) {
       // Fallback if file is not compressed
       try (Reader input = Files.newBufferedReader(pInputFile, StandardCharsets.UTF_8)) {
         return parseAutomaton(
-            input, Optional.of(pInputFile), config, pLogger, pMachine, scope, pLanguage);
+            input,
+            Optional.of(pInputFile),
+            config,
+            pLogger,
+            pMachine,
+            scope,
+            pLanguage,
+            pShutdownNotifier);
 
       } catch (IOException e2) {
         throw new InvalidConfigurationException(
@@ -151,7 +167,8 @@ parser code {:
       LogManager pLogger,
       MachineModel pMachine,
       Scope scope,
-      Language pLanguage)
+      Language pLanguage,
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     final ComplexSymbolFactory sf = new ComplexSymbolFactory();
     final Scanner scanner =
@@ -161,7 +178,8 @@ parser code {:
     switch (pLanguage) {
       case C:
         CParser cparser =
-            CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(config), pMachine);
+            CParser.Factory.getParser(
+                pLogger, CParser.Factory.getOptions(config), pMachine, pShutdownNotifier);
         automatonParser = new AutomatonParser(scanner, sf, pLogger, cparser, pMachine, scope);
         break;
       default:

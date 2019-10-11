@@ -36,6 +36,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -71,7 +72,8 @@ public class AutomatonFilesTest {
             LogManager.createTestLogManager(),
             MachineModel.LINUX32,
             CProgramScope.empty(),
-            Language.C);
+            Language.C,
+            ShutdownNotifier.createDummy());
     assertWithMessage("automata from file %s,", automatonFile).that(automata).isNotEmpty();
   }
 }

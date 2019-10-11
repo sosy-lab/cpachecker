@@ -42,6 +42,7 @@ import jhoafparser.parser.HOAFParser;
 import jhoafparser.parser.generated.ParseException;
 import jhoafparser.storage.StoredAutomaton;
 import org.sosy_lab.common.NativeLibraries;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -80,13 +81,14 @@ public class Ltl2BuechiConverter {
       Configuration pConfig,
       LogManager pLogger,
       MachineModel pMachineModel,
-      Scope pScope)
+      Scope pScope,
+      ShutdownNotifier pShutdownNotifier)
       throws InterruptedException, LtlParseException {
     checkNotNull(pFormula);
 
     StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula).createHoaAutomaton();
     return BuechiConverterUtils.convertFromHOAFormat(
-        hoaAutomaton, pEntryFunction, pConfig, pLogger, pMachineModel, pScope);
+        hoaAutomaton, pEntryFunction, pConfig, pLogger, pMachineModel, pScope, pShutdownNotifier);
   }
 
   /**

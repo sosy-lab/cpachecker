@@ -37,6 +37,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -77,8 +78,9 @@ public final class Specification {
       Iterable<Path> specFiles,
       CFA cfa,
       Configuration config,
-      LogManager logger)
-      throws InvalidConfigurationException {
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, InterruptedException {
     if (Iterables.isEmpty(specFiles)) {
       if (pProperties.stream().anyMatch(p -> p.getProperty() instanceof CommonCoverageType)) {
         return new Specification(pProperties, ImmutableListMultimap.of());
@@ -95,7 +97,8 @@ public final class Specification {
                     config,
                     logger,
                     cfa.getMachineModel(),
-                    new CProgramScope(cfa, logger));
+                    new CProgramScope(cfa, logger),
+                    pShutdownNotifier);
             return new Specification(
                 pProperties,
                 ImmutableListMultimap.of(Paths.get(""), automaton));
@@ -142,13 +145,19 @@ public final class Specification {
 
       if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
         AutomatonGraphmlParser graphmlParser =
-            new AutomatonGraphmlParser(config, logger, cfa, scope);
+            new AutomatonGraphmlParser(config, logger, pShutdownNotifier, cfa, scope);
         automata = graphmlParser.parseAutomatonFile(specFile, properties);
 
       } else {
         automata =
             AutomatonParser.parseAutomatonFile(
-                specFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+                specFile,
+                config,
+                logger,
+                cfa.getMachineModel(),
+                scope,
+                cfa.getLanguage(),
+                pShutdownNotifier);
       }
 
       if (automata.isEmpty()) {

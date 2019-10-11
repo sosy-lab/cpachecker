@@ -73,7 +73,11 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
 
   private final Automaton condition;
 
-  public SyntaxExtractor(final Configuration pConfig, final CFA pCfa, final LogManager pLogger)
+  public SyntaxExtractor(
+      final Configuration pConfig,
+      final CFA pCfa,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -86,7 +90,8 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
             pCfa.getLanguage() == Language.C
                 ? new CProgramScope(pCfa, pLogger)
                 : DummyScope.getInstance(),
-            pCfa.getLanguage());
+            pCfa.getLanguage(),
+            pShutdownNotifier);
     if (automata.size() != 1) {
       throw new InvalidConfigurationException("Require exactly one condition automaton.");
     }

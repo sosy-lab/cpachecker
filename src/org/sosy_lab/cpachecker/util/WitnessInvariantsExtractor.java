@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+
 /**
  * This class extracts invariants from the correctness witness automaton. Calling {@link
  * WitnessInvariantsExtractor#analyzeWitness()} analyzes the witness first by conducting a
@@ -96,7 +97,7 @@ public class WitnessInvariantsExtractor {
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier,
       Path pPathToWitnessFile)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     this.config = generateLocalConfiguration(pConfig);
     this.logger = pLogger;
     this.cfa = pCFA;
@@ -154,9 +155,14 @@ public class WitnessInvariantsExtractor {
   }
 
   private Specification buildSpecification(Specification pSpecification, Path pathToWitnessFile)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     return Specification.fromFiles(
-        pSpecification.getProperties(), ImmutableList.of(pathToWitnessFile), cfa, config, logger);
+        pSpecification.getProperties(),
+        ImmutableList.of(pathToWitnessFile),
+        cfa,
+        config,
+        logger,
+        shutdownNotifier);
   }
 
   private Specification buildSpecification(Automaton pAutomaton) {
