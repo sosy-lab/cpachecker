@@ -85,17 +85,18 @@ public class SMGBuiltins {
   private static final int MEMCPY_SIZE_PARAMETER = 2;
   private static final int MALLOC_PARAMETER = 0;
 
-  private final Set<String> BUILTINS = Sets.newHashSet(
+  private final Set<String> BUILTINS =
+      Sets.newHashSet(
           "__VERIFIER_BUILTIN_PLOT",
           "memcpy",
           "memset",
           "__builtin_alloca",
-          //TODO: Properly model printf (dereferences and stuff)
-          //TODO: General modelling system for functions which do not modify state?
-          "printf"
-      );
+          // TODO: Properly model printf (dereferences and stuff)
+          // TODO: General modelling system for functions which do not modify state?
+          "printf",
+          "strcmp");
 
-  public final void evaluateVBPlot(
+  private void evaluateVBPlot(
       CFunctionCallExpression functionCall, UnmodifiableSMGState currentState) {
     String name = functionCall.getParameterExpressions().get(0).toASTString();
     if(exportSMGOptions.hasExportPath() && currentState != null) {
@@ -737,7 +738,7 @@ public class SMGBuiltins {
     return SMGAddressValueAndState.of(currentState, targetStr1Address);
   }
 
-  List<SMGAddressValueAndState> handleBuiltinFunctionCall(
+  List<? extends SMGValueAndState> handleBuiltinFunctionCall(
       CFAEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
       String calledFunctionName,
@@ -759,6 +760,9 @@ public class SMGBuiltins {
       case "memcpy":
         return evaluateMemcpy(cFCExpression, newState, pCfaEdge);
 
+      case "strcmp":
+        return evaluateStrcmp(cFCExpression, newState, pCfaEdge);
+
       case "__VERIFIER_BUILTIN_PLOT":
         evaluateVBPlot(cFCExpression, newState);
         // $FALL-THROUGH$
@@ -773,6 +777,24 @@ public class SMGBuiltins {
               "Unexpected function handled as a builtin: " + calledFunctionName);
         }
     }
+  }
+
+  /**
+   * returns the result of the comparison of the String arguments of the functioncall.
+   *
+   * @param pFunctioncall contains the parameters for String comparison
+   * @param pState the original state (please do noch change this state)
+   * @param pCfaEdge part of the CFA, mostly for logging and debugging.
+   */
+  private List<SMGValueAndState> evaluateStrcmp(
+      CFunctionCallExpression pFunctioncall, SMGState pState, CFAEdge pCfaEdge) {
+    // TODO
+    // - extract parameters and the corresponding SMG nodes.
+    // - iterate over all chars and compare them
+    // - return a nice result
+
+    // otherwise return UNKNOWN
+    return ImmutableList.of(SMGAddressValueAndState.of(pState));
   }
 
   List<SMGAddressValueAndState> handleUnknownFunction(
@@ -797,7 +819,7 @@ public class SMGBuiltins {
     }
   }
 
-  public List<SMGAddressValueAndState> handleFunctioncall(
+  public List<? extends SMGValueAndState> handleFunctioncall(
       CFunctionCallExpression pFunctionCall,
       String functionName,
       SMGState pSmgState,

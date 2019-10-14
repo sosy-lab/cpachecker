@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -68,7 +69,7 @@ class RHSPointerAddressVisitor extends PointerVisitor {
   }
 
   @Override
-  public List<SMGAddressValueAndState> visit(CFunctionCallExpression pIastFunctionCallExpression)
+  public List<? extends SMGValueAndState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
     CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
     String functionName = fileNameExpression.toASTString();
