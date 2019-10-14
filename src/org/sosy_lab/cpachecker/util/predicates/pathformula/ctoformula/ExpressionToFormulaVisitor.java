@@ -137,24 +137,40 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public Formula visit(final CBinaryExpression exp) throws UnrecognizedCodeException {
-    /* FOR SHIFTS:
-     * We would not need to cast the second operand, but we do casting,
-     * because Mathsat assumes 2 bitvectors of same length.
+    /*
+     * FOR SHIFTS: We would not ne ed to cast the second operand, but we do casting, because Mathsat
+     * assumes 2 bitvectors of same length.
      *
-     * This could be incorrect in cases of negative shifts and
-     * signed/unsigned conversion, example: 5U<<(-1).
-     * Instead of "undefined value", we return a possible wrong value.
+     * This could be incorrect in cases of negative shifts and signed/unsigned conversion, example:
+     * 5U<<(-1). Instead of "undefined value", we return a possible wrong value.
      *
-     * ISO-C 6.5.7 Bitwise shift operators
-     * If the value of the right operand is negative or is greater than or equal
-     * to the width of the promoted left operand, the behavior is undefined.
+     * ISO-C 6.5.7 Bitwise shift operators If the value of the right operand is negative or is
+     * greater than or equal to the width of the promoted left operand, the behavior is undefined.
      */
 
     final CType returnType = exp.getExpressionType();
     final CType calculationType = exp.getCalculationType();
 
-    final Formula f1 = processOperand(exp.getOperand1(), calculationType, returnType);
-    final Formula f2 = processOperand(exp.getOperand2(), calculationType, returnType);
+    // ÄNDERUNG
+    // final Formula f1 = processOperand(exp.getOperand1(), calculationType, returnType);
+    // final Formula f2 = processOperand(exp.getOperand2(), calculationType, returnType);
+    Formula for1 = processOperand(exp.getOperand1(), calculationType, returnType);
+    Formula for2 = processOperand(exp.getOperand2(), calculationType, returnType);
+    final Formula f1 =
+        conv.adjustFormulaTypeinBinExp(
+            for1,
+            for2,
+            exp.getOperand1().getExpressionType(),
+            constraints,
+            edge);
+    final Formula f2 =
+        conv.adjustFormulaTypeinBinExp(
+            for2,
+            for1,
+            exp.getOperand2().getExpressionType(),
+            constraints,
+            edge);
+    // ÄNDERUNG ENDE
 
     return handleBinaryExpression(exp, f1, f2);
   }
@@ -167,7 +183,18 @@ public class ExpressionToFormulaVisitor
     final CType calculationType = exp.getCalculationType();
 
     // these operators expect numeric arguments
-    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+    // ÄNDERUNG
+    // final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+    final FormulaType<?> returnFormulaType;
+    if (conv.options.useVariableClassification()) {
+      assert mgr.getFormulaType(f1)
+          .equals(
+              mgr.getFormulaType(
+                  f2)) : "Argument Formulatypes do not match in visit(CBinaryExpression): " + exp;
+      returnFormulaType = mgr.getFormulaType(f1);
+    } else {
+      returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+    }
 
 
     final boolean signed;
@@ -187,6 +214,7 @@ public class ExpressionToFormulaVisitor
     CType promT2 = getPromotedTypeForArithmetic(exp.getOperand2());
 
     final Formula ret;
+
 
     switch (op) {
     case PLUS:
@@ -313,6 +341,13 @@ public class ExpressionToFormulaVisitor
   private BooleanFormula handleEquals(CBinaryExpression exp, Formula f1, Formula f2)
       throws UnrecognizedCodeException {
     assert exp.getOperator() == BinaryOperator.EQUALS;
+    // ÄNDERUNG
+    FormulaType<?> f1Type = mgr.getFormulaType(f1);
+    FormulaType<?> f2Type = mgr.getFormulaType(f2);
+    if (!f1Type.equals(f2Type)) {
+      f1 = conv.makeFormulaTypeCast(f2Type, exp.getExpressionType(), f1, constraints, edge);
+    }
+    // ÄNDERUNG ENDE
     CExpression e1 = exp.getOperand1();
     CExpression e2 = exp.getOperand2();
     if (e2.equals(CIntegerLiteralExpression.ZERO)

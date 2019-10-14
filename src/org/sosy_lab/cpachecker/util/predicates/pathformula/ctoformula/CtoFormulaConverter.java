@@ -126,6 +126,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /**
  * Class containing all the code that converts C code into a formula.
@@ -326,6 +327,36 @@ public class CtoFormulaConverter {
   }
 
   /**
+   * Uses the variable classification to check for the formula type. If variable classification is
+   * deactivated, getFormulaTypeFromCType is used.
+   */
+  public final FormulaType<?> getFormulaType(CType type, String name) {
+    if (!options.useVariableClassification()) {
+      return getFormulaTypeFromCType(type);
+    }
+    if (!variableClassification.isPresent()) {
+      logger.logf(Level.WARNING, "Variable classification is not available.");
+      return getFormulaTypeFromCType(type);
+    }
+
+    Set<String> intBoolVars = variableClassification.get().getIntBoolVars();
+    Set<String> intEqualVars = variableClassification.get().getIntEqualVars();
+    Set<String> intAddVars = variableClassification.get().getIntAddVars();
+    // Set<String> intOverflowVars = variableClassification.get().getIntOverflowVars();
+
+    if (intBoolVars.contains(name)) {
+      return FormulaType.BooleanType;
+    } else if (intEqualVars.contains(name)) {
+      return FormulaType.IntegerType;
+    } else if (intAddVars.contains(name)) {
+      if (options.ignoreOverflowsInVarClass()) {
+        return FormulaType.IntegerType;
+      }
+    }
+    return getFormulaTypeFromCType(type);
+  }
+
+  /**
    * This method produces a String representation of an arbitrary expression
    * that can be used as a variable name in a formula.
    * The name is not globally unique.
@@ -412,7 +443,7 @@ public class CtoFormulaConverter {
 //      : "Saving variables with mutliple types is not possible!";
     if (t != null && !areEqualWithMatchingPointerArray(t, type)) {
 
-      if (!getFormulaTypeFromCType(t).equals(getFormulaTypeFromCType(type))) {
+      if (!getFormulaType(t, name).equals(getFormulaType(type, name))) {
         throw new UnsupportedOperationException(
             "Variable " + name + " used with types of different sizes! " +
                 "(Type1: " + t + ", Type2: " + type + ")");
@@ -443,7 +474,7 @@ public class CtoFormulaConverter {
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
 
-    final FormulaType<?> variableFormulaType = getFormulaTypeFromCType(variableType);
+    final FormulaType<?> variableFormulaType = getFormulaType(variableType, variableName);
     final Formula oldVariable = fmgr.makeVariable(variableFormulaType, variableName, oldIndex);
     final Formula newVariable = fmgr.makeVariable(variableFormulaType, variableName, newIndex);
 
@@ -455,7 +486,7 @@ public class CtoFormulaConverter {
    * This method does not handle scoping!
    */
   protected Formula makeConstant(String name, CType type) {
-    return fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromCType(type), name);
+    return fmgr.makeVariableWithoutSSAIndex(getFormulaType(type, name), name);
   }
 
   /**
@@ -466,7 +497,7 @@ public class CtoFormulaConverter {
    */
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
     int useIndex = getIndex(name, type, ssa);
-    return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
+    return fmgr.makeVariable(this.getFormulaType(type, name), name, useIndex);
   }
 
   /**
@@ -483,7 +514,7 @@ public class CtoFormulaConverter {
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     // Need to call fmgr.makeVariable directly instead of makeConstant,
     // because otherwise the variable gets marked as "never needs an SSA index"
-    return fmgr.makeVariable(getFormulaTypeFromCType(pType), pVarName);
+    return fmgr.makeVariable(getFormulaType(pType, pVarName), pVarName);
   }
 
   /**
@@ -525,7 +556,7 @@ public class CtoFormulaConverter {
       useIndex = makeFreshIndex(name, type, ssa);
     }
 
-    Formula result = fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
+    Formula result = fmgr.makeVariable(this.getFormulaType(type, name), name, useIndex);
 
     if (direction == AnalysisDirection.BACKWARD) {
       makeFreshIndex(name, type, ssa);
@@ -638,6 +669,153 @@ public class CtoFormulaConverter {
 
     return result;
   }
+
+  /**
+   * Used to give both sides of a binary expression the same formula type. Needs to be used on both
+   * sides seperately.
+   *
+   * @param fret the formula to potentially be casted and returned.
+   * @param f2 the second formula of the expression.
+   * @param fretCType the CType of fret.
+   * @return the new formula after the cast.
+   */
+  protected Formula adjustFormulaTypeinBinExp(
+      Formula fret,
+      Formula f2,
+      CType fretCType,
+      Constraints constraints,
+      CFAEdge edge)
+      throws UnrecognizedCodeException {
+    if (options.useVariableClassification()) {
+      FormulaType<?> fretType = fmgr.getFormulaType(fret);
+      FormulaType<?> f2Type = fmgr.getFormulaType(f2);
+      if (fretType.equals(f2Type)) {
+        return fret;
+      }
+      if (fretType.isBitvectorType() || fretType.isFloatingPointType() || f2Type.isBooleanType()) {
+        return makeFormulaTypeCast(f2Type, fretCType, fret, constraints, edge);
+      }
+      if (f2Type.isBitvectorType() || f2Type.isFloatingPointType() || fretType.isBooleanType()) {
+        return fret;
+      }
+      throw new UnrecognizedCodeException(
+          "Binary Expression with operands of type "
+              + fretType.toString()
+              + " and "
+              + f2Type.toString()
+              + " not implemented yet!",
+          edge);
+    }
+    return fret;
+  }
+
+  /**
+   * Used to cast between formula types.
+   *
+   * @param toType the type to cast into.
+   * @param CType the CType of the formula.
+   * @param formula the formula to be casted.
+   * @return the new formula after the cast.
+   */
+  protected Formula makeFormulaTypeCast(
+      final FormulaType<?> toType,
+      final CType CType,
+      Formula formula,
+      Constraints constraints,
+      CFAEdge edge)
+      throws UnrecognizedCodeException {
+    if (!options.useVariableClassification()) {
+      return formula;
+    }
+    FormulaType<?> fromType = fmgr.getFormulaType(formula);
+    if (fromType.equals(toType)) {
+      return formula;
+    }
+    if (fromType.isBitvectorType()) {
+      if (toType.isBooleanType()) {
+        final CSimpleType sType = (CSimpleType) CType;
+        final boolean signed = machineModel.isSigned(sType);
+        IntegerFormula iformula = efmgr.toIntegerFormula((BitvectorFormula) formula, signed);
+        IntegerFormula zero = nfmgr.makeNumber(0);
+        return bfmgr.not(nfmgr.equal(iformula, zero));
+      } else if (toType.isIntegerType()) {
+        final CSimpleType sType = (CSimpleType) CType;
+        final boolean signed = machineModel.isSigned(sType);
+        return efmgr.toIntegerFormula((BitvectorFormula) formula, signed);
+      } else {
+        throw new UnrecognizedCodeException(
+            "Formula type cast from " + toType + " to " + fromType + " not supported!",
+            edge);
+      }
+    }
+    if (fromType.isFloatingPointType()) {
+      return fmgr.getFloatingPointFormulaManager()
+              .castTo(
+                  (FloatingPointFormula) formula,
+                  toType,
+                  FloatingPointRoundingMode.TOWARD_ZERO);
+    }
+    if (fromType.isIntegerType()) {
+      if (toType.isBooleanType()) {
+        IntegerFormula zero = nfmgr.makeNumber(0);
+        return bfmgr.not(nfmgr.equal((IntegerFormula) formula, zero));
+      } else if (toType.isFloatingPointType()) {
+        throw new UnrecognizedCodeException(
+            "Formula type cast from " + toType + " to " + fromType + " not implemented yet!",
+            edge);
+      } else if (toType.isBitvectorType()) {
+        int size = ((BitvectorType) toType).getSize();
+        return efmgr.makeBitvector(size, (IntegerFormula) formula);
+      } else {
+        throw new UnrecognizedCodeException(
+            "Formula type cast from " + toType + " to " + fromType + " not supported!",
+            edge);
+      }
+    }
+    if (fromType.isBooleanType()) {
+      if (toType.isIntegerType()) {
+        if (bfmgr.isFalse((BooleanFormula) formula)) {
+          return nfmgr.makeNumber(0);
+        } else {
+          return nfmgr.makeNumber(1);
+        }
+      } else if (toType.isFloatingPointType()) {
+        throw new UnrecognizedCodeException(
+            "Formula type cast from " + toType + " to " + fromType + " not implemented yet!",
+            edge);
+      } else if (toType.isBitvectorType()) {
+        int value;
+        if (bfmgr.isFalse((BooleanFormula) formula)) {
+          value = 0;
+        } else {
+          value = 1;
+        }
+        int size = ((BitvectorType) toType).getSize();
+        IntegerFormula iformula = nfmgr.makeNumber(value);
+        return efmgr.makeBitvector(size, iformula);
+      } else {
+        throw new UnrecognizedCodeException(
+            "Formula type cast from " + toType + " to " + fromType + " not supported!",
+            edge);
+      }
+    }
+    return formula;
+  }
+
+  /*
+   * private Formula intBoolToInt (Formula formula, CType type, Constraints constraints) {
+   * Set<String> varNames = fmgr.extractVariableNames(formula); if (varNames.size() != 1) {
+   * logger.logf( Level.WARNING, "Formula with no/multiple variables is converted to boolean type: "
+   * + formula.toString()); System.exit(0); } String[] varNamesA = new String[1]; varNamesA =
+   * (String[]) varNames.toArray(); String varName = varNamesA[0]; Set<String> intBoolVars =
+   * variableClassification.get().getIntBoolVars(); if (!intBoolVars.contains(varName)) {
+   * logger.logf(Level.WARNING, "Variable " + varName +
+   * " treated as intBool, but not found in intBool."); } String nConst; if
+   * (bfmgr.isFalse((BooleanFormula) formula)) { nConst = varName + "JAVASMT_EQUALS0";
+   * constraints.addConstraint(bfmgr.makeVariable(nConst)); } else { nConst = varName +
+   * "JAVASMT_NOTJAVASMT_EQUALS0"; constraints.addConstraint(bfmgr.makeVariable(nConst)); }
+   * //this.makeFreshIndex(varName, type, ssa); int i; return nfmgr.makeNumber(i); }
+   */
 
   /** Replace the formula with a matching ITE-structure
    *  that returns an UF (with additional constraints), if the formula causes an overflow,
@@ -1526,8 +1704,17 @@ public class CtoFormulaConverter {
   }
 
   <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
-    T one = fmgr.makeNumber(type, 1);
-    T zero = fmgr.makeNumber(type, 0);
+    // ÄNDERUNG
+    T one;
+    T zero;
+    if (type.isBooleanType()) {
+      one = (T) bfmgr.makeTrue();
+      zero = (T) bfmgr.makeFalse();
+    } else {
+      one = fmgr.makeNumber(type, 1);
+      zero = fmgr.makeNumber(type, 0);
+    }
+    // ÄNDERUNG ENDE
     return bfmgr.ifThenElse(pCond, one, zero);
   }
 

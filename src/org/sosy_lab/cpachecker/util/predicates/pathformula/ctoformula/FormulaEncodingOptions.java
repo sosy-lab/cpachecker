@@ -114,6 +114,17 @@ public class FormulaEncodingOptions {
       description = "For multithreaded programs this is an overapproximation of possible values of shared variables.")
   private boolean useHavocAbstraction = false;
 
+  @Option(
+    secure = true,
+    description = "Use Variable Classification to simplify formulas when possible.")
+  private boolean useVariableClassification = true;
+
+  @Option(
+    secure = true,
+    description = "Ignore possible Overflows for Integer Variables classified as IntAdd. "
+        + "This option is only relevant, if Variable Classification is used.")
+  private boolean ignoreOverflowsInVarClass = true;
+
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
   }
@@ -177,5 +188,13 @@ public class FormulaEncodingOptions {
 
   public boolean useHavocAbstraction() {
     return useHavocAbstraction;
+  }
+
+  public boolean useVariableClassification() {
+    return useVariableClassification;
+  }
+
+  public boolean ignoreOverflowsInVarClass() {
+    return ignoreOverflowsInVarClass;
   }
 }

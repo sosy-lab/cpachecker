@@ -728,8 +728,12 @@ class AssignmentHandler {
     checkArgument(isSimpleType(lvalueType));
     checkArgument(isSimpleType(rvalueType));
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
-
-    final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
+    final FormulaType<?> targetType;
+    if (lvalue.isAliased()) {
+      targetType = conv.getFormulaTypeFromCType(lvalueType);
+    } else {
+      targetType = conv.getFormulaType(lvalueType, lvalue.asUnaliasedLocation().getVariableName());
+    }
     final BooleanFormula result;
 
     Formula rhs;
@@ -742,6 +746,7 @@ class AssignmentHandler {
           value.isPresent()
               ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
               : null;
+      rhs = conv.makeFormulaTypeCast(targetType, lvalueType, rhs, constraints, edge);
     }
 
     if (!lvalue.isAliased()) { // Unaliased LHS

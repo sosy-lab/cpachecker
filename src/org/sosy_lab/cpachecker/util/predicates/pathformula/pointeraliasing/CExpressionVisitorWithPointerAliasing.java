@@ -590,8 +590,22 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   public Value visit(final CBinaryExpression exp) throws UnrecognizedCodeException {
     final CType returnType = exp.getExpressionType();
     final CType calculationType = exp.getCalculationType();
-    final Formula f1 = delegate.processOperand(exp.getOperand1(), calculationType, returnType);
-    final Formula f2 = delegate.processOperand(exp.getOperand2(), calculationType, returnType);
+    Formula for1 = delegate.processOperand(exp.getOperand1(), calculationType, returnType);
+    Formula for2 = delegate.processOperand(exp.getOperand2(), calculationType, returnType);
+    final Formula f1 =
+        conv.adjustFormulaTypeinBinExp(
+            for1,
+            for2,
+            exp.getOperand1().getExpressionType(),
+            constraints,
+            edge);
+    final Formula f2 =
+        conv.adjustFormulaTypeinBinExp(
+            for2,
+            for1,
+            exp.getOperand2().getExpressionType(),
+            constraints,
+            edge);
 
     final Formula result = delegate.handleBinaryExpression(exp, f1, f2);
 

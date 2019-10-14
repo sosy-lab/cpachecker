@@ -1216,6 +1216,30 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
+  protected Formula adjustFormulaTypeinBinExp(
+      Formula fret,
+      Formula f2,
+      CType fretCType,
+      Constraints constraints,
+      CFAEdge edge)
+      throws UnrecognizedCodeException {
+    return super.adjustFormulaTypeinBinExp(fret, f2, fretCType, constraints, edge);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected Formula makeFormulaTypeCast(
+      final FormulaType<?> toType,
+      final CType CType,
+      Formula formula,
+      Constraints constraints,
+      CFAEdge edge)
+      throws UnrecognizedCodeException {
+    return super.makeFormulaTypeCast(toType, CType, formula, constraints, edge);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   protected @Nullable Formula makeValueReinterpretation(
       CType pFromType, CType pToType, Formula pFormula) {
     return super.makeValueReinterpretation(pFromType, pToType, pFormula);
