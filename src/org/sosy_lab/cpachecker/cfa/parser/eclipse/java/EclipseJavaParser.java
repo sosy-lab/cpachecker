@@ -88,6 +88,14 @@ class EclipseJavaParser implements Parser {
   // Make sure to keep the option name synchronized with CPAMain#areJavaOptionsSet
   private String javaClasspath = "";
 
+  @Option(
+      secure = true,
+      name = "analysis.programNames",
+      //required=true, NOT required because we want to give a nicer user message ourselves
+      description = "A String, denoting the programs to be analyzed"
+  )
+  private ImmutableList<String> programs = ImmutableList.of();
+
   @Option(secure=true, name="java.exportTypeHierarchy",
       description="export TypeHierarchy as .dot file")
   private boolean exportTypeHierarchy = true;
@@ -120,7 +128,12 @@ class EclipseJavaParser implements Parser {
 
     logger = pLogger;
 
-    javaClassPaths = getJavaPaths(javaClasspath);
+    //TODO Verify what happens if several files are passed
+    if (javaClasspath.equals("")) {
+      javaClassPaths = getJavaPaths(programs.get(0));
+    } else {
+      javaClassPaths = getJavaPaths(javaClasspath);
+    }
 
     if (javaSourcepath.isEmpty()) {
       javaSourcePaths = javaClassPaths;
