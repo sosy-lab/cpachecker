@@ -54,7 +54,7 @@ public class BDDManagerFactory {
       values = {"JAVA", "SYLVAN", "CUDD", "MICRO", "BUDDY", "CAL", "JDD", "PJBDD"},
       toUppercase = true)
   // documentation of the packages can be found at source of BDDFactory.init()
-  private String bddPackage = "PJBDD";
+  private String bddPackage = "JAVA";
 
   @Option(secure = true, description = "sequentialize all accesses to the BDD library.")
   private boolean synchronizeLibraryAccess = false;
