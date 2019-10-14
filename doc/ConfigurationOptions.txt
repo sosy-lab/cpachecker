@@ -495,8 +495,43 @@ bdd.javabdd.initTableSize = 0
 # - buddy:  Buddy (native library required)
 # - cal:    CAL (native library required)
 # - jdd:    JDD
-bdd.package = "JAVA"
-  allowed values: [JAVA, SYLVAN, CUDD, MICRO, BUDDY, CAL, JDD]
+# - pjbdd:  A java native parallel bdd framework
+bdd.package = "PJBDD"
+  allowed values: [JAVA, SYLVAN, CUDD, MICRO, BUDDY, CAL, JDD, PJBDD]
+
+# size of the BDD cache.
+bdd.pjbdd.cacheSize = 10000
+
+# Which parallel bdd creator should be used? PJBDD only!
+# - serial-int: uses serial int-based algorithms with concurrent access
+# - serial: uses serial algorithms with concurrent access
+# - comp-fut: uses CompletableFuture based concurrent algorithms
+# - fork-join:  uses ForkJoin based concurrent algorithms
+bdd.pjbdd.creator = "FORK-JOIN"
+  allowed values: [COMP-FUT, FORK-JOIN, SERIAL, SERIAL-INT]
+
+# increase factor for resizing tables
+bdd.pjbdd.increaseFactor = 1
+
+# unique table's concurrency factor
+bdd.pjbdd.tableParallelism = 1000
+
+# initial size of the BDD node table.
+bdd.pjbdd.tableSize = 50000
+
+# Which uniquetable implementation should be used?
+# - array:  a concurrent resizing array
+# - map:    a concurrent hash map
+# - bucket: a concurrent hash bucket
+bdd.pjbdd.tableType = "ARRAY"
+  allowed values: [ARRAY, MAP, BUCKET]
+
+# Number of worker threads, Runtime.getRuntime().availableProcessors()
+# default
+bdd.pjbdd.threads = Runtime.getRuntime().availableProcessors()
+
+# initial variable count
+bdd.pjbdd.varCount = 10
 
 # Granularity of the Sylvan BDD operations cache (recommended values 4-8).
 bdd.sylvan.cacheGranularity = 4
