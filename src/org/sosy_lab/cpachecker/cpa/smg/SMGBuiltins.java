@@ -794,4 +794,21 @@ public class SMGBuiltins {
             "Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
     }
   }
+
+  public List<SMGAddressValueAndState> handleFunctioncall(
+      CFunctionCallExpression pFunctionCall,
+      String functionName,
+      SMGState pSmgState,
+      CFAEdge pCfaEdge,
+      SMGTransferRelationKind pKind)
+      throws CPATransferException, AssertionError {
+    if (isABuiltIn(functionName)) {
+      if (isConfigurableAllocationFunction(functionName)) {
+        return evaluateConfigurableAllocationFunction(pFunctionCall, pSmgState, pCfaEdge, pKind);
+      }
+      return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState, pKind);
+    } else {
+      return handleUnknownFunction(pCfaEdge, pFunctionCall, functionName, pSmgState);
+    }
+  }
 }

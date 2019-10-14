@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
@@ -73,18 +72,7 @@ class RHSPointerAddressVisitor extends PointerVisitor {
       throws CPATransferException {
     CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
     String functionName = fileNameExpression.toASTString();
-
-    SMGBuiltins builtins = smgRightHandSideEvaluator.builtins;
-    if (builtins.isABuiltIn(functionName)) {
-      if (builtins.isConfigurableAllocationFunction(functionName)) {
-        return builtins.evaluateConfigurableAllocationFunction(
-            pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge(), kind);
-      }
-      return builtins.handleBuiltinFunctionCall(
-          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState(), kind);
-    } else {
-      return builtins.handleUnknownFunction(
-          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState());
-    }
+    return smgRightHandSideEvaluator.builtins.handleFunctioncall(
+        pIastFunctionCallExpression, functionName, getInitialSmgState(), getCfaEdge(), kind);
   }
 }

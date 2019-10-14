@@ -52,24 +52,9 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
   @Override
   public List<SMGAddressValueAndState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
-
     CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
     String functionName = fileNameExpression.toASTString();
-
-    //TODO extreme code sharing ...
-
-    // If Calloc and Malloc have not been properly declared,
-    // they may be shown to return void
-    if (builtins.isABuiltIn(functionName)) {
-      if (builtins.isConfigurableAllocationFunction(functionName)) {
-        return builtins.evaluateConfigurableAllocationFunction(
-            pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge(), kind);
-      }
-      return builtins.handleBuiltinFunctionCall(
-          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState(), kind);
-    } else {
-      return builtins.handleUnknownFunction(
-          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState());
-    }
+    return builtins.handleFunctioncall(
+        pIastFunctionCallExpression, functionName, getInitialSmgState(), getCfaEdge(), kind);
   }
 }
