@@ -103,7 +103,7 @@ public class SMGBuiltins {
     }
   }
 
-  public final List<SMGAddressValueAndState> evaluateMemset(
+  private List<SMGAddressValueAndState> evaluateMemset(
       CFunctionCallExpression functionCall, SMGState pSMGState, CFAEdge cfaEdge)
       throws CPATransferException {
 
@@ -242,7 +242,7 @@ public class SMGBuiltins {
     return expressionEvaluator.evaluateAddress(pState, pCfaEdge, pRvalue);
   }
 
-  public final List<SMGAddressValueAndState> evaluateExternalAllocation(
+  private List<SMGAddressValueAndState> evaluateExternalAllocation(
       CFunctionCallExpression pFunctionCall, SMGState pState) throws SMGInconsistentException {
 
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
@@ -266,7 +266,7 @@ public class SMGBuiltins {
    * automatically freed at function-exit.
    */
   // TODO possible property violation "stack-overflow through big allocation" is not handled
-  public final List<SMGAddressValueAndState> evaluateAlloca(
+  private List<SMGAddressValueAndState> evaluateAlloca(
       CFunctionCallExpression functionCall,
       SMGState pState,
       CFAEdge cfaEdge,
@@ -467,7 +467,7 @@ public class SMGBuiltins {
     return result;
   }
 
-  public List<SMGAddressValueAndState> evaluateConfigurableAllocationFunction(
+  List<SMGAddressValueAndState> evaluateConfigurableAllocationFunction(
       CFunctionCallExpression functionCall,
       SMGState pState,
       CFAEdge cfaEdge,
@@ -515,8 +515,9 @@ public class SMGBuiltins {
     return result;
   }
 
-  public final List<SMGState> evaluateFree(CFunctionCallExpression pFunctionCall, SMGState pState,
-      CFAEdge cfaEdge) throws CPATransferException {
+  public final List<SMGState> evaluateFree(
+      CFunctionCallExpression pFunctionCall, SMGState pState, CFAEdge cfaEdge)
+      throws CPATransferException {
     CExpression pointerExp;
 
     try {
@@ -561,31 +562,32 @@ public class SMGBuiltins {
     return resultStates;
   }
 
-  public final boolean isABuiltIn(String functionName) {
+  boolean isABuiltIn(String functionName) {
     return (BUILTINS.contains(functionName) || isNondetBuiltin(functionName) ||
         isConfigurableAllocationFunction(functionName) || isDeallocationFunction(functionName) ||
         isExternalAllocationFunction(functionName));
   }
 
   private static final String NONDET_PREFIX = "__VERIFIER_nondet_";
-  public boolean isNondetBuiltin(String pFunctionName) {
+
+  private boolean isNondetBuiltin(String pFunctionName) {
     return pFunctionName.startsWith(NONDET_PREFIX) || pFunctionName.equals("nondet_int");
   }
 
-  public boolean isConfigurableAllocationFunction(String functionName) {
+  boolean isConfigurableAllocationFunction(String functionName) {
     return options.getMemoryAllocationFunctions().contains(functionName)
         || options.getArrayAllocationFunctions().contains(functionName);
   }
 
-  public boolean isDeallocationFunction(String functionName) {
+  boolean isDeallocationFunction(String functionName) {
     return options.getDeallocationFunctions().contains(functionName);
   }
 
-  public boolean isExternalAllocationFunction(String functionName) {
+  private boolean isExternalAllocationFunction(String functionName) {
     return options.getExternalAllocationFunction().contains(functionName);
   }
 
-  public List<SMGAddressValueAndState> evaluateMemcpy(
+  private List<SMGAddressValueAndState> evaluateMemcpy(
       CFunctionCallExpression pFunctionCall, SMGState pSmgState, CFAEdge pCfaEdge)
       throws CPATransferException {
 
@@ -735,7 +737,7 @@ public class SMGBuiltins {
     return SMGAddressValueAndState.of(currentState, targetStr1Address);
   }
 
-  public List<SMGAddressValueAndState> handleBuiltinFunctionCall(
+  List<SMGAddressValueAndState> handleBuiltinFunctionCall(
       CFAEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
       String calledFunctionName,
@@ -773,7 +775,7 @@ public class SMGBuiltins {
     }
   }
 
-  public List<SMGAddressValueAndState> handleUnknownFunction(
+  List<SMGAddressValueAndState> handleUnknownFunction(
       CFAEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
       String calledFunctionName,
