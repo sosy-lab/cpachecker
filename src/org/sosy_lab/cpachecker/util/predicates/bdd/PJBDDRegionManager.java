@@ -228,7 +228,7 @@ public class PJBDDRegionManager implements RegionManager {
     public BDD visitOr(List<BooleanFormula> pList) {
       if (pList.isEmpty()) return bddCreator.makeFalse();
 
-      BDD result = bddCreator.makeTrue();
+      BDD result = bddCreator.makeFalse();
       for (BooleanFormula bFormula : pList) {
         result = bddCreator.makeOr(result, convert(bFormula));
       }

@@ -496,7 +496,7 @@ bdd.javabdd.initTableSize = 0
 # - cal:    CAL (native library required)
 # - jdd:    JDD
 # - pjbdd:  A java native parallel bdd framework
-bdd.package = "PJBDD"
+bdd.package = "JAVA"
   allowed values: [JAVA, SYLVAN, CUDD, MICRO, BUDDY, CAL, JDD, PJBDD]
 
 # size of the BDD cache.
