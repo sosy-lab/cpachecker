@@ -268,34 +268,38 @@ public class ARGState extends AbstractSingleWrapperState
     PredicateProjectedState predicateState =
         AbstractStates.extractStateByType(projection, PredicateProjectedState.class);
 
-    AbstractEdge edge = predicateState.getAbstractEdge();
-    List<CFAEdge> result = new ArrayList<>();
+    if (predicateState != null) {
+      AbstractEdge edge = predicateState.getAbstractEdge();
+      List<CFAEdge> result = new ArrayList<>();
 
-    if (edge instanceof PredicateAbstractEdge) {
-      Collection<CAssignment> statements =
-          transformedImmutableListCopy(
-              ((PredicateAbstractEdge) edge).getFormulas(),
-              FormulaDescription::getAssignment);
-      for (CAssignment s : statements) {
-        result.add(
-            new EnvironmentActionEdge(
-                s.toASTString(),
-                s,
-                s.getFileLocation(),
-                currentLoc,
-                childLoc));
-      }
-
-    } else if (edge == EmptyEdge.getInstance()) {
-      result.add(
-          new BlankEdge(
-                  "empty predicate edge",
-                  FileLocation.DUMMY,
+      if (edge instanceof PredicateAbstractEdge) {
+        Collection<CAssignment> statements =
+            transformedImmutableListCopy(
+                ((PredicateAbstractEdge) edge).getFormulas(),
+                FormulaDescription::getAssignment);
+        for (CAssignment s : statements) {
+          result.add(
+              new EnvironmentActionEdge(
+                  s.toASTString(),
+                  s,
+                  s.getFileLocation(),
                   currentLoc,
-                  childLoc,
-              "empty predicate edge"));
+                  childLoc));
+        }
+
+      } else if (edge == EmptyEdge.getInstance()) {
+        result.add(
+            new BlankEdge(
+                "empty predicate edge",
+                FileLocation.DUMMY,
+                currentLoc,
+                childLoc,
+                "empty predicate edge"));
+      }
+      return result;
+    } else {
+      return generalWay(projection, currentLoc, childLoc);
     }
-    return result;
   }
 
   @SuppressWarnings("unused")
