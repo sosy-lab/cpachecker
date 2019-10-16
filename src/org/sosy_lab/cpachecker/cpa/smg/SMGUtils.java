@@ -82,6 +82,7 @@ public final class SMGUtils {
     return pInputSMG.getHVEdges(valueFilter);
   }
 
+  @Deprecated // unused
   public static boolean isRecursiveOnOffset(CType pType, long fieldOffset, MachineModel pModel) {
 
     CFieldTypeVisitor v = new CFieldTypeVisitor(fieldOffset, pModel);

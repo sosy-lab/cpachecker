@@ -28,7 +28,6 @@ import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
@@ -121,12 +120,9 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
       return;
     }
 
-    for (SMGEdgeHasValue hveNext : hvesOfObject) {
+    for (final SMGEdgeHasValue hveNext : hvesOfObject) {
 
-      long nfo = hveNext.getOffset();
-      CType nfoType = hveNext.getType();
       SMGValue nextPointer = hveNext.getValue();
-
       if (!pSmg.isPointer(nextPointer)) {
         continue;
       }
@@ -134,7 +130,6 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
       SMGEdgePointsTo nextPointerEdge = pSmg.getPointer(nextPointer);
       long hfo = nextPointerEdge.getOffset();
       SMGTargetSpecifier nextPointerTg = nextPointerEdge.getTargetSpecifier();
-
       if (!(nextPointerTg == SMGTargetSpecifier.REGION
           || nextPointerTg == SMGTargetSpecifier.FIRST)) {
         continue;
@@ -142,7 +137,8 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
       SMGObject nextObject = nextPointerEdge.getObject();
 
-      Set<SMGEdgeHasValue> nextObjectHves = pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject));
+      Set<SMGEdgeHasValue> nextObjectHves =
+          pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject));
 
       if (nextObjectHves.size() < 2) {
         continue;
@@ -164,16 +160,16 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         continue;
       }
 
+      long nfo = hveNext.getOffset();
       for (SMGEdgeHasValue hvePrev : nextObjectHves) {
 
         long pfo = hvePrev.getOffset();
-        CType pfoType = hvePrev.getType();
-        SMGValue prevPointer = hvePrev.getValue();
 
         if(!(nfo < pfo)) {
           continue;
         }
 
+        SMGValue prevPointer = hvePrev.getValue();
         if (!pSmg.isPointer(prevPointer)) {
           continue;
         }
@@ -210,7 +206,14 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
         SMGDoublyLinkedListCandidate candidate =
             new SMGDoublyLinkedListCandidate(
-                pObject, pObject, hfo, pfo, nfo, pfoType, nfoType, pSmg.getMachineModel());
+                pObject,
+                pObject,
+                hfo,
+                pfo,
+                nfo,
+                hvePrev.getSizeInBits(),
+                hveNext.getSizeInBits(),
+                pSmg.getMachineModel());
         pProgress.initializeCandidiate(candidate);
         continueTraversal(nextPointer, candidate, pSmg, pSMGState, pProgress);
       }
@@ -281,8 +284,8 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
               hfo,
               pfo,
               nfo,
-              pfoField.getType(),
-              nfoField.getType(),
+              pfoField.getSizeInBits(),
+              nfoField.getSizeInBits(),
               pSmg.getMachineModel());
       pProgress.initializeLastInSequenceCandidate(candidate);
     } else {

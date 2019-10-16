@@ -21,12 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
+package org.sosy_lab.cpachecker.core.algorithm.bmc.pdr;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.ProofResult;
 
-public class FrontierExtensionResult extends ProofResult {
+class FrontierExtensionResult extends ProofResult {
 
   private static final FrontierExtensionResult SUCCESS = new FrontierExtensionResult();
 

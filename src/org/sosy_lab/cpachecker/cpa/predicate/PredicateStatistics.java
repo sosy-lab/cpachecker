@@ -72,6 +72,6 @@ public class PredicateStatistics {
       new ThreadSafeTimerContainer("Time for all environment actions");
   final StatCounter numSatChecksFalse = new StatCounter("Times sat checks was 'false'");
   final StatCounter numStrengthenChecksFalse =
-      new StatCounter("Times strengthen sat check was'false'");
+      new StatCounter("Times strengthen sat check was 'false'");
 
 }

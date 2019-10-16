@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.ImmutableList;
@@ -267,34 +268,38 @@ public class ARGState extends AbstractSingleWrapperState
     PredicateProjectedState predicateState =
         AbstractStates.extractStateByType(projection, PredicateProjectedState.class);
 
-    AbstractEdge edge = predicateState.getAbstractEdge();
-    List<CFAEdge> result = new ArrayList<>();
+    if (predicateState != null) {
+      AbstractEdge edge = predicateState.getAbstractEdge();
+      List<CFAEdge> result = new ArrayList<>();
 
-    if (edge instanceof PredicateAbstractEdge) {
-      Collection<CAssignment> statements =
-          from(((PredicateAbstractEdge) edge).getFormulas())
-              .transform(FormulaDescription::getAssignment)
-              .toList();
-      for (CAssignment s : statements) {
-        result.add(
-            new EnvironmentActionEdge(
-                s.toASTString(),
-                s,
-                s.getFileLocation(),
-                currentLoc,
-                childLoc));
-      }
-
-    } else if (edge == EmptyEdge.getInstance()) {
-      result.add(
-          new BlankEdge(
-                  "empty predicate edge",
-                  FileLocation.DUMMY,
+      if (edge instanceof PredicateAbstractEdge) {
+        Collection<CAssignment> statements =
+            transformedImmutableListCopy(
+                ((PredicateAbstractEdge) edge).getFormulas(),
+                FormulaDescription::getAssignment);
+        for (CAssignment s : statements) {
+          result.add(
+              new EnvironmentActionEdge(
+                  s.toASTString(),
+                  s,
+                  s.getFileLocation(),
                   currentLoc,
-                  childLoc,
-              "empty predicate edge"));
+                  childLoc));
+        }
+
+      } else if (edge == EmptyEdge.getInstance()) {
+        result.add(
+            new BlankEdge(
+                "empty predicate edge",
+                FileLocation.DUMMY,
+                currentLoc,
+                childLoc,
+                "empty predicate edge"));
+      }
+      return result;
+    } else {
+      return generalWay(projection, currentLoc, childLoc);
     }
-    return result;
   }
 
   @SuppressWarnings("unused")
@@ -436,7 +441,7 @@ public class ARGState extends AbstractSingleWrapperState
   }
 
   public Collection<ARGState> getProjectedTo() {
-    return projectedTo == null ? Collections.emptyList() : projectedTo;
+    return projectedTo == null ? ImmutableList.of() : projectedTo;
   }
 
   void setAsAppliedFrom(ARGState pLeftState, ARGState pRightState) {
@@ -462,7 +467,7 @@ public class ARGState extends AbstractSingleWrapperState
   }
 
   public Collection<ARGState> getAppliedTo() {
-    return appliedTo == null ? Collections.emptyList() : appliedTo;
+    return appliedTo == null ? ImmutableList.of() : appliedTo;
   }
 
   // was-expanded marker so we can identify open leafs

@@ -75,6 +75,7 @@ public class BAMPredicateReducer
   private final BooleanFormulaManager bfmgr;
   private final RegionManager rmgr;
   private final ShutdownNotifier shutdownNotifier;
+  private final Set<String> addressedVariables;
 
   private final Map<BooleanFormula, Set<String>> variableCache = new HashMap<>();
 
@@ -101,6 +102,7 @@ public class BAMPredicateReducer
     this.rmgr = cpa.getAbstractionManager().getRegionCreator();
     this.logger = cpa.getLogger();
     this.shutdownNotifier = cpa.getShutdownNotifier();
+    this.addressedVariables = cpa.getCfa().getVarClassification().get().getAddressedVariables();
   }
 
   @Override
@@ -229,7 +231,7 @@ public class BAMPredicateReducer
 
   /** return whether any new variable is relevant for the existing variables. */
   private boolean isAnyVariableRelevant(Set<String> relevantVariables, Set<String> newVariables) {
-    for (String var : relevantVariables) {
+    for (String var : Sets.union(addressedVariables, relevantVariables)) {
 
       // short cut
       if (newVariables.contains(var)) {

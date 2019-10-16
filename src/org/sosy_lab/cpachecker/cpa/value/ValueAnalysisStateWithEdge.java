@@ -20,6 +20,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
@@ -67,8 +68,9 @@ public class ValueAnalysisStateWithEdge extends ValueAnalysisState implements Ab
       if (!assignments.keySet().equals(otherAssignments.keySet())) {
         return false;
       }
-      for (MemoryLocation mem : assignments.keySet()) {
-        ValueAndType val = assignments.get(mem);
+      for (Entry<MemoryLocation, ValueAndType> entry : assignments.entrySet()) {
+        MemoryLocation mem = entry.getKey();
+        ValueAndType val = entry.getValue();
         ValueAndType otherVal = otherAssignments.get(mem);
         if (val.equals(otherVal) || otherVal.getValue() == UnknownValue.getInstance()) {
 
@@ -113,9 +115,9 @@ public class ValueAnalysisStateWithEdge extends ValueAnalysisState implements Ab
 
   @Override
   public boolean hasEmptyEffect() {
-    return ((edge instanceof ValueAbstractEdge)
-        && ((ValueAbstractEdge) edge).getDifference().getAssignments().isEmpty())
-        || edge == EmptyEdge.getInstance();
+    return edge == EmptyEdge.getInstance()
+        || ((edge instanceof ValueAbstractEdge)
+            && ((ValueAbstractEdge) edge).getDifference().getAssignments().isEmpty());
   }
 
   @Override

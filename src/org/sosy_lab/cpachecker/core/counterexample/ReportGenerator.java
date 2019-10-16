@@ -32,6 +32,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -52,11 +53,14 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.JSON;
@@ -77,11 +81,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.BiPredicates;
 
 @Options
 public class ReportGenerator {
@@ -124,6 +134,9 @@ public class ReportGenerator {
   private final Map<String, Object> argEdges;
   private final Map<String, Object> argRelevantEdges;
   private final Map<Integer, Object> argRelevantNodes;
+  private final Map<String, Object> argReducedEdges;
+  private final Map<String, Object> argReducedNodes;
+  private Optional<Witness> witnessOptional;
 
   private final String producer; // HTML-escaped producer string
 
@@ -142,10 +155,15 @@ public class ReportGenerator {
     argEdges = new HashMap<>();
     argRelevantEdges = new HashMap<>();
     argRelevantNodes = new HashMap<>();
+    argReducedEdges = new HashMap<>();
+    argReducedNodes = new HashMap<>();
+    witnessOptional = Optional.empty();
     producer = htmlEscaper().escape(CPAchecker.getVersion(pConfig));
   }
 
-  public void generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
+  public void generate(
+      Result pResult, CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
+    checkNotNull(pResult);
     checkNotNull(pCfa);
     checkNotNull(pReached);
     checkNotNull(pStatistics);
@@ -164,10 +182,13 @@ public class ReportGenerator {
       return;
     }
 
+    extractWitness(pResult, pCfa, pReached);
+
     // we cannot export the graph for some special analyses, e.g., termination analysis
     if (!pReached.isEmpty() && pReached.getFirstState() instanceof ARGState) {
       buildArgGraphData(pReached);
       buildRelevantArgGraphData(pReached);
+      buildReducedArgGraphData();
     }
 
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
@@ -200,6 +221,27 @@ public class ReportGenerator {
               counterExamples.transform(cex -> counterExampleFiles.getPath(cex.getUniqueId())));
       counterExFiles.append("\".");
       console.println(counterExFiles.toString());
+    }
+  }
+
+  private void extractWitness(Result pResult, CFA pCfa, UnmodifiableReachedSet pReached) {
+    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
+      ImmutableSet<ARGState> rootStates = ARGUtils.getRootStates(pReached);
+      if (rootStates.size() != 1) {
+        logger.log(Level.INFO, "Could not determine ARG root for witness view");
+        return;
+      }
+      ARGState rootState = rootStates.iterator().next();
+      try {
+        WitnessExporter argWitnessExporter =
+            new WitnessExporter(config, logger, Specification.alwaysSatisfied(), pCfa);
+        witnessOptional =
+            Optional.of(
+                argWitnessExporter.generateProofWitness(
+                    rootState, Predicates.alwaysTrue(), BiPredicates.alwaysTrue()));
+      } catch (InvalidConfigurationException e) {
+        logger.logUserException(Level.WARNING, e, "Could not generate witness for witness view");
+      }
     }
   }
 
@@ -324,6 +366,13 @@ public class ReportGenerator {
       JSON.writeJSONString(argRelevantNodes.values(), writer);
       writer.write(",\n\"relevantedges\":");
       JSON.writeJSONString(argRelevantEdges.values(), writer);
+      writer.write("\n");
+    }
+    if (!argReducedEdges.isEmpty() || !argReducedNodes.isEmpty()) {
+      writer.write(",\n\"reducednodes\":");
+      JSON.writeJSONString(argReducedNodes.values(), writer);
+      writer.write(",\n\"reducededges\":");
+      JSON.writeJSONString(argReducedEdges.values(), writer);
       writer.write("\n");
     }
     writer.write("}\n");
@@ -602,6 +651,15 @@ public class ReportGenerator {
     }
   }
 
+  /** Build graph data for the reduced ARG */
+  private void buildReducedArgGraphData() {
+    if (!witnessOptional.isPresent()) {
+      return;
+    }
+    Witness witness = witnessOptional.get();
+    WitnessToOutputFormatsUtils.witnessToMapsForHTMLReport(witness, argReducedNodes, argReducedEdges);
+  }
+
   private Map<String, Object> createArgNode(int parentStateId, CFANode node, ARGState argState) {
     String dotLabel =
         argState.toDOTLabel().length() > 2
@@ -667,7 +725,7 @@ public class ReportGenerator {
     argEdges.put("" + coveringStateId + "->" + parentStateId, coveredEdge);
   }
 
-  private Map<String, Object> createArgEdge(
+  public static Map<String, Object> createArgEdge(
       int parentStateId, int childStateId, List<CFAEdge> edges) {
     Map<String, Object> argEdge = new HashMap<>();
     argEdge.put("source", parentStateId);

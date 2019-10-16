@@ -35,14 +35,13 @@ public class LocationStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    StatisticsWriter w = StatisticsWriter.writingStatisticsTo(pOut);
-    w.beginLevel()
+    StatisticsWriter.writingStatisticsTo(pOut)
+        .beginLevel()
         .put(getSuccessorsForEdgeTimer)
         .beginLevel()
         .put(createStateTimer)
         .endLevel()
-        .put(getSuccessorsTimer)
-        .endLevel();
+        .put(getSuccessorsTimer);
   }
 
   @Override

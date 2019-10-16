@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
+package org.sosy_lab.cpachecker.core.algorithm.bmc.pdr;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterators;
@@ -36,8 +36,7 @@ import java.util.stream.StreamSupport;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
 
-public abstract class ProofObligation
-    implements Iterable<ProofObligation>, Comparable<ProofObligation> {
+abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<ProofObligation> {
 
   private final SymbolicCandiateInvariant blockedAbstractCti;
 

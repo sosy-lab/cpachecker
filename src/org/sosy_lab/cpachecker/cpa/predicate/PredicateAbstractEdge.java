@@ -19,8 +19,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -82,7 +82,7 @@ public class PredicateAbstractEdge implements AbstractEdge {
   }
 
   private final static PredicateAbstractEdge havocEdge =
-      new PredicateAbstractEdge(Collections.emptyList());
+      new PredicateAbstractEdge(ImmutableList.of());
 
   private final Collection<FormulaDescription> formula;
 

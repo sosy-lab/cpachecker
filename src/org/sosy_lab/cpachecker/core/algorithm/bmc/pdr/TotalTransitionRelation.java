@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
+package org.sosy_lab.cpachecker.core.algorithm.bmc.pdr;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
@@ -221,7 +221,7 @@ public class TotalTransitionRelation {
             .anyMatch(predecessorLocations::contains);
   }
 
-  static String getLocationVariableName() {
+  public static String getLocationVariableName() {
     return LOCATION_VARIABLE_NAME;
   }
 

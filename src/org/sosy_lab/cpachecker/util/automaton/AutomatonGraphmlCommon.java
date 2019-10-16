@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.automaton;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cpa.thread.ThreadTransferRelation.isThreadCreateFunction;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
@@ -85,6 +86,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -604,7 +606,12 @@ public class AutomatonGraphmlCommon {
         }
       }
     } else if (edge instanceof CFunctionSummaryStatementEdge) {
-      return true;
+      CFunctionCall functionCall = ((CFunctionSummaryStatementEdge) edge).getFunctionCall();
+      if (isThreadCreateFunction(functionCall)) {
+        return false;
+      } else {
+        return true;
+      }
     } else if (edge instanceof AStatementEdge) {
       AStatementEdge statementEdge = (AStatementEdge) edge;
       AStatement statement = statementEdge.getStatement();

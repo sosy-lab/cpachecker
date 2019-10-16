@@ -192,6 +192,12 @@ public class ReachedSetFactory {
 
   @Option(
     secure = true,
+    name = "useThreadModularWrapper",
+    description = "use thread-modular wrapper to support thread-modular approach")
+  private boolean useThreadModularWrapper = false;
+
+  @Option(
+    secure = true,
     name = "reachedSet",
     description =
         "which reached set implementation to use?"

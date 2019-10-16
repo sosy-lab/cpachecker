@@ -90,3 +90,26 @@ There are also additional output files in the directory `output/`:
 Note that not all of these files will be available for all configurations.
 Also some of these files are only produced if an error is found (or vice-versa).
 CPAchecker will overwrite files in this directory!
+
+
+Validating a Program with CPA-witness2test
+------------------------------------------
+
+You can validate violation witnesses with CPA-witness2test, which is part of CPAchecker.
+
+1. To do so, you need a violation witness, a specification file that fits the violation witness,
+   and the source code file that fits the violation witness.
+2. To validate the witness, execute the following command:
+   ```
+   scripts/cpa_witness2test.py -witness <WITNESS_FILE> -spec <SPEC_FILE> <SOURCE_FILE>`
+   ```
+   Addtional command line switches are viewed with `scripts/cpa_witness2test.py -h`.
+
+3. When finished, and if the violation witness is successfully validated, the console output shows `Verification result: FALSE`.
+   Additionally to the console output, CPA-witness2test also creates a file `output/*.harness.c`.
+   This file can be compiled against the source file to create an executable test
+   that reflects the violation witness.
+
+Note that if the violation witness does not contain enough information to create an executable test,
+the validation result will be `ERROR` and the console output will contain the following line:
+`Could not export a test harness, some test-vector values are missing.`

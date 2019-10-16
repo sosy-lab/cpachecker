@@ -22,6 +22,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -555,7 +556,7 @@ public class PredicateApplyOperator implements ApplyOperator {
     CType type = right.getExpressionType();
 
     CFunctionType fType =
-        new CFunctionType(right.getExpressionType(), Collections.emptyList(), false);
+        new CFunctionType(right.getExpressionType(), ImmutableList.of(), false);
     String retType = fType.getReturnType().getCanonicalType().toString();
     retType = retType.replace(" ", "_").replace("(", "").replace(")", "").replace("*", "_p_");
     CFunctionDeclaration funcDecl =
@@ -566,7 +567,7 @@ public class PredicateApplyOperator implements ApplyOperator {
             Collections.emptyList());
     CExpression name = new CIdExpression(loc, funcDecl);
 
-    return new CFunctionCallExpression(loc, type, name, Collections.emptyList(), funcDecl);
+    return new CFunctionCallExpression(loc, type, name, ImmutableList.of(), funcDecl);
   }
 
   private BooleanFormula prepareFormula(BooleanFormula formula) {

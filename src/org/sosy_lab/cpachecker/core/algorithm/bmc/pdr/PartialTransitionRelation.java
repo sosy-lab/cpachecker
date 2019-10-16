@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
+package org.sosy_lab.cpachecker.core.algorithm.bmc.pdr;
 
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.END_STATE_FILTER;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.getLocationPredicate;
@@ -49,6 +49,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.CounterexampleToInductivity;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.ModelValue;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.UnrolledReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -71,7 +75,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
-public class PartialTransitionRelation implements Comparable<PartialTransitionRelation> {
+class PartialTransitionRelation implements Comparable<PartialTransitionRelation> {
 
   private final CFANode startLocation;
 

@@ -234,7 +234,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     } else if(isFalse) {
       return SMGValueAndState.of(pNewState, SMGZeroValue.INSTANCE);
     } else {
-      return SMGValueAndState.of(pNewState);
+      return SMGValueAndState.withUnknownValue(pNewState);
     }
   }
 
@@ -244,7 +244,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
     // If a value is unknown, we can't make further assumptions about it.
     if (pV2.isUnknown() || pV1.isUnknown()) {
-      return Collections.singletonList(SMGValueAndState.of(pNewState));
+      return Collections.singletonList(SMGValueAndState.withUnknownValue(pNewState));
     }
 
     List<SMGValueAndState> result = new ArrayList<>(4);

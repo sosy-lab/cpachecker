@@ -28,8 +28,6 @@ import static com.google.common.truth.Truth.assertThat;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.DummyAbstraction;
@@ -40,8 +38,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 
 public class SMGJoinMatchObjectsTest {
-
-  static private final CType mockType2b = TypeUtils.createTypeWithLength(2);
 
   private SMG smg1;
   private SMG smg2;
@@ -145,12 +141,10 @@ public class SMGJoinMatchObjectsTest {
     smg1.addObject(srcObj1);
     smg2.addObject(srcObj2);
 
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType2b, 2, 0, srcObj1, SMGKnownSymValue.of());
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType2b, 2, 2, srcObj2, SMGKnownSymValue.of());
-    SMGEdgeHasValue hvMatching1 =
-        new SMGEdgeHasValue(mockType2b, 2, 4, srcObj1, SMGKnownSymValue.of());
-    SMGEdgeHasValue hvMatching2 =
-        new SMGEdgeHasValue(mockType2b, 2, 4, srcObj2, SMGKnownSymValue.of());
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(2, 0, srcObj1, SMGKnownSymValue.of());
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(2, 2, srcObj2, SMGKnownSymValue.of());
+    SMGEdgeHasValue hvMatching1 = new SMGEdgeHasValue(2, 4, srcObj1, SMGKnownSymValue.of());
+    SMGEdgeHasValue hvMatching2 = new SMGEdgeHasValue(2, 4, srcObj2, SMGKnownSymValue.of());
 
     smg1.addValue(hv1.getValue());
     smg1.addHasValueEdge(hv1);

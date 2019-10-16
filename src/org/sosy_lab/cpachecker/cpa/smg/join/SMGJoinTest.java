@@ -37,11 +37,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -341,10 +339,7 @@ public class SMGJoinTest {
   // tests, whether the SMGJoinFields has an appropriate effect on the join status
   @Test
   public void nullifiedBlocksJoinTest() throws SMGInconsistentException {
-
     final int mockType4bSize = 32;
-    CType mockType4b = TypeUtils.createTypeWithLength(mockType4bSize);
-
     smg1.addStackFrame(functionDeclaration3);
     smg2.addStackFrame(functionDeclaration3);
 
@@ -352,14 +347,12 @@ public class SMGJoinTest {
 
     // more general
     smg1.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, objs.getFirst(), SMGZeroValue.INSTANCE));
+        new SMGEdgeHasValue(mockType4bSize, 0, objs.getFirst(), SMGZeroValue.INSTANCE));
 
     smg2.addHasValueEdge(
-        new SMGEdgeHasValue(
-            mockType4b, mockType4bSize, 0, objs.getSecond(), SMGZeroValue.INSTANCE));
+        new SMGEdgeHasValue(mockType4bSize, 0, objs.getSecond(), SMGZeroValue.INSTANCE));
     smg2.addHasValueEdge(
-        new SMGEdgeHasValue(
-            mockType4b, mockType4bSize, 32, objs.getSecond(), SMGZeroValue.INSTANCE));
+        new SMGEdgeHasValue(mockType4bSize, 32, objs.getSecond(), SMGZeroValue.INSTANCE));
 
     Pair<SMGRegion, SMGRegion> global = addGlobalWithoutValueToBoth("global", 128);
     addPointerValueToBoth(global, 0, 100, 32, objs, 0);
@@ -374,7 +367,7 @@ public class SMGJoinTest {
     // this join fails due to SMGJoinValues not due to SMGJoinFields!
     SMGValue un = SMGKnownSymValue.valueOf(666);
     smg1.addValue(un);
-    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, mockType4bSize, 32, objs.getFirst(), un));
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 32, objs.getFirst(), un));
 
     SMGJoin join2 = new SMGJoin(smg1, smg2, null, null);
     assertThat(join2.isDefined()).isFalse();

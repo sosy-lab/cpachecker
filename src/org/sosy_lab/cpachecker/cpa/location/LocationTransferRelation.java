@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.location;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -91,7 +90,7 @@ public class LocationTransferRelation implements TransferRelation {
           return factory.getState(((LocationState) element).locationNode);
         } else if (edge == NoEdge.getInstance()) {
           // Again return all next edges
-          return Collections.emptySet();
+          return ImmutableSet.of();
         } else {
           throw new UnsupportedOperationException(
               edge.getClass() + " edges are not supported in LocationCPA");

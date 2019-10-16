@@ -49,7 +49,6 @@ import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -58,7 +57,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
-import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.Precisions;
 
 /**
  * This class is a modifiable live view of a reached set, which shows the ARG
@@ -319,9 +318,8 @@ public class ARGReachedSet {
    * @return The adapted precision.
    */
   private Precision adaptPrecision(Precision pOldPrecision, Precision pNewPrecision,
-      @SuppressWarnings("unused") Predicate<? super Precision> pPrecisionType) {
-    return ((AdjustablePrecision) pOldPrecision).add((AdjustablePrecision) pNewPrecision);
-    // return Precisions.replaceByType(pOldPrecision, pNewPrecision, pPrecisionType);
+      Predicate<? super Precision> pPrecisionType) {
+    return Precisions.replaceByType(pOldPrecision, pNewPrecision, pPrecisionType);
   }
 
   private Set<ARGState> removeSubtree0(ARGState e) {

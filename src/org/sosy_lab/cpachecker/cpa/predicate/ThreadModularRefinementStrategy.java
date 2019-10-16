@@ -19,7 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import java.util.Collection;
 import java.util.List;
@@ -61,14 +61,14 @@ public class ThreadModularRefinementStrategy extends PredicateAbstractionRefinem
     PredicatePrecision precision = result.getFirst();
     PredicatePrecision tmPrecision =
         precision.addNodesWithCompleteFormulas(
-            from(pAffectedStates).transform(s -> AbstractStates.extractLocation(s)).toList());
+            transformedImmutableListCopy(pAffectedStates, s -> AbstractStates.extractLocation(s)));
 
     // Need to add a parent of the first state, as we need to compute a corresponding path formula,
     // which starts from the parent
     Collection<ARGState> parents = pAffectedStates.get(0).getParents();
     tmPrecision =
         tmPrecision.addNodesWithCompleteFormulas(
-            from(parents).transform(s -> AbstractStates.extractLocation(s)).toList());
+            transformedImmutableListCopy(parents, s -> AbstractStates.extractLocation(s)));
 
     return Pair.of(tmPrecision, result.getSecond());
   }

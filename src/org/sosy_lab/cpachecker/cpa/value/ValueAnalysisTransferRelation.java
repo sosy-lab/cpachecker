@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -1683,23 +1684,25 @@ public class ValueAnalysisTransferRelation
     assert pState instanceof ValueAnalysisStateWithEdge;
     AbstractEdge edge = ((ValueAnalysisStateWithEdge) pState).getAbstractEdge();
 
+    // Cannot use copyOf as it creates ValueAnalysisState with edge
+    ValueAnalysisState result = new ValueAnalysisState((ValueAnalysisState) pState);
+
     if (edge == EmptyEdge.getInstance()) {
-      return Collections.singleton(pState);
+      // Just return a normal state without edge
     } else {
-      // Cannot use copyOf as it creates ValueAnalysisState with edge
-      ValueAnalysisState result = new ValueAnalysisState((ValueAnalysisState) pState);
       ValueAnalysisInformation diff = ((ValueAbstractEdge) edge).getDifference();
 
       Map<MemoryLocation, ValueAndType> values = diff.getAssignments();
-      for (MemoryLocation mem : values.keySet()) {
-        ValueAndType val = values.get(mem);
+      for (Entry<MemoryLocation, ValueAndType> entry : values.entrySet()) {
+        MemoryLocation mem = entry.getKey();
+        ValueAndType val = entry.getValue();
         if (val.getValue() != UnknownValue.getInstance()) {
           result.assignConstant(mem, val.getValue(), val.getType());
         } else {
           result.forget(mem);
         }
       }
-      return Collections.singleton(result);
     }
+    return Collections.singleton(result);
   }
 }

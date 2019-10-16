@@ -31,8 +31,8 @@ import com.google.common.primitives.ImmutableLongArray;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -358,17 +358,18 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    */
   @Override
   public String toString() {
-    return "CLangSMG [\n stack_objects=" + stack_objects
-        + "\n heap_objects=" + heap_objects
-        + "\n global_objects=" + global_objects
-        + "\n values=" + getValues()
-        + "\n pointsTo=" + getPTEdges()
-        + "\n hasValue=" + getHVEdges()
-        + "\n" + getMapOfMemoryLocationsWithValue() + "\n]";
+    return "CLangSMG ["
+        + "\n  stack_objects=" + stack_objects
+        + "\n  heap_objects=" + heap_objects
+        + "\n  global_objects=" + global_objects
+        + "\n  values=" + getValues()
+        + "\n  pointsTo=" + getPTEdges()
+        + "\n  hasValue=" + getHVEdges()
+        + "\n  " + getMapOfMemoryLocationsWithValue() + "\n]";
   }
 
   private Map<MemoryLocation, SMGValue> getMapOfMemoryLocationsWithValue() {
-    Map<MemoryLocation, SMGValue> result = new HashMap<>();
+    Map<MemoryLocation, SMGValue> result = new LinkedHashMap<>();
 
     for (SMGEdgeHasValue hvedge : getHVEdges()) {
       MemoryLocation memloc = resolveMemLoc(hvedge);
@@ -683,11 +684,16 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     return info;
   }
 
+  /**
+   * extract some information about the object from the SMG.
+   *
+   * <p>This does not include the full subgraph, but only one level from the graph!
+   */
   private SMGStateInformation createStateInfo(SMGObject pObj) {
 
     Set<SMGEdgeHasValue> hves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj));
     Set<SMGEdgePointsTo> ptes = getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(pObj));
-    Set<SMGEdgePointsTo> resultPtes = new HashSet<>(ptes);
+    Set<SMGEdgePointsTo> resultPtes = new LinkedHashSet<>(ptes);
 
     for (SMGEdgeHasValue edge : hves) {
       if (isPointer(edge.getValue())) {
@@ -695,8 +701,8 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
       }
     }
 
-    return SMGStateInformation.of(hves, resultPtes, isObjectValid(pObj),
-        isObjectExternallyAllocated(pObj));
+    return SMGStateInformation.of(
+        hves, resultPtes, isObjectValid(pObj), isObjectExternallyAllocated(pObj));
   }
 
   /** returns information about the removed variable if 'createInfo' is set, else Null. */
@@ -739,7 +745,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     rememberEdges(pInfo);
   }
 
-  public void rememberEdges(SMGStateInformation pForgottenInformation) {
+  private void rememberEdges(SMGStateInformation pForgottenInformation) {
     for(SMGEdgeHasValue edge : Sets.difference(pForgottenInformation.getHvEdges(), getHVEdges())) {
       addHasValueEdge(edge);
     }

@@ -225,7 +225,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     return state;
   }
 
-  private boolean isThreadCreateFunction(CFunctionCall statement) {
+  public static boolean isThreadCreateFunction(CFunctionCall statement) {
     return (statement instanceof CThreadCreateStatement);
   }
 

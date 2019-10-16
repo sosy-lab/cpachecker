@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.dca;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,19 +70,16 @@ public class DCACPA extends AbstractSingleWrapperCPA {
         automatonList.add(pAutomaton), "DCA-CPA already contains the specified automaton.");
   }
 
-  ImmutableCollection<Automaton> getAutomatonSet() {
-    return ImmutableList.copyOf(automatonList);
-  }
-
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    ImmutableList.Builder<AutomatonState> builder = new ImmutableList.Builder<>();
-    automatonList.stream()
-        .map(automatonCPA::buildInitStateForAutomaton)
-        .forEach(x -> builder.add(x));
+    ImmutableList<AutomatonState> initStates =
+        automatonList
+            .stream()
+            .map(automatonCPA::buildInitStateForAutomaton)
+            .collect(ImmutableList.toImmutableList());
     AutomatonState buechiState = (AutomatonState) super.getInitialState(pNode, pPartition);
-    return new DCAState(buechiState, builder.build(), ImmutableList.of());
+    return new DCAState(buechiState, initStates);
   }
 
   @Override
@@ -110,5 +106,4 @@ public class DCACPA extends AbstractSingleWrapperCPA {
   public PrecisionAdjustment getPrecisionAdjustment() {
     return StaticPrecisionAdjustment.getInstance();
   }
-
 }

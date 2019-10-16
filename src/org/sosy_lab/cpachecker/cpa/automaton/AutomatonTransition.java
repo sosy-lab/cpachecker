@@ -315,6 +315,10 @@ class AutomatonTransition {
     return followState;
   }
 
+  String getFollowStateName() {
+    return followStateName;
+  }
+
   public AutomatonBoolExpr getTrigger() {
     return trigger;
   }

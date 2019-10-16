@@ -19,7 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -55,12 +55,12 @@ public class LocationStateWithEdge extends LocationState implements AbstractStat
 
     @Override
     public Iterable<CFAEdge> getOutgoingEdges() {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override
     public Iterable<CFAEdge> getIngoingEdges() {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     public static ProjectedLocationStateWithEdge getInstance() {

@@ -152,6 +152,8 @@ public class SMG implements UnmodifiableSMG {
    *
    */
   final public void addObject(final SMGObject pObj) {
+    Preconditions.checkArgument(
+        SMGNullObject.INSTANCE != pObj, "NULL can not be added as valid object");
     addObject(pObj, true, false);
   }
 
@@ -572,7 +574,6 @@ public class SMG implements UnmodifiableSMG {
     for (SMGEdgeHasValue old_hve : getHVEdges(SMGEdgeHasValueFilter.valueFilter(old))) {
       SMGEdgeHasValue newHvEdge =
           new SMGEdgeHasValue(
-              old_hve.getType(),
               old_hve.getSizeInBits(),
               old_hve.getOffset(),
               old_hve.getObject(),

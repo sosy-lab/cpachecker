@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,17 +16,17 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
+package org.sosy_lab.cpachecker.core.interfaces;
 
-import java.util.Set;
-import org.sosy_lab.java_smt.api.BooleanFormula;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.Pair;
 
-public interface SuccessorViolation {
+public interface ThreadIdProvider extends AbstractState {
+  public String getThreadIdForEdge(CFAEdge pEdge);
 
-  Set<BooleanFormula> getViolationAssertion();
+  public Optional<Pair<String, String>>
+      getSpawnedThreadIdByEdge(CFAEdge pEdge, ThreadIdProvider successor);
+
 }

@@ -214,8 +214,7 @@ public final class SMGIntersectStates {
 
     SMGValue destValue = pMapping.get(value);
     SMGEdgeHasValue destHve =
-        new SMGEdgeHasValue(
-            pHve.getType(), pHve.getSizeInBits(), pHve.getOffset(), destObject, destValue);
+        new SMGEdgeHasValue(pHve.getSizeInBits(), pHve.getOffset(), destObject, destValue);
     destSMG.addHasValueEdge(destHve);
   }
 
@@ -320,8 +319,7 @@ public final class SMGIntersectStates {
     SMGValue destValue = mapping1.get(value1);
 
     SMGEdgeHasValue destHveEdge =
-        new SMGEdgeHasValue(
-            pHve1.getType(), pHve1.getSizeInBits(), pHve1.getOffset(), pDestObject, destValue);
+        new SMGEdgeHasValue(pHve1.getSizeInBits(), pHve1.getOffset(), pDestObject, destValue);
     destSMG.addHasValueEdge(destHveEdge);
 
     return true;

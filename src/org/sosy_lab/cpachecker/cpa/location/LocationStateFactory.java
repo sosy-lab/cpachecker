@@ -128,7 +128,7 @@ public class LocationStateFactory {
                 followFunctionCalls,
                 new WrapperCFAEdge(edge)));
       }
-      if (result.size() == 0) {
+      if (result.isEmpty()) {
         result.add(
             new BackwardsLocationStateWithEdge(node, followFunctionCalls, NoEdge.getInstance()));
       }
@@ -142,7 +142,7 @@ public class LocationStateFactory {
                 followFunctionCalls,
                 new WrapperCFAEdge(edge)));
       }
-      if (result.size() == 0) {
+      if (result.isEmpty()) {
         result.add(new LocationStateWithEdge(node, followFunctionCalls, NoEdge.getInstance()));
       }
 
