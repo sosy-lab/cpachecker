@@ -192,7 +192,7 @@ public class ReachedSetFactory {
 
   @Option(
     secure = true,
-    name = "useThreadModularWrapper",
+    name = "reachedSet.useThreadModularWrapper",
     description = "use thread-modular wrapper to support thread-modular approach")
   private boolean useThreadModularWrapper = false;
 
@@ -209,12 +209,6 @@ public class ReachedSetFactory {
             + "(maybe faster for some special analyses which use merge_sep and stop_sep"
   )
   private ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
-
-  @Option(
-    secure = true,
-    name = "reachedSet.useThreadModularWrapper",
-    description = "use thread-modular wrapper over a normal reached set")
-  private boolean useThreadModularWrapper = false;
 
   @Option(
       secure = true,

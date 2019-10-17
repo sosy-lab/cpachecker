@@ -27,9 +27,11 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
@@ -42,7 +44,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
  * This class represents the information that is available for exporting a witness. Objects of this
  * class are designed to be immutable.
  */
-class Witness {
+public class Witness {
   private final WitnessType witnessType;
   private final String originFile;
   private final CFA cfa;
@@ -58,6 +60,7 @@ class Witness {
   private final Map<String, String> stateScopes;
   private final Set<String> invariantExportStates;
   private final Map<String, Collection<ARGState>> stateToARGStates;
+  private final Multimap<Edge, CFAEdge> edgeToCFAEdges;
 
   public Witness(
       WitnessType pWitnessType,
@@ -74,7 +77,8 @@ class Witness {
       Map<String, ExpressionTree<Object>> pStateQuasiInvariants,
       Map<String, String> pStateScopes,
       Set<String> pInvariantExportStates,
-      Map<String, Collection<ARGState>> pStateToARGStates) {
+      Map<String, Collection<ARGState>> pStateToARGStates,
+      Multimap<Edge, CFAEdge> pEdgeToCFAEdges) {
     witnessType = pWitnessType;
     originFile = pOriginFile;
     cfa = pCfa;
@@ -90,6 +94,7 @@ class Witness {
     stateScopes = ImmutableMap.copyOf(pStateScopes);
     invariantExportStates = ImmutableSet.copyOf(pInvariantExportStates);
     stateToARGStates = ImmutableMap.copyOf(pStateToARGStates);
+    edgeToCFAEdges = ImmutableMultimap.copyOf(pEdgeToCFAEdges);
   }
 
   public WitnessType getWitnessType() {
@@ -166,6 +171,14 @@ class Witness {
   public Collection<ARGState> getARGStatesFor(String id) {
     if (stateToARGStates.containsKey(id)) {
       return stateToARGStates.get(id);
+    } else {
+      return ImmutableList.of();
+    }
+  }
+
+  public List<CFAEdge> getCFAEdgeFor(Edge edge) {
+    if (edgeToCFAEdges.containsKey(edge)) {
+      return ImmutableList.copyOf(edgeToCFAEdges.get(edge));
     } else {
       return ImmutableList.of();
     }
