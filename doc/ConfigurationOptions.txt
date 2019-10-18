@@ -439,6 +439,9 @@ analysis.useParallelAnalyses = false
 # generate test cases for covered test targets
 analysis.useTestCaseGeneratorAlgorithm = false
 
+# use thread-modular wrapper to support thread-modular approach
+analysis.useThreadModularWrapper = false
+
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)
 assumptions.automatonBranchingThreshold = 0
