@@ -54,6 +54,6 @@ public class WrapperCFAEdge implements AbstractEdge {
     }
     WrapperCFAEdge other = (WrapperCFAEdge) obj;
 
-    return Objects.equals(edge, other.edge);
+    return edge == other.edge;
   }
 }
