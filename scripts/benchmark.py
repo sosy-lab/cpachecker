@@ -28,6 +28,7 @@ CPAchecker web page:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import glob
+import logging
 import os
 import platform
 import subprocess
@@ -38,6 +39,7 @@ cpachecker_dir = os.path.join(os.path.dirname(__file__), os.pardir)
 for egg in glob.glob(os.path.join(cpachecker_dir, "lib", "python-benchmark", "*.whl")):
     sys.path.insert(0, egg)
 
+from benchexec import __version__
 import benchexec.benchexec
 import benchexec.model
 import benchexec.tools
@@ -156,6 +158,12 @@ class Benchmark(benchexec.benchexec.BenchExec):
                 import benchmark.webclient_benchexec as executor
             else:
                 import benchmark.vcloud as executor
+            logging.debug(
+                "This is CPAchecker's benchmark.py (based on benchexec %s) "
+                "using the VerifierCloud %s API.",
+                __version__,
+                "HTTP" if webclient else "internal",
+            )
         else:
             executor = super(Benchmark, self).load_executor()
 
