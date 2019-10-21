@@ -36,15 +36,11 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Text;
 
 public class TestSuiteWriter {
 
   private CFA cfa;
   private LogManager logger;
-  private String originalMainFunction;
   private boolean useTestCompOutput;
   private String outputFolder;
   private Set<TestCase> writtenTestCases;
@@ -54,32 +50,18 @@ public class TestSuiteWriter {
   public TestSuiteWriter(
       CFA pCfa,
       LogManager pLogger,
-      String pOriginalMainFunction,
       boolean pUseTestCompOutput,
       String pOutputFolder,
       String pSpec,
       String pProducer) {
     cfa = pCfa;
     logger = pLogger;
-    originalMainFunction = pOriginalMainFunction;
     useTestCompOutput = pUseTestCompOutput;
     outputFolder = pOutputFolder;
     writtenTestCases = new HashSet<>();
     spec = pSpec;
     producer = pProducer;
     initTestSuiteFolder();
-  }
-
-  private Element createAndAppendElement(
-      String elementName,
-      String elementTest,
-      Element parentElement,
-      Document dom) {
-    Element newElement = dom.createElement(elementName);
-    Text textNode = dom.createTextNode(elementTest);
-    newElement.appendChild(textNode);
-    parentElement.appendChild(newElement);
-    return newElement;
   }
 
   private void writeMetaData() throws IOException {

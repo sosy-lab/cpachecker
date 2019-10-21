@@ -154,7 +154,6 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
         new TestSuiteWriter(
             pCfa,
             pLogger,
-            originalMainFunction,
             tigerConfig.shouldUseTestCompOutput(),
             outputFolder + cfa.getFileNames().get(0).getFileName().toString(),
             tigerConfig.getFqlQuery(),

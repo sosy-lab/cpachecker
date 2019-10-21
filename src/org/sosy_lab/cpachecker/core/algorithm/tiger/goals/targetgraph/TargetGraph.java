@@ -77,6 +77,7 @@ public class TargetGraph {
     }
   }
 
+  @SuppressWarnings("unused")
   public TargetGraph(Edge pEdge) {
     assert(pEdge != null);
 

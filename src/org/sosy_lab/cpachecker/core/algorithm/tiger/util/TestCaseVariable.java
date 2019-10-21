@@ -41,6 +41,11 @@ public class TestCaseVariable {
   }
 
   @Override
+  public int hashCode() {
+    return 25 * name.hashCode() + 13 * value.hashCode();
+  }
+
+  @Override
   public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;

@@ -73,7 +73,7 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
       for(Entry<CFAEdgesGoal, ImmutableSet<ImmutableSet<CFAEdge>>> entry: predState.getUnlockedNegatedEdgesPerGoal().entrySet()) {
         HashSet<Set<CFAEdge>> sets = new HashSet<>();
         for (ImmutableSet<CFAEdge> set : entry.getValue()) {
-          sets.add(new HashSet<CFAEdge>(set));
+          sets.add(new HashSet<>(set));
         }
         unlockedNegatedEdges.put(entry.getKey(), sets);
       }

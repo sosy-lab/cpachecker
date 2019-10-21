@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -58,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -198,54 +196,6 @@ public class InputOutputValues {
   }
 
 
-  private boolean isArray(String operand) {
-    return operand.endsWith("]");
-  }
-
-  private String getArrayName(String operand) {
-    return operand.split("\\[")[0];
-  }
-
-  private String getCurrentArrayIndex(
-      String operand,
-      CFAEdgeWithAssumptions edge,
-      CFAPathWithAssumptions path) {
-    // String arrayIndexVariable = operand.sub
-    String indexVariable = operand.split("\\[")[1].split("\\]")[0];
-    //check if the used index is a constant
-    try {
-      return String.valueOf(Integer.parseInt(indexVariable));
-    } catch (NumberFormatException ex) {
-    }
-
-    throw new UnsupportedOperationException();
-  }
-
-  private void tryGetInputValueFromStatements(
-      Set<String> tempInputs,
-      List<TestCaseVariable> variableToValueAssignments,
-      CFAEdgeWithAssumptions edge,
-      CFAPathWithAssumptions path) {
-
-    if (!edge.getCFAEdge().getCode().contains("__VERIFIER_nondet_")) {
-      return;
-    }
-
-    Collection<AExpressionStatement> expStmts = edge.getExpStmts();
-    for (AExpressionStatement expStmt : expStmts) {
-      if (expStmt.getExpression() instanceof CBinaryExpression) {
-        CBinaryExpression exp = (CBinaryExpression) expStmt.getExpression();
-
-        String name = exp.getOperand1().toString();
-
-        if (tempInputs.isEmpty() || tempInputs.contains(name)) {
-          BigInteger value = new BigInteger(exp.getOperand2().toString());
-          variableToValueAssignments.add(new TestCaseVariable(name, value.toString()));
-        }
-      }
-    }
-  }
-
   public void tryGetInputValueFromFunctionCallEdge(
       CFunctionCallEdge fEdge,
       Set<String> tempInputs,
@@ -265,11 +215,9 @@ public class InputOutputValues {
 
         if (cld != null) {
           String operand1 = cld.getName();
-          String arrayOperand = "";
           if (operand1.endsWith("]")) {
             String split[] = operand1.split("\\[");
             operand1 = split[0];
-            arrayOperand = split[1];
           }
 
         if (tempInputs.isEmpty() || tempInputs.contains(operand1)) {
@@ -304,11 +252,9 @@ public class InputOutputValues {
 
       if (cld != null) {
         String operand1 = cld.getName();
-        String arrayOperand = "";
         if (operand1.endsWith("]")) {
           String split[] = operand1.split("\\[");
           operand1 = split[0];
-          arrayOperand = split[1];
         }
 
         if (tempInputs.isEmpty() || tempInputs.contains(operand1)) {
@@ -322,69 +268,6 @@ public class InputOutputValues {
         }
       }
     }
-  }
-
-  private class Value {
-    String name;
-    public Value(String name) {
-      this.name = name;
-    }
-  }
-  private class PrimitiveValue extends Value {
-    List<String> ssaValues;
-
-    public PrimitiveValue(String name) {
-      super(name);
-    }
-
-    public void addValue(String value) {
-      if (ssaValues == null) {
-        ssaValues = new ArrayList<String>();
-      }
-      ssaValues.add(value);
-    }
-
-    @Override
-    public String toString() {
-      String str = "";
-      for (int i = 0; i < ssaValues.size(); i++) {
-        str += name + "_" + String.valueOf(i) + " : " + ssaValues.get(i);
-      }
-      return str;
-    }
-  }
-
-  private class ArrayValue extends Value {
-    Map<Integer, List<String>> values;
-
-    public ArrayValue(String name) {
-      super(name);
-    }
-
-    public void addValue(int index, String value) {
-      if (values == null) {
-        values = new HashMap<Integer, List<String>>();
-      }
-      if (values.containsKey(index)) {
-        values.get(index).add(value);
-      } else {
-        List<String> valueList = new ArrayList<String>();
-        valueList.add(value);
-        values.put(index, valueList);
-      }
-    }
-
-    @Override
-    public String toString() {
-      String str = "";
-      for(Integer key: values.keySet()) {
-        for(int i = 0; i < values.get(key).size(); i++) {
-          str += name +"["+key+ "]"+ "_" + String.valueOf(i) + " : " + values.get(key).get(i);
-        }
-      }
-      return str;
-    }
-
   }
 
   private CFAEdge getEdge(CFANode parent, CFANode child) {
@@ -433,7 +316,6 @@ public class InputOutputValues {
     // }
 //        }
 //    }
-    Set<String> tempInputs = new LinkedHashSet<>(inputVariables);
 
     // CFAPathWithAssumptions path = cex.getCFAPathWithAssignments();
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = cex.getExactVariableValues();

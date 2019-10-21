@@ -272,16 +272,6 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
     remainingPresenceConditions.put(pGoal, presenceCondtion);
   }
 
-  private boolean isGoalPariallyCovered(T pGoal) {
-    if (bddUtils.isVariabilityAware()) {
-      if (remainingPresenceConditions.get(pGoal) != null
-          && remainingPresenceConditions.get(pGoal).isFalse()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   public void
       updateTestcaseToGoalMapping(TestCase testcase, T goal) {
     List<T> goals = mapping.get(testcase);
@@ -329,20 +319,6 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
 
   public Map<T, Region> getInfeasibleGoals() {
     return infeasibleGoals;
-  }
-
-  // public List<Goal> getTestGoalsCoveredByTestCase(TestCase testcase) {
-  // return mapping.get(testcase);
-  // }
-  private String simplePresenceCondition(Region presenceCondition) {
-    if (presenceCondition == null) {
-      return "";
-    }
-    String pc = bddUtils.dumpRegion(presenceCondition).replace(" & TRUE", "");
-    if (!removePrefixString.isEmpty()) {
-      pc = pc.replace(removePrefixString, "");
-    }
-    return pc;
   }
 
   private void assembleTestSuiteData() {

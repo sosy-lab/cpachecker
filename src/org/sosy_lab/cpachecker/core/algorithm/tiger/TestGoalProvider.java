@@ -81,7 +81,7 @@ public class TestGoalProvider {
   }
 
   private Set<CFAEdge>
-      extractEdgesByCriterion(final Predicate<CFAEdge> criterion, CFA cfa, String fqlQuery) {
+      extractEdgesByCriterion(final Predicate<CFAEdge> criterion, CFA cfa) {
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : cfa.getAllNodes()) {
       edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
@@ -103,7 +103,7 @@ public class TestGoalProvider {
       edgeCriterion = getAssumeEdgeCriterion();
     }
     if (edgeCriterion != null) {
-      Set<CFAEdge> edges = extractEdgesByCriterion(edgeCriterion, cfa, fqlQuery);
+      Set<CFAEdge> edges = extractEdgesByCriterion(edgeCriterion, cfa);
       Set<CFAGoal> goals = new HashSet<>();
       for (CFAEdge edge : edges) {
         goals.add(new CFAGoal(edge));
