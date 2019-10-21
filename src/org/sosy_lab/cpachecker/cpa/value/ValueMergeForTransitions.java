@@ -43,8 +43,8 @@ public class ValueMergeForTransitions implements MergeOperator {
   private final boolean joinOnlyEqualMems;
 
   ValueMergeForTransitions() {
-    abstractionMerge = false;
-    joinOnlyEqualMems = true;
+    abstractionMerge = true;
+    joinOnlyEqualMems = false;
   }
 
   @Override
@@ -54,7 +54,7 @@ public class ValueMergeForTransitions implements MergeOperator {
     assert pState1.getClass() == pState2.getClass();
 
     if (pState1.getClass() == ValueAnalysisState.class) {
-      return ((ValueAnalysisState) pState1).join((ValueAnalysisState) pState2);
+      return pState2;
     } else if (pState1.getClass() == ValueAnalysisStateWithEdge.class) {
       ValueAnalysisStateWithEdge state1 = (ValueAnalysisStateWithEdge) pState1;
       ValueAnalysisStateWithEdge state2 = (ValueAnalysisStateWithEdge) pState2;
