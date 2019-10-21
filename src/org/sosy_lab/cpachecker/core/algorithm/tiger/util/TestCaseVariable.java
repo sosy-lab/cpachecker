@@ -39,4 +39,23 @@ public class TestCaseVariable {
       this.name = name;
       this.value = value;
   }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+    if (!(pObj instanceof TestCaseVariable)) {
+      return false;
+    }
+    TestCaseVariable other = (TestCaseVariable) pObj;
+    if (!this.name.equals(other.name)) {
+      return false;
+    }
+    if (!this.value.equals(other.value)) {
+      return false;
+    }
+    return true;
+  }
+
 }

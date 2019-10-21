@@ -23,7 +23,6 @@ import com.google.common.base.Predicate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,18 +35,15 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.CFAGoal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class TestGoalProvider {
-  Map<String, LinkedList<CFAGoal>> cache;
+  Map<String, Set<CFAGoal>> cache;
   static TestGoalProvider provider;
 
-  private final String StatementCoverage = "COVER EDGES(@BASICBLOCKENTRY)";
-  private final String ErrorCoverage = "COVER EDGES(@CALL(__VERIFIER_error))";
-  private final String conditionCoverage = "COVER EDGES(@CONDITIONEDGE)";
-  private final String decisionCoverage = "COVER EDGES(@DECISIONEDGE)";
-  private final String assumeCoverage = "COVER EDGES(@DECISIONEDGE)";
+
   private final String goalPrefix = "Goals:";
 
   LogManager logger;
@@ -93,22 +89,22 @@ public class TestGoalProvider {
     return edges;
   }
 
-  private LinkedList<CFAGoal> tryExtractPredefinedFQL(String fqlQuery, CFA cfa) {
+  private Set<CFAGoal> tryExtractPredefinedFQL(String fqlQuery, CFA cfa) {
     // check if its an predefined FQL Statement
     Predicate<CFAEdge> edgeCriterion = null;
     logger.log(Level.INFO, "trying to extract predefinedFQL: " + fqlQuery);
-    if (fqlQuery.equalsIgnoreCase(StatementCoverage)) {
+    if (fqlQuery.equalsIgnoreCase(PredefinedCoverageCriteria.StatementCoverage)) {
       edgeCriterion = getStatementCriterion();
-    } else if (fqlQuery.equalsIgnoreCase(ErrorCoverage)) {
+    } else if (fqlQuery.equalsIgnoreCase(PredefinedCoverageCriteria.ErrorCoverage)) {
       edgeCriterion = getErrorCriterion();
-    } else if (fqlQuery.equalsIgnoreCase(decisionCoverage)
-        || fqlQuery.equalsIgnoreCase(conditionCoverage)
-        || fqlQuery.equalsIgnoreCase(assumeCoverage)) {
+    } else if (fqlQuery.equalsIgnoreCase(PredefinedCoverageCriteria.DecisionCoverage)
+        || fqlQuery.equalsIgnoreCase(PredefinedCoverageCriteria.ConditionCoverage)
+        || fqlQuery.equalsIgnoreCase(PredefinedCoverageCriteria.AssumeCoverage)) {
       edgeCriterion = getAssumeEdgeCriterion();
     }
     if (edgeCriterion != null) {
       Set<CFAEdge> edges = extractEdgesByCriterion(edgeCriterion, cfa, fqlQuery);
-      LinkedList<CFAGoal> goals = new LinkedList<>();
+      Set<CFAGoal> goals = new HashSet<>();
       for (CFAEdge edge : edges) {
         goals.add(new CFAGoal(edge));
       }
@@ -117,7 +113,7 @@ public class TestGoalProvider {
     return null;
   }
 
-  private void reduceGoals(LinkedList<CFAGoal> goals) {
+  private void reduceGoals(Set<CFAGoal> goals) {
     // TODO only for test-comp remove afterwards
     Set<CFAGoal> keptGoals = new HashSet<>(goals);
     boolean allSuccessorsGoals;
@@ -146,7 +142,7 @@ public class TestGoalProvider {
     goals.addAll(keptGoals);
   }
 
-  private LinkedList<CFAGoal> extractGoalSyntax(String fqlQuery, CFA cfa) {
+  private Set<CFAGoal> extractGoalSyntax(String fqlQuery, CFA cfa) {
     if (!fqlQuery.startsWith(goalPrefix)) {
       throw new RuntimeException("Could not parse FQL Query: " + fqlQuery);
     }
@@ -156,7 +152,7 @@ public class TestGoalProvider {
     for (CFANode node : cfa.getAllNodes()) {
       edges.addAll(CFAUtils.allLeavingEdges(node).toSet());
     }
-    LinkedList<CFAGoal> cfaGoals = new LinkedList<>();
+    Set<CFAGoal> cfaGoals = new HashSet<>();
     for (String goal : goals) {
       String[] edgeLabels = goal.split("->");
       List<CFAEdge> goalEdges = new ArrayList<>();
@@ -176,9 +172,9 @@ public class TestGoalProvider {
     return cfaGoals;
   }
 
-  public LinkedList<CFAGoal> initializeTestGoalSet(String fqlQuery, CFA cfa) {
+  public Set<CFAGoal> initializeTestGoalSet(String fqlQuery, CFA cfa) {
     if (!cache.containsKey(fqlQuery)) {
-      LinkedList<CFAGoal> goals = tryExtractPredefinedFQL(fqlQuery, cfa);
+      Set<CFAGoal> goals = tryExtractPredefinedFQL(fqlQuery, cfa);
       if (goals == null) {
         goals = extractGoalSyntax(fqlQuery, cfa);
       }
@@ -187,7 +183,7 @@ public class TestGoalProvider {
       cache.put(fqlQuery, goals);
 
     }
-    return new LinkedList<>(cache.get(fqlQuery));
+    return new HashSet<>(cache.get(fqlQuery));
 
   }
 

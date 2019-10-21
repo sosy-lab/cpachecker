@@ -38,7 +38,8 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithmConfiguration;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.AutomatonGoal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.CFAGoal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
@@ -50,24 +51,69 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
   private Map<Integer, Pair<T, Region>> timedOutGoals;
   private BDDUtils bddUtils;
   private Map<T, List<TestCase>> coveringTestCases;
-  private List<T> includedTestGoals;
+  private Set<T> includedTestGoals;
   private TestSuiteData testSuiteData;
-  private TigerAlgorithmConfiguration tigerConfig;
+  private String removePrefixString;
   private Map<T, Region> remainingPresenceConditions;
 
-  public TestSuite(
+  private static TestSuite<CFAGoal> cFAGoalTS;
+  private static TestSuite<AutomatonGoal> automatonGoalTS;
+
+  private static boolean sameTestGoals(Set<?> p1, Set<?> p2) {
+    if (p1 == null && p2 == null) {
+      return true;
+    }
+
+    if (p1 == null || p2 == null) {
+      return false;
+    }
+
+    return p1.containsAll(p2) && p2.containsAll(p1);
+  }
+
+  public static TestSuite<CFAGoal> getCFAGoalTS(
       BDDUtils pBddUtils,
-      List<T> includedTestGoals,
-      TigerAlgorithmConfiguration pTigerConfig) {
+      Set<CFAGoal> includedTestGoals,
+      String premovePrefixString) {
+    if (cFAGoalTS != null) {
+      if (cFAGoalTS.getBddUtils() == pBddUtils
+          && sameTestGoals(cFAGoalTS.includedTestGoals, includedTestGoals)
+          && premovePrefixString == cFAGoalTS.removePrefixString) {
+        return cFAGoalTS;
+      }
+    }
+    cFAGoalTS = new TestSuite<>(pBddUtils, includedTestGoals, premovePrefixString);
+    return cFAGoalTS;
+  }
+
+  public static TestSuite<AutomatonGoal> getAutomatonGoalTS(
+      BDDUtils pBddUtils,
+      Set<AutomatonGoal> includedTestGoals,
+      String premovePrefixString) {
+    if (automatonGoalTS != null) {
+      if (automatonGoalTS.getBddUtils() == pBddUtils
+          && sameTestGoals(automatonGoalTS.includedTestGoals, includedTestGoals)
+          && premovePrefixString == automatonGoalTS.removePrefixString) {
+        return automatonGoalTS;
+      }
+    }
+    automatonGoalTS = new TestSuite<>(pBddUtils, includedTestGoals, premovePrefixString);
+    return automatonGoalTS;
+  }
+
+  private TestSuite(
+      BDDUtils pBddUtils,
+      Set<T> includedTestGoals,
+      String premovePrefixString) {
     mapping = new LinkedHashMap<>();
     infeasibleGoals = new HashMap<>();
     timedOutGoals = new HashMap<>();
     bddUtils = pBddUtils;
     coveringTestCases = new LinkedHashMap<>();
-    this.includedTestGoals = Lists.newLinkedList();
+    this.includedTestGoals = new HashSet<>();
     this.includedTestGoals.addAll(includedTestGoals);
     testSuiteData = null;
-    tigerConfig = pTigerConfig;
+    removePrefixString = premovePrefixString;
 
     remainingPresenceConditions = new HashMap<>();
     for (T goal : includedTestGoals) {
@@ -141,10 +187,64 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
     setRemainingPresenceCondition(pGoal, remainingPresenceCondition);
   }
 
+  private boolean samevars(List<TestCaseVariable> varList1, List<TestCaseVariable> varList2) {
+    if (varList1.size() != varList2.size()) {
+      return false;
+    }
+
+    for (int i = 0; i < varList1.size(); i++) {
+      if (!varList1.get(i).equals(varList2.get(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private boolean sameInputOutputs(TestCase tc1, TestCase tc2) {
+    if (!samevars(tc1.getInputs(), tc2.getInputs())) {
+      return false;
+    }
+    if (!samevars(tc1.getOutputs(), tc2.getOutputs())) {
+      return false;
+    }
+    return true;
+  }
+
+  private boolean samePC(TestCase tc1, TestCase tc2) {
+    if (tc1.getPresenceCondition() == null && tc2.getPresenceCondition() == null) {
+      return true;
+    }
+    if (tc1.getPresenceCondition() == null || tc2.getPresenceCondition() == null) {
+      return false;
+    }
+    return tc1.getPresenceCondition().equals(tc2.getPresenceCondition());
+
+  }
+
+  private TestCase getSameTCInTS(TestCase testCase) {
+    for (TestCase tc : mapping.keySet()) {
+      if (sameInputOutputs(tc, testCase) && samePC(tc, testCase)) {
+        return tc;
+      }
+    }
+    return null;
+  }
+
+
   public boolean addTestCase(
       TestCase testcase,
       T goal) {
 
+    // TODO dont add same tc again
+    TestCase tc = getSameTCInTS(testcase);
+    if (tc != null) {
+      // larger path size => more explored (cannot be different path due to the same inputs)
+      if (testcase.getPath().size() > tc.getPath().size()) {
+        tc.setPath(testcase.getPath());
+      }
+
+      testcase = tc;
+    }
     List<T> goals = mapping.get(testcase);
     List<TestCase> testcases = coveringTestCases.get(goal);
 
@@ -165,6 +265,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
     addCoveredPresenceCondition(goal, testcase.getPresenceCondition());
 
     return testcaseExisted;
+
   }
 
   public void setRemainingPresenceCondition(T pGoal, Region presenceCondtion) {
@@ -206,7 +307,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
     testcases.add(testcase);
   }
 
-  public List<T> getIncludedTestGoals() {
+  public Set<T> getIncludedTestGoals() {
     return includedTestGoals;
   }
 
@@ -218,13 +319,6 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
     }
     return null;
   }
-
-  public void setIncludedTestGoals(List<T> pIncludedTestGoals) {
-    includedTestGoals.clear();
-    includedTestGoals.addAll(pIncludedTestGoals);
-  }
-
-
   public Set<TestCase> getTestCases() {
     return mapping.keySet();
   }
@@ -245,8 +339,8 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
       return "";
     }
     String pc = bddUtils.dumpRegion(presenceCondition).replace(" & TRUE", "");
-    if(tigerConfig.shouldRemoveFeatureVariablePrefix()) {
-      pc = pc.replace(tigerConfig.getFeatureVariablePrefix(), "");
+    if (!removePrefixString.isEmpty()) {
+      pc = pc.replace(removePrefixString, "");
     }
     return pc;
   }
@@ -263,8 +357,8 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
       testCaseData.setId(testCase.getId());
       if(testCase.getPresenceCondition() != null) {
         String pc = testCase.dumpPresenceCondition();
-        if (tigerConfig.shouldRemoveFeatureVariablePrefix()) {
-          pc = pc.replace(tigerConfig.getFeatureVariablePrefix(), "");
+        if (removePrefixString.isEmpty()) {
+          pc = pc.replace(removePrefixString, "");
         }
 
         testCaseData.setPresenceCondition(pc);
@@ -288,7 +382,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
       }
       testCaseData.setCoveredGoals(coveredGoals);
       testCaseData.setCoveredLabels(testCase.calculateCoveredLabels());
-      testCaseData.setErrorPathLength(testCase.getErrorPath().size());
+      testCaseData.setErrorPathLength(testCase.getPath().size());
 
       testCaseDatas.add(testCaseData);
     }
@@ -408,7 +502,13 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
       if(bddUtils.dumpRegion(newCondition).contains("||")) {
         return null;
       }
-      return new TestCase(tc1.getId(), tc1.getInputs(), tc1.getOutputs(), tc1.getPath(), tc1.getErrorPath(), newCondition, bddUtils);
+      return new TestCase(
+          tc1.getId(),
+          tc1.getInputs(),
+          tc1.getOutputs(),
+          tc1.getPath(),
+          newCondition,
+          bddUtils);
     }
 
     if(dominates(tc2, tc1)) {
@@ -416,7 +516,13 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
       if(bddUtils.dumpRegion(newCondition).contains("||")) {
         return null;
       }
-      return new TestCase(tc2.getId(), tc2.getInputs(), tc2.getOutputs(), tc2.getPath(), tc2.getErrorPath(), newCondition, bddUtils);
+      return new TestCase(
+          tc2.getId(),
+          tc2.getInputs(),
+          tc2.getOutputs(),
+          tc2.getPath(),
+          newCondition,
+          bddUtils);
     }
     return null;
   }

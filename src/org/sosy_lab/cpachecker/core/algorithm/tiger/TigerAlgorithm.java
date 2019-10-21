@@ -35,6 +35,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -119,7 +120,12 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
     logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
 
     goalsToCover = initializeTestGoalSet();
-    testsuite = new TestSuite<>(bddUtils, goalsToCover, tigerConfig);
+    // testsuite = new TestSuite<>(bddUtils, goalsToCover, tigerConfig);
+    String prefix = "";
+    if (tigerConfig.shouldRemoveFeatureVariablePrefix()) {
+      prefix = tigerConfig.getFeatureVariablePrefix();
+    }
+    testsuite = TestSuite.getAutomatonGoalTS(bddUtils, goalsToCover, prefix);
 
     boolean wasSound = true;
     if (!testGeneration(goalsToCover, pReachedSet)) {
@@ -136,7 +142,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
     }
   }
 
-  private LinkedList<AutomatonGoal> initializeTestGoalSet() {
+  private Set<AutomatonGoal> initializeTestGoalSet() {
     LinkedList<ElementaryCoveragePattern> goalPatterns;
     LinkedList<Pair<ElementaryCoveragePattern, Region>> pTestGoalPatterns = new LinkedList<>();
 
@@ -147,7 +153,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
     }
 
     int goalIndex = 1;
-    LinkedList<AutomatonGoal> goals = new LinkedList<>();
+    Set<AutomatonGoal> goals = new HashSet<>();
     for (Pair<ElementaryCoveragePattern, Region> pair : pTestGoalPatterns) {
       AutomatonGoal lGoal =
           testGoalUtils.constructAutomatonGoal(
@@ -167,7 +173,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
   // TODO add parameter LinkedList<Edges>> pInfeasibilityPropagation
   // TODO add the parameter to runreachabilityanalysis
   @SuppressWarnings("unchecked")
-  private boolean testGeneration(LinkedList<AutomatonGoal> pGoalsToCover, ReachedSet pReachedSet)
+  private boolean testGeneration(Set<AutomatonGoal> pGoalsToCover, ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
     boolean wasSound = true;
     boolean retry = false;
@@ -215,7 +221,8 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
         }
       }
       while (!pGoalsToCover.isEmpty()) {
-        AutomatonGoal goal = pGoalsToCover.poll();
+        AutomatonGoal goal = pGoalsToCover.iterator().next();
+        pGoalsToCover.remove(goal);
 
         logger
             .logf(Level.INFO, "Processing test goal %d of %d.", goal.getIndex(), numberOfTestGoals);
@@ -275,7 +282,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
       runReachabilityAnalysis(
           AutomatonGoal pGoal,
           int goalIndex,
-          LinkedList<AutomatonGoal> pGoalsToCover,
+          Set<AutomatonGoal> pGoalsToCover,
           ReachedSet pReachedSet)
           throws CPAException, InterruptedException {
 
@@ -604,7 +611,6 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
             inputValues,
             outputValues,
             trace,
-            null,
             pPresenceCondition,
             bddUtils);
     currentTestCaseID++;

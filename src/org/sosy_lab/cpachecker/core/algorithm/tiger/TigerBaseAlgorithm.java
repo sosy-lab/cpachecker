@@ -22,7 +22,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -51,7 +50,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCaseVariable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuiteWriter;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -103,7 +101,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
   protected TestSuiteWriter tsWriter;
   protected ShutdownNotifier shutdownNotifier;
 
-  protected LinkedList<T> goalsToCover;
+  protected Set<T> goalsToCover;
 
   protected void init(
       LogManager pLogger,
@@ -143,7 +141,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     currentTestCaseID = 0;
 
     // Check if BDD is enabled for variability-aware test-suite generation
-    bddUtils = new BDDUtils(cpa, pLogger);
+    bddUtils = BDDUtils.getInstance(cpa, pLogger);
     timeoutCPA = getTimeoutCPA(cpa);
 
     String outputFolder = "output/";
@@ -194,17 +192,17 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
 
     List<TestCaseVariable> inputValues;
     List<TestCaseVariable> outputValus;
-    List<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPath;
+//    List<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPath;
     if (!cex.isSpurious() && cex.isPreciseCounterExample()) {
       inputValues = values.extractInputValues(cex, cfa);
       outputValus = values.extractOutputValues(cex);
-      shrinkedErrorPath =
+//      shrinkedErrorPath =
           new ErrorPathShrinker()
               .shrinkErrorPath(cex.getTargetPath(), cex.getCFAPathWithAssignments());
     } else {
       inputValues = Collections.emptyList();
       outputValus = Collections.emptyList();
-      shrinkedErrorPath = Collections.emptyList();
+//      shrinkedErrorPath = Collections.emptyList();
       logger.log(
           Level.SEVERE,
           "Counterexample is either\nSpurios: "
@@ -220,7 +218,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
             inputValues,
             outputValus,
             cex.getTargetPath().asEdgesList(),
-            shrinkedErrorPath,
+            // shrinkedErrorPath,
             pPresenceCondition,
             bddUtils);
     currentTestCaseID++;

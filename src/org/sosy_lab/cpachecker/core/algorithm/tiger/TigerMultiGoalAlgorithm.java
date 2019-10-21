@@ -22,11 +22,9 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -38,7 +36,6 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -77,18 +74,10 @@ import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 @Options(prefix = "tiger.multigoal")
 public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
-  enum PartitionSizeDistribution {
-    TOTAL,
-    RELATIVE
-  }
 
-  @Option(secure = true, name = "partitionSizeDistribution", description = "")
-  private PartitionSizeDistribution partitionSizeDistribution = PartitionSizeDistribution.RELATIVE;
-  @Option(secure = true, name = "partitionSize", description = "")
-  private int partitionSize = 25;
 
   private MultiGoalCPA multiGoalCPA;
-
+  private PartitionProvider partitionProvider;
   public TigerMultiGoalAlgorithm(
       LogManager pLogger,
       CFA pCfa,
@@ -99,6 +88,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       throws InvalidConfigurationException {
     init(pLogger, pCfa, pConfig, pCpa, pShutdownNotifier, stats);
     config.inject(this);
+    partitionProvider = new PartitionProvider(config);
     pShutdownNotifier.register(this);
     multiGoalCPA = getMultiGoalCPA(cpa);
   }
@@ -127,11 +117,15 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
     goalsToCover =
         TestGoalProvider.getInstace(logger).initializeTestGoalSet(tigerConfig.getFqlQuery(), cfa);
-
-    testsuite = new TestSuite<>(bddUtils, goalsToCover, tigerConfig);
+    int numberOfGoals = goalsToCover.size();
+    String prefix = "";
+    if (tigerConfig.shouldRemoveFeatureVariablePrefix()) {
+      prefix = tigerConfig.getFeatureVariablePrefix();
+    }
+    testsuite = TestSuite.getCFAGoalTS(bddUtils, goalsToCover, prefix);
 
     //TODO might need to remove after testcomp
-    // because of presence conditinos
+    // because of presence conditions
     if(testsuite.getTestGoals() != null) {
       goalsToCover.removeAll(testsuite.getTestGoals());
     }
@@ -148,7 +142,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
     logger.log(
         Level.INFO,
-        "covered " + testsuite.getNumberOfFeasibleGoals() + " of " + goalsToCover.size());
+        "covered " + testsuite.getNumberOfFeasibleGoals() + " of " + numberOfGoals);
 
     if (wasSound) {
       return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -161,7 +155,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     boolean wasSound = true;
     // run reachability analsysis for each partition
     logger.logf(Level.FINE, "Starting Tiger MGA with " + goalsToCover.size() + " goals.");
-    List<Set<CFAGoal>> partitions = createPartition(goalsToCover);
+    List<Set<CFAGoal>> partitions = partitionProvider.createPartition(goalsToCover, cfa);
     for (int i = 0; i < partitions.size(); i++) {
       Set<CFAGoal> partition = partitions.get(i);
       // remove covered goals from previous runs
@@ -306,7 +300,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     testcase.setElapsedTime(elapsedTime);
     // only add new Testcase and check for coverage if it does not already exist
 
-    testsuite.addTestCase(testcase, goal);
+    boolean duplicateTC = testsuite.addTestCase(testcase, goal);
     tsWriter.writePartialTestSuite(testsuite);
     if (testcase.getInputs() != null) {
       StringBuilder builder = new StringBuilder();
@@ -475,30 +469,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     return assumeEdges;
   }
 
-  private <T> List<Set<T>> createPartition(LinkedList<T> allEdges) {
-    List<Set<T>> partitioning = new ArrayList<>();
-    HashSet<T> partition = new HashSet<>();
-    int size = 0;
-    if (partitionSizeDistribution == PartitionSizeDistribution.TOTAL) {
-      size = partitionSize;
-    } else {
-      // need double prevent calculation with integers, which will truncate the result before ceil
-      size = (int) Math.ceil((double) allEdges.size() * partitionSize / 100);
-    }
 
-    for (T edge : allEdges) {
-      if (partition.size() >= size) {
-        partitioning.add(partition);
-        partition = new HashSet<>();
-      }
-      partition.add(edge);
-    }
-    if (partition.size() > 0 && !partitioning.contains(partition)) {
-      partitioning.add(partition);
-    }
-
-    return partitioning;
-  }
 
   @Override
   public void shutdownRequested(String pArg0) {

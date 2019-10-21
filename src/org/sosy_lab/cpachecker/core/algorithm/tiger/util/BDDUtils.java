@@ -39,9 +39,12 @@ public class BDDUtils {
 
   private BDDCPA bddCpa;
   private LogManager logger;
+  private ConfigurableProgramAnalysis cpa;
+  private static BDDUtils cache;
 
   public BDDUtils(ConfigurableProgramAnalysis pCPA, LogManager pLogger) {
     bddCpa = getBddCpa(pCPA);
+    cpa = pCPA;
     logger = pLogger;
   }
 
@@ -202,6 +205,17 @@ public class BDDUtils {
           "Restrict BDD to %s.",
           dumpRegion(pRemainingPresenceCondition));
     }
+  }
+
+  public static BDDUtils getInstance(ConfigurableProgramAnalysis pCpa, LogManager pLogger) {
+    if (cache == null || cache.cpa != pCpa) {
+      cache = new BDDUtils(pCpa, pLogger);
+    }
+    if (cache.logger != pLogger) {
+     cache.logger = pLogger;
+    }
+      // TODO Auto-generated method stub
+      return cache;
   }
 
 }

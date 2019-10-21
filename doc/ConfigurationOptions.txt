@@ -649,6 +649,9 @@ cfa.export = true
 # export individual CFAs for function as .dot files
 cfa.exportPerFunction = true
 
+# export CFA as pixel graphic file
+cfa.exportPixelGraphicFile = true
+
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 
@@ -3836,7 +3839,7 @@ tiger.coverageCheck = SINGLE
 tiger.featureVariablePrefix = "__SELECTED_FEATURE_"
 
 # Coverage criterion given as an FQL query
-tiger.fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE
+tiger.fqlQuery = PredefinedCoverageCriteria.StatementCoverage
 tiger.goalReduction = COMPLEX
   enum:     [COMPLEX, SIMPLE, NONE]
 
@@ -3853,15 +3856,21 @@ tiger.limitsPerGoal.time.cpu = -1
 # Value for which timeout gets incremented if timed-out goals are
 # re-processed.
 tiger.limitsPerGoal.time.cpu.increment = 0
-tiger.multigoal.partitionSize = 25
-tiger.multigoal.partitionSizeDistribution = RELATIVE
-  enum:     [TOTAL, RELATIVE]
+
+# Number of test-cases per goal, WARNING! currently only works if there is a
+# single goal...
+tiger.numberOfTestCasesPerGoal = 1
 
 # Optimize the test goal automata
 tiger.optimizeGoalAutomata = true
 
 # List of output variables: v1,v2,v3...
 tiger.outputInterface = ""
+tiger.partitioning.partitionSize = 25
+tiger.partitioning.partitionSizeDistribution = RELATIVE
+  enum:     [TOTAL, RELATIVE]
+tiger.partitioning.strategy = RANDOM
+  enum:     [RANDOM, DOMINATION, REVERSEDOMINATION]
 
 # removes the feature prefix from presence conditions in the testsuite
 tiger.removeFeaturePrefix = true

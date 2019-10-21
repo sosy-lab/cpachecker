@@ -75,7 +75,8 @@ public class TigerAlgorithmConfiguration {
     secure = true,
       name = "fqlQuery",
       description = "Coverage criterion given as an FQL query")
-  private String fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE; // default is basic block coverage
+  private String fqlQuery = PredefinedCoverageCriteria.StatementCoverage; // default is basic block
+                                                                          // coverage
 
   @Option(
       secure = true,

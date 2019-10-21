@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.Collection;
 import java.util.HashSet;
@@ -32,21 +33,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 
 public class TestCase {
 
   private int id;
-  private List<TestCaseVariable> inputs;
-  private List<TestCaseVariable> outputs;
+  private ImmutableList<TestCaseVariable> inputs;
+  private ImmutableList<TestCaseVariable> outputs;
   private List<CFAEdge> path;
-  private List<Pair<CFAEdgeWithAssumptions, Boolean>> errorPath;
-  private Region presenceCondition;
-  private ARGPath argPath;
+  private final Region presenceCondition;
   private BDDUtils bddUtils;
   private long elapsedTime;
 
@@ -55,13 +51,16 @@ public class TestCase {
       List<TestCaseVariable> pInputs,
       List<TestCaseVariable> pOutputs,
       List<CFAEdge> pPath,
-      List<Pair<CFAEdgeWithAssumptions, Boolean>> pShrinkedErrorPath,
       Region pPresenceCondition,
       BDDUtils pBddUtils) {
-    inputs = pInputs;
-    outputs = pOutputs;
+    inputs = ImmutableList.copyOf(pInputs);
+    if (pOutputs == null) {
+      outputs = null;
+    } else {
+      outputs = ImmutableList.copyOf(pOutputs);
+    }
     path = pPath;
-    errorPath = pShrinkedErrorPath;
+    // errorPath = pShrinkedErrorPath;
     presenceCondition = pPresenceCondition;
     id = pID;
     bddUtils = pBddUtils;
@@ -78,14 +77,6 @@ public class TestCase {
 
   public List<CFAEdge> getPath() {
     return path;
-  }
-
-  public ARGPath getArgPath() {
-    return argPath;
-  }
-
-  public List<Pair<CFAEdgeWithAssumptions, Boolean>> getErrorPath() {
-    return errorPath;
   }
 
   public List<TestCaseVariable> getInputs() {
@@ -241,20 +232,60 @@ public class TestCase {
     return true;
   }
 
+  private boolean equalContent(List<?> l1, List<?> l2) {
+    if (l1 == l2) {
+      return true;
+    }
+    if (l1 == null && l2 == null) {
+      return true;
+    }
+    if (l1 == null || l2 == null) {
+      return false;
+    }
+
+    for (int i = 0; i < l1.size(); i++) {
+      if (!l1.get(i).equals(l2.get(i))) {
+        return false;
+      }
+    }
+    return true;
+
+  }
+
+  private boolean samePC(Region pc1, Region pc2) {
+    if (pc1 == pc2) {
+      return true;
+    }
+    if (pc1 == null && pc2 == null) {
+      return true;
+    }
+    if (pc1 == null || pc2 == null) {
+      return false;
+    }
+    return pc1.equals(pc2);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (o instanceof TestCase) {
       TestCase other = (TestCase) o;
-      return (id==other.id&&inputs.equals(other.inputs) && path.equals(other.path) && (presenceCondition != null
-          ? presenceCondition.equals(other.getPresenceCondition()) : true));
+      if(id == other.id) {
+        return true;
+      }
+      if (equalContent(inputs, other.inputs)
+          && equalContent(outputs, other.outputs)
+          && samePC(presenceCondition, other.presenceCondition)) {
+        return true;
+      }
     }
-
     return false;
   }
 
   @Override
   public int hashCode() {
-    return 38495 + 33 * inputs.hashCode() + 13 * path.hashCode()
+    return 38495
+        + 33 * inputs.hashCode()
+        + (outputs != null ? 25 * outputs.hashCode() : 0)
         + (presenceCondition != null ? 25 * presenceCondition.hashCode() : 0);
   }
 
@@ -264,6 +295,10 @@ public class TestCase {
 
   public long getElapsedTime() {
     return elapsedTime;
+  }
+
+  public void setPath(List<CFAEdge> pPath) {
+    this.path = pPath;
   }
 
 }
