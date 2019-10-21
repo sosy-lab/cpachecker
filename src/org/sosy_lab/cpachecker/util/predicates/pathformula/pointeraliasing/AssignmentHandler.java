@@ -746,7 +746,7 @@ class AssignmentHandler {
           value.isPresent()
               ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
               : null;
-      rhs = conv.makeFormulaTypeCast(targetType, lvalueType, rhs, constraints, edge);
+      rhs = conv.makeFormulaTypeCast(targetType, lvalueType, rhs, ssa, constraints, edge);
     }
 
     if (!lvalue.isAliased()) { // Unaliased LHS

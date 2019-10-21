@@ -597,6 +597,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             for1,
             for2,
             exp.getOperand1().getExpressionType(),
+            ssa,
             constraints,
             edge);
     final Formula f2 =
@@ -604,6 +605,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             for2,
             for1,
             exp.getOperand2().getExpressionType(),
+            ssa,
             constraints,
             edge);
 

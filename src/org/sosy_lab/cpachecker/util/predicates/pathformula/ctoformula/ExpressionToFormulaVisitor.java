@@ -151,9 +151,6 @@ public class ExpressionToFormulaVisitor
     final CType returnType = exp.getExpressionType();
     final CType calculationType = exp.getCalculationType();
 
-    // ÄNDERUNG
-    // final Formula f1 = processOperand(exp.getOperand1(), calculationType, returnType);
-    // final Formula f2 = processOperand(exp.getOperand2(), calculationType, returnType);
     Formula for1 = processOperand(exp.getOperand1(), calculationType, returnType);
     Formula for2 = processOperand(exp.getOperand2(), calculationType, returnType);
     final Formula f1 =
@@ -161,6 +158,7 @@ public class ExpressionToFormulaVisitor
             for1,
             for2,
             exp.getOperand1().getExpressionType(),
+            ssa,
             constraints,
             edge);
     final Formula f2 =
@@ -168,9 +166,9 @@ public class ExpressionToFormulaVisitor
             for2,
             for1,
             exp.getOperand2().getExpressionType(),
+            ssa,
             constraints,
             edge);
-    // ÄNDERUNG ENDE
 
     return handleBinaryExpression(exp, f1, f2);
   }
@@ -345,7 +343,7 @@ public class ExpressionToFormulaVisitor
     FormulaType<?> f1Type = mgr.getFormulaType(f1);
     FormulaType<?> f2Type = mgr.getFormulaType(f2);
     if (!f1Type.equals(f2Type)) {
-      f1 = conv.makeFormulaTypeCast(f2Type, exp.getExpressionType(), f1, constraints, edge);
+      f1 = conv.makeFormulaTypeCast(f2Type, exp.getExpressionType(), f1, ssa, constraints, edge);
     }
     // ÄNDERUNG ENDE
     CExpression e1 = exp.getOperand1();

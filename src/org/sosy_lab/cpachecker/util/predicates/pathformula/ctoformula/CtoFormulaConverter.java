@@ -683,6 +683,7 @@ public class CtoFormulaConverter {
       Formula fret,
       Formula f2,
       CType fretCType,
+      SSAMapBuilder ssa,
       Constraints constraints,
       CFAEdge edge)
       throws UnrecognizedCodeException {
@@ -693,7 +694,7 @@ public class CtoFormulaConverter {
         return fret;
       }
       if (fretType.isBitvectorType() || fretType.isFloatingPointType() || f2Type.isBooleanType()) {
-        return makeFormulaTypeCast(f2Type, fretCType, fret, constraints, edge);
+        return makeFormulaTypeCast(f2Type, fretCType, fret, ssa, constraints, edge);
       }
       if (f2Type.isBitvectorType() || f2Type.isFloatingPointType() || fretType.isBooleanType()) {
         return fret;
@@ -721,6 +722,7 @@ public class CtoFormulaConverter {
       final FormulaType<?> toType,
       final CType CType,
       Formula formula,
+      SSAMapBuilder ssa,
       Constraints constraints,
       CFAEdge edge)
       throws UnrecognizedCodeException {
@@ -760,9 +762,10 @@ public class CtoFormulaConverter {
         IntegerFormula zero = nfmgr.makeNumber(0);
         return bfmgr.not(nfmgr.equal((IntegerFormula) formula, zero));
       } else if (toType.isFloatingPointType()) {
-        throw new UnrecognizedCodeException(
-            "Formula type cast from " + toType + " to " + fromType + " not implemented yet!",
-            edge);
+        final CSimpleType sType = (CSimpleType) CType;
+        final boolean signed = machineModel.isSigned(sType);
+        return fmgr.getFloatingPointFormulaManager()
+            .castFrom(formula, signed, FormulaType.getSinglePrecisionFloatingPointType());
       } else if (toType.isBitvectorType()) {
         int size = ((BitvectorType) toType).getSize();
         return efmgr.makeBitvector(size, (IntegerFormula) formula);
@@ -773,49 +776,32 @@ public class CtoFormulaConverter {
       }
     }
     if (fromType.isBooleanType()) {
+      Formula intFormula = intBoolToInt((BooleanFormula) formula, CType, ssa, constraints);
       if (toType.isIntegerType()) {
-        if (bfmgr.isFalse((BooleanFormula) formula)) {
-          return nfmgr.makeNumber(0);
-        } else {
-          return nfmgr.makeNumber(1);
-        }
-      } else if (toType.isFloatingPointType()) {
-        throw new UnrecognizedCodeException(
-            "Formula type cast from " + toType + " to " + fromType + " not implemented yet!",
-            edge);
-      } else if (toType.isBitvectorType()) {
-        int value;
-        if (bfmgr.isFalse((BooleanFormula) formula)) {
-          value = 0;
-        } else {
-          value = 1;
-        }
-        int size = ((BitvectorType) toType).getSize();
-        IntegerFormula iformula = nfmgr.makeNumber(value);
-        return efmgr.makeBitvector(size, iformula);
+        return intFormula;
       } else {
-        throw new UnrecognizedCodeException(
-            "Formula type cast from " + toType + " to " + fromType + " not supported!",
-            edge);
+        return makeFormulaTypeCast(toType, CType, intFormula, ssa, constraints, edge);
       }
     }
     return formula;
   }
 
-  /*
-   * private Formula intBoolToInt (Formula formula, CType type, Constraints constraints) {
-   * Set<String> varNames = fmgr.extractVariableNames(formula); if (varNames.size() != 1) {
-   * logger.logf( Level.WARNING, "Formula with no/multiple variables is converted to boolean type: "
-   * + formula.toString()); System.exit(0); } String[] varNamesA = new String[1]; varNamesA =
-   * (String[]) varNames.toArray(); String varName = varNamesA[0]; Set<String> intBoolVars =
-   * variableClassification.get().getIntBoolVars(); if (!intBoolVars.contains(varName)) {
-   * logger.logf(Level.WARNING, "Variable " + varName +
-   * " treated as intBool, but not found in intBool."); } String nConst; if
-   * (bfmgr.isFalse((BooleanFormula) formula)) { nConst = varName + "JAVASMT_EQUALS0";
-   * constraints.addConstraint(bfmgr.makeVariable(nConst)); } else { nConst = varName +
-   * "JAVASMT_NOTJAVASMT_EQUALS0"; constraints.addConstraint(bfmgr.makeVariable(nConst)); }
-   * //this.makeFreshIndex(varName, type, ssa); int i; return nfmgr.makeNumber(i); }
+  /**
+   * Replaces a Boolean Formula with an Integer Formula. This resulting Formula contains a variable,
+   * that can either be 0, or everything, but 0.
+   *
+   * @return IntegerFormula containing a placeholder variable.
    */
+  private Formula
+      intBoolToInt(BooleanFormula formula, CType type, SSAMapBuilder ssa, Constraints constraints) {
+    String iName = "int_bool_to_int";
+    this.makeFreshIndex(iName, type, ssa);
+    BooleanFormula rhs = bfmgr.makeVariable(iName);
+    BooleanFormula constraint = bfmgr.equivalence(formula, rhs);
+    constraints.addConstraint(constraint);
+
+    return nfmgr.makeVariable(iName);
+  }
 
   /** Replace the formula with a matching ITE-structure
    *  that returns an UF (with additional constraints), if the formula causes an overflow,
@@ -1704,7 +1690,6 @@ public class CtoFormulaConverter {
   }
 
   <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
-    // ÄNDERUNG
     T one;
     T zero;
     if (type.isBooleanType()) {
@@ -1714,7 +1699,6 @@ public class CtoFormulaConverter {
       one = fmgr.makeNumber(type, 1);
       zero = fmgr.makeNumber(type, 0);
     }
-    // ÄNDERUNG ENDE
     return bfmgr.ifThenElse(pCond, one, zero);
   }
 

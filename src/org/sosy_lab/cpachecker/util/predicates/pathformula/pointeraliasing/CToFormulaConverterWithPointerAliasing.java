@@ -1220,10 +1220,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       Formula fret,
       Formula f2,
       CType fretCType,
+      SSAMapBuilder ssa,
       Constraints constraints,
       CFAEdge edge)
       throws UnrecognizedCodeException {
-    return super.adjustFormulaTypeinBinExp(fret, f2, fretCType, constraints, edge);
+    return super.adjustFormulaTypeinBinExp(fret, f2, fretCType, ssa, constraints, edge);
   }
 
   /** {@inheritDoc} */
@@ -1232,10 +1233,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final FormulaType<?> toType,
       final CType CType,
       Formula formula,
+      SSAMapBuilder ssa,
       Constraints constraints,
       CFAEdge edge)
       throws UnrecognizedCodeException {
-    return super.makeFormulaTypeCast(toType, CType, formula, constraints, edge);
+    return super.makeFormulaTypeCast(toType, CType, formula, ssa, constraints, edge);
   }
 
   /** {@inheritDoc} */
