@@ -27,6 +27,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.collect.Iterables;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 class ReverseFullPathIterator extends FullPathIterator {
 
@@ -42,53 +44,36 @@ class ReverseFullPathIterator extends FullPathIterator {
   public void advance() throws IllegalStateException {
     checkState(hasNext(), "No more states in PathIterator.");
 
-    // if we are currently on a position with state and we have a real
-    // (non-null) edge then we can directly set the parameters without
-    // further checking
-    if (path.getInnerEdges().get(pos - 1) != null && currentPositionHasState) {
-      pos--;
-      overallOffset--;
-      currentPositionHasState = true;
+    boolean previousPositionHasState =
+        Iterables.contains(
+            extractLocations(getPreviousAbstractState()),
+            fullPath.get(overallOffset - 1).getPredecessor());
 
-    } else {
-
-      boolean nextPositionHasState =
-          Iterables.contains(
-              extractLocations(getPreviousAbstractState()),
-              fullPath.get(overallOffset - 1).getPredecessor());
-
-      if (currentPositionHasState) {
-        pos--; // only reduce by one if it was a real node before we are leaving it now
-      }
-
-      currentPositionHasState = nextPositionHasState;
-
-      overallOffset--;
+    if (currentPositionHasState) {
+      pos--; // only reduce by one if it was a real node before we are leaving it now
     }
+
+    currentPositionHasState = previousPositionHasState;
+
+    overallOffset--;
   }
 
   @Override
   public void rewind() throws IllegalStateException {
     checkState(hasPrevious(), "No more states in PathIterator.");
 
-    // if we are currently on a position with state and we have a real
-    // (non-null) edge then we can directly set the parameters without
-    // further checking
-    if (path.getInnerEdges().get(pos) != null && currentPositionHasState) {
-      pos++;
-      overallOffset++;
-      currentPositionHasState = true;
+    CFAEdge nextEdge = fullPath.get(overallOffset);
+    Iterable<CFANode> nextLocation = extractLocations(getNextAbstractState());
+    boolean nextPositionHasState =
+        Iterables.contains(nextLocation, nextEdge.getSuccessor()) // forward analysis
+            || Iterables.contains(nextLocation, nextEdge.getPredecessor()); // backward analysis
 
-    } else {
-      if (Iterables.contains(
-          extractLocations(getNextAbstractState()), fullPath.get(overallOffset).getSuccessor())) {
-        pos++;
-        currentPositionHasState = true;
-      } else {
-        currentPositionHasState = false;
-      }
-      overallOffset++;
+    if (nextPositionHasState) {
+      pos++;
     }
+
+    currentPositionHasState = nextPositionHasState;
+    overallOffset++;
   }
 
   @Override
