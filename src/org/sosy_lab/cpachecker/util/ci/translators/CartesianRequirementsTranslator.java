@@ -45,18 +45,13 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
   }
 
   @VisibleForTesting
-  static List<String> writeVarDefinition(
-      final List<String> vars,
-      final SSAMap ssaMap,
-      final @Nullable Collection<String> pRequiredVars) {
+  static List<String> writeVarDefinition(final List<String> vars, final SSAMap ssaMap) {
     List<String> list = new ArrayList<>();
     String def;
     for (String var : vars) {
-      if (pRequiredVars == null || pRequiredVars.contains(var)) {
         def = "(declare-fun " + getVarWithIndex(var, ssaMap);
         def += " () Int)";
         list.add(def);
-      }
     }
     return list;
   }
@@ -73,9 +68,11 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
     return list;
   }
 
+
   @Override
   protected Pair<List<String>, String> convertToFormula(final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars) {
-    List<String> firstReturn = writeVarDefinition(getVarsInRequirements(requirement), indices, pRequiredVars);
+    List<String> firstReturn =
+        writeVarDefinition(getVarsInRequirements(requirement, pRequiredVars), indices);
 
     String secReturn;
     List<String> listOfIndependentRequirements = getListOfIndependentRequirements(requirement, indices, pRequiredVars);

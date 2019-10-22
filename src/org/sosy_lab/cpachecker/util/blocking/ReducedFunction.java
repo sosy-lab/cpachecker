@@ -81,7 +81,7 @@ class ReducedFunction {
     Set<ReducedEdge> edges = cfaEdges.get(pFrom, pTo);
     if (edges != null) {
       edges.remove(pEdge);
-      if (edges.size() == 0) {
+      if (edges.isEmpty()) {
         cfaEdges.remove(pFrom, pTo);
       }
     }
@@ -109,12 +109,10 @@ class ReducedFunction {
   }
 
   public List<ReducedEdge> getLeavingEdges(ReducedNode pOfNode) {
-    ArrayList<ReducedEdge> result = new ArrayList<>();
+    List<ReducedEdge> result = new ArrayList<>();
     Collection<Set<ReducedEdge>> edges = cfaEdges.row(pOfNode).values();
     for (Set<ReducedEdge> edgesToNode: edges) {
-      for (ReducedEdge e: edgesToNode) {
-        result.add(e);
-      }
+      result.addAll(edgesToNode);
     }
 
     return result;

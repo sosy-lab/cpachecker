@@ -373,8 +373,7 @@ class CFloatUtil {
         // nothing to do
         break;
       default:
-        // TODO: introduce Exception, assertion, or some other way of telling the developer wrong
-        // usage
+        throw new AssertionError("Unsupported type: " + pType);
     }
     return BIT_TO_DEC_MAP.get(pSignificand).toArray();
   }

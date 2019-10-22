@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.util.identifiers;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class FunctionIdentifier extends SingleIdentifier {
@@ -46,6 +46,6 @@ public class FunctionIdentifier extends SingleIdentifier {
 
   @Override
   public Collection<AbstractIdentifier> getComposedIdentifiers() {
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 }

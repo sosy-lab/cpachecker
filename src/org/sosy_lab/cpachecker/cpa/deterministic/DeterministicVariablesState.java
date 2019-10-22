@@ -31,6 +31,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -44,7 +45,7 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
   private final Set<Wrapper<ASimpleDeclaration>> deterministicVariables;
 
   DeterministicVariablesState() {
-    deterministicVariables = Sets.newHashSet();
+    deterministicVariables = new HashSet<>();
   }
 
   DeterministicVariablesState(final Set<Wrapper<ASimpleDeclaration>> pDeterministicVariables) {
@@ -63,7 +64,7 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
       return this;
     }
 
-    Set<Wrapper<ASimpleDeclaration>> newState = Sets.newHashSet(deterministicVariables);
+    Set<Wrapper<ASimpleDeclaration>> newState = new HashSet<>(deterministicVariables);
     newState.add(pDeterministicVariable);
 
     return new DeterministicVariablesState(newState);
@@ -77,7 +78,7 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
       return this;
     }
 
-    Set<Wrapper<ASimpleDeclaration>> newState = Sets.newHashSet(deterministicVariables);
+    Set<Wrapper<ASimpleDeclaration>> newState = new HashSet<>(deterministicVariables);
     newState.addAll(pDeterministicVariables);
 
     return new DeterministicVariablesState(newState);
@@ -90,7 +91,7 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
       return this;
     }
 
-    Set<Wrapper<ASimpleDeclaration>> newState = Sets.newHashSet(deterministicVariables);
+    Set<Wrapper<ASimpleDeclaration>> newState = new HashSet<>(deterministicVariables);
     newState.remove(pNonDeterministicVariable);
 
     return new DeterministicVariablesState(newState);
@@ -99,7 +100,7 @@ public class DeterministicVariablesState implements LatticeAbstractState<Determi
   DeterministicVariablesState removeDeterministicVariables(Collection<Wrapper<ASimpleDeclaration>> pNonDeterministicVariables) {
     checkNotNull(pNonDeterministicVariables);
 
-    Set<Wrapper<ASimpleDeclaration>> newState = Sets.newHashSet(deterministicVariables);
+    Set<Wrapper<ASimpleDeclaration>> newState = new HashSet<>(deterministicVariables);
     newState.removeAll(pNonDeterministicVariables);
 
     return new DeterministicVariablesState(newState);

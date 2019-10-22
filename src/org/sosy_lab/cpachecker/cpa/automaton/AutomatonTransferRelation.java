@@ -31,13 +31,12 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -69,7 +68,7 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
  * The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState} and
  * strengthens an {@link AutomatonState.AutomatonUnknownState}.
  */
-class AutomatonTransferRelation implements TransferRelation {
+public class AutomatonTransferRelation implements TransferRelation {
 
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
@@ -83,17 +82,20 @@ class AutomatonTransferRelation implements TransferRelation {
   private final StatIntHist automatonSuccessors;
 
   public AutomatonTransferRelation(
-      ControlAutomatonCPA pCpa, LogManager pLogger, MachineModel pMachineModel) {
+      ControlAutomatonCPA pCpa,
+      LogManager pLogger,
+      MachineModel pMachineModel,
+      AutomatonStatistics pStats) {
     this.cpa = pCpa;
     this.logger = pLogger;
     this.machineModel = pMachineModel;
 
-    totalPostTime = pCpa.stats.totalPostTime.getNewTimer();
-    matchTime = pCpa.stats.matchTime.getNewTimer();
-    assertionsTime = pCpa.stats.assertionsTime.getNewTimer();
-    actionTime = pCpa.stats.actionTime.getNewTimer();
-    totalStrengthenTime = pCpa.stats.totalStrengthenTime.getNewTimer();
-    automatonSuccessors = pCpa.stats.automatonSuccessors;
+    totalPostTime = pStats.totalPostTime.getNewTimer();
+    matchTime = pStats.matchTime.getNewTimer();
+    assertionsTime = pStats.assertionsTime.getNewTimer();
+    actionTime = pStats.actionTime.getNewTimer();
+    totalStrengthenTime = pStats.totalStrengthenTime.getNewTimer();
+    automatonSuccessors = pStats.automatonSuccessors;
   }
 
   @Override
@@ -105,8 +107,7 @@ class AutomatonTransferRelation implements TransferRelation {
     if (pElement instanceof AutomatonUnknownState) {
       // the last CFA edge could not be processed properly
       // (strengthen was not called on the AutomatonUnknownState or the strengthen operation had not enough information to determine a new following state.)
-      AutomatonState top = cpa.getTopState();
-      return Collections.singleton(top);
+      return ImmutableSet.of(cpa.getTopState());
     }
 
     Collection<AutomatonState> result =
@@ -119,7 +120,7 @@ class AutomatonTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    return Collections.singleton(((AutomatonState) pState).getAutomatonCPA().getTopState());
+    return ImmutableSet.of(cpa.getTopState());
   }
 
   private Collection<AutomatonState> getAbstractSuccessors0(
@@ -158,22 +159,22 @@ class AutomatonTransferRelation implements TransferRelation {
       throws CPATransferException {
     Preconditions.checkArgument(!(state instanceof AutomatonUnknownState));
     if (state == cpa.getBottomState()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     if (state.getInternalState().getTransitions().isEmpty()) {
       // shortcut
-      return Collections.singleton(state);
+      return ImmutableSet.of(state);
     }
 
     if (precision instanceof AutomatonPrecision) {
       if (!((AutomatonPrecision) precision).isEnabled()) {
         if (state.isTarget()) {
           // do not create transition from target states
-          return Collections.emptySet();
+          return ImmutableSet.of();
         } else {
           // ignore disabled automaton
-          return Collections.singleton(state);
+          return ImmutableSet.of(state);
         }
       }
     }
@@ -203,8 +204,9 @@ class AutomatonTransferRelation implements TransferRelation {
           throw new AutomatonTransferException(
               "Automaton transition condition could not be evaluated", match);
         }
-        // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
-        return Collections.singleton(new AutomatonUnknownState(state));
+        // if one transition cannot be evaluated the evaluation must be postponed until enough
+        // information is available
+        return ImmutableSet.of(new AutomatonUnknownState(state));
       } else {
         if (match.getValue()) {
           edgeMatched = true;
@@ -218,7 +220,7 @@ class AutomatonTransferRelation implements TransferRelation {
                   "Automaton transition assertions could not be evaluated", assertionsHold);
             }
             // cannot yet be evaluated
-            return Collections.singleton(new AutomatonUnknownState(state));
+            return ImmutableSet.of(new AutomatonUnknownState(state));
 
           } else if (assertionsHold.getValue()) {
             if (!t.canExecuteActionsOn(exprArgs)) {
@@ -227,7 +229,7 @@ class AutomatonTransferRelation implements TransferRelation {
                     "Automaton transition action could not be executed");
               }
               // cannot yet execute, goto UnknownState
-              return Collections.singleton(new AutomatonUnknownState(state));
+              return ImmutableSet.of(new AutomatonUnknownState(state));
             }
 
             // delay execution as described above
@@ -241,8 +243,15 @@ class AutomatonTransferRelation implements TransferRelation {
             AutomatonSafetyProperty prop =
                 new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
 
-            AutomatonState errorState = AutomatonState.automatonStateFactory(
-                Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, prop);
+            AutomatonState errorState =
+                AutomatonState.automatonStateFactory(
+                    ImmutableMap.of(),
+                    AutomatonInternalState.ERROR,
+                    state.getOwningAutomaton(),
+                    0,
+                    0,
+                    prop,
+                    state.isTreatingErrorsAsTarget());
 
             logger.log(
                 Level.FINER,
@@ -282,18 +291,19 @@ class AutomatonTransferRelation implements TransferRelation {
 
         logger.log(Level.ALL, "Replace variables in automata assumptions");
         ImmutableList<AExpression> instantiatedAssumes =
-            exprArgs.instantiateAssumptions(t.getAssumptions(edge, this.logger, this.machineModel));
+            exprArgs.instantiateAssumptions(t.getAssumptions(edge, logger, machineModel));
 
         AutomatonState lSuccessor =
             AutomatonState.automatonStateFactory(
                 newVars,
                 t.getFollowState(),
-                state.getAutomatonCPA(),
+                state.getOwningAutomaton(),
                 instantiatedAssumes,
                 t.getCandidateInvariants(),
                 state.getMatches() + 1,
                 state.getFailedMatches(),
-                violatedProperty);
+                violatedProperty,
+                state.isTreatingErrorsAsTarget());
 
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           lSuccessors.add(lSuccessor);
@@ -304,8 +314,16 @@ class AutomatonTransferRelation implements TransferRelation {
       return lSuccessors;
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
-      AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(state.getVars(), state.getInternalState(), cpa, state.getMatches(), state.getFailedMatches() + failedMatches, null);
-      return Collections.singleton(stateNewCounters);
+      AutomatonState stateNewCounters =
+          AutomatonState.automatonStateFactory(
+              state.getVars(),
+              state.getInternalState(),
+              state.getOwningAutomaton(),
+              state.getMatches(),
+              state.getFailedMatches() + failedMatches,
+              null,
+              state.isTreatingErrorsAsTarget());
+      return ImmutableSet.of(stateNewCounters);
     }
   }
 
@@ -318,18 +336,18 @@ class AutomatonTransferRelation implements TransferRelation {
   }
 
   /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState, java.util.List, org.sosy_lab.cpachecker.cfa.model.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
+   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState, java.util.Iterable, org.sosy_lab.cpachecker.cfa.model.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
    */
   @Override
-  public Collection<? extends AbstractState> strengthen(
+  public Collection<AutomatonState> strengthen(
       AbstractState pElement,
-      List<AbstractState> pOtherElements,
+      Iterable<AbstractState> pOtherElements,
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException {
     if (pElement instanceof AutomatonUnknownState) {
       totalStrengthenTime.start();
-      Collection<AbstractState> successors =
+      Collection<AutomatonState> successors =
           strengthenAutomatonUnknownState(
               (AutomatonUnknownState) pElement, pOtherElements, pCfaEdge, pPrecision);
       totalStrengthenTime.stop();
@@ -338,7 +356,7 @@ class AutomatonTransferRelation implements TransferRelation {
     }
 
     AutomatonState state = (AutomatonState) pElement;
-    if ("WitnessAutomaton".equals(state.getOwningAutomatonName())) {
+    if (AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME.equals(state.getOwningAutomatonName())) {
       /* In case of concurrent tasks, we need to go two steps:
        * The first step is the createThread edge of the witness.
        * The second step is the enterFunction edge of the witness.
@@ -353,10 +371,10 @@ class AutomatonTransferRelation implements TransferRelation {
         }
       }
     }
-    return Collections.singleton(pElement);
+    return ImmutableSet.of(state);
   }
 
-  private Collection<? extends AbstractState> handleThreadCreationForWitnessValidation(
+  private Collection<AutomatonState> handleThreadCreationForWitnessValidation(
       CFAEdge pthreadCreateEdge,
       Precision pPrecision,
       AutomatonState state,
@@ -402,18 +420,19 @@ class AutomatonTransferRelation implements TransferRelation {
    * Strengthening might depend on the strengthening of other automaton states, so we do a
    * fixed-point iteration.
    */
-  private Collection<AbstractState> strengthenAutomatonUnknownState(
+  private Collection<AutomatonState> strengthenAutomatonUnknownState(
       AutomatonUnknownState lUnknownState,
-      List<AbstractState> pOtherElements,
+      Iterable<AbstractState> pOtherElements,
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException {
-    Set<List<AbstractState>> strengtheningCombinations = new HashSet<>();
-    strengtheningCombinations.add(pOtherElements);
+    Set<List<AbstractState>> strengtheningCombinations = new LinkedHashSet<>();
+    // need to use lists in set instead of iterable because the latter does not guarantee equals()
+    strengtheningCombinations.add(ImmutableList.copyOf(pOtherElements));
     boolean changed = from(pOtherElements).anyMatch(instanceOf(AutomatonUnknownState.class));
     while (changed) {
       changed = false;
-      Set<List<AbstractState>> newCombinations = new HashSet<>();
+      Set<List<AbstractState>> newCombinations = new LinkedHashSet<>();
       for (List<AbstractState> otherStates : strengtheningCombinations) {
         Collection<List<AbstractState>> newPartialCombinations = new ArrayList<>();
         newPartialCombinations.add(new ArrayList<>());
@@ -459,7 +478,7 @@ class AutomatonTransferRelation implements TransferRelation {
     }
 
     // For each list of other states, do the strengthening
-    Collection<AbstractState> successors = new HashSet<>();
+    Collection<AutomatonState> successors = new LinkedHashSet<>();
     for (List<AbstractState> otherStates : strengtheningCombinations) {
       successors.addAll(
           getFollowStates(

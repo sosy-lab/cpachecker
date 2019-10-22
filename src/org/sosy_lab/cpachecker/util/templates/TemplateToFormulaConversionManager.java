@@ -134,8 +134,8 @@ public class TemplateToFormulaConversionManager {
 
       // The bound obtained is larger than the highest representable
       // value, ignore it.
-      if (v.compareTo(Rational.ofBigInteger(maxValue)) == 1
-          || v.compareTo(Rational.ofBigInteger(minValue)) == -1) {
+      if (v.compareTo(Rational.ofBigInteger(maxValue)) > 0
+          || v.compareTo(Rational.ofBigInteger(minValue)) < 0) {
         return true;
       }
     }

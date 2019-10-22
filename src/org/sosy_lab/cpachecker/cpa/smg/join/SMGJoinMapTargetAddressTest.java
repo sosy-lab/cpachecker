@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import org.junit.Assert;
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -66,9 +67,9 @@ public class SMGJoinMapTargetAddressTest {
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, SMGZeroValue.INSTANCE, SMGZeroValue.INSTANCE);
-    Assert.assertEquals(origDestSMG, mta.getSMG());
-    Assert.assertEquals(origMapping1, mta.mapping1);
-    Assert.assertSame(SMGZeroValue.INSTANCE, mta.getValue());
+    assertThat(mta.getSMG()).isEqualTo(origDestSMG);
+    assertThat(mta.mapping1).isEqualTo(origMapping1);
+    assertThat(mta.getValue()).isSameInstanceAs(SMGZeroValue.INSTANCE);
   }
 
   @Test
@@ -89,9 +90,9 @@ public class SMGJoinMapTargetAddressTest {
     UnmodifiableSMG origDestSMG = destSMG.copyOf();
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, value1, value1);
-    Assert.assertEquals(origDestSMG, mta.getSMG());
-    Assert.assertEquals(origMapping1, mta.mapping1);
-    Assert.assertSame(destValue, mta.getValue());
+    assertThat(mta.getSMG()).isEqualTo(origDestSMG);
+    assertThat(mta.mapping1).isEqualTo(origMapping1);
+    assertThat(mta.getValue()).isSameInstanceAs(destValue);
   }
 
   @Test
@@ -109,17 +110,17 @@ public class SMGJoinMapTargetAddressTest {
     UnmodifiableSMG origDestSMG = destSMG.copyOf();
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping2, value1, value2);
-    Assert.assertNotEquals(origDestSMG, mta.getSMG());
-    Assert.assertNotEquals(origMapping1, mta.mapping1);
-    Assert.assertNotEquals(origMapping2, mta.mapping2);
+    assertThat(mta.getSMG()).isNotEqualTo(origDestSMG);
+    assertThat(mta.mapping1).isNotEqualTo(origMapping1);
+    assertThat(mta.mapping2).isNotEqualTo(origMapping2);
 
-    Assert.assertFalse(origDestSMG.getValues().contains(mta.getValue()));
+    assertThat(origDestSMG.getValues().contains(mta.getValue())).isFalse();
 
     SMGEdgePointsTo newEdge = destSMG.getPointer(mta.getValue());
-    Assert.assertSame(destObj, newEdge.getObject());
-    Assert.assertEquals(0, newEdge.getOffset());
+    assertThat(newEdge.getObject()).isSameInstanceAs(destObj);
+    assertThat(newEdge.getOffset()).isEqualTo(0);
 
-    Assert.assertSame(mta.getValue(), mta.mapping1.get(value1));
-    Assert.assertSame(mta.getValue(), mta.mapping2.get(value2));
+    assertThat(mta.mapping1.get(value1)).isSameInstanceAs(mta.getValue());
+    assertThat(mta.mapping2.get(value2)).isSameInstanceAs(mta.getValue());
   }
 }

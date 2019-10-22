@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-
 public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
@@ -83,6 +82,6 @@ public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
     if (state.getValidVariables() == validVariables) {
       return Collections.singleton(state);
     }
-    return Collections.singleton(new ValidVarsState(validVariables));
+    return ImmutableSet.of(new ValidVarsState(validVariables));
   }
 }

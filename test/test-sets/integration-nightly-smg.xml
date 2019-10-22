@@ -9,9 +9,29 @@
     <option name="-smg"/>
   </rundefinition>
 
+  <!--
+    We collect error- and proof-witness files for further steps in our BuildBot.
+    Currently we expect the following compressed witness files from a complete benchmark set:
+    - induction:    170M
+    - predicate:    600M
+    - value:        600M
+    - smg:           10M
+    - termination:  170M
+    - sv-comp18/19: 230M
+    CPAchecker can compress and handle compressed witnesses automatically.
+    Please disable compression for real SVComp benchmarks!
+  -->
+  <resultfiles>**.graphml*</resultfiles>
+  <option name="-setprop">cpa.arg.compressWitness=true</option>
+  <option name="-setprop">counterexample.export.compressWitness=true</option>
+  <option name="-setprop">counterexample.export.graphml=witness.graphml</option>
+  <option name="-setprop">cpa.arg.proofWitness=witness.graphml</option>
+  <option name="-setprop">termination.violation.witness=witness.graphml</option>
+
   <tasks name="MemSafety-Arrays">
     <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="Systems_BusyBox_MemSafety">
     <includesfile>../programs/benchmarks/Systems_BusyBox_MemSafety.set</includesfile>
@@ -21,18 +41,22 @@
   <tasks name="MemSafety-Heap">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="MemSafety-LinkedLists">
     <includesfile>../programs/benchmarks/MemSafety-LinkedLists.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="MemSafety-Other">
     <includesfile>../programs/benchmarks/MemSafety-Other.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <option name="-32"/>
   </tasks>
   <tasks name="MemSafety-MemCleanup">
     <includesfile>../programs/benchmarks/MemSafety-MemCleanup.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
     <option name="-setprop">memorycleanup.config=config/svcomp19--memorycleanup.properties</option>
+    <option name="-32"/>
   </tasks>
 </benchmark>

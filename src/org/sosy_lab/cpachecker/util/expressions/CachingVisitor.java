@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
-import com.google.common.collect.Maps;
+import java.util.HashMap;
 import java.util.Map;
-
 
 public abstract class CachingVisitor<LeafType, T, E extends Throwable> extends DefaultExpressionTreeVisitor<LeafType, T, E> {
 
-  private final Map<ExpressionTree<LeafType>, T> memo = Maps.newHashMap();
+  private final Map<ExpressionTree<LeafType>, T> memo = new HashMap<>();
 
   @Override
   protected T visitDefault(ExpressionTree<LeafType> pExpressionTree) throws E {

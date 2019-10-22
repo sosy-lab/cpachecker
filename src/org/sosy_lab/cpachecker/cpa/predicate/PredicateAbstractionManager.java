@@ -29,7 +29,6 @@ import static com.google.common.base.Predicates.equalTo;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -45,11 +44,13 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -583,9 +584,11 @@ public class PredicateAbstractionManager {
           this.abstractionReuseDisabledBecauseOfAmbiguity = true;
           tryReuseBasedOnPredecessors.clear();
           continue;
+        } else if (candidateAbstractions.isEmpty()) {
+          continue;
         }
 
-        Set<Integer> reuseIds = Sets.newTreeSet();
+        Set<Integer> reuseIds = new TreeSet<>();
         BooleanFormula reuseFormula = bfmgr.makeTrue();
         for (AbstractionNode an : candidateAbstractions) {
           reuseFormula = bfmgr.and(reuseFormula, an.getFormula());
@@ -1221,7 +1224,7 @@ public class PredicateAbstractionManager {
     return new AbstractionFormula(fmgr, region, formula, instantiatedFormula, a1.getBlockFormula(), noAbstractionReuse);
   }
 
-  private AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula)
+  AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula)
       throws InterruptedException {
     BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);
     BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(symbolicAbs, ssaMap);
@@ -1234,51 +1237,6 @@ public class PredicateAbstractionManager {
     return new AbstractionFormula(fmgr, abs, symbolicAbs, instantiatedSymbolicAbs, blockFormula, noAbstractionReuse);
   }
 
-  // reduce & expand of AbstractionFormulas
-
-  /**
-   * Remove a set of predicates from an abstraction.
-   * @param oldAbstraction The abstraction to start from.
-   * @param removePredicates The predicate to remove.
-   * @param ssaMap The SSAMap to use for instantiating the new abstraction.
-   * @return A new abstraction similar to the old one without the predicates.
-   */
-  public AbstractionFormula reduce(AbstractionFormula oldAbstraction,
-      Collection<AbstractionPredicate> removePredicates, SSAMap ssaMap)
-      throws InterruptedException {
-    RegionCreator rManager = amgr.getRegionCreator();
-
-    Region newRegion = oldAbstraction.asRegion();
-    for (AbstractionPredicate predicate : removePredicates) {
-      newRegion = rManager.makeExists(newRegion, predicate.getAbstractVariable());
-    }
-
-    return makeAbstractionFormula(newRegion, ssaMap, oldAbstraction.getBlockFormula());
-  }
-
-  /**
-   * Extend an abstraction by a set of predicates.
-   * @param reducedAbstraction The abstraction to extend.
-   * @param sourceAbstraction The abstraction where to take the predicates from.
-   * @param relevantPredicates The predicates to add.
-   * @param newSSA The SSAMap to use for instantiating the new abstraction.
-   * @param blockFormula block formula of reduced abstraction state
-   * @return A new abstraction similar to the old one with some more predicates.
-   */
-  public AbstractionFormula expand(Region reducedAbstraction, Region sourceAbstraction,
-      Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA, PathFormula blockFormula)
-      throws InterruptedException {
-    RegionCreator rManager = amgr.getRegionCreator();
-
-    for (AbstractionPredicate predicate : relevantPredicates) {
-      sourceAbstraction = rManager.makeExists(sourceAbstraction, predicate.getAbstractVariable());
-    }
-
-    Region expandedRegion = rManager.makeAnd(reducedAbstraction, sourceAbstraction);
-
-    return makeAbstractionFormula(expandedRegion, newSSA, blockFormula);
-  }
-
   // Creating AbstractionPredicates
 
   /**
@@ -1289,14 +1247,14 @@ public class PredicateAbstractionManager {
    * @param pFormula The formula with the atoms (with SSA indices).
    * @return A (possibly empty) collection of AbstractionPredicates without duplicates.
    */
-  public Collection<AbstractionPredicate> getPredicatesForAtomsOf(BooleanFormula pFormula) {
+  public Set<AbstractionPredicate> getPredicatesForAtomsOf(BooleanFormula pFormula) {
     if (bfmgr.isFalse(pFormula)) {
-      return ImmutableList.of(amgr.makeFalsePredicate());
+      return ImmutableSet.of(amgr.makeFalsePredicate());
     }
 
     Set<BooleanFormula> atoms = fmgr.extractAtoms(pFormula, splitItpAtoms);
 
-    List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
+    Set<AbstractionPredicate> preds = new LinkedHashSet<>(atoms.size());
 
     for (BooleanFormula atom : atoms) {
       preds.add(amgr.makePredicate(fmgr.uninstantiate(atom)));

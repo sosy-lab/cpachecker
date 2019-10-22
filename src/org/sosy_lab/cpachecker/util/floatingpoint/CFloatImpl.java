@@ -177,15 +177,14 @@ public class CFloatImpl extends CFloat {
     } else {
       List<String> parts = Splitter.on('.').splitToList(pRep);
       boolean negative = pRep.startsWith("-");
-      CFloat nOne = new CFloatImpl("-1", pType);
 
       CFloat integral = null;
       CFloat fractional = null;
 
-      if (!parts.get(0).equals("")) {
+      if (!parts.get(0).isEmpty()) {
         integral = makeIntegralPart(parts.get(0), pType);
       }
-      if (parts.size() > 1 && !parts.get(1).equals("")) {
+      if (parts.size() > 1 && !parts.get(1).isEmpty()) {
         fractional = makeFractionalPart(parts.get(1), pType);
       }
 
@@ -199,6 +198,7 @@ public class CFloatImpl extends CFloat {
       }
 
       if (negative) {
+        CFloat nOne = new CFloatImpl("-1", pType);
         result = result.multiply(nOne);
       }
 
@@ -521,7 +521,7 @@ public class CFloatImpl extends CFloat {
     }
 
     long rExp = 0;
-    long rMan = 0;
+
 
     // extract bit representations for operation
     long tExp = tSummand.getExponent() & tSummand.getExponentMask();
@@ -624,7 +624,7 @@ public class CFloatImpl extends CFloat {
         }
       }
     }
-    rMan = tMan + oMan;
+    long rMan = tMan + oMan;
 
     switch (tSummand.getType()) {
       case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
@@ -1588,7 +1588,7 @@ public class CFloatImpl extends CFloat {
   }
 
   private int[] getDecimalArray(final long pExp, final long pMan) {
-    int[] result = null;
+
     int[] fracArray = CFloatUtil.getDecimalArray(type, pMan & 1);
     for (int i = 1; i < getMantissaLength(); i++) {
       fracArray = decimalAdd(fracArray, CFloatUtil.getDecimalArray(type, pMan & (1L << i)));
@@ -1619,20 +1619,26 @@ public class CFloatImpl extends CFloat {
       }
     } else {
       for (int i = 0; i < -exp; i++) {
-        if (integralArray.length > 1 || integralArray[integralArray.length - 1] > 0) {
-          if (integralArray[integralArray.length - 1] % 2 != 0) {
-            integralArray = copyAllButFirstCell(integralArray);
-          }
-        }
         int last = fracArray[fracArray.length - 1];
         decimalHalf(fracArray);
         if (last % 2 != 0) {
           fracArray = Arrays.copyOf(fracArray, fracArray.length + 1);
           fracArray[fracArray.length - 1] = 5;
         }
+        assert integralArray.length == 1 && integralArray[0] <= 1
+            : "Exponent <= 0, but integral of mantissa larger than 1 - shouldn't be possible in IEEE 754";
+        if (integralArray[0] == 1) {
+          integralArray = copyAllButFirstCell(integralArray);
+          int[] oneHalf = new int[fracArray.length];
+          oneHalf[0] = 5;
+          int startLength = fracArray.length;
+          fracArray = decimalAdd(fracArray, oneHalf);
+          assert startLength == fracArray.length
+              : "overflow on (frac * 0.5 + 0.5) - shouldn't happen.";
+        }
       }
     }
-    result = new int[integralArray.length + fracArray.length + 1];
+    int[] result = new int[integralArray.length + fracArray.length + 1];
     for (int i = 0; i < result.length; i++) {
       if (i < integralArray.length) {
         result[i] = integralArray[i];

@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -31,38 +34,34 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
-
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Scanner;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.DummyParser;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
-import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.Language;
-
-
-import com.google.common.base.Throwables;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 
 parser code {:
   private LogManager logger;
@@ -70,8 +69,8 @@ parser code {:
   private MachineModel machineModel;
   private Scope scope;
 
-  // this int is used to determine unique names for anonymous automata
-  private static int anonymousCounter;
+  // this is used to determine unique names for anonymous automata
+  private static final UniqueIdGenerator anonymousCounter = new UniqueIdGenerator();
 
   AutomatonParser(
       Scanner scanner,
@@ -97,42 +96,61 @@ parser code {:
 
   @Override
   public void report_error(String message, Object info) {
-    String errorString = message;
     if (info != null) {
-      errorString += " near " + info;
+      logger.log(Level.WARNING, message, "near", info);
+    } else {
+      logger.log(Level.WARNING, message);
     }
-    logger.log(Level.WARNING, errorString);
   }
 
   Automaton generateSkeletonForAssertion(AutomatonBoolExpr pA) throws InvalidAutomatonException {
-    AutomatonTransition trans = new AutomatonTransition(
-        AutomatonBoolExpr.TRUE, 
-        Collections.singletonList(pA),
-        Collections.emptyList(),
-        Collections.<AutomatonAction>emptyList(),
+    AutomatonTransition trans =
+        new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, "OK").withAssertion(pA).build();
+    AutomatonInternalState okState = new AutomatonInternalState("OK", ImmutableList.of(trans));
+    return new Automaton(
+        "AnonymousAutomaton" + anonymousCounter.getFreshId(),
+        ImmutableMap.of(),
+        ImmutableList.of(okState),
         "OK");
-    AutomatonInternalState okState = new AutomatonInternalState("OK", 
-        Collections.singletonList(trans));
-    Automaton ret = new Automaton("AnonymousAutomaton" + anonymousCounter++,
-                                  Collections.<String, AutomatonVariable>emptyMap(), 
-                                  Collections.singletonList(okState), "OK");
-    return ret;
   }
 
-  /**
-  * Parses a Specification File and returns the Automata found in the file.
-  */
-  public static List<Automaton> parseAutomatonFile(Path pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope, Language pLanguage) throws InvalidConfigurationException {
+  /** Parses a Specification File and returns the Automata found in the file. */
+  public static List<Automaton> parseAutomatonFile(
+      Path pInputFile,
+      Configuration config,
+      LogManager pLogger,
+      MachineModel pMachine,
+      Scope scope,
+      Language pLanguage,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
 
     try (InputStream inputStream = Files.newInputStream(pInputFile);
-         InputStream gzipInputStream = new GZIPInputStream(inputStream);
-         InputStreamReader unzippedInput = new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8)
-    ) {
-      return parseAutomaton(unzippedInput, Optional.of(pInputFile), config, pLogger, pMachine, scope, pLanguage);
+        InputStream gzipInputStream = new GZIPInputStream(inputStream);
+        InputStreamReader unzippedInput =
+            new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8)) {
+      return parseAutomaton(
+          unzippedInput,
+          Optional.of(pInputFile),
+          config,
+          pLogger,
+          pMachine,
+          scope,
+          pLanguage,
+          pShutdownNotifier);
 
     } catch (IOException e) {
+      // Fallback if file is not compressed
       try (Reader input = Files.newBufferedReader(pInputFile, StandardCharsets.UTF_8)) {
-        return parseAutomaton(input, Optional.of(pInputFile), config, pLogger, pMachine, scope, pLanguage);
+        return parseAutomaton(
+            input,
+            Optional.of(pInputFile),
+            config,
+            pLogger,
+            pMachine,
+            scope,
+            pLanguage,
+            pShutdownNotifier);
 
       } catch (IOException e2) {
         throw new InvalidConfigurationException(
@@ -141,34 +159,43 @@ parser code {:
     }
   }
 
-  /**
-  * Parses a Specification File and returns the Automata found in the file.
-  */
-  public static List<Automaton> parseAutomaton(Reader reader, Optional<Path> pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope, Language pLanguage) throws InvalidConfigurationException {
-    ComplexSymbolFactory sf = new ComplexSymbolFactory();
-    Scanner scanner = new AutomatonScanner(reader, pInputFile.orElse(Paths.get("")), pLogger, sf);
+  /** Parses a Specification File and returns the Automata found in the file. */
+  public static List<Automaton> parseAutomaton(
+      Reader reader,
+      Optional<Path> pInputFile,
+      Configuration config,
+      LogManager pLogger,
+      MachineModel pMachine,
+      Scope scope,
+      Language pLanguage,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+    final ComplexSymbolFactory sf = new ComplexSymbolFactory();
+    final Scanner scanner =
+        new AutomatonScanner(reader, pInputFile.orElse(Paths.get("")), pLogger, sf);
 
-    AutomatonParser automatonParser;
-
+    final AutomatonParser automatonParser;
     switch (pLanguage) {
-    case C:
-      CParser cparser = CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(config), pMachine);
-      automatonParser = new AutomatonParser(scanner, sf, pLogger, cparser, pMachine, scope);
-      break;
-    default:
-      automatonParser = new AutomatonParser(scanner, sf, pLogger);
+      case C:
+        CParser cparser =
+            CParser.Factory.getParser(
+                pLogger, CParser.Factory.getOptions(config), pMachine, pShutdownNotifier);
+        automatonParser = new AutomatonParser(scanner, sf, pLogger, cparser, pMachine, scope);
+        break;
+      default:
+        automatonParser = new AutomatonParser(scanner, sf, pLogger);
     }
 
-    Symbol symbol;
     try {
-      symbol = automatonParser.parse();
+      return (List<Automaton>) automatonParser.parse().value;
     } catch (Exception e) {
       Throwables.propagateIfPossible(e, InvalidConfigurationException.class);
-      throw new InvalidConfigurationException("Could not load automaton from file "
-            + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")", e);
+      throw new InvalidConfigurationException(
+          String.format(
+              "Could not load automaton from file (%s)",
+              e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()),
+          e);
     }
-
-    return ((List<Automaton>) symbol.value);
   }
 :};
 
@@ -277,15 +304,37 @@ Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :
             ;
 
 Transition   ::= Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts GOTO IDENTIFIER:follow SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, follow.toString()); :}
+              {: RESULT = new AutomatonTransition.Builder(trigger, follow.toString())
+                  	.withAssertions(ass)
+                  	.withAssumptions(a)
+                  	.withActions(acts)
+                  	.build(); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.ERROR, new AutomatonExpression.StringExpression("")); :}
+              {: RESULT = new AutomatonTransition.Builder(trigger, AutomatonInternalState.ERROR)
+                  	.withAssertions(ass)
+                  	.withAssumptions(a)
+                  	.withActions(acts)
+                  	.withViolatedPropertyDescription(new AutomatonExpression.StringExpression(""))
+                  	.build(); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR OPEN_BRACKETS STRING_LITERAL:property CLOSE_BRACKETS SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.ERROR, new AutomatonExpression.StringExpression(property.toString())); :}
+              {: RESULT = new AutomatonTransition.Builder(trigger, AutomatonInternalState.ERROR)
+                  	.withAssertions(ass)
+                  	.withAssumptions(a)
+                  	.withActions(acts)
+                  	.withViolatedPropertyDescription(new AutomatonExpression.StringExpression(property.toString()))
+                  	.build(); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts STOP SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.BOTTOM, null); :}
+              {: RESULT = new AutomatonTransition.Builder(trigger, AutomatonInternalState.BOTTOM)
+                  	.withAssertions(ass)
+                  	.withAssumptions(a)
+                  	.withActions(acts)
+                  	.build(); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts BREAK SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.BREAK, null); :}
+              {: RESULT = new AutomatonTransition.Builder(trigger, AutomatonInternalState.BREAK)
+                  	.withAssertions(ass)
+                  	.withAssumptions(a)
+                  	.withActions(acts)
+                  	.build(); :}
               ;
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}

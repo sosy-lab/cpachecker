@@ -30,6 +30,7 @@ import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.MODULO;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -85,7 +86,7 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
     private DivAndModTransformation(FormulaManagerView pFmgrView, FormulaManager pFmgr) {
       fmgrView = pFmgrView;
       fmgr = pFmgr;
-      additionalAxioms = Lists.newArrayList();
+      additionalAxioms = new ArrayList<>();
     }
 
     public Collection<BooleanFormula> getAdditionalAxioms() {

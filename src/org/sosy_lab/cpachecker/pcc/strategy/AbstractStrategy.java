@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.InputStream;
@@ -200,7 +203,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   public Triple<InputStream, ZipInputStream, ObjectInputStream> openAdditionalProofStream(final int index)
       throws IOException {
-    if (index < 0) { throw new IllegalArgumentException("Not a valid index. Indices must be at least zero."); }
+    checkArgument(index >= 0, "Not a valid index. Indices must be at least zero.");
     InputStream fis = Files.newInputStream(proofFile);
     ZipInputStream zis = new ZipInputStream(fis);
     ZipEntry entry = null;
@@ -228,7 +231,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     if (proofInfo != null) {
       return Collections.singleton(proofInfo);
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   public static class PCStrategyStatistics implements Statistics {

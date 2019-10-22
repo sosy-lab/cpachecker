@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
@@ -59,7 +60,7 @@ public class BAMTransferRelationWithBreakOnMissingBlock
       final AbstractState pState, final Precision pPrecision)
       throws CPATransferException, InterruptedException {
     if (pState instanceof MissingBlockAbstractionState) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     return super.getAbstractSuccessors(pState, pPrecision);
   }

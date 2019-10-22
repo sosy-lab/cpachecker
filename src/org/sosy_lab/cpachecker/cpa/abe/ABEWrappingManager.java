@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.abe;
 import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -148,9 +147,7 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
   }
 
   public Optional<? extends AbstractState> strengthen(
-      ABEState<A> pState,
-      P pPrecision,
-      List<AbstractState> pOtherStates) {
+      ABEState<A> pState, P pPrecision, Iterable<AbstractState> pOtherStates) {
     if (!pState.isAbstract()) {
       return Optional.of(pState);
     }

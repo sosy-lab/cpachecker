@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -35,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
 
 public class InfeasiblePrefix {
 
@@ -83,9 +84,7 @@ public class InfeasiblePrefix {
     List<Set<String>> simpleInterpolantSequence = new ArrayList<>();
     for (ValueAnalysisInterpolant itp : pInterpolantSequence) {
       simpleInterpolantSequence.add(
-          FluentIterable.from(itp.getMemoryLocations())
-              .transform(MemoryLocation::getAsSimpleString)
-              .toSet());
+          transformedImmutableSetCopy(itp.getMemoryLocations(), MemoryLocation::getAsSimpleString));
     }
 
     return new InfeasiblePrefix(pInfeasiblePrefix, simpleInterpolantSequence);

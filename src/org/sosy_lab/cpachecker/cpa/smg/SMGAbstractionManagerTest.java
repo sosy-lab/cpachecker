@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.Iterables;
 import java.util.Set;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,7 +60,12 @@ public class SMGAbstractionManagerTest {
       if (next != null) {
         SMGValue address = SMGKnownSymValue.of();
         SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
-        hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, node, address);
+        hv =
+            new SMGEdgeHasValue(
+                smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
+                64,
+                node,
+                address);
         smg.addValue(address);
         smg.addPointsToEdge(pt);
       } else {
@@ -70,7 +76,12 @@ public class SMGAbstractionManagerTest {
     }
 
     SMGValue address = SMGKnownSymValue.of();
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, globalVar, address);
+    SMGEdgeHasValue hv =
+        new SMGEdgeHasValue(
+            smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
+            64,
+            globalVar,
+            address);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
     smg.addGlobalObject(globalVar);
     smg.addValue(address);
@@ -86,10 +97,10 @@ public class SMGAbstractionManagerTest {
 
     SMGRegion globalVar = smg.getObjectForVisibleVariable("pointer");
     Set<SMGEdgeHasValue> hvs = smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalVar));
-    Assert.assertEquals(1, hvs.size());
+    assertThat(hvs).hasSize(1);
     SMGEdgeHasValue hv = Iterables.getOnlyElement(hvs);
     SMGEdgePointsTo pt = smg.getPointer(hv.getValue());
     SMGObject segment = pt.getObject();
-    Assert.assertTrue(segment.isAbstract());
+    assertThat(segment.isAbstract()).isTrue();
   }
 }

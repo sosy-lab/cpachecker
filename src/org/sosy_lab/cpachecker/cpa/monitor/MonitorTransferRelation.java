@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.monitor;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -99,7 +100,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
     if (element.getWrappedState() == TimeoutState.INSTANCE) {
       // cannot compute a successor
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     totalTimeOfTransfer.start();
@@ -156,7 +157,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
     //     return if there are no successors
     if (successors.isEmpty()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     // check for violation of limits
@@ -175,9 +176,12 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pElement,
-      final List<AbstractState> otherElements, final CFAEdge cfaEdge,
-      final Precision precision) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pElement,
+      final Iterable<AbstractState> otherElements,
+      final CFAEdge cfaEdge,
+      final Precision precision)
+      throws CPATransferException, InterruptedException {
     final MonitorState element = (MonitorState)pElement;
 
     if (element.getWrappedState() == TimeoutState.INSTANCE) {
@@ -243,7 +247,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
     // return if there are no successors
     if (successors.isEmpty()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     // no need to update path length information here

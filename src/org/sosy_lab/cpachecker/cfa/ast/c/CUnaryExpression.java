@@ -59,7 +59,7 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
 
   @Override
   public String toASTString(boolean pQualified) {
-    if (getOperator() == UnaryOperator.SIZEOF) {
+    if (getOperator() == UnaryOperator.SIZEOF || getOperator() == UnaryOperator.ALIGNOF) {
       return getOperator().getOperator() + "(" + getOperand().toASTString(pQualified) + ")";
     } else {
       return getOperator().getOperator() + getOperand().toParenthesizedASTString(pQualified);

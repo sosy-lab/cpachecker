@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -129,7 +129,7 @@ public class VerificationTaskMetaData {
       assert witnessAutomatonFiles == null;
       ImmutableList.Builder<Path> nonWitnessAutomatonFilesBuilder = ImmutableList.builder();
       ImmutableList.Builder<Path> witnessAutomatonFilesBuilder = ImmutableList.builder();
-      Set<Path> specs = from(specification.getSpecFiles()).transform(Path::normalize).toSet();
+      Set<Path> specs = transformedImmutableSetCopy(specification.getSpecFiles(), Path::normalize);
       for (Path path : specs) {
         if (AutomatonGraphmlParser.isGraphmlAutomaton(path)) {
           witnessAutomatonFilesBuilder.add(path);

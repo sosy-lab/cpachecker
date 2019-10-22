@@ -49,7 +49,7 @@ public class CompositePrecision implements WrapperPrecision, AdjustablePrecision
   public boolean equals(Object other) {
     if (other == this) {
       return true;
-    } else if (other == null || !(other instanceof CompositePrecision)) {
+    } else if (!(other instanceof CompositePrecision)) {
       return false;
     }
 

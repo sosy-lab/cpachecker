@@ -75,7 +75,7 @@ public class PredicatePartitionFrequency extends PredicatePartition {
 
   @Override
   public List<AbstractionPredicate> getPredicates() {
-    if (predicatesSortedByVarFrequency.size() != 0) {
+    if (!predicatesSortedByVarFrequency.isEmpty()) {
       while (!predicatesSortedByVarFrequency.isEmpty()) {
         predicates.add(predicatesSortedByVarFrequency.poll());
       }

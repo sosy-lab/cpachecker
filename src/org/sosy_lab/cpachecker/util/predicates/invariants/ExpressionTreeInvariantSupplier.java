@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -49,7 +48,7 @@ public class ExpressionTreeInvariantSupplier implements ExpressionTreeSupplier {
   private final AggregatedReachedSets aggregatedReached;
   private final CFA cfa;
 
-  private Set<UnmodifiableReachedSet> lastUsedReachedSets = Collections.emptySet();
+  private Set<UnmodifiableReachedSet> lastUsedReachedSets = ImmutableSet.of();
   private ExpressionTreeSupplier lastInvariantSupplier = TrivialInvariantSupplier.INSTANCE;
 
   private final Map<UnmodifiableReachedSet, ExpressionTreeSupplier> singleInvariantSuppliers =

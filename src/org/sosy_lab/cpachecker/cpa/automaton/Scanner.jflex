@@ -2,19 +2,19 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java_cup.runtime.*;
 import java_cup.runtime.ComplexSymbolFactory.Location;
-import org.sosy_lab.common.io.IO;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import org.sosy_lab.common.log.LogManager;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.logging.Level;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.log.LogManager;
 
 @javax.annotation.Generated("JFlex")
 @SuppressWarnings(value = { "all", "cast", "FallThrough" })
@@ -43,13 +43,16 @@ import java.util.logging.Level;
   private Path getFile(String pYytext) throws FileNotFoundException {
     assert pYytext.startsWith("#include ");
     String fileName = pYytext.replaceFirst("#include ", "").trim();
-    
+
     Path file = Paths.get(fileName);
     Path currentFile = filesStack.peek();
     file = currentFile.resolveSibling(file);
 
     if (scannedFiles.contains(file)) {
-      logger.log(Level.WARNING, "File \"" + file + "\" was referenced multiple times. Redundant or cyclic references were ignored.");
+      logger.logf(
+          Level.WARNING,
+          "File \"%s\" was referenced multiple times. Redundant or cyclic references were ignored.",
+          file);
       return null;
     }
 

@@ -33,6 +33,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -213,7 +214,10 @@ public class CTypeToStringTest {
   public static void setupParser() {
     parser =
         Parsers.getCParser(
-            LogManager.createTestLogManager(), new EclipseCParserOptions(), MachineModel.LINUX32);
+            LogManager.createTestLogManager(),
+            new EclipseCParserOptions(),
+            MachineModel.LINUX32,
+            ShutdownNotifier.createDummy());
   }
 
   @Test
@@ -222,7 +226,7 @@ public class CTypeToStringTest {
   }
 
   @Test
-  public void testParse() throws CParserException {
+  public void testParse() throws CParserException, InterruptedException {
     CType parsed =
         (CType)
             parser

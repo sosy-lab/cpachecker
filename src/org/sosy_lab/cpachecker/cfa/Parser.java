@@ -54,7 +54,8 @@ public interface Parser {
    * @return The CFA.
    * @throws ParserException If parser or CFA builder cannot handle the code.
    */
-  ParseResult parseString(String filename, String code) throws ParserException;
+  ParseResult parseString(String filename, String code)
+      throws ParserException, InterruptedException;
 
   /**
    * Return a timer that measured the time needed for parsing.

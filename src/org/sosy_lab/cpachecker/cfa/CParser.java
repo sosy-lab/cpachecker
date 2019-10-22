@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
 import java.util.List;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -80,7 +81,8 @@ public interface CParser extends Parser {
    * @throws CParserException If parser or CFA builder cannot handle the code.
    */
   @Override
-  default ParseResult parseString(String filename, String code) throws CParserException {
+  default ParseResult parseString(String filename, String code)
+      throws CParserException, InterruptedException {
     return parseString(filename, code, new CSourceOriginMapping(), CProgramScope.empty());
   }
 
@@ -97,21 +99,6 @@ public interface CParser extends Parser {
       throws CParserException, IOException, InterruptedException;
 
   /**
-   * Parse the content of files into a single CFA.
-   *
-   * @param filenames  The List of files to parse. The first part of the pair
-   *                   should be the filename, the second part should be the
-   *                   prefix which will be appended to static variables
-   * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
-   * @return The CFA.
-   * @throws IOException If file cannot be read.
-   * @throws InterruptedException If an exception occurs while a thread is interrupted.
-   * @throws CParserException If parser or CFA builder cannot handle the C code.
-   */
-  ParseResult parseFile(List<FileToParse> filenames, CSourceOriginMapping sourceOriginMapping)
-      throws CParserException, IOException, InvalidConfigurationException, InterruptedException;
-
-  /**
    * Parse the content of Strings into a single CFA.
    *
    * @param code The List of code fragments to parse. The first part of the pair should be the code,
@@ -122,7 +109,7 @@ public interface CParser extends Parser {
    * @throws CParserException If parser or CFA builder cannot handle the C code.
    */
   ParseResult parseString(List<FileContentToParse> code, CSourceOriginMapping sourceOriginMapping)
-      throws CParserException;
+      throws CParserException, InterruptedException;
 
   /**
    * Parse the content of a String into a CFA.
@@ -137,7 +124,7 @@ public interface CParser extends Parser {
    */
   ParseResult parseString(
       String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
-      throws CParserException;
+      throws CParserException, InterruptedException;
 
   /**
    * Method for parsing a string that contains exactly one function with exactly one statement. Only
@@ -156,7 +143,8 @@ public interface CParser extends Parser {
    * @return The AST for the statement.
    * @throws CParserException If parsing fails.
    */
-  CAstNode parseSingleStatement(String code, Scope scope) throws CParserException;
+  CAstNode parseSingleStatement(String code, Scope scope)
+      throws CParserException, InterruptedException;
 
   /**
    * Method for parsing a block of statements that contains exactly one function with exactly one
@@ -177,7 +165,8 @@ public interface CParser extends Parser {
    * @return The list of ASTs for the statement.
    * @throws CParserException If parsing fails.
    */
-  List<CAstNode> parseStatements(String code, Scope scope) throws CParserException;
+  List<CAstNode> parseStatements(String code, Scope scope)
+      throws CParserException, InterruptedException;
 
   /** Enum for clients of this class to choose the C dialect the parser uses. */
   enum Dialect {
@@ -213,8 +202,11 @@ public interface CParser extends Parser {
     }
 
     public static CParser getParser(
-        LogManager logger, ParserOptions options, MachineModel machine) {
-      return Parsers.getCParser(logger, (EclipseCParserOptions) options, machine);
+        LogManager logger,
+        ParserOptions options,
+        MachineModel machine,
+        ShutdownNotifier shutdownNotifier) {
+      return Parsers.getCParser(logger, (EclipseCParserOptions) options, machine, shutdownNotifier);
     }
   }
 }

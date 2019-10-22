@@ -30,8 +30,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
 import com.google.common.io.MoreFiles;
@@ -45,13 +45,14 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import org.junit.Test;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
@@ -82,7 +83,9 @@ public class AutomatonInternalTest {
     logger = LogManager.createTestLogManager();
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
-    parser = CParser.Factory.getParser(logger, options, MachineModel.LINUX32);
+    parser =
+        CParser.Factory.getParser(
+            logger, options, MachineModel.LINUX32, ShutdownNotifier.createDummy());
   }
 
   @Test
@@ -118,60 +121,60 @@ public class AutomatonInternalTest {
   public void testAndOr() throws CPATransferException {
     // will always return MaybeBoolean.MAYBE
     AutomatonBoolExpr cannot = new AutomatonBoolExpr.CPAQuery("none", "none");
-    Map<String, AutomatonVariable> vars = Collections.emptyMap();
-    List<AbstractState> elements = Collections.emptyList();
+    Map<String, AutomatonVariable> vars = ImmutableMap.of();
+    List<AbstractState> elements = ImmutableList.of();
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, vars, elements, null, null);
     AutomatonBoolExpr ex;
     AutomatonBoolExpr myTrue= AutomatonBoolExpr.TRUE;
     AutomatonBoolExpr myFalse= AutomatonBoolExpr.FALSE;
 
     ex = new AutomatonBoolExpr.And(myTrue, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.And(myTrue, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(myTrue, cannot);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.And(myFalse, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(myFalse, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(myFalse, cannot);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(cannot, myTrue);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.And(cannot, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.And(cannot, cannot);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myTrue, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myTrue, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myTrue, cannot);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myFalse, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myFalse, myFalse);
-    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+    assertThat(ex.eval(args).getValue()).isFalse();
 
     ex = new AutomatonBoolExpr.Or(myFalse, cannot);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(cannot, myTrue);
-    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+    assertThat(ex.eval(args).getValue()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(cannot, myFalse);
     assertThat(ex.eval(args).canNotEvaluate()).isTrue();
@@ -194,7 +197,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testJokerReplacementInAST() {
+  public void testJokerReplacementInAST() throws InterruptedException {
     // tests the replacement of Joker expressions in the AST comparison
     final String pattern = "$20 = $5($1, $?);";
     final String source = "var1 = function(var2, egal);";
@@ -225,7 +228,7 @@ public class AutomatonInternalTest {
   @Test
   public void automataVariableReplacement() {
     LogManager mockLogger = mock(LogManager.class);
-    Map<String, AutomatonVariable> automatonVariables = Maps.newHashMap();
+    Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
     AutomatonVariable intVar1 = AutomatonVariable.createAutomatonVariable("int", "intVar1");
     AutomatonVariable intVar2 = AutomatonVariable.createAutomatonVariable("Integer", "intVar2");
     ((AutomatonIntVariable) intVar2).setValue(10);
@@ -281,7 +284,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testASTcomparison() {
+  public void testASTcomparison() throws InterruptedException {
     assert_().about(astMatcher).that("x= $?;").matches("x=5;");
     assert_().about(astMatcher).that("x= 10;").doesNotMatch("x=5;");
     assert_().about(astMatcher).that("$? =10;").doesNotMatch("x=5;");
@@ -308,7 +311,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testAstMatcherFunctionParameters() {
+  public void testAstMatcherFunctionParameters() throws InterruptedException {
     assert_().about(astMatcher).that("f();").matches("f();");
     assert_().about(astMatcher).that("f();").doesNotMatch("f(x);");
     assert_().about(astMatcher).that("f();").doesNotMatch("f(x, y);");
@@ -327,7 +330,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testAstMatcherFunctionCall() {
+  public void testAstMatcherFunctionCall() throws InterruptedException {
     assert_().about(astMatcher).that("$?();").matches("f();");
     assert_().about(astMatcher).that("$?();").doesNotMatch("x = f();");
     assert_().about(astMatcher).that("$1();").matches("f();").andVariable(1).isEqualTo("f");
@@ -356,19 +359,21 @@ public class AutomatonInternalTest {
       };
 
   /**
-   * {@link Subject} subclass for testing ASTMatchers with Truth
-   * (allows to use assert_().about(astMatcher).that("ast pattern").matches(...)).
+   * {@link Subject} subclass for testing ASTMatchers with Truth (allows to use
+   * assert_().about(astMatcher).that("ast pattern").matches(...)).
    */
   @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
-  private class ASTMatcherSubject extends Subject<ASTMatcherSubject, String> {
+  private class ASTMatcherSubject extends Subject {
 
+    private final String pattern;
     private final AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
 
     public ASTMatcherSubject(FailureMetadata pMetadata, String pPattern) {
       super(pMetadata, pPattern);
+      pattern = pPattern;
     }
 
-    private boolean matches0(String src) throws InvalidAutomatonException {
+    private boolean matches0(String src) throws InvalidAutomatonException, InterruptedException {
       CAstNode sourceAST;
       ASTMatcher matcher;
       try {
@@ -376,19 +381,19 @@ public class AutomatonInternalTest {
       } catch (InvalidAutomatonException e) {
         throw new RuntimeException("Cannot parse source code for test", e);
       }
-      matcher = AutomatonASTComparator.generatePatternAST(actual(), parser, CProgramScope.empty());
+      matcher = AutomatonASTComparator.generatePatternAST(pattern, parser, CProgramScope.empty());
 
       return matcher.matches(sourceAST, args);
     }
 
-    public Matches matches(final String src) {
+    public Matches matches(final String src) throws InterruptedException {
       boolean matches;
       try {
         matches = matches0(src);
       } catch (InvalidAutomatonException e) {
         failWithoutActual(
             Fact.simpleFact("expected to be a valid pattern"),
-            Fact.fact("but was", actual()),
+            Fact.fact("but was", pattern),
             Fact.fact("which cannot be parsed", e));
         return new Matches() {
           @Override
@@ -420,21 +425,22 @@ public class AutomatonInternalTest {
       };
     }
 
-    public void doesNotMatch(String src) {
+    public void doesNotMatch(String src) throws InterruptedException {
       try {
         if (matches0(src)) {
           if (args.getTransitionVariables().isEmpty()) {
             failWithActual(Fact.fact("expected to not match", src));
           } else {
-            failWithoutActual(Fact.fact("expected to not match", src),
-                Fact.fact("but was", actual()),
+            failWithoutActual(
+                Fact.fact("expected to not match", src),
+                Fact.fact("but was", pattern),
                 Fact.fact("with transition variables", args.getTransitionVariables()));
           }
         }
       } catch (InvalidAutomatonException e) {
         failWithoutActual(
             Fact.simpleFact("expected to be a valid pattern"),
-            Fact.fact("but was", actual()),
+            Fact.fact("but was", pattern),
             Fact.fact("which cannot be parsed", e));
       }
     }

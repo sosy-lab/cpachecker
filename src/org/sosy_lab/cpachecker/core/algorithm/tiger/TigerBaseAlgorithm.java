@@ -287,7 +287,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
       ShutdownManager algNotifier,
       ConfigurableProgramAnalysis lARTCPA,
       ReachedSet pReached)
-      throws CPAException {
+      throws CPAException, InterruptedException {
     Algorithm algorithm;
     try {
       Configuration internalConfiguration =

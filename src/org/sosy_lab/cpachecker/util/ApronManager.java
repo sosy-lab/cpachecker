@@ -44,8 +44,17 @@ public class ApronManager {
   private final Manager manager;
 
   public ApronManager(AbstractDomain pAbstractDomain) {
-    SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron")
-        .toAbsolutePath().toString());
+    try {
+      SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron")
+          .toAbsolutePath().toString());
+    } catch (RuntimeException e) {
+      if ("Could not add the necessary path to java.library.path".equals(e.getMessage())) {
+        UnsatisfiedLinkError error = new UnsatisfiedLinkError();
+        error.initCause(e);
+        throw error;
+      }
+      throw e;
+    }
     manager = createManager(pAbstractDomain);
   }
 

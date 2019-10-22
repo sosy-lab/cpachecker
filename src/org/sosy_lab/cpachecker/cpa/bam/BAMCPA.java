@@ -80,7 +80,9 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   )
   private boolean aggressiveCaching = true;
 
-  @Option(description = "Should the nested CPA-algorithm be wrapped with CEGAR within BAM?")
+  @Option(
+      secure = true,
+      description = "Should the nested CPA-algorithm be wrapped with CEGAR within BAM?")
   private boolean useCEGAR = false;
 
   private BAMCPA(
@@ -119,7 +121,10 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
 
     AlgorithmFactory factory = new CPAAlgorithmFactory(this, logger, config, pShutdownNotifier);
     if (useCEGAR) {
-      factory = new CEGARAlgorithmFactory(factory, this, logger, config);
+      // We will use this single instance of CEGARAlgFactory for the whole analysis.
+      // There will be exactly one Refiner within all nestings of BAM (and one from the surrounding
+      // CEGAR loop), because it is part of the factory.
+      factory = new CEGARAlgorithmFactory(factory, this, logger, config, pShutdownNotifier);
     }
 
     if (handleRecursiveProcedures) {

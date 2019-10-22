@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -92,7 +93,7 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
     if (condition.apply(pConstant)) {
       return Collections.<NumeralFormula<T>>singleton(pConstant);
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override
@@ -183,17 +184,17 @@ public class CollectFormulasVisitor<T> implements NumeralFormulaVisitor<T, Set<N
     if (condition.apply(pVariable)) {
       return Collections.<NumeralFormula<T>>singleton(pVariable);
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override
   public Set<NumeralFormula<T>> visitFalse() {
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override
   public Set<NumeralFormula<T>> visitTrue() {
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override

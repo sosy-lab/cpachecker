@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -43,10 +44,10 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /**
  * Class for transforming {@link AExpression}s to {@link SymbolicExpression}s.
  *
- * <p>For each transformation, a new object has to be created. Otherwise, the resulting expressions might not reflect the
- * correct concrete states of the program.</p>
+ * <p>For each transformation, a new object has to be created. Otherwise, the resulting expressions
+ * might not reflect the correct concrete states of the program.
  *
- * @see org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer
+ * @see SymbolicExpressionToCExpressionTransformer
  */
 public class ExpressionTransformer {
 

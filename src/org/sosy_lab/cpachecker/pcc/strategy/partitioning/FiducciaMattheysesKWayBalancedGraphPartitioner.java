@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -38,6 +40,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSet
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.FiducciaMattheysesOptimzerFactory.OptimizationCriteria;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.GlobalGraphPartitionerHeuristicFactory.GlobalPartitioningHeuristics;
+
 /**
  * Implementation of a greedy FM/KL graph partitioning algorithm mainly based on
  * the ideas in http://glaros.dtc.umn.edu/gkhome/node/82; For framework the option of a node cut applied as well
@@ -96,8 +99,9 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner
   @Override
   public List<Set<Integer>> computePartitioning(int pNumPartitions, WeightedGraph wGraph)
       throws InterruptedException {
-    if (pNumPartitions <= 0 || wGraph == null) { throw new IllegalArgumentException(
-        "Partitioniong must contain at most 1 partition. Graph may not be null."); }
+    checkArgument(
+        pNumPartitions > 0 && wGraph != null,
+        "Partitioniong must contain at most 1 partition. Graph may not be null.");
     if (pNumPartitions == 1) { //1-partitioning easy special case (Each node in the same partition)
       return wGraph.getGraphAsOnePartition();
     }

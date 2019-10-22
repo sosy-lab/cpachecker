@@ -42,12 +42,12 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessWriter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessFactory;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
  * This class represents a path of cfaEdges, that contain the additional Information to be exported
- * to extended witness {@link ExtendedWitnessWriter}.
+ * to extended witness {@link ExtendedWitnessFactory}.
  */
 public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditionalInfo> {
   private final ImmutableList<CFAEdgeWithAdditionalInfo> pathInfo;

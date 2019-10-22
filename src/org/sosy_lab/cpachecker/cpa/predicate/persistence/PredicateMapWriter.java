@@ -27,11 +27,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.LINE_JOINER;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -78,11 +78,11 @@ public class PredicateMapWriter {
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
     // The order of the definitions is important!
-    Set<String> definitions = Sets.newLinkedHashSet();
+    Set<String> definitions = new LinkedHashSet<>();
 
     // in this set, we collect the string representing each predicate
     // (potentially making use of the above definitions)
-    Map<AbstractionPredicate, String> predToString = Maps.newHashMap();
+    Map<AbstractionPredicate, String> predToString = new HashMap<>();
 
     // fill the above set and map
     for (AbstractionPredicate pred : allPredicates) {

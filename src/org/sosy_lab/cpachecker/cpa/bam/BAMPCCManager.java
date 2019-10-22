@@ -27,12 +27,12 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -232,12 +232,12 @@ public final class BAMPCCManager {
         coveredNodes.add(current);
         do {
           if (!bamCPA.isCoveredBy(current, current.getCoveringState())) {
-            returnNodes = Collections.emptyList();
+            returnNodes = ImmutableList.of();
             return Pair.of(false, returnNodes);
           }
           coveredNodes.add(current);
           if (coveredNodes.contains(current.getCoveringState())) {
-            returnNodes = Collections.emptyList();
+            returnNodes = ImmutableList.of();
             return Pair.of(false, returnNodes);
           }
           current = current.getCoveringState();
@@ -266,7 +266,7 @@ public final class BAMPCCManager {
       }
 
       if (!areAbstractSuccessors0(current, current.getChildren(), pBlock)) {
-        returnNodes = Collections.emptyList();
+        returnNodes = ImmutableList.of();
         return Pair.of(false, returnNodes);
       }
 
@@ -283,7 +283,7 @@ public final class BAMPCCManager {
           continue;
         }
         if (visited.contains(child)) {
-          returnNodes = Collections.emptyList();
+          returnNodes = ImmutableList.of();
           return Pair.of(false, returnNodes);
         } else {
           waitingForUnexploredParents.remove(child);
@@ -294,7 +294,7 @@ public final class BAMPCCManager {
 
     }
     if (!waitingForUnexploredParents.isEmpty()) {
-      returnNodes = Collections.emptyList();
+      returnNodes = ImmutableList.of();
       return Pair.of(false, returnNodes);
     }
     return Pair.of(true, returnNodes);

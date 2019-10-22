@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -80,7 +81,7 @@ public class MemoryLocationLocator implements SymbolicValueVisitor<Collection<Me
     if (maybeLocation.isPresent()) {
       return Collections.singleton(maybeLocation.get());
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 
@@ -122,7 +123,7 @@ public class MemoryLocationLocator implements SymbolicValueVisitor<Collection<Me
       if (innerValue instanceof SymbolicValue) {
         return ((SymbolicValue)innerValue).accept(this);
       } else {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
     }
   }

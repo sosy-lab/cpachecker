@@ -51,8 +51,8 @@ public class SequentialInterpolationWithSolver<T> extends ITPStrategy<T> {
           final InterpolationManager.Interpolator<T> interpolator,
           final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
           throws InterruptedException, SolverException {
-    return interpolator.itpProver.getSeqInterpolants(
-        wrapAllInSets(Lists.transform(formulasWithStatesAndGroupdIds, Triple::getThird)));
+    return interpolator.itpProver.getSeqInterpolants0(
+        projectToThird(formulasWithStatesAndGroupdIds));
   }
 
 }

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class CFloatTest {
@@ -552,7 +553,7 @@ public class CFloatTest {
     b = b.multiply(c);
 
     assertThat(b.toString()).isEqualTo("-0.0");
-    assertThat(b.isNegative()).isEqualTo(true);
+    assertThat(b.isNegative()).isTrue();
     assertThat(a.isZero()).isEqualTo(b.isZero());
     assertThat(a.isNegative()).isEqualTo(b.isNegative());
   }
@@ -583,10 +584,10 @@ public class CFloatTest {
     a = a.trunc();
     b = b.trunc();
 
-    assertThat(a.isZero()).isEqualTo(true);
-    assertThat(b.isZero()).isEqualTo(true);
-    assertThat(a.isNegative()).isEqualTo(true);
-    assertThat(b.isNegative()).isEqualTo(true);
+    assertThat(a.isZero()).isTrue();
+    assertThat(b.isZero()).isTrue();
+    assertThat(a.isNegative()).isTrue();
+    assertThat(b.isNegative()).isTrue();
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
     a = new CFloatImpl("123.625", CFloatNativeAPI.FP_TYPE_DOUBLE);
@@ -771,6 +772,109 @@ public class CFloatTest {
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
     assertThat(a.toString()).isEqualTo(b.toString());
   }
+
+  @SuppressWarnings({"deprecation"})
+  @Test
+  public void toStringTest_floatValueWithLeadingZero() {
+    CFloat a = new CFloatImpl("0.6", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat b = new CFloatNative("0.6", CFloatNativeAPI.FP_TYPE_SINGLE);
+
+    assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
+    assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
+    assertThat(a.toString()).isEqualTo(b.toString());
+  }
+
+  @SuppressWarnings({"deprecation"})
+  @Test
+  public void toStringTest_negativeFloatValueWithLeadingZero() {
+    CFloat a = new CFloatImpl("-0.6", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat b = new CFloatNative("-0.6", CFloatNativeAPI.FP_TYPE_SINGLE);
+
+    assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
+    assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
+    assertThat(a.toString()).isEqualTo(b.toString());
+  }
+
+  @SuppressWarnings({"deprecation"})
+  @Test
+  @Ignore // known to fail
+  public void toStringTest_doubleValueWithLeadingZero() {
+    CFloat a = new CFloatImpl("0.6", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat b = new CFloatNative("0.6", CFloatNativeAPI.FP_TYPE_DOUBLE);
+
+    assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
+    assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
+    assertThat(a.toString()).isEqualTo(b.toString());
+  }
+
+  @SuppressWarnings({"deprecation"})
+  @Test
+  @Ignore // known to fail
+  public void toStringTest_negativeDoubleValueWithLeadingZero() {
+    CFloat a = new CFloatImpl("-0.6", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat b = new CFloatNative("-0.6", CFloatNativeAPI.FP_TYPE_DOUBLE);
+
+    assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
+    assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
+    assertThat(a.toString()).isEqualTo(b.toString());
+  }
+  @SuppressWarnings({"deprecation"})
+  @Test
+  @Ignore // known to fail
+  public void toStringTest_longDoubleValueWithLeadingZero() {
+    CFloat a = new CFloatImpl("0.6", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    CFloat b = new CFloatNative("0.6", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+
+    assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
+    assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
+    assertThat(a.toString()).isEqualTo(b.toString());
+  }
+
+  @SuppressWarnings({"deprecation"})
+  @Test
+  @Ignore // known to fail
+  public void toStringTest_negativeLongDoubleValueWithLeadingZero() {
+    CFloat a = new CFloatImpl("-0.6", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    CFloat b = new CFloatNative("-0.6", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+
+    assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
+    assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
+    assertThat(a.toString()).isEqualTo(b.toString());
+  }
+
+  @SuppressWarnings({"deprecation"})
+  @Test
+  public void toStringTest_floatValueWithZeroExponent() {
+    CFloat a = new CFloatImpl("1.000001", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat b = new CFloatNative("1.000001", CFloatNativeAPI.FP_TYPE_SINGLE);
+
+    assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
+    assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
+    assertThat(a.toString()).isEqualTo(b.toString());
+  }
+
+  @SuppressWarnings({"deprecation"})
+  @Test
+  public void toStringTest_doubleValueWithZeroExponent() {
+    CFloat a = new CFloatImpl("1.000001", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat b = new CFloatNative("1.000001", CFloatNativeAPI.FP_TYPE_DOUBLE);
+
+    assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
+    assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
+    assertThat(a.toString()).isEqualTo(b.toString());
+  }
+  @SuppressWarnings({"deprecation"})
+  @Test
+  @Ignore // known to fail
+  public void toStringTest_longDoubleValueWithZeroExponent() {
+    CFloat a = new CFloatImpl("1.000001", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    CFloat b = new CFloatNative("1.000001", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+
+    assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
+    assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
+    assertThat(a.toString()).isEqualTo(b.toString());
+  }
+
 
   @SuppressWarnings({"deprecation"})
   @Test

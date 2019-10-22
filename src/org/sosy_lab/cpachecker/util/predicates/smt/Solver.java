@@ -30,7 +30,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.List;
@@ -96,6 +95,13 @@ public final class Solver implements AutoCloseable {
   description="Extract and cache unsat cores for satisfiability checking")
   private boolean cacheUnsatCores = true;
 
+  @Option(
+      secure = true,
+      description =
+          "whether CPAchecker's logger should be used as logger for the solver, "
+              + "otherwise nothing is logged from the solver.")
+  private boolean enableLoggingInSolver = false;
+
   private final @Nullable UFCheckingProverOptions ufCheckingProverOptions;
 
   private final FormulaManagerView fmgr;
@@ -104,7 +110,7 @@ public final class Solver implements AutoCloseable {
   private final SolverContext solvingContext;
   private final SolverContext interpolatingContext;
 
-  private final Map<BooleanFormula, Boolean> unsatCache = Maps.newHashMap();
+  private final Map<BooleanFormula, Boolean> unsatCache = new HashMap<>();
 
   /**
    * More complex unsat cache, grouped by an arbitrary key.
@@ -127,9 +133,20 @@ public final class Solver implements AutoCloseable {
   public int trivialSatChecks = 0;
   public int cachedSatChecks = 0;
 
-  private Solver(SolverContextFactory pSolverFactory, Configuration config, LogManager pLogger)
+  private Solver(
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier shutdownNotifier)
       throws InvalidConfigurationException {
     config.inject(this);
+
+    if (enableLoggingInSolver) {
+      logger = pLogger;
+    } else {
+      logger = LogManager.createNullLogManager();
+    }
+
+    SolverContextFactory solverFactory = new SolverContextFactory(config, logger, shutdownNotifier);
 
     if (solver.equals(interpolationSolver)) {
       // If interpolationSolver is not null, we use SeparateInterpolatingProverEnvironment
@@ -138,11 +155,11 @@ public final class Solver implements AutoCloseable {
       interpolationSolver = null;
     }
 
-    solvingContext = pSolverFactory.generateContext(solver);
+    solvingContext = solverFactory.generateContext(solver);
 
     // Instantiate another SMT solver for interpolation if requested.
     if (interpolationSolver != null) {
-      interpolatingContext = pSolverFactory.generateContext(interpolationSolver);
+      interpolatingContext = solverFactory.generateContext(interpolationSolver);
     } else {
       interpolatingContext = solvingContext;
     }
@@ -152,7 +169,6 @@ public final class Solver implements AutoCloseable {
         pLogger
     );
     bfmgr = fmgr.getBooleanFormulaManager();
-    logger = pLogger;
 
     if (checkUFs) {
       ufCheckingProverOptions = new UFCheckingProverOptions(config);
@@ -227,8 +243,27 @@ public final class Solver implements AutoCloseable {
               .setOption(SOLVER_OPTION_NON_LINEAR_ARITHMETIC, "APPROXIMATE_ALWAYS")
               .build();
     }
-    SolverContextFactory factory = new SolverContextFactory(config, logger, shutdownNotifier);
-    return new Solver(factory, config, logger);
+    return new Solver(config, logger, shutdownNotifier);
+  }
+
+  /**
+   * Load and instantiate an SMT solver. The returned instance should be closed by calling {@link
+   * #close} when it is not used anymore.
+   *
+   * <p>Important: If possible, always use {@link Solver#create(Configuration, LogManager,
+   * ShutdownNotifier)} and refrain from using this method.
+   *
+   * <p>Important: Refrain from calling this method and instead always try to use {@link
+   * Solver#create(Configuration, LogManager, ShutdownNotifier)} first.
+   */
+  public static Solver create(
+      SolverContextFactory pSolverFactory,
+      Solvers pSolver,
+      SolverContext pSolverContext,
+      Configuration pConfig,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
+    return new Solver(pSolverFactory, pSolver, pSolverContext, pConfig, pLogger);
   }
 
   /**

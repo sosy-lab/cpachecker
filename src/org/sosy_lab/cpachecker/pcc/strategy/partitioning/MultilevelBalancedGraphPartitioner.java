@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -47,6 +49,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.GlobalGraphPartitionerHeuristicFactory.GlobalPartitioningHeuristics;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.MatchingGeneratorFactory.MatchingGenerators;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningRefinerFactory.RefinementHeuristics;
+
 /**
  * Multilevel graph partitioning algorithm; Behavior: Coarsen down graph, compute initial partitioning, uncoarsen
  * graph, remap partitioning, refine partitioning, ... Until partitioning on initially given graph is computed.
@@ -98,8 +101,9 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
   @Override
   public List<Set<Integer>> computePartitioning(int pNumPartitions, WeightedGraph wGraph)
       throws InterruptedException {
-    if (pNumPartitions <= 0 || wGraph == null) { throw new IllegalArgumentException(
-        "Partitioniong must contain at most 1 partition. Graph may not be null."); }
+    checkArgument(
+        pNumPartitions > 0 && wGraph != null,
+        "Partitioniong must contain at most 1 partition. Graph may not be null.");
     if (pNumPartitions == 1) { //1-partitioning easy special case (all nodes in one partition)
       //No expensive computations to do
       return wGraph.getGraphAsOnePartition();

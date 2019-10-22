@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.impact;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.NotSerializableException;
@@ -54,8 +55,10 @@ class Vertex extends AbstractSingleWrapperState {
 
   /**
    * javadoc to remove unused parameter warning
+   *
    * @param out the output stream
    */
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     throw new NotSerializableException();
   }
@@ -114,7 +117,7 @@ class Vertex extends AbstractSingleWrapperState {
   public List<Vertex> cleanCoverage() {
     assert !isCovered() || coveredNodes.isEmpty();
     if (coveredNodes.isEmpty()) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
 
     List<Vertex> result = coveredNodes;

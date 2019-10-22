@@ -1,10 +1,10 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -120,7 +120,7 @@ public class PolicyBound {
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects.hashCode(predecessor, bound, formula);
+      hashCache = Objects.hash(predecessor, bound, formula);
     }
     return hashCache;
   }

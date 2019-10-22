@@ -142,7 +142,7 @@ public class PredicateCPA
       ShutdownNotifier pShutdownNotifier,
       Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     config.inject(this, PredicateCPA.class);
 
     this.config = config;
@@ -199,7 +199,17 @@ public class PredicateCPA
 
     statistics = new PredicateStatistics();
     options = new PredicateCpaOptions(config);
-    precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, abstractionManager, formulaManager);
+    precisionBootstraper =
+        new PredicatePrecisionBootstrapper(
+            config,
+            logger,
+            cfa,
+            abstractionManager,
+            formulaManager,
+            specification,
+            shutdownNotifier,
+            pathFormulaManager,
+            predicateManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Equivalence;
 import java.util.Iterator;
 import java.util.List;
@@ -460,9 +462,7 @@ public final class CTypes {
 
     @Override
     public CFunctionType visit(CFunctionType t) {
-      if (constValue) {
-        throw new IllegalArgumentException("Cannot create const function type, this is undefined");
-      }
+      checkArgument(!constValue, "Cannot create const function type, this is undefined");
       return t;
     }
 
@@ -532,9 +532,7 @@ public final class CTypes {
 
     @Override
     public CFunctionType visit(CFunctionType t) {
-      if (volatileValue) {
-        throw new IllegalArgumentException("Cannot create const function type, this is undefined");
-      }
+      checkArgument(!volatileValue, "Cannot create const function type, this is undefined");
       return t;
     }
 

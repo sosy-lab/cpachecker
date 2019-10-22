@@ -37,8 +37,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-enum StandardLiftings implements Lifting {
-
+public enum StandardLiftings implements Lifting {
   NO_LIFTING {
 
     @Override

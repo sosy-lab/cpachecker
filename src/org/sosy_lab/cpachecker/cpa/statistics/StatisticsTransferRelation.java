@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.statistics;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,7 +51,7 @@ public class StatisticsTransferRelation extends SingleEdgeTransferRelation {
       if (CFAUtils.allLeavingEdges(node).contains(pCfaEdge)) {
         return Collections.singleton(state.nextState(pCfaEdge));
       }
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     List<StatisticsState> allSuccessors = new ArrayList<>(node.getNumLeavingEdges());

@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import com.google.common.truth.Truth;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Set;
 import org.junit.Test;
@@ -101,7 +101,7 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
     // Assert that atoms contains all of atom1-5
     // and another atom that is equivalent to atom1ineq
     assertThat(atoms).hasSize(6);
-    assertThat(atoms).containsAllIn(expected);
+    assertThat(atoms).containsAtLeastElementsIn(expected);
 
     atoms = Sets.difference(atoms, expected);
     BooleanFormula remainingAtom = Iterables.getOnlyElement(atoms);
@@ -152,16 +152,15 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
   }
 
   private void assertIsConjunctive(BooleanFormula f) {
-    if (!mgrv.isPurelyConjunctive(f)) {
-      Truth.assert_()
-          .fail("Formula <%s> is not detected as purely conjunctive but it should be.", f);
-    }
+    assertWithMessage("formula <%s> detected as purely conjunctive: false", f)
+        .that(mgrv.isPurelyConjunctive(f))
+        .isTrue();
   }
 
   private void assertIsNotConjunctive(BooleanFormula f) {
-    if (mgrv.isPurelyConjunctive(f)) {
-      Truth.assert_().fail("Formula <%s> is detected as purely conjunctive but is not.", f);
-    }
+    assertWithMessage("formula <%s> detected as purely conjunctive: true", f)
+        .that(mgrv.isPurelyConjunctive(f))
+        .isFalse();
   }
 
   @Test

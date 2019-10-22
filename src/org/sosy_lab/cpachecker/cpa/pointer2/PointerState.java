@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.pointer2;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.Map;
@@ -203,17 +204,17 @@ public class PointerState implements AbstractState {
    * @return all locations known to the state.
    */
   public Set<MemoryLocation> getKnownLocations() {
-    return FluentIterable.from(Iterables.concat(pointsToMap.keySet(), FluentIterable.from(pointsToMap.values()).transformAndConcat(new Function<LocationSet, Iterable<? extends MemoryLocation>>() {
+    return ImmutableSet.copyOf(Iterables.concat(pointsToMap.keySet(), FluentIterable.from(pointsToMap.values()).transformAndConcat(new Function<LocationSet, Iterable<? extends MemoryLocation>>() {
 
       @Override
       public Iterable<? extends MemoryLocation> apply(LocationSet pArg0) {
         if (pArg0 instanceof ExplicitLocationSet) {
           return (ExplicitLocationSet) pArg0;
         }
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
 
-    }))).toSet();
+    })));
   }
 
   /**

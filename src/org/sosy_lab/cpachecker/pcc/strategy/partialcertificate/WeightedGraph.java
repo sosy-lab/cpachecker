@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import java.util.ArrayList;
@@ -50,8 +52,7 @@ public class WeightedGraph implements Iterable<WeightedNode> {
 
 
   public WeightedGraph(PartialReachedSetDirectedGraph pGraph) {
-    if (pGraph == null) { throw new IllegalArgumentException(
-        "Graph may not be null."); }
+    checkArgument(pGraph != null, "Graph may not be null.");
     totalNodeWeight=0;
     numNodes = pGraph.getNumNodes();
     nodes = new WeightedNode[numNodes];
@@ -80,8 +81,7 @@ public class WeightedGraph implements Iterable<WeightedNode> {
    * @param pNumNodes number of nodes it should contain
    */
   public WeightedGraph(int pNumNodes) {
-    if (pNumNodes <= 0) { throw new IllegalArgumentException(
-        "Graph Size may not be 0."); }
+    checkArgument(pNumNodes > 0, "Graph Size may not be 0.");
     numNodes = pNumNodes;
     nodes = new WeightedNode[numNodes];
     outgoingEdges = new HashMap<>(numNodes);

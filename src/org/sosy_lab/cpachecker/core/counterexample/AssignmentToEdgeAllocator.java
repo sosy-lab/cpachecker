@@ -946,7 +946,7 @@ public class AssignmentToEdgeAllocator {
 
             BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
 
-            BigDecimal typeSize = new BigDecimal(getSizeof(elementType));
+            BigDecimal typeSize = new BigDecimal(machineModel.getSizeof(elementType));
 
             BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
 

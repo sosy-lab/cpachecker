@@ -29,16 +29,17 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableSubgraphReachedSetView;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   private final AbstractBAMCPA bamCpa;
   private final ARGPath path;
-  private final StatTimer removeCachedSubtreeTimer;
+  private final TimerWrapper removeCachedSubtreeTimer;
 
   /**
    * Constructor for a ReachedSet containing all states, from where the last state of the path is
@@ -49,7 +50,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       AbstractBAMCPA cpa,
       ARGReachedSet pMainReachedSet,
       ARGPath pPath,
-      StatTimer pRemoveCachedSubtreeTimer) {
+      TimerWrapper pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
     this.bamCpa = cpa;
     this.path = pPath;
@@ -60,8 +61,8 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   @Override
   public UnmodifiableReachedSet asReachedSet() {
-    return new BAMReachedSetView(path.getFirstState(), path.getLastState(),
-        s -> super.asReachedSet().getPrecision(super.asReachedSet().getLastState()));
+    return new UnmodifiableSubgraphReachedSetView(
+        path, s -> super.asReachedSet().getPrecision(super.asReachedSet().getLastState()));
     // TODO do we really need the target-precision for refinements and not the actual one?
   }
 

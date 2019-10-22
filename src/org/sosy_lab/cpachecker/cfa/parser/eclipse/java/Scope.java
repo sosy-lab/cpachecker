@@ -403,8 +403,7 @@ class Scope {
 
       String name = subClassType.getName();
 
-      if (!registeredClasses.contains(name)) {
-        registeredClasses.add(name);
+      if (registeredClasses.add(name)) {
         classesToBeParsed.add(name);
       }
     }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.simpleformulas.translators.c;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -78,7 +79,7 @@ public class PredicateTranslator {
 
     @Override
     public Set<String> visit(Constant pConstant) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override

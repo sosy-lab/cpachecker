@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
@@ -85,7 +84,7 @@ public class SymbolicIdentifierLocator
       return ((SymbolicValue) containedValue).accept(this);
 
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 

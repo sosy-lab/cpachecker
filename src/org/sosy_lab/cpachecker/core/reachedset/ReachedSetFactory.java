@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.waitlist.SMGSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ThreadingSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.core.waitlist.WeightedRandomWaitlist;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariableWaitlist;
 import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
 
@@ -192,8 +193,15 @@ public class ReachedSetFactory {
   )
   private ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
+  @Option(
+      secure = true,
+      name = "reachedSet.withStatistics",
+      description = "track more statistics about the reachedset")
+  private boolean withStatistics = false;
+
   private final Configuration config;
   private @Nullable BlockConfiguration blockConfig;
+  private WeightedRandomWaitlist.@Nullable WaitlistOptions weightedWaitlistOptions;
   private final LogManager logger;
 
   public ReachedSetFactory(Configuration pConfig, LogManager pLogger)
@@ -207,17 +215,24 @@ public class ReachedSetFactory {
     } else {
       blockConfig = null;
     }
+    if (useWeightedDepthOrder || useWeightedBranchOrder) {
+      weightedWaitlistOptions = new WeightedRandomWaitlist.WaitlistOptions(pConfig);
+    } else {
+      weightedWaitlistOptions = null;
+    }
   }
 
   public ReachedSet create() {
     WaitlistFactory waitlistFactory = traversalMethod;
 
     if (useWeightedDepthOrder) {
-      waitlistFactory = DepthBasedWeightedWaitlist.factory(waitlistFactory, config);
+      waitlistFactory =
+          DepthBasedWeightedWaitlist.factory(waitlistFactory, weightedWaitlistOptions);
     }
 
     if (useWeightedBranchOrder) {
-      waitlistFactory = BranchBasedWeightedWaitlist.factory(waitlistFactory, config);
+      waitlistFactory =
+          BranchBasedWeightedWaitlist.factory(waitlistFactory, weightedWaitlistOptions);
     }
 
     if (useAutomatonInformation) {
@@ -261,22 +276,29 @@ public class ReachedSetFactory {
       waitlistFactory = BlockWaitlist.factory(waitlistFactory, blockConfig, logger);
     }
 
+    ReachedSet reached;
     switch (reachedSet) {
     case PARTITIONED:
-      return new PartitionedReachedSet(waitlistFactory);
-
+        reached = new PartitionedReachedSet(waitlistFactory);
+        break;
     case PSEUDOPARTITIONED:
-      return new PseudoPartitionedReachedSet(waitlistFactory);
-
+        reached = new PseudoPartitionedReachedSet(waitlistFactory);
+        break;
     case LOCATIONMAPPED:
-      return new LocationMappedReachedSet(waitlistFactory);
-
+        reached = new LocationMappedReachedSet(waitlistFactory);
+        break;
     case USAGE:
-      return new UsageReachedSet(waitlistFactory, config, logger);
-
+        reached = new UsageReachedSet(waitlistFactory, config, logger);
+        break;
     case NORMAL:
     default:
-      return new DefaultReachedSet(waitlistFactory);
+        reached = new DefaultReachedSet(waitlistFactory);
     }
+
+    if (withStatistics) {
+      reached = new StatisticsReachedSet(reached);
+    }
+
+    return reached;
   }
 }

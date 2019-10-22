@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
@@ -69,20 +70,22 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
 
     // If we must stop, then let's stop by returning an empty set
     if (element.isStop()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     return topStateSet;
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState el, List<AbstractState> others, CFAEdge edge, Precision p) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState el, Iterable<AbstractState> others, CFAEdge edge, Precision p)
+      throws CPATransferException, InterruptedException {
     AssumptionStorageState asmptStorageElem = (AssumptionStorageState)el;
     return Collections.singleton(strengthen(asmptStorageElem, others, edge));
   }
 
   AssumptionStorageState strengthen(
-      AssumptionStorageState pAsmptStorageElem, List<AbstractState> pOthers, CFAEdge pEdge)
+      AssumptionStorageState pAsmptStorageElem, Iterable<AbstractState> pOthers, CFAEdge pEdge)
       throws UnrecognizedCodeException, InterruptedException {
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
 

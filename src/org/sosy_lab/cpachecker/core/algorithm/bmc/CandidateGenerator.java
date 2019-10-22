@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
@@ -98,7 +99,7 @@ public interface CandidateGenerator extends Iterable<CandidateInvariant> {
 
         @Override
         public Set<CandidateInvariant> getConfirmedCandidates() {
-          return Collections.emptySet();
+          return ImmutableSet.of();
         }
       };
 }

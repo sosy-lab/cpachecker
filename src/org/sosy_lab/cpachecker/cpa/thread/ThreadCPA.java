@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.thread;
 
 import com.google.common.base.Preconditions;
 import java.util.Collection;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -50,12 +52,12 @@ public class ThreadCPA extends AbstractCPA
 
   private final ThreadReducer reducer;
 
-  public ThreadCPA() {
+  public ThreadCPA(Configuration pConfig) throws InvalidConfigurationException {
     super(
         "sep",
         "sep",
         DelegateAbstractDomain.<ThreadState>getInstance(),
-        new ThreadTransferRelation());
+        new ThreadTransferRelation(pConfig));
     reducer = new ThreadReducer();
   }
 

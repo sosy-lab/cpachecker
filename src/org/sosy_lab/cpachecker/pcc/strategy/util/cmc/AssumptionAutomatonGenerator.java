@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -64,7 +65,7 @@ public class AssumptionAutomatonGenerator {
   }
 
   public Set<ARGState> getAllAncestorsFor(final Collection<ARGState> nodes) {
-    TreeSet<ARGState> uncoveredAncestors = new TreeSet<>();
+    NavigableSet<ARGState> uncoveredAncestors = new TreeSet<>();
     Deque<ARGState> toAdd = new ArrayDeque<>(nodes);
 
     while (!toAdd.isEmpty()) {

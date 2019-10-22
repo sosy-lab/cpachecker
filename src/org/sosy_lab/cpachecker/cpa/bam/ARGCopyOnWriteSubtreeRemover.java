@@ -28,10 +28,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,13 +51,14 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
 
   private final boolean doPrecisionRefinementForMostInnerBlock;
 
-  public ARGCopyOnWriteSubtreeRemover(AbstractBAMCPA bamCpa, StatTimer pRemoveCachedSubtreeTimer) {
+  public ARGCopyOnWriteSubtreeRemover(
+      AbstractBAMCPA bamCpa, TimerWrapper pRemoveCachedSubtreeTimer) {
     super(bamCpa, pRemoveCachedSubtreeTimer);
     doPrecisionRefinementForMostInnerBlock = bamCpa.doPrecisionRefinementForMostInnerBlock();
   }
@@ -115,7 +116,7 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
             getReachedState(currentCutState),
             mustUpdatePrecision(lastRelevantNode, cutState, currentCutState)
                 ? newPrecisionsLst
-                : Collections.emptyList());
+                : ImmutableList.of());
 
         currentCutState = callState;
 

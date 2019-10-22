@@ -54,7 +54,7 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
     argPass.passARG(root);
 
     List<? extends AbstractState> reachedSetSubset = argPass.getSelectedNodes();
-    return reachedSetSubset.toArray(new AbstractState[reachedSetSubset.size()]);
+    return reachedSetSubset.toArray(new AbstractState[0]);
   }
 
   /**
@@ -94,11 +94,11 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
     protected boolean isToAdd(final ARGState pNode) {
       return pNode == root
           || pNode.getParents().size() > 1
-          || (pNode.getCoveredByThis().size() > 0 && !pNode.isCovered())
+          || (!pNode.getCoveredByThis().isEmpty() && !pNode.isCovered())
           || (withCMC
               && (pNode.getChildren().size() > 1
                   || (!pNode.isCovered()
-                      && (pNode.getChildren().size() == 0
+                      && (pNode.getChildren().isEmpty()
                           || pNode.getParents().iterator().next().getChildren().size() > 1))));
     }
 

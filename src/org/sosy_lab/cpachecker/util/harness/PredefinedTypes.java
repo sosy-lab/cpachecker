@@ -152,11 +152,7 @@ public final class PredefinedTypes {
   }
 
   private static boolean isAbort(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatchesExactType(
-        pDeclaration,
-        "abort",
-        CVoidType.VOID,
-        Collections.emptyList());
+    return functionMatchesExactType(pDeclaration, "abort", CVoidType.VOID, ImmutableList.of());
   }
 
   private static boolean isPrintf(@Nullable AFunctionDeclaration pDeclaration) {

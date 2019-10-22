@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 
 import com.google.common.base.Function;
-import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -66,22 +65,20 @@ public interface PrecisionAdjustment {
       AbstractState fullState
   ) throws CPAException, InterruptedException;
 
-
   /**
-   * Second strengthen phase which runs after precision adjustment was finished.
-   * This method is only called by {@link org.sosy_lab.cpachecker.cpa.composite.CompositeCPA}.
+   * Second strengthen phase which runs after precision adjustment was finished. This method is only
+   * called by {@link org.sosy_lab.cpachecker.cpa.composite.CompositeCPA}.
    *
    * @param pState Input state for this CPA, after the initial run of precision adjustment.
    * @param pPrecision Associated precision.
-   * @param otherStates Sibling states, as given by
-   *  {@link org.sosy_lab.cpachecker.cpa.composite.CompositeCPA}.
-   *
+   * @param otherStates Sibling states, as given by {@link
+   *     org.sosy_lab.cpachecker.cpa.composite.CompositeCPA}.
    * @return Result of the strengthening operation.
    * @throws CPAException By the CPA code, when errors happen.
    * @throws InterruptedException On interrupt.
    */
   default Optional<? extends AbstractState> strengthen(
-      AbstractState pState, Precision pPrecision, List<AbstractState> otherStates)
+      AbstractState pState, Precision pPrecision, Iterable<AbstractState> otherStates)
       throws CPAException, InterruptedException {
     return Optional.of(pState);
   }

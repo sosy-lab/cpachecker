@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.
 import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.ITE;
 
 import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -75,7 +76,7 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
     private IfThenElseTransformation(FormulaManagerView pFmgrView, FormulaManager pFmgr) {
       fmgrView = pFmgrView;
       fmgr = pFmgr;
-      additionalAxioms = Lists.newArrayList();
+      additionalAxioms = new ArrayList<>();
     }
 
     public Collection<BooleanFormula> getAdditionalAxioms() {

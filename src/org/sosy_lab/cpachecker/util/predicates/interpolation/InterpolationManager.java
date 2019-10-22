@@ -348,7 +348,7 @@ public final class InterpolationManager {
 
   public CounterexampleTraceInfo buildCounterexampleTrace(
           final BlockFormulas pFormulas) throws CPAException, InterruptedException {
-    return buildCounterexampleTrace(pFormulas, Collections.emptyList());
+    return buildCounterexampleTrace(pFormulas, ImmutableList.of());
   }
 
   private CounterexampleTraceInfo buildCounterexampleTrace0(
@@ -1137,11 +1137,11 @@ public final class InterpolationManager {
             // mySolver.close();
             logger.log(Level.WARNING, "Returning empty list");
 
-            return Collections.emptyList();
+            return ImmutableList.of();
           }
         } else {
           // mySolver.close();
-          return Collections.emptyList();
+          return ImmutableList.of();
         }
       }
     } finally {

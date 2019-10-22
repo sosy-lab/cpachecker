@@ -102,7 +102,7 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
 
     try {
       List<? extends SMGValueAndState> symbolicValueAndStates =
-          smgRightHandSideEvaluator.evaluateExpressionValue(getNewState(), getEdge(), exp);
+          smgRightHandSideEvaluator.evaluateExpressionValue(getState(), getEdge(), exp);
 
       if (symbolicValueAndStates.size() != 1) {
         throw new SMGInconsistentException(
@@ -121,13 +121,13 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
     }
 
     SMGSymbolicValue value = symbolicValueAndState.getObject();
-    setSmgState(symbolicValueAndState.getSmgState());
+    setState(symbolicValueAndState.getSmgState());
 
     if (value.isUnknown()) {
       return UnknownValue.getInstance();
     }
 
-    getNewState().putExplicit((SMGKnownSymbolicValue) value, guessSize);
+    getState().putExplicit((SMGKnownSymbolicValue) value, guessSize);
 
     return new NumericValue(guessSize.getAsInt());
   }

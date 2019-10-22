@@ -24,11 +24,10 @@
 package org.sosy_lab.cpachecker.pcc.util;
 
 import com.google.common.collect.Maps;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
-import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -40,6 +39,7 @@ import java.util.zip.ZipInputStream;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.exceptions.ValidationConfigurationConstructionFailed;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 
@@ -232,9 +232,8 @@ public class ValidationConfigurationBuilder {
 
       Path valConfig = Files.createTempFile("pcc-check-config", "properties");
 
-      try (ObjectInputStream in = new ObjectInputStream(zis);
-          PrintStream out = new PrintStream(new FileOutputStream(valConfig.toFile()), false, "UTF-8")) {
-        out.print(in.readObject());
+      try (ObjectInputStream in = new ObjectInputStream(zis)) {
+        IO.writeFile(valConfig, StandardCharsets.UTF_8, in.readObject());
       } catch (ClassNotFoundException e) {
         throw new IOException("Failed to read configuration");
       }

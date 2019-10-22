@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,25 +31,11 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NavigableMap;
-import java.util.TreeMap;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
-import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerBaseAlgorithm;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.util.Pair;
 
 
 public class WrapperUtil {
@@ -130,42 +114,6 @@ public class WrapperUtil {
 
     //return new FileToParse(f.getAbsolutePath(), CPAtiger_MAIN + "__");
     return new FileToParse(f.getAbsolutePath());
-  }
-
-  public static ParseResult addWrapper(
-      CParser cParser,
-      ParseResult tmpParseResult,
-      CSourceOriginMapping sourceOriginMapping,
-      LogManager logger)
-      throws IOException, CParserException, InvalidConfigurationException, InterruptedException {
-    // create wrapper code
-    CFunctionEntryNode entryNode =
-        (CFunctionEntryNode) tmpParseResult.getFunctions()
-            .get(TigerBaseAlgorithm.originalMainFunction);
-
-    List<FileToParse> tmpList = new ArrayList<>();
-    tmpList.add(WrapperUtil.getWrapperCFunction(entryNode, logger));
-
-    ParseResult wrapperParseResult = cParser.parseFile(tmpList, sourceOriginMapping);
-
-    // TODO add checks for consistency
-    NavigableMap<String, FunctionEntryNode> mergedFunctions = new TreeMap<>();
-    mergedFunctions.putAll(tmpParseResult.getFunctions());
-    mergedFunctions.putAll(wrapperParseResult.getFunctions());
-
-    SortedSetMultimap<String, CFANode> mergedCFANodes = TreeMultimap.create();
-    mergedCFANodes.putAll(tmpParseResult.getCFANodes());
-    mergedCFANodes.putAll(wrapperParseResult.getCFANodes());
-
-    List<Pair<ADeclaration, String>> mergedGlobalDeclarations = new ArrayList<> (tmpParseResult.getGlobalDeclarations().size() + wrapperParseResult.getGlobalDeclarations().size());
-    mergedGlobalDeclarations.addAll(tmpParseResult.getGlobalDeclarations());
-    mergedGlobalDeclarations.addAll(wrapperParseResult.getGlobalDeclarations());
-
-    return new ParseResult(
-        mergedFunctions,
-        mergedCFANodes,
-        mergedGlobalDeclarations,
-        tmpParseResult.getFileNames());
   }
 
 }

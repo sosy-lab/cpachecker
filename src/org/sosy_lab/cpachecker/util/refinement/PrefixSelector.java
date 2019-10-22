@@ -282,7 +282,7 @@ public class PrefixSelector {
 
   private static class RandomScorer implements Scorer {
 
-    private final Random random = new Random();
+    private static final Random random = new Random(0);
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {

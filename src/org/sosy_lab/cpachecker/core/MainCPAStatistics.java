@@ -34,7 +34,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
@@ -416,9 +415,17 @@ public class MainCPAStatistics implements Statistics {
 
     for (Statistics s : subStats) {
       StatisticsUtils.printStatistics(s, out, logger, result, reached);
-      StatisticsUtils.writeOutputFiles(s, logger, result, reached);
       }
       }
+
+  @Override
+  public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+    assert pReached != null : "ReachedSet may be null only if analysis not yet started";
+
+    for (Statistics s : subStats) {
+      StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached);
+    }
+  }
 
   private void printReachedSetStatistics(UnmodifiableReachedSet reached, PrintStream out) {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
@@ -456,10 +463,8 @@ public class MainCPAStatistics implements Statistics {
       mostFrequentLocationCount = maxPartition.getValue().size();
 
     } else {
-      Multiset<CFANode> allLocations = HashMultiset.create(from(reached)
-                                                                    .transform(EXTRACT_LOCATION)
-                                                                    .filter(notNull()));
-
+      Multiset<CFANode> allLocations =
+          from(reached).transform(EXTRACT_LOCATION).filter(notNull()).toMultiset();
       locations = allLocations.elementSet();
 
       for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {
@@ -481,8 +486,8 @@ public class MainCPAStatistics implements Statistics {
       out.println("    Avg states per location:     " + reachedSize / locs);
       out.println("    Max states per location:     " + mostFrequentLocationCount + " (at node " + mostFrequentLocation + ")");
 
-      Set<String> functions = from(locations).transform(CFANode::getFunctionName).toSet();
-      out.println("  Number of reached functions:   " + functions.size() + " (" + StatisticsUtils.toPercent(functions.size(), cfa.getNumberOfFunctions()) + ")");
+      long functions = locations.stream().map(CFANode::getFunctionName).distinct().count();
+      out.println("  Number of reached functions:   " + functions + " (" + StatisticsUtils.toPercent(functions, cfa.getNumberOfFunctions()) + ")");
     }
 
     if (reached instanceof PartitionedReachedSet) {

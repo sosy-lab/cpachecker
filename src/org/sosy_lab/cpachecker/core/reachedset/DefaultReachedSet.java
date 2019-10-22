@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -45,8 +43,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.waitlist.AbstractSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -58,7 +54,7 @@ class DefaultReachedSet implements ReachedSet, Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  private final LinkedHashMap<AbstractState, Precision> reached;
+  private final Map<AbstractState, Precision> reached;
   private transient Set<AbstractState> unmodifiableReached;
   private @Nullable AbstractState lastState = null;
   private @Nullable AbstractState firstState = null;
@@ -295,29 +291,17 @@ class DefaultReachedSet implements ReachedSet, Serializable {
     return reached.keySet().toString();
   }
 
-  public Map<String, ? extends AbstractStatValue> getStatistics() {
+  @Override
+  public ImmutableMap<String, ? extends AbstractStatValue> getStatistics() {
     if (waitlist instanceof AbstractSortedWaitlist) {
-      return ((AbstractSortedWaitlist<?>) waitlist).getDelegationCounts();
+      return ImmutableMap.copyOf(((AbstractSortedWaitlist<?>) waitlist).getDelegationCounts());
 
     } else {
       return ImmutableMap.of();
     }
   }
 
-  @Override
-  public boolean hasViolatedProperties() {
-    return from(unmodifiableReached).anyMatch(IS_TARGET_STATE);
-  }
-
-  @Override
-  public Collection<Property> getViolatedProperties() {
-    return from(unmodifiableReached)
-        .filter(IS_TARGET_STATE)
-        .filter(Targetable.class)
-        .transformAndConcat(Targetable::getViolatedProperties)
-        .toSet();
-  }
-
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
     s.defaultReadObject();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());

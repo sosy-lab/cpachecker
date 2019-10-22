@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.statistics;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,12 +73,8 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
     }
 
     public void addProvider(StatisticsProvider provider) {
-      if (fixed) {
-        throw new IllegalStateException("providers are already fixed");
-      }
-      if (!propertyProviders.add(provider)) {
-        throw new IllegalStateException("the requested provider was already added!");
-      }
+      checkState(!fixed, "providers are already fixed");
+      checkState(propertyProviders.add(provider), "the requested provider was already added!");
     }
 
     private StatisticsData createInitialDataProvider() {

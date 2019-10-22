@@ -31,7 +31,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
@@ -196,7 +195,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =
       new CopyOnWriteArrayList<>();
 
-  private final Collection<ReachedSetUpdateListener> reachedSetUpdateListenersAdded = Lists.newArrayList();
+  private final Collection<ReachedSetUpdateListener> reachedSetUpdateListenersAdded =
+      new ArrayList<>();
 
   private RestartAlgorithm(
       Configuration config,
@@ -455,7 +455,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         if (printIntermediateStatistics) {
           stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
         } else {
-          stats.printIntermediateStatistics(new PrintStream(ByteStreams.nullOutputStream()), Result.UNKNOWN, currentReached);
+          @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
+          final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
+          stats.printIntermediateStatistics(dummyStream, Result.UNKNOWN, currentReached);
         }
         if (writeIntermediateOutputFiles) {
           stats.writeOutputFiles(Result.UNKNOWN, pReached);

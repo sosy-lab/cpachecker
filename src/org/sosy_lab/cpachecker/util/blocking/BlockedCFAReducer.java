@@ -117,7 +117,7 @@ public class BlockedCFAReducer implements BlockComputer {
     Set<ReducedEdge> traverseDone = new HashSet<>();
 
     toTraverse.add(pApplyTo.getEntryNode());
-    while (toTraverse.size() > 0) {
+    while (!toTraverse.isEmpty()) {
       ReducedNode u = toTraverse.remove();
 
       for (ReducedEdge e: pApplyTo.getLeavingEdges(u)) {
@@ -191,7 +191,7 @@ public class BlockedCFAReducer implements BlockComputer {
     Set<ReducedNode> traverseDone = new HashSet<>();
 
     toTraverse.add(pApplyTo.getEntryNode());
-    while (toTraverse.size() > 0) {
+    while (!toTraverse.isEmpty()) {
       ReducedNode u = toTraverse.removeFirst();
       if (traverseDone.contains(u)) {
         continue;
@@ -294,7 +294,7 @@ public class BlockedCFAReducer implements BlockComputer {
 
     // Start traversing at the entry node of the function
     openEndpoints.add(result.getEntryNode());
-    while (openEndpoints.size() > 0) {
+    while (!openEndpoints.isEmpty()) {
       ReducedNode uSn = openEndpoints.removeFirst();
 
       // Look at all leaving edges.
@@ -392,7 +392,7 @@ public class BlockedCFAReducer implements BlockComputer {
   @Override
   public ImmutableSet<CFANode> computeAbstractionNodes(final CFA pCfa) {
     assert (pCfa != null);
-    assert (this.inliningStack.size() == 0);
+    assert (this.inliningStack.isEmpty());
     assert (this.functionCallSeq == 0);
 
     this.functionCallSeq = 0;

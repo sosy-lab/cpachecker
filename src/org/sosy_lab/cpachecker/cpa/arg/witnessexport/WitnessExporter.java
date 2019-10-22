@@ -30,13 +30,13 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Queues;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
-import java.io.Writer;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -73,6 +72,125 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class WitnessExporter {
 
+  private static final class ProofInvariantProvider implements InvariantProvider {
+
+    private final ExpressionTreeFactory<Object> factory;
+    private final CFA cfa;
+    private final FormulaManagerView fmgr;
+    private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
+
+    public ProofInvariantProvider(
+        CFA pCfa,
+        ExpressionTreeFactory<Object> pFactory,
+        FormulaManagerView pFmgr,
+        AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
+      cfa = pCfa;
+      factory = pFactory;
+      fmgr = pFmgr;
+      assumptionToEdgeAllocator = pAssumptionToEdgeAllocator;
+    }
+
+    @Override
+    public ExpressionTree<Object> provideInvariantFor(
+        CFAEdge pEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
+      // TODO interface for extracting the information from states, similar to
+      // FormulaReportingState
+      Set<ExpressionTree<Object>> stateInvariants = new HashSet<>();
+      if (!pStates.isPresent()) {
+        return ExpressionTrees.getTrue();
+      }
+      String functionName = pEdge.getSuccessor().getFunctionName();
+      for (ARGState state : pStates.get()) {
+        ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
+
+        stateInvariant = extractValueAnalysisInvariants(pEdge, state, stateInvariant);
+        stateInvariant =
+            extractPredicateAnalysisAbstractionStateInvariants(functionName, state, stateInvariant);
+
+        Set<ExpressionTree<Object>> approximations = new LinkedHashSet<>();
+        approximations.add(stateInvariant);
+        for (ExpressionTreeReportingState etrs :
+            AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
+          approximations.add(
+              etrs.getFormulaApproximation(
+                  cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
+        }
+        stateInvariant = factory.and(approximations);
+        stateInvariants.add(stateInvariant);
+      }
+      ExpressionTree<Object> invariant = factory.or(stateInvariants);
+      return invariant;
+    }
+
+    private ExpressionTree<Object> extractPredicateAnalysisAbstractionStateInvariants(
+        String functionName, ARGState state, ExpressionTree<Object> stateInvariant)
+        throws AssertionError {
+      PredicateAbstractState predState =
+          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+      if (predState != null && predState.isAbstractionState()) {
+        BooleanFormula inv = ((FormulaReportingState) predState).getFormulaApproximation(fmgr);
+        String invString = null;
+        try {
+          // filter out variables that are not global and
+          // not local in the current function
+          String prefix = functionName + FUNCTION_DELIMITER;
+          inv =
+              fmgr.filterLiterals(
+                  inv,
+                  e -> {
+                    for (String name : fmgr.extractVariableNames(e)) {
+                      if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
+                        return false;
+                      }
+                    }
+                    return true;
+                  });
+
+          FormulaToCVisitor v = new FormulaToCVisitor(fmgr);
+          Boolean isValid = fmgr.visit(inv, v);
+          if (isValid) {
+            invString = v.getString();
+          }
+        } catch (InterruptedException e) {
+          throw new AssertionError(
+              "Witnessexport was interrupted for generation of Proofwitness", e);
+        }
+        if (invString != null) {
+          if (invString.equals("0")) {
+            return ExpressionTrees.getFalse();
+          }
+          if (!invString.equals("1")) {
+            stateInvariant = factory.and(stateInvariant, LeafExpression.of((Object) invString));
+          }
+        }
+      }
+      return stateInvariant;
+    }
+
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+    private ExpressionTree<Object> extractValueAnalysisInvariants(
+        CFAEdge pEdge, ARGState state, ExpressionTree<Object> stateInvariant) {
+      ValueAnalysisState valueAnalysisState =
+          AbstractStates.extractStateByType(state, ValueAnalysisState.class);
+      ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
+      if (valueAnalysisState != null) {
+        ConcreteState concreteState =
+            ValueAnalysisConcreteErrorPathAllocator.createConcreteState(valueAnalysisState);
+        Iterable<AExpressionStatement> invariants =
+            WitnessFactory.ASSUMPTION_FILTER
+                .apply(assumptionToEdgeAllocator.allocateAssumptionsToEdge(pEdge, concreteState))
+                .getExpStmts();
+        for (AExpressionStatement expressionStatement : invariants) {
+          invariant =
+              factory.and(
+                  invariant, LeafExpression.of((Object) expressionStatement.getExpression()));
+        }
+        stateInvariant = factory.and(stateInvariant, invariant);
+      }
+      return stateInvariant;
+    }
+  }
+
   private static final String FUNCTION_DELIMITER = "::";
 
   protected final WitnessOptions options;
@@ -82,7 +200,7 @@ public class WitnessExporter {
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  protected final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
+  protected final ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
   protected final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
   protected final VerificationTaskMetaData verificationTaskMetaData;
@@ -107,13 +225,13 @@ public class WitnessExporter {
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       CounterexampleInfo pCounterExample)
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer =
-        new WitnessWriter(
+    WitnessFactory writer =
+        new WitnessFactory(
             options,
             cfa,
             verificationTaskMetaData,
@@ -122,28 +240,29 @@ public class WitnessExporter {
             defaultFileName,
             WitnessType.VIOLATION_WITNESS,
             InvariantProvider.TrueInvariantProvider.INSTANCE);
-    writer.writePath(
-        pTarget,
-        pRootState,
-        pIsRelevantState,
-        pIsRelevantEdge,
-        Predicates.alwaysFalse(),
-        Optional.empty(),
-        Optional.of(pCounterExample),
-        GraphBuilder.ARG_PATH);
+    Witness generatedWitness =
+        writer.produceWitness(
+            pRootState,
+            pIsRelevantState,
+            pIsRelevantEdge,
+            Predicates.alwaysFalse(),
+            Optional.empty(),
+            Optional.ofNullable(pCounterExample),
+            GraphBuilder.ARG_PATH);
+    WitnessToOutputFormatsUtils.writeToGraphMl(generatedWitness, pTarget);
   }
 
   public void writeTerminationErrorWitness(
-      final Writer pWriter,
+      final Appendable pWriter,
       final ARGState pRoot,
       final Predicate<? super ARGState> pIsRelevantState,
-      final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       final Predicate<? super ARGState> pIsCycleHead,
       final Function<? super ARGState, ExpressionTree<Object>> toQuasiInvariant)
       throws IOException {
     String defaultFileName = getInitialFileName(pRoot);
-    WitnessWriter writer =
-        new WitnessWriter(
+    WitnessFactory writer =
+        new WitnessFactory(
             options,
             cfa,
             verificationTaskMetaData,
@@ -163,141 +282,26 @@ public class WitnessExporter {
         GraphBuilder.ARG_PATH);
   }
 
-  public void writeProofWitness(
-      Appendable pTarget,
+  public Witness generateProofWitness(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge)
-      throws IOException {
-    writeProofWitness(
-        pTarget,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge) {
+    return generateProofWitness(
         pRootState,
         pIsRelevantState,
         pIsRelevantEdge,
-        new InvariantProvider() {
-
-          @Override
-          public ExpressionTree<Object> provideInvariantFor(
-              CFAEdge pEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
-            // TODO interface for extracting the information from states, similar to
-            // FormulaReportingState
-            Set<ExpressionTree<Object>> stateInvariants = new HashSet<>();
-            if (!pStates.isPresent()) {
-              return ExpressionTrees.getTrue();
-            }
-            String functionName = pEdge.getSuccessor().getFunctionName();
-            for (ARGState state : pStates.get()) {
-              ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
-
-              stateInvariant = extractValueAnalysisInvariants(pEdge, state, stateInvariant);
-              stateInvariant =
-                  extractPredicateAnalysisAbstractionStateInvariants(
-                      functionName, state, stateInvariant);
-
-              Set<ExpressionTree<Object>> approximations = new LinkedHashSet<>();
-              approximations.add(stateInvariant);
-              for (ExpressionTreeReportingState etrs :
-                  AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
-                approximations.add(
-                    etrs.getFormulaApproximation(
-                        cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
-              }
-              stateInvariant = factory.and(approximations);
-              stateInvariants.add(stateInvariant);
-            }
-            ExpressionTree<Object> invariant = factory.or(stateInvariants);
-            return invariant;
-          }
-
-          private ExpressionTree<Object> extractPredicateAnalysisAbstractionStateInvariants(
-              String functionName, ARGState state, ExpressionTree<Object> stateInvariant)
-              throws AssertionError {
-            PredicateAbstractState predState =
-                AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-            if (predState != null && predState.isAbstractionState()) {
-              BooleanFormula inv =
-                  ((FormulaReportingState) predState).getFormulaApproximation(fmgr);
-              String invString = null;
-              try {
-                // filter out variables that are not global and
-                // not local in the current function
-                String prefix = functionName + FUNCTION_DELIMITER;
-                inv =
-                    fmgr.filterLiterals(
-                        inv,
-                        e -> {
-                          for (String name : fmgr.extractVariableNames(e)) {
-                            if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
-                              return false;
-                            }
-                          }
-                          return true;
-                        });
-
-                FormulaToCVisitor v = new FormulaToCVisitor(fmgr);
-                Boolean isValid = fmgr.visit(inv, v);
-                if (isValid) {
-                  invString = v.getString();
-                }
-              } catch (InterruptedException e) {
-                throw new AssertionError(
-                    "Witnessexport was interrupted for generation of Proofwitness", e);
-              }
-              if (invString != null) {
-                if (invString.equals("0")) {
-                  return ExpressionTrees.getFalse();
-                }
-                if (!invString.equals("1")) {
-                  stateInvariant =
-                      factory.and(stateInvariant, LeafExpression.of((Object) invString));
-                }
-              }
-            }
-            return stateInvariant;
-          }
-
-          @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-          private ExpressionTree<Object> extractValueAnalysisInvariants(
-              CFAEdge pEdge, ARGState state, ExpressionTree<Object> stateInvariant) {
-            ValueAnalysisState valueAnalysisState =
-                AbstractStates.extractStateByType(state, ValueAnalysisState.class);
-            ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
-            if (valueAnalysisState != null) {
-              ConcreteState concreteState =
-                  ValueAnalysisConcreteErrorPathAllocator.createConcreteState(valueAnalysisState);
-              Iterable<AExpressionStatement> invariants =
-                  WitnessWriter.ASSUMPTION_FILTER
-                      .apply(
-                          assumptionToEdgeAllocator.allocateAssumptionsToEdge(pEdge, concreteState))
-                      .getExpStmts();
-              for (AExpressionStatement expressionStatement : invariants) {
-                invariant =
-                    factory.and(
-                        invariant, LeafExpression.of((Object) expressionStatement.getExpression()));
-              }
-              stateInvariant = factory.and(stateInvariant, invariant);
-            }
-            return stateInvariant;
-          }
-        });
+        new ProofInvariantProvider(cfa, factory, fmgr, assumptionToEdgeAllocator));
   }
 
-  public void writeProofWitness(
-      Appendable pTarget,
+  public Witness generateProofWitness(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
-      InvariantProvider pInvariantProvider)
-      throws IOException {
-    Preconditions.checkNotNull(pTarget);
-    Preconditions.checkNotNull(pRootState);
-    Preconditions.checkNotNull(pIsRelevantState);
-    Preconditions.checkNotNull(pIsRelevantEdge);
-    Preconditions.checkNotNull(pInvariantProvider);
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
+      InvariantProvider pInvariantProvider) {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer =
-        new WitnessWriter(
+    WitnessFactory writer =
+        new WitnessFactory(
             options,
             cfa,
             verificationTaskMetaData,
@@ -306,8 +310,7 @@ public class WitnessExporter {
             defaultFileName,
             WitnessType.CORRECTNESS_WITNESS,
             pInvariantProvider);
-    writer.writePath(
-        pTarget,
+    return writer.produceWitness(
         pRootState,
         pIsRelevantState,
         pIsRelevantEdge,
@@ -315,6 +318,38 @@ public class WitnessExporter {
         Optional.empty(),
         Optional.empty(),
         GraphBuilder.CFA_FULL);
+  }
+
+  public void writeProofWitness(
+      Appendable pTarget,
+      final ARGState pRootState,
+      final Predicate<? super ARGState> pIsRelevantState,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge)
+      throws IOException {
+    writeProofWitness(
+        pTarget,
+        pRootState,
+        pIsRelevantState,
+        pIsRelevantEdge,
+        new ProofInvariantProvider(cfa, factory, fmgr, assumptionToEdgeAllocator));
+  }
+
+  public void writeProofWitness(
+      Appendable pTarget,
+      final ARGState pRootState,
+      final Predicate<? super ARGState> pIsRelevantState,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
+      InvariantProvider pInvariantProvider)
+      throws IOException {
+    Preconditions.checkNotNull(pTarget);
+    Preconditions.checkNotNull(pRootState);
+    Preconditions.checkNotNull(pIsRelevantState);
+    Preconditions.checkNotNull(pIsRelevantEdge);
+    Preconditions.checkNotNull(pInvariantProvider);
+
+    Witness generatedWitness =
+        generateProofWitness(pRootState, pIsRelevantState, pIsRelevantEdge, pInvariantProvider);
+    WitnessToOutputFormatsUtils.writeToGraphMl(generatedWitness, pTarget);
   }
 
   protected String getInitialFileName(ARGState pRootState) {
@@ -325,7 +360,7 @@ public class WitnessExporter {
       visited.add(l);
       for (CFAEdge e : CFAUtils.leavingEdges(l)) {
         Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
-        if (fileLocations.size() > 0) {
+        if (!fileLocations.isEmpty()) {
           String fileName = fileLocations.iterator().next().getFileName();
           if (fileName != null) {
             return fileName;

@@ -37,7 +37,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 
-
 /**
  * Wrapper around the JDT Parser and CFA-Builder Implementation.
  *
@@ -80,11 +79,13 @@ class EclipseJavaParser implements Parser {
   @Option(secure=true, name ="java.sourcepath",
       description="Specify the source code path to " +
           "search for java class or interface definitions")
+  // Make sure to keep the option name synchronized with CPAMain#areJavaOptionsSet
   private String javaSourcepath = "";
 
   @Option(secure=true, name ="java.classpath",
       description="Specify the class code path to " +
           "search for java class or interface definitions")
+  // Make sure to keep the option name synchronized with CPAMain#areJavaOptionsSet
   private String javaClasspath = "";
 
   @Option(secure=true, name="java.exportTypeHierarchy",
@@ -106,7 +107,6 @@ class EclipseJavaParser implements Parser {
 
   private final ImmutableList<Path> javaSourcePaths;
   private final ImmutableList<Path> javaClassPaths;
-  private final String[] encodings;
 
   private final List<Path> parsedFiles = new ArrayList<>();
 
@@ -131,9 +131,6 @@ class EclipseJavaParser implements Parser {
     if (javaSourcePaths.isEmpty()) {
       throw new InvalidConfigurationException("No valid Paths could be found.");
     }
-
-    encodings = new String[javaSourcePaths.size()];
-    Arrays.fill(encodings, encoding.name());
   }
 
   private ImmutableList<Path> getJavaPaths(String javaPath) {
@@ -236,6 +233,8 @@ class EclipseJavaParser implements Parser {
   private CompilationUnit parse(Path file, boolean ignoreMethodBody) throws IOException {
     parsedFiles.add(file);
 
+    String[] encodings =
+        Collections.nCopies(javaSourcePaths.size(), encoding.name()).toArray(new String[0]);
     parser.setEnvironment(asStrings(javaClassPaths), asStrings(javaSourcePaths), encodings, false);
     parser.setResolveBindings(true);
     parser.setStatementsRecovery(true);

@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -54,7 +54,7 @@ public class LocationTransferRelation implements TransferRelation {
       return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
     }
 
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override
@@ -69,7 +69,7 @@ public class LocationTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState pState,
-      List<AbstractState> pOtherStates,
+      Iterable<AbstractState> pOtherStates,
       @Nullable CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
@@ -85,7 +85,4 @@ public class LocationTransferRelation implements TransferRelation {
     }
     return Collections.singleton(WeaveEdgeFactory.getSingleton().create(mgState, pCfaEdge));
   }
-
-
-
 }

@@ -1,10 +1,10 @@
 package org.sosy_lab.cpachecker.cpa.congruence;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -124,7 +124,7 @@ public class CongruenceState implements
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(data);
+    return Objects.hash(data);
   }
 
   @Override

@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.PdrAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
@@ -96,46 +96,38 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * Factory class for the three core components of CPAchecker:
  * algorithm, cpa and reached set.
  */
-@Options(prefix = "analysis")
+@Options(prefix="analysis")
 public class CoreComponentsFactory {
 
   @Option(
-    secure = true,
-    name = "disable",
-    description = "stop CPAchecker after startup (internal option, not intended for users)")
+      secure = true,
+      name = "disable",
+      description = "stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
 
-  @Option(secure = true, description = "use assumption collecting algorithm")
+  @Option(secure=true, description="use assumption collecting algorithm")
   private boolean collectAssumptions = false;
 
-  @Option(
-    secure = true,
-    name = "algorithm.conditionAdjustment",
-    description = "use adjustable conditions algorithm")
+  @Option(secure=true, name="algorithm.conditionAdjustment",
+      description="use adjustable conditions algorithm")
   private boolean useAdjustableConditions = false;
 
   @Option(secure = true, name = "algorithm.pdr", description = "use PDR algorithm")
   private boolean usePDR = false;
 
-  @Option(
-    secure = true,
-    name = "algorithm.CEGAR",
+  @Option(secure=true, name="algorithm.CEGAR",
       description = "use CEGAR algorithm for lazy counter-example guided analysis"
         + "\nYou need to specify a refiner with the cegar.refiner option."
         + "\nCurrently all refiner require the use of the ARGCPA.")
   private boolean useCEGAR = false;
 
-  @Option(
-    secure = true,
-    description = "use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
+  @Option(secure=true, description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
   private boolean checkCounterexamples = false;
 
   @Option(secure = true, description = "use counterexample check and the BDDCPA Restriction option")
   private boolean checkCounterexamplesWithBDDCPARestriction = false;
 
-  @Option(
-    secure = true,
-    description = "After an incomplete analysis constructs a residual program which contains all program paths which are not fully explored")
+  @Option(secure = true, description="After an incomplete analysis constructs a residual program which contains all program paths which are not fully explored")
   private boolean unexploredPathsAsProgram = false;
 
   @Option(secure = true, description="Solely construct the residual program for a given condition/assumption.")
@@ -149,41 +141,36 @@ public class CoreComponentsFactory {
         + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
 
-  @Option(
-    secure = true,
-    name = "algorithm.impact",
-    description = "Use McMillan's Impact algorithm for lazy interpolation")
+  @Option(secure=true, name="algorithm.impact",
+      description="Use McMillan's Impact algorithm for lazy interpolation")
   private boolean useImpactAlgorithm = false;
 
-  @Option(
-    secure = true,
-    name = "useInterleavedAnalyses",
-    description = "start different analyses interleaved and continue after unknown result")
-  private boolean useInterleavedAlgorithm = false;
+  @Option(secure = true, name = "useInterleavedAnalyses",
+      description = "start different analyses interleaved and continue after unknown result")
+    private boolean useInterleavedAlgorithm = false;
 
-  @Option(
-    secure = true,
-    name = "useTestCaseGeneratorAlgorithm",
-    description = "generate test cases for covered test targets")
-  private boolean useTestCaseGeneratorAlgorithm = false;
+  @Option(secure = true, name = "useTestCaseGeneratorAlgorithm",
+      description = "generate test cases for covered test targets")
+    private boolean useTestCaseGeneratorAlgorithm = false;
 
-  @Option(
-    secure = true,
-    name = "restartAfterUnknown",
-    description = "restart the analysis using a different configuration after unknown result")
+  @Option(secure=true, name="restartAfterUnknown",
+      description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
 
   @Option(
     secure = true,
     name = "selectAnalysisHeuristically",
-    description = "Use heuristics to select the analysis")
+    description = "Use heuristics to select the analysis"
+  )
   private boolean useHeuristicSelectionAlgorithm = false;
 
   @Option(
     secure = true,
     name = "useParallelAnalyses",
-    description = "Use analyses parallely. The resulting reachedset is the one of the first"
-        + " analysis finishing in time. All other analyses are terminated.")
+    description =
+        "Use analyses parallely. The resulting reachedset is the one of the first"
+            + " analysis finishing in time. All other analyses are terminated."
+  )
   private boolean useParallelAlgorithm = false;
 
   @Option(
@@ -193,67 +180,53 @@ public class CoreComponentsFactory {
   private boolean useTerminationAlgorithm = false;
 
   @Option(
-    secure = true,
-    name = "alwaysStoreCounterexamples",
-    description = "If not already done by the analysis,"
-        + " store a found counterexample in the ARG for later re-use. Does nothing"
-        + " if no ARGCPA is used")
+      secure = true,
+      name = "alwaysStoreCounterexamples",
+      description = "If not already done by the analysis,"
+          + " store a found counterexample in the ARG for later re-use. Does nothing"
+          + " if no ARGCPA is used")
   private boolean forceCexStore = false;
 
   @Option(
     secure = true,
     name = "split.program",
-    description = "Split program in subprograms which can be analyzed separately afterwards")
+    description = "Split program in subprograms which can be analyzed separately afterwards"
+  )
   private boolean splitProgram = false;
 
-  @Option(
-    secure = true,
-    description = "memorize previously used (incomplete) reached sets after a restart of the analysis")
+  @Option(secure=true,
+      description="memorize previously used (incomplete) reached sets after a restart of the analysis")
   private boolean memorizeReachedAfterRestart = false;
 
-  @Option(
-    secure = true,
-    name = "algorithm.analysisWithEnabler",
-    description = "use a analysis which proves if the program satisfies a specified property"
+  @Option(secure=true, name="algorithm.analysisWithEnabler",
+      description="use a analysis which proves if the program satisfies a specified property"
           + " with the help of an enabler CPA to separate differnt program paths")
   private boolean useAnalysisWithEnablerCPAAlgorithm = false;
 
-  @Option(
-    secure = true,
-    name = "algorithm.proofCheck",
-    description = "use a proof check algorithm to validate a previously generated proof")
+  @Option(secure=true, name="algorithm.proofCheck",
+      description="use a proof check algorithm to validate a previously generated proof")
   private boolean useProofCheckAlgorithm = false;
 
-  @Option(
-    secure = true,
-    name = "algorithm.proofCheckReadConfig",
-    description = "use a proof check algorithm to validate a previously generated proof"
+  @Option(secure=true, name="algorithm.proofCheckReadConfig",
+      description="use a proof check algorithm to validate a previously generated proof"
           + "and read the configuration for checking from the proof")
   private boolean useProofCheckAlgorithmWithStoredConfig = false;
 
-  @Option(
-    secure = true,
-    name = "algorithm.proofCheckAndGetHWRequirements",
-    description = "use a proof check algorithm to validate a previously generated proof"
-        + "and extract requirements on a (reconfigurable) HW from the proof")
+  @Option(secure=true, name="algorithm.proofCheckAndGetHWRequirements",
+      description="use a proof check algorithm to validate a previously generated proof"
+      + "and extract requirements on a (reconfigurable) HW from the proof")
   private boolean useProofCheckAndExtractCIRequirementsAlgorithm = false;
 
-  @Option(
-    secure = true,
-    name = "algorithm.proofCheckWithARGCMCStrategy",
-    description = "use a proof check algorithm that using pcc.strategy=arg.ARG_CMCStrategy to validate a previously generated proof")
+  @Option(secure=true, name="algorithm.proofCheckWithARGCMCStrategy",
+      description="use a proof check algorithm that using pcc.strategy=arg.ARG_CMCStrategy to validate a previously generated proof")
   private boolean useProofCheckWithARGCMCStrategy = false;
 
-  @Option(
-    secure = true,
-    name = "algorithm.propertyCheck",
+  @Option(secure=true, name="algorithm.propertyCheck",
       description = "do analysis and then check "
-        + "if reached set fulfills property specified by ConfigurableProgramAnalysisWithPropertyChecker")
+      + "if reached set fulfills property specified by ConfigurableProgramAnalysisWithPropertyChecker")
   private boolean usePropertyCheckingAlgorithm = false;
 
-  @Option(
-    secure = true,
-    name = "checkProof",
+  @Option(secure=true, name="checkProof",
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
 
@@ -282,15 +255,15 @@ public class CoreComponentsFactory {
   private boolean unknownIfUnrestrictedProgram = false;
 
   @Option(
-    secure = true,
-    name = "algorithm.MPV",
-    description = "use MPV algorithm for checking multiple properties")
+      secure = true,
+      name = "algorithm.MPV",
+      description = "use MPV algorithm for checking multiple properties")
   private boolean useMPV = false;
 
   @Option(
-    secure = true,
-    name = "algorithm.CBMC",
-    description = "use CBMC as an external tool from CPAchecker")
+      secure = true,
+      name = "algorithm.CBMC",
+      description = "use CBMC as an external tool from CPAchecker")
   boolean runCBMCasExternalTool = false;
 
   private final Configuration config;
@@ -353,10 +326,8 @@ public class CoreComponentsFactory {
   }
 
   public Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa,
-      final CFA cfa,
-      final Specification pSpecification)
-      throws InvalidConfigurationException, CPAException {
+      final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification pSpecification)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating algorithms");
 
     if (disableAnalysis) {
@@ -384,12 +355,7 @@ public class CoreComponentsFactory {
     } else if(useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
-          new ConfigReadingProofCheckAlgorithm(
-              config,
-              logger,
-              shutdownNotifier,
-              cfa,
-              specification);
+          new ConfigReadingProofCheckAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (useProofCheckAlgorithm || useProofCheckWithARGCMCStrategy) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
@@ -446,18 +412,13 @@ public class CoreComponentsFactory {
       }
 
       if (useAnalysisWithEnablerCPAAlgorithm) {
-        algorithm =
-            new AnalysisWithRefinableEnablerCPAAlgorithm(
-                algorithm,
-                cpa,
-                cfa,
-                logger,
-                config,
-                shutdownNotifier);
+        algorithm = new AnalysisWithRefinableEnablerCPAAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
       }
 
       if (useCEGAR) {
-        algorithm = new CEGARAlgorithmFactory(algorithm, cpa, logger, config).newInstance();
+        algorithm =
+            new CEGARAlgorithmFactory(algorithm, cpa, logger, config, shutdownNotifier)
+                .newInstance();
       }
 
       if (usePDR) {
@@ -512,17 +473,12 @@ public class CoreComponentsFactory {
       if (useTestCaseGeneratorAlgorithm) {
         algorithm =
             new TestCaseGeneratorAlgorithm(
-                algorithm,
-                cfa,
-                config,
-                cpa,
-                logger,
-                shutdownNotifier,
-                specification);
+                algorithm, cfa, config, cpa, logger, shutdownNotifier, specification);
       }
 
       if (collectAssumptions) {
-        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger, cfa);
+        algorithm =
+            new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger, cfa, shutdownNotifier);
       }
 
       if (useAdjustableConditions) {
@@ -531,14 +487,7 @@ public class CoreComponentsFactory {
 
       TigerConfiguration tigerConfig = new TigerConfiguration(config);
       if (tigerConfig.useTigerAlgorithm) {
-        algorithm =
-            new TigerAlgorithm(
-                logger,
-                cfa,
-                config,
-                cpa,
-                shutdownNotifier,
-                specification);
+        algorithm = new TigerAlgorithm(logger, cfa, config, cpa, shutdownNotifier, specification);
       }
       if (tigerConfig.useTigerMultiGoalAlgorithm) {
         algorithm =
@@ -565,14 +514,7 @@ public class CoreComponentsFactory {
       }
 
       if (useCustomInstructionRequirementExtraction) {
-        algorithm =
-            new CustomInstructionRequirementsExtractingAlgorithm(
-                algorithm,
-                cpa,
-                config,
-                logger,
-                shutdownNotifier,
-                cfa);
+        algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
       }
 
       if (unexploredPathsAsProgram) {
@@ -584,21 +526,21 @@ public class CoreComponentsFactory {
       }
 
       if (useTerminationAlgorithm) {
-        algorithm = new TerminationAlgorithm(
-            config,
-            logger,
-            shutdownNotifier,
-            cfa,
-            reachedSetFactory,
-            aggregatedReachedSetManager,
-            specification,
-            algorithm,
-            cpa);
+        algorithm =
+            new TerminationAlgorithm(
+                config,
+                logger,
+                shutdownNotifier,
+                cfa,
+                reachedSetFactory,
+                aggregatedReachedSetManager,
+                specification,
+                algorithm,
+                cpa);
       }
 
       if (cpa instanceof ARGCPA && forceCexStore) {
-        algorithm =
-            new CounterexampleStoreAlgorithm(algorithm, cpa, config, logger, cfa.getMachineModel());
+        algorithm = new CounterexampleStoreAlgorithm(algorithm, cpa, config, logger, cfa.getMachineModel());
       }
 
       if (useMPV) {
@@ -633,7 +575,7 @@ public class CoreComponentsFactory {
   }
 
   public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification pSpecification)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating CPAs");
 
     if (useInterleavedAlgorithm
@@ -661,7 +603,7 @@ public class CoreComponentsFactory {
   }
 
   private Specification loadTerminationSpecification(CFA cfa, Specification originalSpecification)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     Preconditions.checkState(useTerminationAlgorithm);
     boolean atMostWitness = true;
 
@@ -677,11 +619,7 @@ public class CoreComponentsFactory {
     }
     Specification terminationSpecification =
         TerminationAlgorithm.loadTerminationSpecification(
-            originalSpecification.getProperties(),
-            witness,
-            cfa,
-            config,
-            logger);
+            originalSpecification.getProperties(), witness, cfa, config, logger, shutdownNotifier);
 
     if (!atMostWitness && !originalSpecification.equals(terminationSpecification)) {
       throw new InvalidConfigurationException(

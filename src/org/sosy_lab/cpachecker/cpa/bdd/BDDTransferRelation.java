@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -103,7 +104,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   private final MachineModel machineModel;
 
   private static Region globalConstraint;
-
   /**
    * The Constructor of BDDVectorTransferRelation sets the NamedRegionManager and the
    * BitVectorManager. Both are used to build and manipulate BDDs, that represent the regions.
@@ -115,7 +115,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       CFA cfa,
       int pBitsize,
       boolean pCompressIntEqual) {
-    // no constraint; ignore nothing
     this.machineModel = cfa.getMachineModel();
     this.rmgr = manager;
     this.bvmgr = bvmgr;
@@ -127,7 +126,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     if (globalConstraint == null) {
       globalConstraint = manager.makeTrue();
     }
-
   }
 
   @Override
@@ -138,9 +136,11 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
     // the path is not fulfilled
     if (rmgr.makeAnd(globalConstraint, pState.getRegion()).isFalse()) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
-
+    if (pState.getRegion().isFalse()) {
+      return ImmutableList.of();
+    }
     return null;
   }
 
@@ -166,8 +166,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       result = handleExternalFunctionCall(result, cfaEdge.getSuccessor(),
               ((CFunctionCallStatement) statement).getFunctionCallExpression().getParameterExpressions());
     }
-
     assert !result.getRegion().isFalse();
+
     if (rmgr.makeAnd(globalConstraint, state.getRegion()).isFalse()) {
       // the new state must be ignored
       return null;
@@ -227,12 +227,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         final Region[] regRHS = evaluateVectorExpression(partition, (CExpression) rhs, targetType, successor);
         newState = newState.addAssignment(var, regRHS);
       }
-
       if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
         // the new state must be ignored
         return null;
       }
-
       return newState;
 
     } else if (rhs instanceof CFunctionCallExpression) {
@@ -441,7 +439,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // the new state must be ignored
       return null;
     }
-
     return newState;
   }
 
@@ -493,8 +490,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // get information from region into evaluated region
     Region newRegion = rmgr.makeAnd(state.getRegion(), evaluated);
-    if (rmgr.makeAnd(globalConstraint, newRegion).isFalse()) { // assumption is not fulfilled / not
-                                                               // possible
+    if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
+      return null;
+    } else if (rmgr.makeAnd(globalConstraint, newRegion).isFalse()) {
       return null;
     } else {
       return new BDDState(rmgr, bvmgr, newRegion);
@@ -682,8 +680,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   /** This Visitor evaluates the visited expression and
    * returns iff the given variable is used in it. */
-  private static class VarCExpressionVisitor
-      extends DefaultCExpressionVisitor<Boolean, NoException> {
+  private static class VarCExpressionVisitor extends DefaultCExpressionVisitor<Boolean, NoException> {
 
     private String varName;
 
@@ -746,10 +743,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   @Override
   public Collection<? extends AbstractState> strengthen(
-      AbstractState pState,
-      List<AbstractState> states,
-      CFAEdge cfaEdge,
-      Precision pPrecision)
+      AbstractState pState, Iterable<AbstractState> states, CFAEdge cfaEdge, Precision pPrecision)
       throws CPATransferException {
     BDDState bddState = (BDDState) pState;
 
@@ -759,7 +753,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         bddState = strengthenWithPointerInformation((PointerState) otherState, cfaEdge);
         super.resetInfo();
         if (bddState == null) {
-          return Collections.emptyList();
+          return ImmutableList.of();
         }
       }
     }
@@ -830,9 +824,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   /** get all possible explicit targets for a pointer, or NULL if they are unknown. */
   static @Nullable ExplicitLocationSet getLocationsForLhs(
-      PointerState pPointerInfo,
-      CPointerExpression pPointer)
-      throws UnrecognizedCodeException {
+      PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCodeException {
     LocationSet directLocation = PointerTransferRelation.asLocations(pPointer, pPointerInfo);
     if (!(directLocation instanceof ExplicitLocationSet)) {
       LocationSet indirectLocation =
@@ -851,9 +843,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   }
 
   static @Nullable MemoryLocation getLocationForRhs(
-      PointerState pPointerInfo,
-      CPointerExpression pPointer)
-      throws UnrecognizedCodeException {
+      PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCodeException {
     LocationSet fullSet = PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
     if (fullSet instanceof ExplicitLocationSet) {
       ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;

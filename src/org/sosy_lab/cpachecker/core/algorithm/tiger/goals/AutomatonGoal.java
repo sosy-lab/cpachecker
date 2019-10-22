@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -44,7 +43,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePa
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpressionArguments;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
@@ -169,13 +167,12 @@ public class AutomatonGoal extends Goal {
         final AutomatonBoolExpr trigger = createMatcherForLabel(t.getLabel());
         final ImmutableList<AExpression> assumptions = createAssumesForLabel(t.getLabel());
 
-        AutomatonTransition ct =
-            new AutomatonTransition(
+        org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.Builder builder =
+            new org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.Builder(
                 trigger,
-                Collections.<AutomatonBoolExpr>emptyList(),
-                assumptions,
-                Collections.<AutomatonAction>emptyList(),
                 sucessorStateName);
+        builder.withAssumptions(assumptions);
+        AutomatonTransition ct = builder.build();
 
         transitions.add(ct);
       }

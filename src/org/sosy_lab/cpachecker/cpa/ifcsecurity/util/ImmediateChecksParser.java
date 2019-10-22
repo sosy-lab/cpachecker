@@ -67,9 +67,7 @@ public class ImmediateChecksParser {
       } else if(strLine.contains(";")){
         int sem=strLine.indexOf(";");
         Variable var=new Variable(strLine.substring(0, sem));
-        if(!set.contains(var)){
-          set.add(var);
-        }
+        set.add(var);
       }
     }
   }

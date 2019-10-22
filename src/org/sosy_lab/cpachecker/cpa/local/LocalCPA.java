@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.local;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -49,7 +49,7 @@ public class LocalCPA extends AbstractCPA
   private Statistics statistics;
 
   @Option(name = "localvariables", description = "variables, which are always local", secure = true)
-  private Set<String> localVariables = Collections.emptySet();
+  private Set<String> localVariables = ImmutableSet.of();
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LocalCPA.class);

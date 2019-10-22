@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -79,14 +80,16 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
@@ -211,7 +214,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
           .stream()
           .filter(
               (AbstractState state) -> {
-                return ((ARGState) state).getChildren().size() > 0;
+                return !((ARGState) state).getChildren().isEmpty();
               })
           .forEach(
               (AbstractState state) -> {
@@ -233,10 +236,11 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         openZipFS();
       }
 
-      boolean shouldReturnFalse;
+      boolean shouldReturnFalse, ignoreTargetState;
       while (pReached.hasWaitingState() && !testTargets.isEmpty()) {
         shutdownNotifier.shutdownIfNecessary();
         shouldReturnFalse = false;
+        ignoreTargetState = false;
 
         assert ARGUtils.checkARG(pReached);
         assert (from(pReached).filter(IS_TARGET_STATE).isEmpty());
@@ -250,9 +254,12 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
           // exception
           status = status.withPrecise(false);
           logger.logUserException(Level.WARNING, e, "Analysis not completed.");
-          if (!(e instanceof CounterexampleAnalysisFailed
+          if (e instanceof CounterexampleAnalysisFailed
               || e instanceof RefinementFailedException
-              || e instanceof InfeasibleCounterexampleException)) {
+              || e instanceof InfeasibleCounterexampleException) {
+
+            ignoreTargetState = true;
+          } else {
             throw e;
           }
         } catch (InterruptedException e1) {
@@ -272,6 +279,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
 
           AbstractState reachedState = from(pReached).firstMatch(IS_TARGET_STATE).orNull();
           if (reachedState != null) {
+            boolean removeState = true;
 
             ARGState argState = (ARGState) reachedState;
 
@@ -296,6 +304,15 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
                     shouldReturnFalse = true;
                   }
                 } else {
+                  if (ignoreTargetState) {
+                    TestTargetState targetState =
+                        AbstractStates.extractStateByType(reachedState, TestTargetState.class);
+                    Preconditions.checkNotNull(targetState);
+                    Preconditions.checkArgument(targetState.isTarget());
+
+                    targetState.changeToStopTargetStatus();
+                    removeState = false;
+                  }
                   logger.log(
                       Level.FINE,
                       "Status was not precise. Current test target is not removed:"
@@ -311,8 +328,10 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
               logger.log(Level.FINE, "Target edge was null.");
             }
 
-            argState.removeFromARG();
-            pReached.remove(reachedState);
+            if (removeState) {
+              argState.removeFromARG();
+              pReached.remove(reachedState);
+            }
             pReached.reAddToWaitlist(parentArgState);
 
             assert ARGUtils.checkARG(pReached);
@@ -417,8 +436,8 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
       final FormatType type) {
     final ARGState rootState = pTargetPath.getFirstState();
     final Predicate<? super ARGState> relevantStates = Predicates.in(pTargetPath.getStateSet());
-    final Predicate<? super Pair<ARGState, ARGState>> relevantEdges =
-        Predicates.in(pTargetPath.getStatePairs());
+    final BiPredicate<ARGState, ARGState> relevantEdges =
+        BiPredicates.pairIn(ImmutableSet.copyOf(pTargetPath.getStatePairs()));
     try {
       Optional<String> testOutput;
 

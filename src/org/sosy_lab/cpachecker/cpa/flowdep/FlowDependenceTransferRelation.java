@@ -472,7 +472,7 @@ class FlowDependenceTransferRelation
       return ImmutableSet.of(nextState);
 
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 
@@ -638,7 +638,7 @@ class FlowDependenceTransferRelation
       } else if (pLhs instanceof CArraySubscriptExpression) {
         return ((CArraySubscriptExpression) pLhs).getSubscriptExpression().accept(this);
       } else {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
     }
 
@@ -668,7 +668,7 @@ class FlowDependenceTransferRelation
     @Override
     public Set<MemoryLocation> visit(CFieldDesignator pFieldDesignator)
         throws CPATransferException {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override
@@ -690,7 +690,7 @@ class FlowDependenceTransferRelation
       if (idDeclaration instanceof CVariableDeclaration || idDeclaration instanceof CParameterDeclaration) {
         return Collections.singleton(MemoryLocation.valueOf(idDeclaration.getQualifiedName()));
       } else {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
     }
 
@@ -754,27 +754,27 @@ class FlowDependenceTransferRelation
 
     @Override
     public Set<MemoryLocation> visit(CCharLiteralExpression pExp) throws CPATransferException {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override
     public Set<MemoryLocation> visit(CFloatLiteralExpression pExp) throws CPATransferException {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override
     public Set<MemoryLocation> visit(CIntegerLiteralExpression pExp) throws CPATransferException {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override
     public Set<MemoryLocation> visit(CStringLiteralExpression pExp) throws CPATransferException {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override
     public Set<MemoryLocation> visit(CTypeIdExpression pExp) throws CPATransferException {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override
@@ -784,7 +784,7 @@ class FlowDependenceTransferRelation
 
     @Override
     public Set<MemoryLocation> visit(CImaginaryLiteralExpression pExp) throws CPATransferException {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override
@@ -794,17 +794,17 @@ class FlowDependenceTransferRelation
 
     @Override
     public Set<MemoryLocation> visit(CFunctionDeclaration pDecl) throws CPATransferException {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override
     public Set<MemoryLocation> visit(CComplexTypeDeclaration pDecl) throws CPATransferException {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override
     public Set<MemoryLocation> visit(CTypeDefDeclaration pDecl) throws CPATransferException {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override
@@ -813,7 +813,7 @@ class FlowDependenceTransferRelation
       if (init != null) {
         return init.accept(this);
       } else {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
     }
 
@@ -824,7 +824,7 @@ class FlowDependenceTransferRelation
 
     @Override
     public Set<MemoryLocation> visit(CEnumerator pDecl) throws CPATransferException {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     @Override
@@ -834,7 +834,7 @@ class FlowDependenceTransferRelation
       if (ret.isPresent()) {
         return ret.get().accept(this);
       } else {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
     }
   }

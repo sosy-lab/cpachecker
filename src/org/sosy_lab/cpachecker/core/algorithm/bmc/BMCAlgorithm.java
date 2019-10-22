@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -135,7 +136,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       CFA pCFA,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     super(
         pAlgorithm,
         pCPA,
@@ -349,6 +350,11 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           @Override
           public void printStatistics(
               PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+            // apparently there is nothing to do here.
+          }
+
+          @Override
+          public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
             if (pResult == Result.FALSE) {
               return;
             }
@@ -379,7 +385,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                     w,
                     rootState,
                     Predicates.alwaysTrue(),
-                    Predicates.alwaysTrue(),
+                    BiPredicates.alwaysTrue(),
                     new InvariantProvider() {
 
                       @Override

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import java.util.HashSet;
 import java.util.List;
@@ -73,8 +74,7 @@ public class CallstackFilter extends GenericFilter<String> {
   @Override
   protected String getPathCore(ExtendedARGPath pPath) {
     List<ARGState> firstCalls = from(pPath.getStateSet()).filter(isFirstCall).toList();
-    List<String> callerFunctions = from(firstCalls).
-        transform(getFunctionName).toList();
+    List<String> callerFunctions = transformedImmutableListCopy(firstCalls, getFunctionName);
 
     //TODO Now I believe, it is enough to check the last function called from main - this is related to the call stack
     if (callerFunctions.size() >= 1) {

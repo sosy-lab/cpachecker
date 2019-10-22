@@ -27,6 +27,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.function.BiPredicate;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -34,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 
 public class ExtendedWitnessExporter extends WitnessExporter {
@@ -49,13 +49,13 @@ public class ExtendedWitnessExporter extends WitnessExporter {
       Appendable pTarget,
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       CounterexampleInfo pCounterExample)
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer =
-        new ExtendedWitnessWriter(
+    WitnessFactory writer =
+        new ExtendedWitnessFactory(
             options,
             cfa,
             verificationTaskMetaData,

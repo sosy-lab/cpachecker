@@ -31,13 +31,11 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Set;
@@ -87,7 +85,6 @@ import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.ThisExpression;
 import org.eclipse.jdt.core.dom.Type;
-import org.eclipse.jdt.core.dom.TypeLiteral;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
@@ -427,7 +424,7 @@ class ASTConverter {
     JFieldDeclaration fieldDecl = scope.lookupField(fieldName);
 
     // update initializer (can't be constructed while generating the Declaration)
-    if (preSideAssignments.size() != 0 || postSideAssignments.size() != 0) {
+    if (!preSideAssignments.isEmpty() || !postSideAssignments.isEmpty()) {
       logger.log(
           Level.WARNING, "Sideeffects of initializer of field " + fieldName + " will be ignored");
       preSideAssignments.clear();
@@ -879,7 +876,7 @@ class ASTConverter {
     case ASTNode.SUPER_FIELD_ACCESS :
       return convert(((SuperFieldAccess) e));
     case ASTNode.TYPE_LITERAL :
-      return convert((TypeLiteral)e);
+      return convert();
     case ASTNode.SUPER_METHOD_INVOCATION :
       return convert((SuperMethodInvocation) e);
     default:
@@ -903,10 +900,10 @@ class ASTConverter {
     List<Expression> p = e.arguments();
 
     List<JExpression> params;
-    if (p.size() > 0) {
+    if (!p.isEmpty()) {
       params = convert(p);
     } else {
-      params = Collections.emptyList();
+      params = ImmutableList.of();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(e.getName());
@@ -965,10 +962,7 @@ class ASTConverter {
       return miv;
   }
 
-  /**
-   * @param pE the node to convert
-   */
-  private JAstNode convert(TypeLiteral pE) {
+  private JAstNode convert() {
     throw new CFAGenerationRuntimeException("Standard Library support not yet implemented.\n"
       +  "Cannot use Type Literals which would return a class Object.");
   }
@@ -1117,7 +1111,7 @@ class ASTConverter {
       subClassTypeSet.add(classType);
     }
 
-    return Lists.newArrayList(subClassTypeSet);
+    return new ArrayList<>(subClassTypeSet);
   }
 
   private JExpression createInstanceOfDisjunction(JIdExpression pLeftOperand,
@@ -1290,7 +1284,7 @@ class ASTConverter {
           convertConstructorType(constructorBinding),
           fullName,
           simpleName,
-          Collections.emptyList(),
+          ImmutableList.of(),
           mb.getVisibility(),
           mb.isStrictFp(),
           getDeclaringClassType(constructorBinding));
@@ -1301,7 +1295,7 @@ class ASTConverter {
           JConstructorType.createUnresolvableConstructorType(),
           fullName,
           simpleName,
-          Collections.emptyList(),
+          ImmutableList.of(),
           VisibilityModifier.NONE,
           false,
           JClassType.createUnresolvableType());
@@ -1332,8 +1326,8 @@ class ASTConverter {
         parameterTypes = new ArrayList<>(parameterDeclarations.size());
 
       } else {
-        parameterDeclarations = Collections.emptyList();
-        parameterTypes = Collections.emptyList();
+        parameterDeclarations = ImmutableList.of();
+        parameterTypes = ImmutableList.of();
       }
 
       for (JParameterDeclaration d : parameterDeclarations) {
@@ -1678,10 +1672,10 @@ class ASTConverter {
     List<Expression> p = mi.arguments();
 
     List<JExpression> params;
-    if (p.size() > 0) {
+    if (!p.isEmpty()) {
       params = convert(p);
     } else {
-      params = Collections.emptyList();
+      params = ImmutableList.of();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(mi.getName());

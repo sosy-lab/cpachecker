@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import ap.Prover.ProofResult;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -42,18 +43,19 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
   private final int k;
 
   private InductionResult(T pInvariantAbstraction) {
+    super(true);
     invariantAbstraction = Objects.requireNonNull(pInvariantAbstraction);
-    badStateBlockingClauses = Collections.emptySet();
+    badStateBlockingClauses = ImmutableSet.of();
     k = -1;
   }
 
   private InductionResult(
       Iterable<? extends SymbolicCandiateInvariant> pBadStateBlockingClauses,
       int pK) {
-    if (Iterables.isEmpty(pBadStateBlockingClauses)) {
-      throw new IllegalArgumentException(
-          "Bad-state blocking invariants should be present if (and only if) induction failed.");
-    }
+    super(false);
+    checkArgument(
+        !Iterables.isEmpty(pBadStateBlockingClauses),
+        "Bad-state blocking invariants should be present if (and only if) induction failed.");
     if (pK < 0) {
       throw new IllegalArgumentException(
           "k must not be negative for failed induction results, but is " + pK);
@@ -63,32 +65,28 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
     k = pK;
   }
 
+  @Override
   public boolean isSuccessful() {
+    assert super.isSuccessful() == (invariantAbstraction != null);
     return invariantAbstraction != null;
   }
 
   public T getInvariantRefinement() {
-    if (!isSuccessful()) {
-      throw new IllegalArgumentException(
-          "An invariant abstraction is only present if induction succeeded.");
-    }
+    checkArgument(
+        isSuccessful(), "An invariant abstraction is only present if induction succeeded.");
     return invariantAbstraction;
   }
 
   public Set<SymbolicCandiateInvariant> getBadStateBlockingClauses() {
-    if (isSuccessful()) {
-      throw new IllegalStateException(
-          "Auxiliary-invariants for blocking bad states are only available if induction failed.");
-    }
+    checkState(
+        !isSuccessful(),
+        "Auxiliary-invariants for blocking bad states are only available if induction failed.");
     assert !badStateBlockingClauses.isEmpty();
     return badStateBlockingClauses;
   }
 
   public int getK() {
-    if (isSuccessful()) {
-      throw new IllegalStateException(
-          "Input-assignment length is only present if induction failed.");
-    }
+    checkState(!isSuccessful(), "Input-assignment length is only present if induction failed.");
     return k;
   }
 

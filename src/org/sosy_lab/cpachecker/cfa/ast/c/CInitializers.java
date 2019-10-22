@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isAggregateType;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
@@ -446,10 +447,10 @@ public final class CInitializers {
           throws UnrecognizedCodeException {
 
     Iterator<CFieldReference> fields =
-        from(structType.getMembers())
+        from(structType.getMembers()).filter(field -> !(field.getName().contains("__anon_type_member") && !isAggregateType(field.getType())))
             .filter(field -> !field.getName().contains("__anon_type_member"))
             .transform(
-                field ->
+                field  ->
                     new CFieldReference(
                         loc, field.getType(), field.getName(), currentSubobject, false))
             .iterator();
@@ -460,7 +461,6 @@ public final class CInitializers {
     }
 
     CFieldReference designatedField = null;
-
 
     if (startingFieldName.isPresent()) {
       // find the designated field and advance the iterator up to this point

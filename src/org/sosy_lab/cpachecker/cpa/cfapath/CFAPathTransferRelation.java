@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cfapath;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -44,9 +46,7 @@ public class CFAPathTransferRelation extends SingleEdgeTransferRelation {
       return topStateSingleton;
     }
 
-    if (!(pElement instanceof CFAPathStandardState)) {
-      throw new IllegalArgumentException();
-    }
+    checkArgument((pElement instanceof CFAPathStandardState));
 
     CFAPathStandardState lCurrentElement = (CFAPathStandardState)pElement;
 

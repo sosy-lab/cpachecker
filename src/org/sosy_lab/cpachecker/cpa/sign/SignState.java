@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 
-
 public class SignState implements Serializable, LatticeAbstractState<SignState>, AbstractQueryableState, Graphable {
 
   private static final long serialVersionUID = -2507059869178203119L;
@@ -100,9 +99,10 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
   public SignState enterFunction(ImmutableMap<String, SIGN> pArguments) {
     PersistentMap<String, SIGN> newMap = signMap;
 
-    for (String var : pArguments.keySet()) {
-      if (!pArguments.get(var).equals(SIGN.ALL)) {
-        newMap = newMap.putAndCopy(var, pArguments.get(var));
+    for (Map.Entry<String, SIGN> entry : pArguments.entrySet()) {
+      String var = entry.getKey();
+      if (!entry.getValue().equals(SIGN.ALL)) {
+        newMap = newMap.putAndCopy(var, entry.getValue());
       }
     }
 
@@ -178,6 +178,7 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
     out.defaultWriteObject();
   }
 
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
   }
