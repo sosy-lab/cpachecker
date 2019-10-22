@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -150,7 +152,11 @@ public class CustomInstructionApplications {
   @Options(prefix = "custominstructions")
   public static abstract class CustomInstructionApplicationBuilder {
 
-    public enum CIDescriptionType {MANUAL, OPERATOR}
+    public enum CIDescriptionType {
+      MANUAL,
+      OPERATOR,
+      AUTOMATIC
+    }
 
     @Option(
         secure = true,
@@ -179,9 +185,10 @@ public class CustomInstructionApplications {
         Configuration pConfig, LogManager pLogger, ShutdownNotifier pSdNotifier, CFA pCfa)
         throws InvalidConfigurationException {
       switch (type) {
+        case AUTOMATIC:
+          return new CustomInstructionApplicationsAutomatic(pConfig, pCfa, pLogger, pSdNotifier);
         case MANUAL:
-          return new CustomInstructionApplicationsFromFile(pConfig, pCfa, pLogger,
-              pSdNotifier);
+          return new CustomInstructionApplicationsFromFile(pConfig, pCfa, pLogger, pSdNotifier);
         case OPERATOR:
           return new CustomInstructionsForBinaryOperator(pConfig, pLogger, pSdNotifier, pCfa);
         default:
@@ -195,14 +202,20 @@ public class CustomInstructionApplications {
   @Options(prefix="custominstructions")
   private static class CustomInstructionApplicationsFromFile extends CustomInstructionApplicationBuilder{
 
-    @Option(secure=true, name="definitionFile", description = "File specifying start locations of custom instruction applications")
+    @Option(
+      secure = true,
+      name = "definitionFile",
+      description = "File specifying start locations of custom instruction applications"
+    )
     @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
     private Path appliedCustomInstructionsDefinition = Paths.get("ci_def.txt");
 
     public CustomInstructionApplicationsFromFile(Configuration pConfig, final CFA pCfa,
         LogManager pLogger, ShutdownNotifier pSdNotifier) throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);
-      pConfig.inject(this);
+
+        pConfig.inject(this, CustomInstructionApplicationsFromFile.class);
+
       try {
         IO.checkReadableFile(appliedCustomInstructionsDefinition);
       } catch (FileNotFoundException e) {
@@ -217,6 +230,62 @@ public class CustomInstructionApplications {
           .parse(appliedCustomInstructionsDefinition, ciSpec);
     }
 
+
+  }
+
+  @Options(prefix = "custominstructions")
+  private static class CustomInstructionApplicationsAutomatic
+      extends CustomInstructionApplicationBuilder {
+
+    @Option(
+      secure = true,
+      name = "ciFun",
+      description = "Name of function containing the custom instruction definition"
+    )
+    private String ciFunction;
+
+    @Option(
+      secure = true,
+      name = "definitionFile",
+      description = "File specifying start locations of custom instruction applications"
+    )
+    @FileOption(FileOption.Type.OUTPUT_FILE)
+    private Path appliedCustomInstructionsDefinition = Paths.get("ci_def.txt");
+
+    public CustomInstructionApplicationsAutomatic(
+        Configuration pConfig, final CFA pCfa, LogManager pLogger, ShutdownNotifier pSdNotifier)
+        throws InvalidConfigurationException {
+      super(pConfig, pLogger, pSdNotifier, pCfa);
+      pConfig.inject(this);
+      Preconditions.checkNotNull(ciFunction);
+    }
+
+    @Override
+    public CustomInstructionApplications identifyCIApplications()
+        throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
+      AppliedCustomInstructionParser parser =
+          new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa);
+
+      return parser.parse(findCIApplications(parser), appliedCustomInstructionsDefinition);
+    }
+
+    private CustomInstruction findCIApplications(final AppliedCustomInstructionParser pParser)
+        throws AppliedCustomInstructionParsingFailedException, InterruptedException, IOException {
+      CustomInstruction ci = pParser.readCustomInstruction(ciFunction);
+
+      try (PrintWriter out =
+          new PrintWriter(
+              IO.openOutputFile(appliedCustomInstructionsDefinition, Charset.defaultCharset()))) {
+        for(CFANode node: cfa.getAllNodes()) {
+          if(pParser.isAppliedCI(ci, node)) {
+            shutdownNotifier.shutdownIfNecessary();
+            out.println(node.getNodeNumber());
+          }
+        }
+      }
+
+      return ci;
+    }
   }
 
   @Options(prefix="custominstructions")
