@@ -1501,7 +1501,7 @@ public class CtoFormulaConverter {
     );
   }
 
-  protected Formula buildTerm(
+  public Formula buildTerm(
       CRightHandSide exp,
       CFAEdge edge,
       String function,

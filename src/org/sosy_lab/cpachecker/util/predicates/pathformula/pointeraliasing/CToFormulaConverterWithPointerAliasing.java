@@ -1295,7 +1295,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
-  protected Formula buildTerm(
+  public Formula buildTerm(
       CRightHandSide pExp,
       CFAEdge pEdge,
       String pFunction,
