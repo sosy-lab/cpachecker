@@ -277,7 +277,7 @@ public class CustomInstructionApplications {
           new PrintWriter(
               IO.openOutputFile(appliedCustomInstructionsDefinition, Charset.defaultCharset()))) {
         for(CFANode node: cfa.getAllNodes()) {
-          if(pParser.isAppliedCI(ci, node)) {
+          if (node != ci.getStartNode() && pParser.isAppliedCI(ci, node)) {
             shutdownNotifier.shutdownIfNecessary();
             out.println(node.getNodeNumber());
           }
