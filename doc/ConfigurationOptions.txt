@@ -3003,6 +3003,9 @@ custominstructions.binaryOperatorForSimpleCustomInstruction = PLUS
              GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR,
              EQUALS, NOT_EQUALS]
 
+# Name of function containing the custom instruction definition
+custominstructions.ciFun = no default value
+
 # Signature for custom instruction, describes names and order of input and
 # output variables of a custom instruction
 custominstructions.ciSignature = "ci_spec.txt"
@@ -3022,7 +3025,7 @@ custominstructions.enableRequirementsSlicing = false
 # Specifies the mode how custom instruction applications in program are
 # identified.
 custominstructions.mode = OPERATOR
-  enum:     [MANUAL, OPERATOR]
+  enum:     [MANUAL, OPERATOR, AUTOMATIC]
 
 # Try to remove requirements that are covered by another requirment and are,
 # thus, irrelevant for custom instruction behavior
@@ -3367,7 +3370,7 @@ parser.usePreprocessor = false
 
 # Specifies the mode how HW requirements are detected in the proof.
 pcc.HWrequirements.extraction.mode = OPERATOR
-  enum:     [MANUAL, OPERATOR]
+  enum:     [MANUAL, OPERATOR, AUTOMATIC]
 
 # Enable if used property checker implements satisfiesProperty(AbstractState)
 # and checked property is violated for a set iff an element in this set
