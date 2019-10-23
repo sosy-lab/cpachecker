@@ -1515,7 +1515,7 @@ public class FormulaManagerView {
       }
     });
 
-    BooleanFormula result = booleanFormulaManager.makeTrue();
+    List<BooleanFormula> result = new ArrayList<>();
     if (andFound.get()) {
       final BitvectorFormulaManagerView bvmgr = getBitvectorFormulaManager();
       // Note: We can assume that we have no real bitvectors here, so size should be not important
@@ -1527,20 +1527,16 @@ public class FormulaManagerView {
         BitvectorFormula n = bvmgr.wrap(type, nn);
         BitvectorFormula u1 = bvmgr.and(z, n);
         BitvectorFormula u2 = bvmgr.and(n, z);
-        //Term u1 = env.term(bitwiseAndUfDecl, n, z);
-        //Term u2 = env.term(bitwiseAndUfDecl, z, n);
-        //Term e1;
-        //e1 = env.term("=", u1, z);
-        BooleanFormula e1 = bvmgr.equal(u1, z);
-        //Term e2 = env.term("=", u2, z);
-        BooleanFormula e2 = bvmgr.equal(u2, z);
-        BooleanFormula a = booleanFormulaManager.and(e1, e2);
-        //Term a = env.term("and", e1, e2);
-
-        result = booleanFormulaManager.and(result, a); //env.term("and", result, a);
+        // Term u1 = env.term(bitwiseAndUfDecl, n, z);
+        // Term u2 = env.term(bitwiseAndUfDecl, z, n);
+        // Term e1 = env.term("=", u1, z);
+        // Term e2 = env.term("=", u2, z);
+        // result = env.term("and", result, e1, e2);
+        result.add(bvmgr.equal(u1, z));
+        result.add(bvmgr.equal(u2, z));
       }
     }
-    return result;
+    return booleanFormulaManager.and(result);
   }
 
     // returns a formula with some "static learning" about some bitwise
