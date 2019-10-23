@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -273,13 +272,12 @@ public class CustomInstructionApplications {
         throws AppliedCustomInstructionParsingFailedException, InterruptedException, IOException {
       CustomInstruction ci = pParser.readCustomInstruction(ciFunction);
 
-      try (PrintWriter out =
-          new PrintWriter(
-              IO.openOutputFile(appliedCustomInstructionsDefinition, Charset.defaultCharset()))) {
+      try (Writer out =
+          IO.openOutputFile(appliedCustomInstructionsDefinition, Charset.defaultCharset())) {
         for(CFANode node: cfa.getAllNodes()) {
           if (node != ci.getStartNode() && pParser.isAppliedCI(ci, node)) {
             shutdownNotifier.shutdownIfNecessary();
-            out.println(node.getNodeNumber());
+            out.append(node.getNodeNumber() + "\n");
           }
         }
       }
