@@ -174,23 +174,7 @@ public class FormulaManagerView {
     final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
     final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
 
-    StringBuilder approximations = new StringBuilder();
-    if (encodeBitvectorAs != Theory.BITVECTOR) {
-      approximations.append("ints with ").append(encodeBitvectorAs.description());
-    }
-    if (encodeFloatAs != Theory.FLOAT) {
-      if (approximations.length() > 0) {
-        approximations.append(" and ");
-      }
-      approximations.append("floats with ").append(encodeFloatAs.description());
-    }
-    if (approximations.length() > 0) {
-      logger.log(
-          Level.WARNING,
-          "Using unsound approximation of",
-          approximations,
-          "for encoding program semantics.");
-    }
+    logInfo();
 
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     floatingPointFormulaManager =
@@ -215,6 +199,26 @@ public class FormulaManagerView {
           new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
     } catch (UnsupportedOperationException e) {
       // do nothing, solver does not support arrays
+    }
+  }
+
+  private void logInfo() {
+    StringBuilder approximations = new StringBuilder();
+    if (encodeBitvectorAs != Theory.BITVECTOR) {
+      approximations.append("ints with ").append(encodeBitvectorAs.description());
+    }
+    if (encodeFloatAs != Theory.FLOAT) {
+      if (approximations.length() > 0) {
+        approximations.append(" and ");
+      }
+      approximations.append("floats with ").append(encodeFloatAs.description());
+    }
+    if (approximations.length() > 0) {
+      logger.log(
+          Level.WARNING,
+          "Using unsound approximation of",
+          approximations,
+          "for encoding program semantics.");
     }
   }
 
