@@ -136,11 +136,11 @@ public class FormulaManagerView {
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
   private final FloatingPointFormulaManagerView floatingPointFormulaManager;
-  private final IntegerFormulaManagerView integerFormulaManager;
-  private @Nullable RationalFormulaManagerView rationalFormulaManager;
+  private @Nullable IntegerFormulaManagerView integerFormulaManager; // lazy initialization
+  private @Nullable RationalFormulaManagerView rationalFormulaManager; // lazy initialization
   private final FunctionFormulaManagerView functionFormulaManager;
-  private @Nullable QuantifiedFormulaManagerView quantifiedFormulaManager;
-  private @Nullable ArrayFormulaManagerView arrayFormulaManager;
+  private @Nullable QuantifiedFormulaManagerView quantifiedFormulaManager; // lazy initialization
+  private @Nullable ArrayFormulaManagerView arrayFormulaManager; // lazy initialization
 
   @Option(secure=true, name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -182,26 +182,6 @@ public class FormulaManagerView {
     floatingPointFormulaManager =
         new FloatingPointFormulaManagerView(
             wrappingHandler, rawFloatingPointFormulaManager, manager.getUFManager());
-    integerFormulaManager =
-        new IntegerFormulaManagerView(wrappingHandler, manager.getIntegerFormulaManager());
-
-    try {
-      quantifiedFormulaManager =
-          new QuantifiedFormulaManagerView(
-              wrappingHandler,
-              manager.getQuantifiedFormulaManager(),
-              booleanFormulaManager,
-              integerFormulaManager);
-    } catch (UnsupportedOperationException e) {
-      // do nothing, solver does not support quantification
-    }
-
-    try {
-      arrayFormulaManager =
-          new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
-    } catch (UnsupportedOperationException e) {
-      // do nothing, solver does not support arrays
-    }
   }
 
   private void logInfo() {
@@ -931,11 +911,16 @@ public class FormulaManagerView {
     return makeVariable(formulaType, makeNameNoIndex(name));
   }
 
-  public IntegerFormulaManagerView getIntegerFormulaManager() {
+  public IntegerFormulaManagerView getIntegerFormulaManager() throws UnsupportedOperationException {
+    if (integerFormulaManager == null) {
+      integerFormulaManager =
+          new IntegerFormulaManagerView(wrappingHandler, manager.getIntegerFormulaManager());
+    }
     return integerFormulaManager;
   }
 
-  public RationalFormulaManagerView getRationalFormulaManager() {
+  public RationalFormulaManagerView getRationalFormulaManager()
+      throws UnsupportedOperationException {
     if (rationalFormulaManager == null) {
       rationalFormulaManager =
           new RationalFormulaManagerView(wrappingHandler, manager.getRationalFormulaManager());
@@ -959,16 +944,23 @@ public class FormulaManagerView {
     return functionFormulaManager;
   }
 
-  public QuantifiedFormulaManagerView getQuantifiedFormulaManager() {
+  public QuantifiedFormulaManagerView getQuantifiedFormulaManager()
+      throws UnsupportedOperationException {
     if (quantifiedFormulaManager == null) {
-      throw new UnsupportedOperationException("Solver does not support quantification");
+      quantifiedFormulaManager =
+          new QuantifiedFormulaManagerView(
+              wrappingHandler,
+              manager.getQuantifiedFormulaManager(),
+              booleanFormulaManager,
+              getIntegerFormulaManager());
     }
     return quantifiedFormulaManager;
   }
 
-  public ArrayFormulaManagerView getArrayFormulaManager() {
+  public ArrayFormulaManagerView getArrayFormulaManager() throws UnsupportedOperationException {
     if (arrayFormulaManager == null) {
-      throw new UnsupportedOperationException("Solver does not support arrays");
+      arrayFormulaManager =
+          new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
     }
     return arrayFormulaManager;
   }
