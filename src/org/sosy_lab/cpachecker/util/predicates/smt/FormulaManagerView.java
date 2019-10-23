@@ -84,7 +84,6 @@ import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
-import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
@@ -134,13 +133,14 @@ public class FormulaManagerView {
   private final FormulaManager manager;
   private final FormulaWrappingHandler wrappingHandler;
   private final BooleanFormulaManagerView booleanFormulaManager;
-  private final BitvectorFormulaManagerView bitvectorFormulaManager;
-  private final FloatingPointFormulaManagerView floatingPointFormulaManager;
+  private @Nullable BitvectorFormulaManagerView bitvectorFormulaManager; // lazy initialization
+  private @Nullable FloatingPointFormulaManagerView floatingPointFormulaManager; // lazy initialization
   private @Nullable IntegerFormulaManagerView integerFormulaManager; // lazy initialization
   private @Nullable RationalFormulaManagerView rationalFormulaManager; // lazy initialization
   private final FunctionFormulaManagerView functionFormulaManager;
   private @Nullable QuantifiedFormulaManagerView quantifiedFormulaManager; // lazy initialization
   private @Nullable ArrayFormulaManagerView arrayFormulaManager; // lazy initialization
+  private final ReplaceBitvectorEncodingOptions bvOptions;
 
   @Option(secure=true, name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -162,6 +162,15 @@ public class FormulaManagerView {
       + " This can be used for solvers that do not support floating-point arithmetic, or for increased performance.")
   private Theory encodeFloatAs = Theory.FLOAT;
 
+  @Option(
+      secure = true,
+      description =
+          "Load the theory for bitvector and floating point encoding during startup. "
+              + "Only disable this option if an SMT solver does not support a certain theory "
+              + "and you know that the following analysis does not require a certain theory. "
+              + "The enabled option helps with nice user messages if a certain theory cannot be loaded.")
+  private boolean createFormulaEncodingEagerly = true;
+
   @VisibleForTesting
   public FormulaManagerView(
       FormulaManager pFormulaManager, Configuration config, LogManager pLogger)
@@ -172,16 +181,35 @@ public class FormulaManagerView {
     wrappingHandler = new FormulaWrappingHandler(manager, encodeBitvectorAs, encodeFloatAs);
     booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager());
     functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getUFManager());
-
-    final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
-    final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
+    bvOptions = new ReplaceBitvectorEncodingOptions(config);
 
     logInfo();
 
-    bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
-    floatingPointFormulaManager =
-        new FloatingPointFormulaManagerView(
-            wrappingHandler, rawFloatingPointFormulaManager, manager.getUFManager());
+    if (createFormulaEncodingEagerly) {
+      try {
+        getBitvectorFormulaManager();
+      } catch (UnsupportedOperationException e) {
+        throw new InvalidConfigurationException(
+            "The chosen SMT solver does not support the theory of "
+                + encodeBitvectorAs.description()
+                + ", please choose another SMT solver "
+                + "or use the option cpa.predicate.encodeBitvectorAs "
+                + "to approximate bitvectors with another theory.",
+            e);
+      }
+
+      try {
+        getFloatingPointFormulaManager();
+      } catch (UnsupportedOperationException e) {
+        throw new InvalidConfigurationException(
+            "The chosen SMT solver does not support the theory of "
+                + encodeFloatAs.description()
+                + ", please choose another SMT solver "
+                + "or use the option cpa.predicate.encodeFloatAs "
+                + "to approximate floats with another theory.",
+            e);
+      }
+    }
   }
 
   private void logInfo() {
@@ -204,99 +232,63 @@ public class FormulaManagerView {
     }
   }
 
-  /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'. */
-  private BitvectorFormulaManager getRawBitvectorFormulaManager(Configuration config) throws InvalidConfigurationException, AssertionError {
-    final BitvectorFormulaManager rawBitvectorFormulaManager;
+  /**
+   * Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'.
+   */
+  private BitvectorFormulaManager getRawBitvectorFormulaManager(
+      ReplaceBitvectorEncodingOptions pBvOptions)
+      throws UnsupportedOperationException, AssertionError {
     switch (encodeBitvectorAs) {
-    case BITVECTOR:
-      try {
-        rawBitvectorFormulaManager = manager.getBitvectorFormulaManager();
-      } catch (UnsupportedOperationException e) {
-        throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of bitvectors, "
-            + "please choose another SMT solver "
-            + "or use the option cpa.predicate.encodeBitvectorAs "
-            + "to approximate bitvectors with another theory.",
-            e);
-      }
-      break;
-    case INTEGER:
-      rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
-          manager.getBooleanFormulaManager(),
-          manager.getIntegerFormulaManager(),
-          manager.getUFManager(),
-          new ReplaceBitvectorEncodingOptions(config));
-      break;
-    case RATIONAL:
-      NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
-      try {
-        rmgr = manager.getRationalFormulaManager();
-      } catch (UnsupportedOperationException e) {
-        throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
-            + "please choose another SMT solver "
-            + "or use the option cpa.predicate.encodeBitvectorAs "
-            + "to approximate bitvectors with another theory.",
-            e);
-      }
-      rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
-          manager.getBooleanFormulaManager(),
-          rmgr,
-          manager.getUFManager(),
-          new ReplaceBitvectorEncodingOptions(config));
-      break;
-    case FLOAT:
-      throw new InvalidConfigurationException("Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");
-    default:
-      throw new AssertionError();
+      case BITVECTOR:
+        return manager.getBitvectorFormulaManager();
+      case INTEGER:
+        return new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+            wrappingHandler,
+            manager.getBooleanFormulaManager(),
+            manager.getIntegerFormulaManager(),
+            manager.getUFManager(),
+            pBvOptions);
+      case RATIONAL:
+        return new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+            wrappingHandler,
+            manager.getBooleanFormulaManager(),
+            manager.getRationalFormulaManager(),
+            manager.getUFManager(),
+            pBvOptions);
+      case FLOAT:
+        throw new UnsupportedOperationException(
+            "Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");
+      default:
+        throw new AssertionError("unexpected encoding for floating points: " + encodeFloatAs);
     }
-    return rawBitvectorFormulaManager;
   }
 
-  /** Returns the FloatingPointFormulaManager or a Replacement based on the Option 'encodeFloatAs'. */
-  private FloatingPointFormulaManager getRawFloatingPointFormulaManager() throws InvalidConfigurationException,
-      AssertionError {
-    final FloatingPointFormulaManager rawFloatingPointFormulaManager;
+  /**
+   * Returns the FloatingPointFormulaManager or a Replacement based on the Option 'encodeFloatAs'.
+   */
+  private FloatingPointFormulaManager getRawFloatingPointFormulaManager()
+      throws UnsupportedOperationException, AssertionError {
     switch (encodeFloatAs) {
-    case FLOAT:
-      try {
-        rawFloatingPointFormulaManager = manager.getFloatingPointFormulaManager();
-      } catch (UnsupportedOperationException e) {
-        throw new InvalidConfigurationException(
-            "The chosen SMT solver does not support the theory of floats, "
-            + "please choose another SMT solver "
-            + "or use the option cpa.predicate.encodeFloatAs "
-            + "to approximate floats with another theory.",
-            e);
-      }
-      break;
-    case INTEGER:
-        rawFloatingPointFormulaManager =
-            new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-                wrappingHandler,
-                manager.getIntegerFormulaManager(),
-                manager.getUFManager(),
-                manager.getBooleanFormulaManager());
-      break;
-    case RATIONAL:
-      NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
-      try {
-        rmgr = manager.getRationalFormulaManager();
-      } catch (UnsupportedOperationException e) {
-        throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
-            + "please choose another SMT solver "
-            + "or use the option cpa.predicate.encodeFloatAs "
-            + "to approximate floats with another theory.",
-            e);
-      }
-      rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-          wrappingHandler, rmgr, manager.getUFManager(),
-          manager.getBooleanFormulaManager());
-      break;
-    case BITVECTOR:
-      throw new InvalidConfigurationException("Value BITVECTOR is not valid for option cpa.predicate.encodeFloatAs");
-    default:
-      throw new AssertionError();
+      case FLOAT:
+        return manager.getFloatingPointFormulaManager();
+      case INTEGER:
+        return new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
+            wrappingHandler,
+            manager.getIntegerFormulaManager(),
+            manager.getUFManager(),
+            manager.getBooleanFormulaManager());
+      case RATIONAL:
+        return new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
+            wrappingHandler,
+            manager.getRationalFormulaManager(),
+            manager.getUFManager(),
+            manager.getBooleanFormulaManager());
+      case BITVECTOR:
+        throw new UnsupportedOperationException(
+            "Value BITVECTOR is not valid for option cpa.predicate.encodeFloatAs");
+      default:
+        throw new AssertionError("unexpected encoding for floating points: " + encodeFloatAs);
     }
-    return rawFloatingPointFormulaManager;
   }
 
   FormulaWrappingHandler getFormulaWrappingHandler() {
@@ -932,11 +924,25 @@ public class FormulaManagerView {
     return booleanFormulaManager;
   }
 
-  public BitvectorFormulaManagerView getBitvectorFormulaManager() {
+  public BitvectorFormulaManagerView getBitvectorFormulaManager()
+      throws UnsupportedOperationException {
+    if (bitvectorFormulaManager == null) {
+      bitvectorFormulaManager =
+          new BitvectorFormulaManagerView(
+              wrappingHandler,
+              getRawBitvectorFormulaManager(bvOptions),
+              manager.getBooleanFormulaManager());
+    }
     return bitvectorFormulaManager;
   }
 
-  public FloatingPointFormulaManagerView getFloatingPointFormulaManager() {
+  public FloatingPointFormulaManagerView getFloatingPointFormulaManager()
+      throws UnsupportedOperationException {
+    if (floatingPointFormulaManager == null) {
+      floatingPointFormulaManager =
+          new FloatingPointFormulaManagerView(
+              wrappingHandler, getRawFloatingPointFormulaManager(), manager.getUFManager());
+    }
     return floatingPointFormulaManager;
   }
 

@@ -1890,6 +1890,13 @@ cpa.predicate.blk.useCache = true
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
 
+# Load the theory for bitvector and floating point encoding during startup.
+# Only disable this option if an SMT solver does not support a certain theory
+# and you know that the following analysis does not require a certain theory.
+# The enabled option helps with nice user messages if a certain theory cannot
+# be loaded.
+cpa.predicate.createFormulaEncodingEagerly = true
+
 # The default size in bytes for memory allocations when the value cannot be
 # determined.
 cpa.predicate.defaultAllocationSize = 4
