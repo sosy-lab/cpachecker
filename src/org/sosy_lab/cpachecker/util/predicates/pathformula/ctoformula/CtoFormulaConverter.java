@@ -114,7 +114,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -182,7 +181,6 @@ public class CtoFormulaConverter {
 
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
-  private final IntegerFormulaManagerView nfmgr;
   private final BitvectorFormulaManagerView efmgr;
   final FunctionFormulaManagerView ffmgr;
   protected final LogManagerWithoutDuplicates logger;
@@ -212,7 +210,6 @@ public class CtoFormulaConverter {
     this.typeHandler = pTypeHandler;
 
     this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.nfmgr = fmgr.getIntegerFormulaManager(); // NumeralMgr is only used for String-Literals, so Int or Real does not matter, however Princess only supports Int.
     this.efmgr = fmgr.getBitvectorFormulaManager();
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(logger);
@@ -549,8 +546,7 @@ public class CtoFormulaConverter {
     if (result == null) {
       // generate a new string literal. We generate a new UIf
       int n = nextStringLitIndex++;
-      result = ffmgr.callUF(
-          stringUfDecl, nfmgr.makeNumber(n));
+      result = ffmgr.callUF(stringUfDecl, fmgr.getIntegerFormulaManager().makeNumber(n));
       stringLitToFormula.put(literal, result);
     }
 

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.math.BigInteger;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
@@ -40,8 +42,8 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
   BitvectorFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       BitvectorFormulaManager pManager, BooleanFormulaManager pBmgr) {
     super(pWrappingHandler);
-    this.manager = pManager;
-    bmgr = pBmgr;
+    manager = checkNotNull(pManager);
+    bmgr = checkNotNull(pBmgr);
   }
 
   public BooleanFormula notEqual(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {

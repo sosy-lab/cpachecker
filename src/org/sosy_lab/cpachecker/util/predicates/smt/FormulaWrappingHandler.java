@@ -54,8 +54,8 @@ final class FormulaWrappingHandler {
     manager = checkNotNull(pRawManager);
     encodeBitvectorAs = checkNotNull(pEncodeBitvectorAs);
     encodeFloatAs = checkNotNull(pEncodeFloatAs);
-    assert encodeBitvectorAs != Theory.FLOAT;
-    assert encodeFloatAs != Theory.BITVECTOR;
+    assert encodeBitvectorAs != Theory.FLOAT : "can not encode bitvectors as floats";
+    assert encodeFloatAs != Theory.BITVECTOR : "can not encode floats as bitvectors";
   }
 
   boolean useBitvectors() {
@@ -137,7 +137,7 @@ final class FormulaWrappingHandler {
       case RATIONAL:
         return FormulaType.RationalType;
       default:
-        throw new AssertionError();
+          throw new AssertionError("unexpected encoding for bitvectors: " + type);
       }
     }
 
@@ -150,7 +150,7 @@ final class FormulaWrappingHandler {
       case RATIONAL:
         return FormulaType.RationalType;
       default:
-        throw new AssertionError();
+          throw new AssertionError("unexpected encoding for floats: " + type);
       }
     }
 
