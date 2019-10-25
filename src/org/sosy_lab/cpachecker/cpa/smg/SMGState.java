@@ -281,6 +281,32 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
+   * Makes SMGState create a new anonymous object and put it into the current stack
+   * frame. Used for string initilizers as function arguments.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pTypeSize Size of the type the new local variable
+   * @return Newly created object
+   * @throws SMGInconsistentException when resulting SMGState is inconsistent
+   * and the checks are enabled
+   */
+  public Optional<SMGRegion> addAnonymousVariable(int pTypeSize)
+      throws SMGInconsistentException {
+    if (heap.getStackFrames().isEmpty()) {
+      return Optional.empty();
+    }
+
+    SMGRegion new_object = new SMGRegion(pTypeSize);
+
+    heap.addStackObject(new_object);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return Optional.of(new_object);
+  }
+
+
+
+  /**
    * Makes SMGState create a new object, compares it with the given object, and puts the given object into the current stack
    * frame.
    *
