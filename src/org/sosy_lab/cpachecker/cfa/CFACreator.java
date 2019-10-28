@@ -643,8 +643,12 @@ public class CFACreator {
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     final ParseResult parseResult;
 
-    if (language == Language.C || language == Language.JAVA) {
+    if (language == Language.C) {
       checkIfValidFiles(sourceFiles);
+    } else if (language == Language.JAVA) {
+      for (String sourceFile : sourceFiles) {
+        checkIfValidFile(((JavaParser) parser).getPathToFile(sourceFile));
+      }
     }
 
     if (sourceFiles.size() == 1) {
