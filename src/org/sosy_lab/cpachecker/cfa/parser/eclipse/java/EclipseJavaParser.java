@@ -177,20 +177,31 @@ class EclipseJavaParser implements JavaParser {
    */
   @Override
   public ParseResult parseFile(String mainClassName) throws JParserException, IOException {
-    Path mainClassFile;
-    if(!javaClassPaths.isEmpty()) {
-      mainClassFile =
-          searchForClassFile(mainClassName)
-              .orElseThrow(
-                  () -> new JParserException("Could not find main class in the specified paths"));
-    }
-    else{
-      mainClassFile = Paths.get(mainClassName);
-    }
+    Path mainClassFile = getPathToFile(mainClassName);
     Scope scope = prepareScope(mainClassName);
     ParseResult result = buildCFA(parse(mainClassFile), scope);
     exportTypeHierarchy(scope);
     return result;
+  }
+
+  /**
+   * Returns the path of a file.
+   * @param fileName Name of the file
+   * @return path to file
+   * @throws JParserException is thrown if file is not found
+   */
+  public Path getPathToFile(String fileName) throws JParserException {
+    Path mainClassFile;
+    if(!fileName.endsWith(".java")) {
+      mainClassFile =
+          searchForClassFile(fileName)
+              .orElseThrow(
+                  () -> new JParserException("Could not find main class in the specified paths"));
+    }
+    else{
+      mainClassFile = Paths.get(fileName); //TODO check for file exists
+    }
+    return mainClassFile;
   }
 
   private void exportTypeHierarchy(Scope pScope) {
