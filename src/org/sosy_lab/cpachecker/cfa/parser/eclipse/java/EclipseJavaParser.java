@@ -128,9 +128,9 @@ class EclipseJavaParser implements Parser {
 
     logger = pLogger;
 
-    //TODO Verify what happens if several files are passed
-    if (javaClasspath.equals("")) {
-      javaClassPaths = getJavaPaths(programs.get(0));
+    // TODO Handle multiple program files. Multiple program files might be forbidden. Needs to be checked.
+    if (javaClasspath.equals("") && programs.size() == 1) {
+      javaClassPaths = ImmutableList.of(getJavaPaths(programs.get(0)).get(0).getParent());
     } else {
       javaClassPaths = getJavaPaths(javaClasspath);
     }
@@ -169,10 +169,16 @@ class EclipseJavaParser implements Parser {
    */
   @Override
   public ParseResult parseFile(String mainClassName) throws JParserException, IOException {
-    Path mainClassFile =
-        searchForClassFile(mainClassName)
-            .orElseThrow(
-                () -> new JParserException("Could not find main class in the specified paths"));
+    Path mainClassFile;
+    if(!javaClassPaths.isEmpty()) {
+      mainClassFile =
+          searchForClassFile(mainClassName)
+              .orElseThrow(
+                  () -> new JParserException("Could not find main class in the specified paths"));
+    }
+    else{
+      mainClassFile = Paths.get(mainClassName);
+    }
     Scope scope = prepareScope(mainClassName);
     ParseResult result = buildCFA(parse(mainClassFile), scope);
     exportTypeHierarchy(scope);
