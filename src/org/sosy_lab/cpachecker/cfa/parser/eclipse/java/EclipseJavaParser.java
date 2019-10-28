@@ -130,15 +130,15 @@ class EclipseJavaParser implements Parser {
 
     // TODO Handle multiple program files. Multiple program files might be forbidden. Needs to be checked.
     if (javaClasspath.equals("") && programs.size() == 1) {
-      javaClassPaths = ImmutableList.of(getJavaPaths(programs.get(0)).get(0).getParent());
+      javaClassPaths = ImmutableList.of(convertToPathList(programs.get(0)).get(0).getParent());
     } else {
-      javaClassPaths = getJavaPaths(javaClasspath);
+      javaClassPaths = convertToPathList(javaClasspath);
     }
 
     if (javaSourcepath.isEmpty()) {
       javaSourcePaths = javaClassPaths;
     } else {
-      javaSourcePaths = getJavaPaths(javaSourcepath);
+      javaSourcePaths = convertToPathList(javaSourcepath);
     }
 
     if (javaSourcePaths.isEmpty()) {
@@ -146,15 +146,23 @@ class EclipseJavaParser implements Parser {
     }
   }
 
-  private ImmutableList<Path> getJavaPaths(String javaPath) {
+  /**
+   * Converts a string with a path or multiple paths to files separated by a path separator to an
+   * immutable list of Paths
+   *
+   * @param javaPath String of paths to java files, separated by path separator
+   * @return Immutable list of Paths of files in input string
+   */
+  private ImmutableList<Path> convertToPathList(String javaPath) {
     ImmutableList.Builder<Path> result = ImmutableList.builder();
 
-    for (String path : Splitter.on(File.pathSeparator).trimResults().omitEmptyStrings().split(javaPath)) {
-      Path directory = Paths.get(path);
-      if (!Files.exists(directory)) {
-        logger.log(Level.WARNING, "Path", directory, "could not be found.");
+    for (String pathAsString : Splitter.on(File.pathSeparator).trimResults().omitEmptyStrings()
+        .split(javaPath)) {
+      Path path = Paths.get(pathAsString);
+      if (!Files.exists(path)) {
+        logger.log(Level.WARNING, "Path", path, "could not be found.");
       } else {
-        result.add(directory);
+        result.add(path);
       }
     }
 
