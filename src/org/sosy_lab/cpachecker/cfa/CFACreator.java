@@ -794,12 +794,11 @@ public class CFACreator {
 
   private void checkIfValidFiles(List<String> sourceFiles) throws InvalidConfigurationException {
     for (String file : sourceFiles) {
-      checkIfValidFile(file);
+      checkIfValidFile(Paths.get(file));
     }
   }
 
-  private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
-    Path file = Paths.get(fileDenotation);
+  private void checkIfValidFile(Path file) throws InvalidConfigurationException {
 
     try {
       IO.checkReadableFile(file);
