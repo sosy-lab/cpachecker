@@ -57,8 +57,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.JavaParser;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 
 /**
@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
  *
  */
 @Options
-class EclipseJavaParser implements Parser {
+class EclipseJavaParser implements JavaParser {
 
   @Option(secure=true, name ="java.encoding",
       description="use the following encoding for java files")
