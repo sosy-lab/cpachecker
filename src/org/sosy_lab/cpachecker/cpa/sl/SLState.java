@@ -36,7 +36,7 @@ public class SLState implements AbstractState, Targetable {
 
   public enum SLStateError {
     INVALID_DEREF,
-    UNFREED_MEMORY;
+    MEMORY_LEAK;
   }
 
 

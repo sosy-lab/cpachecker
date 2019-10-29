@@ -267,7 +267,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
           return null;
         }
       }
-      return SLStateError.UNFREED_MEMORY;
+      return SLStateError.MEMORY_LEAK;
     }
     return null;
   }

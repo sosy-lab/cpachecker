@@ -120,21 +120,21 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
     switch (SLHeapFunction.get(fctExp.getName())) {
       case MALLOC:
         if (curLHS == null) {
-          return SLStateError.UNFREED_MEMORY;
+          return SLStateError.MEMORY_LEAK;
         }
         heapDelegate.handleMalloc(curLHS, params.get(0));
         break;
 
       case CALLOC:
         if (curLHS == null) {
-          return SLStateError.UNFREED_MEMORY;
+          return SLStateError.MEMORY_LEAK;
         }
         heapDelegate.handleCalloc(curLHS, params.get(0), params.get(1));
         break;
 
       case REALLOC:
         if (curLHS == null) {
-          return SLStateError.UNFREED_MEMORY;
+          return SLStateError.MEMORY_LEAK;
         }
         return heapDelegate.handleRealloc(curLHS, params.get(0), params.get(1));
 
