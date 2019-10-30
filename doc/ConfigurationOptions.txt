@@ -344,7 +344,7 @@ analysis.traversal.entryResourceLimit = 100000
 
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
-  enum:     [DFS, BFS, RAND, RANDOM_PATH]
+  enum:     [DFS, BFS, RAND, RANDOM_PATH, ROUND_ROBIN]
 
 # Exponent of random function.This value influences the probability
 # distribution over the waitlist elementswhen choosing the next element.Has
