@@ -514,6 +514,74 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
+   * Calculate an arithmetic operation on two double types.
+   *
+   * @param l left hand side value
+   * @param r right hand side value
+   * @param op the binary operator
+   * @param calculationType The type the result of the calculation should have
+   * @param machineModel the machine model
+   * @param logger logging
+   * @return the resulting value
+   */
+  private static BigInteger arithmeticOperationForInt128(
+      final BigInteger l,
+      final BigInteger r,
+      final BinaryOperator op,
+      final CType calculationType,
+      final MachineModel machineModel,
+      final LogManager logger) {
+
+    // checkArgument(calculationType.getCanonicalType() instanceof CSimpleType
+    // && !((CSimpleType) calculationType.getCanonicalType()).isLong(),
+    // "Value analysis can't compute long double values in a precise manner");
+
+    switch (op) {
+      case PLUS:
+        return l.add(r);
+      case MINUS:
+        return l.subtract(r);
+      case DIVIDE:
+        if (r.equals(BigInteger.ZERO)) {
+          // this matches the behavior of long
+          logger.logf(Level.SEVERE, "Division by Zero (%s / %s)", l.toString(), r.toString());
+          return BigInteger.ZERO;
+        }
+        return l.divide(r);
+      case MODULO:
+        return l.mod(r);
+      case MULTIPLY:
+        return l.multiply(r);
+      case SHIFT_LEFT:
+        // TODO: Do not throw an exception, calculate instead
+        try {
+          BigInteger result = l.shiftLeft(r.intValueExact());
+          return result;
+        } catch (ArithmeticException e) {
+          throw new AssertionError(
+              "cannot perform " + op + " if right argument is out of the range of an int-type");
+        }
+      case SHIFT_RIGHT:
+        try {
+          BigInteger result = l.shiftRight(r.intValueExact());
+          return result;
+        } catch (ArithmeticException e) {
+          throw new AssertionError(
+              "cannot perform " + op + " if right argument is out of the range of an int-type");
+        }
+      case BINARY_AND:
+        return l.and(r);
+      case BINARY_OR:
+        return l.or(r);
+      case BINARY_XOR:
+        return l.xor(r);
+      default:
+        throw new AssertionError("unknown binary operation: " + op);
+    }
+
+  }
+
+  /**
    * Calculate an arithmetic operation on two float types.
    *
    * @param l left hand side value
@@ -582,6 +650,13 @@ public abstract class AbstractExpressionValueVisitor
         long result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
         return new NumericValue(result);
       }
+        case INT128: {
+          BigInteger lVal = lNum.bigInteger();
+          BigInteger rVal = rNum.bigInteger();
+          BigInteger result =
+              arithmeticOperationForInt128(lVal, rVal, op, calculationType, machineModel, logger);
+          return new NumericValue(result);
+        }
       case DOUBLE: {
         if (type.isLong()) {
           return arithmeticOperationForLongDouble(lNum, rNum, op, calculationType, machineModel,
@@ -640,6 +715,10 @@ public abstract class AbstractExpressionValueVisitor
 
     final int cmp;
     switch (type.getType()) {
+      case INT128: {
+        cmp = l.bigInteger().compareTo(r.bigInteger());
+        break;
+      }
       case INT: {
         CSimpleType canonicalType = type.getCanonicalType();
         int sizeInBits = machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
@@ -2320,6 +2399,7 @@ public abstract class AbstractExpressionValueVisitor
         return convertToBool(numericValue);
 
       case INT:
+      case INT128:
       case CHAR:
         {
           if (isNan(numericValue)) {
@@ -2334,7 +2414,8 @@ public abstract class AbstractExpressionValueVisitor
             return UnknownValue.getInstance();
         }
 
-          final BigInteger valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
+        final BigInteger valueToCastAsInt = numericValue.bigInteger();// TODO: ask
+                                                                      // BigInteger.valueOf(numericValue.longValue());
           final boolean targetIsSigned = machineModel.isSigned(st);
 
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
