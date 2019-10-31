@@ -226,7 +226,7 @@ public class AppliedCustomInstructionParser {
     return builder.build();
   }
 
-  protected CustomInstruction readCustomInstruction(final String functionName)
+  public CustomInstruction readCustomInstruction(final String functionName)
       throws InterruptedException, AppliedCustomInstructionParsingFailedException {
     FunctionEntryNode function = cfa.getFunctionHead(functionName);
 
@@ -657,4 +657,11 @@ public class AppliedCustomInstructionParser {
 
   }
 
+  public boolean isAppliedCI(final CustomInstruction pCi, final CFANode pNode) {
+    try {
+      return pCi.inspectAppliedCustomInstruction(pNode) != null;
+    } catch (AppliedCustomInstructionParsingFailedException | InterruptedException e) {
+      return false;
+    }
+  }
 }

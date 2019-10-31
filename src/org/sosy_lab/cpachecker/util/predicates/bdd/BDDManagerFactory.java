@@ -38,16 +38,20 @@ import org.sosy_lab.cpachecker.util.predicates.regions.SynchronizedRegionManager
 @Options(prefix="bdd")
 public class BDDManagerFactory {
 
-  @Option(secure=true, name="package",
-      description = "Which BDD package should be used?"
-      + "\n- java:   JavaBDD (default, no dependencies, many features)"
-      + "\n- sylvan: Sylvan (only 64bit Linux, uses multiple threads)"
-      + "\n- cudd:   CUDD (native library required, reordering not supported)"
-      + "\n- micro:  MicroFactory (maximum number of BDD variables is 1024, slow, but less memory-comsumption)"
-      + "\n- buddy:  Buddy (native library required)"
-      + "\n- cal:    CAL (native library required)"
-      + "\n- jdd:    JDD",
-      values = {"JAVA", "SYLVAN", "CUDD", "MICRO", "BUDDY", "CAL", "JDD"},
+  @Option(
+      secure = true,
+      name = "package",
+      description =
+          "Which BDD package should be used?"
+              + "\n- java:   JavaBDD (default, no dependencies, many features)"
+              + "\n- sylvan: Sylvan (only 64bit Linux, uses multiple threads)"
+              + "\n- cudd:   CUDD (native library required, reordering not supported)"
+              + "\n- micro:  MicroFactory (maximum number of BDD variables is 1024, slow, but less memory-comsumption)"
+              + "\n- buddy:  Buddy (native library required)"
+              + "\n- cal:    CAL (native library required)"
+              + "\n- jdd:    JDD"
+              + "\n- pjbdd:  A java native parallel bdd framework",
+      values = {"JAVA", "SYLVAN", "CUDD", "MICRO", "BUDDY", "CAL", "JDD", "PJBDD"},
       toUppercase = true)
   // documentation of the packages can be found at source of BDDFactory.init()
   private String bddPackage = "JAVA";
@@ -69,6 +73,8 @@ public class BDDManagerFactory {
     RegionManager rmgr;
     if (bddPackage.equals("SYLVAN")) {
       rmgr = new SylvanBDDRegionManager(config, logger);
+    } else if (bddPackage.equals("PJBDD")) {
+      rmgr = new PJBDDRegionManager(config);
     } else {
       rmgr = new JavaBDDRegionManager(bddPackage, config, logger);
     }

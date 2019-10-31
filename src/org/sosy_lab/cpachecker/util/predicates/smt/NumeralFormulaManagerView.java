@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
@@ -43,7 +45,7 @@ public class NumeralFormulaManagerView
   NumeralFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
     super(pWrappingHandler);
-    this.manager = pManager;
+    this.manager = checkNotNull(pManager);
   }
 
   @Override

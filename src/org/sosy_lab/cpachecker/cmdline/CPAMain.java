@@ -103,6 +103,11 @@ public class CPAMain {
     // so make sure numbers are formatted appropriately.
     Locale.setDefault(Locale.US);
 
+    if (args.length == 0) {
+      // be nice to user
+      args = new String[] {"-help"};
+    }
+
     // initialize various components
     Configuration cpaConfig = null;
     LoggingOptions logOptions;

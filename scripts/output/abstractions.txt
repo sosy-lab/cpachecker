@@ -1,0 +1,5 @@
+(set-info :source |printed by MathSAT|)
+
+0 () @1:
+(assert true)
+

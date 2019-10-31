@@ -60,7 +60,7 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
 
     return Collections.singleton(
         testTargets.contains(pCfaEdge)
-            ? new TestTargetState(Status.NO_TARGET)
+            ? new TestTargetState(Status.TARGET)
             : TestTargetState.noTargetState());
   }
 

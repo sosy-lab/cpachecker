@@ -216,6 +216,16 @@ class CmdLineArguments {
               .settingProperty("analysis.disable", "true")
               .overridingProperty("log.consoleLevel", "SEVERE")
               .withDescription("print all used options"),
+          new CmdLineArgument("-version") {
+
+            @SuppressFBWarnings("DM_EXIT")
+            @Override
+            void apply0(
+                Map<String, String> pProperties, String pCurrentArg, Iterator<String> pArgsIt) {
+              printVersion(System.out);
+              System.exit(0);
+            }
+          }.withDescription("print version number"),
           new CmdLineArgument("-h", "-help") {
 
             @SuppressFBWarnings("DM_EXIT")
@@ -319,10 +329,14 @@ class CmdLineArguments {
     }
   }
 
-  static void printHelp(PrintStream out) {
+  private static void printVersion(PrintStream out) {
     out.println();
     out.printf(
         "CPAchecker %s (%s)%n", CPAchecker.getPlainVersion(), CPAchecker.getJavaInformation());
+  }
+
+  static void printHelp(PrintStream out) {
+    printVersion(out);
     out.println();
     out.println("OPTIONS:");
     for (CmdLineArgument cmdLineArg : CMD_LINE_ARGS) {
