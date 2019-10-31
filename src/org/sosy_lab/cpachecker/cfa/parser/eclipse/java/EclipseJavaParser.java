@@ -190,6 +190,7 @@ class EclipseJavaParser implements JavaParser {
    * @return path to file
    * @throws JParserException is thrown if file is not found
    */
+  @Override
   public Path getPathToFile(String fileName) throws JParserException {
     Path mainClassFile;
     if(!fileName.endsWith(".java")) {
