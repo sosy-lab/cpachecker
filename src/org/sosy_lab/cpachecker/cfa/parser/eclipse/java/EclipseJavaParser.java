@@ -129,7 +129,7 @@ class EclipseJavaParser implements JavaParser {
     logger = pLogger;
 
     // TODO Handle multiple program files. Multiple program files might be forbidden. Needs to be checked.
-    if (javaClasspath.equals("") && programs.size() == 1) {
+    if (javaClasspath.isEmpty() && programs.size() == 1) {
       javaClassPaths = ImmutableList.of(convertToPathList(programs.get(0)).get(0).getParent());
     } else {
       javaClassPaths = convertToPathList(javaClasspath);
