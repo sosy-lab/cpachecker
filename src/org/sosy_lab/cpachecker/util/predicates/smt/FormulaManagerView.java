@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
@@ -69,6 +70,7 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceIntegerWithBitvectorTheory.ReplaceIntegerEncodingOptions;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
@@ -80,6 +82,7 @@ import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
+import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
@@ -141,6 +144,7 @@ public class FormulaManagerView {
   private @Nullable QuantifiedFormulaManagerView quantifiedFormulaManager; // lazy initialization
   private @Nullable ArrayFormulaManagerView arrayFormulaManager; // lazy initialization
   private final ReplaceBitvectorEncodingOptions bvOptions;
+  private final ReplaceIntegerEncodingOptions intOptions;
 
   @Option(secure=true, name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -162,6 +166,11 @@ public class FormulaManagerView {
       + " This can be used for solvers that do not support floating-point arithmetic, or for increased performance.")
   private Theory encodeFloatAs = Theory.FLOAT;
 
+  @Option(secure=true, description="Theory to use as backend for integers."
+      + " If different from INTEGER, the specified theory is used to approximate integers."
+      + " This can be used for solvers that do not support integers, or for increased performance.")
+  private Theory encodeIntegerAs = Theory.INTEGER;
+
   @Option(
       secure = true,
       description =
@@ -178,7 +187,10 @@ public class FormulaManagerView {
     config.inject(this, FormulaManagerView.class);
     logger = pLogger;
     manager = checkNotNull(pFormulaManager);
-    wrappingHandler = new FormulaWrappingHandler(manager, encodeBitvectorAs, encodeFloatAs);
+    intOptions = new ReplaceIntegerEncodingOptions(config);
+    wrappingHandler =
+        new FormulaWrappingHandler(
+            manager, encodeBitvectorAs, encodeFloatAs, encodeIntegerAs, intOptions);
     booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager());
     functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getUFManager());
     bvOptions = new ReplaceBitvectorEncodingOptions(config);
@@ -209,20 +221,37 @@ public class FormulaManagerView {
                 + "to approximate floats with another theory.",
             e);
       }
+
+      try {
+        getIntegerFormulaManager();
+      } catch (UnsupportedOperationException e) {
+        throw new InvalidConfigurationException(
+            "The chosen SMT solver does not support the theory of "
+                + encodeIntegerAs.description()
+                + ", please choose another SMT solver "
+                + "or use the option cpa.predicate.encodeIntegerAs "
+                + "to approximate integers with another theory.",
+            e);
+      }
     }
   }
 
   private void logInfo() {
-    StringBuilder approximations = new StringBuilder();
+    List<String> encodings = new ArrayList<>();
+    if (encodeIntegerAs != Theory.INTEGER) {
+      encodings.add(
+          "plain ints with "
+              + encodeIntegerAs.description()
+              + " with bitsize "
+              + intOptions.getBitsize());
+    }
     if (encodeBitvectorAs != Theory.BITVECTOR) {
-      approximations.append("ints with ").append(encodeBitvectorAs.description());
+      encodings.add("ints with " + encodeBitvectorAs.description());
     }
     if (encodeFloatAs != Theory.FLOAT) {
-      if (approximations.length() > 0) {
-        approximations.append(" and ");
-      }
-      approximations.append("floats with ").append(encodeFloatAs.description());
+      encodings.add("floats with " + encodeFloatAs.description());
     }
+    StringBuilder approximations = new StringBuilder(Joiner.on(" and ").join(encodings));
     if (approximations.length() > 0) {
       logger.log(
           Level.WARNING,
@@ -286,6 +315,27 @@ public class FormulaManagerView {
       case BITVECTOR:
         throw new UnsupportedOperationException(
             "Value BITVECTOR is not valid for option cpa.predicate.encodeFloatAs");
+      default:
+        throw new AssertionError("unexpected encoding for floating points: " + encodeFloatAs);
+    }
+  }
+
+  /**
+   * Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'.
+   */
+  private IntegerFormulaManager getRawIntegerFormulaManager(
+      ReplaceIntegerEncodingOptions pIntegerOptions)
+      throws UnsupportedOperationException, AssertionError {
+    switch (encodeIntegerAs) {
+      case BITVECTOR:
+        return new ReplaceIntegerWithBitvectorTheory(
+            wrappingHandler, bitvectorFormulaManager, booleanFormulaManager, pIntegerOptions);
+      case INTEGER:
+        return manager.getIntegerFormulaManager();
+      case RATIONAL:
+      case FLOAT:
+        throw new UnsupportedOperationException(
+            "Value FLOAT is not valid for option cpa.predicate.encodeIntegerAs");
       default:
         throw new AssertionError("unexpected encoding for floating points: " + encodeFloatAs);
     }
@@ -906,7 +956,7 @@ public class FormulaManagerView {
   public IntegerFormulaManagerView getIntegerFormulaManager() throws UnsupportedOperationException {
     if (integerFormulaManager == null) {
       integerFormulaManager =
-          new IntegerFormulaManagerView(wrappingHandler, manager.getIntegerFormulaManager());
+          new IntegerFormulaManagerView(wrappingHandler, getRawIntegerFormulaManager(intOptions));
     }
     return integerFormulaManager;
   }

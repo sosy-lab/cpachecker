@@ -1830,6 +1830,9 @@ cpa.predicate.bam.useAbstractionReduction = true
 # Enable/disable precision reduction at the BAM block entry
 cpa.predicate.bam.usePrecisionReduction = true
 
+# The bitsize is used to encode integers as bitvectors.
+cpa.predicate.bitsize = 32
+
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
 cpa.predicate.blk.alwaysAfterThreshold = true
@@ -1925,6 +1928,12 @@ cpa.predicate.encodeBitvectorAs = BITVECTOR
 # theory is used to approximate floats. This can be used for solvers that do
 # not support floating-point arithmetic, or for increased performance.
 cpa.predicate.encodeFloatAs = FLOAT
+  enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
+
+# Theory to use as backend for integers. If different from INTEGER, the
+# specified theory is used to approximate integers. This can be used for
+# solvers that do not support integers, or for increased performance.
+cpa.predicate.encodeIntegerAs = INTEGER
   enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Replace possible overflows with an ITE-structure, which returns either the
