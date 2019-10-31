@@ -173,6 +173,9 @@ public class CtoFormulaConverter {
 
   private static final CharMatcher ILLEGAL_VARNAME_CHARACTERS = CharMatcher.anyOf("|\\");
 
+  // special variable name used for casting boolean variables to integers
+  private static final String PLACEHOLDER_VAR = "int_bool_to_int";
+
   private final Map<String, Formula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
@@ -794,13 +797,14 @@ public class CtoFormulaConverter {
    */
   private Formula
       intBoolToInt(BooleanFormula formula, CType type, SSAMapBuilder ssa, Constraints constraints) {
-    String iName = "int_bool_to_int";
-    this.makeFreshIndex(iName, type, ssa);
-    BooleanFormula rhs = bfmgr.makeVariable(iName);
+    int index = this.makeFreshIndex(PLACEHOLDER_VAR, type, ssa);
+    IntegerFormula placeh = nfmgr.makeVariable(PLACEHOLDER_VAR, index);
+    IntegerFormula zero = nfmgr.makeNumber(0);
+    BooleanFormula rhs = bfmgr.not(nfmgr.equal(placeh, zero));
     BooleanFormula constraint = bfmgr.equivalence(formula, rhs);
     constraints.addConstraint(constraint);
 
-    return nfmgr.makeVariable(iName);
+    return placeh;
   }
 
   /** Replace the formula with a matching ITE-structure
@@ -1704,7 +1708,10 @@ public class CtoFormulaConverter {
 
   protected final <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
     // If this is not a predicate, make it a predicate by adding a "!= 0"
-    assert !fmgr.getFormulaType(pF).isBooleanType();
+    // assert !fmgr.getFormulaType(pF).isBooleanType();
+    if (fmgr.getFormulaType(pF).isBooleanType()) {
+      return (BooleanFormula) pF;
+    }
 
     T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
 
