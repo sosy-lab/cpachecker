@@ -337,7 +337,7 @@ public class FormulaManagerView {
         throw new UnsupportedOperationException(
             "Value FLOAT is not valid for option cpa.predicate.encodeIntegerAs");
       default:
-        throw new AssertionError("unexpected encoding for floating points: " + encodeFloatAs);
+        throw new AssertionError("unexpected encoding for plain integers: " + encodeIntegerAs);
     }
   }
 
