@@ -92,17 +92,22 @@ public class TestCase {
   }
 
   public String toCode() {
-    String str = "int input() {\n  static int index = 0;\n  switch (index) {\n";
+    StringBuilder str = new StringBuilder();
+    str.append("int input() {\n  static int index = 0;\n  switch (index) {\n");
 
     int index = 0;
     for (TestCaseVariable var : inputs) {
-      str += "  case " + index + ":\n    index++;\n    return " + var.getValue() + ";\n";
+      str.append("  case ");
+      str.append(index);
+      str.append("\":\\n    index++;\\n    return \"");
+      str.append("var.getValue()");
+      str.append(";\n");
       index++;
     }
 
-    str += "  default:\n    return 0;\n  }\n}\n";
+    str.append("  default:\n    return 0;\n  }\n}\n");
 
-    return str;
+    return str.toString();
   }
 
   public List<String> calculateCoveredLabels() {
@@ -140,35 +145,42 @@ public class TestCase {
   public String toString() {
     //String returnStr = inputs.toString();
 
-
-    String returnStr =
-        "TestCase "
-            + id;
+    StringBuilder returnStr = new StringBuilder();
+    returnStr.append("TestCase ");
+    returnStr.append(id);
 
     if (getPresenceCondition() != null) {
-      returnStr +=
-          "TestCase "
-              + id
-              + " with configurations "
-              + bddUtils.dumpRegion(getPresenceCondition())
-                  .replace("__SELECTED_FEATURE_", "")
-                  .replace(" & TRUE", "");
+      returnStr.append("TestCase ");
+      returnStr.append(id);
+      returnStr.append(" with configurations ");
+      returnStr.append(
+          bddUtils.dumpRegion(getPresenceCondition())
+              .replace("__SELECTED_FEATURE_", "")
+              .replace(" & TRUE", ""));
     }
 
-    returnStr += ":\n\n";
-    returnStr += "\tinputs and outputs {\n";
+    returnStr.append(":\n\n");
+    returnStr.append("\tinputs and outputs {\n");
     for (TestCaseVariable variable : inputs) {
-      returnStr += "\t\t-> " + variable.getName() + " = " + variable.getValue() + "\n";
+      returnStr.append("\t\t-> ");
+      returnStr.append(variable.getName());
+      returnStr.append(" = ");
+      returnStr.append(variable.getValue());
+      returnStr.append("\n");
     }
     for (TestCaseVariable variable : outputs) {
-      returnStr += "\t\t<- " + variable.getName() + " = " + variable.getValue() + "\n";
+      returnStr.append("\t\t<- ");
+      returnStr.append(variable.getName());
+      returnStr.append(" = ");
+      returnStr.append(variable.getValue());
+      returnStr.append("\n");
     }
-    returnStr += "\t}";
+    returnStr.append("\t}");
     /* if (presenceCondition != null) {
       returnStr += " with configurations " + bddCpaNamedRegionManager.dumpRegion(getPresenceCondition());
     }*/
 
-    return returnStr;
+    return returnStr.toString();
   }
 
   private boolean

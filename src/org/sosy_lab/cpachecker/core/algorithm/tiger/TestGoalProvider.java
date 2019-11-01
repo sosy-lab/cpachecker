@@ -44,7 +44,7 @@ public class TestGoalProvider {
   static TestGoalProvider provider;
 
 
-  private final String goalPrefix = "Goals:";
+  private static final String goalPrefix = "Goals:";
 
   LogManager logger;
 

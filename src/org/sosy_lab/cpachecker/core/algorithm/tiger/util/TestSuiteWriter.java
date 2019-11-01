@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -46,14 +47,39 @@ public class TestSuiteWriter {
   private Set<TestCase> writtenTestCases;
   private String spec;
   private String producer;
+  private static TestSuiteWriter singleton;
+  private boolean addElapsedTime;
 
-  public TestSuiteWriter(
+  public static TestSuiteWriter getSingleton(
       CFA pCfa,
       LogManager pLogger,
       boolean pUseTestCompOutput,
       String pOutputFolder,
       String pSpec,
-      String pProducer) {
+      String pProducer, boolean pAddElapsedTime) {
+    if (singleton == null) {
+      singleton =
+          new TestSuiteWriter(pCfa, pLogger, pUseTestCompOutput, pOutputFolder, pSpec, pProducer, pAddElapsedTime);
+    } else {
+      assert singleton.cfa.equals(pCfa);
+      assert singleton.logger.equals(pLogger);
+      assert singleton.useTestCompOutput == pUseTestCompOutput;
+      assert singleton.outputFolder.equals(pOutputFolder);
+      assert singleton.spec.equals(pSpec);
+      assert singleton.producer.equals(pProducer);
+      assert singleton.addElapsedTime == pAddElapsedTime;
+    }
+    return singleton;
+  }
+
+  private TestSuiteWriter(
+      CFA pCfa,
+      LogManager pLogger,
+      boolean pUseTestCompOutput,
+      String pOutputFolder,
+      String pSpec,
+      String pProducer,
+      boolean pAddElapsedTime) {
     cfa = pCfa;
     logger = pLogger;
     useTestCompOutput = pUseTestCompOutput;
@@ -61,6 +87,7 @@ public class TestSuiteWriter {
     writtenTestCases = new HashSet<>();
     spec = pSpec;
     producer = pProducer;
+    addElapsedTime = pAddElapsedTime;
     initTestSuiteFolder();
   }
 
@@ -123,8 +150,9 @@ public class TestSuiteWriter {
     builder.append("</creationtime>\n");
 
     builder.append("</test-metadata>");
-
-    Files.write(Paths.get(outputFolder + "/metadata.xml"), builder.toString().getBytes());
+    Path metaFile = Paths.get(outputFolder + "/metadata.xml");
+    logger.log(Level.INFO, "writing metainfo to: " + metaFile.toString());
+    Files.write(metaFile, builder.toString().getBytes());
 
     // logger.log(
     // Level.INFO,
@@ -206,7 +234,11 @@ public class TestSuiteWriter {
       builder.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
       builder.append(
           "<!DOCTYPE testcase SYSTEM \"https://gitlab.com/sosy-lab/software/test-format/blob/master/testcase.dtd\">\n");
+      if (addElapsedTime) {
       builder.append("<testcase elapsedTime=\"" + testcase.getElapsedTime() + "\">\n");
+      } else {
+        builder.append("<testcase>\n");
+      }
       for (TestCaseVariable var : testcase.getInputs()) {
         builder.append("\t<input  variable=\"" + var.getName() + "\">");
         builder.append(var.getValue());

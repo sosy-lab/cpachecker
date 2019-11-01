@@ -188,6 +188,13 @@ analysis.algorithm.propertyCheck = false
 # Use termination algorithm to prove (non-)termination.
 analysis.algorithm.termination = false
 
+# Use Test Input GEneRator algorithm (Information Reuse for Multi-Goal
+# Reachability Analyses, ESOP'13)
+analysis.algorithm.tiger = false
+
+# Use Test Input Generator algorithm with multi goal
+analysis.algorithm.tigerMultiGoal = false
+
 # collect undefined functions
 analysis.algorithm.undefinedFunctionCollector = false
 
@@ -3913,6 +3920,80 @@ testcase.xml = no default value
 
 # Zip file into which all test case files are bundled
 testcase.zip.file = no default value
+
+# Configuration file for internal cpa algorithm.
+tiger.algorithmConfigurationFile = "config/tiger-internal-algorithm.properties"
+tiger.appendFileNameToOutput = false
+tiger.coverageCheck = SINGLE
+  enum:     [NONE, SINGLE, ALL]
+
+# Prefix of the feature variables
+tiger.featureVariablePrefix = "__SELECTED_FEATURE_"
+
+# Coverage criterion given as an FQL query
+tiger.fqlQuery = PredefinedCoverageCriteria.StatementCoverage
+tiger.goalReduction = COMPLEX
+  enum:     [COMPLEX, SIMPLE, NONE]
+
+# List of input variables: v1,v2,v3...
+tiger.inputInterface = ""
+
+# Inverses the order of test goals each time a new round of re-processing of
+# timed-out goals begins.
+tiger.inverseOrder = true
+
+# Time limit per test goal in seconds (-1 for infinity).
+tiger.limitsPerGoal.time.cpu = -1
+
+# Value for which timeout gets incremented if timed-out goals are
+# re-processed.
+tiger.limitsPerGoal.time.cpu.increment = 0
+
+# Number of test-cases per goal, WARNING! currently only works if there is a
+# single goal...
+tiger.numberOfTestCasesPerGoal = 1
+
+# Optimize the test goal automata
+tiger.optimizeGoalAutomata = true
+
+# List of output variables: v1,v2,v3...
+tiger.outputInterface = ""
+tiger.partitioning.partitionSize = 25
+tiger.partitioning.partitionSizeDistribution = RELATIVE
+  enum:     [TOTAL, RELATIVE]
+tiger.partitioning.strategy = RANDOM
+  enum:     [RANDOM, DOMINATION, REVERSEDOMINATION, asd]
+
+# removes the feature prefix from presence conditions in the testsuite
+tiger.removeFeaturePrefix = true
+
+# Filename for output of generated test suite
+tiger.testsuiteFile = "testsuite.txt"
+
+# walltime for the algorithm
+tiger.timeout = Increment = 0
+
+# How to proceed with timed-out goals if some time remains after processing
+# all other goals.
+tiger.timeoutStrategy = SKIP_AFTER_TIMEOUT
+  enum:     [SKIP_AFTER_TIMEOUT, RETRY_AFTER_TIMEOUT]
+
+# determines, whether the ARG will be explored until the return statement of
+# the function
+tiger.useOmegaLabel = true
+
+# Enforce the original order each time a new round of re-processing of
+# timed-out goals begins.
+tiger.useOrder = true
+
+# Only need one Testcase with a valid feature configuration for each goal
+tiger.useSingleFeatureGoalCoverage = false
+
+# uses output specification of testcomp
+tiger.useTestCompOutput = false
+
+# Name of the method to validate the feature model
+tiger.validProductMethodName = "validProduct"
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true

@@ -191,17 +191,18 @@ public class GoalCluster {
 
     @Override
     public String toString() {
-      String lResult = "[" + this.mNoDominatorCluster.size();
-
+      StringBuilder lResult = new StringBuilder();
+      lResult.append("[");
+      lResult.append(this.mNoDominatorCluster.size());
       for (List<Node> lCluster : mClusters.values()) {
-        lResult += lCluster.toString();
+        lResult.append(lCluster.toString());
       }
 
-      lResult += "]";
+      lResult.append("]");
 
       //String lResult = "SIZE: " + size();
 
-      return lResult;
+      return lResult.toString();
     }
 
     /*public ElementaryCoveragePattern get(int pIndex) {

@@ -159,73 +159,77 @@ public class TestGoalUtils {
   }
 
   private String proprocessFQLGoal(String goal) {
-    String fql = null;
+    StringBuilder fql = new StringBuilder();
     if (goal.contains("<->")) {
       return GoalsToEdges(permute(goal.split("<->"), "->", 0));
     } else if (goal.contains("||")) {
       return GoalsToEdges(combine(goal.split("\\|\\|"), "<->"));
     } else {
-      fql = "(\"EDGES(ID)*\"";
+      fql.append("(\"EDGES(ID)*\"");
       for (String singleGoal : goal.trim().split("->")) {
-        fql += ".(EDGES(@LABEL(" + singleGoal.trim() + "))).\"EDGES(ID)*\"";
+        fql.append(".(EDGES(@LABEL(");
+        fql.append(singleGoal.trim());
+        fql.append("))).\"EDGES(ID)*\"");
       }
-      fql += ")";
+      fql.append(")");
     }
-    return fql;
+    return fql.toString();
   }
 
   static String combine(String[] a, String combinator) {
-    String goals = "";
+    StringBuilder goals = new StringBuilder();
     for (int i = 0; i < a.length; i++) {
       for (int x = i + 1; x < a.length; x++) {
-        goals += a[i] + combinator + a[x] + ",";
+        goals.append(a[i]);
+        goals.append(combinator);
+        goals.append(a[x]);
+        goals.append(",");
       }
     }
-    goals = goals.substring(0, goals.length() - 1);
-    return goals;
+    return goals.toString().substring(0, goals.length() - 1);
   }
 
 
   static String permute(String[] a, String combinator, int k) {
 
     if (k == a.length) {
-      String goals = "";
+      StringBuilder goals = new StringBuilder();
       for (int i = 0; i < a.length; i++) {
-        goals += a[i].trim() + combinator;
+        goals.append(a[i].trim());
+        goals.append(combinator);
       }
-      goals = goals.substring(0, goals.length() - combinator.length());
-      return goals;
+      return goals.substring(0, goals.length() - combinator.length());
     } else {
-      String allGoals = "";
+      StringBuilder allGoals = new StringBuilder();
       for (int i = k; i < a.length; i++) {
         String temp = a[k];
         a[k] = a[i];
         a[i] = temp;
 
-        allGoals += permute(a, combinator, k + 1) + ",";
+        allGoals.append(permute(a, combinator, k + 1));
+        allGoals.append(",");
 
         temp = a[k];
         a[k] = a[i];
         a[i] = temp;
       }
-      allGoals = allGoals.substring(0, allGoals.length() - 1);
-      return allGoals;
+      return allGoals.substring(0, allGoals.length() - 1);
     }
   }
 
   private String GoalsToEdges(String goalString) {
-    String fql = "";
+    StringBuilder fql = new StringBuilder();
     String[] goalList = goalString.split(",");
     boolean first = true;
     for (String goal : goalList) {
       if (!first) {
-        fql += "+";
+        fql.append("+");
       }
-      fql += proprocessFQLGoal(goal);
+      fql.append(proprocessFQLGoal(goal));
       first = false;
     }
 
-    return fql;
+    return fql.toString();
   }
 
   public String preprocessFQL(String fqlString) {

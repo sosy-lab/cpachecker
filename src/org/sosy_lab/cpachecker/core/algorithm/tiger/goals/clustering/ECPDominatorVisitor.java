@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.SingletonECPEdgeSet;
 
 public class ECPDominatorVisitor implements ECPVisitor<List<SingletonECPEdgeSet>> {
 
-  public static ECPDominatorVisitor INSTANCE = new ECPDominatorVisitor();
+  public static final ECPDominatorVisitor INSTANCE = new ECPDominatorVisitor();
 
   private ECPDominatorVisitor() {
 

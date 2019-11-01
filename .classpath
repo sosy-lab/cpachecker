@@ -32,7 +32,6 @@
 	<classpathentry kind="lib" path="lib/java/runtime/checker-qual.jar" sourcepath="lib/java-contrib/checker-qual-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/jhoafparser.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/diffutils.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/pjbdd.jar" sourcepath="lib/java-contrib/pjbdd-sources.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="lib" path="lib/java/test/objenesis.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/byte-buddy.jar"/>
@@ -66,6 +65,7 @@
 	<classpathentry kind="lib" path="lib/java/runtime/antlr4-runtime.jar"/>
 	<classpathentry kind="lib" path="lib/jgrapht-core.jar"/>
 	<classpathentry kind="lib" path="lib/jackson-all-1.9.0.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/pjbdd.jar"/>
 	<classpathentry kind="output" path="bin"/>
 	<referencedentry kind="lib" path="lib/java/runtime/smtinterpol.jar" sourcepath="lib/java-contrib/smtinterpol-sources.jar"/>
 </classpath>

@@ -9,6 +9,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
@@ -96,6 +97,7 @@ public class FQLParser extends java_cup.runtime.lr_parser {
               "\003\000\002\016\003\000\002\016\003" });
 
   /** Access to production table. */
+  @Override
   public short[][] production_table() {
     return _production_table;
   }
@@ -258,6 +260,7 @@ public class FQLParser extends java_cup.runtime.lr_parser {
               "\000\004\002\000\001\002" });
 
   /** Access to parse-action table. */
+  @Override
   public short[][] action_table() {
     return _action_table;
   }
@@ -325,6 +328,7 @@ public class FQLParser extends java_cup.runtime.lr_parser {
               "\002\001\001" });
 
   /** Access to <code>reduce_goto</code> table. */
+  @Override
   public short[][] reduce_table() {
     return _reduce_table;
   }
@@ -333,11 +337,13 @@ public class FQLParser extends java_cup.runtime.lr_parser {
   protected CUP$FQLParser$actions action_obj;
 
   /** Action encapsulation object initializer. */
+  @Override
   protected void init_actions() {
     action_obj = new CUP$FQLParser$actions(this);
   }
 
   /** Invoke a user supplied parse action. */
+  @Override
   public java_cup.runtime.Symbol do_action(
       int act_num,
       java_cup.runtime.lr_parser parser,
@@ -349,21 +355,25 @@ public class FQLParser extends java_cup.runtime.lr_parser {
   }
 
   /** Indicates start state. */
+  @Override
   public int start_state() {
     return 0;
   }
 
   /** Indicates start production. */
+  @Override
   public int start_production() {
     return 0;
   }
 
   /** <code>EOF</code> Symbol index. */
+  @Override
   public int EOF_sym() {
     return 0;
   }
 
   /** <code>error</code> Symbol index. */
+  @Override
   public int error_sym() {
     return 1;
   }
@@ -378,7 +388,7 @@ public class FQLParser extends java_cup.runtime.lr_parser {
     this(new FQLLexer(pReader));
   }
 
-  public FQLParser(InputStream pInputStream) {
+  public FQLParser(InputStream pInputStream) throws UnsupportedEncodingException {
     this(new FQLLexer(pInputStream));
   }
 
@@ -414,7 +424,7 @@ class CUP$FQLParser$actions {
     /* select the action based on the action number */
     switch (CUP$FQLParser$act_num) {
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 56: // Comparison ::= TOK_NEQ 
+    case 56: // Comparison ::= TOK_NEQ
     {
       Object RESULT = null;
 
@@ -425,7 +435,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 55: // Comparison ::= TOK_LESS 
+    case 55: // Comparison ::= TOK_LESS
     {
       Object RESULT = null;
 
@@ -436,7 +446,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 54: // Comparison ::= TOK_LESS_OR_EQ 
+    case 54: // Comparison ::= TOK_LESS_OR_EQ
     {
       Object RESULT = null;
 
@@ -447,7 +457,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 53: // Comparison ::= TOK_EQ 
+    case 53: // Comparison ::= TOK_EQ
     {
       Object RESULT = null;
 
@@ -458,7 +468,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 52: // Comparison ::= TOK_GREATER 
+    case 52: // Comparison ::= TOK_GREATER
     {
       Object RESULT = null;
 
@@ -469,7 +479,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 51: // Comparison ::= TOK_GREATER_OR_EQ 
+    case 51: // Comparison ::= TOK_GREATER_OR_EQ
     {
       Object RESULT = null;
 
@@ -480,7 +490,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 50: // Term ::= TOK_NAT_NUMBER 
+    case 50: // Term ::= TOK_NAT_NUMBER
     {
       Object RESULT = null;
       Integer number = (Integer) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
@@ -492,7 +502,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 49: // Term ::= TOK_C_IDENT 
+    case 49: // Term ::= TOK_C_IDENT
     {
       Object RESULT = null;
       String identifier = (String) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
@@ -504,14 +514,14 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 48: // Predicate ::= TOK_L_BRACE Term Comparison Term TOK_R_BRACE 
+    case 48: // Predicate ::= TOK_L_BRACE Term Comparison Term TOK_R_BRACE
     {
       Object RESULT = null;
-      Object leftterm = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 3)).value;
+      Object leftterm = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 3)).value;
       Object comparison =
-          (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
+          ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
       Object rightterm =
-          (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+          ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       assert(leftterm != null);
       assert(comparison != null);
@@ -529,7 +539,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 47: // Filter_Function ::= TOK_CONDITIONGRAPH 
+    case 47: // Filter_Function ::= TOK_CONDITIONGRAPH
     {
       Object RESULT = null;
 
@@ -540,7 +550,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 46: // Filter_Function ::= TOK_DECISIONEDGE 
+    case 46: // Filter_Function ::= TOK_DECISIONEDGE
     {
       Object RESULT = null;
 
@@ -551,7 +561,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 45: // Filter_Function ::= TOK_CONDITIONEDGE 
+    case 45: // Filter_Function ::= TOK_CONDITIONEDGE
     {
       Object RESULT = null;
 
@@ -562,7 +572,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 44: // Filter_Function ::= TOK_BASICBLOCKENTRY 
+    case 44: // Filter_Function ::= TOK_BASICBLOCKENTRY
     {
       Object RESULT = null;
 
@@ -573,7 +583,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 43: // Filter_Function ::= TOK_REGEXP TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS 
+    case 43: // Filter_Function ::= TOK_REGEXP TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS
     {
       Object RESULT = null;
       String regularexpression =
@@ -586,7 +596,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 42: // Filter_Function ::= TOK_EXPR TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS 
+    case 42: // Filter_Function ::= TOK_EXPR TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS
     {
       Object RESULT = null;
       String expression =
@@ -599,7 +609,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 41: // Filter_Function ::= TOK_EXIT TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS 
+    case 41: // Filter_Function ::= TOK_EXIT TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
     {
       Object RESULT = null;
       String function = (String) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
@@ -611,7 +621,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 40: // Filter_Function ::= TOK_ENTRY TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS 
+    case 40: // Filter_Function ::= TOK_ENTRY TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
     {
       Object RESULT = null;
       String function = (String) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
@@ -623,7 +633,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 39: // Filter_Function ::= TOK_CALLS 
+    case 39: // Filter_Function ::= TOK_CALLS
     {
       Object RESULT = null;
 
@@ -634,7 +644,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 38: // Filter_Function ::= TOK_CALL TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS 
+    case 38: // Filter_Function ::= TOK_CALL TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
     {
       Object RESULT = null;
       String function = (String) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
@@ -646,7 +656,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 37: // Filter_Function ::= TOK_LABEL TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS 
+    case 37: // Filter_Function ::= TOK_LABEL TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
     {
       Object RESULT = null;
       String label = (String) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
@@ -658,7 +668,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 36: // Filter_Function ::= TOK_FUNC TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS 
+    case 36: // Filter_Function ::= TOK_FUNC TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
     {
       Object RESULT = null;
       String function = (String) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
@@ -670,7 +680,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 35: // Filter_Function ::= TOK_COLUMN TOK_L_PARENTHESIS TOK_NAT_NUMBER TOK_R_PARENTHESIS 
+    case 35: // Filter_Function ::= TOK_COLUMN TOK_L_PARENTHESIS TOK_NAT_NUMBER TOK_R_PARENTHESIS
     {
       Object RESULT = null;
       Integer columnnumber =
@@ -683,7 +693,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 34: // Filter_Function ::= TOK_LINE_ABBREV 
+    case 34: // Filter_Function ::= TOK_LINE_ABBREV
     {
       Object RESULT = null;
       Integer linenumber = (Integer) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
@@ -695,7 +705,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 33: // Filter_Function ::= TOK_LINE TOK_L_PARENTHESIS TOK_NAT_NUMBER TOK_R_PARENTHESIS 
+    case 33: // Filter_Function ::= TOK_LINE TOK_L_PARENTHESIS TOK_NAT_NUMBER TOK_R_PARENTHESIS
     {
       Object RESULT = null;
       Integer linenumber =
@@ -708,7 +718,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 32: // Filter_Function ::= TOK_FILE TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS 
+    case 32: // Filter_Function ::= TOK_FILE TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS
     {
       Object RESULT = null;
       String filename = (String) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
@@ -720,7 +730,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 31: // Filter_Function ::= TOK_IDENTITY 
+    case 31: // Filter_Function ::= TOK_IDENTITY
     {
       Object RESULT = null;
 
@@ -731,10 +741,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 30: // FilterList ::= Filter 
+    case 30: // FilterList ::= Filter
     {
       Object RESULT = null;
-      Object e1 = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+      Object e1 = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
       LinkedList<Filter> lst = new LinkedList<Filter>();
       lst.addFirst((Filter) e1);
       RESULT = lst;
@@ -743,11 +753,11 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 29: // FilterList ::= Filter TOK_COMMA FilterList 
+    case 29: // FilterList ::= Filter TOK_COMMA FilterList
     {
       Object RESULT = null;
-      Object e1 = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
-      Object lst1 = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+      Object e1 = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
+      Object lst1 = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
       ((LinkedList<Filter>) lst1).addFirst((Filter) e1);
       RESULT = lst1;
       CUP$FQLParser$result = parser.getSymbolFactory().newSymbol("FilterList", 8, RESULT);
@@ -755,12 +765,12 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 28: // Filter ::= TOK_PREDICATION TOK_L_PARENTHESIS Filter TOK_COMMA Predicate TOK_R_PARENTHESIS 
+    case 28: // Filter ::= TOK_PREDICATION TOK_L_PARENTHESIS Filter TOK_COMMA Predicate TOK_R_PARENTHESIS
     {
       Object RESULT = null;
-      Object filter = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 3)).value;
+      Object filter = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 3)).value;
       Object predicate =
-          (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+          ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       assert(filter != null);
       assert(filter instanceof Filter);
@@ -775,11 +785,11 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 27: // Filter ::= TOK_COMPOSE TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS 
+    case 27: // Filter ::= TOK_COMPOSE TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS
     {
       Object RESULT = null;
-      Object filter1 = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 3)).value;
-      Object filter2 = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object filter1 = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 3)).value;
+      Object filter2 = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       assert(filter1 != null);
       assert(filter2 != null);
@@ -793,10 +803,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 26: // Filter ::= TOK_ENCLOSING_SCOPES TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS 
+    case 26: // Filter ::= TOK_ENCLOSING_SCOPES TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS
     {
       Object RESULT = null;
-      Object filter = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object filter = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       assert(filter != null);
       assert(filter instanceof Filter);
@@ -808,11 +818,11 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 25: // Filter ::= TOK_SETMINUS TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS 
+    case 25: // Filter ::= TOK_SETMINUS TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS
     {
       Object RESULT = null;
-      Object filter1 = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 3)).value;
-      Object filter2 = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object filter1 = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 3)).value;
+      Object filter2 = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       assert(filter1 != null);
       assert(filter2 != null);
@@ -826,11 +836,11 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 24: // Filter ::= TOK_INTERSECT TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS 
+    case 24: // Filter ::= TOK_INTERSECT TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS
     {
       Object RESULT = null;
-      Object filter1 = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 3)).value;
-      Object filter2 = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object filter1 = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 3)).value;
+      Object filter2 = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       assert(filter1 != null);
       assert(filter2 != null);
@@ -844,10 +854,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 23: // Filter ::= TOK_UNION TOK_L_PARENTHESIS FilterList TOK_R_PARENTHESIS 
+    case 23: // Filter ::= TOK_UNION TOK_L_PARENTHESIS FilterList TOK_R_PARENTHESIS
     {
       Object RESULT = null;
-      Object obj1 = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object obj1 = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       LinkedList<Filter> lst1 = (LinkedList<Filter>) obj1;
       assert(lst1.size() > 0);
@@ -863,10 +873,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 22: // Filter ::= TOK_COMPLEMENT TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS 
+    case 22: // Filter ::= TOK_COMPLEMENT TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS
     {
       Object RESULT = null;
-      Object filter = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object filter = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       assert(filter != null);
       assert(filter instanceof Filter);
@@ -878,10 +888,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 21: // Filter ::= Filter_Function 
+    case 21: // Filter ::= Filter_Function
     {
       Object RESULT = null;
-      Object filter = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+      Object filter = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
 
       RESULT = filter;
 
@@ -890,10 +900,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 20: // Atom ::= Predicate 
+    case 20: // Atom ::= Predicate
     {
       Object RESULT = null;
-      Object predicate = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+      Object predicate = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
 
       assert(predicate != null);
       assert(predicate instanceof Predicate);
@@ -905,10 +915,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 19: // Atom ::= TOK_PATHCOV TOK_L_PARENTHESIS Filter TOK_COMMA TOK_NAT_NUMBER TOK_R_PARENTHESIS 
+    case 19: // Atom ::= TOK_PATHCOV TOK_L_PARENTHESIS Filter TOK_COMMA TOK_NAT_NUMBER TOK_R_PARENTHESIS
     {
       Object RESULT = null;
-      Object filter = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 3)).value;
+      Object filter = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 3)).value;
       Integer bound = (Integer) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       assert(filter != null);
@@ -923,10 +933,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 18: // Atom ::= TOK_EDGECOV TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS 
+    case 18: // Atom ::= TOK_EDGECOV TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS
     {
       Object RESULT = null;
-      Object filter = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object filter = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       assert(filter != null);
       assert(filter instanceof Filter);
@@ -938,10 +948,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 17: // Atom ::= TOK_NODECOV TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS 
+    case 17: // Atom ::= TOK_NODECOV TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS
     {
       Object RESULT = null;
-      Object filter = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object filter = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       assert(filter != null);
       assert(filter instanceof Filter);
@@ -953,12 +963,12 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 16: // PathPattern ::= PathPatternBlock TOK_ALTERNATIVE PathPattern 
+    case 16: // PathPattern ::= PathPatternBlock TOK_ALTERNATIVE PathPattern
     {
       Object RESULT = null;
       Object leftPattern =
-          (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
-      Object rightPattern = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+          ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
+      Object rightPattern = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
 
       assert(leftPattern != null);
       assert(leftPattern instanceof PathPattern);
@@ -973,12 +983,12 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 15: // PathPattern ::= PathPatternBlock TOK_CONCAT PathPattern 
+    case 15: // PathPattern ::= PathPatternBlock TOK_CONCAT PathPattern
     {
       Object RESULT = null;
       Object leftPattern =
-          (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
-      Object rightPattern = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+          ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
+      Object rightPattern = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
 
       assert(leftPattern != null);
       assert(leftPattern instanceof PathPattern);
@@ -993,10 +1003,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 14: // PathPattern ::= PathPatternBlock 
+    case 14: // PathPattern ::= PathPatternBlock
     {
       Object RESULT = null;
-      Object pattern = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+      Object pattern = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
 
       RESULT = pattern;
 
@@ -1005,10 +1015,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 13: // PathPatternBlock ::= PathPatternBlock TOK_KLEENE 
+    case 13: // PathPatternBlock ::= PathPatternBlock TOK_KLEENE
     {
       Object RESULT = null;
-      Object pattern = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object pattern = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       assert(pattern != null);
       assert(pattern instanceof PathPattern);
@@ -1020,10 +1030,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 12: // PathPatternBlock ::= TOK_L_PARENTHESIS PathPattern TOK_R_PARENTHESIS 
+    case 12: // PathPatternBlock ::= TOK_L_PARENTHESIS PathPattern TOK_R_PARENTHESIS
     {
       Object RESULT = null;
-      Object pattern = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object pattern = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       RESULT = pattern;
 
@@ -1032,10 +1042,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 11: // PathPatternBlock ::= Atom 
+    case 11: // PathPatternBlock ::= Atom
     {
       Object RESULT = null;
-      Object atom = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+      Object atom = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
 
       RESULT = atom;
 
@@ -1044,12 +1054,12 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 10: // CoveragePattern ::= CoveragePattern TOK_ALTERNATIVE CoveragePattern 
+    case 10: // CoveragePattern ::= CoveragePattern TOK_ALTERNATIVE CoveragePattern
     {
       Object RESULT = null;
       Object leftPattern =
-          (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
-      Object rightPattern = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+          ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
+      Object rightPattern = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
 
       assert(leftPattern != null);
       assert(leftPattern instanceof CoverageSpecification);
@@ -1063,12 +1073,12 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 9: // CoveragePattern ::= CoveragePattern TOK_CONCAT CoveragePattern 
+    case 9: // CoveragePattern ::= CoveragePattern TOK_CONCAT CoveragePattern
     {
       Object RESULT = null;
       Object leftPattern =
-          (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
-      Object rightPattern = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+          ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
+      Object rightPattern = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
 
       assert(leftPattern != null);
       assert(leftPattern instanceof CoverageSpecification);
@@ -1082,10 +1092,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 8: // CoveragePattern ::= TOK_QUOTE PathPattern TOK_QUOTE 
+    case 8: // CoveragePattern ::= TOK_QUOTE PathPattern TOK_QUOTE
     {
       Object RESULT = null;
-      Object pattern = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object pattern = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       assert(pattern != null);
       assert(pattern instanceof PathPattern);
@@ -1097,10 +1107,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 7: // CoveragePattern ::= TOK_L_PARENTHESIS CoveragePattern TOK_R_PARENTHESIS 
+    case 7: // CoveragePattern ::= TOK_L_PARENTHESIS CoveragePattern TOK_R_PARENTHESIS
     {
       Object RESULT = null;
-      Object pattern = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object pattern = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
 
       RESULT = pattern;
 
@@ -1109,10 +1119,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 6: // CoveragePattern ::= Atom 
+    case 6: // CoveragePattern ::= Atom
     {
       Object RESULT = null;
-      Object atom = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+      Object atom = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
 
       RESULT = atom;
 
@@ -1121,10 +1131,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 5: // Passing ::= TOK_PASSING PathPattern 
+    case 5: // Passing ::= TOK_PASSING PathPattern
     {
       Object RESULT = null;
-      Object pattern = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+      Object pattern = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
 
       RESULT = pattern;
 
@@ -1133,7 +1143,7 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 4: // Passing ::= 
+    case 4: // Passing ::=
     {
       Object RESULT = null;
 
@@ -1144,10 +1154,10 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 3: // Cover ::= TOK_COVER CoveragePattern 
+    case 3: // Cover ::= TOK_COVER CoveragePattern
     {
       Object RESULT = null;
-      Object pattern = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+      Object pattern = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
 
       RESULT = pattern;
 
@@ -1156,12 +1166,12 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 2: // FQLSpecification ::= TOK_IN Filter Cover Passing 
+    case 2: // FQLSpecification ::= TOK_IN Filter Cover Passing
     {
       Object RESULT = null;
-      Object filter = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
-      Object coverage = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
-      Object passing = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+      Object filter = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 2)).value;
+      Object coverage = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object passing = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
 
       assert(filter != null);
       assert(filter instanceof Filter);
@@ -1183,11 +1193,11 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 1: // FQLSpecification ::= Cover Passing 
+    case 1: // FQLSpecification ::= Cover Passing
     {
       Object RESULT = null;
-      Object coverage = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
-      Object passing = (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
+      Object coverage = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+      Object passing = ((java_cup.runtime.Symbol) CUP$FQLParser$stack.peek()).value;
 
       assert(coverage != null);
       assert(coverage instanceof CoverageSpecification);
@@ -1205,11 +1215,11 @@ class CUP$FQLParser$actions {
       return CUP$FQLParser$result;
 
     /*. . . . . . . . . . . . . . . . . . . .*/
-    case 0: // $START ::= FQLSpecification EOF 
+    case 0: // $START ::= FQLSpecification EOF
     {
       Object RESULT = null;
       Object start_val =
-          (Object) ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
+          ((java_cup.runtime.Symbol) CUP$FQLParser$stack.elementAt(CUP$FQLParser$top - 1)).value;
       RESULT = start_val;
       CUP$FQLParser$result = parser.getSymbolFactory().newSymbol("$START", 0, RESULT);
     }

@@ -59,6 +59,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
   private static TestSuite<CFAGoal> cFAGoalTS;
   private static TestSuite<AutomatonGoal> automatonGoalTS;
 
+
   private static boolean sameTestGoals(Set<?> p1, Set<?> p2) {
     if (p1 == null && p2 == null) {
       return true;

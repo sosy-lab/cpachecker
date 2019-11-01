@@ -75,7 +75,7 @@ import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
 
-
+  private int numberOfGoals;
   private MultiGoalCPA multiGoalCPA;
   private PartitionProvider partitionProvider;
   public TigerMultiGoalAlgorithm(
@@ -91,6 +91,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     partitionProvider = new PartitionProvider(config);
     pShutdownNotifier.register(this);
     multiGoalCPA = getMultiGoalCPA(cpa);
+    init();
   }
 
   public MultiGoalCPA getMultiGoalCPA(ConfigurableProgramAnalysis pCpa) {
@@ -104,12 +105,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
   }
 
 
-
-
-
-  @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+  void init() {
     logger.logf(
         Level.INFO,
         "We will not use the provided reached set since it violates the internal structure of Tiger's CPAs");
@@ -117,19 +113,24 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
     goalsToCover =
         TestGoalProvider.getInstace(logger).initializeTestGoalSet(tigerConfig.getFqlQuery(), cfa);
-    int numberOfGoals = goalsToCover.size();
+    numberOfGoals = goalsToCover.size();
     String prefix = "";
     if (tigerConfig.shouldRemoveFeatureVariablePrefix()) {
       prefix = tigerConfig.getFeatureVariablePrefix();
     }
     testsuite = TestSuite.getCFAGoalTS(bddUtils, goalsToCover, prefix);
+  }
 
-    //TODO might need to remove after testcomp
+
+  @Override
+  public AlgorithmStatus run(ReachedSet pReachedSet)
+      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+
+    // TODO might need to remove after testcomp
     // because of presence conditions
-    if(testsuite.getTestGoals() != null) {
+    if (testsuite.getTestGoals() != null) {
       goalsToCover.removeAll(testsuite.getTestGoals());
     }
-
     logger.log(Level.INFO, "trying to cover: " + goalsToCover.size() + " goals");
 
     boolean wasSound = true;
@@ -302,6 +303,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
     boolean duplicateTC = testsuite.addTestCase(testcase, goal);
     tsWriter.writePartialTestSuite(testsuite);
+    if (!duplicateTC) {
     if (testcase.getInputs() != null) {
       StringBuilder builder = new StringBuilder();
       builder.append("Wrote testcase with inputs: ");
@@ -311,6 +313,9 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       logger.log(Level.INFO, builder.toString());
     } else {
       logger.log(Level.INFO, "Wrote testcase without inputs");
+    }
+    } else {
+      logger.log(Level.INFO, "duplicate test case");
     }
 
     if (tigerConfig.getCoverageCheck() == CoverageCheck.SINGLE

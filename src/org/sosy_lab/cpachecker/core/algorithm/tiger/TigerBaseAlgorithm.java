@@ -84,7 +84,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     TIMEDOUT
   }
 
-  public static String originalMainFunction = null;
+  String originalMainFunction = null;
   protected TigerAlgorithmConfiguration tigerConfig;
   protected int currentTestCaseID;
   protected InputOutputValues values;
@@ -148,16 +148,22 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     if(tigerConfig.shouldUseTestCompOutput()) {
       outputFolder += "test-suite";
     }
+    if (tigerConfig.shouldAppendFileNameToOutput()) {
+      outputFolder += cfa.getFileNames().get(0).getFileName().toString();
+    }
+
     String producerString = CPAchecker.getVersion(pConfig);
 
+    logger.log(Level.INFO, "HybridTige Testcomp 20 - Version 1.1");
     tsWriter =
-        new TestSuiteWriter(
+        TestSuiteWriter.getSingleton(
             pCfa,
             pLogger,
             tigerConfig.shouldUseTestCompOutput(),
-            outputFolder + cfa.getFileNames().get(0).getFileName().toString(),
+            outputFolder,
             tigerConfig.getFqlQuery(),
-            producerString);
+            producerString,
+            tigerConfig.addElapsedTimeToTC());
   }
 
   public TimeoutCPA getTimeoutCPA(ConfigurableProgramAnalysis pCpa) {

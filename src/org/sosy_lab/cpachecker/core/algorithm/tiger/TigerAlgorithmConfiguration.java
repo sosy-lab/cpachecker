@@ -191,6 +191,12 @@ public class TigerAlgorithmConfiguration {
     description = "")
   private GoalReduction goalReduction = GoalReduction.COMPLEX;
 
+  @Option(secure = true, name = "appendFileNameToOutput", description = "")
+  private boolean appendFileNameToOutput = false;
+
+  @Option(secure = true, name = "addElapsedTimeToTC", description = "")
+  private boolean addElapsedTimeToTC = false;
+
   public int getNumberOfTestCasesPerGoal() {
     return numberOfTestCasesPerGoal;
   }
@@ -280,6 +286,14 @@ public class TigerAlgorithmConfiguration {
 
   public int getTimeout() {
     return timeout;
+  }
+
+  public boolean shouldAppendFileNameToOutput() {
+    return appendFileNameToOutput;
+  }
+
+  public boolean addElapsedTimeToTC() {
+    return addElapsedTimeToTC;
   }
 
 }

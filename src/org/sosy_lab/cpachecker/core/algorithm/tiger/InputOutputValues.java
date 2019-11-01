@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -126,12 +125,10 @@ public class InputOutputValues {
   }
 
   private BigInteger getVariableValueFromFunctionCall(int index, CFAPathWithAssumptions path) {
-    Set<AExpressionStatement> expStmts = new HashSet<>();
     int nesting = -1;
     for (int i = index; i < path.size(); i++) {
       CFAEdgeWithAssumptions edge = path.get(i);
       CFAEdge cfaEdge = edge.getCFAEdge();
-      expStmts.addAll(edge.getExpStmts());
       if (cfaEdge instanceof CFunctionCallEdge) {
         nesting++;
       }

@@ -58,20 +58,24 @@ public class CombinedRelativeVariableProperty extends CombinedVariableProperty {
   public String toString() {
     List<String> tmp = Lists.newLinkedList(combinedVariables);
     String resultString = "";
-    String combinedVariableString = tmp.get(0);
-    tmp.remove(combinedVariableString);
+    StringBuilder combinedVariableString = new StringBuilder();
+    combinedVariableString.append(tmp.get(0));
+    tmp.remove(combinedVariableString.toString());
     for (String s : tmp) {
       switch (combinator) {
         case ADD: {
-          combinedVariableString += " + " + s;
+          combinedVariableString.append(" + ");
+          combinedVariableString.append(s);
           break;
         }
         case SUBSTRACT: {
-          combinedVariableString += " - " + s;
+          combinedVariableString.append(" - ");
+          combinedVariableString.append(s);
           break;
         }
         case MULTIPLY: {
-          combinedVariableString += " * " + s;
+          combinedVariableString.append(" * ");
+          combinedVariableString.append(s);
           break;
         }
         default:

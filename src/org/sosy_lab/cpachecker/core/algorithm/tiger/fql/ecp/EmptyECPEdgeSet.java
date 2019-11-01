@@ -50,7 +50,7 @@ public class EmptyECPEdgeSet implements ECPEdgeSet {
 
   }
 
-  public static EmptyECPEdgeSet INSTANCE = new EmptyECPEdgeSet();
+  public static final EmptyECPEdgeSet INSTANCE = new EmptyECPEdgeSet();
 
   private EmptyECPEdgeSet() {
 

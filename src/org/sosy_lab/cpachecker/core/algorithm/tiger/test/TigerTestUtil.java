@@ -25,8 +25,9 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.test;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,8 +36,8 @@ public class TigerTestUtil {
   public static Map<String, String> getConfigurationFromPropertiesFile(
       File propertiesFile) {
     Map<String, String> configuration = new HashMap<>();
-
-    try (BufferedReader reader = new BufferedReader(new FileReader(propertiesFile))) {
+    try (BufferedReader reader =
+        new BufferedReader(new InputStreamReader(new FileInputStream(propertiesFile), "UTF-8"))) {
       String line = null;
       while ((line = reader.readLine()) != null) {
         line = line.trim();

@@ -44,7 +44,8 @@ public class PartitionProvider {
   enum Strategy {
     RANDOM,
     DOMINATION,
-    REVERSEDOMINATION
+    REVERSEDOMINATION,
+    asd
   }
 
 
@@ -138,7 +139,6 @@ public class PartitionProvider {
     if (strategy == Strategy.REVERSEDOMINATION) {
       return createReverseDominationPartition(allEdges);
     }
-
     return null;
   }
 }

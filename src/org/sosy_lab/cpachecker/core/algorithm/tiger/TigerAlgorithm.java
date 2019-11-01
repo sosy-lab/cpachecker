@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
 import com.google.common.collect.Lists;
-import java.io.FileWriter;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -143,8 +142,8 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
   }
 
   private Set<AutomatonGoal> initializeTestGoalSet() {
-    LinkedList<ElementaryCoveragePattern> goalPatterns;
-    LinkedList<Pair<ElementaryCoveragePattern, Region>> pTestGoalPatterns = new LinkedList<>();
+    List<ElementaryCoveragePattern> goalPatterns;
+    List<Pair<ElementaryCoveragePattern, Region>> pTestGoalPatterns = new LinkedList<>();
 
     goalPatterns = testGoalUtils.extractTestGoalPatterns(fqlSpecification);
 
@@ -205,18 +204,22 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
             } else {
               set = new TreeSet<>(WorklistEntryComparator.ORDER_INVERTING_COMPARATOR);
             }
-
-            set.addAll(testsuite.getTimedOutGoals().entrySet());
+            for (Entry<Integer, Pair<AutomatonGoal, Region>> entry : testsuite.getTimedOutGoals()
+                .entrySet()) {
+              set.add(entry);
+            }
           } else {
             set = new LinkedList<>();
-            set.addAll(testsuite.getTimedOutGoals().entrySet());
+            for (Entry<Integer, Pair<AutomatonGoal, Region>> entry : testsuite.getTimedOutGoals()
+                .entrySet()) {
+              set.add(entry);
+            }
           }
 
           pGoalsToCover.clear();
           for (Entry<Integer, Pair<AutomatonGoal, Region>> entry : set) {
             pGoalsToCover.add(entry.getValue().getFirst());
           }
-          testsuite.getTimedOutGoals().size();
           testsuite.getTimedOutGoals().clear();
         }
       }
@@ -278,6 +281,17 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
     return isFullyCovered;
   }
 
+  private void writeARG(int goalIndex, ReachedSet pReachedSet) {
+    try (OutputStreamWriter writer =
+        new OutputStreamWriter(
+            new FileOutputStream(new File("output", "ARG_goal_" + goalIndex + ".dot")),
+            "UTF-8")) {
+        ARGUtils.writeARGAsDot(writer, (ARGState) pReachedSet.getFirstState());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+  }
+
   private ReachabilityAnalysisResult
       runReachabilityAnalysis(
           AutomatonGoal pGoal,
@@ -307,8 +321,6 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
 
     ShutdownManager algNotifier =
         ShutdownManager.createWithParent(startupConfig.getShutdownNotifier());
-
-    startupConfig.getConfig();
 
     // run analysis
     Algorithm algorithm = rebuildAlgorithm(algNotifier, lARTCPA, pReachedSet);
@@ -383,7 +395,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
             // otherwise we need to keep the goals, to cover them for each possible configuration
             boolean removeGoalsToCover =
                 !bddUtils.isVariabilityAware() || tigerConfig.shouldUseSingleFeatureGoalCoverage();
-            HashSet<AutomatonGoal> goalsToCheckCoverage = new HashSet<>(pGoalsToCover);
+            Set<AutomatonGoal> goalsToCheckCoverage = new HashSet<>(pGoalsToCover);
             if (tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
               goalsToCheckCoverage.addAll(testsuite.getTestGoals());
             }
@@ -403,12 +415,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
         && !pReachedSet.getWaitlist().isEmpty());
 
     // write ARG to file
-    Path argFile = Paths.get("output", "ARG_goal_" + goalIndex + ".dot");
-    try (FileWriter w = new FileWriter(argFile.toString())) {
-      ARGUtils.writeARGAsDot(w, (ARGState) pReachedSet.getFirstState());
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
-    }
+    writeARG(goalIndex, pReachedSet);
 
     if (bddUtils.isVariabilityAware()) {
       testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal));
@@ -481,7 +488,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
     return automataFactory;
   }
 
-  private LinkedList<ConfigurableProgramAnalysis> buildComponentAnalyses(CPAFactory automataFactory)
+  private List<ConfigurableProgramAnalysis> buildComponentAnalyses(CPAFactory automataFactory)
       throws CPAException {
     List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(1);// (2);
     try {
@@ -490,7 +497,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
       throw new CPAException("Invalid automata!", e1);
     }
 
-    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
+    List<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
     lComponentAnalyses.addAll(lAutomatonCPAs);
 
     if (cpa instanceof CompositeCPA) {
@@ -505,7 +512,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
   }
 
   private ARGCPA buildARGCPA(
-      LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses,
+      List<ConfigurableProgramAnalysis> lComponentAnalyses,
       Specification goalAutomatonSpecification) {
     ARGCPA lARTCPA;
     try {
@@ -548,7 +555,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
         Specification.fromAutomata(Lists.newArrayList(goalAutomaton));
 
     CPAFactory automataFactory = buildAutomataFactory(goalAutomaton);
-    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses =
+    List<ConfigurableProgramAnalysis> lComponentAnalyses =
         buildComponentAnalyses(automataFactory);
     return buildARGCPA(lComponentAnalyses, goalAutomatonSpecification);
 
@@ -569,13 +576,6 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
 
     // Try to reconstruct a trace in the ARG and shrink it
     ARGState argState = AbstractStates.extractStateByType(lastState, ARGState.class);
-    ARGPath path = ARGUtils.getOnePathTo(argState);
-    // List<CFAEdge> shrinkedErrorPath = null;
-    if (path != null) {
-      // cannot shrink error path without conterexample
-      // shrinkedErrorPath = new ErrorPathShrinker().shrinkErrorPath(path);
-    }
-
     Collection<ARGState> parents;
     parents = argState.getParents();
 
