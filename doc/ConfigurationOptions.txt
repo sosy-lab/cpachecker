@@ -844,10 +844,6 @@ counterexample.export.assumptions.allowDivisionAndModuloByConstants = false
 # allow multiplication between operands with at least one constant.
 counterexample.export.assumptions.allowMultiplicationWithConstants = false
 
-# If the option allowNaNAndINFValues is set, assumptions may use NaN or
-# INFINITY values.
-counterexample.export.assumptions.allowNaNAndINFValues = false
-
 # Try to avoid using operations that exceed the capabilities of linear
 # arithmetics when extracting assumptions from the model. This option aims to
 # prevent witnesses that are inconsistent with  models that are, due to an
