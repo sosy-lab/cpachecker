@@ -844,6 +844,10 @@ counterexample.export.assumptions.allowDivisionAndModuloByConstants = false
 # allow multiplication between operands with at least one constant.
 counterexample.export.assumptions.allowMultiplicationWithConstants = false
 
+# If the option allowNaNAndINFValues is set, assumptions may use NaN or
+# INFINITY values.
+counterexample.export.assumptions.allowNaNAndINFValues = false
+
 # Try to avoid using operations that exceed the capabilities of linear
 # arithmetics when extracting assumptions from the model. This option aims to
 # prevent witnesses that are inconsistent with  models that are, due to an
@@ -3133,6 +3137,11 @@ heuristicSelection.recursionConfig = no default value
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
+
+# If adaptTimeLimits is set and all configurations support progress reports,
+# in each cycle the time limits per configuration are newly calculated based
+# on the progress
+interleavedAlgorithm.adaptTimeLimits = false
 
 # where to store initial condition, when generated
 interleavedAlgorithm.condition.file = "AssumptionAutomaton.txt"
