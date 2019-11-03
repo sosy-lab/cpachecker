@@ -59,6 +59,7 @@ import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SLFormulaManager;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 
 public class SLHeapDelegateImpl implements SLHeapDelegate {
 
@@ -399,7 +400,8 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     PathFormula context = usePredContext ? builder.getPredPathFormula() : builder.getPathFormula();
     BooleanFormula heapFormula = createHeapFormula(pHeap);
     BooleanFormula toBeChecked = slfm.makePointsTo(pLoc, ifm.makeNumber(0));
-    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+    try (ProverEnvironment prover =
+        solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
       prover.addConstraint(context.getFormula());
       prover.addConstraint(slfm.makeStar(toBeChecked, heapFormula));
       return prover.isUnsat();
