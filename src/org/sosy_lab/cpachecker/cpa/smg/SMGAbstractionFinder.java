@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
+import com.google.common.annotations.VisibleForTesting;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
@@ -40,6 +40,7 @@ public abstract class SMGAbstractionFinder {
   protected final int seqLengthEntailmentThreshold;
   protected final int seqLengthIncomparableThreshold;
 
+  @VisibleForTesting // some default values for testing, constructor never used otherwise
   protected SMGAbstractionFinder() {
     seqLengthEqualityThreshold = 2;
     seqLengthEntailmentThreshold = 2;
@@ -53,11 +54,6 @@ public abstract class SMGAbstractionFinder {
     seqLengthEqualityThreshold = pSeqLengthEqualityThreshold;
     seqLengthEntailmentThreshold = pSeqLengthEntailmentThreshold;
     seqLengthIncomparableThreshold = pSeqLengthIncomparableThreshold;
-  }
-
-  public Set<SMGAbstractionCandidate> traverse(
-      UnmodifiableCLangSMG pSmg, UnmodifiableSMGState pSMGState) throws SMGInconsistentException {
-    return traverse(pSmg, pSMGState, ImmutableSet.of());
   }
 
   public abstract Set<SMGAbstractionCandidate> traverse(
@@ -117,7 +113,7 @@ public abstract class SMGAbstractionFinder {
       Set<SMGValue> pValues,
       Set<SMGObject> pObjects) {
 
-    Set<SMGObject> toBeChecked = new HashSet<>();
+    Set<SMGObject> toBeChecked = new LinkedHashSet<>();
 
     pObjects.add(pObject);
 
@@ -138,7 +134,7 @@ public abstract class SMGAbstractionFinder {
       }
     }
 
-    Set<SMGObject> toCheck = new HashSet<>();
+    Set<SMGObject> toCheck = new LinkedHashSet<>();
 
     while (!toBeChecked.isEmpty()) {
       toCheck.clear();

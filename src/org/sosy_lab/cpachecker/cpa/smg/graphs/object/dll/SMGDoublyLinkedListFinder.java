@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
+  @VisibleForTesting
   public SMGDoublyLinkedListFinder() {
     super();
   }

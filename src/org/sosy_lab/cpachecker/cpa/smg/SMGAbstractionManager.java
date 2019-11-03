@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,16 +46,12 @@ public class SMGAbstractionManager {
   private final SMGDoublyLinkedListFinder dllCandidateFinder;
   private final SMGSingleLinkedListFinder sllCandidateFinder;
 
+  @VisibleForTesting
   public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate) {
-    this(pLogger, pSMG, pSMGstate, ImmutableSet.of());
-  }
-
-  public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate,
-      Set<SMGAbstractionBlock> pBlocks) {
     smg = pSMG;
     smgState = pSMGstate;
     logger = pLogger;
-    blocks = pBlocks;
+    blocks = ImmutableSet.of();
     dllCandidateFinder = new SMGDoublyLinkedListFinder();
     sllCandidateFinder = new SMGSingleLinkedListFinder();
   }
