@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -64,7 +64,9 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
   @Override
   public Set<SMGAbstractionCandidate> traverse(
-      CLangSMG pSmg, UnmodifiableSMGState pSMGState, Set<SMGAbstractionBlock> pAbstractionBlocks)
+      UnmodifiableCLangSMG pSmg,
+      UnmodifiableSMGState pSMGState,
+      Set<SMGAbstractionBlock> pAbstractionBlocks)
       throws SMGInconsistentException {
     SMGJoinDllProgress progress = new SMGJoinDllProgress();
 
@@ -87,7 +89,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
   private void startTraversal(
       SMGObject pObject,
-      CLangSMG pSmg,
+      UnmodifiableCLangSMG pSmg,
       UnmodifiableSMGState pSmgState,
       SMGJoinDllProgress pProgress)
       throws SMGInconsistentException {
@@ -101,7 +103,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
   private void createCandidatesOfObject(
       SMGObject pObject,
-      CLangSMG pSmg,
+      UnmodifiableCLangSMG pSmg,
       UnmodifiableSMGState pSMGState,
       SMGJoinDllProgress pProgress)
       throws SMGInconsistentException {
@@ -223,7 +225,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
   private void continueTraversal(
       SMGValue pValue,
       SMGDoublyLinkedListCandidate pPrevCandidate,
-      CLangSMG pSmg,
+      UnmodifiableCLangSMG pSmg,
       UnmodifiableSMGState pSmgState,
       SMGJoinDllProgress pProgress)
       throws SMGInconsistentException {

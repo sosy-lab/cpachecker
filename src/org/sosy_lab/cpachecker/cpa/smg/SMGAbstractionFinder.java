@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -55,19 +55,21 @@ public abstract class SMGAbstractionFinder {
     seqLengthIncomparableThreshold = pSeqLengthIncomparableThreshold;
   }
 
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, UnmodifiableSMGState pSMGState)
-      throws SMGInconsistentException {
+  public Set<SMGAbstractionCandidate> traverse(
+      UnmodifiableCLangSMG pSmg, UnmodifiableSMGState pSMGState) throws SMGInconsistentException {
     return traverse(pSmg, pSMGState, ImmutableSet.of());
   }
 
   public abstract Set<SMGAbstractionCandidate> traverse(
-      CLangSMG pSmg, UnmodifiableSMGState pSMGState, Set<SMGAbstractionBlock> abstractionBlocks)
+      UnmodifiableCLangSMG pSmg,
+      UnmodifiableSMGState pSMGState,
+      Set<SMGAbstractionBlock> abstractionBlocks)
       throws SMGInconsistentException;
 
   protected boolean isSubSmgSeperate(
       Set<SMGObject> nonSharedObject,
       Set<SMGValue> nonSharedValues,
-      CLangSMG smg,
+      UnmodifiableCLangSMG smg,
       Set<SMGObject> reachableObjects,
       Set<SMGValue> reachableValues,
       SMGObject rootOfSubSmg) {
@@ -111,7 +113,7 @@ public abstract class SMGAbstractionFinder {
   protected final void getSubSmgOf(
       SMGObject pObject,
       Predicate<SMGEdgeHasValue> check,
-      CLangSMG inputSmg,
+      UnmodifiableCLangSMG inputSmg,
       Set<SMGValue> pValues,
       Set<SMGObject> pObjects) {
 
@@ -152,7 +154,7 @@ public abstract class SMGAbstractionFinder {
   private void getSubSmgOf(
       SMGObject pObjToCheck,
       Set<SMGObject> pToBeChecked,
-      CLangSMG pInputSmg,
+      UnmodifiableCLangSMG pInputSmg,
       Set<SMGObject> pObjects,
       Set<SMGValue> pValues) {
 
