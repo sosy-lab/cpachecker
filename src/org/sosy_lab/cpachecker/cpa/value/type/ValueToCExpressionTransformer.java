@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -136,10 +137,17 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
         return CFloatLiteralExpression.forPositiveInfinity(FileLocation.DUMMY, pType);
       }
     } else if (isNan) {
-      throw new UnsupportedOperationException("Transformation of value 'NaN' to CExpression not supported yet");
+      return createNanExpression(pType);
     } else {
       return new CFloatLiteralExpression(FileLocation.DUMMY, pType, pValue.bigDecimalValue());
     }
+  }
+
+  private CExpression createNanExpression(CSimpleType pType) {
+    // Represent NaN by '0/0', until CFloats are used by CFloatLiteralExpression
+    CExpression zero = new CFloatLiteralExpression(FileLocation.DUMMY, pType, BigDecimal.ZERO);
+    return new CBinaryExpression(
+        FileLocation.DUMMY, pType, pType, zero, zero, CBinaryExpression.BinaryOperator.DIVIDE);
   }
 
   @Override
