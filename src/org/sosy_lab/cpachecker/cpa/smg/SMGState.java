@@ -1967,16 +1967,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return "__" + functionName;
   }
 
-  /**
-   * Try to abstract heap segments meaningfully.
-   * @throws SMGInconsistentException Join lead to inconsistent smg.
-   */
-  public void executeHeapAbstraction() throws SMGInconsistentException {
-    SMGAbstractionManager manager = new SMGAbstractionManager(logger, heap, this);
-    manager.execute();
-    performConsistencyCheck(SMGRuntimeCheck.HALF);
-  }
-
   public boolean executeHeapAbstraction(Set<SMGAbstractionBlock> blocks)
       throws SMGInconsistentException {
     final SMGAbstractionManager manager;
@@ -1984,7 +1974,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     if (usesHeapInterpolation) {
       manager = new SMGAbstractionManager(logger, heap, this, blocks, 2, 2, 2);
     } else {
-      manager = new SMGAbstractionManager(logger, heap, this, blocks);
+      manager = new SMGAbstractionManager(logger, heap, this, blocks, 2, 2, 3);
     }
     boolean change = manager.execute();
     performConsistencyCheck(SMGRuntimeCheck.HALF);

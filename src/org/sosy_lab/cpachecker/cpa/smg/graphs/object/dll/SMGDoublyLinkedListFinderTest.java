@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Set;
 import org.junit.Before;
@@ -154,7 +155,7 @@ public class SMGDoublyLinkedListFinderTest {
 
     SMGDoublyLinkedListFinder f = new SMGDoublyLinkedListFinder();
 
-     Set<SMGAbstractionCandidate> s = f.traverse(smg1, null);
+     Set<SMGAbstractionCandidate> s = f.traverse(smg1, null, ImmutableSet.of());
 
     assertThat(s).isNotEmpty();
   }

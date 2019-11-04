@@ -1533,7 +1533,13 @@ public class CtoFormulaConverter {
 
     T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
 
-    Optional<Triple<BooleanFormula, T, T>> split = fmgr.splitIfThenElse(pF);
+    Optional<Triple<BooleanFormula, T, T>> split;
+    try {
+      split = fmgr.splitIfThenElse(pF);
+    } catch (UnsupportedOperationException e) {
+      logger.logOnce(Level.INFO, "Solver does not support ITE splitting: " + e.getMessage());
+      split = Optional.empty();
+    }
     if (split.isPresent()) {
       Triple<BooleanFormula, T, T> parts = split.get();
 
