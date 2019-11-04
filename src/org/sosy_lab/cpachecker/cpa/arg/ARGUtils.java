@@ -120,7 +120,7 @@ public class ARGUtils {
 
     for (AbstractState e : pReached) {
       ARGState state = AbstractStates.extractStateByType(e, ARGState.class);
-      if (state.getParents().isEmpty()) {
+      if (state != null && state.getParents().isEmpty()) {
         result.add(state);
       }
     }
