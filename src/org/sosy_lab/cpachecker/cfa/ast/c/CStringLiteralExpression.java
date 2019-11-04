@@ -104,7 +104,6 @@ public final class CStringLiteralExpression extends AStringLiteralExpression imp
    *  is identical to:
    *    char s[] = { 'a', 'b', 'c', '\0' }, t[] = { 'a', 'b', 'c' };
    *
-   * @param e The string that has to be expanded
    * @param type The type of the character array.
    * @return List of character-literal expressions
    */
@@ -120,7 +119,6 @@ public final class CStringLiteralExpression extends AStringLiteralExpression imp
     for (int i = 0; i < s.length(); i++) {
       result.add(new CCharLiteralExpression(getFileLocation(), CNumericTypes.SIGNED_CHAR, s.charAt(i)));
     }
-
 
     // http://stackoverflow.com/questions/10828294/c-and-c-partial-initialization-of-automatic-structure
     // C99 Standard 6.7.8.21
