@@ -791,36 +791,33 @@ public class SMGBuiltins {
    */
   private List<SMGValueAndState> evaluateStrcmp(
       CFunctionCallExpression pFunctionCall, SMGState pState, CFAEdge pCfaEdge)
-      throws CPATransferException{
+      throws CPATransferException {
 
-    // - extract parameters and the corresponding SMG nodes.
-    if (pFunctionCall.getParameterExpressions().size() == 2) {
-      CExpression firstArgumentExpr =
-          pFunctionCall.getParameterExpressions().get(STRCMP_FIRST_PARAMETER);
-      CExpression secondArgumentExpr =
-          pFunctionCall.getParameterExpressions().get(STRCMP_SECOND_PARAMETER);
-
-      List<SMGValueAndState> result = new ArrayList<>();
-
-      for (SMGAddressValueAndState firstValueAndState : evaluateAddress(pState, pCfaEdge,
-          firstArgumentExpr)) {
-        for (SMGAddressValueAndState secondValueAndState : evaluateAddress(
-            firstValueAndState.getSmgState(), pCfaEdge, secondArgumentExpr)) {
-          // - iterate over all chars and compare them
-          result.add(
-              evaluateStrcmp(
-                  firstValueAndState.getObject(),
-                  secondValueAndState.getObject(),
-                  secondValueAndState.getSmgState()));
-        }
-      }
-      return result;
+    if (pFunctionCall.getParameterExpressions().size() != 2) {
+      throw new UnrecognizedCodeException("Strcmp needs exact 2 arguments", pCfaEdge);
     }
 
-    // otherwise return UNKNOWN
-    logger.logDebugException(
-        new UnrecognizedCodeException("Strcmp needs exact 2 arguments", pCfaEdge));
-    return ImmutableList.of(SMGValueAndState.of(pState, SMGUnknownValue.INSTANCE));
+    // extract parameters and the corresponding SMG nodes.
+    CExpression firstArgumentExpr =
+        pFunctionCall.getParameterExpressions().get(STRCMP_FIRST_PARAMETER);
+    CExpression secondArgumentExpr =
+        pFunctionCall.getParameterExpressions().get(STRCMP_SECOND_PARAMETER);
+
+    List<SMGValueAndState> result = new ArrayList<>();
+
+    for (SMGAddressValueAndState firstValueAndState :
+        evaluateAddress(pState, pCfaEdge, firstArgumentExpr)) {
+      for (SMGAddressValueAndState secondValueAndState :
+          evaluateAddress(firstValueAndState.getSmgState(), pCfaEdge, secondArgumentExpr)) {
+        // iterate over all chars and compare them
+        result.add(
+            evaluateStrcmp(
+                firstValueAndState.getObject(),
+                secondValueAndState.getObject(),
+                secondValueAndState.getSmgState()));
+      }
+    }
+    return result;
   }
 
   /**
@@ -829,7 +826,7 @@ public class SMGBuiltins {
    *
    * @param firstSymbolic address of first String
    * @param secondSymbolic address of second String
-   * @param pState - programme state
+   * @param pState - current programm state
    * @return SMGUnknownValue if compare fails, SMGZeroValue if equals or
    *     SMGKnownSymValue.valueOf(diff) with difference of the first not equal chars (diff = c1 -
    *     c2)
@@ -843,7 +840,7 @@ public class SMGBuiltins {
     }
 
     // if equal addresses return zero
-    if (firstSymbolic.compareTo(secondSymbolic) == 0) {
+    if (firstSymbolic.equals(secondSymbolic)) {
       return SMGValueAndState.of(pState, SMGZeroValue.INSTANCE);
     }
 
@@ -857,25 +854,34 @@ public class SMGBuiltins {
     // iterate over both regions as long as chars at a given positions are equal
     int comp = 0;
     int offset = 0;
+    SMGState state = pState;
+
     while (comp == 0) {
       // read symbolic values
-      SMGSymbolicValue symFirstValue =
-          pState.readValue(firstRegion, offset, machineModel.getSizeofCharInBits()).getObject();
-      SMGSymbolicValue symSecondValue =
-          pState.readValue(secondRegion, offset, machineModel.getSizeofCharInBits()).getObject();
+      // TODO handle changed state after READ
+      SMGValueAndState symFirstValueAndState =
+          state.readValue(firstRegion, offset, machineModel.getSizeofCharInBits());
+      // TODO handle changed state after READ
+      SMGValueAndState symSecondValueAndState =
+          symFirstValueAndState
+              .getSmgState()
+              .readValue(secondRegion, offset, machineModel.getSizeofCharInBits());
+      SMGSymbolicValue symFirstValue = symFirstValueAndState.getObject();
+      SMGSymbolicValue symSecondValue = symSecondValueAndState.getObject();
+      state = symSecondValueAndState.getSmgState();
       if (!bothValuesAreDefined(symFirstValue, symSecondValue)) {
         return SMGValueAndState.of(pState, SMGUnknownValue.INSTANCE);
       }
 
       // read explicit values
       // explicit values are necessary to calculate difference between char ascii codes
-      SMGExplicitValue expFirstValue = pState.getExplicit((SMGKnownSymbolicValue) symFirstValue);
-      SMGExplicitValue expSecondValue = pState.getExplicit((SMGKnownSymbolicValue) symSecondValue);
+      SMGExplicitValue expFirstValue = state.getExplicit((SMGKnownSymbolicValue) symFirstValue);
+      SMGExplicitValue expSecondValue = state.getExplicit((SMGKnownSymbolicValue) symSecondValue);
 
       if (!bothValuesAreDefined(expFirstValue, expSecondValue)) {
         // in case evaluation for explicit values compare symbolic values
         // TODO does this happen?
-        if (symFirstValue.compareTo(symSecondValue) == 0) {
+        if (symFirstValue.equals(symSecondValue)) {
           comp = 0;
         } else {
           return SMGValueAndState.of(pState, SMGUnknownValue.INSTANCE);
@@ -892,12 +898,14 @@ public class SMGBuiltins {
     }
 
     if (comp == 0) {
-      return SMGValueAndState.of(pState, SMGZeroValue.INSTANCE);
+      return SMGValueAndState.of(state, SMGZeroValue.INSTANCE);
     }
 
     // create new state with explicit difference assigned to new symbolic value
+    // TODO this loooks strange, better return the explicit value directly.
+    // it seems that the current interface does not allow this.
     SMGKnownSymbolicValue symbolicResult = SMGKnownSymValue.of();
-    SMGState resultState = pState.copyOf();
+    SMGState resultState = state.copyOf();
     resultState.putExplicit(symbolicResult, SMGKnownExpValue.valueOf(comp));
     return SMGValueAndState.of(resultState, symbolicResult);
   }
