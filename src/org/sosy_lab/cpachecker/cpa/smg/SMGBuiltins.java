@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -837,10 +838,7 @@ public class SMGBuiltins {
       SMGAddressValue firstSymbolic, SMGAddressValue secondSymbolic, SMGState pState)
       throws SMGInconsistentException {
     // resolve addresses and perform initial null and unknown check
-    if (firstSymbolic == null
-        || secondSymbolic == null
-        || firstSymbolic.isUnknown()
-        || secondSymbolic.isUnknown()) {
+    if (!bothValuesAreDefined(firstSymbolic, secondSymbolic)) {
       return SMGValueAndState.of(pState, SMGUnknownValue.INSTANCE);
     }
 
@@ -865,10 +863,7 @@ public class SMGBuiltins {
           pState.readValue(firstRegion, offset, machineModel.getSizeofCharInBits()).getObject();
       SMGSymbolicValue symSecondValue =
           pState.readValue(secondRegion, offset, machineModel.getSizeofCharInBits()).getObject();
-      if (symFirstValue == null
-          || symSecondValue == null
-          || symFirstValue.isUnknown()
-          || symSecondValue.isUnknown()) {
+      if (!bothValuesAreDefined(symFirstValue, symSecondValue)) {
         return SMGValueAndState.of(pState, SMGUnknownValue.INSTANCE);
       }
 
@@ -877,10 +872,7 @@ public class SMGBuiltins {
       SMGExplicitValue expFirstValue = pState.getExplicit((SMGKnownSymbolicValue) symFirstValue);
       SMGExplicitValue expSecondValue = pState.getExplicit((SMGKnownSymbolicValue) symSecondValue);
 
-      if (expFirstValue == null
-          || expSecondValue == null
-          || expFirstValue.isUnknown()
-          || expSecondValue.isUnknown()) {
+      if (!bothValuesAreDefined(expFirstValue, expSecondValue)) {
         // in case evaluation for explicit values compare symbolic values
         // TODO does this happen?
         if (symFirstValue.compareTo(symSecondValue) == 0) {
@@ -908,6 +900,10 @@ public class SMGBuiltins {
     SMGState resultState = pState.copyOf();
     resultState.putExplicit(symbolicResult, SMGKnownExpValue.valueOf(comp));
     return SMGValueAndState.of(resultState, symbolicResult);
+  }
+
+  private boolean bothValuesAreDefined(SMGValue value1, SMGValue value2) {
+    return value1 != null && value2 != null && !value1.isUnknown() && !value2.isUnknown();
   }
 
   List<SMGAddressValueAndState> handleUnknownFunction(
