@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -67,10 +67,10 @@ public class SMGAbstractionManager {
   }
 
   private List<SMGAbstractionCandidate> getCandidates() throws SMGInconsistentException {
-    List<SMGAbstractionCandidate> abstractionCandidates = new ArrayList<>();
-    abstractionCandidates.addAll(dllCandidateFinder.traverse(smg, smgState, blocks));
-    abstractionCandidates.addAll(sllCandidateFinder.traverse(smg, smgState, blocks));
-    return abstractionCandidates;
+    return ImmutableList.<SMGAbstractionCandidate>builder()
+        .addAll(dllCandidateFinder.traverse(smg, smgState, blocks))
+        .addAll(sllCandidateFinder.traverse(smg, smgState, blocks))
+        .build();
   }
 
   private SMGAbstractionCandidate getBestCandidate(
