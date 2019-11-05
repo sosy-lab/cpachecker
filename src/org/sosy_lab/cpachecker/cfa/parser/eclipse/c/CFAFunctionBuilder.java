@@ -2012,6 +2012,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   private CFANode handleExpressionList(IASTExpressionList listExp,
       CFANode prevNode, final CIdExpression tempVar) {
 
+    boolean resultIsUsed = tempVar != null;
+
     IASTExpression[] expressions = listExp.getExpressions();
     for (int i = 0; i < expressions.length-1; i++) {
       IASTExpression e = expressions[i];
@@ -2023,7 +2025,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     CAstNode exp = astCreator.convertExpressionWithSideEffects(lastExp);
 
     FileLocation lastExpLocation = astCreator.getLocation(lastExp);
-    prevNode = handleAllSideEffects(prevNode, lastExpLocation, lastExp.getRawSignature(), true);
+    prevNode = handleAllSideEffects(prevNode, lastExpLocation, lastExp.getRawSignature(), resultIsUsed);
     CStatement stmt = null;
     if (tempVar != null) {
       stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide)exp);
