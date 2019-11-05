@@ -136,15 +136,17 @@ public class FormulaManagerView {
   private final FormulaManager manager;
   private final FormulaWrappingHandler wrappingHandler;
   private final BooleanFormulaManagerView booleanFormulaManager;
-  private @Nullable BitvectorFormulaManagerView bitvectorFormulaManager; // lazy initialization
-  private @Nullable FloatingPointFormulaManagerView floatingPointFormulaManager; // lazy initialization
-  private @Nullable IntegerFormulaManagerView integerFormulaManager; // lazy initialization
-  private @Nullable RationalFormulaManagerView rationalFormulaManager; // lazy initialization
   private final FunctionFormulaManagerView functionFormulaManager;
-  private @Nullable QuantifiedFormulaManagerView quantifiedFormulaManager; // lazy initialization
-  private @Nullable ArrayFormulaManagerView arrayFormulaManager; // lazy initialization
   private final ReplaceBitvectorEncodingOptions bvOptions;
   private final ReplaceIntegerEncodingOptions intOptions;
+
+  // other formula managers use lazy initialization, because some solvers do not support them.
+  private @Nullable BitvectorFormulaManagerView bitvectorFormulaManager;
+  private @Nullable FloatingPointFormulaManagerView floatingPointFormulaManager;
+  private @Nullable IntegerFormulaManagerView integerFormulaManager;
+  private @Nullable RationalFormulaManagerView rationalFormulaManager;
+  private @Nullable QuantifiedFormulaManagerView quantifiedFormulaManager;
+  private @Nullable ArrayFormulaManagerView arrayFormulaManager;
   private @Nullable SLFormulaManagerView slFormulaManager;
 
   @Option(secure=true, name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
