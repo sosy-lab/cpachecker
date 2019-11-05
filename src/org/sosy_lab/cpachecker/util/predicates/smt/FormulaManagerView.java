@@ -1024,7 +1024,7 @@ public class FormulaManagerView {
 
   public SLFormulaManagerView getSLFormulaManager() {
     if (slFormulaManager == null) {
-      throw new UnsupportedOperationException("Solver does not support seperation logic.");
+      slFormulaManager = new SLFormulaManagerView(wrappingHandler, manager.getSLFormulaManager());
     }
     return slFormulaManager;
   }
