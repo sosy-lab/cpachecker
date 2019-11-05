@@ -154,7 +154,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
 
     String producerString = CPAchecker.getVersion(pConfig);
 
-    logger.log(Level.INFO, "HybridTige Testcomp 20 - Version 1.1");
+    logger.log(Level.INFO, "HybridTige Testcomp 20 - Version 1.2");
     tsWriter =
         TestSuiteWriter.getSingleton(
             pCfa,
@@ -164,6 +164,10 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
             tigerConfig.getFqlQuery(),
             producerString,
             tigerConfig.addElapsedTimeToTC());
+  }
+
+  public int nextTCID() {
+    return currentTestCaseID++;
   }
 
   public TimeoutCPA getTimeoutCPA(ConfigurableProgramAnalysis pCpa) {
@@ -219,14 +223,13 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
 
     TestCase testcase =
         new TestCase(
-            currentTestCaseID,
+            nextTCID(),
             inputValues,
             outputValus,
             cex.getTargetPath().asEdgesList(),
             // shrinkedErrorPath,
             pPresenceCondition,
             bddUtils);
-    currentTestCaseID++;
     return testcase;
   }
   public Region

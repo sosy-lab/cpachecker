@@ -607,13 +607,12 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
 
     TestCase result =
         new TestCase(
-            currentTestCaseID,
+            nextTCID(),
             inputValues,
             outputValues,
             trace,
             pPresenceCondition,
             bddUtils);
-    currentTestCaseID++;
     return result;
   }
 

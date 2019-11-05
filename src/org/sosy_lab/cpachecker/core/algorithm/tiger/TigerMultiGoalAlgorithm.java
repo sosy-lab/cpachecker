@@ -22,8 +22,10 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -119,6 +121,28 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       prefix = tigerConfig.getFeatureVariablePrefix();
     }
     testsuite = TestSuite.getCFAGoalTS(bddUtils, goalsToCover, prefix);
+
+    if (tigerConfig.getNumberOfDefaultTestCases() > 0) {
+      int lastValue = 1;
+      for (int i = 0; i < tigerConfig.getNumberOfDefaultTestCases(); i++) {
+
+        TestCaseVariable var = new TestCaseVariable("Dummy", String.valueOf(lastValue));
+        List<TestCaseVariable> inputs = new ArrayList<>();
+        for (int y = 0; y <= 10; y++) {
+          inputs.add(var);
+        }
+        TestCase tc = new TestCase(nextTCID(), inputs, Collections.emptyList(), null, null, null);
+        testsuite.addTestCase(tc, null);
+
+        if (i % 2 == 0) {
+          lastValue *= -1;
+        } else {
+          lastValue *= 100;
+        }
+      }
+
+    }
+
   }
 
 
@@ -130,6 +154,10 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     // because of presence conditions
     if (testsuite.getTestGoals() != null) {
       goalsToCover.removeAll(testsuite.getTestGoals());
+    }
+    if (goalsToCover.isEmpty()) {
+      pReachedSet.clear();
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
     logger.log(Level.INFO, "trying to cover: " + goalsToCover.size() + " goals");
 

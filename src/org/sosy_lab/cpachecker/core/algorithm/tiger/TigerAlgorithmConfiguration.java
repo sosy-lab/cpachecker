@@ -197,6 +197,12 @@ public class TigerAlgorithmConfiguration {
   @Option(secure = true, name = "addElapsedTimeToTC", description = "")
   private boolean addElapsedTimeToTC = false;
 
+  @Option(secure = true, name = "numberOfDefaultTestCases", description = "")
+  private int numberOfDefaultTestCases = 0;
+
+  public int getNumberOfDefaultTestCases() {
+    return numberOfDefaultTestCases;
+  }
   public int getNumberOfTestCasesPerGoal() {
     return numberOfTestCasesPerGoal;
   }

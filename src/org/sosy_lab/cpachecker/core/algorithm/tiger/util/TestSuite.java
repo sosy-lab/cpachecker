@@ -77,8 +77,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
       Set<CFAGoal> includedTestGoals,
       String premovePrefixString) {
     if (cFAGoalTS != null) {
-      if (cFAGoalTS.getBddUtils() == pBddUtils
-          && sameTestGoals(cFAGoalTS.includedTestGoals, includedTestGoals)
+      if (sameTestGoals(cFAGoalTS.includedTestGoals, includedTestGoals)
           && premovePrefixString == cFAGoalTS.removePrefixString) {
         return cFAGoalTS;
       }
@@ -240,7 +239,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
     TestCase tc = getSameTCInTS(testcase);
     if (tc != null) {
       // larger path size => more explored (cannot be different path due to the same inputs)
-      if (testcase.getPath().size() > tc.getPath().size()) {
+      if (tc.getPath() == null || testcase.getPath().size() > tc.getPath().size()) {
         tc.setPath(testcase.getPath());
       }
 
