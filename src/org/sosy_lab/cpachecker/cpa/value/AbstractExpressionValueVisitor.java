@@ -219,7 +219,8 @@ public abstract class AbstractExpressionValueVisitor
     final CType calculationType = binaryExpr.getCalculationType();
 
     lVal = castCValue(lVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
-    if (binaryOperator != BinaryOperator.SHIFT_LEFT && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
+    if (binaryOperator != BinaryOperator.SHIFT_LEFT
+        && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
        * We even do not need integer-promotion,
        * because the maximum SHIFT of 64 is lower than MAX_CHAR.
@@ -273,8 +274,12 @@ public abstract class AbstractExpressionValueVisitor
     case GREATER_EQUAL:
     case LESS_THAN:
     case LESS_EQUAL: {
-      result = booleanOperation((NumericValue) lVal,
-          (NumericValue) rVal, binaryOperator, calculationType, machineModel, logger);
+        result = booleanOperation((NumericValue) lVal,
+                (NumericValue) rVal,
+                binaryOperator,
+                calculationType,
+                machineModel,
+                logger);
       // we do not cast here, because 0 and 1 should be small enough for every type.
 
       break;
@@ -524,7 +529,7 @@ public abstract class AbstractExpressionValueVisitor
    * @param logger logging
    * @return the resulting value
    */
-  private static BigInteger arithmeticOperationForInt128(
+  private static BigInteger arithmeticOperation(
       final BigInteger l,
       final BigInteger r,
       final BinaryOperator op,
@@ -553,7 +558,7 @@ public abstract class AbstractExpressionValueVisitor
       case MULTIPLY:
         return l.multiply(r);
       case SHIFT_LEFT:
-        // TODO: Do not throw an exception, calculate instead
+        // TODO: throw error or return 0?
         try {
           BigInteger result = l.shiftLeft(r.intValueExact());
           return result;
@@ -654,7 +659,7 @@ public abstract class AbstractExpressionValueVisitor
           BigInteger lVal = lNum.bigInteger();
           BigInteger rVal = rNum.bigInteger();
           BigInteger result =
-              arithmeticOperationForInt128(lVal, rVal, op, calculationType, machineModel, logger);
+              arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
           return new NumericValue(result);
         }
       case DOUBLE: {
@@ -715,10 +720,8 @@ public abstract class AbstractExpressionValueVisitor
 
     final int cmp;
     switch (type.getType()) {
-      case INT128: {
-        cmp = l.bigInteger().compareTo(r.bigInteger());
-        break;
-      }
+      case INT128:
+      case CHAR:
       case INT: {
         CSimpleType canonicalType = type.getCanonicalType();
         int sizeInBits = machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
@@ -2397,9 +2400,28 @@ public abstract class AbstractExpressionValueVisitor
     switch (st.getType()) {
       case BOOL:
         return convertToBool(numericValue);
-
-      case INT:
       case INT128:
+      {
+        if (isNan(numericValue)) {
+          // result of conversion of NaN to integer is undefined
+          return UnknownValue.getInstance();
+
+        } else if ((numericValue.getNumber() instanceof Float
+            || numericValue.getNumber() instanceof Double)
+            && Math.abs(numericValue.doubleValue() - numericValue.longValue()) >= 1) {
+          // if number is a float and float can not be exactly represented as integer, the
+          // result of the conversion of float to integer is undefined
+          return UnknownValue.getInstance();
+        }
+        NumericValue result;
+        if (numericValue.getNumber() instanceof BigInteger) {
+          result = new NumericValue(numericValue.bigInteger());
+        } else {
+          result = new NumericValue(BigInteger.valueOf(numericValue.longValue()));
+        }
+        return result;
+      }
+      case INT:
       case CHAR:
         {
           if (isNan(numericValue)) {
@@ -2414,8 +2436,7 @@ public abstract class AbstractExpressionValueVisitor
             return UnknownValue.getInstance();
         }
 
-        final BigInteger valueToCastAsInt = numericValue.bigInteger();// TODO: ask
-                                                                      // BigInteger.valueOf(numericValue.longValue());
+        final BigInteger valueToCastAsInt = numericValue.bigInteger();// BigInteger.valueOf(numericValue.longValue());
           final boolean targetIsSigned = machineModel.isSigned(st);
 
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
@@ -2446,7 +2467,7 @@ public abstract class AbstractExpressionValueVisitor
             return new NumericValue(result.longValueExact());
 
           } else {
-            return new NumericValue(result);
+          return new NumericValue(result);
         }
         }
 

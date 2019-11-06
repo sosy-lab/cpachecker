@@ -99,7 +99,8 @@ public class ExpressionSimplificationVisitor
       CSimpleType type = (CSimpleType) expr.getExpressionType();
       if (type.getType().isIntegerType()) {
         return new CIntegerLiteralExpression(expr.getFileLocation(),
-                expr.getExpressionType(), BigInteger.valueOf(numericResult.longValue()));
+            expr.getExpressionType(),
+            numericResult.bigInteger());
       } else if (type.getType().isFloatingPointType()) {
         try {
           return new CFloatLiteralExpression(expr.getFileLocation(),
