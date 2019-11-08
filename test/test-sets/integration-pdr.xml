@@ -57,7 +57,7 @@
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
