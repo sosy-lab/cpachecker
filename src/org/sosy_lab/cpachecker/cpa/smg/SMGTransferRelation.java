@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -110,7 +111,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue; 
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
@@ -131,6 +132,7 @@ public class SMGTransferRelation
   private final SMGOptions options;
   private final SMGExportDotOption exportSMGOptions;
   private final SMGPredicateManager smgPredicateManager;
+  private final ShutdownNotifier shutdownNotifier;
 
   final SMGRightHandSideEvaluator expressionEvaluator;
 
@@ -142,7 +144,8 @@ public class SMGTransferRelation
       SMGExportDotOption pExportOptions,
       SMGTransferRelationKind pKind,
       SMGPredicateManager pSMGPredicateManager,
-      SMGOptions pOptions) {
+      SMGOptions pOptions,
+      ShutdownNotifier pShutdownNotifier) {
     kind = pKind;
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
@@ -151,6 +154,7 @@ public class SMGTransferRelation
     smgPredicateManager = pSMGPredicateManager;
     options = pOptions;
     exportSMGOptions = pExportOptions;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
@@ -502,12 +506,13 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     return handleAssumption(expression, cfaEdge, truthAssumption);
   }
 
-  private List<SMGState> handleAssumption(CExpression expression, CFAEdge cfaEdge,
-      boolean truthValue) throws CPATransferException {
+  private List<SMGState> handleAssumption(
+      CExpression expression, CFAEdge cfaEdge, boolean truthValue)
+      throws CPATransferException, InterruptedException {
     // FIXME Quickfix, simplify expressions for sv-comp, later assumption handling has to be refactored to be able to handle complex expressions
     expression = eliminateOuterEquals(expression);
 
@@ -545,11 +550,8 @@ public class SMGTransferRelation
   }
 
   private List<SMGState> deriveFurtherInformationFromAssumption(
-      AssumeVisitor visitor,
-      CFAEdge cfaEdge,
-      boolean truthValue,
-      CExpression expression)
-      throws CPATransferException {
+      AssumeVisitor visitor, CFAEdge cfaEdge, boolean truthValue, CExpression expression)
+      throws CPATransferException, InterruptedException {
 
     boolean impliesEqOn = visitor.impliesEqOn(truthValue, state);
     boolean impliesNeqOn = visitor.impliesNeqOn(truthValue, state);
@@ -569,6 +571,7 @@ public class SMGTransferRelation
 
     for (SMGExplicitValueAndState explicitValueAndState :
         expressionEvaluator.evaluateExplicitValue(state, cfaEdge, expression)) {
+      shutdownNotifier.shutdownIfNecessary();
 
       SMGExplicitValue explicitValue = explicitValueAndState.getObject();
       SMGState explicitSmgState = explicitValueAndState.getSmgState();
@@ -1304,8 +1307,9 @@ public class SMGTransferRelation
     return result;
   }
 
-  private Collection<SMGState> strengthen(AutomatonState pAutomatonState, SMGState pElement,
-      CFAEdge pCfaEdge) throws CPATransferException {
+  private Collection<SMGState> strengthen(
+      AutomatonState pAutomatonState, SMGState pElement, CFAEdge pCfaEdge)
+      throws CPATransferException, InterruptedException {
 
     FluentIterable<CExpression> assumptions =
         from(pAutomatonState.getAssumptions()).filter(CExpression.class);
