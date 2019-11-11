@@ -96,7 +96,7 @@ public interface SLHeapDelegate {
    */
   default public SLStateError handleDereference(CExpression pExp) throws Exception {
     return handleDereference(pExp, null);
-  };
+  }
 
 
   public SLStateError handleDereference(CExpression pExp, CExpression pOffset) throws Exception;
