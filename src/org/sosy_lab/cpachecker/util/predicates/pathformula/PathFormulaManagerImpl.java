@@ -619,6 +619,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public Formula expressionToFormula(PathFormula pFormula, CIdExpression pExpr, CFAEdge pEdge)
       throws UnrecognizedCodeException {
-    return expressionToFormula(pFormula, pExpr, pEdge);
+    return expressionToFormula(pFormula, (CExpression) pExpr, pEdge);
   }
 }
