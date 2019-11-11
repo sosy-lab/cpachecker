@@ -31,7 +31,7 @@ import static jsylvan.JSylvan.ref;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Predicates;
-import com.google.common.collect.Maps;
+import com.google.common.primitives.ImmutableIntArray;
 import com.google.common.primitives.Longs;
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.logging.Level;
 import javax.annotation.concurrent.GuardedBy;
@@ -93,8 +94,8 @@ class SylvanBDDRegionManager implements RegionManager {
   // In this map we store the info which BDD to free after a SylvanBDDRegion object was GCed.
   // Needs to be concurrent because we access it from two threads,
   // and we don't want synchronized blocks in the main thread.
-  private final Map<Reference<SylvanBDDRegion>, Long> referenceMap =
-      Maps.newConcurrentMap();
+  private final Map<Reference<SylvanBDDRegion>, Long> referenceMap = new ConcurrentHashMap<>();
+
   @Option(secure = true, description = "Log2 size of the BDD node table.")
   @IntegerOption(min = 1)
   private int tableSize = 26;
@@ -305,8 +306,7 @@ class SylvanBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public void setVarOrder(ArrayList<Integer> pOrder) {
-  }
+  public void setVarOrder(ImmutableIntArray pOrder) {}
 
   @Override
   public void reorder(PredicateOrderingStrategy strategy) {

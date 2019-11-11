@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.collect.Sets;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -57,7 +57,7 @@ public class SMGBasicRefiner implements Refiner {
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SMGBasicRefiner.class);
     SMGCPA smgCpa = CPAs.retrieveCPAOrFail(pCpa, SMGCPA.class, SMGBasicRefiner.class);
 
-    cache = Sets.newHashSet();
+    cache = new HashSet<>();
 
     return new SMGBasicRefiner(smgCpa.getLogger(), argCpa);
   }

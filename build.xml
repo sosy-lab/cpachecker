@@ -25,11 +25,17 @@
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
          ReferenceEquality: TODO enable this and fix alarms
          EqualsGetClass: TODO enable this and fix alarms?
+         GuardedBy: crashes current error-prone
+         Finally: crashes current error-prone
+         MixedMutabilityReturnType: too many warnings, need to fix them first
          -->
     <property name="errorprone.options" value="
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
         -Xep:EqualsGetClass:OFF
+        -Xep:GuardedBy:OFF
+        -Xep:Finally:OFF
+        -Xep:MixedMutabilityReturnType:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>
@@ -128,7 +134,7 @@
 
     <available file=".factorypath" property="factorypath.present"/>
     <target name="-warn-factorypath" unless="factorypath.present">
-        <echo level="warning">If you use Eclipse, please copy .factorypath.template to .factorypath and (if necessary) adjust the path to your CPAchecker directory in it.</echo>
+        <echo level="warning">If you use Eclipse, please create a copy of .factorypath.template and name it .factorypath, (if necessary) adjust the path to your CPAchecker directory in it.</echo>
         <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 
@@ -142,21 +148,4 @@
             <arg line="-m unittest discover scripts"/>
         </exec>
     </target>
-
-    <!-- Targets for downloading CPAchecker instead of building it.
-         This downloads CPAchecker from the VerifierCloud and is used by the BuildBot.
-         Warning: this might overwrite local changes. -->
-    <target name="download-cpachecker" depends="determine-version-revision, resolve-dependencies">
-        <script language="javascript"><![CDATA[
-            var revision = project.getProperty("version.revision");
-            project.setProperty("version.revision.without-suffix", revision.replaceAll("[A-Za-z]*$", ''));
-        ]]></script>
-        <get src="https://vcloud.sosy-lab.org/cpachecker/webclient/tool/archive?revision=${version.revision.without-suffix}" dest="CPAchecker.zip" verbose="false"/>
-        <unzip src="CPAchecker.zip" dest="." failOnEmptyArchive="true" overwrite="true">
-            <patternset>
-                <include name="cpachecker.jar"/>
-            </patternset>
-        </unzip>
-    </target>
-
 </project>

@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -68,6 +69,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
@@ -82,7 +84,8 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
           "cpa.predicate.handlePointerAliasing",
           "cpa.predicate.memoryAllocationsAlwaysSucceed",
           "testcase.targets.type",
-          "testcase.targets.optimization.strategy");
+          "testcase.targets.optimization.strategy",
+          "testcase.generate.parallel");
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -165,11 +168,12 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       Path automatonFile) throws IOException, CPAException, InterruptedException {
 
     try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
+      final Predicate<ARGState> relevantState = Predicates.in(pErrorPathStates);
       witnessExporter.writeErrorWitness(
           w,
           pRootState,
-          Predicates.in(pErrorPathStates),
-          e -> pErrorPathStates.contains(e.getFirst()) && pErrorPathStates.contains(e.getSecond()),
+          relevantState,
+          BiPredicates.bothSatisfy(relevantState),
           getCounterexampleInfo.apply(pErrorState).orElse(null));
     }
 
@@ -194,7 +198,8 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
               Iterables.concat(specification.getSpecFiles(), Collections.singleton(automatonFile)),
               cfa,
               lConfig,
-              lLogger);
+              lLogger,
+              shutdownNotifier);
       CoreComponentsFactory factory =
           new CoreComponentsFactory(
               lConfig, lLogger, lShutdownManager.getNotifier(), new AggregatedReachedSets());
@@ -213,7 +218,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
 
       if (provideCEXInfoFromCEXCheck) {
         AbstractState target = from(lReached).firstMatch(IS_TARGET_STATE).orNull();
-        if (target != null && target instanceof ARGState) {
+        if (target instanceof ARGState) {
           ARGState argTarget = (ARGState) target;
           if (argTarget.getCounterexampleInformation().isPresent()) {
             CounterexampleInfo cexInfo = argTarget.getCounterexampleInformation().get();

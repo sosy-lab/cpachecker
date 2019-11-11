@@ -59,19 +59,19 @@ public class KInductionInvariantChecker {
   private boolean isComputationFinished = false;
 
   /**
-   * Create a new k-induction based invariant checker. Actual computation is started
-   * with {@link #checkCandidates()}, it is blocking and runs synchronously. The
-   * created instance of this class should be only used once.
+   * Create a new k-induction based invariant checker. Actual computation is started with {@link
+   * #checkCandidates()}, it is blocking and runs synchronously. The created instance of this class
+   * should be only used once.
    *
    * @param pConfig the Configuration for this check
    * @param pShutdownNotifier the parent shutdown notifier
    * @param pLogger the logger which should be used
    * @param pCfa the whole CFA
-   * @param pCandidateGenerator the Candidate Generator (it's CandidateInvariants have
-   * to work with different solvers, as in most cases this check will use another solver
-   * than the caller of this method does.)
-   * @throws InvalidConfigurationException is thrown if the configuration file for k-induction
-   * is not available
+   * @param pCandidateGenerator the Candidate Generator (it's CandidateInvariants have to work with
+   *     different solvers, as in most cases this check will use another solver than the caller of
+   *     this method does.)
+   * @throws InvalidConfigurationException is thrown if the configuration file for k-induction is
+   *     not available
    * @throws CPAException may be thrown while building the CPAs used for this check
    */
   public KInductionInvariantChecker(
@@ -81,7 +81,7 @@ public class KInductionInvariantChecker {
       CFA pCfa,
       Specification specification,
       CandidateGenerator pCandidateGenerator)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfig.inject(this);
     cfa = pCfa;
 

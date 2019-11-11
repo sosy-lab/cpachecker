@@ -27,13 +27,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableSet;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 
 public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
-  private final TreeSet<UsagePoint> topUsages;
+  private final NavigableSet<UsagePoint> topUsages;
   private final Map<UsagePoint, UsageInfoSet> usageInfoSets;
 
   public UnrefinedUsagePointSet() {
@@ -98,7 +99,7 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
       UsageInfoSet uset = usageInfoSets.get(point);
       boolean b = uset.remove(pUstate);
       if (b) {
-        if (uset.size() == 0) {
+        if (uset.isEmpty()) {
           usageInfoSets.remove(point);
         }
         //May be two usages related to the same state. This is abstractState !

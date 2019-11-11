@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.harness;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -44,7 +43,7 @@ public class ExpressionTestValue extends TestValue {
   }
 
   public static ExpressionTestValue of(AExpression pValue) {
-    return of(Collections.emptyList(), pValue);
+    return of(ImmutableList.of(), pValue);
   }
 
   public static ExpressionTestValue of(List<AAstNode> pAuxiliaryStatments, AExpression pValue) {

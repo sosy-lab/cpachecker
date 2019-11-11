@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.SerializableTester;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.BlockJUnit4ClassRunner;
@@ -96,29 +97,29 @@ public class CBitFieldTypeTest {
   @Test
   public void testBaseBool() {
     CBitFieldType type = new CBitFieldType(CNumericTypes.BOOL, 0);
-    Assert.assertEquals(CNumericTypes.BOOL, type.getType());
-    Assert.assertEquals(0, type.getBitFieldSize());
+    assertThat(type.getType()).isEqualTo(CNumericTypes.BOOL);
+    assertThat(type.getBitFieldSize()).isEqualTo(0);
   }
 
   @Test
   public void testBaseChar() {
     CBitFieldType type = new CBitFieldType(CNumericTypes.CHAR, 0);
-    Assert.assertEquals(CNumericTypes.CHAR, type.getType());
-    Assert.assertEquals(0, type.getBitFieldSize());
+    assertThat(type.getType()).isEqualTo(CNumericTypes.CHAR);
+    assertThat(type.getBitFieldSize()).isEqualTo(0);
   }
 
   @Test
   public void testBaseInt() {
     CBitFieldType type = new CBitFieldType(CNumericTypes.INT, 0);
-    Assert.assertEquals(CNumericTypes.INT, type.getType());
-    Assert.assertEquals(0, type.getBitFieldSize());
+    assertThat(type.getType()).isEqualTo(CNumericTypes.INT);
+    assertThat(type.getBitFieldSize()).isEqualTo(0);
   }
 
   @Test
   public void testBasePositiveSize() {
     CBitFieldType type = new CBitFieldType(CNumericTypes.INT, 3);
-    Assert.assertEquals(CNumericTypes.INT, type.getType());
-    Assert.assertEquals(3, type.getBitFieldSize());
+    assertThat(type.getType()).isEqualTo(CNumericTypes.INT);
+    assertThat(type.getBitFieldSize()).isEqualTo(3);
   }
 
   @Test

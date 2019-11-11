@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.cpa.dominator;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ForwardingSet;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -93,7 +93,7 @@ public class DominatorState extends ForwardingSet<CFANode>
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(dominators);
+    return Objects.hash(dominators);
   }
 
   @Override

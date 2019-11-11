@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.test;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
-import com.google.common.truth.Truth;
 import java.util.Collection;
 import java.util.Set;
 import org.junit.Before;
@@ -157,7 +158,7 @@ public class SMGAttachRegionToListTest {
 
     Set<SMGEdgeHasValue> hves =
         smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
-    Truth.assertThat(hves.size()).isEqualTo(1);
+    assertThat(hves).hasSize(1);
 
     SMGEdgePointsTo pt = smg.getPointer(Iterables.getOnlyElement(hves).getValue());
     SMGObject segment = pt.getObject();
@@ -184,7 +185,7 @@ public class SMGAttachRegionToListTest {
 
     Set<SMGEdgeHasValue> hves =
         smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
-    Truth.assertThat(hves.size()).isEqualTo(1);
+    assertThat(hves).hasSize(1);
 
     SMGEdgePointsTo pt = smg.getPointer(Iterables.getOnlyElement(hves).getValue());
     SMGObject segment = pt.getObject();

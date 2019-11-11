@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.pixelexport;
 
+import com.google.common.primitives.ImmutableIntArray;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.awt.Color;
 import java.util.Collection;
-import java.util.List;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public interface GraphLevel {
@@ -35,7 +35,7 @@ public interface GraphLevel {
 
   int getWidth();
 
-  Collection<Pair<List<Integer>, Color>> getGroups();
+  Collection<Pair<ImmutableIntArray, Color>> getGroups();
 
   interface Builder<NodeType> {
     @CanIgnoreReturnValue

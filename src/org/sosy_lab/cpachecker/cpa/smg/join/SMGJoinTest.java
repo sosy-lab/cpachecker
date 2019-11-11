@@ -27,7 +27,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -38,11 +37,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -211,7 +208,7 @@ public class SMGJoinTest {
     String varName = "variableName";
     addGlobalWithoutValueToBoth(varName);
     SMGJoin join = new SMGJoin(smg1, smg2, null, null);
-    Assert.assertTrue(join.isDefined());
+    assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     UnmodifiableCLangSMG resultSMG = join.getJointSMG();
@@ -227,11 +224,11 @@ public class SMGJoinTest {
     addLocalWithoutValueToBoth(varName);
 
     SMGJoin join = new SMGJoin(smg1, smg2, null, null);
-    Assert.assertTrue(join.isDefined());
+    assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     UnmodifiableCLangSMG resultSMG = join.getJointSMG();
-    Assert.assertTrue(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName));
+    assertThat(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName)).isTrue();
     assertObjectCounts(resultSMG, 0, 1, 1);
   }
 
@@ -240,7 +237,7 @@ public class SMGJoinTest {
     String varName = "variableName";
     addGlobalWithValueToBoth(varName);
     SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
-    Assert.assertTrue(join.isDefined());
+    assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     UnmodifiableCLangSMG resultSMG = join.getJointSMG();
@@ -260,11 +257,11 @@ public class SMGJoinTest {
     smg2.addStackFrame(functionDeclaration);
     addLocalWithValueToBoth(varName);
     SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
-    Assert.assertTrue(join.isDefined());
+    assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
     UnmodifiableCLangSMG resultSMG = join.getJointSMG();
-    Assert.assertTrue(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName));
+    assertThat(Iterables.get(resultSMG.getStackFrames(), 0).containsVariable(varName)).isTrue();
     assertObjectCounts(resultSMG, 0, 1, 1);
 
     SMGObject global = Iterables.get(resultSMG.getStackFrames(), 0).getVariable(varName);
@@ -315,16 +312,16 @@ public class SMGJoinTest {
     addValueToBoth(c3, 0, 104, 32);
 
     SMGJoin join = new SMGJoin(smg1, smg2, null, null);
-    Assert.assertTrue(join.isDefined());
+    assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
   }
 
   private void joinUpdateUnit(SMGJoinStatus firstOperand, SMGJoinStatus forLe, SMGJoinStatus forRe) {
-    Assert.assertEquals(firstOperand, firstOperand.updateWith(SMGJoinStatus.EQUAL));
-    Assert.assertEquals(forLe, firstOperand.updateWith(SMGJoinStatus.LEFT_ENTAIL));
-    Assert.assertEquals(forRe, firstOperand.updateWith(SMGJoinStatus.RIGHT_ENTAIL));
-    Assert.assertEquals(
-        SMGJoinStatus.INCOMPARABLE, firstOperand.updateWith(SMGJoinStatus.INCOMPARABLE));
+    assertThat(firstOperand.updateWith(SMGJoinStatus.EQUAL)).isEqualTo(firstOperand);
+    assertThat(firstOperand.updateWith(SMGJoinStatus.LEFT_ENTAIL)).isEqualTo(forLe);
+    assertThat(firstOperand.updateWith(SMGJoinStatus.RIGHT_ENTAIL)).isEqualTo(forRe);
+    assertThat(firstOperand.updateWith(SMGJoinStatus.INCOMPARABLE))
+        .isEqualTo(SMGJoinStatus.INCOMPARABLE);
   }
 
   @Test
@@ -342,25 +339,26 @@ public class SMGJoinTest {
   // tests, whether the SMGJoinFields has an appropriate effect on the join status
   @Test
   public void nullifiedBlocksJoinTest() throws SMGInconsistentException {
-
-    CType mockType4b = TypeUtils.createTypeWithLength(32);
-
+    final int mockType4bSize = 32;
     smg1.addStackFrame(functionDeclaration3);
     smg2.addStackFrame(functionDeclaration3);
 
     Pair<SMGRegion, SMGRegion> objs = addHeapWithoutValueToBoth("Object", 64);
 
     // more general
-    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0 , objs.getFirst(), SMGZeroValue.INSTANCE));
+    smg1.addHasValueEdge(
+        new SMGEdgeHasValue(mockType4bSize, 0, objs.getFirst(), SMGZeroValue.INSTANCE));
 
-    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0 , objs.getSecond(), SMGZeroValue.INSTANCE));
-    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, objs.getSecond(), SMGZeroValue.INSTANCE));
+    smg2.addHasValueEdge(
+        new SMGEdgeHasValue(mockType4bSize, 0, objs.getSecond(), SMGZeroValue.INSTANCE));
+    smg2.addHasValueEdge(
+        new SMGEdgeHasValue(mockType4bSize, 32, objs.getSecond(), SMGZeroValue.INSTANCE));
 
     Pair<SMGRegion, SMGRegion> global = addGlobalWithoutValueToBoth("global", 128);
     addPointerValueToBoth(global, 0, 100, 32, objs, 0);
 
     SMGJoin join = new SMGJoin(smg1, smg2, null, null);
-    Assert.assertTrue(join.isDefined());
+    assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.RIGHT_ENTAIL);
 
     // this will lead to incomparable, undefined, you can not join 0(ptr valuu) with 666(nonptr val)
@@ -369,10 +367,10 @@ public class SMGJoinTest {
     // this join fails due to SMGJoinValues not due to SMGJoinFields!
     SMGValue un = SMGKnownSymValue.valueOf(666);
     smg1.addValue(un);
-    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, objs.getFirst(), un));
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 32, objs.getFirst(), un));
 
     SMGJoin join2 = new SMGJoin(smg1, smg2, null, null);
-    Assert.assertFalse(join2.isDefined());
+    assertThat(join2.isDefined()).isFalse();
     assertThat(join2.getStatus()).isEqualTo(SMGJoinStatus.INCOMPARABLE);
   }
 }

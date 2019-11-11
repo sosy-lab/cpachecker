@@ -29,9 +29,9 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -147,8 +147,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
               "Require that all restart configurations consider a location aware state");
 
           for (AbstractState errorState : from(usedReached).filter(IS_TARGET_STATE)) {
-            logger.log(Level.INFO, "Error state found in reached set ", usedReached,
-                "but not by last configuration. Error state must be infeasible.");
+            /* logger.log(Level.INFO, "Error state found in reached set ", usedReached,
+            "but not by last configuration. Error state must be infeasible.");*/
             logger.log(Level.FINE, "Remove infeasible error state", errorState);
             ((ARGState) errorState).removeFromARG();
           }
@@ -209,7 +209,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     List<List<ARGState>> successorsForEdge = new ArrayList<>(initialStates.size());
     EdgeSuccessor edgeSuccessorIdentifier = new EdgeSuccessor();
 
-    Map<Pair<List<AbstractState>, List<ARGState>>, ARGState> constructedCombinedStates = Maps.newHashMap();
+    Map<Pair<List<AbstractState>, List<ARGState>>, ARGState> constructedCombinedStates =
+        new HashMap<>();
     Deque<Pair<List<ARGState>, ARGState>> toVisit = new ArrayDeque<>();
     toVisit.add(Pair.of(roots, combinedRoot));
 
@@ -284,7 +285,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     for (AbstractState state : AbstractStates.asIterable(pPredecessor)) {
       if (state instanceof AutomatonState
           && ((AutomatonState) state).getOwningAutomatonName().equals("AssumptionAutomaton")) {
-        if (AutomatonStateARGCombiningHelper.endsInAssumptionTrueState((AutomatonState) state, pSuccEdge)) {
+        if (AutomatonStateARGCombiningHelper.endsInAssumptionTrueState(
+            (AutomatonState) state, pSuccEdge, logger)) {
           return false;
         }
       }
@@ -407,14 +409,14 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     // compute number of successors
     int count = 0;
     for (List<ARGState> successor : pSuccessorsForEdge) {
-      if (successor.size() > 0) {
+      if (!successor.isEmpty()) {
         count = count == 0 ? successor.size() : count * successor.size();
       }
     }
 
     // no successor in every of the ARGs
     if (count == 0) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     Collection<Pair<List<AbstractState>, List<ARGState>>> result = new ArrayList<>(count);
@@ -436,7 +438,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
       // collect ARG successors
       for (int index = 0; index < indices.length; index++) {
-        if (pSuccessorsForEdge.get(index).size() > 0) {
+        if (!pSuccessorsForEdge.get(index).isEmpty()) {
           argSuccessors.add(getUncoveredSuccessor(pSuccessorsForEdge.get(index).get(indices[index])));
         }
       }

@@ -38,7 +38,6 @@ import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.io.Writer;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -315,34 +314,32 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
   private void dumpDomainTypeStatistics(Path pDomainTypeStatisticsFile, VariableClassification vc) {
     try (Writer w = IO.openOutputFile(pDomainTypeStatisticsFile, Charset.defaultCharset())) {
-      try (PrintWriter p = new PrintWriter(w)) {
-        Object[][] statMapping = {
-              {"intBoolVars",           vc.getIntBoolVars().size()},
-              {"intEqualVars",          vc.getIntEqualVars().size()},
-              {"intAddVars",            vc.getIntAddVars().size()},
-              {"allVars",               allVars.size()},
-              {"intBoolVarsRelevant",   countNumberOfRelevantVars(vc.getIntBoolVars())},
-              {"intEqualVarsRelevant",  countNumberOfRelevantVars(vc.getIntEqualVars())},
-              {"intAddVarsRelevant",    countNumberOfRelevantVars(vc.getIntAddVars())},
-              {"allVarsRelevant",       countNumberOfRelevantVars(allVars)}
-        };
-        // Write header
-        for (int col=0; col<statMapping.length; col++) {
-          p.print(statMapping[col][0]);
-          if (col != statMapping.length-1) {
-            p.print("\t");
-          }
+      Object[][] statMapping = {
+        {"intBoolVars", vc.getIntBoolVars().size()},
+        {"intEqualVars", vc.getIntEqualVars().size()},
+        {"intAddVars", vc.getIntAddVars().size()},
+        {"allVars", allVars.size()},
+        {"intBoolVarsRelevant", countNumberOfRelevantVars(vc.getIntBoolVars())},
+        {"intEqualVarsRelevant", countNumberOfRelevantVars(vc.getIntEqualVars())},
+        {"intAddVarsRelevant", countNumberOfRelevantVars(vc.getIntAddVars())},
+        {"allVarsRelevant", countNumberOfRelevantVars(allVars)}
+      };
+      // Write header
+      for (int col = 0; col < statMapping.length; col++) {
+        w.write(String.valueOf(statMapping[col][0]));
+        if (col != statMapping.length - 1) {
+          w.write("\t");
         }
-        p.print("\n");
-        // Write data
-        for (int col=0; col<statMapping.length; col++) {
-          p.print(statMapping[col][1]);
-          if (col != statMapping.length-1) {
-            p.print("\t");
-          }
-        }
-        p.print("\n");
       }
+      w.write("\n");
+      // Write data
+      for (int col = 0; col < statMapping.length; col++) {
+        w.write(String.valueOf(statMapping[col][1]));
+        if (col != statMapping.length - 1) {
+          w.write("\t");
+        }
+      }
+      w.write("\n");
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write variable classification statistics to file");
     }

@@ -200,10 +200,13 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
     return state.clone();
   }
 
-
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pState,
+      Iterable<AbstractState> pOtherStates,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException, InterruptedException {
     assert(pState instanceof PolicyEnforcementState);
     @SuppressWarnings("unchecked")
     PolicyEnforcementState<E> policyState = ((PolicyEnforcementState<E>) pState);

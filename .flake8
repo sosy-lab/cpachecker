@@ -1,0 +1,20 @@
+[flake8]
+max-line-length = 88
+ignore =
+    # do not match Black output
+    E203,W503,
+    # we need imports after fiddling with sys.path
+    E402,
+    # we have no isort config
+    I002,
+    # print is allowed in simple scripts
+    T001,
+    # only relevant if pytest is used
+    T003
+exclude =
+    # Python code copied from other sources
+    build,
+    # Created locally by IDE plugins
+    .ropeproject,
+    # No Python files here
+    src

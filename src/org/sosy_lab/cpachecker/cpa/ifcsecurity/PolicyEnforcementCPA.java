@@ -111,9 +111,7 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
   @Option(secure=true, name="statestocheck", toUppercase=true, description="which states shall be checked")
   private int statestocheck=0;
 
-  @Option(secure=true, description="defines security classes of entities")
 
-  private Path initialmapfile = null;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyEnforcementCPA.class);

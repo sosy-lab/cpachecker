@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -180,13 +180,13 @@ public class CustomInstruction{
     StringBuilder sb = new StringBuilder();
 
     sb.append("(");
-    if (inputVariables.size() > 0) {
+    if (!inputVariables.isEmpty()) {
       Joiner.on(", ").appendTo(sb, Iterables.transform(inputVariables, CIUtils.GET_SMTNAME));
     }
 
     sb.append(") -> (");
 
-    if (outputVariables.size() > 0) {
+    if (!outputVariables.isEmpty()) {
       Joiner.on(", ").appendTo(sb, Iterables.transform(outputVariables, CIUtils.GET_SMTNAME_WITH_INDEX));
     }
     sb.append(")");
@@ -201,18 +201,18 @@ public class CustomInstruction{
    * @return (define-fun ci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
    */
   public Pair<List<String>, String> getFakeSMTDescription() {
-    if (inputVariables.size() == 0 && outputVariables.size() == 0) {
-      return Pair.of(Collections.emptyList(), "(define-fun ci() Bool true)");
+    if (inputVariables.isEmpty() && outputVariables.isEmpty()) {
+      return Pair.of(ImmutableList.of(), "(define-fun ci() Bool true)");
     }
     StringBuilder sb = new StringBuilder();
     sb.append("(define-fun ci() Bool");
     int BracketCounter = 0;
 
-    if (inputVariables.size() != 0) {
+    if (!inputVariables.isEmpty()) {
       String last = inputVariables.get(inputVariables.size()-1);
       for (int i=0; i<inputVariables.size(); i++) {
         String variable = inputVariables.get(i);
-        if (outputVariables.size()==0 && variable.equals(last)) {
+        if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(variable, false));
 //          sb.append("= ");
 //          sb.append(variable);
@@ -225,7 +225,7 @@ public class CustomInstruction{
       }
     }
 
-    if (outputVariables.size() != 0) {
+    if (!outputVariables.isEmpty()) {
       String last = outputVariables.get(outputVariables.size()-1);
       for (int i=0; i<outputVariables.size(); i++) {
         String variable = outputVariables.get(i);
@@ -325,7 +325,12 @@ public class CustomInstruction{
         continue;
       }
 
+      if (aciPred.getNumLeavingEdges() != ciPred.getNumLeavingEdges()) {
+        throw new AppliedCustomInstructionParsingFailedException("Structure mismatch");
+      }
+
       for (int i=0; i<ciPred.getNumLeavingEdges(); i++) {
+        shutdownNotifier.shutdownIfNecessary();
         // Custom Instruction
         CFAEdge ciEdge = ciPred.getLeavingEdge(i);
         CFANode ciSucc = ciEdge.getSuccessor();
@@ -399,19 +404,19 @@ public class CustomInstruction{
    * @return (define-fun aci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
    */
   private Pair<List<String>, String> getFakeSMTDescriptionForACI(final Map<String,String> map) {
-    if (inputVariables.size() == 0 && outputVariables.size() == 0) {
-      return Pair.of(Collections.emptyList(), "(define-fun ci() Bool true)");
+    if (inputVariables.isEmpty() && outputVariables.isEmpty()) {
+      return Pair.of(ImmutableList.of(), "(define-fun ci() Bool true)");
     }
 
     StringBuilder sb = new StringBuilder();
     sb.append("(define-fun ci() Bool");
     int BracketCounter = 0;
 
-    if (inputVariables.size() != 0) {
+    if (!inputVariables.isEmpty()) {
       String last = inputVariables.get(inputVariables.size()-1);
       for (int i=0; i<inputVariables.size(); i++) {
         String variable = inputVariables.get(i);
-        if (outputVariables.size()==0 && variable.equals(last)) {
+        if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(map.get(variable), false));
         } else {
           sb.append("(and ");
@@ -421,7 +426,7 @@ public class CustomInstruction{
       }
     }
 
-    if (outputVariables.size() != 0) {
+    if (!outputVariables.isEmpty()) {
       String last = outputVariables.get(outputVariables.size()-1);
       for (int i=0; i<outputVariables.size(); i++) {
         String variable = outputVariables.get(i);
@@ -807,7 +812,8 @@ public class CustomInstruction{
       else if (aciExp instanceof CFloatLiteralExpression) {
         compareSimpleTypes(ciExp, ((CFloatLiteralExpression) aciExp).getValue(), (CSimpleType) aciExp.getExpressionType());
       } else {
-        throw new AppliedCustomInstructionParsingFailedException("The aci expression " + ciExp + " is not a CSimpleType.");
+        throw new AppliedCustomInstructionParsingFailedException(
+            "The aci expression " + aciExp + " is not a CSimpleType.");
       }
       return null;
     }

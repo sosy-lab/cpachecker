@@ -300,7 +300,7 @@ public class CongruenceManager implements
   public Optional<ABEAbstractedState<CongruenceState>> strengthen(
       ABEAbstractedState<CongruenceState> pState,
       TemplatePrecision pPrecision,
-      List<AbstractState> pOtherStates) {
+      Iterable<AbstractState> pOtherStates) {
     return Optional.of(pState);
   }
 

@@ -188,7 +188,6 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
       CFAEdge firstEdge = firstIterator.next();
       CFAEdge secondEdge = secondIterator.next();
-      int forkThread = 0;
 
       while (firstEdge.equals(secondEdge)) {
         if (isThreadCreateNFunction(firstEdge)) {
@@ -209,7 +208,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
         secondEdge = secondIterator.next();
       }
 
-      forkThread = threadIterator.getCurrentThread();
+      int forkThread = threadIterator.getCurrentThread();
       printEdge(builder, firstEdge);
       printPath(firstUsage, firstIterator, builder);
 

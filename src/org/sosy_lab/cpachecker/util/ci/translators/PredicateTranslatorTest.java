@@ -211,6 +211,7 @@ public class PredicateTranslatorTest extends SolverViewBasedTest0 {
   private void assertFormulaIsExpected(
       Pair<List<String>, String> convertedFormula, String termName, String expectedFormula)
       throws SolverException, InterruptedException {
+    requireParser();
     String defs = Joiner.on("\n").join(convertedFormula.getFirst());
     BooleanFormula f =
         mgr.parse(defs + "\n" + convertedFormula.getSecond() + "\n(assert " + termName + ")");

@@ -24,14 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
-
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.log.LogManager;
-
-import java.util.Map;
-import java.util.logging.Level;
-
 import de.uni_freiburg.informatik.ultimate.core.model.IServiceFactory;
 import de.uni_freiburg.informatik.ultimate.core.model.preferences.IPreferenceProvider;
 import de.uni_freiburg.informatik.ultimate.core.model.services.IBacktranslationService;
@@ -42,6 +34,11 @@ import de.uni_freiburg.informatik.ultimate.core.model.services.IService;
 import de.uni_freiburg.informatik.ultimate.core.model.services.IStorable;
 import de.uni_freiburg.informatik.ultimate.core.model.services.IToolchainStorage;
 import de.uni_freiburg.informatik.ultimate.core.model.services.IUltimateServiceProvider;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.log.LogManager;
 
 public class LassoRankerToolchainStorage implements IToolchainStorage, IUltimateServiceProvider {
 
@@ -54,7 +51,7 @@ public class LassoRankerToolchainStorage implements IToolchainStorage, IUltimate
     logger = Preconditions.checkNotNull(pLogger);
     shutdownNotifier = Preconditions.checkNotNull(pShutdownNotifier);
     lassoRankerLoggingService = new LassoRankerLoggingService(pLogger);
-    toolchainStorage = Maps.newConcurrentMap();
+    toolchainStorage = new ConcurrentHashMap<>();
   }
 
   @Override

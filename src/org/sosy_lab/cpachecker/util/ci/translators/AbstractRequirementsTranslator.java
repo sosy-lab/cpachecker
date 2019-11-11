@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -66,8 +66,7 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
     formulaPre = Pair.of(formulaPre.getFirst(), renameDefine(formulaPre.getSecond(), "pre"));
 
     if (post.isEmpty()) {
-      return Pair.of(
-          formulaPre, Pair.of(Collections.emptyList(), "(define-fun post () Bool false)"));
+      return Pair.of(formulaPre, Pair.of(ImmutableList.of(), "(define-fun post () Bool false)"));
     }
 
     List<String> list = new ArrayList<>();

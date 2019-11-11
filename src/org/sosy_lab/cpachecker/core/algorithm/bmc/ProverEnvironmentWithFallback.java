@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -43,7 +45,7 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-class ProverEnvironmentWithFallback
+public class ProverEnvironmentWithFallback
     implements AutoCloseable, InterpolatingProverEnvironment<Object> {
 
   private final Deque<BooleanFormula> stack = new ArrayDeque<>();
@@ -69,15 +71,13 @@ class ProverEnvironmentWithFallback
   }
 
   private ProverOptions[] getOptions() {
-    return proverOptions.toArray(new ProverOptions[proverOptions.size()]);
+    return proverOptions.toArray(new ProverOptions[0]);
   }
 
   @SuppressWarnings("unchecked")
   private void ensureInitialized() {
     if (interpolatingProverEnvironment == null && proverEnvironment == null) {
-      if (closed) {
-        throw new IllegalStateException("Already closed.");
-      }
+      checkState(!closed, "Already closed.");
       if (useInterpolation) {
         interpolatingProverEnvironment =
             (InterpolatingProverEnvironment<Object>)
@@ -222,9 +222,7 @@ class ProverEnvironmentWithFallback
   public BooleanFormula getInterpolant(Iterable<Object> pAssertionIds)
       throws SolverException, InterruptedException {
     ensureInitialized();
-    if (!supportsInterpolation()) {
-      throw new IllegalStateException("Interpolation has been switched off.");
-    }
+    checkState(supportsInterpolation(), "Interpolation has been switched off.");
     final List<Object> assertionIds;
     if (pAssertionIds instanceof List) {
       assertionIds = (List<Object>) pAssertionIds;
@@ -277,9 +275,7 @@ class ProverEnvironmentWithFallback
   public List<BooleanFormula> getSeqInterpolants(List<? extends Collection<Object>> pArg0)
       throws SolverException, InterruptedException {
     ensureInitialized();
-    if (!supportsInterpolation()) {
-      throw new IllegalStateException("Interpolation has been switched off.");
-    }
+    checkState(supportsInterpolation(), "Interpolation has been switched off.");
     return interpolatingProverEnvironment.getSeqInterpolants(pArg0);
   }
 
@@ -288,9 +284,7 @@ class ProverEnvironmentWithFallback
       List<? extends Collection<Object>> pArg0, int[] pArg1)
       throws SolverException, InterruptedException {
     ensureInitialized();
-    if (!supportsInterpolation()) {
-      throw new IllegalStateException("Interpolation has been switched off.");
-    }
+    checkState(supportsInterpolation(), "Interpolation has been switched off.");
     return interpolatingProverEnvironment.getTreeInterpolants(pArg0, pArg1);
   }
 

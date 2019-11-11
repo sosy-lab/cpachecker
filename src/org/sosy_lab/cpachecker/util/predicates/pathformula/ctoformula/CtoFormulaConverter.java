@@ -114,7 +114,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -182,7 +181,6 @@ public class CtoFormulaConverter {
 
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
-  private final IntegerFormulaManagerView nfmgr;
   private final BitvectorFormulaManagerView efmgr;
   final FunctionFormulaManagerView ffmgr;
   protected final LogManagerWithoutDuplicates logger;
@@ -212,7 +210,6 @@ public class CtoFormulaConverter {
     this.typeHandler = pTypeHandler;
 
     this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.nfmgr = fmgr.getIntegerFormulaManager(); // NumeralMgr is only used for String-Literals, so Int or Real does not matter, however Princess only supports Int.
     this.efmgr = fmgr.getBitvectorFormulaManager();
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(logger);
@@ -502,12 +499,11 @@ public class CtoFormulaConverter {
     SSAMapBuilder ssa = pContextSSA.builder();
     Formula formula = makeVariable(pVarName, pType, ssa);
 
-    if (!ssa.build().equals(pContextSSA)) {
-      throw new IllegalArgumentException(
-          "we cannot apply the SSAMap changes to the point where the"
-              + " information would be needed possible problems: uninitialized variables could be"
-              + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
-    }
+    checkArgument(
+        ssa.build().equals(pContextSSA),
+        "we cannot apply the SSAMap changes to the point where the"
+            + " information would be needed possible problems: uninitialized variables could be"
+            + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
 
     return formula;
   }
@@ -550,8 +546,7 @@ public class CtoFormulaConverter {
     if (result == null) {
       // generate a new string literal. We generate a new UIf
       int n = nextStringLitIndex++;
-      result = ffmgr.callUF(
-          stringUfDecl, nfmgr.makeNumber(n));
+      result = ffmgr.callUF(stringUfDecl, fmgr.getIntegerFormulaManager().makeNumber(n));
       stringLitToFormula.put(literal, result);
     }
 
@@ -1541,7 +1536,13 @@ public class CtoFormulaConverter {
 
     T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
 
-    Optional<Triple<BooleanFormula, T, T>> split = fmgr.splitIfThenElse(pF);
+    Optional<Triple<BooleanFormula, T, T>> split;
+    try {
+      split = fmgr.splitIfThenElse(pF);
+    } catch (UnsupportedOperationException e) {
+      logger.logOnce(Level.INFO, "Solver does not support ITE splitting: " + e.getMessage());
+      split = Optional.empty();
+    }
     if (split.isPresent()) {
       Triple<BooleanFormula, T, T> parts = split.get();
 

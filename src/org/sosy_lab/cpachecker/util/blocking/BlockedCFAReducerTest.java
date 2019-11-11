@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.util.blocking;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.io.CharStreams;
 import java.io.BufferedWriter;
@@ -78,9 +76,8 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n4, n5);
     funct.addEdge(n5, exitNode);
 
-    assertTrue(reducer.applySequenceRule(funct));
-    assertEquals(2, funct.getNumOfActiveNodes());
-
+    assertThat(reducer.applySequenceRule(funct)).isTrue();
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(2);
   }
 
   @Test
@@ -120,8 +117,8 @@ public class BlockedCFAReducerTest {
     while (reducer.applySequenceRule(funct)) {
     }
 
-    assertEquals(3, funct.getNumOfActiveNodes());
-    assertEquals(2, funct.getNumLeavingEdges(n4));
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(3);
+    assertThat(funct.getNumLeavingEdges(n4)).isEqualTo(2);
   }
 
   @Test
@@ -172,9 +169,8 @@ public class BlockedCFAReducerTest {
       sequenceApplied = reducer.applySequenceRule(funct);
     } while (sequenceApplied);
 
-
-    assertEquals(3, funct.getNumOfActiveNodes());
-    assertEquals(2, funct.getNumLeavingEdges(n4));
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(3);
+    assertThat(funct.getNumLeavingEdges(n4)).isEqualTo(2);
   }
 
   @Test
@@ -234,9 +230,8 @@ public class BlockedCFAReducerTest {
       choiceApplied = reducer.applyChoiceRule(funct);
     } while (sequenceApplied || choiceApplied);
 
-
-    assertEquals(3, funct.getNumOfActiveNodes());
-    assertEquals(2, funct.getNumLeavingEdges(n4));
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(3);
+    assertThat(funct.getNumLeavingEdges(n4)).isEqualTo(2);
   }
 
   @Test
@@ -264,9 +259,8 @@ public class BlockedCFAReducerTest {
       choiceApplied = reducer.applyChoiceRule(funct);
     } while (sequenceApplied || choiceApplied);
 
-
-    assertEquals(3, funct.getNumOfActiveNodes());
-    assertEquals(2, funct.getNumLeavingEdges(n4));
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(3);
+    assertThat(funct.getNumLeavingEdges(n4)).isEqualTo(2);
   }
 
   @Test
@@ -296,9 +290,8 @@ public class BlockedCFAReducerTest {
       choiceApplied = reducer.applyChoiceRule(funct);
     } while (sequenceApplied || choiceApplied);
 
-
-    assertEquals(3, funct.getNumOfActiveNodes());
-    assertEquals(2, funct.getNumLeavingEdges(n4));
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(3);
+    assertThat(funct.getNumLeavingEdges(n4)).isEqualTo(2);
   }
 
 
@@ -340,8 +333,8 @@ public class BlockedCFAReducerTest {
     do  {
     } while (reducer.applySequenceRule(funct));
 
-    assertEquals(3, funct.getNumOfActiveNodes());
-    assertEquals(2, funct.getNumEnteringEdges(n4));
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(3);
+    assertThat(funct.getNumEnteringEdges(n4)).isEqualTo(2);
   }
 
   @Test
@@ -366,8 +359,8 @@ public class BlockedCFAReducerTest {
       //       assertCfaIsEmpty(inlinedCfa);
     } while (reducer.applySequenceRule(funct));
 
-    assertEquals(3, funct.getNumOfActiveNodes());
-    assertEquals(2, funct.getNumEnteringEdges(n5));
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(3);
+    assertThat(funct.getNumEnteringEdges(n5)).isEqualTo(2);
   }
 
   @Test
@@ -390,8 +383,8 @@ public class BlockedCFAReducerTest {
       //       assertCfaIsEmpty(inlinedCfa);
     } while (reducer.applySequenceRule(funct));
 
-    assertEquals(3, funct.getNumOfActiveNodes());
-    assertEquals(2, funct.getNumEnteringEdges(n4));
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(3);
+    assertThat(funct.getNumEnteringEdges(n4)).isEqualTo(2);
   }
 
   @Test
@@ -426,7 +419,7 @@ public class BlockedCFAReducerTest {
       assertCfaIsEmpty(inlinedCfa);
     } while (reducer.applySequenceRule(funct));
 
-    assertEquals(3, funct.getNumOfActiveNodes());
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(3);
   }
 
   @Test
@@ -456,7 +449,7 @@ public class BlockedCFAReducerTest {
     inlinedCfa = funct.getInlinedCfa();
     assertCfaIsEmpty(inlinedCfa);
 
-    assertEquals(3, funct.getNumOfActiveNodes());
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(3);
   }
 
   @Test
@@ -481,7 +474,7 @@ public class BlockedCFAReducerTest {
     do  {
     } while (reducer.applyChoiceRule(funct));
 
-    assertEquals(6, funct.getNumOfActiveNodes());
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(6);
   }
 
   @Test
@@ -502,7 +495,7 @@ public class BlockedCFAReducerTest {
     do  {
     } while (reducer.applyChoiceRule(funct));
 
-    assertEquals(4, funct.getNumOfActiveNodes());
+    assertThat(funct.getNumOfActiveNodes()).isEqualTo(4);
   }
 
 }

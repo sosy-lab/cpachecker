@@ -56,8 +56,8 @@ public class MergeIgnoringCallstack implements MergeOperator{
       Map<MemoryLocation, Set<DefinitionPoint>> map1,
       Map<MemoryLocation, Set<DefinitionPoint>> map2) {
     Map<MemoryLocation, Set<DefinitionPoint>> newMap = new HashMap<>();
-    Set<MemoryLocation> vars = new HashSet<>();
-    vars.addAll(map1.keySet());
+    Set<MemoryLocation> vars = new HashSet<>(map1.keySet());
+
     vars.addAll(map2.keySet());
 
     Set<DefinitionPoint> unionResult;

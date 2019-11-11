@@ -127,7 +127,7 @@ public class TestTargetProvider implements Statistics {
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     int numCovered = initialTestTargets.size() - uncoveredTargets.size();
     double testTargetCoverage =
-        initialTestTargets.size() == 0 ? 0 : (double) numCovered / initialTestTargets.size();
+        initialTestTargets.isEmpty() ? 0 : (double) numCovered / initialTestTargets.size();
     pOut.printf("Test target coverage: %.2f%%%n", testTargetCoverage * 100);
     pOut.println("Number of total test targets: " + initialTestTargets.size());
     pOut.println("Number of covered test targets: " + numCovered);
@@ -144,6 +144,5 @@ public class TestTargetProvider implements Statistics {
       pOut.println(edge.toString());
     }
     }
-    pOut.flush(); // TODO check if makes sense
   }
 }

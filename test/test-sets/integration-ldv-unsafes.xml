@@ -10,7 +10,7 @@
   <option name="-setprop">statistics.memory=true</option>
 
   <rundefinition>
-    <option name="-ldv"/>
+    <option name="-ldv-bam"/>
   </rundefinition>
 
   <tasks>

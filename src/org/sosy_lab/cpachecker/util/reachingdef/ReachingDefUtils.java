@@ -188,7 +188,7 @@ public class ReachingDefUtils {
         return null;
 
       } else if (pointedTo.isBot()) {
-        return Collections.emptySet();
+        return ImmutableSet.of();
 
       } else {
         assert pointedTo instanceof ExplicitLocationSet;

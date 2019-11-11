@@ -23,19 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static com.google.common.truth.Truth.assertThat;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -43,6 +31,18 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Stream;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /**
  * Test that the bundled specification files are all valid.
@@ -72,7 +72,8 @@ public class AutomatonFilesTest {
             LogManager.createTestLogManager(),
             MachineModel.LINUX32,
             CProgramScope.empty(),
-            Language.C);
-    assertThat(automata).named("automata from file " + automatonFile).isNotEmpty();
+            Language.C,
+            ShutdownNotifier.createDummy());
+    assertWithMessage("automata from file %s,", automatonFile).that(automata).isNotEmpty();
   }
 }

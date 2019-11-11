@@ -143,8 +143,8 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-      List<String> cbmcArgs = new ArrayList<>();
-      cbmcArgs.addAll(getParamForMachineModel());
+      List<String> cbmcArgs = new ArrayList<>(getParamForMachineModel());
+
       cbmcArgs.add("--stop-on-fail");
 
       // Our paths are loop-free, but there might be hidden loops in stdlib functions like memcpy.

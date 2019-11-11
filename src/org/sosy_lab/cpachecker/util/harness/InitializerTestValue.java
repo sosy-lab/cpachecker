@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.harness;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
@@ -44,7 +43,7 @@ public class InitializerTestValue extends TestValue {
   }
 
   public static InitializerTestValue of(AInitializer pValue) {
-    return of(Collections.emptyList(), pValue);
+    return of(ImmutableList.of(), pValue);
   }
 
   public static InitializerTestValue of(List<AAstNode> pAuxiliaryStatments, AInitializer pValue) {

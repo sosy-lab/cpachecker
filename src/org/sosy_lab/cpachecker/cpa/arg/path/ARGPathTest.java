@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg.path;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
@@ -258,9 +258,10 @@ public class ARGPathTest {
       if (i == STATE_POS_1) {
         try {
           pathIt.getPreviousAbstractState();
-          fail(
-              "Calling getPreviousAbstractState should throw an exception while"
-                  + " not having advanced the iterator by one position.");
+          assertWithMessage(
+                  "Calling getPreviousAbstractState should throw an exception while"
+                      + " not having advanced the iterator by one position.")
+              .fail();
         } catch (IllegalStateException e) {
           /*do nothing we want to continue testing*/
         }
@@ -271,9 +272,10 @@ public class ARGPathTest {
 
         try {
           pathIt.getPrefixExclusive();
-          fail(
-              "Calling getPrefixExclusive does not work while not having advanced"
-                  + " the iterator by one position.");
+          assertWithMessage(
+                  "Calling getPrefixExclusive does not work while not having advanced"
+                      + " the iterator by one position.")
+              .fail();
         } catch (IllegalStateException e) {
           /*do nothing we want to continue testing*/
         }
@@ -295,9 +297,10 @@ public class ARGPathTest {
       } else {
         try {
           pathIt.getAbstractState();
-          fail(
-              "Calling getAbstractState should throw an exception while"
-                  + " in the middle of a hole in the path");
+          assertWithMessage(
+                  "Calling getAbstractState should throw an exception while"
+                      + " in the middle of a hole in the path")
+              .fail();
         } catch (IllegalStateException e) {
           /*do nothing we want to continue testing*/
         }
@@ -320,9 +323,10 @@ public class ARGPathTest {
 
     try {
       pathIt.getNextAbstractState();
-      fail(
-          "Calling getNextAbstractState should throw an exception"
-              + " if the iterator is on its last element.");
+      assertWithMessage(
+              "Calling getNextAbstractState should throw an exception"
+                  + " if the iterator is on its last element.")
+          .fail();
     } catch (IllegalStateException e) {
       /*do nothing we want to continue testing*/
     }
@@ -334,9 +338,10 @@ public class ARGPathTest {
 
     try {
       pathIt.getNextAbstractState();
-      fail(
-          "Calling getNextAbstractState should throw an exception"
-              + " if the iterator is on its last element.");
+      assertWithMessage(
+              "Calling getNextAbstractState should throw an exception"
+                  + " if the iterator is on its last element.")
+          .fail();
     } catch (IllegalStateException e) {
       /*do nothing we want to continue testing*/
     }
@@ -349,9 +354,10 @@ public class ARGPathTest {
       if (i == STATE_POS_1) {
         try {
           pathIt.getPreviousAbstractState();
-          fail(
-              "Calling getPreviousAbstractState should throw an exception while"
-                  + " not having advanced the iterator by one position.");
+          assertWithMessage(
+                  "Calling getPreviousAbstractState should throw an exception while"
+                      + " not having advanced the iterator by one position.")
+              .fail();
         } catch (IllegalStateException e) {
           /*do nothing we want to continue testing*/
         }
@@ -372,9 +378,10 @@ public class ARGPathTest {
       } else {
         try {
           pathIt.getAbstractState();
-          fail(
-              "Calling getAbstractState should throw an exception while"
-                  + " in the middle of a whole in the path");
+          assertWithMessage(
+                  "Calling getAbstractState should throw an exception while"
+                      + " in the middle of a whole in the path")
+              .fail();
         } catch (IllegalStateException e) {
           /*do nothing we want to continue testing*/
         }
@@ -404,9 +411,10 @@ public class ARGPathTest {
 
     try {
       pathIt.getNextAbstractState();
-      fail(
-          "Calling getNextAbstractState should throw an exception"
-              + " if the iterator is on its last element.");
+      assertWithMessage(
+              "Calling getNextAbstractState should throw an exception"
+                  + " if the iterator is on its last element.")
+          .fail();
     } catch (IllegalStateException e) {
       /*do nothing we want to continue testing*/
     }
@@ -419,9 +427,10 @@ public class ARGPathTest {
       if (i == STATE_POS_1) {
         try {
           pathIt.getPreviousAbstractState();
-          fail(
-              "Calling getPreviousAbstractState should throw an exception while"
-                  + " not having advanced the iterator by one position.");
+          assertWithMessage(
+                  "Calling getPreviousAbstractState should throw an exception while"
+                      + " not having advanced the iterator by one position.")
+              .fail();
         } catch (IllegalStateException e) {
           /*do nothing we want to continue testing*/
         }
@@ -442,9 +451,10 @@ public class ARGPathTest {
       } else {
         try {
           pathIt.getAbstractState();
-          fail(
-              "Calling getAbstractState should throw an exception while"
-                  + " in the middle of a whole in the path");
+          assertWithMessage(
+                  "Calling getAbstractState should throw an exception while"
+                      + " in the middle of a whole in the path")
+              .fail();
         } catch (IllegalStateException e) {
           /*do nothing we want to continue testing*/
         }
@@ -484,9 +494,10 @@ public class ARGPathTest {
       if (i == STATE_POS_1) {
         try {
           pathIt.getPreviousAbstractState();
-          fail(
-              "Calling getPreviousAbstractState should throw an exception while"
-                  + " not having advanced the iterator by one position.");
+          assertWithMessage(
+                  "Calling getPreviousAbstractState should throw an exception while"
+                      + " not having advanced the iterator by one position.")
+              .fail();
         } catch (IllegalStateException e) {
           /*do nothing we want to continue testing*/
         }
@@ -497,9 +508,10 @@ public class ARGPathTest {
 
         try {
           pathIt.getPrefixExclusive();
-          fail(
-              "Calling getPrefixExclusive does not work while not having advanced"
-                  + " the iterator by one position.");
+          assertWithMessage(
+                  "Calling getPrefixExclusive does not work while not having advanced"
+                      + " the iterator by one position.")
+              .fail();
         } catch (IllegalStateException e) {
           /*do nothing we want to continue testing*/
         }
@@ -524,9 +536,10 @@ public class ARGPathTest {
       } else {
         try {
           pathIt.getAbstractState();
-          fail(
-              "Calling getAbstractState should throw an exception while"
-                  + " in the middle of a hole in the path");
+          assertWithMessage(
+                  "Calling getAbstractState should throw an exception while"
+                      + " in the middle of a hole in the path")
+              .fail();
         } catch (IllegalStateException e) {
           /*do nothing we want to continue testing*/
         }
@@ -553,9 +566,10 @@ public class ARGPathTest {
 
     try {
       pathIt.getNextAbstractState();
-      fail(
-          "Calling getNextAbstractState should throw an exception"
-              + " if the iterator is on its last element.");
+      assertWithMessage(
+              "Calling getNextAbstractState should throw an exception"
+                  + " if the iterator is on its last element.")
+          .fail();
     } catch (IllegalStateException e) {
       /*do nothing we want to continue testing*/
     }

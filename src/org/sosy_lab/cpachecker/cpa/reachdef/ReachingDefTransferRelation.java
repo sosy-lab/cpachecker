@@ -270,8 +270,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
                       Collection<CLeftHandSide> firstRes = binExp.getOperand1().accept(this);
                       Collection<CLeftHandSide> sndRes = binExp.getOperand2().accept(this);
 
-                      Set<CLeftHandSide> res = new HashSet<>();
-                      res.addAll(firstRes);
+                      Set<CLeftHandSide> res = new HashSet<>(firstRes);
+
                       res.addAll(sndRes);
 
                       return res;
@@ -474,7 +474,10 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   @Override
   public @Nullable Collection<? extends AbstractState> strengthen(
-      AbstractState state, List<AbstractState> otherStates, CFAEdge cfaEdge, Precision precision)
+      AbstractState state,
+      Iterable<AbstractState> otherStates,
+      CFAEdge cfaEdge,
+      Precision precision)
       throws CPATransferException, InterruptedException {
 
     for (AbstractState o : otherStates) {

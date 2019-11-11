@@ -72,7 +72,7 @@ public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormul
 
   @Override
   public LtlFormula visitProperty(PropertyContext ctx) {
-    // For a valid syntax, the context-param has to provide the following expressions in the given
+    // For a valid syntax, the ctx-param has to provide the following expressions in the exact
     // order: CHECK LPAREN initFunction COMMA ltlProperty RPAREN EOF
     throwException_When_InvalidChildCount(ctx.getChildCount(), 7);
 
@@ -90,7 +90,6 @@ public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormul
   public LtlFormula visitFormula(FormulaContext ctx) {
     // Contains formula + EOF
     throwException_When_InvalidChildCount(ctx.getChildCount(), 2);
-
     return visit(ctx.getChild(0));
   }
 
@@ -98,7 +97,6 @@ public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormul
   public LtlFormula visitExpression(ExpressionContext ctx) {
     // Contains an orExpression only
     throwException_When_InvalidChildCount(ctx.getChildCount(), 1);
-
     return visit(ctx.getChild(0));
   }
 
@@ -125,8 +123,7 @@ public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormul
       }
     }
 
-    ImmutableList<LtlFormula> list = builder.build();
-    return Disjunction.of(list);
+    return Disjunction.of(builder.build());
   }
 
   @Override
@@ -152,8 +149,7 @@ public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormul
       }
     }
 
-    ImmutableList<LtlFormula> list = builder.build();
-    return Conjunction.of(list);
+    return Conjunction.of(builder.build());
   }
 
   @Override
@@ -247,7 +243,8 @@ public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormul
       throw new RuntimeException(
           String.format(
               "Invalid input provided. Expected %d child-nodes in param 'ctx', however, %d were found",
-              5, ctx.getChildCount()));
+              5,
+              ctx.getChildCount()));
     }
 
     // Don't actually parse the quoted string -- only retrieve it and use CParserUtils-class
@@ -284,6 +281,7 @@ public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormul
     throw new RuntimeException(
         String.format(
             "Invalid input provided. Expected %d child-nodes in param 'ctx', however, %d were found",
-            pExpected, pActual));
+            pExpected,
+            pActual));
   }
 }

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.pixelexport;
 
-import static org.junit.Assert.assertEquals;
+import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.Iterators;
 import java.util.Iterator;
@@ -76,8 +76,8 @@ public class GraphToPixelsWriterTest extends GraphToPixelsWriter<DummyNode> {
     GraphStructure result = getStructure(root);
 
     int nLevels = Iterators.size(result.iterator());
-    assertEquals(1, nLevels);
-    assertEquals(result.iterator().next().getWidth(), 1);
+    assertThat(nLevels).isEqualTo(1);
+    assertThat(result.iterator().next().getWidth()).isEqualTo(1);
   }
 
   /*
@@ -106,12 +106,12 @@ public class GraphToPixelsWriterTest extends GraphToPixelsWriter<DummyNode> {
     GraphStructure result = getStructure(root);
 
     int nLevels = Iterators.size(result.iterator());
-    assertEquals(4, nLevels);
+    assertThat(nLevels).isEqualTo(4);
 
     int expectedNodesPerLayer[] = {1, 2, 1, 3};
     Iterator<GraphLevel> actualLevels = result.iterator();
     for (int i = 0; i < expectedNodesPerLayer.length; i++) {
-      assertEquals(expectedNodesPerLayer[i], actualLevels.next().getWidth());
+      assertThat(actualLevels.next().getWidth()).isEqualTo(expectedNodesPerLayer[i]);
     }
   }
 }

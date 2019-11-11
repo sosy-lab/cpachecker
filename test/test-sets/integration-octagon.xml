@@ -14,7 +14,6 @@
       <include>../programs/benchmarks/ntdrivers-simplified/*.cil.yml</include>
       <include>../programs/benchmarks/ssh-simplified/*.cil.yml</include>
       <include>../programs/benchmarks/locks/*.c</include>
-      <exclude reason="timeout">../programs/benchmarks/locks/*_1*_true-unreach-call*.c</exclude>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
@@ -34,7 +33,7 @@
       <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
   </tasks>
   <tasks>
-      <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
       <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>

@@ -713,7 +713,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               logger,
               cfa.getMachineModel(),
               scope,
-              cfa.getLanguage());
+              cfa.getLanguage(),
+              shutdownNotifier);
 
       InvariantGenerator invGen =
           CPAInvariantGenerator.create(
@@ -905,7 +906,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                 } catch (CPAException | InterruptedException e) {
                   logger.logUserException(
                       Level.WARNING, e, "Could not compute interpolants for k-induction inv-gen");
-                  return Collections.emptyList();
+                  return ImmutableList.of();
                 }
 
                 // add false as last interpolant for the error location

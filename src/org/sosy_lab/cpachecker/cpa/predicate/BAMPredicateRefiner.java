@@ -73,7 +73,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
 
     RefinementStrategy strategy =
         new BAMPredicateAbstractionRefinementStrategy(
-            config, logger, predicateCpa, solver, predicateCpa.getPredicateManager());
+            config, logger, solver, predicateCpa.getPredicateManager());
 
     return new PredicateCPARefinerFactory(pCpa)
         .setBlockFormulaStrategy(blockFormulaStrategy)

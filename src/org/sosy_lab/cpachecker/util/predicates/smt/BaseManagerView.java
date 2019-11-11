@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.List;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -36,7 +38,7 @@ abstract class BaseManagerView {
   private final FormulaWrappingHandler wrappingHandler;
 
   BaseManagerView(FormulaWrappingHandler pWrappingHandler) {
-    wrappingHandler = pWrappingHandler;
+    wrappingHandler = checkNotNull(pWrappingHandler);
   }
 
   final boolean useBitvectors() {

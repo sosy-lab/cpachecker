@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,12 +79,12 @@ class AutomatonExpressionArguments {
       LogManager pLogger) {
     super();
     if (pAutomatonVariables == null) {
-      automatonVariables = Collections.emptyMap();
+      automatonVariables = ImmutableMap.of();
     } else {
       automatonVariables = pAutomatonVariables;
     }
     if (pAbstractStates == null) {
-      abstractStates = Collections.emptyList();
+      abstractStates = ImmutableList.of();
     } else {
       abstractStates = pAbstractStates;
     }

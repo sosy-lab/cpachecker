@@ -58,12 +58,12 @@ import org.eclipse.cdt.core.model.ILanguage;
 import org.eclipse.cdt.core.parser.FileContent;
 import org.eclipse.cdt.core.parser.IParserLogService;
 import org.eclipse.cdt.core.parser.IScannerInfo;
-import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.cdt.internal.core.parser.IMacroDictionary;
 import org.eclipse.cdt.internal.core.parser.InternalParserUtil;
 import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContent;
 import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
@@ -82,23 +82,29 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
  */
 class EclipseCParser implements CParser {
 
-  protected final ILanguage language;
+  private final ILanguage language;
 
-  protected final IParserLogService parserLog = ParserFactory.createDefaultLogService();
+  private final IParserLogService parserLog;
 
   private final MachineModel machine;
-
   private final LogManager logger;
   private final EclipseCParserOptions options;
+  private final ShutdownNotifier shutdownNotifier;
 
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
 
-  public EclipseCParser(LogManager pLogger, EclipseCParserOptions pOptions, MachineModel pMachine) {
+  public EclipseCParser(
+      LogManager pLogger,
+      EclipseCParserOptions pOptions,
+      MachineModel pMachine,
+      ShutdownNotifier pShutdownNotifier) {
 
-    this.logger = pLogger;
-    this.machine = pMachine;
-    this.options = pOptions;
+    logger = pLogger;
+    machine = pMachine;
+    options = pOptions;
+    shutdownNotifier = pShutdownNotifier;
+    parserLog = new ShutdownNotifierLogAdapter(pShutdownNotifier);
 
     switch (pOptions.getDialect()) {
     case C99:
@@ -143,7 +149,7 @@ class EclipseCParser implements CParser {
       CSourceOriginMapping pSourceOriginMapping,
       CProgramScope scope,
       FileParseWrapper pWrapperFunction)
-      throws CParserException {
+      throws CParserException, InterruptedException {
 
     Preconditions.checkNotNull(pInput);
     Preconditions.checkNotNull(pSourceOriginMapping);
@@ -174,7 +180,8 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames) throws CParserException {
+  public ParseResult parseFile(List<String> pFilenames)
+      throws CParserException, InterruptedException {
 
     return parseSomething(
         Lists.transform(pFilenames, FileToParse::new),
@@ -186,7 +193,7 @@ class EclipseCParser implements CParser {
   @Override
   public ParseResult parseString(
       List<FileContentToParse> pCodeFragments, CSourceOriginMapping sourceOriginMapping)
-      throws CParserException {
+      throws CParserException, InterruptedException {
 
     return parseSomething(
         pCodeFragments,
@@ -201,7 +208,8 @@ class EclipseCParser implements CParser {
 
   /** This method parses a single file where no prefix for static variables is needed. */
   @Override
-  public ParseResult parseFile(String pFileName) throws CParserException, IOException {
+  public ParseResult parseFile(String pFileName)
+      throws CParserException, IOException, InterruptedException {
 
     return parseFile(ImmutableList.of(pFileName));
   }
@@ -210,7 +218,7 @@ class EclipseCParser implements CParser {
   @Override
   public ParseResult parseString(
       String pFileName, String pCode, CSourceOriginMapping sourceOriginMapping, Scope pScope)
-      throws CParserException {
+      throws CParserException, InterruptedException {
 
     return parseSomething(
         ImmutableList.of(new FileContentToParse(pFileName, pCode)),
@@ -222,7 +230,8 @@ class EclipseCParser implements CParser {
         });
   }
 
-  private IASTStatement[] parseCodeFragmentReturnBody(String pCode) throws CParserException {
+  private IASTStatement[] parseCodeFragmentReturnBody(String pCode)
+      throws CParserException, InterruptedException {
     // parse
     IASTTranslationUnit ast = parse(wrapCode("", pCode), ParseContext.dummy());
 
@@ -260,7 +269,8 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode, Scope scope) throws CParserException {
+  public CAstNode parseSingleStatement(String pCode, Scope scope)
+      throws CParserException, InterruptedException {
 
     IASTStatement[] statements = parseCodeFragmentReturnBody(pCode);
     ASTConverter converter = prepareTemporaryConverter(scope);
@@ -277,7 +287,8 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode, Scope scope) throws CParserException {
+  public List<CAstNode> parseStatements(String pCode, Scope scope)
+      throws CParserException, InterruptedException {
 
     IASTStatement[] statements = parseCodeFragmentReturnBody(pCode);
     ASTConverter converter = prepareTemporaryConverter(scope);
@@ -305,7 +316,7 @@ class EclipseCParser implements CParser {
   protected static final int PARSER_OPTIONS = ILanguage.OPTION_NO_IMAGE_LOCATIONS;
 
   private IASTTranslationUnit parse(FileContent codeReader, ParseContext parseContext)
-      throws CParserException {
+      throws CParserException, InterruptedException {
     parseTimer.start();
     try {
       IASTTranslationUnit result = getASTTranslationUnit(codeReader);
@@ -339,14 +350,18 @@ class EclipseCParser implements CParser {
   }
 
   private IASTTranslationUnit getASTTranslationUnit(FileContent pCode)
-      throws CFAGenerationRuntimeException, CoreException {
-
-    return language.getASTTranslationUnit(pCode,
-                                          StubScannerInfo.instance,
-                                          FileContentProvider.instance,
-                                          null,
-                                          PARSER_OPTIONS,
-                                          parserLog);
+      throws CFAGenerationRuntimeException, CoreException, InterruptedException {
+    try {
+      return language.getASTTranslationUnit(
+          pCode,
+          StubScannerInfo.instance,
+          FileContentProvider.instance,
+          null,
+          PARSER_OPTIONS,
+          parserLog);
+    } finally {
+      shutdownNotifier.shutdownIfNecessary();
+    }
   }
 
   /**
@@ -358,13 +373,13 @@ class EclipseCParser implements CParser {
    */
   private ParseResult buildCFA(
       List<IASTTranslationUnit> asts, ParseContext parseContext, Scope pScope)
-      throws CParserException {
+      throws CParserException, InterruptedException {
 
     checkArgument(!asts.isEmpty());
     cfaTimer.start();
 
     try {
-      CFABuilder builder = new CFABuilder(options, logger, parseContext, machine);
+      CFABuilder builder = new CFABuilder(options, logger, shutdownNotifier, parseContext, machine);
 
       // we don't need any file prefix if we only have one file
       if (asts.size() == 1) {
@@ -577,6 +592,11 @@ class EclipseCParser implements CParser {
         result = result.withFileName(pAnalysisFile);
       }
       return result;
+    }
+
+    @Override
+    public boolean isMappingToIdenticalLineNumbers() {
+      return delegate.isMappingToIdenticalLineNumbers();
     }
   }
 }

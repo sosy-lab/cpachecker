@@ -79,15 +79,6 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
       description="generalization operator to be used in the precision adjustment operator")
   private String generalizationOperator = "Widen";
 
-  /*
-   * SEP = identity
-   * JOIN = convex hull
-   */
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="merge operator to be used")
-  private String mergeType = "SEP";
-
-
   private final AbstractDomain abstractDomain;
   private final Precision precision;
   private final PrecisionAdjustment precisionAdjustment;

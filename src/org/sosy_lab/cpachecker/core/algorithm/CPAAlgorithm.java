@@ -250,7 +250,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
               assert val instanceof StatHist;
               ((StatHist) newVal).mergeWith((StatHist) val);
             } else {
-              assert false : "Can't handle " + val.getClass().getSimpleName();
+              throw new AssertionError("Can't handle " + val.getClass().getSimpleName());
             }
         }
       }

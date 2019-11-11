@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -98,10 +100,10 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     Value val = rVal.accept(v);
 
     if (val.isUnknown()) {
-      return SMGExplicitValueAndState.of(v.getNewState());
+      return SMGExplicitValueAndState.of(v.getState(), SMGUnknownValue.INSTANCE);
     }
 
-    return SMGExplicitValueAndState.of(v.getNewState(),
+    return SMGExplicitValueAndState.of(v.getState(),
         SMGKnownExpValue.valueOf(val.asNumericValue().longValue()));
   }
 
@@ -121,7 +123,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     if (pOffset.isUnknown() || pObject == null) {
       SMGState errState =
           pSmgState.withInvalidRead().withErrorDescription("Can't evaluate offset or object");
-      return SMGValueAndState.of(errState);
+      return SMGValueAndState.withUnknownValue(errState);
     }
 
     long fieldOffset = pOffset.getAsLong();
@@ -156,7 +158,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
         description = "NULL pointer dereference on read";
       }
       errState = errState.withErrorDescription(description);
-      return SMGValueAndState.of(errState);
+      return SMGValueAndState.withUnknownValue(errState);
     }
 
     return pSmgState.forceReadValue(pObject, fieldOffset, pType);
@@ -227,7 +229,13 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
                 knownValue, SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit);
       }
     }
-    return pState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue).getState();
+    return pState
+        .writeValue(
+            pMemoryOfField,
+            pFieldOffset,
+            machineModel.getSizeofInBits(pRValueType).longValueExact(),
+            pValue)
+        .getState();
   }
 
   public SMGState assignFieldToState(
@@ -309,12 +317,17 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
                 && (smgState.getHeap().isObjectValid(object)
                     || smgState.getHeap().isObjectExternallyAllocated(object))) {
 
-              SMGAddressValue newParamValue =
+              SMGEdgePointsTo newParamValue =
                   pSmgState.addExternalAllocation(
                       calledFunctionName + "_Param_No_" + i + "_ID" + SMGCPA.getNewValue());
               pSmgState =
                   assignFieldToState(
-                      pSmgState, pCfaEdge, object, offset.getAsLong(), newParamValue, paramType);
+                      pSmgState,
+                      pCfaEdge,
+                      object,
+                      offset.getAsLong(),
+                      (SMGSymbolicValue) newParamValue.getValue(),
+                      paramType);
             }
           }
         }
@@ -324,9 +337,10 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     CType returnValueType =
         TypeUtils.getRealExpressionType(pFunctionCallExpression.getExpressionType());
     if (returnValueType instanceof CPointerType || returnValueType instanceof CArrayType) {
-      SMGAddressValue returnValue =
-          pSmgState.addExternalAllocation(calledFunctionName + SMGCPA.getNewValue());
-      return Collections.singletonList(SMGAddressValueAndState.of(pSmgState, returnValue));
+      return Collections.singletonList(
+          SMGAddressValueAndState.of(
+              pSmgState,
+              pSmgState.addExternalAllocation(calledFunctionName + SMGCPA.getNewValue())));
     }
     return Collections.singletonList(SMGAddressValueAndState.of(pSmgState));
   }

@@ -53,6 +53,11 @@ class PredicateCpaOptions {
   @Option(secure = true, description = "Use formula reporting states for strengthening.")
   private boolean strengthenWithFormulaReportingStates = false;
 
+  @Option(
+      secure = true,
+      description = "Check satisfiability for plain conjunction of edge and assumptions.")
+  private boolean assumptionStrengtheningSatCheck = false;
+
   PredicateCpaOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
@@ -75,5 +80,9 @@ class PredicateCpaOptions {
 
   boolean strengthenWithFormulaReportingStates() {
     return strengthenWithFormulaReportingStates;
+  }
+
+  public boolean assumptionStrengtheningSatCheck() {
+    return assumptionStrengtheningSatCheck;
   }
 }

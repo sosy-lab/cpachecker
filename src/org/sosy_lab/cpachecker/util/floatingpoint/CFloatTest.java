@@ -553,7 +553,7 @@ public class CFloatTest {
     b = b.multiply(c);
 
     assertThat(b.toString()).isEqualTo("-0.0");
-    assertThat(b.isNegative()).isEqualTo(true);
+    assertThat(b.isNegative()).isTrue();
     assertThat(a.isZero()).isEqualTo(b.isZero());
     assertThat(a.isNegative()).isEqualTo(b.isNegative());
   }
@@ -584,10 +584,10 @@ public class CFloatTest {
     a = a.trunc();
     b = b.trunc();
 
-    assertThat(a.isZero()).isEqualTo(true);
-    assertThat(b.isZero()).isEqualTo(true);
-    assertThat(a.isNegative()).isEqualTo(true);
-    assertThat(b.isNegative()).isEqualTo(true);
+    assertThat(a.isZero()).isTrue();
+    assertThat(b.isZero()).isTrue();
+    assertThat(a.isNegative()).isTrue();
+    assertThat(b.isNegative()).isTrue();
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
     a = new CFloatImpl("123.625", CFloatNativeAPI.FP_TYPE_DOUBLE);

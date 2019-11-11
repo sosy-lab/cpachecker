@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
@@ -32,9 +33,10 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -55,6 +57,7 @@ import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.ToIntFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -98,6 +101,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -105,6 +110,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
+import org.sosy_lab.cpachecker.util.automaton.TestTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -213,7 +219,7 @@ abstract class AbstractBMCAlgorithm
       BMCStatistics pBMCStatistics,
       boolean pIsInvariantGenerator,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     pConfig.inject(this, AbstractBMCAlgorithm.class);
 
@@ -226,7 +232,14 @@ abstract class AbstractBMCAlgorithm
     specification = checkNotNull(pSpecification);
 
     shutdownNotifier = pShutdownManager.getNotifier();
-    targetLocationProvider = new CachingTargetLocationProvider(shutdownNotifier, logger, cfa);
+    TestTargetCPA testCPA = CPAs.retrieveCPA(pCPA, TestTargetCPA.class);
+    if (testCPA != null) {
+      targetLocationProvider =
+          new TestTargetLocationProvider(
+              ((TestTargetTransferRelation) testCPA.getTransferRelation()).getTestTargets());
+    } else {
+      targetLocationProvider = new CachingTargetLocationProvider(shutdownNotifier, logger, cfa);
+    }
 
     if (induction) {
       induction = checkIfInductionIsPossible(pCFA, pLogger);
@@ -337,7 +350,7 @@ abstract class AbstractBMCAlgorithm
     Map<SymbolicCandiateInvariant, BmcResult> checkedClauses = new HashMap<>();
 
     if (!candidateGenerator.produceMoreCandidates()) {
-      for (AbstractState state : from(reachedSet.getWaitlist()).toList()) {
+      for (AbstractState state : ImmutableList.copyOf(reachedSet.getWaitlist())) {
         reachedSet.removeOnlyFromWaitlist(state);
       }
       return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -346,9 +359,7 @@ abstract class AbstractBMCAlgorithm
     AlgorithmStatus status;
 
     try (ProverEnvironmentWithFallback prover =
-            new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS);
-        @SuppressWarnings("resource")
-            KInductionProver kInductionProver = createInductionProver()) {
+        new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS)) {
       invariantGeneratorHeadStart.waitForInvariantGenerator();
 
       do {
@@ -416,8 +427,11 @@ abstract class AbstractBMCAlgorithm
                 ctiBlockingClauses.clear();
               }
             }
+            try (@SuppressWarnings("resource")
+                KInductionProver kInductionProver = createInductionProver()) {
             sound =
                 checkStepCase(reachedSet, candidateGenerator, kInductionProver, ctiBlockingClauses);
+            }
           }
           if (invariantGenerator.isProgramSafe()
               || (sound && !candidateGenerator.produceMoreCandidates())) {
@@ -640,7 +654,9 @@ abstract class AbstractBMCAlgorithm
       BooleanFormula liftedCti = bfmgr.not(blockingClause.getPlainFormula(fmgr));
 
       // Add literals until unsat
-      Queue<BooleanFormula> literals = new PriorityQueue<>(new BooleanFormulaComparator(fmgr));
+      ToIntFunction<BooleanFormula> variableNameCount = f -> fmgr.extractVariableNames(f).size();
+      Queue<BooleanFormula> literals =
+          new PriorityQueue<>(Comparator.comparingInt(variableNameCount).reversed());
       Iterables.addAll(
           literals, SymbolicCandiateInvariant.getConjunctionOperands(fmgr, liftedCti, true));
 
@@ -784,20 +800,19 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
-  protected @Nullable KInductionProver createInductionProver() {
-    return induction
-        ? new KInductionProver(
-            cfa,
-            logger,
-            stepCaseAlgorithm,
-            stepCaseCPA,
-            invariantGenerator,
-            stats,
-            reachedSetFactory,
-            shutdownNotifier,
-            getLoopHeads(),
-            usePropertyDirection)
-        : null;
+  protected KInductionProver createInductionProver() {
+    assert induction;
+    return new KInductionProver(
+        cfa,
+        logger,
+        stepCaseAlgorithm,
+        stepCaseCPA,
+        invariantGenerator,
+        stats,
+        reachedSetFactory,
+        shutdownNotifier,
+        getLoopHeads(),
+        usePropertyDirection);
   }
 
   /**
@@ -819,24 +834,6 @@ abstract class AbstractBMCAlgorithm
     return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
   }
 
-  private static final class BooleanFormulaComparator implements Comparator<BooleanFormula> {
-
-    private final FormulaManagerView fmgr;
-
-    public BooleanFormulaComparator(FormulaManagerView pFmgr) {
-      fmgr = Objects.requireNonNull(pFmgr);
-    }
-
-    @Override
-    public int compare(BooleanFormula pO1, BooleanFormula pO2) {
-      Set<String> leftVariableNames = fmgr.extractVariableNames(pO1);
-      Set<String> rightVariableNames = fmgr.extractVariableNames(pO2);
-      return ComparisonChain.start()
-          .compare(rightVariableNames.size(), leftVariableNames.size())
-          .result();
-    }
-  }
-
   public enum InvariantGeneratorFactory {
     INDUCTION {
 
@@ -849,7 +846,8 @@ abstract class AbstractBMCAlgorithm
           CFA pCFA,
           Specification pSpecification,
           AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider) throws InvalidConfigurationException, CPAException {
+          TargetLocationProvider pTargetLocationProvider)
+          throws InvalidConfigurationException, CPAException, InterruptedException {
         return
             KInductionInvariantGenerator.create(
                 pConfig,
@@ -926,8 +924,8 @@ abstract class AbstractBMCAlgorithm
         CFA pCFA,
         Specification pSpecification,
         AggregatedReachedSets pAggregatedReachedSets,
-        TargetLocationProvider pTargetLocationProvider) throws InvalidConfigurationException, CPAException;
-
+        TargetLocationProvider pTargetLocationProvider)
+        throws InvalidConfigurationException, CPAException, InterruptedException;
   }
 
   protected FluentIterable<CandidateInvariant> getConfirmedCandidates(final CFANode pLocation) {
@@ -960,7 +958,7 @@ abstract class AbstractBMCAlgorithm
         }
       }
     } else {
-      reachedK = Collections.emptyMap();
+      reachedK = ImmutableMap.of();
     }
     int finalMaxK = maxK;
     return (candidate) -> {
@@ -1028,7 +1026,7 @@ abstract class AbstractBMCAlgorithm
     }
 
     public Obligation(CandidateInvariant pCause, SymbolicCandiateInvariant pBlockingClause) {
-      this(pCause, pBlockingClause, Collections.emptyList());
+      this(pCause, pBlockingClause, ImmutableList.of());
     }
 
     public int getDepth() {
@@ -1068,9 +1066,9 @@ abstract class AbstractBMCAlgorithm
 
       BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
       Set<BooleanFormula> reducedLiftedCti =
-          from(SymbolicCandiateInvariant.getConjunctionOperands(
-                  pFmgr, bfmgr.not(pRefinedBlockingClause.getPlainFormula(pFmgr)), true))
-              .toSet();
+          ImmutableSet.copyOf(
+              SymbolicCandiateInvariant.getConjunctionOperands(
+                  pFmgr, bfmgr.not(pRefinedBlockingClause.getPlainFormula(pFmgr)), true));
       List<BooleanFormula> remainingLiterals =
           from(SymbolicCandiateInvariant.getConjunctionOperands(
                   pFmgr, bfmgr.not(blockingClause.getPlainFormula(pFmgr)), true))
@@ -1180,9 +1178,7 @@ abstract class AbstractBMCAlgorithm
     }
 
     public Iterable<AbstractState> filterUnchecked(Iterable<AbstractState> pStates) {
-      if (!isSafe()) {
-        throw new IllegalStateException("A counterexample was found already.");
-      }
+      checkState(isSafe(), "A counterexample was found already.");
       return Iterables.filter(pStates, Predicates.not(Predicates.in(checkedStates)));
     }
   }

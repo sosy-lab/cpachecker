@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.ldd;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -106,7 +108,7 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
   }
 
   private static void registerVariable(String name, CType type, Map<String, Integer> variables) {
-    if (name != null && !name.isEmpty() && type != null && type instanceof CSimpleType) {
+    if (!isNullOrEmpty(name) && type != null && type instanceof CSimpleType) {
       CBasicType basicType = ((CSimpleType) type).getType();
       if (basicType == CBasicType.INT) {
         variables.put(name, variables.size());

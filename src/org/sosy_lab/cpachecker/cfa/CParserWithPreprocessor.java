@@ -94,12 +94,14 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode, Scope pScope) throws CParserException {
+  public CAstNode parseSingleStatement(String pCode, Scope pScope)
+      throws CParserException, InterruptedException {
     return realParser.parseSingleStatement(pCode, pScope);
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode, Scope pScope) throws CParserException {
+  public List<CAstNode> parseStatements(String pCode, Scope pScope)
+      throws CParserException, InterruptedException {
     return realParser.parseStatements(pCode, pScope);
   }
 }

@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.stream.Collectors.toList;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -103,6 +103,11 @@ public class CPAMain {
     // so make sure numbers are formatted appropriately.
     Locale.setDefault(Locale.US);
 
+    if (args.length == 0) {
+      // be nice to user
+      args = new String[] {"-help"};
+    }
+
     // initialize various components
     Configuration cpaConfig = null;
     LoggingOptions logOptions;
@@ -118,6 +123,8 @@ public class CPAMain {
         throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
       } catch (IOException e) {
         throw Output.fatalError("Could not read config file %s", e.getMessage());
+      } catch (InterruptedException e) {
+        throw Output.fatalError("Interrupted: %s", e.getMessage());
       }
 
       logOptions = new LoggingOptions(cpaConfig);
@@ -306,7 +313,8 @@ public class CPAMain {
    * @return A Configuration object, the output directory, and the specification properties.
    */
   private static Config createConfiguration(String[] args)
-      throws InvalidConfigurationException, InvalidCmdlineArgumentException, IOException {
+      throws InvalidConfigurationException, InvalidCmdlineArgumentException, IOException,
+          InterruptedException {
     // if there are some command line arguments, process them
     Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
 
@@ -464,7 +472,7 @@ public class CPAMain {
       Set<SpecificationProperty> pProperties)
       throws InvalidConfigurationException, IOException {
     Set<Property> properties =
-        pProperties.stream().map(p -> p.getProperty()).collect(ImmutableSet.toImmutableSet());
+        transformedImmutableSetCopy(pProperties, SpecificationProperty::getProperty);
 
     final Path alternateConfigFile;
 
@@ -586,15 +594,14 @@ public class CPAMain {
 
     // set the file from where to read the specification automaton
     ImmutableSet<SpecificationProperty> properties =
-        FluentIterable.from(parser.getProperties())
-            .transform(
-                prop ->
-                    new SpecificationProperty(
-                        parser.getEntryFunction(),
-                        prop,
-                        Optional.ofNullable(SPECIFICATION_FILES.get(prop))
-                            .map(CmdLineArguments::resolveSpecificationFileOrExit)))
-            .toSet();
+        transformedImmutableSetCopy(
+            parser.getProperties(),
+            prop ->
+                new SpecificationProperty(
+                    parser.getEntryFunction(),
+                    prop,
+                    Optional.ofNullable(SPECIFICATION_FILES.get(prop))
+                        .map(CmdLineArguments::resolveSpecificationFileOrExit)));
     assert !properties.isEmpty();
 
     String specFiles =
@@ -649,7 +656,7 @@ public class CPAMain {
 
   private static Configuration handleWitnessOptions(
       Configuration config, Map<String, String> overrideOptions)
-      throws InvalidConfigurationException, IOException {
+      throws InvalidConfigurationException, IOException, InterruptedException {
     WitnessOptions options = new WitnessOptions();
     config.inject(options);
     if (options.witness == null) {
@@ -748,12 +755,15 @@ public class CPAMain {
 
     // export report
     if (mResult.getResult() != Result.NOT_YET_STARTED) {
-      reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
+      reportGenerator.generate(
+          mResult.getResult(), mResult.getCfa(), mResult.getReached(), statistics.toString());
     }
   }
 
-  @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",
-      justification="Default encoding is the correct one for stdout.")
+  @SuppressFBWarnings(
+      value = "DM_DEFAULT_ENCODING",
+      justification = "Default encoding is the correct one for stdout.")
+  @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
   private static PrintStream makePrintStream(OutputStream stream) {
     if (stream instanceof PrintStream) {
       return (PrintStream)stream;

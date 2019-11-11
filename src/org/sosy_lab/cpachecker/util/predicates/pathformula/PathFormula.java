@@ -29,9 +29,7 @@ import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
-
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -116,8 +114,10 @@ public final class PathFormula implements Serializable {
 
   /**
    * javadoc to remove unused parameter warning
+   *
    * @param in the input stream
    */
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.blocking;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -141,8 +140,8 @@ public class ReducedFunctionTest {
     funct.addEdge(entryNode, exitNode);
     funct.addEdge(entryNode, exitNode);
 
-    assertEquals(2, funct.getNumLeavingEdges(entryNode));
-    assertEquals(2, funct.getNumEnteringEdges(exitNode));
+    assertThat(funct.getNumLeavingEdges(entryNode)).isEqualTo(2);
+    assertThat(funct.getNumEnteringEdges(exitNode)).isEqualTo(2);
   }
 
 }

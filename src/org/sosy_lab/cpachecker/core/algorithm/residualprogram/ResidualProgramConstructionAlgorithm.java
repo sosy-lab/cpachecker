@@ -36,6 +36,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -287,11 +288,11 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
           new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
 
       Specification constrSpec = spec;
-      List<Path> specList = Lists.newArrayList(constrSpec.getSpecFiles());
+      List<Path> specList = new ArrayList<>(constrSpec.getSpecFiles());
       specList.add(conditionSpec);
       specList.add(condition);
-      constrSpec = Specification.fromFiles(spec.getProperties(),
-          specList, cfa, config, logger);
+      constrSpec =
+          Specification.fromFiles(spec.getProperties(), specList, cfa, config, logger, shutdown);
 
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, constrSpec);
 

@@ -27,10 +27,7 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Queues;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -82,7 +79,7 @@ public class AutomatonGraphmlParserState {
   private final Map<GraphMLState, Integer> distances;
 
   /** States and, for each of them, the currently stored condition for stuttering at it. */
-  private final Map<GraphMLState, AutomatonBoolExpr> stutterConditions = Maps.newHashMap();
+  private final Map<GraphMLState, AutomatonBoolExpr> stutterConditions = new HashMap<>();
 
   /** Automaton variables by their names. */
   private final Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
@@ -91,7 +88,7 @@ public class AutomatonGraphmlParserState {
    * States (represented in the GraphML model) and the call stack at each of them, for each thread.
    */
   private final Map<GraphMLTransition.GraphMLThread, Map<GraphMLState, Deque<String>>> stacks =
-      Maps.newHashMap();
+      new HashMap<>();
 
   /** The names of all functions available in the CFA. */
   private final Set<String> functionNames;
@@ -110,7 +107,7 @@ public class AutomatonGraphmlParserState {
    * States (represented in the GraphML model) and the transitions leaving them (in our automaton
    * model).
    */
-  private final Map<GraphMLState, List<AutomatonTransition>> stateTransitions = Maps.newHashMap();
+  private final Map<GraphMLState, List<AutomatonTransition>> stateTransitions = new HashMap<>();
 
   /**
    * Initializes a new {@link AutomatonGraphmlParserState}.
@@ -178,7 +175,7 @@ public class AutomatonGraphmlParserState {
       Iterable<GraphMLState> pViolationStates,
       Iterable<GraphMLState> pSinkStates) {
     Queue<GraphMLState> waitlist = new ArrayDeque<>();
-    Map<GraphMLState, Integer> distances = Maps.newHashMap();
+    Map<GraphMLState, Integer> distances = new HashMap<>();
     for (GraphMLState violationState : pViolationStates) {
       waitlist.add(violationState);
       distances.put(violationState, 0);
@@ -342,7 +339,7 @@ public class AutomatonGraphmlParserState {
       GraphMLTransition.GraphMLThread pThread) {
     Map<GraphMLState, Deque<String>> threadStacks = stacks.get(pThread);
     if (threadStacks == null) {
-      threadStacks = Maps.newHashMap();
+      threadStacks = new HashMap<>();
       stacks.put(pThread, threadStacks);
     }
     return threadStacks;
@@ -362,7 +359,7 @@ public class AutomatonGraphmlParserState {
     Map<GraphMLState, Deque<String>> threadStacks = getOrCreateThreadStacks(pThread);
     Deque<String> stack = threadStacks.get(pState);
     if (stack == null) {
-      stack = Queues.newArrayDeque();
+      stack = new ArrayDeque<>();
       threadStacks.put(pState, stack);
     }
     return stack;
@@ -462,7 +459,7 @@ public class AutomatonGraphmlParserState {
       occupiedFunctions.put(pThread, pFunctionInstance);
       return true;
     }
-    Collection<FunctionInstance> copies = Lists.newArrayListWithCapacity(5);
+    Collection<FunctionInstance> copies = new ArrayList<>(5);
     boolean desiredInstanceAvailable = false;
     for (String originalName : functionCopies.keySet()) {
       FunctionInstance copy = new FunctionInstance(originalName, pFunctionInstance.cloneNumber);

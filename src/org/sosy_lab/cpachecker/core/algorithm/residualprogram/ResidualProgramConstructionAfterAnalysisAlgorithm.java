@@ -28,8 +28,8 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -154,7 +155,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
               automatonWriter,
               argRoot,
               computeRelevantStates(pReachedSet),
-              Sets.newHashSet(pReachedSet.getWaitlist()),
+              ImmutableSet.copyOf(pReachedSet.getWaitlist()),
               0,
               true);
         }
@@ -198,7 +199,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
   }
 
   private Set<ARGState> computeRelevantStates(final ReachedSet pReachedSet) {
-    TreeSet<ARGState> uncoveredAncestors = new TreeSet<>();
+    NavigableSet<ARGState> uncoveredAncestors = new TreeSet<>();
     Deque<ARGState> toAdd = new ArrayDeque<>();
 
     for (AbstractState unexplored : pReachedSet.getWaitlist()) {
@@ -344,11 +345,12 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       Specification spec = getSpecification();
       if (usesParallelCompositionOfProgramAndCondition()) {
         assert (assumptionAutomaton != null);
-        List<Path> specList = Lists.newArrayList(spec.getSpecFiles());
+        List<Path> specList = new ArrayList<>(spec.getSpecFiles());
         specList.add(getAssumptionGuider());
         specList.add(assumptionAutomaton);
-        spec = Specification.fromFiles(getSpecification().getProperties(),
-            specList, cfa, config, logger);
+        spec =
+            Specification.fromFiles(
+                getSpecification().getProperties(), specList, cfa, config, logger, shutdown);
       }
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, spec);
 

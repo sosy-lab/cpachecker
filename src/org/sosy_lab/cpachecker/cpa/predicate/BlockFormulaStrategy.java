@@ -67,8 +67,7 @@ public class BlockFormulaStrategy {
       return formulas;
     }
 
-    public BooleanFormula getBranchingFormula() {
-      checkState(branchingFormula != null);
+    public @Nullable BooleanFormula getBranchingFormula() {
       return branchingFormula;
     }
 

@@ -28,7 +28,8 @@ CPAchecker web page:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
-sys.dont_write_bytecode = True # prevent creation of .pyc files
+
+sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
 import argparse
 import glob
@@ -36,14 +37,18 @@ import logging
 import os
 import urllib.request as request
 
-for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.whl')):
+for egg in glob.glob(
+    os.path.join(
+        os.path.dirname(__file__), os.pardir, "lib", "python-benchmark", "*.whl"
+    )
+):
     sys.path.insert(0, egg)
 
 from benchexec import util
 
 from benchmark.webclient import *  # @UnusedWildImport
 
-__version__ = '1.0'
+__version__ = "1.0"
 
 DEFAULT_OUTPUT_PATH = "./"
 
@@ -55,107 +60,152 @@ def _create_argument_parser():
     """
 
     parser = argparse.ArgumentParser(
-        description="Execute a CPAchecker run in the VerifierCloud using the web interface." \
-         + " Command-line parameters can additionally be read from a file if file name prefixed with '@' is given as argument.",
-        fromfile_prefix_chars='@',
-        add_help=False) # conflicts with -heap
+        description="Execute a CPAchecker run in the VerifierCloud using the web interface."
+        + " Command-line parameters can additionally be read from a file if file name prefixed with '@' is given as argument.",
+        fromfile_prefix_chars="@",
+        add_help=False,  # conflicts with -heap
+    )
 
-    parser.add_argument("--help",
-                      action='help',
-                      help="Prints this help.")
+    parser.add_argument("--help", action="help", help="Prints this help.")
 
-    parser.add_argument("--cloudMaster",
-                      dest="cloud_master",
-                      default="https://vcloud.sosy-lab.org/cpachecker/webclient/",
-                      metavar="HOST",
-                      help="Sets the webclient host of the VerifierCloud instance to be used.")
+    parser.add_argument(
+        "--cloudMaster",
+        dest="cloud_master",
+        default="https://vcloud.sosy-lab.org/cpachecker/webclient/",
+        metavar="HOST",
+        help="Sets the webclient host of the VerifierCloud instance to be used.",
+    )
 
-    parser.add_argument("--cloudPriority",
-                      dest="cloud_priority",
-                      metavar="PRIORITY",
-                      help="Sets the priority for this benchmark used in the VerifierCloud. Possible values are IDLE, LOW, HIGH, URGENT.")
+    parser.add_argument(
+        "--cloudPriority",
+        dest="cloud_priority",
+        metavar="PRIORITY",
+        help="Sets the priority for this benchmark used in the VerifierCloud. Possible values are IDLE, LOW, HIGH, URGENT.",
+    )
 
-    parser.add_argument("--cloudCPUModel",
-                      dest="cpu_model", type=str, default=None,
-                      metavar="CPU_MODEL",
-                      help="Only execute runs in the VerifierCloud on CPU models that contain the given string.")
+    parser.add_argument(
+        "--cloudCPUModel",
+        dest="cpu_model",
+        type=str,
+        default=None,
+        metavar="CPU_MODEL",
+        help="Only execute runs in the VerifierCloud on CPU models that contain the given string.",
+    )
 
-    parser.add_argument("--cloudUser",
-                      dest="cloud_user",
-                      metavar="USER:PWD",
-                      help="The user and password for the VerifierCloud.")
+    parser.add_argument(
+        "--cloudUser",
+        dest="cloud_user",
+        metavar="USER:PWD",
+        help="The user and password for the VerifierCloud.",
+    )
 
-    parser.add_argument("--revision",
-                      dest="revision",
-                      metavar="BRANCH:REVISION",
-                      help="The svn revision of CPAchecker to use.")
+    parser.add_argument(
+        "--revision",
+        dest="revision",
+        metavar="BRANCH:REVISION",
+        help="The svn revision of CPAchecker to use.",
+    )
 
-    parser.add_argument("-d", "--debug",
-                      action="store_true",
-                      help="Enable debug output")
+    parser.add_argument(
+        "-d", "--debug", action="store_true", help="Enable debug output"
+    )
 
-    parser.add_argument("-o", "--outputpath",
-                      dest="output_path", type=str,
-                      default=DEFAULT_OUTPUT_PATH,
-                      help="Output prefix for the generated results. "
-                            + "If the path is a folder files are put into it,"
-                            + "otherwise it is used as a prefix for the resulting files.")
-    parser.add_argument("--resultFilePattern",
-                     dest="result_file_pattern", type=str,
-                     default="**",
-                     help="Only files matching this glob pattern are transported back to the client.")
+    parser.add_argument(
+        "-o",
+        "--outputpath",
+        dest="output_path",
+        type=str,
+        default=DEFAULT_OUTPUT_PATH,
+        help="Output prefix for the generated results. "
+        + "If the path is a folder files are put into it,"
+        + "otherwise it is used as a prefix for the resulting files.",
+    )
+    parser.add_argument(
+        "--resultFilePattern",
+        dest="result_file_pattern",
+        type=str,
+        default="**",
+        help="Only files matching this glob pattern are transported back to the client.",
+    )
 
-    parser.add_argument("-T", "--timelimit",
-                      dest="timelimit", default=None,
-                      type=util.parse_timespan_value,
-                      help="Time limit in seconds",
-                      metavar="SECONDS")
+    parser.add_argument(
+        "-T",
+        "--timelimit",
+        dest="timelimit",
+        default=None,
+        type=util.parse_timespan_value,
+        help="Time limit in seconds",
+        metavar="SECONDS",
+    )
 
-    parser.add_argument("-M", "--memorylimit",
-                      dest="memorylimit", default=None,
-                      type=util.parse_memory_value,
-                      help="Memory limit",
-                      metavar="BYTES")
+    parser.add_argument(
+        "-M",
+        "--memorylimit",
+        dest="memorylimit",
+        default=None,
+        type=util.parse_memory_value,
+        help="Memory limit",
+        metavar="BYTES",
+    )
 
-    parser.add_argument("-c", "--corelimit", dest="corelimit",
-                      type=int, default=None,
-                      metavar="N",
-                      help="Limit the tool to N CPU cores.")
+    parser.add_argument(
+        "-c",
+        "--corelimit",
+        dest="corelimit",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Limit the tool to N CPU cores.",
+    )
 
-    parser.add_argument("--version",
-                        action="version",
-                        version="%(prog)s " + __version__)
+    parser.add_argument(
+        "--version", action="version", version="%(prog)s " + __version__
+    )
     return parser
+
 
 def _setup_logging(config):
     """
     Configure the logging framework.
     """
     if config.debug:
-        logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
-                            level=logging.DEBUG)
+        logging.basicConfig(
+            format="%(asctime)s - %(levelname)s - %(message)s", level=logging.DEBUG
+        )
     else:
-        logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
-                            level=logging.INFO)
+        logging.basicConfig(
+            format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO
+        )
+
 
 def _init(config):
     """
     Sets _webclient if it is defined in the given config.
     """
     if not config.cpu_model:
-        logging.warning("It is strongly recommended to set a CPU model('--cloudCPUModel'). "\
-                        "Otherwise the used machines and CPU models are undefined.")
+        logging.warning(
+            "It is strongly recommended to set a CPU model('--cloudCPUModel'). "
+            "Otherwise the used machines and CPU models are undefined."
+        )
 
     if not config.cloud_master:
         sys.exit("No URL of a VerifierCloud instance is given.")
 
-    (svn_branch, svn_revision) = _get_revision(config)
+    revision = ":".join(_get_revision(config))
 
-    webclient = WebInterface(config.cloud_master, config.cloud_user, svn_branch, svn_revision,
-                             user_agent='cpa_web_cloud.py', version=__version__)
+    webclient = WebInterface(
+        config.cloud_master,
+        config.cloud_user,
+        revision,
+        user_agent="cpa_web_cloud.py",
+        version=__version__,
+    )
 
-    logging.info('Using %s version %s.', webclient.tool_name(), webclient.tool_revision())
+    logging.info(
+        "Using %s version %s.", webclient.tool_name(), webclient.tool_revision()
+    )
     return webclient
+
 
 def _get_revision(config):
     """
@@ -163,15 +213,15 @@ def _get_revision(config):
     @return: (branch, revision number)
     """
     if config.revision:
-        tokens = config.revision.split(':')
+        tokens = config.revision.split(":")
         svn_branch = tokens[0]
         if len(tokens) > 1:
-            revision = config.revision.split(':')[1]
+            revision = config.revision.split(":")[1]
         else:
-            revision = 'HEAD'
+            revision = "HEAD"
         return (svn_branch, revision)
     else:
-        return ('trunk', 'HEAD')
+        return ("trunk", "HEAD")
 
 
 def _submit_run(webclient, config, cpachecker_args, counter=0):
@@ -181,24 +231,27 @@ def _submit_run(webclient, config, cpachecker_args, counter=0):
     """
     limits = {}
     if config.memorylimit:
-        limits['memlimit'] = config.memorylimit
+        limits["memlimit"] = config.memorylimit
     if config.timelimit:
-        limits['timelimit'] = config.timelimit
+        limits["timelimit"] = config.timelimit
     if config.corelimit:
-        limits['corelimit'] = config.corelimit
+        limits["corelimit"] = config.corelimit
 
     run = _parse_cpachecker_args(cpachecker_args)
 
-    run_result_future = webclient.submit(run, limits, config.cpu_model, \
-                              config.result_file_pattern, config.cloud_priority )
+    run_result_future = webclient.submit(
+        run, limits, config.cpu_model, config.result_file_pattern, config.cloud_priority
+    )
     webclient.flush_runs()
     return run_result_future.result()
+
 
 def _parse_cpachecker_args(cpachecker_args):
     """
     Parses the given CPAchecker arguments.
     @return:  Run object with options, identifier and list of source files
     """
+
     class Run:
         options = []
         identifier = None
@@ -211,15 +264,22 @@ def _parse_cpachecker_args(cpachecker_args):
     i = iter(cpachecker_args)
     while True:
         try:
-            option=next(i)
+            option = next(i)
             if len(option) == 0:
-                continue # ignore empty arguments
+                continue  # ignore empty arguments
 
-            if option in ["-heap", "-timelimit", "-entryfunction", "-spec", "-config", "-setprop"]:
+            if option in [
+                "-heap",
+                "-timelimit",
+                "-entryfunction",
+                "-spec",
+                "-config",
+                "-setprop",
+            ]:
                 run.options.append(option)
                 run.options.append(next(i))
 
-            elif option[0] == '-':
+            elif option[0] == "-":
                 run.options.append(option)
 
             else:
@@ -229,6 +289,7 @@ def _parse_cpachecker_args(cpachecker_args):
             break
 
     return run
+
 
 def _execute():
     """

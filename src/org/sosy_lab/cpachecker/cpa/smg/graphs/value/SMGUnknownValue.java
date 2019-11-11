@@ -27,9 +27,11 @@ import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 /** Class representing values which can't be resolved. */
-public final class SMGUnknownValue implements SMGSymbolicValue, SMGExplicitValue, SMGAddressValue {
+public final class SMGUnknownValue implements SMGExplicitValue, SMGAddressValue {
 
   public static final SMGUnknownValue INSTANCE = new SMGUnknownValue();
+
+  private SMGUnknownValue() {}
 
   @Override
   public String toString() {

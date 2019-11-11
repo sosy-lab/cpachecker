@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core;
 
 import static java.util.stream.Collectors.joining;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -36,6 +37,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -49,6 +51,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.util.Property;
 import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
+import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 
 /**
  * Class that encapsulates the specification that should be used for an analysis.
@@ -74,11 +78,39 @@ public final class Specification {
       Iterable<Path> specFiles,
       CFA cfa,
       Configuration config,
-      LogManager logger)
-      throws InvalidConfigurationException {
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, InterruptedException {
     if (Iterables.isEmpty(specFiles)) {
       if (pProperties.stream().anyMatch(p -> p.getProperty() instanceof CommonCoverageType)) {
         return new Specification(pProperties, ImmutableListMultimap.of());
+      }
+      if (pProperties.size() == 1) {
+        SpecificationProperty specProp = Iterables.getOnlyElement(pProperties);
+        if (specProp.getProperty() instanceof LabelledFormula) {
+          try {
+            LabelledFormula formula = ((LabelledFormula) specProp.getProperty()).not();
+            Automaton automaton =
+                Ltl2BuechiConverter.convertFormula(
+                    formula,
+                    specProp.getEntryFunction(),
+                    config,
+                    logger,
+                    cfa.getMachineModel(),
+                    new CProgramScope(cfa, logger),
+                    pShutdownNotifier);
+            return new Specification(
+                pProperties,
+                ImmutableListMultimap.of(Paths.get(""), automaton));
+          } catch (InterruptedException e) {
+            throw new InvalidConfigurationException(
+                String.format(
+                    "Error when executing the external tool '%s': %s",
+                    Ltl2BuechiConverter.getNameOfExecutable(),
+                    e.getMessage()),
+                e);
+          }
+        }
       }
       return Specification.alwaysSatisfied();
     }
@@ -94,7 +126,7 @@ public final class Specification {
     }
 
     Set<Property> properties =
-        pProperties.stream().map(p -> p.getProperty()).collect(ImmutableSet.toImmutableSet());
+        transformedImmutableSetCopy(pProperties, SpecificationProperty::getProperty);
 
     ImmutableListMultimap.Builder<Path, Automaton> multiplePropertiesBuilder =
         ImmutableListMultimap.builder();
@@ -113,13 +145,19 @@ public final class Specification {
 
       if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
         AutomatonGraphmlParser graphmlParser =
-            new AutomatonGraphmlParser(config, logger, cfa, scope);
+            new AutomatonGraphmlParser(config, logger, pShutdownNotifier, cfa, scope);
         automata = graphmlParser.parseAutomatonFile(specFile, properties);
 
       } else {
         automata =
             AutomatonParser.parseAutomatonFile(
-                specFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+                specFile,
+                config,
+                logger,
+                cfa.getMachineModel(),
+                scope,
+                cfa.getLanguage(),
+                pShutdownNotifier);
       }
 
       if (automata.isEmpty()) {
@@ -137,6 +175,18 @@ public final class Specification {
       multiplePropertiesBuilder.putAll(specFile, automata);
     }
     return new Specification(pProperties, multiplePropertiesBuilder.build());
+  }
+
+  public static Specification combine(final Specification pSpec1, final Specification pSpec2) {
+    return new Specification(
+        ImmutableSet.<SpecificationProperty>builder()
+            .addAll(pSpec1.properties)
+            .addAll(pSpec2.properties)
+            .build(),
+        ImmutableListMultimap.<Path, Automaton>builder()
+            .putAll(pSpec1.pathToSpecificationAutomata)
+            .putAll(pSpec2.pathToSpecificationAutomata)
+            .build());
   }
 
   private Specification(Iterable<Automaton> pSpecificationAutomata) {

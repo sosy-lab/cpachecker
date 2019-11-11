@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -209,7 +210,7 @@ public final class SMGPlotter {
     }
 
     for (SMGEdgeHasValue edge: smg.getHVEdges()) {
-      sb.append(newLineWithOffset(smgHVEdgeAsDot(edge, smg)));
+      sb.append(newLineWithOffset(smgHVEdgeAsDot(edge)));
     }
 
     for (SMGEdgePointsTo edge : smg.getPTEdges()) {
@@ -262,7 +263,7 @@ public final class SMGPlotter {
     sb.append("struct").append(pStructId).append("[shape=record,label=\" ");
 
     // I sooo wish for Python list comprehension here...
-    ArrayList<String> nodes = new ArrayList<>();
+    List<String> nodes = new ArrayList<>();
     for (Entry<String, SMGRegion> entry : pNamespace.entrySet()) {
       String key = entry.getKey();
       SMGObject obj = entry.getValue();
@@ -296,7 +297,7 @@ public final class SMGPlotter {
     return "value_null_" + SMGPlotter.nulls;
   }
 
-  private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge, UnmodifiableCLangSMG pSMG) {
+  private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge) {
     String prefix = "";
     String target;
     if (pEdge.getValue().isZero()) {
@@ -313,7 +314,7 @@ public final class SMGPlotter {
         + "[label=\"["
         + pEdge.getOffset()
         + "b-"
-        + (pEdge.getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel()))
+        + (pEdge.getOffset() + pEdge.getSizeInBits())
         + "b]\"];";
   }
 

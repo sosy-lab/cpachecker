@@ -28,8 +28,8 @@ import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -79,6 +79,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -175,6 +176,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final ParseContext parseContext;
   private final EclipseCParserOptions options;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final CheckBindingVisitor checkBinding;
   private final Sideassignments sideAssignmentStack;
 
@@ -183,6 +185,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   public CFAFunctionBuilder(
       EclipseCParserOptions pOptions,
       LogManagerWithoutDuplicates pLogger,
+      ShutdownNotifier pShutdownNotifier,
       FunctionScope pScope,
       ParseContext pParseContext,
       MachineModel pMachine,
@@ -191,6 +194,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       CheckBindingVisitor pCheckBinding) {
     options = pOptions;
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     scope = pScope;
     astCreator =
         new ASTConverter(
@@ -272,6 +276,10 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTDeclaration declaration) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     // entering Sideassignment block
     sideAssignmentStack.enterBlock();
 
@@ -314,7 +322,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd) {
 
-    assert (locStack.size() > 0) : "not in a function's scope";
+    assert (!locStack.isEmpty()) : "not in a function's scope";
 
     CFANode prevNode = locStack.pop();
 
@@ -420,7 +428,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category declarations
    */
   private int handleFunctionDefinition(final IASTFunctionDefinition declaration) {
-    if (locStack.size() != 0) {
+    if (!locStack.isEmpty()) {
       throw parseContext.parseError("nested function declarations unsupported", declaration);
     }
 
@@ -482,6 +490,10 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int leave(IASTDeclaration declaration) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     // leaving Sideassignment block
     sideAssignmentStack.leaveBlock();
 
@@ -548,6 +560,10 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTStatement statement) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     // entering Sideassignment block
     sideAssignmentStack.enterBlock();
 
@@ -836,6 +852,10 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int leave(IASTStatement statement) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     // leaving Sideassignment block
     sideAssignmentStack.leaveBlock();
 
@@ -846,8 +866,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       if (isReachableNode(prevNode)) {
 
         for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
-          if ((prevEdge instanceof BlankEdge)
-              && prevEdge.getDescription().equals("")) {
+          if ((prevEdge instanceof BlankEdge) && prevEdge.getDescription().isEmpty()) {
 
             // the only entering edge is a BlankEdge, so we delete this edge and prevNode
 
@@ -899,6 +918,10 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTProblem problem) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     throw parseContext.parseError(problem);
   }
 
@@ -1109,7 +1132,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         true,
         true,
         false,
-        Sets.newHashSet());
+        new HashSet<>());
   }
 
   /** @category conditions */
@@ -1311,7 +1334,8 @@ class CFAFunctionBuilder extends ASTVisitor {
               fileLocation.getStartingLineNumber(),
               loc.getEndingLineNumber(),
               fileLocation.getStartingLineInOrigin(),
-              loc.getEndingLineInOrigin());
+              loc.getEndingLineInOrigin(),
+              fileLocation.isOffsetRelatedToOrigin() && loc.isOffsetRelatedToOrigin());
     }
 
     CExpression expression = exp;
@@ -1629,7 +1653,8 @@ class CFAFunctionBuilder extends ASTVisitor {
         f.getStartingLineNumber(),
         f.getStartingLineNumber(),
         f.getStartingLineInOrigin(),
-        f.getStartingLineInOrigin());
+        f.getStartingLineInOrigin(),
+        f.isOffsetRelatedToOrigin());
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -1791,7 +1816,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       case NORMAL:
         assert ASTOperatorConverter.isBooleanExpression(exp);
         addConditionEdges(
-            exp, rootNode, caseNode, notCaseNode, fileLocation, false, Collections.emptySet());
+            exp, rootNode, caseNode, notCaseNode, fileLocation, false, ImmutableSet.of());
         nextCaseStartsAtNode = notCaseNode;
         break;
 
@@ -1863,7 +1888,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           notCaseNode,
           fileLocation,
           false,
-          Collections.emptySet());
+          ImmutableSet.of());
       nextCaseStartsAtNode = notCaseNode;
     }
 

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -88,7 +89,8 @@ public class EdgeFormulaNegation extends SingleLocationFormulaInvariant
   @Override
   public void assumeTruth(ReachedSet pReachedSet) {
     if (appliesTo(edge.getPredecessor())) {
-      Iterable<AbstractState> infeasibleStates = from(AbstractStates.filterLocation(pReachedSet, edge.getSuccessor())).toList();
+      Iterable<AbstractState> infeasibleStates =
+          ImmutableList.copyOf(AbstractStates.filterLocation(pReachedSet, edge.getSuccessor()));
       pReachedSet.removeAll(infeasibleStates);
       for (ARGState s : from(infeasibleStates).filter(ARGState.class)) {
         s.removeFromARG();

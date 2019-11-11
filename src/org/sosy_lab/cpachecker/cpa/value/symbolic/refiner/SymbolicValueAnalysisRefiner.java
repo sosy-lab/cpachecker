@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
@@ -339,7 +340,7 @@ public class SymbolicValueAnalysisRefiner
     StringBuilder symbolicInfo = new StringBuilder();
 
     List<Pair<ForgettingCompositeState, List<CFAEdge>>> stateSequence =
-        evaluate(tp, Collections.emptyMap());
+        evaluate(tp, ImmutableMap.of());
 
     ARGState first = tp.getFirstState();
     ValueAnalysisState firstValue =
