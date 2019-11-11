@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -613,5 +614,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
 
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Formula expressionToFormula(PathFormula pFormula, CIdExpression pExpr, CFAEdge pEdge)
+      throws UnrecognizedCodeException {
+    return expressionToFormula(pFormula, pExpr, pEdge);
   }
 }

@@ -1037,13 +1037,6 @@ public class FormulaManagerView {
     return slFormulaManager;
   }
 
-  public SLFormulaManagerView getSLFormulaManager() {
-    if (slFormulaManager == null) {
-      throw new UnsupportedOperationException("Solver does not support separation logic.");
-    }
-    return slFormulaManager;
-  }
-
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
     return wrappingHandler.getFormulaType(pFormula);
   }

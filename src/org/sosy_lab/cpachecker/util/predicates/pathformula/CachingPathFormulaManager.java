@@ -272,4 +272,10 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public PathFormulaBuilder createNewPathFormulaBuilder() {
     return delegate.createNewPathFormulaBuilder();
   }
+
+  @Override
+  public Formula expressionToFormula(PathFormula pFormula, CExpression pExpr, CFAEdge pEdge)
+      throws UnrecognizedCodeException {
+    throw new UnsupportedOperationException();
+  }
 }
