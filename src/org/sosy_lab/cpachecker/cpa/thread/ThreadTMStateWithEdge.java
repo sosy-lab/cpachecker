@@ -51,7 +51,7 @@ public class ThreadTMStateWithEdge extends ThreadTMState implements AbstractStat
 
   @Override
   public boolean isProjection() {
-    return edge != null;
+    return false;
   }
 
   @Override

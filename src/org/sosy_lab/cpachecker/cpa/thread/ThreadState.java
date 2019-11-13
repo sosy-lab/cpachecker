@@ -132,7 +132,14 @@ public class ThreadState
 
       if (other.threadSet.containsKey(l)) {
         ThreadStatus otherL = other.threadSet.get(l);
-        if ((s == ThreadStatus.SELF_PARALLEL_THREAD && otherL != ThreadStatus.CREATED_THREAD)
+
+        /*
+         * In case of self-parallel we need to consider it to be parallel with any other to support
+         * such strange cases: pthread_create(&t, func1); pthread_create(&t, func2);
+         */
+
+        if (s == ThreadStatus.SELF_PARALLEL_THREAD
+            || otherL == ThreadStatus.SELF_PARALLEL_THREAD
             || (s == ThreadStatus.PARENT_THREAD && otherL != ThreadStatus.PARENT_THREAD)
             || (s == ThreadStatus.CREATED_THREAD && otherL == ThreadStatus.PARENT_THREAD)) {
           return true;

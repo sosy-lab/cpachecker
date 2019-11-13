@@ -263,9 +263,12 @@ public class LocationApplyOperator implements ApplyOperator {
         return true;
       }
     } else if (edge instanceof CFunctionCallEdge) {
-      CFunctionCallExpression fcall =
-          ((CFunctionCallEdge) edge).getSummaryEdge().getExpression().getFunctionCallExpression();
-      return !fcall.accept(new GlobalExpressionVisitor());
+      // CFunctionCallExpression fcall =
+      // ((CFunctionCallEdge) edge).getSummaryEdge().getExpression().getFunctionCallExpression();
+      // return !fcall.accept(new GlobalExpressionVisitor());
+
+      // There may be a specific function, for example, locks, which strongly affect the application
+      return false;
     } else if (edge instanceof CReturnStatementEdge) {
       Optional<CExpression> oExp = ((CReturnStatementEdge) edge).getExpression();
       if (oExp.isPresent()) {
