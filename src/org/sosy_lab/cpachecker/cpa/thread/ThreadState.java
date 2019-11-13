@@ -55,10 +55,10 @@ public class ThreadState
     SELF_PARALLEL_THREAD;
   }
 
-  private final Map<String, ThreadStatus> threadSet;
+  protected final Map<String, ThreadStatus> threadSet;
   // The removedSet is useless now, but it will be used in future in more complicated cases
   // Do not remove it now
-  private final ImmutableMap<ThreadLabel, ThreadStatus> removedSet;
+  protected final ImmutableMap<ThreadLabel, ThreadStatus> removedSet;
   private final List<ThreadLabel> order;
 
   public ThreadState(
@@ -184,8 +184,7 @@ public class ThreadState
     if (b && pOther.threadSet == threadSet) {
       return true;
     }
-    b &= pOther.threadSet.entrySet().containsAll(threadSet.entrySet());
-    return b;
+    return pOther.threadSet.entrySet().containsAll(threadSet.entrySet());
   }
 
   public boolean hasEmptyEffect() {
@@ -212,6 +211,10 @@ public class ThreadState
   @Override
   public String getThreadIdForEdge(CFAEdge pEdge) {
     return this.toString();
+  }
+
+  public ThreadState copyWith(Map<String, ThreadStatus> tSet, List<ThreadLabel> pOrder) {
+    return new ThreadState(tSet, this.removedSet, pOrder);
   }
 
   @Override

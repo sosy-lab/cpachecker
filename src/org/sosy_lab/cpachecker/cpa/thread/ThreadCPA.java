@@ -27,6 +27,8 @@ import com.google.common.base.Preconditions;
 import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -45,9 +47,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
+@Options(prefix = "cpa.thread")
 public class ThreadCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider,
     ConfigurableProgramAnalysisTM {
+
+  @Option(secure = true, description = "Use special case with environment actions")
+  private boolean withEnvironmentActions = false;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ThreadCPA.class);
@@ -61,6 +67,7 @@ public class ThreadCPA extends AbstractCPA
         "sep",
         DelegateAbstractDomain.<ThreadState>getInstance(),
         new ThreadTransferRelation(pConfig));
+    pConfig.inject(this);
     reducer = new ThreadReducer();
   }
 
@@ -72,7 +79,11 @@ public class ThreadCPA extends AbstractCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Preconditions.checkNotNull(pNode);
-    return ThreadState.emptyState();
+    if (withEnvironmentActions) {
+      return ThreadTMState.emptyState();
+    } else {
+      return ThreadState.emptyState();
+    }
   }
 
   @Override
@@ -92,6 +103,10 @@ public class ThreadCPA extends AbstractCPA
 
   @Override
   public ApplyOperator getApplyOperator() {
-    return new ThreadApplyOperator();
+    if (withEnvironmentActions) {
+      return new ThreadTMApplyOperator();
+    } else {
+      return new ThreadApplyOperator();
+    }
   }
 }
