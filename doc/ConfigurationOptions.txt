@@ -351,7 +351,7 @@ analysis.traversal.entryResourceLimit = 100000
 
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
-  enum:     [DFS, BFS, RAND, RANDOM_PATH]
+  enum:     [DFS, BFS, RAND, RANDOM_PATH, ROUND_ROBIN]
 
 # Exponent of random function.This value influences the probability
 # distribution over the waitlist elementswhen choosing the next element.Has
@@ -1837,6 +1837,9 @@ cpa.predicate.bam.useAbstractionReduction = true
 # Enable/disable precision reduction at the BAM block entry
 cpa.predicate.bam.usePrecisionReduction = true
 
+# The bitsize is used to encode integers as bitvectors.
+cpa.predicate.bitsize = 32
+
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
 cpa.predicate.blk.alwaysAfterThreshold = true
@@ -1897,6 +1900,13 @@ cpa.predicate.blk.useCache = true
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
 
+# Load the theory for bitvector and floating point encoding during startup.
+# Only disable this option if an SMT solver does not support a certain theory
+# and you know that the following analysis does not require a certain theory.
+# The enabled option helps with nice user messages if a certain theory cannot
+# be loaded.
+cpa.predicate.createFormulaEncodingEagerly = true
+
 # The default size in bytes for memory allocations when the value cannot be
 # determined.
 cpa.predicate.defaultAllocationSize = 4
@@ -1925,6 +1935,12 @@ cpa.predicate.encodeBitvectorAs = BITVECTOR
 # theory is used to approximate floats. This can be used for solvers that do
 # not support floating-point arithmetic, or for increased performance.
 cpa.predicate.encodeFloatAs = FLOAT
+  enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
+
+# Theory to use as backend for integers. If different from INTEGER, the
+# specified theory is used to approximate integers. This can be used for
+# solvers that do not support integers, or for increased performance.
+cpa.predicate.encodeIntegerAs = INTEGER
   enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Replace possible overflows with an ITE-structure, which returns either the
@@ -2244,7 +2260,7 @@ cpa.predicate.refinement.reuseInterpolationEnvironment = false
 # return valid interpolants. We can either choose one of the directions,
 # fallback to the other if one does not succeed, or even combine the
 # interpolants.
-cpa.predicate.refinement.sequentialStrategy = FWD
+cpa.predicate.refinement.sequentialStrategy = FWD_FALLBACK
   enum:     [FWD, FWD_FALLBACK, BWD, BWD_FALLBACK, CONJUNCTION, WEIGHTED, RANDOM]
 
 # During refinement, add all new predicates to the precisions of all abstract
@@ -3010,6 +3026,9 @@ custominstructions.binaryOperatorForSimpleCustomInstruction = PLUS
              GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR,
              EQUALS, NOT_EQUALS]
 
+# Name of function containing the custom instruction definition
+custominstructions.ciFun = no default value
+
 # Signature for custom instruction, describes names and order of input and
 # output variables of a custom instruction
 custominstructions.ciSignature = "ci_spec.txt"
@@ -3029,7 +3048,7 @@ custominstructions.enableRequirementsSlicing = false
 # Specifies the mode how custom instruction applications in program are
 # identified.
 custominstructions.mode = OPERATOR
-  enum:     [MANUAL, OPERATOR]
+  enum:     [MANUAL, OPERATOR, AUTOMATIC]
 
 # Try to remove requirements that are covered by another requirment and are,
 # thus, irrelevant for custom instruction behavior
@@ -3121,6 +3140,11 @@ heuristicSelection.recursionConfig = no default value
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
+
+# If adaptTimeLimits is set and all configurations support progress reports,
+# in each cycle the time limits per configuration are newly calculated based
+# on the progress
+interleavedAlgorithm.adaptTimeLimits = false
 
 # where to store initial condition, when generated
 interleavedAlgorithm.condition.file = "AssumptionAutomaton.txt"
@@ -3374,7 +3398,7 @@ parser.usePreprocessor = false
 
 # Specifies the mode how HW requirements are detected in the proof.
 pcc.HWrequirements.extraction.mode = OPERATOR
-  enum:     [MANUAL, OPERATOR]
+  enum:     [MANUAL, OPERATOR, AUTOMATIC]
 
 # Enable if used property checker implements satisfiesProperty(AbstractState)
 # and checked property is violated for a set iff an element in this set

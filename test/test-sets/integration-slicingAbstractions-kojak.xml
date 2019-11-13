@@ -52,7 +52,7 @@
     <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr.3.1.ufo.UNBOUNDED.pals.c</exclude> <!-- flapping timeout  -->
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>

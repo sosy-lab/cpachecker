@@ -14,8 +14,8 @@
     <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
-  <tasks name="Systems_BusyBox_MemSafety">
-    <includesfile>../programs/benchmarks/Systems_BusyBox_MemSafety.set</includesfile>
+  <tasks name="SoftwareSystems-BusyBox-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-MemSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>

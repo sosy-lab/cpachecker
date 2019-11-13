@@ -28,15 +28,19 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.Lists;
 import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.Theory;
+import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceIntegerWithBitvectorTheory.ReplaceIntegerEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingBitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingFloatingPointFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingIntegerFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
+import org.sosy_lab.java_smt.api.FormulaType.NumeralType;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /**
  * Class that takes care of all the (un-)wrapping of formulas and types
@@ -46,16 +50,24 @@ final class FormulaWrappingHandler {
 
   private final Theory encodeBitvectorAs;
   private final Theory encodeFloatAs;
+  private final Theory encodeIntegerAs;
+  private final ReplaceIntegerEncodingOptions intOptions;
 
   private final FormulaManager manager;
 
-  FormulaWrappingHandler(FormulaManager pRawManager,
-      Theory pEncodeBitvectorAs, Theory pEncodeFloatAs) {
+  FormulaWrappingHandler(
+      FormulaManager pRawManager,
+      Theory pEncodeBitvectorAs,
+      Theory pEncodeFloatAs,
+      Theory pEncodeIntegerAs,
+      ReplaceIntegerEncodingOptions pIntOptions) {
     manager = checkNotNull(pRawManager);
     encodeBitvectorAs = checkNotNull(pEncodeBitvectorAs);
     encodeFloatAs = checkNotNull(pEncodeFloatAs);
-    assert encodeBitvectorAs != Theory.FLOAT;
-    assert encodeFloatAs != Theory.BITVECTOR;
+    encodeIntegerAs = checkNotNull(pEncodeIntegerAs);
+    intOptions = checkNotNull(pIntOptions);
+    assert encodeBitvectorAs != Theory.FLOAT : "can not encode bitvectors as floats";
+    assert encodeFloatAs != Theory.BITVECTOR : "can not encode floats as bitvectors";
   }
 
   boolean useBitvectors() {
@@ -87,7 +99,10 @@ final class FormulaWrappingHandler {
           toWrap, ((WrappingFormula<?, ?>)toWrap).getType(), targetType));
     }
 
-    if (targetType.isBitvectorType() && (encodeBitvectorAs != Theory.BITVECTOR)) {
+    if (targetType.isIntegerType() && (encodeIntegerAs != Theory.INTEGER)) {
+      return (T1) new WrappingIntegerFormula<>((NumeralType<IntegerFormula>) targetType, toWrap);
+
+    } else if (targetType.isBitvectorType() && (encodeBitvectorAs != Theory.BITVECTOR)) {
       return (T1) new WrappingBitvectorFormula<>((BitvectorType)targetType, toWrap);
 
     } else if (targetType.isFloatingPointType() && (encodeFloatAs != Theory.FLOAT)) {
@@ -128,6 +143,19 @@ final class FormulaWrappingHandler {
           unwrapType(arrayType.getElementType()));
     }
 
+    if (type.isIntegerType()) {
+      switch (encodeIntegerAs) {
+        case BITVECTOR:
+          return FormulaType.getBitvectorTypeWithSize(intOptions.getBitsize());
+        case INTEGER:
+          return FormulaType.IntegerType;
+        case RATIONAL:
+          return FormulaType.RationalType;
+        default:
+          throw new AssertionError("unexpected encoding for integers: " + type);
+      }
+    }
+
     if (type.isBitvectorType()) {
       switch (encodeBitvectorAs) {
       case BITVECTOR:
@@ -137,7 +165,7 @@ final class FormulaWrappingHandler {
       case RATIONAL:
         return FormulaType.RationalType;
       default:
-        throw new AssertionError();
+          throw new AssertionError("unexpected encoding for bitvectors: " + type);
       }
     }
 
@@ -150,7 +178,7 @@ final class FormulaWrappingHandler {
       case RATIONAL:
         return FormulaType.RationalType;
       default:
-        throw new AssertionError();
+          throw new AssertionError("unexpected encoding for floats: " + type);
       }
     }
 

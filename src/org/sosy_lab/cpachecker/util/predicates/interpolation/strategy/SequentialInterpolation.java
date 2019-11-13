@@ -85,7 +85,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
       case FWD_FALLBACK:
         try {
           return getFwdInterpolants(interpolator, formulas);
-        } catch (SolverException e) {
+        } catch (SolverException | IllegalArgumentException e) {
           logger.log(Level.ALL, FALLBACK_BWD_MSG, e);
         }
         // $FALL-THROUGH$
@@ -95,7 +95,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
       case BWD_FALLBACK:
         try {
           return getBwdInterpolants(interpolator, formulas);
-        } catch (SolverException e) {
+        } catch (SolverException | IllegalArgumentException e) {
           logger.log(Level.ALL, FALLBACK_FWD_MSG, e);
         }
         // $FALL-THROUGH$
@@ -108,7 +108,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
         List<BooleanFormula> forward = null;
         try {
           forward = getFwdInterpolants(interpolator, formulas);
-        } catch (SolverException e) {
+        } catch (SolverException | IllegalArgumentException e) {
           logger.log(Level.ALL, FALLBACK_BWD_MSG, e);
           return getBwdInterpolants(interpolator, formulas);
         }
@@ -116,7 +116,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
         try {
           List<BooleanFormula> backward = getBwdInterpolants(interpolator, formulas);
           return combine(forward, backward);
-        } catch (SolverException e) {
+        } catch (SolverException | IllegalArgumentException e) {
           if (forward == null) {
             throw e;
           } else {

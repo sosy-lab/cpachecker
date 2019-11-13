@@ -64,10 +64,8 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
 
   @Override
   public Optional<ForgettingCompositeState> getStrongestPost(
-      final ForgettingCompositeState pOrigin,
-      final Precision pPrecision,
-      final CFAEdge pOperation
-  ) throws CPAException {
+      final ForgettingCompositeState pOrigin, final Precision pPrecision, final CFAEdge pOperation)
+      throws CPAException, InterruptedException {
     Optional<ValueAnalysisState> successor =
         explicitStrongestPost.getStrongestPost(pOrigin.getValueState(), pPrecision, pOperation);
 

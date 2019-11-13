@@ -171,16 +171,21 @@ class Benchmark(benchexec.benchexec.BenchExec):
             original_load_function = benchexec.model.load_tool_info
 
             def build_cpachecker_before_load(tool_name, *args, **kwargs):
-                if (
-                    tool_name == "cpachecker"
-                    and os.path.exists(os.path.join(cpachecker_dir, "build.xml"))
-                    and subprocess.call(
+                if tool_name == "cpachecker":
+                    # This duplicates the logic from our tool-info module,
+                    # but we cannot call it here.
+                    # Note that base_dir can be different from cpachecker_dir!
+                    script = benchexec.util.find_executable("cpa.sh", "scripts/cpa.sh")
+                    base_dir = os.path.join(os.path.dirname(script), os.path.pardir)
+                    build_file = os.path.join(base_dir, "build.xml")
+                    if os.path.exists(build_file) and subprocess.call(
                         ["ant", "-q", "jar"],
-                        cwd=cpachecker_dir,
+                        cwd=base_dir,
                         shell=benchmark.util.is_windows(),
-                    )
-                ):
-                    sys.exit("Failed to build CPAchecker, please fix the build first.")
+                    ):
+                        sys.exit(
+                            "Failed to build CPAchecker, please fix the build first."
+                        )
 
                 return original_load_function(tool_name, *args, **kwargs)
 
@@ -196,16 +201,4 @@ class Benchmark(benchexec.benchexec.BenchExec):
 
 
 if __name__ == "__main__":
-    # Add directory with binaries to path.
-    bin_dir = (
-        "lib/native/x86_64-linux"
-        if platform.machine() == "x86_64"
-        else "lib/native/x86-linux"
-        if platform.machine() == "i386"
-        else None
-    )
-    if bin_dir:
-        bin_dir = os.path.join(os.path.dirname(__file__), os.pardir, bin_dir)
-        os.environ["PATH"] += os.pathsep + bin_dir
-
     benchexec.benchexec.main(Benchmark())
