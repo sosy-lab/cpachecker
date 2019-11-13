@@ -86,7 +86,6 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
 
   String originalMainFunction = null;
   protected TigerAlgorithmConfiguration tigerConfig;
-  protected int currentTestCaseID;
   protected InputOutputValues values;
   protected LogManager logger;
   protected CFA cfa;
@@ -138,23 +137,19 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
             tigerConfig.getInputInterface(),
             tigerConfig.getOutputInterface(),
             logger);
-    currentTestCaseID = 0;
 
     // Check if BDD is enabled for variability-aware test-suite generation
     bddUtils = BDDUtils.getInstance(cpa, pLogger);
     timeoutCPA = getTimeoutCPA(cpa);
 
-    String outputFolder = "output/";
-    if(tigerConfig.shouldUseTestCompOutput()) {
-      outputFolder += "test-suite";
-    }
+    String outputFolder = tigerConfig.getTestsuiteFolder();
+    logger.log(Level.FINE, "Output Folder:" + outputFolder);
     if (tigerConfig.shouldAppendFileNameToOutput()) {
       outputFolder += cfa.getFileNames().get(0).getFileName().toString();
     }
-
     String producerString = CPAchecker.getVersion(pConfig);
 
-    logger.log(Level.INFO, "HybridTige Testcomp 20 - Version 1.2");
+    logger.log(Level.INFO, "HybridTiger Testcomp 20 - Version 1.2");
     tsWriter =
         TestSuiteWriter.getSingleton(
             pCfa,
@@ -166,9 +161,6 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
             tigerConfig.addElapsedTimeToTC());
   }
 
-  public int nextTCID() {
-    return currentTestCaseID++;
-  }
 
   public TimeoutCPA getTimeoutCPA(ConfigurableProgramAnalysis pCpa) {
     if (pCpa instanceof WrapperCPA) {
@@ -219,11 +211,10 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
               + "or inprecise: "
               + !cex.isPreciseCounterExample());
     }
-    // calcualte shrinked error path
+    // calculate shrinked error path
 
     TestCase testcase =
         new TestCase(
-            nextTCID(),
             inputValues,
             outputValus,
             cex.getTargetPath().asEdgesList(),

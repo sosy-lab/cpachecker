@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithmConfiguration.CoverageCheck;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithmConfiguration.GoalReduction;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.CFAGoal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCaseVariable;
@@ -114,7 +115,12 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
 
     goalsToCover =
-        TestGoalProvider.getInstace(logger).initializeTestGoalSet(tigerConfig.getFqlQuery(), cfa);
+        TestGoalProvider.getInstace(logger)
+            .initializeTestGoalSet(
+                tigerConfig.getFqlQuery(),
+                cfa,
+                (tigerConfig.getGoalReduction() == GoalReduction.SIMPLE
+                    || tigerConfig.getGoalReduction() == GoalReduction.COMPLEX) ? true : false);
     numberOfGoals = goalsToCover.size();
     String prefix = "";
     if (tigerConfig.shouldRemoveFeatureVariablePrefix()) {
@@ -122,16 +128,32 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     }
     testsuite = TestSuite.getCFAGoalTS(bddUtils, goalsToCover, prefix);
 
+    createDefaultTestCases();
+
+  }
+
+  private int getRandomValue(int min) {
+    int max = (min * 100);
+    if (max < min) {
+      int swap = max;
+      max = min;
+      min = swap;
+    }
+    return (int) (Math.random() * ((-min) + 1)) + min;
+  }
+
+  private void createDefaultTestCases() {
     if (tigerConfig.getNumberOfDefaultTestCases() > 0) {
       int lastValue = 1;
       for (int i = 0; i < tigerConfig.getNumberOfDefaultTestCases(); i++) {
 
-        TestCaseVariable var = new TestCaseVariable("Dummy", String.valueOf(lastValue));
         List<TestCaseVariable> inputs = new ArrayList<>();
         for (int y = 0; y <= 10; y++) {
+          TestCaseVariable var =
+              new TestCaseVariable("Dummy", String.valueOf(getRandomValue(lastValue)));
           inputs.add(var);
         }
-        TestCase tc = new TestCase(nextTCID(), inputs, Collections.emptyList(), null, null, null);
+        TestCase tc = new TestCase(inputs, Collections.emptyList(), null, null, null);
         testsuite.addTestCase(tc, null);
 
         if (i % 2 == 0) {
@@ -142,7 +164,6 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       }
 
     }
-
   }
 
 

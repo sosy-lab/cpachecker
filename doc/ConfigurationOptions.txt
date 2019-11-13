@@ -3920,6 +3920,7 @@ testcase.xml = no default value
 
 # Zip file into which all test case files are bundled
 testcase.zip.file = no default value
+tiger.addElapsedTimeToTC = false
 
 # Configuration file for internal cpa algorithm.
 tiger.algorithmConfigurationFile = "config/tiger-internal-algorithm.properties"
@@ -3948,6 +3949,7 @@ tiger.limitsPerGoal.time.cpu = -1
 # Value for which timeout gets incremented if timed-out goals are
 # re-processed.
 tiger.limitsPerGoal.time.cpu.increment = 0
+tiger.numberOfDefaultTestCases = 0
 
 # Number of test-cases per goal, WARNING! currently only works if there is a
 # single goal...

@@ -607,7 +607,6 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
 
     TestCase result =
         new TestCase(
-            nextTCID(),
             inputValues,
             outputValues,
             trace,

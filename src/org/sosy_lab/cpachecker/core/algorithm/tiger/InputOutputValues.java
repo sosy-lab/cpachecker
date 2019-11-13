@@ -73,13 +73,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -440,13 +438,13 @@ public class InputOutputValues {
                       && binExp.getOperand1().equals(assignment.getLeftHandSide())) {
                     Object value = ((ALiteralExpression) binExp.getOperand2()).getValue();
                     Type returnType = functionDeclaration.getType().getReturnType();
-                    if(returnType instanceof CSimpleType) {
-                      if(((CSimpleType) returnType).getType() == CBasicType.CHAR ) {
-                        int intVal = ((BigInteger) value).intValue();
-                        char charvalue = (char) intVal;
-                        value = charvalue;
-                      }
-                    }
+                    // if(returnType instanceof CSimpleType) {
+                    // if(((CSimpleType) returnType).getType() == CBasicType.CHAR ) {
+                    // int intVal = ((BigInteger) value).intValue();
+                    // char charvalue = (char) intVal;
+                    // value = charvalue;
+                    // }
+                    // }
                     return Optional
                         .of(
                             new TestCaseVariable(

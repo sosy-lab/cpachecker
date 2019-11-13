@@ -102,10 +102,9 @@ public class TigerAlgorithmConfiguration {
 
   @Option(
       secure = true,
-      name = "testsuiteFile",
-      description = "Filename for output of generated test suite")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path testsuiteFile = Paths.get("testsuite.txt");
+    name = "testSuiteFolder",
+    description = "Folder name for output of generated test suite")
+  private String testSuiteFolder = "output/test-suite";
 
   @Option(
       secure = true,
@@ -251,8 +250,8 @@ public class TigerAlgorithmConfiguration {
     return timeoutStrategy;
   }
 
-   public Path getTestsuiteFile(){
-    return testsuiteFile;
+  public String getTestsuiteFolder() {
+    return testSuiteFolder;
    }
 
    public Path getAlgorithmConfigurationFile(){

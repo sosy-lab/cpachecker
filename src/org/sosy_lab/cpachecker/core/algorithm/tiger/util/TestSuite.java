@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import com.google.common.collect.Lists;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -234,6 +235,13 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
   public boolean addTestCase(
       TestCase testcase,
       T goal) {
+
+    if (mapping.keySet().size() > 0) {
+      int maxID = mapping.keySet().stream().max(Comparator.comparing(TestCase::getId)).get().getId();
+      if (testcase.getId() <= maxID) {
+        throw new RuntimeException();
+      }
+    }
 
     // TODO dont add same tc again
     TestCase tc = getSameTCInTS(testcase);

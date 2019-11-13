@@ -23,6 +23,7 @@ import com.google.common.base.Predicate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -113,33 +114,35 @@ public class TestGoalProvider {
     return null;
   }
 
-  private void reduceGoals(Set<CFAGoal> goals) {
-    // TODO only for test-comp remove afterwards
-    Set<CFAGoal> keptGoals = new HashSet<>(goals);
-    boolean allSuccessorsGoals;
-    for (CFAGoal goal : goals) {
-      if (goal.getCFAEdgesGoal().getEdges().size() != 1) {
-        continue;
-      }
-      CFAEdge edge = goal.getCFAEdgesGoal().getEdges().get(0);
-      if (edge.getSuccessor().getNumEnteringEdges() == 1) {
-        allSuccessorsGoals = true;
-        for (CFAEdge leaving : CFAUtils.leavingEdges(edge.getSuccessor())) {
-          if (!keptGoals.stream()
-              .filter(g -> g.getCFAEdgesGoal().getEdges().get(0) == leaving)
-              .findFirst()
-              .isPresent()) {
-            allSuccessorsGoals = false;
-            break;
-          }
-        }
-        if (allSuccessorsGoals) {
-          keptGoals.remove(goal);
-        }
+  private void removeEdgeGoal(Set<CFAGoal> goals, CFAEdge edge) {
+    Iterator<CFAGoal> iter = goals.iterator();
+    while (iter.hasNext()) {
+      CFAGoal goal = iter.next();
+      if (goal.getCFAEdgesGoal().getEdges().size() == 1
+          && goal.getCFAEdgesGoal().getEdges().get(0).equals(edge)) {
+        iter.remove();
       }
     }
-    goals.clear();
-    goals.addAll(keptGoals);
+  }
+
+  private void reduceGoals(Set<CFAGoal> goals) {
+    for (CFAGoal goal : goals) {
+      if (goal.getCFAEdgesGoal().getEdges().size() != 1) {
+        // make sure each goals has only 1 edge
+        return;
+      }
+    }
+    Set<CFAEdge> goalEdges = new HashSet<>();
+    for (CFAGoal goal : goals) {
+      goalEdges.add(goal.getCFAEdgesGoal().getEdges().get(0));
+    }
+
+    for (CFAEdge edge : goalEdges) {
+      while (edge.getSuccessor().getNumLeavingEdges() == 1) {
+        edge = edge.getSuccessor().getLeavingEdge(0);
+        removeEdgeGoal(goals, edge);
+      }
+    }
   }
 
   private Set<CFAGoal> extractGoalSyntax(String fqlQuery, CFA cfa) {
@@ -172,14 +175,18 @@ public class TestGoalProvider {
     return cfaGoals;
   }
 
-  public Set<CFAGoal> initializeTestGoalSet(String fqlQuery, CFA cfa) {
+  public Set<CFAGoal> initializeTestGoalSet(String fqlQuery, CFA cfa, boolean reduceGoals) {
     if (!cache.containsKey(fqlQuery)) {
       Set<CFAGoal> goals = tryExtractPredefinedFQL(fqlQuery, cfa);
       if (goals == null) {
         goals = extractGoalSyntax(fqlQuery, cfa);
       }
       // TODO reduce goals for variable output might be wrong?
-      reduceGoals(goals);
+      // if(reduceGoals) {
+      // logger.log(Level.INFO, "Number of goals before reduction:" + goals.size());
+      // reduceGoals(goals);
+      // logger.log(Level.INFO, "Number of goals after reduction:" + goals.size());
+      // }
       cache.put(fqlQuery, goals);
 
     }

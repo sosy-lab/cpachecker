@@ -38,6 +38,12 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 public class TestCase {
 
+  public static int currentTestCaseID;
+
+  public static int nextTCID() {
+    return currentTestCaseID++;
+  }
+
   private int id;
   private ImmutableList<TestCaseVariable> inputs;
   private ImmutableList<TestCaseVariable> outputs;
@@ -64,6 +70,15 @@ public class TestCase {
     presenceCondition = pPresenceCondition;
     id = pID;
     bddUtils = pBddUtils;
+  }
+
+  public TestCase(
+      List<TestCaseVariable> pInputs,
+      List<TestCaseVariable> pOutputs,
+      List<CFAEdge> pPath,
+      Region pPresenceCondition,
+      BDDUtils pBddUtils) {
+    this(nextTCID(), pInputs, pOutputs, pPath, pPresenceCondition, pBddUtils);
   }
 
   public String dumpPresenceCondition() {
