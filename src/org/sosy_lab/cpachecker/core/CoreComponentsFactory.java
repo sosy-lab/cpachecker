@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerCexCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerConfiguration;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerMultiGoalAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -449,7 +450,6 @@ public class CoreComponentsFactory {
                 specification,
                 aggregatedReachedSets);
       }
-
       if (checkCounterexamples) {
         if (cpa instanceof BAMCPA) {
           algorithm =
@@ -484,12 +484,19 @@ public class CoreComponentsFactory {
       if (useAdjustableConditions) {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
       }
-
       TigerConfiguration tigerConfig = new TigerConfiguration(config);
-      if (tigerConfig.useTigerAlgorithm) {
+
+      if (tigerConfig.useTigerCexCheck) {
+        algorithm =
+            new TigerCexCheckAlgorithm(
+                algorithm,
+                cpa,
+                cfa,
+                pSpecification,
+                logger);
+      } else if (tigerConfig.useTigerAlgorithm) {
         algorithm = new TigerAlgorithm(logger, cfa, config, cpa, shutdownNotifier, specification);
-      }
-      if (tigerConfig.useTigerMultiGoalAlgorithm) {
+      } else if (tigerConfig.useTigerMultiGoalAlgorithm) {
         algorithm =
             new TigerMultiGoalAlgorithm(logger, cfa, config, cpa, shutdownNotifier, specification);
       }

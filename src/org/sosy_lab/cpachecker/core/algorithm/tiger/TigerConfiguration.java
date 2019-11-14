@@ -53,4 +53,10 @@ public class TigerConfiguration {
     description = "Use Test Input Generator algorithm with multi goal")
   public boolean useTigerMultiGoalAlgorithm = false;
 
+  @Option(
+    secure = true,
+    name = "analysis.algorithm.tigerCexCheck",
+    description = "Use Tiger as Cex Check")
+  public boolean useTigerCexCheck = false;
+
 }

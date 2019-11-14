@@ -172,14 +172,17 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
 
   @Override
   public boolean isTarget() {
-    return hasFinishedGoal
+    if (hasFinishedGoal
         && getWeavedEdges().isEmpty()
-        && getEdgesToWeave().isEmpty();
+        && getEdgesToWeave().isEmpty()) {
+      return true;
+    }
+    return false;
   }
 
   @Override
   public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
-    return Collections.emptySet();
+    return new HashSet<>(goals.keySet());
   }
 
   public Set<CFAEdgesGoal> getCoveredGoal() {

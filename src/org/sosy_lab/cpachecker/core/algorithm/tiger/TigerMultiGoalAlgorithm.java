@@ -126,7 +126,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     if (tigerConfig.shouldRemoveFeatureVariablePrefix()) {
       prefix = tigerConfig.getFeatureVariablePrefix();
     }
-    testsuite = TestSuite.getCFAGoalTS(bddUtils, goalsToCover, prefix);
+    testsuite = TestSuite.getCFAGoalTS(bddUtils, goalsToCover, prefix, goalsToCover);
 
     createDefaultTestCases();
 
@@ -312,8 +312,10 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
         // may be thrown only be counterexample check, if not will be thrown again in finally
         // block due to respective shutdown notifier call)
         exceptionOccured = true;
+        logger.log(Level.WARNING, e1.getMessage());
       } catch (Exception e2) {
         // TODO for Testcomp continue, might need to remove later
+        logger.log(Level.WARNING, e2.getMessage());
         exceptionOccured = true;
       } finally {
         handleAnalysisResult(pReachedSet, startTime, exceptionOccured, partition, partitions);

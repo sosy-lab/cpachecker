@@ -25,8 +25,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 
-public class CFAEdgesGoal {
+public class CFAEdgesGoal implements Property {
 
   private List<CFAEdge> edges;
   private Set<Set<CFAEdge>> negatedEdges;

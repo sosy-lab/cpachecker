@@ -56,6 +56,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
   private TestSuiteData testSuiteData;
   private String removePrefixString;
   private Map<T, Region> remainingPresenceConditions;
+  private Set<T> allGoals;
 
   private static TestSuite<CFAGoal> cFAGoalTS;
   private static TestSuite<AutomatonGoal> automatonGoalTS;
@@ -76,21 +77,27 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
   public static TestSuite<CFAGoal> getCFAGoalTS(
       BDDUtils pBddUtils,
       Set<CFAGoal> includedTestGoals,
-      String premovePrefixString) {
+      String premovePrefixString,
+      Set<CFAGoal> pAllGOals) {
     if (cFAGoalTS != null) {
       if (sameTestGoals(cFAGoalTS.includedTestGoals, includedTestGoals)
           && premovePrefixString == cFAGoalTS.removePrefixString) {
         return cFAGoalTS;
       }
     }
-    cFAGoalTS = new TestSuite<>(pBddUtils, includedTestGoals, premovePrefixString);
+    cFAGoalTS = new TestSuite<>(pBddUtils, includedTestGoals, premovePrefixString, pAllGOals);
+    return cFAGoalTS;
+  }
+
+  public static TestSuite<CFAGoal> getCFAGoalTSOrNull() {
     return cFAGoalTS;
   }
 
   public static TestSuite<AutomatonGoal> getAutomatonGoalTS(
       BDDUtils pBddUtils,
       Set<AutomatonGoal> includedTestGoals,
-      String premovePrefixString) {
+      String premovePrefixString,
+      Set<AutomatonGoal> pAllGoals) {
     if (automatonGoalTS != null) {
       if (automatonGoalTS.getBddUtils() == pBddUtils
           && sameTestGoals(automatonGoalTS.includedTestGoals, includedTestGoals)
@@ -98,14 +105,15 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
         return automatonGoalTS;
       }
     }
-    automatonGoalTS = new TestSuite<>(pBddUtils, includedTestGoals, premovePrefixString);
+    automatonGoalTS = new TestSuite<>(pBddUtils, includedTestGoals, premovePrefixString, pAllGoals);
     return automatonGoalTS;
   }
 
   private TestSuite(
       BDDUtils pBddUtils,
       Set<T> includedTestGoals,
-      String premovePrefixString) {
+      String premovePrefixString,
+      Set<T> pAllGoals) {
     mapping = new LinkedHashMap<>();
     infeasibleGoals = new HashMap<>();
     timedOutGoals = new HashMap<>();
@@ -115,7 +123,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
     this.includedTestGoals.addAll(includedTestGoals);
     testSuiteData = null;
     removePrefixString = premovePrefixString;
-
+    allGoals = pAllGoals;
     remainingPresenceConditions = new HashMap<>();
     for (T goal : includedTestGoals) {
       setRemainingPresenceCondition(goal, bddUtils.makeTrue());
@@ -539,5 +547,11 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
 
   public Set<TestCase> getShrinkedTestCasesIgnoreInputOutput() {
     return combineTestCases(false);
+  }
+
+  public Set<T> getUncoveredGoals() {
+    Set<T> uncovered = new HashSet<>(allGoals);
+    uncovered.removeAll(coveringTestCases.keySet());
+    return uncovered;
   }
 }

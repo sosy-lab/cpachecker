@@ -3993,8 +3993,8 @@ tiger.partitioning.strategy = RANDOM
 # removes the feature prefix from presence conditions in the testsuite
 tiger.removeFeaturePrefix = true
 
-# Filename for output of generated test suite
-tiger.testsuiteFile = "testsuite.txt"
+# Folder name for output of generated test suite
+tiger.testSuiteFolder = "output/test-suite"
 
 # walltime for the algorithm
 tiger.timeout = Increment = 0

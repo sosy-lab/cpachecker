@@ -124,7 +124,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
     if (tigerConfig.shouldRemoveFeatureVariablePrefix()) {
       prefix = tigerConfig.getFeatureVariablePrefix();
     }
-    testsuite = TestSuite.getAutomatonGoalTS(bddUtils, goalsToCover, prefix);
+    testsuite = TestSuite.getAutomatonGoalTS(bddUtils, goalsToCover, prefix, goalsToCover);
 
     boolean wasSound = true;
     if (!testGeneration(goalsToCover, pReachedSet)) {

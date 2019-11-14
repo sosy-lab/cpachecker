@@ -57,6 +57,10 @@ public class TestGoalProvider {
     return provider;
   }
 
+  public static TestGoalProvider getInstaceOrNull() {
+    return provider;
+  }
+
   private TestGoalProvider(LogManager pLogger) {
     cache = new HashMap<>();
     logger = pLogger;
@@ -191,7 +195,6 @@ public class TestGoalProvider {
 
     }
     return new HashSet<>(cache.get(fqlQuery));
-
   }
 
 }
