@@ -1462,6 +1462,10 @@ class WitnessFactory implements EdgeAppender {
             return false;
           }
 
+          if (nodeFlags.get(pEdge.getTarget()).contains(NodeFlag.ISVIOLATION)) {
+            return false;
+          }
+
           if (pEdge.getLabel().getMapping().isEmpty()) {
             return true;
           }
