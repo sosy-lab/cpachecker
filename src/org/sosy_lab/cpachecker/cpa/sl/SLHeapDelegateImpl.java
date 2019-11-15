@@ -157,7 +157,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     Formula loc =
         checkAllocation(heap, builder.getFormulaForExpression(pLocation, true), null, true);
     if (loc == null) {
-      return SLStateError.INVALID_DEREF;
+      return SLStateError.INVALID_FREE;
     }
     removeFromMemory(heap, loc);
     return null;

@@ -26,16 +26,23 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-public class SLState implements AbstractState, Targetable {
+public class SLState implements AbstractState, Targetable, AbstractQueryableState {
+
+  private static final String HAS_INVALID_DEREFS = "has-invalid-derefs";
+  private static final String HAS_LEAKS = "has-leaks";
+  private static final String HAS_INVALID_FREES = "has-invalid-frees";
 
   public enum SLStateError {
     INVALID_DEREF,
+    INVALID_FREE,
     MEMORY_LEAK;
   }
 
@@ -99,5 +106,27 @@ public class SLState implements AbstractState, Targetable {
     Set<Property> res = new HashSet<>();
     errors.stream().forEach(e -> res.add(NamedProperty.create(e.name())));
     return ImmutableSet.copyOf(res);
+  }
+
+  @Override
+  public String getCPAName() {
+    return "SLCPA";
+  }
+
+  @Override
+  public boolean checkProperty(String property) throws InvalidQueryException {
+    switch (property) {
+      case HAS_LEAKS:
+        return errors.contains(SLStateError.MEMORY_LEAK);
+
+      case HAS_INVALID_DEREFS:
+        return errors.contains(SLStateError.INVALID_DEREF);
+
+      case HAS_INVALID_FREES:
+        return errors.contains(SLStateError.INVALID_FREE);
+
+      default:
+        throw new InvalidQueryException("Query '" + property + "' is invalid.");
+    }
   }
 }
