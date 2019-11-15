@@ -8,6 +8,8 @@
   <tasks name="HeapMemSafety3">
     <include>../programs/benchmarks/memsafety-ext3/*.c</include>
     <option name="-sl"/>
-    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
+  
+  <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  
 </benchmark>
