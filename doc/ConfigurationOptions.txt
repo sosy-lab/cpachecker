@@ -3992,6 +3992,13 @@ witness.matchOffset = true
 # markers).
 witness.matchOriginLine = true
 
+# This option can be used to ensure that no correctness witnesses are
+# checked.
+witness.noCorrectnessValidation = false
+
+# This option can be used to ensure that no violation witnesses are checked.
+witness.noViolationValidation = false
+
 # remove assumptions from transitions in the ISA where they are not strictly
 # neccessary.This option is intended to be used with an ISA (c.f. option
 # witness.invariantsSpecificationAutomaton)
