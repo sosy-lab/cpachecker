@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -219,7 +218,6 @@ public class HarnessTransferRelation implements TransferRelation {
 
           harnessState.setIndices(functionsToIndicesMap);
           harnessSuccessors = Collections.singleton(harnessState);
-          proverEnvironment.close();
 
         } catch (SolverException e) {
           logger.log(Level.WARNING, "Solver could not generate new ProverEnvironment.");
