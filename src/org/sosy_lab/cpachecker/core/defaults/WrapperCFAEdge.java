@@ -56,4 +56,9 @@ public class WrapperCFAEdge implements AbstractEdge {
 
     return edge == other.edge;
   }
+
+  @Override
+  public String toString() {
+    return edge.toString();
+  }
 }
