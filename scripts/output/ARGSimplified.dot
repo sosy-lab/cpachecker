@@ -1,8 +1,0 @@
-digraph ARG {
-node [style="filled" shape="box" color="white"]
-0 [fillcolor="cornflowerblue" label="0 @ N1\nmain entry\nAbstractionState: ABS0: true\n ValueAnalysisState: []\n" id="0"]
-14 [label="14 @ N5\nmain\nValueAnalysisState: [main::a=NumericValue [number=0] (int), main::i=NumericValue [number=0] (int)]\n" id="14"]
-31 [label="31 @ N5\nmain\nValueAnalysisState: [main::__CPAchecker_TMP_0=NumericValue [number=0] (int), main::__CPAchecker_TMP_1=NumericValue [number=0] (int), main::a=NumericValue [number=1] (int), main::i=NumericValue [number=1] (int)]\n" id="31"]
-0 -> 14 []
-14 -> 31 []
-}

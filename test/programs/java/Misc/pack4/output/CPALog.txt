@@ -1,8 +1,0 @@
-2019-10-14 18:13:41:921	INFO	CPAMain.detectFrontendLanguageIfNecessary	Language Java detected and set for analysis
-
-2019-10-14 18:13:41:975	INFO	CPAchecker.run	CPAchecker 1.8-svn (OpenJDK 64-Bit Server VM 1.8.0_222) started
-
-2019-10-14 18:13:41:994	INFO	CPAchecker.parse	Parsing CFA from file(s) "./CastTest_true_assert.java"
-
-2019-10-14 18:13:42:293	SEVERE	EclipseJavaParser.<init>	Error: Invalid configuration (No valid Paths could be found.)
-
