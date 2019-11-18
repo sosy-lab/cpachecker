@@ -122,15 +122,26 @@ class EclipseJavaParser implements JavaParser {
   private static final boolean PARSE_METHOD_BODY = false;
   static final String JAVA_SOURCE_FILE_EXTENSION = ".java";
 
-  public EclipseJavaParser(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+  public EclipseJavaParser(LogManager pLogger, Configuration config)
+      throws InvalidConfigurationException {
 
     config.inject(this);
 
     logger = pLogger;
 
-    // TODO Handle multiple program files. Multiple program files might be forbidden. Needs to be checked.
+    // TODO Handle multiple program files. Multiple program files might be forbidden. Needs to be
+    // checked.
     if (javaClasspath.isEmpty() && programs.size() == 1) {
-      javaClassPaths = ImmutableList.of(convertToPathList(programs.get(0)).get(0).getParent());
+      ImmutableList<Path> pathToProgram = convertToPathList(programs.get(0));
+      if (!pathToProgram.isEmpty()) {
+        if (programs.get(0).endsWith(".java")) {
+          javaClassPaths = ImmutableList.of(pathToProgram.get(0).getParent());
+        } else {
+          javaClassPaths = ImmutableList.of(pathToProgram.get(0));
+        }
+      } else {
+        throw new InvalidConfigurationException("No valid Paths could be found.");
+      }
     } else {
       javaClassPaths = convertToPathList(javaClasspath);
     }
@@ -148,7 +159,7 @@ class EclipseJavaParser implements JavaParser {
 
   /**
    * Converts a string with a path or multiple paths to files separated by a path separator to an
-   * immutable list of Paths
+   * immutable list of Paths. Path separator in Linux is ':'
    *
    * @param javaPath String of paths to java files, separated by path separator
    * @return Immutable list of Paths of files in input string
