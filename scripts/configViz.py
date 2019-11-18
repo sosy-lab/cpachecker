@@ -226,7 +226,7 @@ def writeDot(
         nodes = allNodesDict
 
     for filename, v in sorted(nodes.items()):
-        for child in v.children:
+        for child in sorted(v.children):
             if child in nodes:
                 out.write(
                     '"%s" -> "%s";\n'
