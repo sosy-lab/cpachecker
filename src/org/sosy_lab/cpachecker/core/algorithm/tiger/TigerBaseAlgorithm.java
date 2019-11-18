@@ -149,7 +149,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     }
     String producerString = CPAchecker.getVersion(pConfig);
 
-    logger.log(Level.INFO, "HybridTiger Testcomp 20 - Version 1.3");
+    logger.log(Level.INFO, "HybridTiger Testcomp 20 - Version 1.5");
     tsWriter =
         TestSuiteWriter.getSingleton(
             pCfa,

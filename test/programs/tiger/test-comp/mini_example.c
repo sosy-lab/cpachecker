@@ -4,5 +4,8 @@ int main() {
 	if (x <= 10) {
 		G1: x = 1;
 	}
+	if(x == 2){
+		x = 2;
+	}
 	return 0;
-}
+}	

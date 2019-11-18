@@ -109,6 +109,9 @@ public class TestGoalProvider {
     }
     if (edgeCriterion != null) {
       Set<CFAEdge> edges = extractEdgesByCriterion(edgeCriterion, cfa);
+
+      edges = adaptTestTargets(edges);
+
       Set<CFAGoal> goals = new HashSet<>();
       for (CFAEdge edge : edges) {
         goals.add(new CFAGoal(edge));
@@ -147,6 +150,50 @@ public class TestGoalProvider {
         removeEdgeGoal(goals, edge);
       }
     }
+  }
+
+  public Set<CFAEdge> COVERED_NEXT_EDGEadaptTestTargets(final Set<CFAEdge> targets) {
+    // currently only simple heuristic
+    Set<CFAEdge> newGoals;
+    newGoals = new HashSet<>(targets);
+    boolean allSuccessorsGoals;
+    for (CFAEdge target : targets) {
+      if (target.getSuccessor().getNumEnteringEdges() == 1) {
+        allSuccessorsGoals = true;
+        for (CFAEdge leaving : CFAUtils.leavingEdges(target.getSuccessor())) {
+          if (!targets.contains(leaving)) {
+            allSuccessorsGoals = false;
+            break;
+          }
+        }
+        if (allSuccessorsGoals) {
+          newGoals.remove(target);
+        }
+      }
+    }
+    return newGoals;
+  }
+
+  public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets) {
+    // currently only simple heuristic
+    Set<CFAEdge> newGoals;
+    if (targets.size() < 1000) {
+      newGoals = COVERED_NEXT_EDGEadaptTestTargets(targets);
+    } else {
+      newGoals = new HashSet<>();
+      for (CFAEdge target : targets) {
+        if (target.getEdgeType() == CFAEdgeType.AssumeEdge) {
+          for (CFAEdge leaving : CFAUtils.leavingEdges(target.getSuccessor())) {
+            if (!(leaving.getEdgeType() == CFAEdgeType.AssumeEdge)) {
+              newGoals.add(leaving);
+            }
+          }
+        } else {
+          newGoals.add(target);
+        }
+      }
+    }
+    return newGoals;
   }
 
   private Set<CFAGoal> extractGoalSyntax(String fqlQuery, CFA cfa) {
@@ -194,6 +241,7 @@ public class TestGoalProvider {
       cache.put(fqlQuery, goals);
 
     }
+
     return new HashSet<>(cache.get(fqlQuery));
   }
 

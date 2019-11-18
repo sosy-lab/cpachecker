@@ -90,13 +90,7 @@ public class TigerCexCheckAlgorithm implements Algorithm, ShutdownRequestListene
 
   }
 
-  @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
-
-    testsuite = TestSuite.getCFAGoalTSOrNull();
-    Set<CFAGoal> goalsToCover = testsuite.getUncoveredGoals();
-
+  private void reduceGoalsToProperty(Set<CFAGoal> goalsToCover) {
     Iterator<CFAGoal> iter = goalsToCover.iterator();
     while (iter.hasNext()) {
       CFAGoal goal = iter.next();
@@ -106,8 +100,18 @@ public class TigerCexCheckAlgorithm implements Algorithm, ShutdownRequestListene
         logger.log(Level.INFO, "Cex Check for Goal: " + goal.toString());
       }
     }
-
     assert goalsToCover.size() == 1;
+  }
+
+  @Override
+  public AlgorithmStatus run(ReachedSet pReachedSet)
+      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+
+    testsuite = TestSuite.getCFAGoalTSOrNull();
+    Set<CFAGoal> goalsToCover = testsuite.getUncoveredGoals();
+
+    reduceGoalsToProperty(goalsToCover);
+
     if (goalsToCover.isEmpty()) {
       pReachedSet.clear();
       return AlgorithmStatus.NO_PROPERTY_CHECKED;

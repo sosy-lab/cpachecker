@@ -192,6 +192,9 @@ analysis.algorithm.termination = false
 # Reachability Analyses, ESOP'13)
 analysis.algorithm.tiger = false
 
+# Use Tiger as Cex Check
+analysis.algorithm.tigerCexCheck = false
+
 # Use Test Input Generator algorithm with multi goal
 analysis.algorithm.tigerMultiGoal = false
 
