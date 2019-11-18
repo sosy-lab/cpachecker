@@ -243,7 +243,7 @@ class TestVector {
     return new TestVector();
   }
 
-  private static final Ordering<AParameterDeclaration> PARAMETER_ORDERING =
+  static final Ordering<AParameterDeclaration> PARAMETER_ORDERING =
       Ordering.from(
           (pA, pB) -> {
             return ComparisonChain.start()
