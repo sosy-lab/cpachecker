@@ -184,10 +184,6 @@ class CodeAppender implements Appendable {
     }
   }
 
-  private void appendHarnessBoilerplate() throws IOException {
-
-  }
-
   public CodeAppender append(TestVector pVector) throws IOException {
     String externPointersArrayName = "HARNESS_externPointersArray";
     String arrayPushCounterName = "HARNESS_externPointersArrayCounter";
@@ -299,7 +295,7 @@ class CodeAppender implements Appendable {
           TestVector.upcast(
               FluentIterable.from(inputFunction.getParameters()),
               AParameterDeclaration.class);
-      List<AParameterDeclaration> pointerParameterDeclarations = new LinkedList<>();
+      List<AParameterDeclaration> pointerParameterDeclarations = new ArrayList<>();
       for (AParameterDeclaration parameterDeclaration : parameterDeclarations) {
         if (parameterDeclaration.getType() instanceof CPointerType) {
           pointerParameterDeclarations.add(parameterDeclaration);
