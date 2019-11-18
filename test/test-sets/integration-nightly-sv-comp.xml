@@ -6,7 +6,7 @@
   <option name="-heap">8000M</option>
 
   <rundefinition>
-    <option name="-svcomp19"/>
+    <option name="-svcomp20"/>
   </rundefinition>
 
   <!--
@@ -80,6 +80,11 @@
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-32"/>
+  </tasks>
+  <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common-ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <option name="-64"/>
   </tasks>
   <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
