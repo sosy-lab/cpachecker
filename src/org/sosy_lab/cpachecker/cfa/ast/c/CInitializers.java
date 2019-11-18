@@ -447,7 +447,9 @@ public final class CInitializers {
           throws UnrecognizedCodeException {
 
     Iterator<CFieldReference> fields =
-        from(structType.getMembers()).filter(field -> !(field.getName().contains("__anon_type_member") && !isAggregateType(field.getType())))
+        from(structType.getMembers()).filter(
+            field -> !(field.getName().contains("__anon_type_member") && (!isAggregateType(field.getType())
+                && !((CElaboratedType) field.getType()).getKind().equals(ComplexTypeKind.UNION))))
             .transform(
                 field  ->
                     new CFieldReference(
