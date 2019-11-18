@@ -79,6 +79,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -175,6 +176,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final ParseContext parseContext;
   private final EclipseCParserOptions options;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final CheckBindingVisitor checkBinding;
   private final Sideassignments sideAssignmentStack;
 
@@ -183,6 +185,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   public CFAFunctionBuilder(
       EclipseCParserOptions pOptions,
       LogManagerWithoutDuplicates pLogger,
+      ShutdownNotifier pShutdownNotifier,
       FunctionScope pScope,
       ParseContext pParseContext,
       MachineModel pMachine,
@@ -191,6 +194,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       CheckBindingVisitor pCheckBinding) {
     options = pOptions;
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     scope = pScope;
     astCreator =
         new ASTConverter(
@@ -272,6 +276,10 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTDeclaration declaration) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     // entering Sideassignment block
     sideAssignmentStack.enterBlock();
 
@@ -482,6 +490,10 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int leave(IASTDeclaration declaration) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     // leaving Sideassignment block
     sideAssignmentStack.leaveBlock();
 
@@ -548,6 +560,10 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTStatement statement) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     // entering Sideassignment block
     sideAssignmentStack.enterBlock();
 
@@ -836,6 +852,10 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int leave(IASTStatement statement) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     // leaving Sideassignment block
     sideAssignmentStack.leaveBlock();
 
@@ -898,6 +918,10 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTProblem problem) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     throw parseContext.parseError(problem);
   }
 

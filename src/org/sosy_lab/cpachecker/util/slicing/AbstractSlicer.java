@@ -72,7 +72,7 @@ public abstract class AbstractSlicer implements Slicer {
         extractor = new ReducerExtractor(pConfig);
         break;
       case SYNTAX:
-        extractor = new SyntaxExtractor(pConfig, pCfa, logger);
+        extractor = new SyntaxExtractor(pConfig, pCfa, logger, pShutdownNotifier);
         break;
       default:
         throw new AssertionError("Unknown criterion extractor type");

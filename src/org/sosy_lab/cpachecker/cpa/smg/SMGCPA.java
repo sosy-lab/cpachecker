@@ -151,7 +151,7 @@ public class SMGCPA
   @Override
   public TransferRelation getTransferRelation() {
     return new SMGTransferRelation(
-        logger, machineModel, exportOptions, kind, smgPredicateManager, options);
+        logger, machineModel, exportOptions, kind, smgPredicateManager, options, shutdownNotifier);
   }
 
   @Override

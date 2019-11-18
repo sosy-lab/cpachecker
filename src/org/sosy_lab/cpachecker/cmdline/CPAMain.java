@@ -103,6 +103,11 @@ public class CPAMain {
     // so make sure numbers are formatted appropriately.
     Locale.setDefault(Locale.US);
 
+    if (args.length == 0) {
+      // be nice to user
+      args = new String[] {"-help"};
+    }
+
     // initialize various components
     Configuration cpaConfig = null;
     LoggingOptions logOptions;
@@ -118,6 +123,8 @@ public class CPAMain {
         throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
       } catch (IOException e) {
         throw Output.fatalError("Could not read config file %s", e.getMessage());
+      } catch (InterruptedException e) {
+        throw Output.fatalError("Interrupted: %s", e.getMessage());
       }
 
       logOptions = new LoggingOptions(cpaConfig);
@@ -306,7 +313,8 @@ public class CPAMain {
    * @return A Configuration object, the output directory, and the specification properties.
    */
   private static Config createConfiguration(String[] args)
-      throws InvalidConfigurationException, InvalidCmdlineArgumentException, IOException {
+      throws InvalidConfigurationException, InvalidCmdlineArgumentException, IOException,
+          InterruptedException {
     // if there are some command line arguments, process them
     Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
 
@@ -648,7 +656,7 @@ public class CPAMain {
 
   private static Configuration handleWitnessOptions(
       Configuration config, Map<String, String> overrideOptions)
-      throws InvalidConfigurationException, IOException {
+      throws InvalidConfigurationException, IOException, InterruptedException {
     WitnessOptions options = new WitnessOptions();
     config.inject(options);
     if (options.witness == null) {

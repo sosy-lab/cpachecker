@@ -224,7 +224,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       final ReachedSetFactory pReachedSetFactory,
       final TargetLocationProvider pTargetLocationProvider,
       final AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
     pConfig.inject(options);
@@ -257,7 +257,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       final ReachedSetFactory pReachedSetFactory,
       CandidateGenerator candidateGenerator,
       boolean pAsync)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     return new KInductionInvariantGenerator(
         pConfig,
@@ -281,7 +281,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       final boolean pAsync,
       final CandidateGenerator pCandidateGenerator,
       final AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     logger = pLogger;
     shutdownManager = pShutdownNotifier;
 
@@ -503,7 +503,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       final ShutdownManager pShutdownManager,
       TargetLocationProvider pTargetLocationProvider,
       Specification pSpecification)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     final Set<CandidateInvariant> candidates = new LinkedHashSet<>();
 

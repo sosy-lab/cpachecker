@@ -325,7 +325,12 @@ public class CustomInstruction{
         continue;
       }
 
+      if (aciPred.getNumLeavingEdges() != ciPred.getNumLeavingEdges()) {
+        throw new AppliedCustomInstructionParsingFailedException("Structure mismatch");
+      }
+
       for (int i=0; i<ciPred.getNumLeavingEdges(); i++) {
+        shutdownNotifier.shutdownIfNecessary();
         // Custom Instruction
         CFAEdge ciEdge = ciPred.getLeavingEdge(i);
         CFANode ciSucc = ciEdge.getSuccessor();

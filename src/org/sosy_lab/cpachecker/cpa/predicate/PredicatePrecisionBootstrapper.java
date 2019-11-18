@@ -154,7 +154,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     config.inject(this.options);
   }
 
-  private PredicatePrecision internalPrepareInitialPredicates() throws InvalidConfigurationException {
+  private PredicatePrecision internalPrepareInitialPredicates()
+      throws InvalidConfigurationException, InterruptedException {
 
     PredicatePrecision result = PredicatePrecision.empty();
 
@@ -255,10 +256,9 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     return result;
   }
 
-  /**
-   * Read the (initial) precision (predicates to track) from a file.
-   */
-  public PredicatePrecision prepareInitialPredicates() throws InvalidConfigurationException {
+  /** Read the (initial) precision (predicates to track) from a file. */
+  public PredicatePrecision prepareInitialPredicates()
+      throws InvalidConfigurationException, InterruptedException {
     PredicatePrecision result = internalPrepareInitialPredicates();
 
     statistics.addKeyValueStatistic("Init. global predicates", result.getGlobalPredicates().size());

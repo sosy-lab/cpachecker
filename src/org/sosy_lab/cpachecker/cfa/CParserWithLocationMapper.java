@@ -87,7 +87,8 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(String pFilename) throws ParserException, IOException {
+  public ParseResult parseFile(String pFilename)
+      throws ParserException, IOException, InterruptedException {
     CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
     String tokenizedCode = tokenizeSourcefile(pFilename, sourceOriginMapping);
     return realParser.parseString(
@@ -199,7 +200,7 @@ public class CParserWithLocationMapper implements CParser {
   @Override
   public ParseResult parseString(
       String pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
-      throws CParserException {
+      throws CParserException, InterruptedException {
     String tokenizedCode = processCode(pFilename, pCode, pSourceOriginMapping);
 
     return realParser.parseString(pFilename, tokenizedCode, pSourceOriginMapping, pScope);
@@ -216,7 +217,8 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames) throws CParserException, IOException {
+  public ParseResult parseFile(List<String> pFilenames)
+      throws CParserException, IOException, InterruptedException {
     CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
 
     List<FileContentToParse> programFragments = new ArrayList<>(pFilenames.size());
@@ -233,7 +235,7 @@ public class CParserWithLocationMapper implements CParser {
   @Override
   public ParseResult parseString(
       List<FileContentToParse> pCode, CSourceOriginMapping sourceOriginMapping)
-      throws CParserException {
+      throws CParserException, InterruptedException {
 
     List<FileContentToParse> tokenizedFragments = new ArrayList<>(pCode.size());
     for (FileContentToParse f : pCode) {
@@ -248,12 +250,14 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode, Scope pScope) throws CParserException {
+  public CAstNode parseSingleStatement(String pCode, Scope pScope)
+      throws CParserException, InterruptedException {
     return realParser.parseSingleStatement(pCode, pScope);
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode, Scope pScope) throws CParserException {
+  public List<CAstNode> parseStatements(String pCode, Scope pScope)
+      throws CParserException, InterruptedException {
     return realParser.parseStatements(pCode, pScope);
   }
 }

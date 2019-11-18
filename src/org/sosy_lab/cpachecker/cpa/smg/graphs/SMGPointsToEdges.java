@@ -45,6 +45,7 @@ public interface SMGPointsToEdges extends Iterable<SMGEdgePointsTo> {
 
   boolean containsEdgeWithValue(SMGValue pValue);
 
+  /** get an outgoing edge of the {@link SMGValue} if available. */
   @Nullable
   SMGEdgePointsTo getEdgeWithValue(SMGValue pValue);
 

@@ -219,7 +219,7 @@ abstract class AbstractBMCAlgorithm
       BMCStatistics pBMCStatistics,
       boolean pIsInvariantGenerator,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     pConfig.inject(this, AbstractBMCAlgorithm.class);
 
@@ -846,7 +846,8 @@ abstract class AbstractBMCAlgorithm
           CFA pCFA,
           Specification pSpecification,
           AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider) throws InvalidConfigurationException, CPAException {
+          TargetLocationProvider pTargetLocationProvider)
+          throws InvalidConfigurationException, CPAException, InterruptedException {
         return
             KInductionInvariantGenerator.create(
                 pConfig,
@@ -923,8 +924,8 @@ abstract class AbstractBMCAlgorithm
         CFA pCFA,
         Specification pSpecification,
         AggregatedReachedSets pAggregatedReachedSets,
-        TargetLocationProvider pTargetLocationProvider) throws InvalidConfigurationException, CPAException;
-
+        TargetLocationProvider pTargetLocationProvider)
+        throws InvalidConfigurationException, CPAException, InterruptedException;
   }
 
   protected FluentIterable<CandidateInvariant> getConfirmedCandidates(final CFANode pLocation) {

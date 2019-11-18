@@ -342,6 +342,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
                         e,
                     )
                     output_handler.all_created_files.add(dataFile)
+                    output_handler.set_error("missing results", runSet)
                     executedAllRuns = False
                 else:
                     output_handler.output_before_run(run)
@@ -349,6 +350,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
                     output_handler.output_after_run(run)
             else:
                 logging.warning("No results exist for file %s.", run.identifier)
+                output_handler.set_error("missing results", runSet)
                 executedAllRuns = False
 
             if os.path.exists(run.log_file + ".stdError"):
