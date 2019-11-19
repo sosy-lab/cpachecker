@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class HeaderFileManager {
 
@@ -73,10 +74,12 @@ public class HeaderFileManager {
   }
 
   private String readFile(String path) throws IOException {
-    String functionDeclarationLines =
-        Files.lines(Paths.get(path))
-            .filter(line -> line.startsWith("extern") || line.startsWith("__extension__ extern"))
-            .reduce("", String::concat);
+    String functionDeclarationLines = "";
+    try (Stream<String> lines = Files.lines(Paths.get(path))) {
+      functionDeclarationLines =
+          lines.filter(line -> line.startsWith("extern") || line.startsWith("__extension__ extern"))
+              .reduce("", String::concat);
+    }
     return functionDeclarationLines;
   }
 }
