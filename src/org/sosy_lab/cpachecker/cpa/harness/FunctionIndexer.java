@@ -67,7 +67,6 @@ public class FunctionIndexer {
 
       @Override
       protected Boolean visitDefault() {
-        // TODO Auto-generated method stub
         return false;
       }
 

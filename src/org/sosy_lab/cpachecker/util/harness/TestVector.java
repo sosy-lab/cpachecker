@@ -312,7 +312,6 @@ class TestVector {
   }
 
   public boolean returnsPointers() {
-    // TODO Auto-generated method stub
     return false;
   }
 
