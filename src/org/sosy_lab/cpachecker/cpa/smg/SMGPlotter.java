@@ -25,12 +25,16 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
+import com.google.common.collect.Table.Cell;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -175,6 +179,7 @@ public final class SMGPlotter {
     sb.append("digraph gr_").append(name.replace('-', '_')).append("{\n");
     offset += 2;
     sb.append(newLineWithOffset("label = \"Location: " + location.replace("\"", "\\\"") + "\";"));
+    sb.append(newLineWithOffset("rankdir=LR;"));
 
     addStackSubgraph(smg, sb);
 
@@ -209,8 +214,37 @@ public final class SMGPlotter {
       }
     }
 
+    // merge edges with same object and value and print only one edge per source/target.
+    Table<SMGObject, SMGValue, Set<SMGEdgeHasValue>> mergedEdges = HashBasedTable.create();
     for (SMGEdgeHasValue edge: smg.getHVEdges()) {
-      sb.append(newLineWithOffset(smgHVEdgeAsDot(edge)));
+      Set<SMGEdgeHasValue> edges = mergedEdges.get(edge.getObject(), edge.getValue());
+      if (edges == null) {
+        edges = new LinkedHashSet<>();
+        mergedEdges.put(edge.getObject(), edge.getValue(), edges);
+      }
+      edges.add(edge);
+    }
+    for (Cell<SMGObject, SMGValue, Set<SMGEdgeHasValue>> entry : mergedEdges.cellSet()) {
+      String prefix = "";
+      String target = "value_" + entry.getColumnKey().asDotId();
+      if (entry.getColumnKey().isZero()) {
+        String newNull = newNullLabel();
+        prefix = newNull + "[shape=plaintext, label=\"NULL\"];";
+        target = newNull;
+      }
+      List<String> labels = new ArrayList<>();
+      for (SMGEdgeHasValue edge : entry.getValue()) {
+        labels.add(
+            String.format("%db-%db", edge.getOffset(), edge.getOffset() + edge.getSizeInBits()));
+      }
+      sb.append(
+          newLineWithOffset(
+              String.format(
+                  "%s%s -> %s [label=\"[%s]\"];",
+                  prefix,
+                  objectIndex.get(entry.getRowKey()).getName(),
+                  target,
+                  Joiner.on(", ").join(labels))));
     }
 
     for (SMGEdgePointsTo edge : smg.getPTEdges()) {
@@ -295,27 +329,6 @@ public final class SMGPlotter {
   private static String newNullLabel() {
     SMGPlotter.nulls += 1;
     return "value_null_" + SMGPlotter.nulls;
-  }
-
-  private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge) {
-    String prefix = "";
-    String target;
-    if (pEdge.getValue().isZero()) {
-      String newNull = newNullLabel();
-      prefix = newNull + "[shape=plaintext, label=\"NULL\"];";
-      target = newNull;
-    } else {
-      target = "value_" + pEdge.getValue().asDotId();
-    }
-    return prefix
-        + objectIndex.get(pEdge.getObject()).getName()
-        + " -> "
-        + target
-        + "[label=\"["
-        + pEdge.getOffset()
-        + "b-"
-        + (pEdge.getOffset() + pEdge.getSizeInBits())
-        + "b]\"];";
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
