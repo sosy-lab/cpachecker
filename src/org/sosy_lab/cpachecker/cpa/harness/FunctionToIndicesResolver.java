@@ -20,8 +20,8 @@
 package org.sosy_lab.cpachecker.cpa.harness;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,7 +57,7 @@ public class FunctionToIndicesResolver {
       for (AFunctionDeclaration functionDeclaration : pUnimplementedPointerReturnTypeFunctions) {
         List<Formula> values = pNewNamesForFunctions.get(functionDeclaration);
         int size = values.size();
-        List<Integer> indices = new LinkedList<>();
+        List<Integer> indices = new ArrayList<>();
         for (int i = 0; i < size; i++) {
           Formula value = values.get(i);
           IntegerFormula newIntegerFormula =

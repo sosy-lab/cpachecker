@@ -19,7 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.harness;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -37,7 +37,7 @@ public class StringReplacer {
       String pBase,
       PathFormulaManager pPathFormulaManager,
       PredicateAbstractState pPredicateAbstractState) {
-    newNames = new LinkedList<>();
+    newNames = new ArrayList<>();
     predicateState = pPredicateAbstractState;
     pathFormulaManager = pPathFormulaManager;
     base = pBase;
