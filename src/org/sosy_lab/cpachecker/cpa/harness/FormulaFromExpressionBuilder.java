@@ -19,7 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.harness;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -76,7 +76,7 @@ public class FormulaFromExpressionBuilder {
           CFAEdge pEdge,
           List<CExpression> pFunctionParametersOfPointerType)
           throws InvalidConfigurationException {
-    List<Formula> result = new LinkedList<>();
+    List<Formula> result = new ArrayList<>();
 
     PredicateCPA predicateCPA =
         CPAs.retrieveCPAOrFail(wrappedCpa, PredicateCPA.class, HarnessTransferRelation.class);
