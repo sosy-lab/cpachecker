@@ -519,7 +519,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
-   * Calculate an arithmetic operation on two double types.
+   * Calculate an arithmetic operation on two int128 types.
    *
    * @param l left hand side value
    * @param r right hand side value
@@ -536,10 +536,6 @@ public abstract class AbstractExpressionValueVisitor
       final CType calculationType,
       final MachineModel machineModel,
       final LogManager logger) {
-
-    // checkArgument(calculationType.getCanonicalType() instanceof CSimpleType
-    // && !((CSimpleType) calculationType.getCanonicalType()).isLong(),
-    // "Value analysis can't compute long double values in a precise manner");
 
     switch (op) {
       case PLUS:
@@ -558,21 +554,19 @@ public abstract class AbstractExpressionValueVisitor
       case MULTIPLY:
         return l.multiply(r);
       case SHIFT_LEFT:
-        // TODO: throw error or return 0?
-        try {
-          BigInteger result = l.shiftLeft(r.intValueExact());
-          return result;
-        } catch (ArithmeticException e) {
-          throw new AssertionError(
-              "cannot perform " + op + " if right argument is out of the range of an int-type");
+        // (C11, 6.5.7p3) "If the value of the right operand is negative
+        // or is greater than or equal to the width of the promoted left operand,
+        // the behavior is undefined"
+        if (r.compareTo(BigInteger.valueOf(128)) <= 0 && r.signum() != -1) {
+          return l.shiftLeft(r.intValue());
+        } else {
+          return BigInteger.ZERO;
         }
       case SHIFT_RIGHT:
-        try {
-          BigInteger result = l.shiftRight(r.intValueExact());
-          return result;
-        } catch (ArithmeticException e) {
-          throw new AssertionError(
-              "cannot perform " + op + " if right argument is out of the range of an int-type");
+        if (r.compareTo(BigInteger.valueOf(128)) <= 0 && r.signum() != -1) {
+          return l.shiftRight(r.intValue());
+        } else {
+          return BigInteger.ZERO;
         }
       case BINARY_AND:
         return l.and(r);
@@ -2401,26 +2395,6 @@ public abstract class AbstractExpressionValueVisitor
       case BOOL:
         return convertToBool(numericValue);
       case INT128:
-      {
-        if (isNan(numericValue)) {
-          // result of conversion of NaN to integer is undefined
-          return UnknownValue.getInstance();
-
-        } else if ((numericValue.getNumber() instanceof Float
-            || numericValue.getNumber() instanceof Double)
-            && Math.abs(numericValue.doubleValue() - numericValue.longValue()) >= 1) {
-          // if number is a float and float can not be exactly represented as integer, the
-          // result of the conversion of float to integer is undefined
-          return UnknownValue.getInstance();
-        }
-        NumericValue result;
-        if (numericValue.getNumber() instanceof BigInteger) {
-          result = new NumericValue(numericValue.bigInteger());
-        } else {
-          result = new NumericValue(BigInteger.valueOf(numericValue.longValue()));
-        }
-        return result;
-      }
       case INT:
       case CHAR:
         {
@@ -2435,8 +2409,14 @@ public abstract class AbstractExpressionValueVisitor
             // result of the conversion of float to integer is undefined
             return UnknownValue.getInstance();
         }
-
-        final BigInteger valueToCastAsInt = numericValue.bigInteger();// BigInteger.valueOf(numericValue.longValue());
+        final BigInteger valueToCastAsInt;
+        if (numericValue.getNumber() instanceof BigInteger) {
+          valueToCastAsInt = numericValue.bigInteger();
+        } else if (numericValue.getNumber() instanceof BigDecimal) {
+          valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
+        } else {
+          valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
+        }
           final boolean targetIsSigned = machineModel.isSigned(st);
 
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size

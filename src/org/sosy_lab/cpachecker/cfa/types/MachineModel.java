@@ -327,7 +327,7 @@ public enum MachineModel {
   }
 
   public int getSizeofInt128() {
-    return 128 / 8;
+    return 128 / getSizeofCharInBits();
   }
 
   public int getSizeofFloat() {
@@ -343,7 +343,7 @@ public enum MachineModel {
   }
 
   public int getSizeofFloat128() {
-    return 128 / 8;
+    return 128 / getSizeofCharInBits();
   }
 
   public int getSizeofVoid() {
