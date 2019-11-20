@@ -25,18 +25,18 @@
   <option name="-setprop">cpa.arg.compressWitness=true</option>
   <option name="-setprop">counterexample.export.compressWitness=true</option>
 
-  <tasks name="Concurrency">
+  <tasks name="ConcurrencySafety-Main">
     <includesfile>../programs/benchmarks/ConcurrencySafety-Main.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-32"/>
   </tasks>
 
-  <tasks name="ReachSafety-ArraysReach">
+  <tasks name="ReachSafety-Arrays">
     <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-32"/>
   </tasks>
-  <tasks name="ReachSafety-BitVectorsReach">
+  <tasks name="ReachSafety-BitVectors">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-32"/>
@@ -56,7 +56,7 @@
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-32"/>
   </tasks>
-  <tasks name="ReachSafety-HeapReach">
+  <tasks name="ReachSafety-Heap">
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-32"/>
@@ -81,6 +81,7 @@
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-32"/>
   </tasks>
+
   <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common-ReachSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
