@@ -599,11 +599,7 @@ public class SMGTransferRelation
             result.add(newState);
           }
         } catch (SolverException pE) {
-          result.add(newState);
-          logger.log(Level.WARNING, "Solver Exception: ", pE, " on predicate ", predicateFormula);
-        } catch (InterruptedException pE) {
-          result.add(newState);
-          logger.log(Level.WARNING, "Solver Interrupted Exception: ", pE, " on predicate ", predicateFormula);
+          throw new CPATransferException("Solver Exception on predicate " + predicateFormula, pE);
         }
       } else if ((truthValue && !explicitValue.equals(SMGZeroValue.INSTANCE))
           || (!truthValue && explicitValue.equals(SMGZeroValue.INSTANCE))) {
