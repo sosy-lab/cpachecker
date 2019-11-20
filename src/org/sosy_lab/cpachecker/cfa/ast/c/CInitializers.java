@@ -449,6 +449,7 @@ public final class CInitializers {
     Iterator<CFieldReference> fields =
         from(structType.getMembers()).filter(
             field -> !(field.getName().contains("__anon_type_member") && (!isAggregateType(field.getType())
+                && (field.getType() instanceof CElaboratedType)
                 && !((CElaboratedType) field.getType()).getKind().equals(ComplexTypeKind.UNION))))
             .transform(
                 field  ->
