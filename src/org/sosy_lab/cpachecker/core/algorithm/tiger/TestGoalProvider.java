@@ -23,7 +23,6 @@ import com.google.common.base.Predicate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -110,7 +109,7 @@ public class TestGoalProvider {
     if (edgeCriterion != null) {
       Set<CFAEdge> edges = extractEdgesByCriterion(edgeCriterion, cfa);
 
-      edges = adaptTestTargets(edges);
+      edges = reduceSimpleGoals(edges);
 
       Set<CFAGoal> goals = new HashSet<>();
       for (CFAEdge edge : edges) {
@@ -121,80 +120,36 @@ public class TestGoalProvider {
     return null;
   }
 
-  private void removeEdgeGoal(Set<CFAGoal> goals, CFAEdge edge) {
-    Iterator<CFAGoal> iter = goals.iterator();
-    while (iter.hasNext()) {
-      CFAGoal goal = iter.next();
-      if (goal.getCFAEdgesGoal().getEdges().size() == 1
-          && goal.getCFAEdgesGoal().getEdges().get(0).equals(edge)) {
-        iter.remove();
-      }
+  private boolean hasSuccessorGoal(CFAEdge goal, Set<CFAEdge> goals, int maxdepth) {
+    if (maxdepth <= 0) {
+      return false;
     }
-  }
-
-  private void reduceGoals(Set<CFAGoal> goals) {
-    for (CFAGoal goal : goals) {
-      if (goal.getCFAEdgesGoal().getEdges().size() != 1) {
-        // make sure each goals has only 1 edge
-        return;
-      }
+    CFANode sucessor = goal.getSuccessor();
+    if (sucessor.getNumEnteringEdges() != 1) {
+      return false;
     }
-    Set<CFAEdge> goalEdges = new HashSet<>();
-    for (CFAGoal goal : goals) {
-      goalEdges.add(goal.getCFAEdgesGoal().getEdges().get(0));
-    }
-
-    for (CFAEdge edge : goalEdges) {
-      while (edge.getSuccessor().getNumLeavingEdges() == 1) {
-        edge = edge.getSuccessor().getLeavingEdge(0);
-        removeEdgeGoal(goals, edge);
-      }
-    }
-  }
-
-  public Set<CFAEdge> COVERED_NEXT_EDGEadaptTestTargets(final Set<CFAEdge> targets) {
-    // currently only simple heuristic
-    Set<CFAEdge> newGoals;
-    newGoals = new HashSet<>(targets);
-    boolean allSuccessorsGoals;
-    for (CFAEdge target : targets) {
-      if (target.getSuccessor().getNumEnteringEdges() == 1) {
-        allSuccessorsGoals = true;
-        for (CFAEdge leaving : CFAUtils.leavingEdges(target.getSuccessor())) {
-          if (!targets.contains(leaving)) {
-            allSuccessorsGoals = false;
-            break;
-          }
-        }
-        if (allSuccessorsGoals) {
-          newGoals.remove(target);
+    for (CFAEdge leaving : CFAUtils.leavingEdges(sucessor)) {
+      if (!goals.contains(leaving)) {
+        maxdepth--;
+        if (!hasSuccessorGoal(leaving, goals, maxdepth)) {
+          return false;
         }
       }
+    }
+    return true;
+  }
+
+  public Set<CFAEdge> reduceSimpleGoals(final Set<CFAEdge> goals) {
+    Set<CFAEdge> newGoals = new HashSet<>(goals);
+    for (CFAEdge goal : goals) {
+      boolean redundantGoal = hasSuccessorGoal(goal, newGoals, 50);
+        if (redundantGoal) {
+        newGoals.remove(goal);
+        }
     }
     return newGoals;
   }
 
-  public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets) {
-    // currently only simple heuristic
-    Set<CFAEdge> newGoals;
-    if (targets.size() < 1000) {
-      newGoals = COVERED_NEXT_EDGEadaptTestTargets(targets);
-    } else {
-      newGoals = new HashSet<>();
-      for (CFAEdge target : targets) {
-        if (target.getEdgeType() == CFAEdgeType.AssumeEdge) {
-          for (CFAEdge leaving : CFAUtils.leavingEdges(target.getSuccessor())) {
-            if (!(leaving.getEdgeType() == CFAEdgeType.AssumeEdge)) {
-              newGoals.add(leaving);
-            }
-          }
-        } else {
-          newGoals.add(target);
-        }
-      }
-    }
-    return newGoals;
-  }
 
   private Set<CFAGoal> extractGoalSyntax(String fqlQuery, CFA cfa) {
     if (!fqlQuery.startsWith(goalPrefix)) {

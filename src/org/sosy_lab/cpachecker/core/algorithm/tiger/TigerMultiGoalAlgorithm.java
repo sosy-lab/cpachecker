@@ -198,7 +198,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       return AlgorithmStatus.SOUND_AND_PRECISE;
     } else {
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
-    }
+      }
   }
 
   private boolean testGeneration(ReachedSet pReachedSet) throws CPAException, InterruptedException {

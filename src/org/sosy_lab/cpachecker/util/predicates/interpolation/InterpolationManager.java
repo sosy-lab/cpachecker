@@ -232,7 +232,7 @@ public final class InterpolationManager {
       + "forward and backward directions return valid interpolants. "
       + "We can either choose one of the directions, fallback to the other "
       + "if one does not succeed, or even combine the interpolants.")
-  private SeqInterpolationStrategy sequentialStrategy = SeqInterpolationStrategy.FWD_FALLBACK;
+  private SeqInterpolationStrategy sequentialStrategy = SeqInterpolationStrategy.FWD;
 
   @Option(secure=true, description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;

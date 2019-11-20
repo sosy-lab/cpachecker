@@ -2263,7 +2263,7 @@ cpa.predicate.refinement.reuseInterpolationEnvironment = false
 # return valid interpolants. We can either choose one of the directions,
 # fallback to the other if one does not succeed, or even combine the
 # interpolants.
-cpa.predicate.refinement.sequentialStrategy = FWD_FALLBACK
+cpa.predicate.refinement.sequentialStrategy = FWD
   enum:     [FWD, FWD_FALLBACK, BWD, BWD_FALLBACK, CONJUNCTION, WEIGHTED, RANDOM]
 
 # During refinement, add all new predicates to the precisions of all abstract
@@ -4077,6 +4077,13 @@ witness.matchOffset = true
 # Match the line numbers within the origin (mapping done by preprocessor line
 # markers).
 witness.matchOriginLine = true
+
+# This option can be used to ensure that no correctness witnesses are
+# checked.
+witness.noCorrectnessValidation = false
+
+# This option can be used to ensure that no violation witnesses are checked.
+witness.noViolationValidation = false
 
 # remove assumptions from transitions in the ISA where they are not strictly
 # neccessary.This option is intended to be used with an ISA (c.f. option
