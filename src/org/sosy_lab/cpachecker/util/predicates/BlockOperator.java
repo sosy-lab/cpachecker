@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -246,10 +248,7 @@ public class BlockOperator {
   }
 
   protected boolean isLoopHead(CFANode succLoc) {
-    if (loopHeads == null) {
-      // fallback when loop structure is not available
-      return succLoc.isLoopStart();
-    }
+    checkState(loopHeads != null, "Missing loop information");
     return loopHeads.contains(succLoc);
   }
 
