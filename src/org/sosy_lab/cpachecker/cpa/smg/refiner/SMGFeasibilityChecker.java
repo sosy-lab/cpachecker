@@ -81,7 +81,7 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
 
   private ReachabilityResult isReachable(
       ARGPath pPath, UnmodifiableSMGState pStartingPoint, SMGPrecision pPrecision)
-      throws CPAException {
+      throws CPAException, InterruptedException {
 
     // We don't want sideffects of smg transfer relation for smg state propagating.
     SMGState start = pStartingPoint.copyOf();

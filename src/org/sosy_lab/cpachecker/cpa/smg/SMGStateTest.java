@@ -27,6 +27,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
 import java.util.List;
@@ -172,7 +173,7 @@ public class SMGStateTest {
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    smg1State.executeHeapAbstraction();
+    smg1State.executeHeapAbstraction(ImmutableSet.of());
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
   }

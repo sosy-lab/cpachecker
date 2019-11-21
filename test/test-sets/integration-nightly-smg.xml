@@ -33,11 +33,6 @@
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <option name="-32"/>
   </tasks>
-  <tasks name="Systems_BusyBox_MemSafety">
-    <includesfile>../programs/benchmarks/Systems_BusyBox_MemSafety.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
-    <option name="-64"/>
-  </tasks>
   <tasks name="MemSafety-Heap">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -53,10 +48,31 @@
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <option name="-32"/>
   </tasks>
+  <tasks name="MemSafety-TerminCrafted">
+    <includesfile>../programs/benchmarks/MemSafety-TerminCrafted.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <option name="-64"/>
+  </tasks>
   <tasks name="MemSafety-MemCleanup">
     <includesfile>../programs/benchmarks/MemSafety-MemCleanup.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
     <option name="-setprop">memorycleanup.config=config/svcomp19--memorycleanup.properties</option>
     <option name="-32"/>
+  </tasks>
+
+  <tasks name="SoftwareSystems-BusyBox-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <option name="-64"/>
+  </tasks>
+  <tasks name="SoftwareSystems-OpenBSD-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <option name="-64"/>
+  </tasks>
+  <tasks name="SoftwareSystems-SQLite-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-SQLite-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <option name="-64"/>
   </tasks>
 </benchmark>

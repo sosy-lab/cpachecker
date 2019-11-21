@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -47,7 +48,8 @@ public class SMGStrongestPostOperator {
       CFA pCfa,
       SMGPredicateManager pSMGPredicateManager,
       SMGOptions pOptions,
-      SMGTransferRelationKind pKind) {
+      SMGTransferRelationKind pKind,
+      ShutdownNotifier pShutdownNotifier) {
     transfer =
         new SMGTransferRelation(
             pLogger,
@@ -55,12 +57,13 @@ public class SMGStrongestPostOperator {
             SMGExportDotOption.getNoExportInstance(),
             pKind,
             pSMGPredicateManager,
-            pOptions);
+            pOptions,
+            pShutdownNotifier);
   }
 
   public Collection<SMGState> getStrongestPost(
       Collection<SMGState> pStates, Precision pPrecision, CFAEdge pOperation)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     List<SMGState> result = new ArrayList<>();
     for (SMGState state : pStates) {
       result.addAll(transfer.getAbstractSuccessorsForEdge(state, pPrecision, pOperation));

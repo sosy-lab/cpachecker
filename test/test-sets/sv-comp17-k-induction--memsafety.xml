@@ -10,7 +10,7 @@
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <tasks name="BusyBoxMemSafety">
-    <includesfile>../programs/benchmarks/Systems_BusyBox_MemSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-MemSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>

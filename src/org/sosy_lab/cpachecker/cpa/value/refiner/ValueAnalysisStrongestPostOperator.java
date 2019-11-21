@@ -76,10 +76,8 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
 
   @Override
   public Optional<ValueAnalysisState> getStrongestPost(
-      final ValueAnalysisState pOrigin,
-      final Precision pPrecision,
-      final CFAEdge pOperation
-  ) throws CPAException {
+      final ValueAnalysisState pOrigin, final Precision pPrecision, final CFAEdge pOperation)
+      throws CPAException, InterruptedException {
 
     final Collection<ValueAnalysisState> successors =
         transfer.getAbstractSuccessorsForEdge(pOrigin, pPrecision, pOperation);

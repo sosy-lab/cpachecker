@@ -184,6 +184,16 @@ public class AutomatonGraphmlParser {
   )
   private boolean strictChecking = true;
 
+  @Option(
+      secure = true,
+      description = "This option can be used to ensure that no correctness witnesses are checked.")
+  private boolean noCorrectnessValidation = false;
+
+  @Option(
+      secure = true,
+      description = "This option can be used to ensure that no violation witnesses are checked.")
+  private boolean noViolationValidation = false;
+
   @Option(secure=true, description="File for exporting the witness automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path automatonDumpFile = null;
@@ -290,6 +300,13 @@ public class AutomatonGraphmlParser {
             shutdownNotifier);
 
     AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream, pProperties);
+
+    WitnessType graphType = graphMLParserState.getWitnessType();
+    if ((noCorrectnessValidation && graphType.equals(WitnessType.CORRECTNESS_WITNESS))
+        || (noViolationValidation && graphType.equals(WitnessType.VIOLATION_WITNESS))) {
+      throw new IOException(
+          String.format("Checking for %s is disabled in current configuration", graphType));
+    }
 
     // Parse the transitions
     parseTransitions(cparser, graphMLParserState);

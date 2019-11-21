@@ -4,6 +4,7 @@
 
   <option name="-noout"/>
   <option name="-heap">2000M</option>
+  <option name="-disable-java-assertions"/> <!-- Temporarily until #609 is fixed. -->
 
   <rundefinition>
     <option name="-terminationAnalysis"/>
