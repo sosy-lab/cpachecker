@@ -294,6 +294,7 @@ def getToolDataForCloud(benchmark):
     logging.debug("Working dir: " + workingDir)
 
     toolpaths = benchmark.required_files()
+    validToolpaths = set()
     for file in toolpaths:
         if not os.path.exists(file):
             sys.exit(
@@ -301,8 +302,16 @@ def getToolDataForCloud(benchmark):
                     os.path.normpath(file)
                 )
             )
+        if os.path.isdir(file) and not os.listdir(file):
+            # VCloud can not handle empty directories, lets ignore them
+            logging.warning(
+                "Empty directory '%s', ignoring directory for cloud execution.",
+                os.path.normpath(file)
+            )
+        else:
+            validToolpaths.add(file)
 
-    return (workingDir, toolpaths)
+    return (workingDir, validToolpaths)
 
 
 def handleCloudResults(benchmark, output_handler, usedWallTime):
