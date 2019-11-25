@@ -174,7 +174,7 @@ public class CtoFormulaConverter {
   private static final CharMatcher ILLEGAL_VARNAME_CHARACTERS = CharMatcher.anyOf("|\\");
 
   // special variable name used for casting boolean variables to integers
-  private static final String PLACEHOLDER_VAR = "int_bool_to_int";
+  private static final String INT_BOOL_TO_INT = "int_bool_to_int";
 
   private final Map<String, Formula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
@@ -674,46 +674,6 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Used to give both sides of a binary expression the same formula type. Needs to be used on both
-   * sides seperately.
-   *
-   * @param fret the formula to potentially be casted and returned.
-   * @param f2 the second formula of the expression.
-   * @param fretCType the CType of fret.
-   * @return the new formula after the cast.
-   */
-  protected Formula adjustFormulaTypeinBinExp(
-      Formula fret,
-      Formula f2,
-      CType fretCType,
-      SSAMapBuilder ssa,
-      Constraints constraints,
-      CFAEdge edge)
-      throws UnrecognizedCodeException {
-    if (options.useVariableClassification()) {
-      FormulaType<?> fretType = fmgr.getFormulaType(fret);
-      FormulaType<?> f2Type = fmgr.getFormulaType(f2);
-      if (fretType.equals(f2Type)) {
-        return fret;
-      }
-      if (fretType.isBitvectorType() || fretType.isFloatingPointType() || f2Type.isBooleanType()) {
-        return makeFormulaTypeCast(f2Type, fretCType, fret, ssa, constraints, edge);
-      }
-      if (f2Type.isBitvectorType() || f2Type.isFloatingPointType() || fretType.isBooleanType()) {
-        return fret;
-      }
-      throw new UnrecognizedCodeException(
-          "Binary Expression with operands of type "
-              + fretType.toString()
-              + " and "
-              + f2Type.toString()
-              + " not implemented yet!",
-          edge);
-    }
-    return fret;
-  }
-
-  /**
    * Used to cast between formula types.
    *
    * @param toType the type to cast into.
@@ -797,8 +757,8 @@ public class CtoFormulaConverter {
    */
   private Formula
       intBoolToInt(BooleanFormula formula, CType type, SSAMapBuilder ssa, Constraints constraints) {
-    int index = this.makeFreshIndex(PLACEHOLDER_VAR, type, ssa);
-    IntegerFormula placeh = nfmgr.makeVariable(PLACEHOLDER_VAR, index);
+    int index = this.makeFreshIndex(INT_BOOL_TO_INT, type, ssa);
+    IntegerFormula placeh = nfmgr.makeVariable(INT_BOOL_TO_INT, index);
     IntegerFormula zero = nfmgr.makeNumber(0);
     BooleanFormula rhs = bfmgr.not(nfmgr.equal(placeh, zero));
     BooleanFormula constraint = bfmgr.equivalence(formula, rhs);

@@ -151,24 +151,8 @@ public class ExpressionToFormulaVisitor
     final CType returnType = exp.getExpressionType();
     final CType calculationType = exp.getCalculationType();
 
-    Formula for1 = processOperand(exp.getOperand1(), calculationType, returnType);
-    Formula for2 = processOperand(exp.getOperand2(), calculationType, returnType);
-    final Formula f1 =
-        conv.adjustFormulaTypeinBinExp(
-            for1,
-            for2,
-            exp.getOperand1().getExpressionType(),
-            ssa,
-            constraints,
-            edge);
-    final Formula f2 =
-        conv.adjustFormulaTypeinBinExp(
-            for2,
-            for1,
-            exp.getOperand2().getExpressionType(),
-            ssa,
-            constraints,
-            edge);
+    final Formula f1 = processOperand(exp.getOperand1(), calculationType, returnType);
+    final Formula f2 = processOperand(exp.getOperand2(), calculationType, returnType);
 
     return handleBinaryExpression(exp, f1, f2);
   }
@@ -181,19 +165,7 @@ public class ExpressionToFormulaVisitor
     final CType calculationType = exp.getCalculationType();
 
     // these operators expect numeric arguments
-    // ÄNDERUNG
-    // final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
-    final FormulaType<?> returnFormulaType;
-    if (conv.options.useVariableClassification()) {
-      assert mgr.getFormulaType(f1)
-          .equals(
-              mgr.getFormulaType(
-                  f2)) : "Argument Formulatypes do not match in visit(CBinaryExpression): " + exp;
-      returnFormulaType = mgr.getFormulaType(f1);
-    } else {
-      returnFormulaType = conv.getFormulaTypeFromCType(returnType);
-    }
-
+    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
 
     final boolean signed;
     if (calculationType instanceof CSimpleType) {
@@ -310,7 +282,32 @@ public class ExpressionToFormulaVisitor
           result= handleEquals(exp, f1, f2);
           break;
         case NOT_EQUALS:
-          result= conv.bfmgr.not(mgr.makeEqual(f1, f2));
+            // If one of our formulas is a BooleanFormula,
+            // we have to cast the formula type first.
+            if (mgr.getFormulaType(f1).isBooleanType() && !mgr.getFormulaType(f2).isBooleanType()) {
+              final Formula f1cast =
+                  conv.makeFormulaTypeCast(
+                      mgr.getFormulaType(f2),
+                      calculationType,
+                      f1,
+                      ssa,
+                      constraints,
+                      edge);
+              result = conv.bfmgr.not(mgr.makeEqual(f1cast, f2));
+            } else if ((!mgr.getFormulaType(f1).isBooleanType())
+                && mgr.getFormulaType(f2).isBooleanType()) {
+              final Formula f2cast =
+                  conv.makeFormulaTypeCast(
+                      mgr.getFormulaType(f1),
+                      calculationType,
+                      f2,
+                      ssa,
+                      constraints,
+                      edge);
+              result = conv.bfmgr.not(mgr.makeEqual(f1, f2cast));
+            } else {
+              result = conv.bfmgr.not(mgr.makeEqual(f1, f2));
+            }
           break;
         default:
           throw new AssertionError();
@@ -330,22 +327,23 @@ public class ExpressionToFormulaVisitor
     // The CalculationType could be different from returnType, so we cast the result.
     // If the types are equal, the cast returns the Formula unchanged.
     final Formula castedResult = conv.makeCast(calculationType, returnType, ret, constraints, edge);
-    assert returnFormulaType.equals(mgr.getFormulaType(castedResult))
-         : "Returntype and Formulatype do not match in visit(CBinaryExpression): " + exp;
-
+    /*
+     * final Formula castedResult = conv.makeFormulaTypeCast( returnFormulaType, returnType,
+     * castedResult1, ssa, constraints, edge); assert returnFormulaType.equals( mgr.getFormulaType(
+     * castedResult)) : "Returntype and Formulatype do not match in visit(CBinaryExpression): " +
+     * exp;
+     */
     return castedResult;
   }
 
   private BooleanFormula handleEquals(CBinaryExpression exp, Formula f1, Formula f2)
       throws UnrecognizedCodeException {
     assert exp.getOperator() == BinaryOperator.EQUALS;
-    // ÄNDERUNG
     FormulaType<?> f1Type = mgr.getFormulaType(f1);
     FormulaType<?> f2Type = mgr.getFormulaType(f2);
     if (!f1Type.equals(f2Type)) {
       f1 = conv.makeFormulaTypeCast(f2Type, exp.getExpressionType(), f1, ssa, constraints, edge);
     }
-    // ÄNDERUNG ENDE
     CExpression e1 = exp.getOperand1();
     CExpression e2 = exp.getOperand2();
     if (e2.equals(CIntegerLiteralExpression.ZERO)
@@ -486,7 +484,8 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCodeException {
-    FormulaType<?> t = conv.getFormulaTypeFromCType(iExp.getExpressionType());
+    // FormulaType<?> t = conv.getFormulaTypeFromCType(iExp.getExpressionType());
+    FormulaType<?> t = FormulaType.IntegerType;
     return mgr.makeNumber(t, iExp.getValue());
   }
 
