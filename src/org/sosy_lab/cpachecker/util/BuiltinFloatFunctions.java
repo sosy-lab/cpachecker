@@ -52,6 +52,18 @@ public class BuiltinFloatFunctions {
   private static final ImmutableList<String> ABSOLUTE_VAL = of("fabs");
   private static final ImmutableList<String> ABSOLUTE_VAL_LONG_DOUBLE = of("fabsl");
 
+  private static final ImmutableList<String> SIN_FLOAT = of("sinf");
+  private static final ImmutableList<String> SIN = of("sin");
+  private static final ImmutableList<String> SIN_LONG_DOUBLE = of("sinl");
+
+  private static final ImmutableList<String> COS_FLOAT = of("cosf");
+  private static final ImmutableList<String> COS = of("cos");
+  private static final ImmutableList<String> COS_LONG_DOUBLE = of("cosl");
+
+  private static final ImmutableList<String> EXP_FLOAT = of("expf");
+  private static final ImmutableList<String> EXP = of("exp");
+  private static final ImmutableList<String> EXP_LONG_DOUBLE = of("expl");
+
   private static final ImmutableList<String> FLOOR_FLOAT = of("floorf");
   private static final ImmutableList<String> FLOOR = of("floor");
   private static final ImmutableList<String> FLOOR_LONG_DOUBLE = of("floorl");
@@ -137,6 +149,9 @@ public class BuiltinFloatFunctions {
           .addAll(FMOD)
           .addAll(MODF)
           .addAll(FREMAINDER)
+          .addAll(SIN)
+          .addAll(COS)
+          .addAll(EXP)
 
           // compare-functions are ordered backwards, such that the prefix-search works.
           .addAll(ISGREATEREQUAL)
@@ -301,6 +316,24 @@ public class BuiltinFloatFunctions {
 
   public static boolean matchesAbsoluteLongDouble(String pFunctionName) {
     return ABSOLUTE_VAL_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesSin(String pFunctionName) {
+    return SIN_FLOAT.contains(pFunctionName)
+        || SIN.contains(pFunctionName)
+        || SIN_LONG_DOUBLE.contains(pFunctionName);
+  }
+  
+  public static boolean matchesCos(String pFunctionName) {
+    return COS_FLOAT.contains(pFunctionName)
+    || COS.contains(pFunctionName)
+    || COS_LONG_DOUBLE.contains(pFunctionName);
+  }
+  
+  public static boolean matchesExp(String pFunctionName) {
+    return EXP_FLOAT.contains(pFunctionName)
+        || EXP.contains(pFunctionName)
+        || EXP_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesCeil(String pFunctionName) {

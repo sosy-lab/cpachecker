@@ -838,6 +838,78 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
+        } else if (BuiltinFloatFunctions.matchesSin(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value parameter = parameterValues.get(0);
+      
+            if (parameter.isExplicitlyKnown()) {
+              NumericValue numericValue = parameter.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT: {
+                  float parameterAsFloat = numericValue.floatValue();
+                  float result = (float)Math.sin(parameterAsFloat);
+                  return new NumericValue(result);
+                }
+                case DOUBLE: {
+                  double parameterAsDouble = numericValue.doubleValue();
+                  double result = Math.sin(parameterAsDouble);
+                  return new NumericValue(result);
+                }
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesCos(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value parameter = parameterValues.get(0);
+      
+            if (parameter.isExplicitlyKnown()) {
+              NumericValue numericValue = parameter.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT: {
+                  float parameterAsFloat = numericValue.floatValue();
+                  float result = (float)Math.cos(parameterAsFloat);
+                  return new NumericValue(result);
+                }
+                case DOUBLE: {
+                  double parameterAsDouble = numericValue.doubleValue();
+                  double result = Math.cos(parameterAsDouble);
+                  return new NumericValue(result);
+                }
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesExp(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value parameter = parameterValues.get(0);
+      
+            if (parameter.isExplicitlyKnown()) {
+              NumericValue numericValue = parameter.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT: {
+                  float parameterAsFloat = numericValue.floatValue();
+                  float result = (float)Math.exp(parameterAsFloat);
+                  return new NumericValue(result);
+                }
+                case DOUBLE: {
+                  double parameterAsDouble = numericValue.doubleValue();
+                  double result = Math.exp(parameterAsDouble);
+                  return new NumericValue(result);
+                }
+                default:
+                  break;
+              }
+            }
+          }
         } else if (BuiltinFloatFunctions.matchesFloor(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value parameter = parameterValues.get(0);
