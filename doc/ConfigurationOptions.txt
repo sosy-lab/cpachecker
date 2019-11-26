@@ -1313,7 +1313,7 @@ cpa.callstack.skipVoidRecursion = false
 cpa.callstack.traverseBackwards = false
 
 # unsupported functions cause an exception
-cpa.callstack.unsupportedFunctions = {"pthread_create"}
+cpa.callstack.unsupportedFunctions = {"pthread_create", "longjmp", "siglongjmp"}
 
 # firing relation to be used in the precision adjustment operator
 cpa.chc.firingRelation = "Always"
