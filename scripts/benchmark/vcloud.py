@@ -306,7 +306,7 @@ def getToolDataForCloud(benchmark):
             # VCloud can not handle empty directories, lets ignore them
             logging.warning(
                 "Empty directory '%s', ignoring directory for cloud execution.",
-                os.path.normpath(file)
+                os.path.normpath(file),
             )
         else:
             validToolpaths.add(file)
