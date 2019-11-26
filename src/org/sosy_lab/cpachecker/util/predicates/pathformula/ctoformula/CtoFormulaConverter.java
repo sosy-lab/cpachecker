@@ -156,7 +156,7 @@ public class CtoFormulaConverter {
 
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
-  static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS =
+  private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS =
       ImmutableMap.of("fesetround", "floating-point rounding modes");
 
   //names for special variables needed to deal with functions
@@ -1763,6 +1763,15 @@ public class CtoFormulaConverter {
     } else {
       return makeVariable(var, exp.getExpressionType(), ssa);
     }
+  }
+
+  static String isUnsupportedFunction(String functionName) {
+    if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
+      return UNSUPPORTED_FUNCTIONS.get(functionName);
+    } else if (functionName.startsWith("__atomic_")) {
+      return "atomic operations";
+    }
+    return null;
   }
 
   /**
