@@ -305,7 +305,7 @@ public final class SMGPlotter {
       objectIndex.put(obj, new SMGObjectNode("struct" + structId + ":item_" + key));
     }
     return String.format(
-        "struct%s [shape=record, height=%d, label=\"%s\"];\n",
+        "struct%s [shape=record, height=%d, label=\"%s\"];%n",
         structId, nodes.size(), Joiner.on(" | ").join(nodes));
   }
 
