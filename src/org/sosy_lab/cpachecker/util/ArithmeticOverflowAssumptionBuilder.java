@@ -31,6 +31,7 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -81,6 +82,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -124,18 +126,30 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   private final Map<CType, CLiteralExpression> width;
   private final CBinaryExpressionBuilder cBinaryExpressionBuilder;
   private final ExpressionSimplificationVisitor simplificationVisitor;
-  private final CFA cfa;
+  private final MachineModel machineModel;
+  private final Optional<LiveVariables> liveVariables;
   private final LogManager logger;
 
   public ArithmeticOverflowAssumptionBuilder(
       CFA cfa,
       LogManager logger,
       Configuration pConfiguration) throws InvalidConfigurationException {
+    this(cfa.getMachineModel(),cfa.getLiveVariables(),logger, pConfiguration);
+  }
+
+  public ArithmeticOverflowAssumptionBuilder(
+      MachineModel pMachineModel,
+      Optional<LiveVariables> pLiveVariables,
+      LogManager logger,
+      Configuration pConfiguration)
+      throws InvalidConfigurationException {
     pConfiguration.inject(this);
     this.logger = logger;
-    this.cfa = cfa;
+    this.liveVariables = pLiveVariables;
+    machineModel = pMachineModel;
     if (useLiveness) {
-      Preconditions.checkState(cfa.getLiveVariables().isPresent(),
+      Preconditions.checkState(
+          liveVariables.isPresent(),
           "Liveness information is required for overflow analysis.");
     }
 
@@ -153,12 +167,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     trackType(CNumericTypes.LONG_LONG_INT);
     trackType(CNumericTypes.SIGNED_LONG_LONG_INT);
 
-    cBinaryExpressionBuilder = new CBinaryExpressionBuilder(
-        cfa.getMachineModel(),
-        logger);
+    cBinaryExpressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
     simplificationVisitor =
-        new ExpressionSimplificationVisitor(
-            cfa.getMachineModel(), new LogManagerWithoutDuplicates(logger));
+        new ExpressionSimplificationVisitor(machineModel, new LogManagerWithoutDuplicates(logger));
   }
 
   /**
@@ -226,15 +237,13 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   private void trackType(CSimpleType type) {
     CIntegerLiteralExpression typeMinValue =
         new CIntegerLiteralExpression(
-            FileLocation.DUMMY, type, cfa.getMachineModel().getMinimalIntegerValue(type));
+            FileLocation.DUMMY, type, machineModel.getMinimalIntegerValue(type));
     CIntegerLiteralExpression typeMaxValue =
         new CIntegerLiteralExpression(
-            FileLocation.DUMMY, type, cfa.getMachineModel().getMaximalIntegerValue(type));
+            FileLocation.DUMMY, type, machineModel.getMaximalIntegerValue(type));
     CIntegerLiteralExpression typeWidth =
         new CIntegerLiteralExpression(
-            FileLocation.DUMMY,
-            type,
-            getWidthForMaxOf(cfa.getMachineModel().getMaximalIntegerValue(type)));
+            FileLocation.DUMMY, type, getWidthForMaxOf(machineModel.getMaximalIntegerValue(type)));
 
     upperBounds.put(type, typeMaxValue);
     lowerBounds.put(type, typeMinValue);
@@ -253,7 +262,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
               .transform(CIdExpression::getDeclaration)
               .toSet();
 
-      Set<ASimpleDeclaration> liveVars = cfa.getLiveVariables().get().getLiveVariablesForNode(node);
+      Set<ASimpleDeclaration> liveVars = liveVariables.get().getLiveVariablesForNode(node);
       if (Sets.intersection(referencedDeclarations, liveVars).isEmpty()) {
         logger.log(Level.FINE, "No live variables found in expression", exp,
             "skipping");
