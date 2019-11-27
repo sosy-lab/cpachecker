@@ -1465,7 +1465,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         Preconditions.checkState(
             heapObs.size() >= 1 && heapObs.contains(SMGNullObject.INSTANCE),
             "NULL must always be a heap object");
-        return heapObs.size() != 1;
+        for (SMGObject object : heapObs) {
+          if (!heap.isObjectValid(object)) {
+            heapObs = heapObs.removeAndCopy(object);
+          }
+        }
+        return !heapObs.isEmpty();
 
       default:
         throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
@@ -1566,15 +1571,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
 
     if (!heap.isObjectValid(smgObject)) {
-      // you may not invoke free multiple times on
-      // the same object
-
+      // you may not invoke free multiple times on the same object
       SMGState newState = withInvalidFree().withErrorDescription("Double free is found");
       newState.addInvalidObject(smgObject);
       return newState;
     }
 
-    if (!(offset == 0) && !heap.isObjectExternallyAllocated(smgObject)) {
+    if (offset != 0 && !heap.isObjectExternallyAllocated(smgObject)) {
       // you may not invoke free on any address that you
       // didn't get through a malloc invocation.
       // TODO: externally allocated memory could be freed partially
