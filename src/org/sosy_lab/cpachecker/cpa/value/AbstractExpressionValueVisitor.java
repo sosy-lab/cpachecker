@@ -560,6 +560,10 @@ public abstract class AbstractExpressionValueVisitor
         if (r.compareTo(BigInteger.valueOf(128)) <= 0 && r.signum() != -1) {
           return l.shiftLeft(r.intValue());
         } else {
+          logger.logf(
+              Level.SEVERE,
+              "Right-hand side (%s) of the bitshift is larger than 128 or negative.",
+              r.toString());
           return BigInteger.ZERO;
         }
       case SHIFT_RIGHT:
