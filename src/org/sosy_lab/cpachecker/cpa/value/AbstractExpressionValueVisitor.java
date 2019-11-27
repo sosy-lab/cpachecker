@@ -2409,11 +2409,11 @@ public abstract class AbstractExpressionValueVisitor
             // result of the conversion of float to integer is undefined
             return UnknownValue.getInstance();
         }
+
+        assert !(numericValue.getNumber() instanceof BigDecimal);
         final BigInteger valueToCastAsInt;
         if (numericValue.getNumber() instanceof BigInteger) {
           valueToCastAsInt = numericValue.bigInteger();
-        } else if (numericValue.getNumber() instanceof BigDecimal) {
-          valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
         } else {
           valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
         }
