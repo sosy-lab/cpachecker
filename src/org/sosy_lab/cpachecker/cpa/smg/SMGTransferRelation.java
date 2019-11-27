@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -194,7 +195,23 @@ public class SMGTransferRelation
   }
 
   @Override
-  protected Set<SMGState> handleBlankEdge(BlankEdge cfaEdge) {
+  protected Set<SMGState> handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
+    if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
+      assert "default return".equals(cfaEdge.getDescription())
+          || "skipped unnecessary edges".equals(cfaEdge.getDescription());
+
+      // if this is the entry function, there is no FunctionReturnEdge
+      // so we have to check for memleaks here
+      if (cfaEdge.getSuccessor().getNumLeavingEdges() == 0) {
+        // TODO: Handle leaks at any program exit point (abort, etc.)
+        SMGState successor = state.copyOf();
+        if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
+          successor.dropStackFrame();
+        }
+        successor.pruneUnreachable();
+        return Collections.singleton(successor);
+      }
+    }
     return Collections.singleton(state);
   }
 
