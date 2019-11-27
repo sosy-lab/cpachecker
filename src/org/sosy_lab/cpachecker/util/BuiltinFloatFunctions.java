@@ -60,9 +60,25 @@ public class BuiltinFloatFunctions {
   private static final ImmutableList<String> COS = of("cos");
   private static final ImmutableList<String> COS_LONG_DOUBLE = of("cosl");
 
+  private static final ImmutableList<String> TAN_FLOAT = of("tanf");
+  private static final ImmutableList<String> TAN = of("tan");
+  private static final ImmutableList<String> TAN_LONG_DOUBLE = of("tanl");
+
+  private static final ImmutableList<String> POW_FLOAT = of("powf");
+  private static final ImmutableList<String> POW = of("pow");
+  private static final ImmutableList<String> POW_LONG_DOUBLE = of("powl");
+
+  private static final ImmutableList<String> SQRT_FLOAT = of("sqrtf");
+  private static final ImmutableList<String> SQRT = of("sqrt");
+  private static final ImmutableList<String> SQRT_LONG_DOUBLE = of("sqrtl");
+  
   private static final ImmutableList<String> EXP_FLOAT = of("expf");
   private static final ImmutableList<String> EXP = of("exp");
   private static final ImmutableList<String> EXP_LONG_DOUBLE = of("expl");
+
+  private static final ImmutableList<String> LOG_FLOAT = of("logf");
+  private static final ImmutableList<String> LOG = of("log");
+  private static final ImmutableList<String> LOG_LONG_DOUBLE = of("logl");
 
   private static final ImmutableList<String> FLOOR_FLOAT = of("floorf");
   private static final ImmutableList<String> FLOOR = of("floor");
@@ -151,7 +167,11 @@ public class BuiltinFloatFunctions {
           .addAll(FREMAINDER)
           .addAll(SIN)
           .addAll(COS)
+          .addAll(TAN)
+          .addAll(POW)
+          .addAll(SQRT)
           .addAll(EXP)
+          .addAll(LOG)
 
           // compare-functions are ordered backwards, such that the prefix-search works.
           .addAll(ISGREATEREQUAL)
@@ -330,10 +350,34 @@ public class BuiltinFloatFunctions {
     || COS_LONG_DOUBLE.contains(pFunctionName);
   }
   
+  public static boolean matchesTan(String pFunctionName) {
+    return TAN_FLOAT.contains(pFunctionName)
+    || TAN.contains(pFunctionName)
+    || TAN_LONG_DOUBLE.contains(pFunctionName);
+  }
+  
+  public static boolean matchesPow(String pFunctionName) {
+    return POW_FLOAT.contains(pFunctionName)
+    || POW.contains(pFunctionName)
+    || POW_LONG_DOUBLE.contains(pFunctionName);
+  }
+  
+  public static boolean matchesSqrt(String pFunctionName) {
+    return SQRT_FLOAT.contains(pFunctionName)
+    || SQRT.contains(pFunctionName)
+    || SQRT_LONG_DOUBLE.contains(pFunctionName);
+  }
+  
   public static boolean matchesExp(String pFunctionName) {
     return EXP_FLOAT.contains(pFunctionName)
         || EXP.contains(pFunctionName)
         || EXP_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesLog(String pFunctionName) {
+    return LOG_FLOAT.contains(pFunctionName)
+        || LOG.contains(pFunctionName)
+        || LOG_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesCeil(String pFunctionName) {

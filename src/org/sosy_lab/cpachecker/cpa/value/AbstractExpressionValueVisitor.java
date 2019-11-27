@@ -886,6 +886,82 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
+        } else if (BuiltinFloatFunctions.matchesTan(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value parameter = parameterValues.get(0);
+      
+            if (parameter.isExplicitlyKnown()) {
+              NumericValue numericValue = parameter.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT: {
+                  float parameterAsFloat = numericValue.floatValue();
+                  float result = (float)Math.tan(parameterAsFloat);
+                  return new NumericValue(result);
+                }
+                case DOUBLE: {
+                  double parameterAsDouble = numericValue.doubleValue();
+                  double result = Math.tan(parameterAsDouble);
+                  return new NumericValue(result);
+                }
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesPow(calledFunctionName)) {
+          if (parameterValues.size() == 2) {
+            Value base = parameterValues.get(0);
+            Value exponent = parameterValues.get(1);
+      
+            if (base.isExplicitlyKnown() && exponent.isExplicitlyKnown()) {
+              NumericValue baseNumericValue = base.asNumericValue();
+              NumericValue exponentNumericValue = exponent.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT: {
+                  float baseAsFloat = baseNumericValue.floatValue();
+                  float exponentAsFloat = exponentNumericValue.floatValue();
+                  float result = (float)Math.pow(baseAsFloat, exponentAsFloat);
+                  return new NumericValue(result);
+                }
+                case DOUBLE: {
+                  double baseAsDouble = baseNumericValue.doubleValue();
+                  double exponentAsDouble = exponentNumericValue.doubleValue();
+                  double result = Math.pow(baseAsDouble, exponentAsDouble);
+                  return new NumericValue(result);
+                }
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesSqrt(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value parameter = parameterValues.get(0);
+      
+            if (parameter.isExplicitlyKnown()) {
+              NumericValue numericValue = parameter.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT: {
+                  float parameterAsFloat = numericValue.floatValue();
+                  float result = (float)Math.sqrt(parameterAsFloat);
+                  return new NumericValue(result);
+                }
+                case DOUBLE: {
+                  double parameterAsDouble = numericValue.doubleValue();
+                  double result = Math.sqrt(parameterAsDouble);
+                  return new NumericValue(result);
+                }
+                default:
+                  break;
+              }
+            }
+          }
         } else if (BuiltinFloatFunctions.matchesExp(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value parameter = parameterValues.get(0);
@@ -903,6 +979,30 @@ public abstract class AbstractExpressionValueVisitor
                 case DOUBLE: {
                   double parameterAsDouble = numericValue.doubleValue();
                   double result = Math.exp(parameterAsDouble);
+                  return new NumericValue(result);
+                }
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesLog(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value parameter = parameterValues.get(0);
+      
+            if (parameter.isExplicitlyKnown()) {
+              NumericValue numericValue = parameter.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT: {
+                  float parameterAsFloat = numericValue.floatValue();
+                  float result = (float)Math.log(parameterAsFloat);
+                  return new NumericValue(result);
+                }
+                case DOUBLE: {
+                  double parameterAsDouble = numericValue.doubleValue();
+                  double result = Math.log(parameterAsDouble);
                   return new NumericValue(result);
                 }
                 default:
