@@ -2414,9 +2414,14 @@ public abstract class AbstractExpressionValueVisitor
             return UnknownValue.getInstance();
         }
 
-        assert !(numericValue.getNumber() instanceof BigDecimal);
         final BigInteger valueToCastAsInt;
-        valueToCastAsInt = numericValue.bigInteger();
+        if (numericValue.getNumber() instanceof BigInteger) {
+          valueToCastAsInt = numericValue.bigInteger();
+        } else if (numericValue.getNumber() instanceof BigDecimal) {
+          valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
+        } else {
+          valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
+        }
           final boolean targetIsSigned = machineModel.isSigned(st);
 
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
