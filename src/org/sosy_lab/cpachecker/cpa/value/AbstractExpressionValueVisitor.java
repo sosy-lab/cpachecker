@@ -2416,11 +2416,7 @@ public abstract class AbstractExpressionValueVisitor
 
         assert !(numericValue.getNumber() instanceof BigDecimal);
         final BigInteger valueToCastAsInt;
-        if (numericValue.getNumber() instanceof BigInteger) {
-          valueToCastAsInt = numericValue.bigInteger();
-        } else {
-          valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
-        }
+        valueToCastAsInt = numericValue.bigInteger();
           final boolean targetIsSigned = machineModel.isSigned(st);
 
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
