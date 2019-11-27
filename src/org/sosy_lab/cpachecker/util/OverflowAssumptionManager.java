@@ -65,6 +65,32 @@ public class OverflowAssumptionManager {
     return getAdditiveAssumption(operand1, operand2, operator, min, false);
   }
 
+  public CExpression getConjunctionOfAdditiveAssumptions(
+      CExpression operand1,
+      CExpression operand2,
+      BinaryOperator operator,
+      CSimpleType type,
+      boolean negate)
+      throws UnrecognizedCodeException {
+    CExpression assumption =
+        cBinaryExpressionBuilder.buildBinaryExpression(
+            getLowerAssumption(operand1, operand2, operator, getLowerBound(type)),
+            getUpperAssumption(operand1, operand2, operator, getUpperBound(type)),
+            BinaryOperator.BINARY_AND);
+    if (negate) {
+      assumption =
+          cBinaryExpressionBuilder.buildBinaryExpression(
+              assumption, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
+    }
+    return assumption;
+  }
+
+  public CExpression getResultOfAdditiveOperation(
+      CExpression operand1, CExpression operand2, BinaryOperator operator)
+      throws UnrecognizedCodeException {
+    return cBinaryExpressionBuilder.buildBinaryExpression(operand1, operand2, operator);
+  }
+
   /**
    * This helper method generates assumptions for checking overflows in signed integer
    * additions/subtractions. Since the assumptions are {@link CExpression}s as well, they are
