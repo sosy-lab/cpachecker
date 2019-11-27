@@ -404,11 +404,12 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     }
 
     for (CExpression assumption : from(pAssumeElement.getAssumptions()).filter(CExpression.class)) {
-      // assumptions do not contain compete type nor scope information
+      // assumptions do not contain complete type nor scope information
       // hence, not all types can be resolved, so ignore these
       // TODO: the witness automaton is complete in that regard, so use that in future
       if (CFAUtils.getIdExpressionsOfExpression(assumption)
-          .anyMatch(var -> var.getExpressionType() instanceof CProblemType)) {
+              .anyMatch(var -> var.getExpressionType() instanceof CProblemType)
+          || assumption.getExpressionType() instanceof CProblemType) {
         logger.log(Level.INFO, "Ignoring assumption", assumption, "because of CProblemType");
         continue;
       }
