@@ -189,7 +189,7 @@ public class SMGTransferRelation
       return String.format("initial-%03d", pState.getId());
     } else {
       return String.format(
-          "%03d-%03d-%03d", pState.getPredecessorId(), pState.getId(), ID_COUNTER.getFreshId());
+          "%04d-%04d-%04d", pState.getPredecessorId(), pState.getId(), ID_COUNTER.getFreshId());
     }
   }
 
