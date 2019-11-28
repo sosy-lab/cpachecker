@@ -35,6 +35,7 @@
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/loops-crafted-1/**</exclude> <!-- only timeouts -->
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
