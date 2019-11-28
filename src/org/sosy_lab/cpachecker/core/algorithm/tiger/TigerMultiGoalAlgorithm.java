@@ -114,8 +114,11 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
         "We will not use the provided reached set since it violates the internal structure of Tiger's CPAs");
     logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
 
+    boolean reduceGoals =
+        tigerConfig.getGoalReduction() == GoalReduction.COMPLEX
+            || tigerConfig.getGoalReduction() == GoalReduction.SIMPLE;
     goalsToCover =
-        TestGoalProvider.getInstace(logger)
+        TestGoalProvider.getInstace(logger, reduceGoals)
             .initializeTestGoalSet(
                 tigerConfig.getFqlQuery(),
                 cfa,

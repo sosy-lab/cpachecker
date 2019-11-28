@@ -42,16 +42,16 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public class TestGoalProvider {
   Map<String, Set<CFAGoal>> cache;
   static TestGoalProvider provider;
-
+  boolean reduceGoals;
 
   private static final String goalPrefix = "Goals:";
 
   LogManager logger;
 
-  public static TestGoalProvider getInstace(LogManager pLogger)
+  public static TestGoalProvider getInstace(LogManager pLogger, boolean reduceGoals)
   {
     if (provider == null) {
-      provider = new TestGoalProvider(pLogger);
+      provider = new TestGoalProvider(pLogger, reduceGoals);
     }
     return provider;
   }
@@ -60,9 +60,10 @@ public class TestGoalProvider {
     return provider;
   }
 
-  private TestGoalProvider(LogManager pLogger) {
+  private TestGoalProvider(LogManager pLogger, boolean reduceGoals) {
     cache = new HashMap<>();
     logger = pLogger;
+    this.reduceGoals = reduceGoals;
   }
 
   private Predicate<CFAEdge> getStatementCriterion() {
@@ -109,7 +110,9 @@ public class TestGoalProvider {
     if (edgeCriterion != null) {
       Set<CFAEdge> edges = extractEdgesByCriterion(edgeCriterion, cfa);
 
-      edges = reduceSimpleGoals(edges);
+      if (reduceGoals) {
+        edges = reduceSimpleGoals(edges);
+      }
 
       Set<CFAGoal> goals = new HashSet<>();
       for (CFAEdge edge : edges) {

@@ -57,6 +57,15 @@ public class PartitionProvider {
   @Option(secure = true, name = "strategy", description = "")
   private Strategy strategy = Strategy.RANDOM;
 
+  @Option(secure = true, name = "minimumPartitionSize", description = "")
+  private int minimumPartitionSize = 25;
+
+  @Option(secure = true, name = "lessGoalsPerPartitionTolerance", description = "")
+  private int lessGoalsPerPartitionTolerance = 10;
+
+  @Option(secure = true, name = "additionalGoalsPerPartitionTolerance", description = "")
+  private int additionalGoalsPerPartitionTolerance = 5;
+
   public PartitionProvider(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
   }
@@ -69,20 +78,37 @@ public class PartitionProvider {
       // need double prevent calculation with integers, which will truncate the result before ceil
       size = (int) Math.ceil((double) allEdges.size() * partitionSize / 100);
     }
-    return size;
+    if (size > minimumPartitionSize) {
+      return size;
+    } else {
+      return minimumPartitionSize;
+    }
   }
 
   private List<Set<CFAGoal>> createOrderedPartition(List<CFAGoal> allEdges) {
     List<Set<CFAGoal>> partitioning = new ArrayList<>();
     HashSet<CFAGoal> partition = new HashSet<>();
     int size = partitionSize(allEdges);
+    boolean noNewPartition = false;
+    int edgesLeft = allEdges.size();
 
     for (CFAGoal edge : allEdges) {
-      if (partition.size() >= size) {
+      if (!noNewPartition
+          && (edgesLeft <= lessGoalsPerPartitionTolerance
+              || (edgesLeft <= additionalGoalsPerPartitionTolerance))) {
+        int overFillingGoals = partition.size() - size + edgesLeft;
+        if (!(overFillingGoals <= additionalGoalsPerPartitionTolerance)) {
+          partitioning.add(partition);
+          partition = new HashSet<>();
+        }
+        noNewPartition = true;
+      }
+      if (partition.size() >= size && !noNewPartition) {
         partitioning.add(partition);
         partition = new HashSet<>();
       }
       partition.add(edge);
+      edgesLeft--;
     }
     if (partition.size() > 0 && !partitioning.contains(partition)) {
       partitioning.add(partition);
