@@ -383,7 +383,9 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             ):
                 shutil.move(vcloudFilesDirectory, benchexecFilesDirectory)
 
-        output_handler.output_after_run_set(runSet, walltime=usedWallTime, end_time=end_time)
+        output_handler.output_after_run_set(
+            runSet, walltime=usedWallTime, end_time=end_time
+        )
 
     output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
