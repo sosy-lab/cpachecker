@@ -885,7 +885,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
     private final Function<InfeasiblePrefix, List<CandidateInvariant>>
         TO_LOCATION_CANDIDATE_INVARIANT =
-            new Function<InfeasiblePrefix, List<CandidateInvariant>>() {
+            new Function<>() {
               @Override
               public List<CandidateInvariant> apply(InfeasiblePrefix pInput) {
                 List<BooleanFormula> interpolants;

@@ -620,12 +620,12 @@ public class ARGUtils {
    * @return The children with covered states transparently replaced.
    */
   public static Collection<ARGState> getUncoveredChildrenView(final ARGState s) {
-    return new AbstractCollection<ARGState>() {
+    return new AbstractCollection<>() {
 
       @Override
       public Iterator<ARGState> iterator() {
 
-        return new UnmodifiableIterator<ARGState>() {
+        return new UnmodifiableIterator<>() {
           private final Iterator<ARGState> children = s.getChildren().iterator();
 
           @Override

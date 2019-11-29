@@ -309,7 +309,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           @Override
           public Iterator<CandidateInvariant> iterator() {
             final Iterator<CandidateInvariant> it = pCandidateGenerator.iterator();
-            return new Iterator<CandidateInvariant>() {
+            return new Iterator<>() {
 
               @Override
               public boolean hasNext() {
@@ -535,7 +535,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         @Override
         public Iterator<CandidateInvariant> iterator() {
           final Iterator<CandidateInvariant> iterator = super.iterator();
-          return new Iterator<CandidateInvariant>() {
+          return new Iterator<>() {
 
             private CandidateInvariant candidate;
 
@@ -711,7 +711,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
         VariableClassification varClassification = pCfa.getVarClassification().get();
         Equivalence<AssumeEdge> equivalence =
-            new Equivalence<AssumeEdge>() {
+            new Equivalence<>() {
 
               @Override
               protected boolean doEquivalent(AssumeEdge pA, AssumeEdge pB) {

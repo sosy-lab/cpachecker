@@ -2236,13 +2236,13 @@ public class AutomatonGraphmlParser {
 
   /** return a nice {@link Iterable} wrapping the interface {@link NodeList}. */
   private static Iterable<Node> asIterable(final NodeList pNodeList) {
-    return new Iterable<Node>() {
+    return new Iterable<>() {
 
       private Integer length = null;
 
       @Override
       public Iterator<Node> iterator() {
-        return new Iterator<Node>() {
+        return new Iterator<>() {
 
           private int index = 0;
 

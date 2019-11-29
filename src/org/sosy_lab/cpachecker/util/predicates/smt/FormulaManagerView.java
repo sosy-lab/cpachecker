@@ -1194,7 +1194,7 @@ public class FormulaManagerView {
     // Add the formula to the work queue
     toProcess.push(pFormula);
 
-    FormulaVisitor<Void> process = new FormulaVisitor<Void>() {
+    FormulaVisitor<Void> process = new FormulaVisitor<>() {
       // This visitor works with unwrapped formulas.
       // After calls to other methods that might return wrapped formulas we need to unwrap them.
 
@@ -1481,7 +1481,7 @@ public class FormulaManagerView {
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
     final BooleanFormulaVisitor<Boolean> isAtomicVisitor =
-        new DefaultBooleanFormulaVisitor<Boolean>() {
+        new DefaultBooleanFormulaVisitor<>() {
           @Override protected Boolean visitDefault() {
             return false;
           }

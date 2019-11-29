@@ -107,7 +107,7 @@ public class LiveVariables {
    * then has storageType auto: for live variables we need to consider them
    * as one).
    */
-  public static final Equivalence<ASimpleDeclaration> LIVE_DECL_EQUIVALENCE = new Equivalence<ASimpleDeclaration>() {
+  public static final Equivalence<ASimpleDeclaration> LIVE_DECL_EQUIVALENCE = new Equivalence<>() {
 
     @Override
     protected boolean doEquivalent(ASimpleDeclaration pA, ASimpleDeclaration pB) {

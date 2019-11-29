@@ -222,7 +222,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
       Set<Formula> boundVars = ImmutableSet.copyOf(pExistFormula.getQuantifiedVarFormulas());
 
       FormulaVisitor<Map<Formula, Formula>> visitor =
-          new DefaultFormulaVisitor<Map<Formula, Formula>>() {
+          new DefaultFormulaVisitor<>() {
             @Override
             protected Map<Formula, Formula> visitDefault(Formula pF) {
               return null;

@@ -90,7 +90,7 @@ public final class PolicyIntermediateState extends PolicyState {
    */
   Iterable<PolicyIntermediateState> allStatesToRoot() {
     PolicyIntermediateState pThis = this;
-    Iterator<PolicyIntermediateState> it = new Iterator<PolicyIntermediateState>() {
+    Iterator<PolicyIntermediateState> it = new Iterator<>() {
       private Optional<PolicyIntermediateState> cursor = Optional.of(pThis);
 
       @Override

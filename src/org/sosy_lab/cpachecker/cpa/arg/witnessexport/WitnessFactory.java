@@ -163,7 +163,7 @@ class WitnessFactory implements EdgeAppender {
   private static final Pattern CLONED_FUNCTION_NAME_PATTERN =
       Pattern.compile("(.+)(__cloned_function__\\d+)");
 
-  private static final Function<ARGState, ARGState> COVERED_TO_COVERING = new Function<ARGState, ARGState>() {
+  private static final Function<ARGState, ARGState> COVERED_TO_COVERING = new Function<>() {
 
     @Override
     public ARGState apply(ARGState pChild) {
@@ -180,7 +180,7 @@ class WitnessFactory implements EdgeAppender {
   };
 
   static final Function<CFAEdgeWithAssumptions, CFAEdgeWithAssumptions> ASSUMPTION_FILTER =
-      new Function<CFAEdgeWithAssumptions, CFAEdgeWithAssumptions>() {
+      new Function<>() {
 
         @Override
         public CFAEdgeWithAssumptions apply(CFAEdgeWithAssumptions pEdgeWithAssumptions) {
@@ -783,7 +783,7 @@ class WitnessFactory implements EdgeAppender {
                   (CIdExpression) resultVariable.get(), "\\result")
               : CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER;
       final Function<Object, String> converter =
-          new Function<Object, String>() {
+          new Function<>() {
 
             @Override
             public String apply(Object pLeafExpression) {
@@ -1061,7 +1061,7 @@ class WitnessFactory implements EdgeAppender {
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
       final Predicate<? super ARGState> pPathStates,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge) {
-    return new Iterable<Pair<ARGState, Iterable<ARGState>>>() {
+    return new Iterable<>() {
 
       private final Set<ARGState> visited = new HashSet<>();
 
@@ -1074,7 +1074,7 @@ class WitnessFactory implements EdgeAppender {
 
       @Override
       public Iterator<Pair<ARGState, Iterable<ARGState>>> iterator() {
-        return new Iterator<Pair<ARGState, Iterable<ARGState>>>() {
+        return new Iterator<>() {
 
           @Override
           public boolean hasNext() {
@@ -1419,7 +1419,7 @@ class WitnessFactory implements EdgeAppender {
    * therefore be shortcut.
    */
   private final Predicate<String> isIrrelevantNode =
-      new Predicate<String>() {
+      new Predicate<>() {
 
         @Override
         public boolean apply(String pNode) {
@@ -1446,7 +1446,7 @@ class WitnessFactory implements EdgeAppender {
    * therefore be shortcut.
    */
   private final Predicate<Edge> isEdgeIrrelevant =
-      new Predicate<Edge>() {
+      new Predicate<>() {
 
         @Override
         public boolean apply(final Edge pEdge) {

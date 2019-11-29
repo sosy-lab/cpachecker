@@ -118,7 +118,7 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
 
     @Override
     public Iterator<ProofObligation> iterator() {
-      return new Iterator<ProofObligation>() {
+      return new Iterator<>() {
 
         private Optional<ProofObligation> current = Optional.of(NonLeafProofObligation.this);
 

@@ -117,7 +117,7 @@ public class StaticCandidateProvider implements CandidateGenerator {
       return Collections.emptyIterator();
     }
     final Iterator<CandidateInvariant> iterator = candidates.descendingIterator();
-    return new Iterator<CandidateInvariant>() {
+    return new Iterator<>() {
 
       private @Nullable CandidateInvariant candidate;
 

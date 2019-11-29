@@ -602,7 +602,7 @@ public class ConfigurationFileChecks {
     // during the parsing of configuration files
     Stream<LogRecord> logRecords = pLogHandler.getStoredLogRecords().stream();
     if (pOptions.useParallelAlgorithm) {
-      Iterator<LogRecord> logRecordIterator = new Iterator<LogRecord>() {
+      Iterator<LogRecord> logRecordIterator = new Iterator<>() {
 
         private Iterator<LogRecord> underlyingIterator = pLogHandler.getStoredLogRecords().iterator();
 

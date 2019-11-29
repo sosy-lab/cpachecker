@@ -330,7 +330,7 @@ public class InvariantStrengthenings {
   }
 
   public static <T extends CandidateInvariant> InvariantStrengthening<T, T> unsatCoreBasedStrengthening() {
-    return new InvariantStrengthening<T, T>() {
+    return new InvariantStrengthening<>() {
 
       @SuppressWarnings("unchecked")
       @Override

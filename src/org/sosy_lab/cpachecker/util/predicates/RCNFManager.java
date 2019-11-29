@@ -361,7 +361,7 @@ public class RCNFManager implements StatisticsProvider {
 
   private final DefaultFormulaVisitor<Optional<BooleanFormula>>
       quantifiedBodyExtractor = new
-      DefaultFormulaVisitor<Optional<BooleanFormula>> () {
+      DefaultFormulaVisitor<> () {
         @Override
         protected Optional<BooleanFormula> visitDefault(Formula f) {
           return Optional.empty();

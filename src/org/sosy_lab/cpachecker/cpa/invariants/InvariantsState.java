@@ -1714,7 +1714,7 @@ public class InvariantsState implements AbstractState,
 
   private Set<Variable<CompoundInterval>> getVariables(final Predicate<MemoryLocation> pMemoryLocationPredicate) {
     final Set<Variable<CompoundInterval>> result = new HashSet<>();
-    Predicate<NumeralFormula<CompoundInterval>> pCondition = new Predicate<NumeralFormula<CompoundInterval>>() {
+    Predicate<NumeralFormula<CompoundInterval>> pCondition = new Predicate<>() {
 
       @Override
       public boolean apply(NumeralFormula<CompoundInterval> pFormula) {

@@ -220,7 +220,7 @@ class DefaultReachedSet implements ReachedSet, Serializable {
 
   @Override
   public Collection<AbstractState> getWaitlist() {
-    return new AbstractCollection<AbstractState>() {
+    return new AbstractCollection<>() {
 
       @Override
       public Iterator<AbstractState> iterator() {
