@@ -21,16 +21,6 @@ variables:
       - "hs_err_pid*.log"
     when: always
 
-configuration-checks:jdk-8:
-  <<: *configuration-checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-8
-  needs:
-    - build-dependencies
-    - build:jdk-8
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
-
 configuration-checks:jdk-11:
   <<: *configuration-checks
   dependencies:
@@ -82,16 +72,6 @@ configuration-plot:
 .python-unit-tests: &python-unit-tests
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS python-unit-tests"
-
-python-unit-tests:jdk-8:
-  <<: *python-unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-8
-  needs:
-    - build-dependencies
-    - build:jdk-8
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
 
 python-unit-tests:jdk-11:
   <<: *python-unit-tests
@@ -188,9 +168,6 @@ flake8:
 
 
 # No coverage is computed for CPAchecker
-unit-tests:jdk-8:
-  script: "ant $ANT_PROPS_CHECKS unit-tests"
-
 unit-tests:jdk-11:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
 
