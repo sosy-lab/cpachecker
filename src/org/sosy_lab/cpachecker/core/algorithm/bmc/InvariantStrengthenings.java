@@ -111,7 +111,7 @@ public class InvariantStrengthenings {
       pProver.pop(); // Pop the big violation disjunction
 
       if (pAssertedInvariants.isPresent()) {
-        pProver.push(pAssertedInvariants.get()); // Put the invariants back on the stack
+        pProver.push(pAssertedInvariants.orElseThrow()); // Put the invariants back on the stack
       }
 
       // Find the relevant literals for each disjunct
@@ -191,7 +191,7 @@ public class InvariantStrengthenings {
       }
       pProver.pop(); // Pop the candidate assertion
       if (pAssertedInvariants.isPresent()) {
-        pProver.push(pAssertedInvariants.get()); // Put the invariants back on the stack
+        pProver.push(pAssertedInvariants.orElseThrow()); // Put the invariants back on the stack
       }
 
       while (!restored) {
@@ -216,7 +216,7 @@ public class InvariantStrengthenings {
               SymbolicCandiateInvariant.makeSymbolicInvariant(
                   pInvariant.getApplicableLocations(),
                   pInvariant.getStateFilter(),
-                  cti.get().getFormula(pFmgr),
+                  cti.orElseThrow().getFormula(pFmgr),
                   pFmgr);
           pProver.push(pAssertCti.assertCandidate(assertableCti));
 

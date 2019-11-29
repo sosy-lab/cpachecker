@@ -99,7 +99,7 @@ public class ValueAnalysisFeasibilityChecker
           }
 
           // extract singleton successor state
-          next = successor.get();
+          next = successor.orElseThrow();
         } while (!iterator.isPositionWithState());
 
         reevaluatedPath.add(Pair.of(next, allOutgoingEdges));

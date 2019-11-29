@@ -239,7 +239,7 @@ class LvalueToPointerTargetPatternVisitor
         if (!offset.isPresent()) {
           return null; // TODO this looses values of bit fields
         }
-        result.shift(containerType, offset.getAsLong());
+        result.shift(containerType, offset.orElseThrow());
         return result;
       } else {
         throw new UnrecognizedCodeException(

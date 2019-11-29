@@ -187,7 +187,7 @@ public class TotalTransitionRelation {
       Pair<String, OptionalInt> varNameWithIndex = FormulaManagerView.parseName(fullName);
       String varName = varNameWithIndex.getFirst();
       OptionalInt index = varNameWithIndex.getSecond();
-      if (index.isPresent() && index.getAsInt() == 1 && varName.equals(LOCATION_VARIABLE_NAME)) {
+      if (index.isPresent() && index.orElseThrow() == 1 && varName.equals(LOCATION_VARIABLE_NAME)) {
         Object value = valueAssignment.getValue();
         if (value instanceof Number) {
           PartialTransitionRelation result =

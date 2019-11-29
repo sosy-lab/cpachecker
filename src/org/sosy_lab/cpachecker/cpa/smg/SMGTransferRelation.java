@@ -385,8 +385,12 @@ public class SMGTransferRelation
      if(exp instanceof CStringLiteralExpression) {
        CStringLiteralExpression strExp = (CStringLiteralExpression) exp;
        cParamType =  strExp.transformTypeToArrayType();
-       // 1. create region and save string as char array
-       SMGRegion stringObj = initialNewState.addAnonymousVariable(machineModel.getSizeofPtrInBits() * (strExp.getValue().length()+1)).get();
+        // 1. create region and save string as char array
+        SMGRegion stringObj =
+            initialNewState
+                .addAnonymousVariable(
+                    machineModel.getSizeofPtrInBits() * (strExp.getValue().length() + 1))
+                .orElseThrow();
        CInitializerExpression initializer =
            new CInitializerExpression(exp.getFileLocation(), exp);
        CVariableDeclaration decl = new CVariableDeclaration(exp.getFileLocation(), false, CStorageClass.AUTO,
@@ -905,7 +909,7 @@ public class SMGTransferRelation
         if (!addedLocalVariable.isPresent()) {
           throw new SMGInconsistentException("Cannot add a local variable to an empty stack.");
         }
-        newObject = addedLocalVariable.get();
+        newObject = addedLocalVariable.orElseThrow();
       }
     }
 
@@ -1015,7 +1019,11 @@ public class SMGTransferRelation
     //handle string initializer nested in struct type
     if (realCType instanceof CCompositeType ) {
       // create a new region for string expression
-      SMGRegion region = pNewState.addAnonymousVariable(machineModel.getSizeofCharInBits() * (pExpression.getValue().length()+1)).get();
+      SMGRegion region =
+          pNewState
+              .addAnonymousVariable(
+                  machineModel.getSizeofCharInBits() * (pExpression.getValue().length() + 1))
+              .orElseThrow();
       CInitializerExpression initializer = new CInitializerExpression(pExpression.getFileLocation(), pExpression);
       CType cParamType = pExpression.transformTypeToArrayType();
       CVariableDeclaration decl = new CVariableDeclaration(pFileLocation, false, CStorageClass.AUTO, cParamType, region.getLabel(), region.getLabel(), region.getLabel(), initializer);

@@ -154,6 +154,7 @@ public class CallstackState
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int nodeNumber = in.readInt();
-    callerNode = GlobalInfo.getInstance().getCFAInfo().get().getNodeByNodeNumber(nodeNumber);
+    callerNode =
+        GlobalInfo.getInstance().getCFAInfo().orElseThrow().getNodeByNodeNumber(nodeNumber);
   }
 }

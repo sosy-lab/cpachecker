@@ -187,7 +187,7 @@ public final class BMCHelper {
     for (PredicateAbstractState e :
         AbstractStates.projectToType(states, PredicateAbstractState.class)) {
       if (pShutdownNotifier.isPresent()) {
-        pShutdownNotifier.get().shutdownIfNecessary();
+        pShutdownNotifier.orElseThrow().shutdownIfNecessary();
       }
       // Conjuncting block formula of last abstraction and current path formula
       // works regardless of state is an abstraction state or not.
@@ -251,7 +251,7 @@ public final class BMCHelper {
 
   public static Set<CFANode> getLoopHeads(CFA pCFA, TargetLocationProvider pTargetLocationProvider) {
     if (pCFA.getLoopStructure().isPresent()
-        && pCFA.getLoopStructure().get().getAllLoops().isEmpty()) {
+        && pCFA.getLoopStructure().orElseThrow().getAllLoops().isEmpty()) {
       return ImmutableSet.of();
     }
     final Set<CFANode> loopHeads =
@@ -261,7 +261,7 @@ public final class BMCHelper {
     if (!pCFA.getLoopStructure().isPresent()) {
       return loopHeads;
     }
-    LoopStructure loopStructure = pCFA.getLoopStructure().get();
+    LoopStructure loopStructure = pCFA.getLoopStructure().orElseThrow();
     return from(loopStructure.getAllLoops()).transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
 
       @Override

@@ -380,7 +380,7 @@ public interface PointerTargetSetBuilder {
             addTargets(
                 base,
                 memberDeclaration.getType(),
-                offset.getAsLong(),
+                offset.orElseThrow(),
                 containerOffset + properOffset,
                 field);
           }
@@ -392,7 +392,7 @@ public interface PointerTargetSetBuilder {
                     newRegion,
                     memberDeclaration.getType(),
                     compositeType,
-                    offset.getAsLong(),
+                    offset.orElseThrow(),
                     containerOffset + properOffset,
                     targets,
                     fields);

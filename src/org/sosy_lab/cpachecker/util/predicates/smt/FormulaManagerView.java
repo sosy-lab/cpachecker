@@ -1644,7 +1644,7 @@ public class FormulaManagerView {
         return true;
       }
     } else {
-      if (idx.getAsInt() != ssa.getIndex(name)) {
+      if (idx.orElseThrow() != ssa.getIndex(name)) {
         return true;
       }
     }

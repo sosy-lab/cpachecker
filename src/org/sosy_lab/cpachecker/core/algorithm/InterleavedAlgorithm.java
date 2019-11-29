@@ -227,7 +227,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
     private int extractLimitFromAnnotation(final Optional<String> annotation) {
       if (annotation.isPresent()) {
-        String str = annotation.get();
+        String str = annotation.orElseThrow();
         if(str.contains("_")) {
           try {
             int limit = Integer.parseInt(str.substring(str.indexOf("_") + 1, str.length()));
@@ -245,7 +245,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
     private REPETITIONMODE extractModeFromAnnotation(final Optional<String> annotation) {
       String val = "";
       if (annotation.isPresent()) {
-        val = annotation.get();
+        val = annotation.orElseThrow();
         if (val.contains("_")) {
           val = val.substring(0, val.indexOf("_"));
         }

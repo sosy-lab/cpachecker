@@ -358,7 +358,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
           return Value.nondetValue();
         }
         final Formula offset =
-            conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset.getAsLong());
+            conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset.orElseThrow());
         final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
         addEqualBaseAddressConstraint(base.getAddress(), address);
         final CType fieldType = typeHandler.simplifyType(e.getExpressionType());

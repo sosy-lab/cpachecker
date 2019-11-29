@@ -200,7 +200,7 @@ public class RCNFManager implements StatisticsProvider {
 
     Optional<BooleanFormula> body = fmgr.visit(input, quantifiedBodyExtractor);
     if (body.isPresent()) {
-      return fmgr.filterLiterals(body.get(), input1 -> !hasBoundVariables(input1));
+      return fmgr.filterLiterals(body.orElseThrow(), input1 -> !hasBoundVariables(input1));
     } else {
 
       // Does not have quantified variables.

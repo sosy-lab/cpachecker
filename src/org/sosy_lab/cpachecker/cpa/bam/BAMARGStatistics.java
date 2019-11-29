@@ -255,7 +255,7 @@ public class BAMARGStatistics extends ARGStatistics {
       com.google.common.base.Optional<BackwardARGState> matchingState =
           from(targets).firstMatch(t -> t.getARGState() == argState);
       if (cex.isPresent() && matchingState.isPresent()) {
-        matchingState.get().addCounterexampleInformation(cex.get());
+        matchingState.get().addCounterexampleInformation(cex.orElseThrow());
       }
     }
   }

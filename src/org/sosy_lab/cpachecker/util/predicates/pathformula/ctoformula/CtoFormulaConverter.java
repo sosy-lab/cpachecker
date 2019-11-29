@@ -259,7 +259,10 @@ public class CtoFormulaConverter {
       return true;
     }
     CCompositeType compositeType = CTypes.withoutVolatile(CTypes.withoutConst(pCompositeType));
-    return variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
+    return variableClassification
+        .orElseThrow()
+        .getRelevantFields()
+        .containsEntry(compositeType, fieldName);
   }
 
   protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
@@ -292,11 +295,18 @@ public class CtoFormulaConverter {
       }
     }
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
-      boolean isRelevantVariable = var.getName().equals(RETURN_VARIABLE_NAME) ||
-          variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());
+      boolean isRelevantVariable =
+          var.getName().equals(RETURN_VARIABLE_NAME)
+              || variableClassification
+                  .orElseThrow()
+                  .getRelevantVariables()
+                  .contains(var.getQualifiedName());
       if (options.overflowVariablesAreRelevant()) {
         isRelevantVariable |=
-            variableClassification.get().getIntOverflowVars().contains(var.getQualifiedName());
+            variableClassification
+                .orElseThrow()
+                .getIntOverflowVars()
+                .contains(var.getQualifiedName());
       }
       return isRelevantVariable;
     }
@@ -1541,7 +1551,7 @@ public class CtoFormulaConverter {
       split = Optional.empty();
     }
     if (split.isPresent()) {
-      Triple<BooleanFormula, T, T> parts = split.get();
+      Triple<BooleanFormula, T, T> parts = split.orElseThrow();
 
       T one = fmgr.makeNumber(fmgr.getFormulaType(pF), 1);
       if (parts.getSecond().equals(one) && parts.getThird().equals(zero)) {
@@ -1670,8 +1680,10 @@ public class CtoFormulaConverter {
     }
 
     if (pRightVariable.isPresent()) {
-      assert efmgr.getLength((BitvectorFormula) pRightVariable.get()) == msb_Lsb.getFirst() + 1 - msb_Lsb.getSecond() : "The new formula has not the right size";
-      parts.add(pRightVariable.get());
+      assert efmgr.getLength((BitvectorFormula) pRightVariable.orElseThrow())
+              == msb_Lsb.getFirst() + 1 - msb_Lsb.getSecond()
+          : "The new formula has not the right size";
+      parts.add(pRightVariable.orElseThrow());
     }
 
     if (msb_Lsb.getSecond() > 0) {

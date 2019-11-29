@@ -278,7 +278,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     if (pWitness.isPresent()) {
       Collection<Path> specFiles = new ArrayList<>(2);
       specFiles.add(SPEC_FILE);
-      specFiles.add(pWitness.get());
+      specFiles.add(pWitness.orElseThrow());
       terminationSpecification =
           Specification.fromFiles(
               pProperties, specFiles, pCfa, pConfig, pLogger, pShutdownNotifier);
@@ -323,7 +323,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     CFANode initialLocation = AbstractStates.extractLocation(pReachedSet.getFirstState());
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_IMPRECISE;
 
-    List<Loop> allLoops = new ArrayList<>(cfa.getLoopStructure().get().getAllLoops());
+    List<Loop> allLoops = new ArrayList<>(cfa.getLoopStructure().orElseThrow().getAllLoops());
     Collections.sort(allLoops, comparingInt(l -> l.getInnerLoopEdges().size()));
 
     if (considerRecursion) {
@@ -406,9 +406,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       // potential non-termination
       if (status.isPrecise() && targetStateWithCounterExample.isPresent()) {
 
-        ARGState targetState = targetStateWithCounterExample.get();
+        ARGState targetState = targetStateWithCounterExample.orElseThrow();
         CounterexampleInfo originalCounterexample =
-            targetState.getCounterexampleInformation().get();
+            targetState.getCounterexampleInformation().orElseThrow();
         ARGState loopHeadState = Iterables.getOnlyElement(targetState.getParents());
         ARGState nonTerminationLoopHead = createNonTerminationState(loopHeadState);
         CounterexampleInfo counterexample =
@@ -557,7 +557,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     Preconditions.checkArgument(!cfa.getAllNodes().contains(extractLocation(pTargetState)));
     ARGState targetState = AbstractStates.extractStateByType(pTargetState, ARGState.class);
     Preconditions.checkArgument(targetState.getCounterexampleInformation().isPresent());
-    CounterexampleInfo counterexample = targetState.getCounterexampleInformation().get();
+    CounterexampleInfo counterexample = targetState.getCounterexampleInformation().orElseThrow();
 
     // Remove dummy target state from ARG and replace loop head with new target state
     ARGState loopHead = Iterables.getOnlyElement(targetState.getParents());

@@ -2018,8 +2018,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       Optional<SMGEdgeHasValue> hve = heap.getHVEdgeFromMemoryLocation(path);
 
       if (hve.isPresent()) {
-        trackedHves.add(hve.get());
-        trackedValues.add(hve.get().getValue());
+        trackedHves.add(hve.orElseThrow());
+        trackedValues.add(hve.orElseThrow().getValue());
       }
     }
 

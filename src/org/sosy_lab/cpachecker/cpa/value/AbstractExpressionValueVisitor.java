@@ -1067,7 +1067,7 @@ public abstract class AbstractExpressionValueVisitor
               Number number = parameter.asNumericValue().getNumber();
               Optional<Boolean> isNegative = isNegative(number);
               if (isNegative.isPresent()) {
-                return new NumericValue(isNegative.get() ? 1 : 0);
+                return new NumericValue(isNegative.orElseThrow() ? 1 : 0);
               }
             }
           }
@@ -1083,7 +1083,7 @@ public abstract class AbstractExpressionValueVisitor
               Optional<Boolean> sourceNegative = isNegative(sourceNumber);
               Optional<Boolean> targetNegative = isNegative(targetNumber);
               if (sourceNegative.isPresent() && targetNegative.isPresent()) {
-                if (sourceNegative.get() == targetNegative.get()) {
+                if (sourceNegative.orElseThrow() == targetNegative.orElseThrow()) {
                   return new NumericValue(targetNumber);
                 }
                 return target.asNumericValue().negate();

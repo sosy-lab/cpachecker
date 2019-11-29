@@ -437,7 +437,8 @@ public class LiveVariables {
 
     // create live variables
     if (parts.isPresent()) {
-      liveVariables = addLiveVariablesFromCFA(cfa, logger, parts.get(), config.evaluationStrategy);
+      liveVariables =
+          addLiveVariablesFromCFA(cfa, logger, parts.orElseThrow(), config.evaluationStrategy);
     }
 
     if (limitChecker != null) {
@@ -514,7 +515,7 @@ public class LiveVariables {
     }
 
     if(loopStructure.isPresent()){
-      LoopStructure structure = loopStructure.get();
+      LoopStructure structure = loopStructure.orElseThrow();
       ImmutableCollection<Loop> loops = structure.getAllLoops();
 
       for (Loop l : loops) {

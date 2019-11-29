@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -39,11 +42,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-
-
 public class ARGBasedPartialReachedSetConstructionAlgorithm extends
     MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm {
 
@@ -59,7 +57,11 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
     if (!GlobalInfo.getInstance().getCPA().isPresent()) {
       throw new InvalidConfigurationException("No CPA specified.");
     } else {
-      ARGCPA cpa = CPAs.retrieveCPAOrFail(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class, ARGBasedPartialReachedSetConstructionAlgorithm.class);
+      ARGCPA cpa =
+          CPAs.retrieveCPAOrFail(
+              GlobalInfo.getInstance().getCPA().orElseThrow(),
+              ARGCPA.class,
+              ARGBasedPartialReachedSetConstructionAlgorithm.class);
       this.cpa = cpa.getWrappedCPAs().get(0); // TODO this line looks dangerous!
     }
     return new ExtendedNodeSelectionARGPass(pRootPrecision, pRoot);

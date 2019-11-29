@@ -453,7 +453,7 @@ public class ReachingDefState implements AbstractState, Serializable,
     @SuppressWarnings("UnusedVariable") // parameter is required by API
     private void readObject(java.io.ObjectInputStream in) throws IOException {
       int nodeNumber = in.readInt();
-      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
       entry = cfaInfo.getNodeByNodeNumber(nodeNumber);
       nodeNumber = in.readInt();
       exit = cfaInfo.getNodeByNodeNumber(nodeNumber);

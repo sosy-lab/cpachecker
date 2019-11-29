@@ -84,7 +84,7 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
             // We assume that the edges leaving a node are disjunct.
             // Otherwise, we'll have to collect the set of differential states here
             // and return all possibilities
-            successors.add(potSucc.get());
+            successors.add(potSucc.orElseThrow());
             break;
           }
         }

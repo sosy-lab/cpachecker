@@ -261,7 +261,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
               .transform(CIdExpression::getDeclaration)
               .toSet();
 
-      Set<ASimpleDeclaration> liveVars = liveVariables.get().getLiveVariablesForNode(node);
+      Set<ASimpleDeclaration> liveVars = liveVariables.orElseThrow().getLiveVariablesForNode(node);
       if (Sets.intersection(referencedDeclarations, liveVars).isEmpty()) {
         logger.log(Level.FINE, "No live variables found in expression", exp,
             "skipping");

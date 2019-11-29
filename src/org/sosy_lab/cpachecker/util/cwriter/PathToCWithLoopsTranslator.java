@@ -97,7 +97,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
   private String currentFunctionName = "";
 
   private PathToCWithLoopsTranslator(CFA pCFA, Map<Loop, Set<ARGState>> pLoopsInPathToRecreate) {
-    this.loopStructure = pCFA.getLoopStructure().get();
+    this.loopStructure = pCFA.getLoopStructure().orElseThrow();
     this.loopsInPathToRecreate = pLoopsInPathToRecreate;
   }
 
@@ -119,7 +119,8 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
     PathToCTranslator translator = new PathToCTranslator();
 
     // at first we fetch all loops that we want to uproll
-    LoopCollectingEdgeVisitor loopCollectingVisitor = new LoopCollectingEdgeVisitor(cfa.getLoopStructure().get(), config);
+    LoopCollectingEdgeVisitor loopCollectingVisitor =
+        new LoopCollectingEdgeVisitor(cfa.getLoopStructure().orElseThrow(), config);
     translator.translateSinglePath0(pPath, loopCollectingVisitor);
     Map<Loop, Set<ARGState>> loopsInPathToRecreate = loopCollectingVisitor.getRelevantLoops();
 

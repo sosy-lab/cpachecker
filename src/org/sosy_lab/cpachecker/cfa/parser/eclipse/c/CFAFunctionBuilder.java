@@ -2201,7 +2201,13 @@ class CFAFunctionBuilder extends ASTVisitor {
       // Thus we reuse the condition expression returned by createConditionEdges,
       // if possible.
       if (condition.isPresent()) {
-        createEdgesForTernaryOperatorBranch(condition.get(), condExp.getLogicalConditionExpression(), lastNode, fileLocation, thenNode, tempVar);
+        createEdgesForTernaryOperatorBranch(
+            condition.orElseThrow(),
+            condExp.getLogicalConditionExpression(),
+            lastNode,
+            fileLocation,
+            thenNode,
+            tempVar);
       } else {
         createEdgesForTernaryOperatorBranch(condExp.getLogicalConditionExpression(), lastNode, fileLocation, thenNode, tempVar);
       }

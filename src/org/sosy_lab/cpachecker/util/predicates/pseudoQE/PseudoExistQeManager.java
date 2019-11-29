@@ -377,7 +377,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
       // Create the real quantified formula
       BooleanFormula quantifiedFormula =
           qFmgr
-              .get()
+              .orElseThrow()
               .exists(
                   new ArrayList<>(pExistFormula.getQuantifiedVarFormulas()),
                   pExistFormula.getInnerFormula());
@@ -389,7 +389,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
       }
       if (solverQeTactic == SolverQeTactic.FULL) {
         try {
-          afterQE = qFmgr.get().eliminateQuantifiers(quantifiedFormula);
+          afterQE = qFmgr.orElseThrow().eliminateQuantifiers(quantifiedFormula);
         } catch (SolverException e) {
           logger.log(
               Level.FINER, "Solver based Quantifier Elimination failed with SolverException!", e);

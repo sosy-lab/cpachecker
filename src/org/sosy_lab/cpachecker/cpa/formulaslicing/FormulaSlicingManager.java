@@ -88,8 +88,8 @@ public class FormulaSlicingManager implements StatisticsProvider {
     statistics = new FormulaSlicingStatistics(pPathFormulaManager, pSolver);
     Preconditions.checkState(pCfa.getLiveVariables().isPresent() &&
       pCfa.getLoopStructure().isPresent());
-    liveVariables = pCfa.getLiveVariables().get();
-    loopStructure = pCfa.getLoopStructure().get();
+    liveVariables = pCfa.getLiveVariables().orElseThrow();
+    loopStructure = pCfa.getLoopStructure().orElseThrow();
   }
 
   public Collection<? extends SlicingState> getAbstractSuccessors(
@@ -151,9 +151,9 @@ public class FormulaSlicingManager implements StatisticsProvider {
 
         // Perform slicing, there is a relevant "to-merge" element.
         Optional<SlicingAbstractedState> slicingOut =
-            performSlicing(iState, oldState.get());
+            performSlicing(iState, oldState.orElseThrow());
         if (slicingOut.isPresent()) {
-          out = slicingOut.get();
+          out = slicingOut.orElseThrow();
         } else {
           return Optional.empty();
         }
@@ -510,7 +510,7 @@ public class FormulaSlicingManager implements StatisticsProvider {
             // Empty.
             return Optional.empty();
           }
-          a = aState.getGeneratingState().get().getAbstractParent();
+          a = aState.getGeneratingState().orElseThrow().getAbstractParent();
         }
       } else {
         SlicingIntermediateState iState = a.asIntermediate();

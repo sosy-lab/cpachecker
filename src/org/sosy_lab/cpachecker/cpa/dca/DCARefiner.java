@@ -459,7 +459,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
           Dnf stemDnf = lassoBuilder.toDnf(stemAndLoop.getStem());
           Dnf loopDnf = lassoBuilder.toDnf(stemAndLoop.getLoop(), stemDnf.getUfEliminationResult());
 
-          LoopStructure loopStructure = cfa.getLoopStructure().get();
+          LoopStructure loopStructure = cfa.getLoopStructure().orElseThrow();
           // TODO: Rewrite the code below so that always the correct loop is selected
           // The current logic below will most likely not work for programs with several / complex
           // loops

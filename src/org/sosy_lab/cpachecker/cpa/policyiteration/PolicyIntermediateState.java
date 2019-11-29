@@ -100,8 +100,8 @@ public final class PolicyIntermediateState extends PolicyState {
 
       @Override
       public PolicyIntermediateState next() {
-        PolicyIntermediateState toReturn = cursor.get();
-        cursor = cursor.get().getBackpointerState().getGeneratingState();
+        PolicyIntermediateState toReturn = cursor.orElseThrow();
+        cursor = cursor.orElseThrow().getBackpointerState().getGeneratingState();
         return toReturn;
       }
     };

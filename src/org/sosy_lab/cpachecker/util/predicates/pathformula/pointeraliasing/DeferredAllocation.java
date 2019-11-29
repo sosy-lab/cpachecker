@@ -171,8 +171,8 @@ class DeferredAllocation implements Serializable {
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       sizeExp = mgr.dumpArbitraryFormula(pDeferredAllocationPool.sizeExp);
       if (pDeferredAllocationPool.size.isPresent()) {
-        size = pDeferredAllocationPool.size.get().asLong();
-        sizeType = pDeferredAllocationPool.size.get().getExpressionType();
+        size = pDeferredAllocationPool.size.orElseThrow().asLong();
+        sizeType = pDeferredAllocationPool.size.orElseThrow().getExpressionType();
       } else {
         size = -1;
         sizeType = null;

@@ -665,7 +665,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             getRelevantAssumeEdges(
                 pTargetLocationProvider.tryGetAutomatonTargetLocations(
                     pCfa.getMainFunction(), pSpecification));
-        return asNegatedCandidateInvariants(assumeEdges, loopHeads.get());
+        return asNegatedCandidateInvariants(assumeEdges, loopHeads.orElseThrow());
       }
     },
 
@@ -709,7 +709,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           }
         }
 
-        VariableClassification varClassification = pCfa.getVarClassification().get();
+        VariableClassification varClassification = pCfa.getVarClassification().orElseThrow();
         Equivalence<AssumeEdge> equivalence =
             new Equivalence<>() {
 
@@ -810,7 +810,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           }
         }
         return asNegatedCandidateInvariants(
-            FluentIterable.from(assumeEdges).transform(Wrapper::get), loopHeads.get());
+            FluentIterable.from(assumeEdges).transform(Wrapper::get), loopHeads.orElseThrow());
       }
 
       private boolean allowSubstitution(AIdExpression pVariable, AIdExpression pSubstitute) {
@@ -840,7 +840,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           throw new InvalidConfigurationException(
               "Variable classification not available but required to generate candidate invariants.");
         }
-        VariableClassification varClassification = pCfa.getVarClassification().get();
+        VariableClassification varClassification = pCfa.getVarClassification().orElseThrow();
         Optional<ImmutableSet<CFANode>> loopHeads = pCfa.getAllLoopHeads();
         if (!loopHeads.isPresent()) {
           throw new InvalidConfigurationException(
@@ -963,7 +963,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             assumeEdges.add(dummyEdge);
           }
         }
-        return asNegatedCandidateInvariants(assumeEdges, loopHeads.get());
+        return asNegatedCandidateInvariants(assumeEdges, loopHeads.orElseThrow());
       }
     };
   }

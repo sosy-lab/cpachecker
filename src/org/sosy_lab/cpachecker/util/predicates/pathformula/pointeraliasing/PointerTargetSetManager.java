@@ -589,7 +589,7 @@ class PointerTargetSetManager {
                   newRegion,
                   memberDeclaration.getType(),
                   compositeType,
-                  offset.getAsLong(),
+                  offset.orElseThrow(),
                   containerOffset + properOffset,
                   targets,
                   fields);

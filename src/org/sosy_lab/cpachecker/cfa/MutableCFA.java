@@ -153,7 +153,7 @@ public class MutableCFA implements CFA {
   @Override
   public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
     if (loopStructure.isPresent()) {
-      return Optional.of(loopStructure.get().getAllLoopHeads());
+      return Optional.of(loopStructure.orElseThrow().getAllLoopHeads());
     }
     return Optional.empty();
   }

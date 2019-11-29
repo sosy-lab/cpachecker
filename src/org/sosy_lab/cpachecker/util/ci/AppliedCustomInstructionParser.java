@@ -164,7 +164,7 @@ public class AppliedCustomInstructionParser {
   private CustomInstructionApplications parseACIs(final BufferedReader br, final CustomInstruction ci)
       throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
     ImmutableMap.Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
-    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
 
     CFANode startNode;
     AppliedCustomInstruction aci;

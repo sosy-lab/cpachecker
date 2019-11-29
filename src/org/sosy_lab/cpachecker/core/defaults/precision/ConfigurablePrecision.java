@@ -192,7 +192,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     if (!vc.isPresent()) {
       return true;
     }
-    VariableClassification varClass = vc.get();
+    VariableClassification varClass = vc.orElseThrow();
 
     final boolean varIsAddressed = varClass.getAddressedVariables().contains(variableName);
 
@@ -267,7 +267,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     if (!vc.isPresent()) {
       return true;
     }
-    VariableClassification varClass = vc.get();
+    VariableClassification varClass = vc.orElseThrow();
 
     boolean trackSomeIntBools = trackBooleanVariables && !varClass.getIntBoolVars().isEmpty();
     boolean trackSomeIntEquals = trackIntEqualVariables && !varClass.getIntEqualVars().isEmpty();
@@ -297,7 +297,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
           && trackAddressedVariables == precisionCompare.trackAddressedVariables
           && vc.isPresent() == precisionCompare.vc.isPresent()
           && vc.isPresent()
-          && vc.get().equals(precisionCompare.vc.get())
+          && vc.orElseThrow().equals(precisionCompare.vc.orElseThrow())
           && cpaClass.equals(precisionCompare.cpaClass)) {
         return true;
       }
@@ -340,6 +340,6 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
-    vc = GlobalInfo.getInstance().getCFAInfo().get().getCFA().getVarClassification();
+    vc = GlobalInfo.getInstance().getCFAInfo().orElseThrow().getCFA().getVarClassification();
   }
 }
