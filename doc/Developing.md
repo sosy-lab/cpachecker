@@ -60,7 +60,7 @@ This also works with GitHub.
 Develop CPAchecker from within Eclipse
 --------------------------------------
 
-0. Install a Java 8 compatible JDK (c.f. [`../INSTALL.md`](../INSTALL.md)).
+0. Install a Java 11 compatible JDK (c.f. [`../INSTALL.md`](../INSTALL.md)).
 
 1. Install [Eclipse](http://www.eclipse.org/) with at least version 4.6, with JDT.
 
@@ -78,9 +78,9 @@ Develop CPAchecker from within Eclipse
    and (if necessary) adjust the path to the CPAchecker directory within it.
 
 5. If Eclipse complains about a missing JDK
-   (`Unbound classpath container: 'JRE System Library [JavaSE-1.8]'`),
+   (`Unbound classpath container: 'JRE System Library [JavaSE-11]'`),
    go to Window -> Preferences -> Java -> Installed JREs,
-   click the "Search" button and select the path where your Java 8 installation
+   click the "Search" button and select the path where your Java 11 installation
    can be found (on Ubuntu `/usr/lib/jvm` will do).
 
 6. In order to run CPAchecker, use one of the supplied launch configurations
