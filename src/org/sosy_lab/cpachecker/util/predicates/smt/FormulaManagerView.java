@@ -332,7 +332,7 @@ public class FormulaManagerView {
     switch (encodeIntegerAs) {
       case BITVECTOR:
         return new ReplaceIntegerWithBitvectorTheory(
-            wrappingHandler, bitvectorFormulaManager, booleanFormulaManager, pIntegerOptions);
+            wrappingHandler, getBitvectorFormulaManager(), booleanFormulaManager, pIntegerOptions);
       case INTEGER:
         return manager.getIntegerFormulaManager();
       case RATIONAL:

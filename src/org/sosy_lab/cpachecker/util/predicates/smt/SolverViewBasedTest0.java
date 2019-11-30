@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import static com.google.common.truth.TruthJUnit.assume;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.After;
 import org.junit.Before;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
 /**
@@ -57,7 +60,17 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
         break;
       case PRINCESS:
         newConfig.setOption("cpa.predicate.encodeBitvectorAs", "INTEGER");
-        newConfig.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
+        newConfig.setOption("cpa.predicate.createFormulaEncodingEagerly", "false");
+        break;
+      case BOOLECTOR:
+        assume()
+            .withMessage("Solver %s does not support the tested features", solverToUse())
+            .that(solverToUse())
+            .isNotEqualTo(Solvers.BOOLECTOR);
+        // newConfig.setOption("cpa.predicate.createFormulaEncodingEagerly", "false");
+        // newConfig.setOption("cpa.predicate.encodeIntegerAs", "BITVECTOR");
+        // newConfig.setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR");
+        // newConfig.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
         break;
       default:
         newConfig.setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR");
