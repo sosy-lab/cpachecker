@@ -60,7 +60,7 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
         break;
       case PRINCESS:
         newConfig.setOption("cpa.predicate.encodeBitvectorAs", "INTEGER");
-        newConfig.setOption("cpa.predicate.createFormulaEncodingEagerly", "false");
+        newConfig.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
         break;
       case BOOLECTOR:
         assume()
