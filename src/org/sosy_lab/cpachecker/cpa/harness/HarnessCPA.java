@@ -59,10 +59,12 @@ public class HarnessCPA implements ConfigurableProgramAnalysisWithBAM, WrapperCP
   protected final TransferRelation transfer;
   protected final ConfigurableProgramAnalysis wrappedCpa;
 
+  @SuppressWarnings("unused")
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for HarnessCPA")
   private String mergeType = "SEP";
 
+  @SuppressWarnings("unused")
   @Option(
     secure = true,
     name = "stop",
