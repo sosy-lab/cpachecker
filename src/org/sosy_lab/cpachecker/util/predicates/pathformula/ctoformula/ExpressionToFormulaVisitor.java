@@ -327,12 +327,13 @@ public class ExpressionToFormulaVisitor
     // The CalculationType could be different from returnType, so we cast the result.
     // If the types are equal, the cast returns the Formula unchanged.
     final Formula castedResult = conv.makeCast(calculationType, returnType, ret, constraints, edge);
-    /*
-     * final Formula castedResult = conv.makeFormulaTypeCast( returnFormulaType, returnType,
-     * castedResult1, ssa, constraints, edge); assert returnFormulaType.equals( mgr.getFormulaType(
-     * castedResult)) : "Returntype and Formulatype do not match in visit(CBinaryExpression): " +
-     * exp;
-     */
+
+    if (!conv.options.useVariableClassification()) {
+      assert returnFormulaType.equals(
+          mgr.getFormulaType(
+              castedResult)) : "Returntype and Formulatype do not match in visit(CBinaryExpression): "
+                  + exp;
+    }
     return castedResult;
   }
 
@@ -484,8 +485,12 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCodeException {
-    // FormulaType<?> t = conv.getFormulaTypeFromCType(iExp.getExpressionType());
-    FormulaType<?> t = FormulaType.IntegerType;
+    FormulaType<?> t;
+    if (conv.options.useVariableClassification()) {
+      t = FormulaType.IntegerType;
+    } else {
+      t = conv.getFormulaTypeFromCType(iExp.getExpressionType());
+    }
     return mgr.makeNumber(t, iExp.getValue());
   }
 
