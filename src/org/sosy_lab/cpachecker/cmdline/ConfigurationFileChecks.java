@@ -616,12 +616,12 @@ public class ConfigurationFileChecks {
         @Override
         public LogRecord next() {
           LogRecord result = underlyingIterator.next();
-          if (!oneComponentSuccessful && result.getLevel() == Level.INFO ) {
+          if (!oneComponentSuccessful && Level.INFO.equals(result.getLevel())) {
             if (result.getMessage().endsWith("finished successfully.")) {
               oneComponentSuccessful = true;
               underlyingIterator = Iterators.filter(
                   underlyingIterator,
-                  r -> r.getLevel() != Level.WARNING
+                      r -> !Level.WARNING.equals(r.getLevel())
                     || !PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS.matcher(r.getMessage()).matches());
             }
           }
