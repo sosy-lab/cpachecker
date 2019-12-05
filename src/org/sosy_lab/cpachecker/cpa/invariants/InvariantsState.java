@@ -722,7 +722,6 @@ public class InvariantsState implements AbstractState,
     return result;
   }
 
-  @SuppressWarnings("CollectionIncompatibleType") // remove after #674 is solved
   public InvariantsState clearAll(Predicate<MemoryLocation> pMemoryLocationPredicate) {
     final Set<Variable<CompoundInterval>> toClear = getVariables(pMemoryLocationPredicate);
     ContainsVisitor<CompoundInterval> containsVisitor = new ContainsVisitor<>();
@@ -737,8 +736,10 @@ public class InvariantsState implements AbstractState,
 
     NonRecursiveEnvironment resultEnvironment = environment;
     Set<BooleanFormula<CompoundInterval>> resultAssumptions = new HashSet<>();
+    final CollectFormulasVisitor<CompoundInterval> variableCollectionVisitor =
+        new CollectFormulasVisitor<>(Predicates.instanceOf(Variable.class));
     for (BooleanFormula<CompoundInterval> assumption : assumptions) {
-      if (Collections.disjoint(assumption.accept(COLLECT_VARS_VISITOR), toClear)) {
+      if (Collections.disjoint(assumption.accept(variableCollectionVisitor), toClear)) {
         resultAssumptions.add(assumption);
       }
     }
