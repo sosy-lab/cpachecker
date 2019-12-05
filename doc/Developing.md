@@ -133,9 +133,13 @@ Releasing a new Version
    and ensure that [`Copyright.txt`](../Copyright.txt) and [`Authors.txt`](../Authors.txt) are up-to-date.
 
 2. Define a new version by setting `version.base` in [`build.xml`](../build.xml) to the new value.
+   Our versioning system is `decade.year.month`,
+   but the first release in a year is `decade.year`.
 
 3. Build binary versions with `ant clean dist` and test them to ensure
    that all necessary files are contained in them.
+   Make sure that you do not have any local changes
+   or unversioned files in your checkout.
 
 4. Update homepage:
    - Add release archives to `/html` in the repository.
@@ -150,4 +154,7 @@ Releasing a new Version
    cpachecker-users mailing lists.
 
 7. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
-   to a new development version (ending with `-svn`).
+   to a new development version, which is the next possible version number
+   with the suffix `-svn`.
+   For example, if `1.9` was just released, the next possible version
+   is `1.9.1` and the new development version should be `1.9.1-svn`.
