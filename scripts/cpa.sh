@@ -16,7 +16,7 @@ result=$?
 if [ $result -eq 127 ]; then
   echo "Java not found, please install Java 11 or newer." 1>&2
   echo "For Ubuntu: sudo apt-get install openjdk-11-jre" 1>&2
-  echo "If you have installed Java 8, but it is not in your PATH," 1>&2
+  echo "If you have installed Java 11, but it is not in your PATH," 1>&2
   echo "let the environment variable JAVA point to the \"java\" binary." 1>&2
   exit 1
 fi
