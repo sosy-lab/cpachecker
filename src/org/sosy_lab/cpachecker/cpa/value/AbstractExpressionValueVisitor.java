@@ -1083,7 +1083,7 @@ public abstract class AbstractExpressionValueVisitor
               Optional<Boolean> sourceNegative = isNegative(sourceNumber);
               Optional<Boolean> targetNegative = isNegative(targetNumber);
               if (sourceNegative.isPresent() && targetNegative.isPresent()) {
-                if (sourceNegative.orElseThrow() == targetNegative.orElseThrow()) {
+                if (sourceNegative.orElseThrow().equals(targetNegative.orElseThrow())) {
                   return new NumericValue(targetNumber);
                 }
                 return target.asNumericValue().negate();
@@ -1804,7 +1804,8 @@ public abstract class AbstractExpressionValueVisitor
       }
 
       if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-        numResult = (int) numResult;
+        int intNumResult = (int) numResult;
+        numResult = intNumResult;
       }
 
       return new NumericValue(numResult);

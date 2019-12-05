@@ -119,7 +119,7 @@ public class ReplaceVisitor<T> implements NumeralFormulaVisitor<T, NumeralFormul
     Preconditions.checkNotNull(pToReplaceN);
     Preconditions.checkNotNull(pReplacementN);
     Preconditions.checkNotNull(pToReplaceB);
-    Preconditions.checkNotNull(pToReplaceB);
+    Preconditions.checkNotNull(pReplacementB);
     this.toReplaceN = pToReplaceN;
     this.replacementN = pReplacementN;
     this.toReplaceB = pToReplaceB;

@@ -722,6 +722,7 @@ public class InvariantsState implements AbstractState,
     return result;
   }
 
+  @SuppressWarnings("CollectionIncompatibleType") // remove after #674 is solved
   public InvariantsState clearAll(Predicate<MemoryLocation> pMemoryLocationPredicate) {
     final Set<Variable<CompoundInterval>> toClear = getVariables(pMemoryLocationPredicate);
     ContainsVisitor<CompoundInterval> containsVisitor = new ContainsVisitor<>();

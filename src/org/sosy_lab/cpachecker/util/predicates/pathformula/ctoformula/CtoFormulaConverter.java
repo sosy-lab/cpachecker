@@ -31,6 +31,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -221,6 +222,7 @@ public class CtoFormulaConverter {
             "__string__", typeHandler.getPointerType(), FormulaType.IntegerType);
   }
 
+  @FormatMethod
   void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
     if (logger.wouldBeLogged(level)) {
       logger.logfOnce(level, "%s: %s: %s",

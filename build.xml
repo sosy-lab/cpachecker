@@ -28,6 +28,8 @@
          GuardedBy: crashes current error-prone
          Finally: crashes current error-prone
          MixedMutabilityReturnType: too many warnings, need to fix them first
+         UnnecessaryLambda: too many warnings, need to fix them first
+         UnnecessaryAnonymousClass: too many warnings, need to fix them first
          -->
     <property name="errorprone.options" value="
         -Xep:BadImport:OFF
@@ -36,6 +38,8 @@
         -Xep:GuardedBy:OFF
         -Xep:Finally:OFF
         -Xep:MixedMutabilityReturnType:OFF
+        -Xep:UnnecessaryLambda:OFF
+        -Xep:UnnecessaryAnonymousClass:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>
