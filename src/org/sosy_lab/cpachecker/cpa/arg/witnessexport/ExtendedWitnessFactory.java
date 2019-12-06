@@ -66,7 +66,7 @@ public class ExtendedWitnessFactory extends WitnessFactory {
   protected Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfo(
       Optional<CounterexampleInfo> pCounterExample) {
     if (pCounterExample.isPresent()) {
-      return pCounterExample.get().getAdditionalInfoMapping();
+      return pCounterExample.orElseThrow().getAdditionalInfoMapping();
     }
     return ImmutableMap.of();
   }
@@ -75,7 +75,7 @@ public class ExtendedWitnessFactory extends WitnessFactory {
   public Set<AdditionalInfoConverter> getAdditionalInfoConverters(
       Optional<CounterexampleInfo> pCounterExample) {
     if (pCounterExample.isPresent()) {
-      return pCounterExample.get().getAdditionalInfoConverters();
+      return pCounterExample.orElseThrow().getAdditionalInfoConverters();
     }
     return ImmutableSet.of();
   }

@@ -244,7 +244,10 @@ abstract class AbstractBMCAlgorithm
     if (induction) {
       induction = checkIfInductionIsPossible(pCFA, pLogger);
       // if there is no loop we do not need induction, although loop information is available
-      induction = induction && cfa.getLoopStructure().get().getCount() > 0 && !getLoopHeads().isEmpty();
+      induction =
+          induction
+              && cfa.getLoopStructure().orElseThrow().getCount() > 0
+              && !getLoopHeads().isEmpty();
     }
 
     if (induction) {
@@ -946,7 +949,7 @@ abstract class AbstractBMCAlgorithm
           LoopIterationReportingState lirs =
               AbstractStates.extractStateByType(checkedState, LoopIterationReportingState.class);
           if (lirs != null) {
-            for (Loop loop : cfa.getLoopStructure().get().getLoopsForLoopHead(location)) {
+            for (Loop loop : cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location)) {
               Integer previous = reachedK.get(loop);
               int iteration = lirs.getIteration(loop);
               if (previous == null || previous < iteration) {
@@ -973,7 +976,7 @@ abstract class AbstractBMCAlgorithm
       if (locations.isEmpty()) {
         return false;
       }
-      for (Loop loop : cfa.getLoopStructure().get().getAllLoops()) {
+      for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
         for (CFANode location : locations) {
           if (loop.getLoopNodes().contains(location) && reachedK.get(loop) < finalMaxK) {
             return false;

@@ -46,6 +46,16 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
+# Further options for Boolector in addition to the default options. Format: 
+# "Optionname=value" with ’,’ to seperate options. Optionname and value can
+# be found in BtorOption or Boolector C Api.Example:
+# "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
+solver.boolector.furtherOptions = ""
+
+# The SAT solver used by Boolector.
+solver.boolector.satSolver = PICOSAT
+  enum:     [LINGELING, PICOSAT, MINISAT, CADICAL]
+
 # Default rounding mode for floating point operations.
 solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
   enum:     [NEAREST_TIES_TO_EVEN, NEAREST_TIES_AWAY, TOWARD_POSITIVE, TOWARD_NEGATIVE,
@@ -95,7 +105,7 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, CVC4]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4]
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
@@ -1313,7 +1323,7 @@ cpa.callstack.skipVoidRecursion = false
 cpa.callstack.traverseBackwards = false
 
 # unsupported functions cause an exception
-cpa.callstack.unsupportedFunctions = {"pthread_create"}
+cpa.callstack.unsupportedFunctions = {"pthread_create", "longjmp", "siglongjmp"}
 
 # firing relation to be used in the precision adjustment operator
 cpa.chc.firingRelation = "Always"
@@ -3771,11 +3781,11 @@ solver.enableLoggingInSolver = false
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, CVC4]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4]
 
 # Which SMT solver to use.
 solver.solver = MATHSAT5
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, CVC4]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4]
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
@@ -3991,6 +4001,13 @@ witness.matchOffset = true
 # Match the line numbers within the origin (mapping done by preprocessor line
 # markers).
 witness.matchOriginLine = true
+
+# This option can be used to ensure that no correctness witnesses are
+# checked.
+witness.noCorrectnessValidation = false
+
+# This option can be used to ensure that no violation witnesses are checked.
+witness.noViolationValidation = false
 
 # remove assumptions from transitions in the ISA where they are not strictly
 # neccessary.This option is intended to be used with an ISA (c.f. option

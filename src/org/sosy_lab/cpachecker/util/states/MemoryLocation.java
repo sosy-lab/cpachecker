@@ -107,7 +107,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
   }
 
   public static MemoryLocation valueOf(String pIdentifier, OptionalLong pOffset) {
-    return new MemoryLocation(pIdentifier, pOffset.isPresent() ? pOffset.getAsLong() : null);
+    return new MemoryLocation(pIdentifier, pOffset.isPresent() ? pOffset.orElseThrow() : null);
   }
 
   public static MemoryLocation valueOf(String pVariableName) {

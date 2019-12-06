@@ -190,7 +190,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     invariantsManager = pInvariantsManager;
 
     if (pLoopStructure.isPresent()) {
-      loopFinder = new LoopCollectingEdgeVisitor(pLoopStructure.get(), pConfig);
+      loopFinder = new LoopCollectingEdgeVisitor(pLoopStructure.orElseThrow(), pConfig);
     } else {
       loopFinder = null;
       if (invariantsManager.addToPrecision()) {
@@ -403,7 +403,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
           return performNewtonRefinement(allStatesTrace, formulas);
         } catch (RefinementFailedException e) {
           if (e.getReason() == Reason.SequenceOfAssertionsToWeak
-              && newtonManager.get().fallbackToInterpolation()) {
+              && newtonManager.orElseThrow().fallbackToInterpolation()) {
             logger.log(
                 Level.FINEST,
                 "Fallback from Newton-based refinement to interpolation-based refinement");
@@ -482,7 +482,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final ARGPath pAllStatesTrace, final BlockFormulas pFormulas)
       throws CPAException, InterruptedException {
     // Delegate the refinement task to the NewtonManager
-    return newtonManager.get().buildCounterexampleTrace(pAllStatesTrace, pFormulas);
+    return newtonManager.orElseThrow().buildCounterexampleTrace(pAllStatesTrace, pFormulas);
   }
 
   private CounterexampleTraceInfo performUCBRefinement(
@@ -490,7 +490,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       throws CPAException, InterruptedException {
 
     assert ucbManager.isPresent();
-    return ucbManager.get().buildCounterexampleTrace(pAbstractionStatesTrace, pFormulas);
+    return ucbManager.orElseThrow().buildCounterexampleTrace(pAbstractionStatesTrace, pFormulas);
   }
 
   private List<BooleanFormula> addInvariants(final List<ARGState> abstractionStatesTrace)
@@ -655,7 +655,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       ((StatisticsProvider) strategy).collectStatistics(pStatsCollection);
     }
     if (useNewtonRefinement) {
-      newtonManager.get().collectStatistics(pStatsCollection);
+      newtonManager.orElseThrow().collectStatistics(pStatsCollection);
     }
   }
 

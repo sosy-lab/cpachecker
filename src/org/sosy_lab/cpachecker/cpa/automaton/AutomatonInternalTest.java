@@ -351,7 +351,7 @@ public class AutomatonInternalTest {
   }
 
   private final Subject.Factory<ASTMatcherSubject, String> astMatcher =
-      new Subject.Factory<ASTMatcherSubject, String>() {
+      new Subject.Factory<>() {
         @Override
         public ASTMatcherSubject createSubject(FailureMetadata pMd, String pThat) {
           return new ASTMatcherSubject(pMd, pThat);

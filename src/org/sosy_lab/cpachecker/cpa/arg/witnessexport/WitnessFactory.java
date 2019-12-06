@@ -163,7 +163,7 @@ class WitnessFactory implements EdgeAppender {
   private static final Pattern CLONED_FUNCTION_NAME_PATTERN =
       Pattern.compile("(.+)(__cloned_function__\\d+)");
 
-  private static final Function<ARGState, ARGState> COVERED_TO_COVERING = new Function<ARGState, ARGState>() {
+  private static final Function<ARGState, ARGState> COVERED_TO_COVERING = new Function<>() {
 
     @Override
     public ARGState apply(ARGState pChild) {
@@ -180,7 +180,7 @@ class WitnessFactory implements EdgeAppender {
   };
 
   static final Function<CFAEdgeWithAssumptions, CFAEdgeWithAssumptions> ASSUMPTION_FILTER =
-      new Function<CFAEdgeWithAssumptions, CFAEdgeWithAssumptions>() {
+      new Function<>() {
 
         @Override
         public CFAEdgeWithAssumptions apply(CFAEdgeWithAssumptions pEdgeWithAssumptions) {
@@ -351,7 +351,7 @@ class WitnessFactory implements EdgeAppender {
 
     attemptSwitchToFunctionScope(pEdge);
     if (pFromState.isPresent()) {
-      stateToARGStates.putAll(pFrom, pFromState.get());
+      stateToARGStates.putAll(pFrom, pFromState.orElseThrow());
     }
 
     Iterable<TransitionCondition> transitions =
@@ -377,7 +377,7 @@ class WitnessFactory implements EdgeAppender {
         if (transition.getMapping().containsKey(KeyDef.ENTERLOOPHEAD)) {
           Optional<CFANode> loopHead = entersLoop(pEdge, false);
           if (loopHead.isPresent()) {
-            loopHeadEnteringEdges.put(edge, loopHead.get());
+            loopHeadEnteringEdges.put(edge, loopHead.orElseThrow());
           }
         }
         if (graphType != WitnessType.VIOLATION_WITNESS) {
@@ -459,7 +459,7 @@ class WitnessFactory implements EdgeAppender {
           pFrom,
           pTo,
           pEdge,
-          pFromState.get(),
+          pFromState.orElseThrow(),
           pValueMap,
           pAdditionalInfo,
           result,
@@ -780,10 +780,10 @@ class WitnessFactory implements EdgeAppender {
       CExpressionToOrinalCodeVisitor transformer =
           resultVariable.isPresent()
               ? CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER.substitute(
-                  (CIdExpression) resultVariable.get(), "\\result")
+                  (CIdExpression) resultVariable.orElseThrow(), "\\result")
               : CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER;
       final Function<Object, String> converter =
-          new Function<Object, String>() {
+          new Function<>() {
 
             @Override
             public String apply(Object pLeafExpression) {
@@ -820,7 +820,7 @@ class WitnessFactory implements EdgeAppender {
         result = result.putAndCopy(KeyDef.ASSUMPTIONSCOPE, functionName);
       }
       if (resultFunction.isPresent()) {
-        result = result.putAndCopy(KeyDef.ASSUMPTIONRESULTFUNCTION, resultFunction.get());
+        result = result.putAndCopy(KeyDef.ASSUMPTIONRESULTFUNCTION, resultFunction.orElseThrow());
       }
     }
 
@@ -856,7 +856,7 @@ class WitnessFactory implements EdgeAppender {
     Optional<Scope> extendedScope = scope.extendBy(scopeFunctionName, declarations);
 
     if (extendedScope.isPresent()) {
-      scope = extendedScope.get();
+      scope = extendedScope.orElseThrow();
       Iterator<AExpression> expressionIt = pExpressions.iterator();
 
       // For each expression, check if it can be added unambiguously within the scope
@@ -883,7 +883,7 @@ class WitnessFactory implements EdgeAppender {
         if (!containsAmbiguousVariables) {
           extendedScope = scope.extendBy(scopeFunctionName, declarations);
           if (extendedScope.isPresent()) {
-            scope = extendedScope.get();
+            scope = extendedScope.orElseThrow();
           } else {
             expressionIt.remove();
           }
@@ -975,7 +975,7 @@ class WitnessFactory implements EdgeAppender {
                     spawnedThreadId = OptionalInt.of(getUniqueThreadNum(threadId));
                     pResult =
                         pResult.putAndCopy(
-                            KeyDef.CREATETHREAD, Integer.toString(spawnedThreadId.getAsInt()));
+                            KeyDef.CREATETHREAD, Integer.toString(spawnedThreadId.orElseThrow()));
                     String calledFunctionName =
                         succThreadingState
                             .getThreadLocation(threadId)
@@ -1002,7 +1002,7 @@ class WitnessFactory implements EdgeAppender {
       if (spawnedThreadId.isPresent()) {
         extraTransition =
             extraTransition.putAndCopy(
-                KeyDef.THREADID, Integer.toString(spawnedThreadId.getAsInt()));
+                KeyDef.THREADID, Integer.toString(spawnedThreadId.orElseThrow()));
       }
 
       if (!extraTransition.getMapping().isEmpty()) {
@@ -1061,7 +1061,7 @@ class WitnessFactory implements EdgeAppender {
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
       final Predicate<? super ARGState> pPathStates,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge) {
-    return new Iterable<Pair<ARGState, Iterable<ARGState>>>() {
+    return new Iterable<>() {
 
       private final Set<ARGState> visited = new HashSet<>();
 
@@ -1074,7 +1074,7 @@ class WitnessFactory implements EdgeAppender {
 
       @Override
       public Iterator<Pair<ARGState, Iterable<ARGState>>> iterator() {
-        return new Iterator<Pair<ARGState, Iterable<ARGState>>>() {
+        return new Iterator<>() {
 
           @Override
           public boolean hasNext() {
@@ -1172,11 +1172,10 @@ class WitnessFactory implements EdgeAppender {
     additionalInfoConverters = getAdditionalInfoConverters(pCounterExample);
 
     if (pCounterExample.isPresent()) {
-      if (pCounterExample.get().isPreciseCounterExample()) {
-        valueMap = Multimaps
-            .transformValues(
-                pCounterExample.get().getExactVariableValues(),
-                ASSUMPTION_FILTER);
+      if (pCounterExample.orElseThrow().isPreciseCounterExample()) {
+        valueMap =
+            Multimaps.transformValues(
+                pCounterExample.orElseThrow().getExactVariableValues(), ASSUMPTION_FILTER);
       } else {
         isRelevantEdge = BiPredicates.bothSatisfy(pIsRelevantState);
       }
@@ -1194,7 +1193,8 @@ class WitnessFactory implements EdgeAppender {
       if (pIsCyclehead.apply(s)) {
         sourceNodeFlags.add(NodeFlag.ISCYCLEHEAD);
         if (cycleHeadToQuasiInvariant.isPresent()) {
-          stateQuasiInvariants.put(sourceStateNodeId, cycleHeadToQuasiInvariant.get().apply(s));
+          stateQuasiInvariants.put(
+              sourceStateNodeId, cycleHeadToQuasiInvariant.orElseThrow().apply(s));
         }
       }
       sourceNodeFlags.addAll(extractNodeFlags(s));
@@ -1358,14 +1358,14 @@ class WitnessFactory implements EdgeAppender {
               removed.add(other);
 
               // Add the merged edge to the graph
-              putEdge(merged.get());
-              edgeToCFAEdges.putAll(merged.get(), edgeToCFAEdges.get(edge));
-              edgeToCFAEdges.putAll(merged.get(), edgeToCFAEdges.get(other));
+              putEdge(merged.orElseThrow());
+              edgeToCFAEdges.putAll(merged.orElseThrow(), edgeToCFAEdges.get(edge));
+              edgeToCFAEdges.putAll(merged.orElseThrow(), edgeToCFAEdges.get(other));
               edgeToCFAEdges.removeAll(edge);
               edgeToCFAEdges.removeAll(other);
 
               // Add the merged edge to the set of siblings to consider it for further merges
-              edgeToSinkIterator.add(merged.get());
+              edgeToSinkIterator.add(merged.orElseThrow());
               edgeToSinkIterator.previous();
             }
           }
@@ -1419,7 +1419,7 @@ class WitnessFactory implements EdgeAppender {
    * therefore be shortcut.
    */
   private final Predicate<String> isIrrelevantNode =
-      new Predicate<String>() {
+      new Predicate<>() {
 
         @Override
         public boolean apply(String pNode) {
@@ -1446,7 +1446,7 @@ class WitnessFactory implements EdgeAppender {
    * therefore be shortcut.
    */
   private final Predicate<Edge> isEdgeIrrelevant =
-      new Predicate<Edge>() {
+      new Predicate<>() {
 
         @Override
         public boolean apply(final Edge pEdge) {
@@ -1756,9 +1756,7 @@ class WitnessFactory implements EdgeAppender {
 
   private boolean exportInvariant(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
     if (pFromState.isPresent()
-        && pFromState
-            .get()
-            .stream()
+        && pFromState.orElseThrow().stream()
             .anyMatch(
                 s ->
                     AbstractStates.extractStateByType(s, PredicateAbstractState.class) != null
@@ -1800,7 +1798,8 @@ class WitnessFactory implements EdgeAppender {
     Predicate<CFAEdge> epsilonEdge = edge -> !(edge instanceof AssumeEdge);
     java.util.function.Predicate<CFANode> loopProximity = pNode -> pNode.isLoopStart();
     if (cfa.getAllLoopHeads().isPresent()) {
-      loopProximity = loopProximity.and(pNode -> cfa.getAllLoopHeads().get().contains(pNode));
+      loopProximity =
+          loopProximity.and(pNode -> cfa.getAllLoopHeads().orElseThrow().contains(pNode));
     }
     while (!waitlist.isEmpty()) {
       List<CFANode> current = waitlist.pop();
@@ -1967,7 +1966,7 @@ class WitnessFactory implements EdgeAppender {
     if (!pQualifier.isPresent()) {
       return ambiguousName;
     }
-    return pQualifier.get() + "::" + pDeclaration.getOrigName();
+    return pQualifier.orElseThrow() + "::" + pDeclaration.getOrigName();
   }
 
   private ExpressionTree<Object> getStateInvariant(String pStateId) {

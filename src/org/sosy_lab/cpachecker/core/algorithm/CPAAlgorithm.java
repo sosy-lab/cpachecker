@@ -350,7 +350,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         if (!precAdjustmentOptional.isPresent()) {
           continue;
         }
-        precAdjustmentResult = precAdjustmentOptional.get();
+        precAdjustmentResult = precAdjustmentOptional.orElseThrow();
       } finally {
         stats.precisionTimer.stop();
       }

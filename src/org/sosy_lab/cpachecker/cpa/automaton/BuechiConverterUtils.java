@@ -225,7 +225,7 @@ public class BuechiConverterUtils {
         if (entryFunctionOpt.isPresent()) {
           initStateName = "[pre-state] global-init";
           addPreBuchiStates(
-              stateListBuilder, entryFunctionOpt.get(), initStateName, initBuechiStateName);
+              stateListBuilder, entryFunctionOpt.orElseThrow(), initStateName, initBuechiStateName);
         } else {
           initStateName = initBuechiStateName;
         }

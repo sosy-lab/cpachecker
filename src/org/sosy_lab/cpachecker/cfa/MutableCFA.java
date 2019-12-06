@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SortedSetMultimap;
@@ -64,12 +65,12 @@ public class MutableCFA implements CFA {
     machineModel = pMachineModel;
     functions = pFunctions;
     allNodes = pAllNodes;
-    mainFunction = pMainFunction;
+    mainFunction = Preconditions.checkNotNull(pMainFunction);
     fileNames = ImmutableList.copyOf(pFileNames);
     language = pLanguage;
 
     assert functions.keySet().equals(allNodes.keySet());
-    assert functions.get(mainFunction.getFunctionName()) == mainFunction;
+    assert mainFunction.equals(functions.get(mainFunction.getFunctionName()));
   }
 
   public void addNode(CFANode pNode) {
@@ -153,7 +154,7 @@ public class MutableCFA implements CFA {
   @Override
   public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
     if (loopStructure.isPresent()) {
-      return Optional.of(loopStructure.get().getAllLoopHeads());
+      return Optional.of(loopStructure.orElseThrow().getAllLoopHeads());
     }
     return Optional.empty();
   }

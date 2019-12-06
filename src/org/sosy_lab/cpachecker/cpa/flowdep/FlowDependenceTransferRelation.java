@@ -295,7 +295,7 @@ class FlowDependenceTransferRelation
     if (pointees == null) {
       pointees = new HashSet<>();
       if (pVarClassification.isPresent()) {
-        Set<String> addressedVars = pVarClassification.get().getAddressedVariables();
+        Set<String> addressedVars = pVarClassification.orElseThrow().getAddressedVariables();
         for (String v : addressedVars) {
           MemoryLocation m = MemoryLocation.valueOf(v);
           pointees.add(m);
@@ -407,7 +407,7 @@ class FlowDependenceTransferRelation
         computeReachDefState(oldComposite, pPrecision, pCfaEdge);
 
     if (nextComposite.isPresent()) {
-      CompositeState newReachDefState = nextComposite.get();
+      CompositeState newReachDefState = nextComposite.orElseThrow();
       Pair<ReachingDefState, PointerState> oldReachDefAndPointerState = oldState.unwrap();
       ReachingDefState oldReachDefState = oldReachDefAndPointerState.getFirst();
       PointerState oldPointerState = oldReachDefAndPointerState.getSecond();

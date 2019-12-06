@@ -429,11 +429,11 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
         OptionalInt index = pair.getSecond();
         Object value = valueAssignment.getValue();
         if (index.isPresent()
-            && index.getAsInt() == 1
+            && index.orElseThrow() == 1
             && value instanceof Number
             && (actualName.equals(TotalTransitionRelation.getLocationVariableName())
                 || (variables.containsKey(actualName)
-                    && !inputs.get(actualName).contains(index.getAsInt())))) {
+                    && !inputs.get(actualName).contains(index.orElseThrow())))) {
           BooleanFormula assignment = fmgr.uninstantiate(valueAssignment.getAssignmentAsFormula());
           ModelValue modelValue =
               new ModelValue(
@@ -474,7 +474,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
         // a) those that have an SSA index and are contained in our list of input variables and
         // b) those that have no SSA index and are not known as actual variables,
         // such as __ADDRESS_OF:
-        if ((index.isPresent() && inputs.get(actualName).contains(index.getAsInt()))
+        if ((index.isPresent() && inputs.get(actualName).contains(index.orElseThrow()))
             || (!index.isPresent() && !pVariables.containsKey(actualName))) {
           inputAssignments = bfmgr.and(inputAssignments, valueAssignment.getAssignmentAsFormula());
         }

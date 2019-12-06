@@ -410,7 +410,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           foundConfig = true;
           Optional<String> condition = configFilesIterator.peek().annotation();
           if (condition.isPresent()) {
-            switch (condition.get()) {
+            switch (condition.orElseThrow()) {
             case "if-interrupted":
               foundConfig = lastAnalysisInterrupted;
               break;
@@ -434,7 +434,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                 logger.logf(
                     Level.WARNING,
                     "Ignoring invalid restart condition '%s' for file %s.",
-                    condition.get(),
+                    condition.orElseThrow(),
                     configFilesIterator.peek().value());
               foundConfig = true;
             }
@@ -443,7 +443,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                   Level.INFO,
                   "Ignoring restart configuration '%s' because condition %s did not match.",
                   configFilesIterator.peek().value(),
-                  condition.get());
+                  condition.orElseThrow());
               configFilesIterator.next();
               stats.noOfAlgorithmsUsed++;
             }

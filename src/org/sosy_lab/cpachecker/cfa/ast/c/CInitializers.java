@@ -447,7 +447,10 @@ public final class CInitializers {
           throws UnrecognizedCodeException {
 
     Iterator<CFieldReference> fields =
-        from(structType.getMembers()).filter(field -> !(field.getName().contains("__anon_type_member") && !isAggregateType(field.getType())))
+        from(structType.getMembers()).filter(
+            field -> !(field.getName().contains("__anon_type_member") && (!isAggregateType(field.getType())
+                && (field.getType() instanceof CElaboratedType)
+                && !((CElaboratedType) field.getType()).getKind().equals(ComplexTypeKind.UNION))))
             .transform(
                 field  ->
                     new CFieldReference(
@@ -465,14 +468,19 @@ public final class CInitializers {
       // find the designated field and advance the iterator up to this point
       while (fields.hasNext()) {
         CFieldReference f = fields.next();
-        if (f.getFieldName().equals(startingFieldName.get())) {
+        if (f.getFieldName().equals(startingFieldName.orElseThrow())) {
           designatedField = f;
           break;
         }
       }
       if (designatedField == null) {
-        throw new UnrecognizedCodeException("Initializer for field " + startingFieldName.get()
-            + " but no field with this name exists in " + structType, edge, designator);
+        throw new UnrecognizedCodeException(
+            "Initializer for field "
+                + startingFieldName.orElseThrow()
+                + " but no field with this name exists in "
+                + structType,
+            edge,
+            designator);
       }
 
     } else {

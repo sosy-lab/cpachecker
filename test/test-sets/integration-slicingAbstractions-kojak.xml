@@ -20,14 +20,8 @@
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>../programs/benchmarks/floats-cdfpl/newton_1_6.i</exclude> <!-- flapping timeout  -->
-  </tasks>
-  <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <exclude>../programs/benchmarks/ssh/s3_*</exclude> <!-- mostly timeout  -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
@@ -40,19 +34,15 @@
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <exclude>../programs/benchmarks/loop-invgen/*</exclude> <!-- mostly timeout  -->
+    <exclude>../programs/benchmarks/loops-crafted-1/*</exclude> <!-- mostly timeout  -->
+    <exclude>../programs/benchmarks/nla-digbench/*</exclude> <!-- only timeout  -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr.3.1.ufo.UNBOUNDED.pals.c</exclude> <!-- flapping timeout  -->
-  </tasks>
-  <tasks>
-    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>

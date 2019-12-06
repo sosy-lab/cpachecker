@@ -98,7 +98,7 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
           );
     }
 
-    AbstractState newState = result.get().abstractState();
+    AbstractState newState = result.orElseThrow().abstractState();
     if (pElement != newState) {
       logger.log(Level.ALL, "before PREC:", pElement);
       logger.log(Level.ALL, "after PREC:", newState);

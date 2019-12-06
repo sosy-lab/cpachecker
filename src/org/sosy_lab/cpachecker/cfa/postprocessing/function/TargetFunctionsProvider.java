@@ -176,7 +176,7 @@ public class TargetFunctionsProvider {
 
   private boolean checkReturnAndParamSizes(CFunctionType func, CFunctionType functionType) {
     CType declRet = functionType.getReturnType();
-    if (machine.getSizeof(declRet) != machine.getSizeof(func.getReturnType())) {
+    if (!machine.getSizeof(declRet).equals(machine.getSizeof(func.getReturnType()))) {
       logger.log(
           Level.FINEST,
           "Function call",
@@ -195,7 +195,7 @@ public class TargetFunctionsProvider {
     for (int i = 0; i < declParams.size(); i++) {
       CType dt = declParams.get(i);
       CType et = func.getParameters().get(i);
-      if (machine.getSizeof(dt) != machine.getSizeof(et)) {
+      if (!machine.getSizeof(dt).equals(machine.getSizeof(et))) {
         logger.log(
             Level.FINEST,
             "Function call",

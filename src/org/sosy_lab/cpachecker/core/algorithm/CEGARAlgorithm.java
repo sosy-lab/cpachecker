@@ -293,6 +293,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
   }
 
   @SuppressWarnings("NonAtomicVolatileUpdate") // statistics written only by one thread
+  @SuppressFBWarnings(
+      value = "VO_VOLATILE_INCREMENT",
+      justification = "only one thread writes countRefinements, others read")
   private boolean refine(ReachedSet reached) throws CPAException, InterruptedException {
     logger.log(Level.FINE, "Error found, performing CEGAR");
     stats.countRefinements++;

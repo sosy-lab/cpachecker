@@ -908,7 +908,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         addToCFA(blankEdge);
       }
       CFANode nextNode = loopNextStack.pop();
-      assert nextNode == locStack.peek();
+      assert nextNode.equals(locStack.peek());
     }
     return PROCESS_CONTINUE;
   }
@@ -1554,9 +1554,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CFANode lastNodeInLoop = locStack.pop();
 
     // loopEnd is the Node before "counter++;"
-    assert loopEnd == loopStartStack.peek();
-    assert postLoopNode == loopNextStack.peek();
-    assert postLoopNode == locStack.peek();
+    assert loopEnd.equals(loopStartStack.peek());
+    assert postLoopNode.equals(loopNextStack.peek());
+    assert postLoopNode.equals(locStack.peek());
     loopStartStack.pop();
     loopNextStack.pop();
 
@@ -1570,7 +1570,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (iterationExpression != null) {
       createEdgeForExpression(iterationExpression, fileLocation, loopEnd, loopStart);
     } else {
-      assert loopEnd == loopStart;
+      assert loopEnd.equals(loopStart);
     }
 
     postLoopNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
@@ -1706,8 +1706,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     switchExprStack.pop();
 
-    assert postSwitchNode == loopNextStack.peek();
-    assert postSwitchNode == locStack.peek();
+    assert postSwitchNode.equals(loopNextStack.peek());
+    assert postSwitchNode.equals(locStack.peek());
     assert switchExprStack.size() == switchCaseStack.size();
 
     loopNextStack.pop();
@@ -2201,7 +2201,13 @@ class CFAFunctionBuilder extends ASTVisitor {
       // Thus we reuse the condition expression returned by createConditionEdges,
       // if possible.
       if (condition.isPresent()) {
-        createEdgesForTernaryOperatorBranch(condition.get(), condExp.getLogicalConditionExpression(), lastNode, fileLocation, thenNode, tempVar);
+        createEdgesForTernaryOperatorBranch(
+            condition.orElseThrow(),
+            condExp.getLogicalConditionExpression(),
+            lastNode,
+            fileLocation,
+            thenNode,
+            tempVar);
       } else {
         createEdgesForTernaryOperatorBranch(condExp.getLogicalConditionExpression(), lastNode, fileLocation, thenNode, tempVar);
       }

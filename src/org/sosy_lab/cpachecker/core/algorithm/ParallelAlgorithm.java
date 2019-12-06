@@ -285,7 +285,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final LogManager singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
 
     if (pSingleConfigFileName.annotation().isPresent()) {
-      switch (pSingleConfigFileName.annotation().get()) {
+      switch (pSingleConfigFileName.annotation().orElseThrow()) {
         case "supply-reached":
           supplyReached = true;
           supplyRefinableReached = false;

@@ -121,7 +121,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
     int endOffset = Integer.MIN_VALUE;
     boolean offsetRelatedToOrigin = true;
     for (FileLocation loc : locations) {
-      if (loc == DUMMY) {
+      if (DUMMY.equals(loc)) {
         continue;
       }
       if (fileName == null) {

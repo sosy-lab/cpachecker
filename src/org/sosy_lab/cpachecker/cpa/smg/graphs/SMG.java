@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
@@ -586,7 +587,10 @@ public class SMG implements UnmodifiableSMG {
       SMGEdgePointsTo pt_edge = pt_edges.getEdgeWithValue(old);
       pt_edges = pt_edges.removeAndCopy(pt_edge);
       Preconditions.checkArgument(
-          !pt_edges.containsEdgeWithValue(fresh) || fresh.equals(SMGZeroValue.INSTANCE));
+          !pt_edges.containsEdgeWithValue(fresh)
+              || fresh.equals(SMGZeroValue.INSTANCE)
+              || (old instanceof SMGKnownAddressValue
+                  && !isObjectValid(((SMGKnownAddressValue) old).getObject())));
       pt_edges =
           pt_edges.addAndCopy(
               new SMGEdgePointsTo(

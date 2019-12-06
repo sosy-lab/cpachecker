@@ -115,7 +115,7 @@ public class PredicateManager {
       partitions = d.getOrderedPartitions();
     } else {
       assert cfa.getVarClassification().isPresent();
-      partitions = cfa.getVarClassification().get().getPartitions(); // may be unsorted
+      partitions = cfa.getVarClassification().orElseThrow().getPartitions(); // may be unsorted
     }
 
     Map<Partition, String> partitionToTmpVar = new HashMap<>();

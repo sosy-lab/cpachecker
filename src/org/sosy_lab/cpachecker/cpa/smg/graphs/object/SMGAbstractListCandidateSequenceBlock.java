@@ -66,7 +66,7 @@ public abstract class SMGAbstractListCandidateSequenceBlock<S> implements SMGAbs
       return false;
     }
 
-    SMGValue value = edge.get().getValue();
+    SMGValue value = edge.orElseThrow().getValue();
     if (!smg.isPointer(value)) {
       return false;
     }

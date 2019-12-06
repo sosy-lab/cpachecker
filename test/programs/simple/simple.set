@@ -8,4 +8,5 @@ arrays/*_true-unreach-label.i
 *_true-unreach-label.c
 nested_operators/*_false-unreach-label.c
 nested_operators/*_true-unreach-label.c
-
+builtin_overflow_functions/*_true-unreach-label.c
+builtin_overflow_functions/*_false-unreach-label.c

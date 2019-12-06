@@ -428,7 +428,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     for (ARGState state : abstractionStatesTrace) {
       CFANode node = extractLocation(state);
       // TODO what if loop structure does not exist?
-      if (cfa.getLoopStructure().get().getAllLoopHeads().contains(node)) {
+      if (cfa.getLoopStructure().orElseThrow().getAllLoopHeads().contains(node)) {
         PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
         argForPathFormulaBasedGeneration.add(
             Pair.of(predState.getAbstractionFormula().getBlockFormula(), node));
@@ -595,7 +595,12 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       SSAMap ssa = pBlockFormula.getSsa();
       PathFormula loopFormula =
           new LoopTransitionFinder(
-                  config, cfa.getLoopStructure().get(), pfmgr, fmgr, logger, pInvariantShutdown)
+                  config,
+                  cfa.getLoopStructure().orElseThrow(),
+                  pfmgr,
+                  fmgr,
+                  logger,
+                  pInvariantShutdown)
               .generateLoopTransition(ssa, pts, pLocation);
 
       Set<BooleanFormula> lemmas =
@@ -885,7 +890,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
     private final Function<InfeasiblePrefix, List<CandidateInvariant>>
         TO_LOCATION_CANDIDATE_INVARIANT =
-            new Function<InfeasiblePrefix, List<CandidateInvariant>>() {
+            new Function<>() {
               @Override
               public List<CandidateInvariant> apply(InfeasiblePrefix pInput) {
                 List<BooleanFormula> interpolants;

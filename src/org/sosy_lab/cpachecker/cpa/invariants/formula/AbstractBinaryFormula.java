@@ -46,8 +46,6 @@ public abstract class AbstractBinaryFormula<ConstantType> extends AbstractFormul
     protected AbstractBinaryFormula(String pOperator, boolean pIsCommutative, NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     super(pOperand1.getTypeInfo());
       Preconditions.checkNotNull(pOperator);
-      Preconditions.checkNotNull(pOperand1);
-      Preconditions.checkNotNull(pOperand1);
     Preconditions.checkArgument(pOperand1.getTypeInfo().equals(pOperand2.getTypeInfo()));
       this.operator = pOperator;
       this.isCommutative = pIsCommutative;

@@ -95,7 +95,7 @@ class ImmutableCFA implements CFA, Serializable {
     fileNames = ImmutableList.copyOf(pFileNames);
     language = pLanguage;
 
-    checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
+    checkArgument(mainFunction.equals(functions.get(mainFunction.getFunctionName())));
   }
 
   private ImmutableCFA(MachineModel pMachineModel, Language pLanguage) {

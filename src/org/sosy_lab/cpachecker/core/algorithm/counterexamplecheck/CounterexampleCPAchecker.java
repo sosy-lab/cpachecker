@@ -221,16 +221,20 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
         if (target instanceof ARGState) {
           ARGState argTarget = (ARGState) target;
           if (argTarget.getCounterexampleInformation().isPresent()) {
-            CounterexampleInfo cexInfo = argTarget.getCounterexampleInformation().get();
+            CounterexampleInfo cexInfo = argTarget.getCounterexampleInformation().orElseThrow();
             if (!cexInfo.isSpurious() && cexInfo.isPreciseCounterExample()) {
               pErrorState.replaceCounterexampleInformation(
                   CounterexampleInfo.feasiblePrecise(
                       pErrorState.getCounterexampleInformation().isPresent()
-                          ? pErrorState.getCounterexampleInformation().get().getTargetPath()
+                          ? pErrorState.getCounterexampleInformation().orElseThrow().getTargetPath()
                           : ARGUtils.getOnePathTo(pErrorState),
                       cexInfo.getCFAPathWithAssignments()));
               assert (pErrorPathStates.containsAll(
-                  pErrorState.getCounterexampleInformation().get().getTargetPath().asStatesList()));
+                  pErrorState
+                      .getCounterexampleInformation()
+                      .orElseThrow()
+                      .getTargetPath()
+                      .asStatesList()));
             }
           }
         }

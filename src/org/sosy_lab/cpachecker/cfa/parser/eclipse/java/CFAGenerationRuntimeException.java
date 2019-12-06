@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
+import com.google.common.base.CharMatcher;
+import com.google.common.base.Strings;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
-
-import com.google.common.base.CharMatcher;
-import com.google.common.base.Strings;
 
 /**
  * Handles problems during CFA generation for Java program inputs
@@ -125,7 +124,7 @@ class CFAGenerationRuntimeException extends RuntimeException {
       fullLine = fullLine.getParent();
     }
 
-    if (fullLine != null && fullLine != node) {
+    if (fullLine != null && !fullLine.equals(node)) {
       String lineRawSignature = fullLine.toString();
 
       String codeWithoutWhitespace = CharMatcher.whitespace().removeFrom(rawSignature);

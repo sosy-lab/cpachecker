@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -95,16 +96,16 @@ public class ExpressionSimplificationVisitor
   private CExpression convertExplicitValueToExpression(final CExpression expr, Value value) {
     // TODO: handle cases other than numeric values
     NumericValue numericResult = value.asNumericValue();
-    CType type = expr.getExpressionType().getCanonicalType();
+    final CType type = expr.getExpressionType().getCanonicalType();
     if (numericResult != null && type instanceof CSimpleType) {
-      CSimpleType simpleType = ((CSimpleType) type);
-      if (simpleType.getType().isIntegerType()) {
+      CBasicType basicType = ((CSimpleType) type).getType();
+      if (basicType.isIntegerType()) {
         return new CIntegerLiteralExpression(
-            expr.getFileLocation(), expr.getExpressionType(), numericResult.bigInteger());
-      } else if (simpleType.getType().isFloatingPointType()) {
+            expr.getFileLocation(), type, numericResult.bigInteger());
+      } else if (basicType.isFloatingPointType()) {
         try {
-          return new CFloatLiteralExpression(expr.getFileLocation(),
-              expr.getExpressionType(), numericResult.bigDecimalValue());
+          return new CFloatLiteralExpression(
+              expr.getFileLocation(), type, numericResult.bigDecimalValue());
         } catch (NumberFormatException nfe) {
           // catch NumberFormatException here, which is caused by, e.g., value being <infinity>
           logger.logf(Level.FINE, "Cannot simplify expression to numeric value %s, keeping original expression %s instead", numericResult, expr.toASTString());

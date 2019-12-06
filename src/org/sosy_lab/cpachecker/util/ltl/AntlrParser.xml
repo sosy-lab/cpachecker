@@ -73,7 +73,7 @@
 				<path refid="classpath.antlr4" />
 			</classpath>
 		</java>
-		<property name="annotation" value="@javax.annotation.Generated(&quot;Antlr&quot;)${line.separator}"/>
+		<property name="annotation" value="@javax.annotation.processing.Generated(&quot;Antlr&quot;)${line.separator}"/>
 		<replace file="${ltl.generated.dir}/${parser.source}.java" token="@SuppressWarnings" value="${annotation}@SuppressWarnings"/>
 		<echo message="Generated parser-files in ${ltl.generated.dir}/*" level="info" />
 	</target>

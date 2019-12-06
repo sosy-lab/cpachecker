@@ -57,7 +57,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   // add a constraint to 'constraints' if it's not yet in this list.
   private Optional<Constraint> lastAddedConstraint = Optional.empty();
 
-  private ImmutableCollection<ValueAssignment> definiteAssignment;
+  private ImmutableList<ValueAssignment> definiteAssignment;
   private ImmutableList<ValueAssignment> lastModelAsAssignment = ImmutableList.of();
 
   /**
@@ -206,7 +206,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   }
 
   void setDefiniteAssignment(ImmutableCollection<ValueAssignment> pAssignment) {
-    definiteAssignment = pAssignment;
+    definiteAssignment = pAssignment.asList();
   }
 
   /** Returns the last model computed for this constraints state. */

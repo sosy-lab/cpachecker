@@ -145,7 +145,6 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     return checkNotNull(functionName);
   }
 
-
   /**
    * This is the main method that delegates the control-flow to the
    * corresponding edge-type-specific methods.
@@ -153,7 +152,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   @Override
   public Collection<T> getAbstractSuccessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
 
     setInfo(abstractState, abstractPrecision, cfaEdge);
 
@@ -262,12 +261,11 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     }
   }
 
-
   /** This function handles assumptions like "if(a==b)" and "if(a!=0)".
    * If the assumption is not fulfilled, NULL should be returned. */
   protected @Nullable S handleAssumption(
       AssumeEdge cfaEdge, AExpression expression, boolean truthAssumption)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
 
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthAssumption);
     expression = simplifiedExpression.getFirst();
@@ -291,10 +289,11 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * @param expression the condition of the edge
    * @param truthAssumption indicates if this is the then or the else branch
    * @throws CPATransferException may be thrown in subclasses
+   * @throws InterruptedException may be thrown in subclasses
    */
   protected @Nullable S handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     return notImplemented();
   }
 
@@ -534,9 +533,10 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * In that case the successor-node is a FunctionExitNode.
    *
    * @param cfaEdge the edge to handle
+   * @throws CPATransferException may be thrown in subclasses
    */
   @SuppressWarnings("unchecked")
-  protected S handleBlankEdge(BlankEdge cfaEdge) {
+  protected S handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
     return (S)state;
   }
 

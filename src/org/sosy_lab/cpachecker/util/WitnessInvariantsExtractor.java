@@ -98,7 +98,7 @@ public class WitnessInvariantsExtractor {
       ShutdownNotifier pShutdownNotifier,
       Path pPathToWitnessFile)
       throws InvalidConfigurationException, CPAException, InterruptedException {
-    this.config = generateLocalConfiguration(pConfig);
+    this.config = pConfig;
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
@@ -126,7 +126,7 @@ public class WitnessInvariantsExtractor {
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, CPAException {
-    this.config = generateLocalConfiguration(pConfig);
+    this.config = pConfig;
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
@@ -145,9 +145,7 @@ public class WitnessInvariantsExtractor {
             "analysis.programNames",
             "cpa.callstack.skipRecursion",
             "cpa.callstack.skipVoidRecursion",
-            "cpa.callstack.skipFunctionPointerRecursion",
-            "witness.strictChecking",
-            "witness.checkProgramHash");
+            "cpa.callstack.skipFunctionPointerRecursion");
     for (String copyOption : copyOptions) {
       configBuilder.copyOptionFromIfPresent(pConfig, copyOption);
     }
@@ -172,12 +170,13 @@ public class WitnessInvariantsExtractor {
   }
 
   private void analyzeWitness() throws InvalidConfigurationException, CPAException {
-    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
+    Configuration localConfig = generateLocalConfiguration(config);
+    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(localConfig, logger);
     reachedSet = reachedSetFactory.create();
-    CPABuilder builder = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
+    CPABuilder builder = new CPABuilder(localConfig, logger, shutdownNotifier, reachedSetFactory);
     ConfigurableProgramAnalysis cpa =
         builder.buildCPAs(cfa, automatonAsSpec, new AggregatedReachedSets());
-    CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
+    CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, logger, localConfig, shutdownNotifier);
     CFANode rootNode = cfa.getMainFunction();
     StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
     try {

@@ -4,9 +4,15 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 7f894bc18c3dcd5f19a7b8f59fb4cada8c331984
+  REFASTER_REPO_REVISION: 3b7e6c0d396d6073e8a27bccdce160abb1ccdaa7
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.3.3
+  REFASTER_VERSION: 2.3.4
+
+
+build:jdk-13:
+  variables:
+    # https://github.com/google/error-prone/issues/1106
+    ANT_PROPS_BUILD: "-Divy.disable=true -Derrorprone.disable=true"
 
 
 .binary_check: &binary_check
@@ -21,16 +27,6 @@ variables:
       - "hs_err_pid*.log"
     when: always
 
-configuration-checks:jdk-8:
-  <<: *configuration-checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-8
-  needs:
-    - build-dependencies
-    - build:jdk-8
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
-
 configuration-checks:jdk-11:
   <<: *configuration-checks
   dependencies:
@@ -41,15 +37,15 @@ configuration-checks:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-configuration-checks:jdk-12:
+configuration-checks:jdk-13:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
-    - build:jdk-12
+    - build:jdk-13
   needs:
     - build-dependencies
-    - build:jdk-12
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
+    - build:jdk-13
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-13
 
 
 configuration-documentation:
@@ -83,16 +79,6 @@ configuration-plot:
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS python-unit-tests"
 
-python-unit-tests:jdk-8:
-  <<: *python-unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-8
-  needs:
-    - build-dependencies
-    - build:jdk-8
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
-
 python-unit-tests:jdk-11:
   <<: *python-unit-tests
   dependencies:
@@ -103,15 +89,15 @@ python-unit-tests:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-python-unit-tests:jdk-12:
+python-unit-tests:jdk-13:
   <<: *python-unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-12
+    - build:jdk-13
   needs:
     - build-dependencies
-    - build:jdk-12
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
+    - build:jdk-13
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-13
 
 
 javascript-unit-tests:
@@ -188,13 +174,10 @@ flake8:
 
 
 # No coverage is computed for CPAchecker
-unit-tests:jdk-8:
-  script: "ant $ANT_PROPS_CHECKS unit-tests"
-
 unit-tests:jdk-11:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
 
-unit-tests:jdk-12:
+unit-tests:jdk-13:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
 
 

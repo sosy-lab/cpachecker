@@ -151,7 +151,7 @@ public class CProgramScope implements Scope {
     throw new AssertionError("Cannot extract a name.");
   };
 
-  private static final Function<CSimpleDeclaration, String> GET_ORIGINAL_QUALIFIED_NAME = new Function<CSimpleDeclaration, String>() {
+  private static final Function<CSimpleDeclaration, String> GET_ORIGINAL_QUALIFIED_NAME = new Function<>() {
 
     @Override
     public String apply(CSimpleDeclaration pDeclaration) {

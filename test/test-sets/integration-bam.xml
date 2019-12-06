@@ -126,7 +126,8 @@
   <tasks>
     <option name="-predicateAnalysis-bam"/>
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
+    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/*lcr-var*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-pthread/*</exclude>
     <exclude>../programs/benchmarks/systemc/token_ring.*</exclude>
     <exclude>../programs/benchmarks/systemc/toy1.cil.c</exclude>
@@ -139,7 +140,7 @@
     <option name="-64"/>
     <option name="-setprop">analysis.checkCounterexamples=true</option>
     <option name="-setprop">counterexample.checker=CBMC</option>
-    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <!-- exclude some files that are nearly identical in complexity and runtime, some of them are timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-*</exclude>

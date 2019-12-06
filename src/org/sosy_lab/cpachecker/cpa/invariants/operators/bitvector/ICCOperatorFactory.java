@@ -41,7 +41,7 @@ public enum ICCOperatorFactory {
    * The addition operator for adding compound states to simple intervals.
    */
   public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getAdd(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
+    return new Operator<>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
@@ -55,7 +55,7 @@ public enum ICCOperatorFactory {
    * The division operator for dividing simple intervals by compound states.
    */
   public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getDivide(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
+    return new Operator<>() {
 
       @Override
       public CompoundBitVectorInterval apply(
@@ -83,7 +83,7 @@ public enum ICCOperatorFactory {
    * The modulo operator for computing the remainders of dividing intervals by compound states.
    */
   public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getModulo(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
+    return new Operator<>() {
 
       @Override
       public CompoundBitVectorInterval apply(
@@ -111,7 +111,7 @@ public enum ICCOperatorFactory {
    * The multiplication operator for multiplying simple intervals with compound states.
    */
   public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getMultiply(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
+    return new Operator<>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
@@ -125,7 +125,7 @@ public enum ICCOperatorFactory {
    * The left shift operator for left shifting simple intervals by compound states.
    */
   public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getShiftLeft(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
+    return new Operator<>() {
 
       @Override
       public CompoundBitVectorInterval apply(
@@ -153,7 +153,7 @@ public enum ICCOperatorFactory {
    * The right shift operator for right shifting simple intervals by compound states.
    */
   public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getShiftRight(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
+    return new Operator<>() {
 
       @Override
       public CompoundBitVectorInterval apply(

@@ -31,6 +31,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -156,7 +157,7 @@ public class CtoFormulaConverter {
 
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
-  static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS =
+  private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS =
       ImmutableMap.of("fesetround", "floating-point rounding modes");
 
   //names for special variables needed to deal with functions
@@ -221,6 +222,7 @@ public class CtoFormulaConverter {
             "__string__", typeHandler.getPointerType(), FormulaType.IntegerType);
   }
 
+  @FormatMethod
   void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
     if (logger.wouldBeLogged(level)) {
       logger.logfOnce(level, "%s: %s: %s",
@@ -259,7 +261,10 @@ public class CtoFormulaConverter {
       return true;
     }
     CCompositeType compositeType = CTypes.withoutVolatile(CTypes.withoutConst(pCompositeType));
-    return variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
+    return variableClassification
+        .orElseThrow()
+        .getRelevantFields()
+        .containsEntry(compositeType, fieldName);
   }
 
   protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
@@ -292,11 +297,18 @@ public class CtoFormulaConverter {
       }
     }
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
-      boolean isRelevantVariable = var.getName().equals(RETURN_VARIABLE_NAME) ||
-          variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());
+      boolean isRelevantVariable =
+          var.getName().equals(RETURN_VARIABLE_NAME)
+              || variableClassification
+                  .orElseThrow()
+                  .getRelevantVariables()
+                  .contains(var.getQualifiedName());
       if (options.overflowVariablesAreRelevant()) {
         isRelevantVariable |=
-            variableClassification.get().getIntOverflowVars().contains(var.getQualifiedName());
+            variableClassification
+                .orElseThrow()
+                .getIntOverflowVars()
+                .contains(var.getQualifiedName());
       }
       return isRelevantVariable;
     }
@@ -1541,7 +1553,7 @@ public class CtoFormulaConverter {
       split = Optional.empty();
     }
     if (split.isPresent()) {
-      Triple<BooleanFormula, T, T> parts = split.get();
+      Triple<BooleanFormula, T, T> parts = split.orElseThrow();
 
       T one = fmgr.makeNumber(fmgr.getFormulaType(pF), 1);
       if (parts.getSecond().equals(one) && parts.getThird().equals(zero)) {
@@ -1670,8 +1682,10 @@ public class CtoFormulaConverter {
     }
 
     if (pRightVariable.isPresent()) {
-      assert efmgr.getLength((BitvectorFormula) pRightVariable.get()) == msb_Lsb.getFirst() + 1 - msb_Lsb.getSecond() : "The new formula has not the right size";
-      parts.add(pRightVariable.get());
+      assert efmgr.getLength((BitvectorFormula) pRightVariable.orElseThrow())
+              == msb_Lsb.getFirst() + 1 - msb_Lsb.getSecond()
+          : "The new formula has not the right size";
+      parts.add(pRightVariable.orElseThrow());
     }
 
     if (msb_Lsb.getSecond() > 0) {
@@ -1763,6 +1777,15 @@ public class CtoFormulaConverter {
     } else {
       return makeVariable(var, exp.getExpressionType(), ssa);
     }
+  }
+
+  static String isUnsupportedFunction(String functionName) {
+    if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
+      return UNSUPPORTED_FUNCTIONS.get(functionName);
+    } else if (functionName.startsWith("__atomic_")) {
+      return "atomic operations";
+    }
+    return null;
   }
 
   /**
