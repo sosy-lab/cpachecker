@@ -216,6 +216,32 @@ class EclipseJavaParser implements JavaParser {
     return mainClassFile;
   }
 
+  /**
+   * Splits the path to an entry point into the path including the file name and the entry method.
+   * If the entry point method is not given, method will return "" as first element of return List.
+   * JavaClassPaths has to be set for this method to work!
+   *
+   * @param mainFunctionPath path to entry method in String form
+   * @return List with first element being method name, second element path to file including file
+   */
+  private String[] splitPathToFileAndMainMethod(String mainFunctionPath) throws JParserException {
+    if (mainFunctionPath.endsWith(".java")) {
+      mainFunctionPath = mainFunctionPath.substring(mainFunctionPath.length() - ".java".length());
+    }
+    Path path = Paths.get(mainFunctionPath.replaceAll("\\.", "/"));
+    for (Path javaClassPath : javaClassPaths) {
+      path = javaClassPath.resolve(path);
+      if (Files.exists(path)) {
+        return new String[]{path.toString(), ""};
+      }
+      Path pathParent = path.getParent().resolve(".java");
+      if (Files.exists(pathParent)) {
+        return new String[]{pathParent.toString(), path.getFileName().toString()};
+      }
+    }
+    throw new JParserException("Could not find entry point");
+  }
+
   private void exportTypeHierarchy(Scope pScope) {
 
     // write CFA to file
