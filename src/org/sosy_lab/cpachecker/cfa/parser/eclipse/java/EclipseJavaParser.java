@@ -68,40 +68,58 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
 @Options
 class EclipseJavaParser implements JavaParser {
 
-  @Option(secure=true, name ="java.encoding",
-      description="use the following encoding for java files")
+  @Option(
+      secure = true,
+      name = "java.encoding",
+      description = "use the following encoding for java files")
   private Charset encoding = StandardCharsets.UTF_8;
 
-  @Option(secure=true, name ="java.version",
-      description="Specifies the java version of source code accepted")
+  @Option(
+      secure = true,
+      name = "java.version",
+      description = "Specifies the java version of source code accepted")
   private String version = JavaCore.VERSION_1_7;
 
-  @Option(secure=true, name ="java.sourcepath",
-      description="Specify the source code path to " +
-          "search for java class or interface definitions")
+  @Option(
+      secure = true,
+      name = "java.sourcepath",
+      description =
+          "Specify the source code path to " + "search for java class or interface definitions")
   // Make sure to keep the option name synchronized with CPAMain#areJavaOptionsSet
   private String javaSourcepath = "";
 
-  @Option(secure=true, name ="java.classpath",
-      description="Specify the class code path to " +
-          "search for java class or interface definitions")
+  @Option(
+      secure = true,
+      name = "java.classpath",
+      description =
+          "Specify the class code path to " + "search for java class or interface definitions")
   // Make sure to keep the option name synchronized with CPAMain#areJavaOptionsSet
   private String javaClasspath = "";
 
   @Option(
       secure = true,
       name = "analysis.programNames",
-      //required=true, NOT required because we want to give a nicer user message ourselves
-      description = "A String, denoting the programs to be analyzed"
-  )
+      // required=true, NOT required because we want to give a nicer user message ourselves
+      description = "A String, denoting the programs to be analyzed")
   private ImmutableList<String> programs = ImmutableList.of();
 
-  @Option(secure=true, name="java.exportTypeHierarchy",
-      description="export TypeHierarchy as .dot file")
+  @Option(
+      secure = true,
+      name = "analysis.entryFunction",
+      // regexp = "^[_a-zA-Z][_a-zA-Z0-9]*$",
+      description = "entry function")
+  private String mainFunctionName = "main";
+
+  @Option(
+      secure = true,
+      name = "java.exportTypeHierarchy",
+      description = "export TypeHierarchy as .dot file")
   private boolean exportTypeHierarchy = true;
 
-  @Option(secure=true, name="java.typeHierarchyFile",
-      description="export TypeHierarchy as .dot file")
+  @Option(
+      secure = true,
+      name = "java.typeHierarchyFile",
+      description = "export TypeHierarchy as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportTypeHierarchyFile = Paths.get("typeHierarchy.dot");
 
