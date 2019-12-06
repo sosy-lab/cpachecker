@@ -113,6 +113,15 @@ public interface CType extends Type {
       return CTypes.areTypesCompatible(plainCompositeLeft, plainCompositeRight);
     }
 
+    // Cf. C-Standard §6.3.2.3 (1):
+    if (leftHandSide instanceof CPointerType) {
+      if (((CPointerType) leftHandSide).getType() instanceof CVoidType) {
+        if (rightHandSide.isIncomplete() || CTypes.isObjectType(rightHandSide)) {
+          return true;
+        }
+      }
+    }
+
     if (rightHandSide instanceof CPointerType && leftHandSide instanceof CPointerType) {
       CPointerType pointerLeft = (CPointerType) leftHandSide;
       CPointerType pointerRight = (CPointerType) rightHandSide;
