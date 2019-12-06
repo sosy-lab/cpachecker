@@ -141,7 +141,7 @@ class EclipseJavaParser implements JavaParser {
   static final String JAVA_SOURCE_FILE_EXTENSION = ".java";
 
   public EclipseJavaParser(LogManager pLogger, Configuration config)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, JParserException {
 
     config.inject(this);
 
@@ -156,6 +156,9 @@ class EclipseJavaParser implements JavaParser {
           javaClassPaths = ImmutableList.of(pathToProgram.get(0).getParent());
         } else {
           javaClassPaths = ImmutableList.of(pathToProgram.get(0));
+          String[] mainMethodAndPath = splitPathToFileAndMainMethod(mainFunctionName);
+          mainFunctionName = mainMethodAndPath[0];
+          programs = ImmutableList.of(mainMethodAndPath[1]);
         }
       } else {
         throw new InvalidConfigurationException("No valid Paths could be found.");
