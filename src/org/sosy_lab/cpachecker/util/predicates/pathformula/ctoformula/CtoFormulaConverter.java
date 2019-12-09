@@ -677,13 +677,13 @@ public class CtoFormulaConverter {
    * Used to cast between formula types.
    *
    * @param toType the type to cast into.
-   * @param CType the CType of the formula.
+   * @param cType the CType of the formula.
    * @param formula the formula to be casted.
    * @return the new formula after the cast.
    */
   protected Formula makeFormulaTypeCast(
       final FormulaType<?> toType,
-      final CType CType,
+      final CType cType,
       Formula formula,
       SSAMapBuilder ssa,
       Constraints constraints,
@@ -698,13 +698,13 @@ public class CtoFormulaConverter {
     }
     if (fromType.isBitvectorType()) {
       if (toType.isBooleanType()) {
-        final CSimpleType sType = (CSimpleType) CType;
+        final CSimpleType sType = (CSimpleType) cType;
         final boolean signed = machineModel.isSigned(sType);
         IntegerFormula iformula = efmgr.toIntegerFormula((BitvectorFormula) formula, signed);
         IntegerFormula zero = nfmgr.makeNumber(0);
         return bfmgr.not(nfmgr.equal(iformula, zero));
       } else if (toType.isIntegerType()) {
-        final CSimpleType sType = (CSimpleType) CType;
+        final CSimpleType sType = (CSimpleType) cType;
         final boolean signed = machineModel.isSigned(sType);
         return efmgr.toIntegerFormula((BitvectorFormula) formula, signed);
       } else {
@@ -725,7 +725,7 @@ public class CtoFormulaConverter {
         IntegerFormula zero = nfmgr.makeNumber(0);
         return bfmgr.not(nfmgr.equal((IntegerFormula) formula, zero));
       } else if (toType.isFloatingPointType()) {
-        final CSimpleType sType = (CSimpleType) CType;
+        final CSimpleType sType = (CSimpleType) cType;
         final boolean signed = machineModel.isSigned(sType);
         return fmgr.getFloatingPointFormulaManager()
             .castFrom(formula, signed, FormulaType.getSinglePrecisionFloatingPointType());
@@ -739,11 +739,11 @@ public class CtoFormulaConverter {
       }
     }
     if (fromType.isBooleanType()) {
-      Formula intFormula = intBoolToInt((BooleanFormula) formula, CType, ssa, constraints);
+      Formula intFormula = intBoolToInt((BooleanFormula) formula, cType, ssa, constraints);
       if (toType.isIntegerType()) {
         return intFormula;
       } else {
-        return makeFormulaTypeCast(toType, CType, intFormula, ssa, constraints, edge);
+        return makeFormulaTypeCast(toType, cType, intFormula, ssa, constraints, edge);
       }
     }
     return formula;
