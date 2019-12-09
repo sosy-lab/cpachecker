@@ -1218,13 +1218,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected Formula makeFormulaTypeCast(
       final FormulaType<?> toType,
-      final CType CType,
+      final CType cType,
       Formula formula,
       SSAMapBuilder ssa,
       Constraints constraints,
       CFAEdge edge)
       throws UnrecognizedCodeException {
-    return super.makeFormulaTypeCast(toType, CType, formula, ssa, constraints, edge);
+    return super.makeFormulaTypeCast(toType, cType, formula, ssa, constraints, edge);
   }
 
   /** {@inheritDoc} */
