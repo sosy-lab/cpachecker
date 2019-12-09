@@ -294,7 +294,7 @@ public class ExpressionToFormulaVisitor
                       constraints,
                       edge);
               result = conv.bfmgr.not(mgr.makeEqual(f1cast, f2));
-            } else if ((!mgr.getFormulaType(f1).isBooleanType())
+            } else if (!mgr.getFormulaType(f1).isBooleanType()
                 && mgr.getFormulaType(f2).isBooleanType()) {
               final Formula f2cast =
                   conv.makeFormulaTypeCast(
