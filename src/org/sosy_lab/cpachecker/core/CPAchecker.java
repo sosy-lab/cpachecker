@@ -339,6 +339,7 @@ public class CPAchecker {
     CFA cfa = null;
     Result result = Result.NOT_YET_STARTED;
     String violatedPropertyDescription = "";
+    Specification specification = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -360,11 +361,11 @@ public class CPAchecker {
         shutdownNotifier.shutdownIfNecessary();
 
         ConfigurableProgramAnalysis cpa;
-        Specification specification;
         stats.cpaCreationTime.start();
         try {
           specification =
-              Specification.fromFiles(properties, specificationFiles, cfa, config, logger);
+              Specification.fromFiles(
+                  properties, specificationFiles, cfa, config, logger, shutdownNotifier);
           cpa = factory.createCPA(cfa, specification);
         } finally {
           stats.cpaCreationTime.stop();
@@ -629,16 +630,18 @@ public class CPAchecker {
         initialLocations = ImmutableSet.copyOf(pCfa.getAllFunctionHeads());
         break;
       case FUNCTION_SINKS:
-        initialLocations = ImmutableSet.<CFANode>builder().addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().get()))
-                                                          .addAll(getAllFunctionExitNodes(pCfa))
-                                                          .build();
+          initialLocations =
+              ImmutableSet.<CFANode>builder()
+                  .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
+                  .addAll(getAllFunctionExitNodes(pCfa))
+                  .build();
         break;
       case PROGRAM_SINKS:
           initialLocations =
               ImmutableSet.<CFANode>builder()
                   .addAll(
                       CFAUtils.getProgramSinks(
-                          pCfa, pCfa.getLoopStructure().get(), pAnalysisEntryFunction))
+                          pCfa, pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
                   .build();
 
         break;
@@ -649,7 +652,12 @@ public class CPAchecker {
               tlp.tryGetAutomatonTargetLocations(
                   pAnalysisEntryFunction,
                   Specification.fromFiles(
-                      pProperties, backwardSpecificationFiles, pCfa, config, logger));
+                      pProperties,
+                      backwardSpecificationFiles,
+                      pCfa,
+                      config,
+                      logger,
+                      shutdownNotifier));
           break;
       default:
         throw new AssertionError("Unhandled case statement: " + initialStatesFor);

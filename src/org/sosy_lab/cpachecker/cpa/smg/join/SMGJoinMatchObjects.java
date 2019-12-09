@@ -86,7 +86,9 @@ final class SMGJoinMatchObjects {
     for (SMGEdgeHasValue hv : Sets.union(edges1, edges2)) {
       // edges are already filtered for given object, just filter again for type and offset.
       SMGEdgeHasValueFilter filter =
-          new SMGEdgeHasValueFilter().filterByType(hv.getType()).filterAtOffset(hv.getOffset());
+          new SMGEdgeHasValueFilter()
+              .filterBySize(hv.getSizeInBits())
+              .filterAtOffset(hv.getOffset());
       Iterable<SMGEdgeHasValue> hv1 = filter.filter(edges1);
       Iterable<SMGEdgeHasValue> hv2 = filter.filter(edges2);
       if (Iterables.size(hv1) > 0 && Iterables.size(hv2) > 0) {

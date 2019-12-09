@@ -24,12 +24,11 @@
 package org.sosy_lab.cpachecker.util.resources;
 
 import java.lang.management.ManagementFactory;
-
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-
+import javax.management.RuntimeErrorException;
 
 public final class ProcessCpuTime {
 
@@ -58,7 +57,12 @@ public final class ProcessCpuTime {
    * @throws JMException If the operation is unsupported.
    */
   public static long read() throws JMException {
-    Object cputime = mbeanServer.getAttribute(osMbean, PROCESS_CPU_TIME);
+    Object cputime;
+    try {
+      cputime = mbeanServer.getAttribute(osMbean, PROCESS_CPU_TIME);
+    } catch (RuntimeErrorException e) {
+      throw ManagementUtils.handleRuntimeErrorException(e);
+    }
 
     if (!(cputime instanceof Long)) {
       throw new JMException("Invalid value received for cpu time: " + cputime);

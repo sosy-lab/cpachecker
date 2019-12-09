@@ -121,7 +121,7 @@ public class UnrolledReachedSet {
     return containedLoopBoundKeysK;
   }
 
-  interface EnsureK {
+  public interface EnsureK {
 
     AlgorithmStatus ensureK(
         Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA, ReachedSet pReachedSet)

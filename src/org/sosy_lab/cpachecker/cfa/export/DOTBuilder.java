@@ -164,7 +164,7 @@ public final class DOTBuilder {
     if (nodeAnnotation.length() > NODE_SHAPE_CHANGE_CHAR_LIMIT) {
       shape = "box";
     } else {
-      if (loopHeads.isPresent() && loopHeads.get().contains(node)) {
+      if (loopHeads.isPresent() && loopHeads.orElseThrow().contains(node)) {
         shape = "doublecircle";
       } else if (node.isLoopStart()) {
         shape = "doubleoctagon";

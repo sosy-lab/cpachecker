@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.ltl.formulas;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Objects;
+
 public abstract class BinaryFormula implements LtlFormula {
 
   public final LtlFormula left;
@@ -37,12 +39,7 @@ public abstract class BinaryFormula implements LtlFormula {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((left == null) ? 0 : left.hashCode());
-    result = prime * result + ((right == null) ? 0 : right.hashCode());
-    result = prime * result + ((getSymbol() == null) ? 0 : getSymbol().hashCode());
-    return result;
+    return Objects.hash(left, right, getSymbol());
   }
 
   @Override
@@ -57,28 +54,9 @@ public abstract class BinaryFormula implements LtlFormula {
       return false;
     }
     BinaryFormula other = (BinaryFormula) obj;
-    if (left == null) {
-      if (other.left != null) {
-        return false;
-      }
-    } else if (!left.equals(other.left)) {
-      return false;
-    }
-    if (right == null) {
-      if (other.right != null) {
-        return false;
-      }
-    } else if (!right.equals(other.right)) {
-      return false;
-    }
-    if (getSymbol() == null) {
-      if (other.getSymbol() != null) {
-        return false;
-      }
-    } else if (!getSymbol().equals(other.getSymbol())) {
-      return false;
-    }
-    return true;
+    return Objects.equals(left, other.left)
+        && Objects.equals(right, other.right)
+        && Objects.equals(getSymbol(), other.getSymbol());
   }
 
   public abstract String getSymbol();

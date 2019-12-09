@@ -45,14 +45,14 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
    * represents concrete regions in the smg, map to a concrete pointer in the smg, that points
    * to/from the represented region.
    */
-  private final Map<SMGValue, SMGValue> abstractToConcretePointerMap;
+  private final ImmutableMap<SMGValue, SMGValue> abstractToConcretePointerMap;
 
   /**
    * This map contains as keys abstract pointers and as values a list of materialisation steps. The
    * abstract pointers represent concrete pointers in a smg, that point to a concrete region that
    * has yet to be materialized.
    */
-  private final Map<SMGValue, List<MaterlisationStep>> materlisationStepMap;
+  private final ImmutableMap<SMGValue, List<MaterlisationStep>> materlisationStepMap;
 
   protected GenericAbstraction(
       int pSize,
@@ -111,11 +111,11 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
     throw new AssertionError();
   }
 
-  public Map<SMGValue, List<MaterlisationStep>> getMaterlisationStepMap() {
+  public ImmutableMap<SMGValue, List<MaterlisationStep>> getMaterlisationStepMap() {
     return materlisationStepMap;
   }
 
-  public Map<SMGValue, SMGValue> getAbstractToConcretePointerMap() {
+  public ImmutableMap<SMGValue, SMGValue> getAbstractToConcretePointerMap() {
     return abstractToConcretePointerMap;
   }
 

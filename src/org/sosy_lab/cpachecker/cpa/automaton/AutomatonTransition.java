@@ -315,6 +315,10 @@ class AutomatonTransition {
     return followState;
   }
 
+  String getFollowStateName() {
+    return followStateName;
+  }
+
   public AutomatonBoolExpr getTrigger() {
     return trigger;
   }
@@ -375,7 +379,7 @@ class AutomatonTransition {
     for (AExpression assumption : assumptions) {
       Optional<AExpression> resolved = tryResolve(assumption, pEdge, pLogger, pMachineModel);
       if (resolved.isPresent()) {
-        builder.add(resolved.get());
+        builder.add(resolved.orElseThrow());
       }
     }
     return builder.build();

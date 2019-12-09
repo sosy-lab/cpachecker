@@ -506,18 +506,18 @@ public class ARGState extends AbstractSingleWrapperState
     assert !replacement.destroyed : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
     assert !replacement.isCovered() : "Cannot replace with covered element " + replacement;
-    assert !(this==replacement) : "Don't replace ARGState " + this + " with itself";
+    assert !this.equals(replacement) : "Don't replace ARGState " + this + " with itself";
 
     // copy children
     for (ARGState child : children) {
-      assert (child.parents.contains(this)) : "Inconsistent ARG at " + this;
+      assert child.parents.contains(this) : "Inconsistent ARG at " + this;
       child.parents.remove(this);
       child.addParent(replacement);
     }
     children.clear();
 
     for (ARGState parent : parents) {
-      assert (parent.children.contains(this)) : "Inconsistent ARG at " + this;
+      assert parent.children.contains(this) : "Inconsistent ARG at " + this;
       parent.children.remove(this);
       replacement.addParent(parent);
     }
@@ -530,7 +530,7 @@ public class ARGState extends AbstractSingleWrapperState
       }
 
       for (ARGState covered : mCoveredByThis) {
-        assert covered.mCoveredBy == this : "Inconsistent coverage relation at " + this;
+        assert this.equals(covered.mCoveredBy) : "Inconsistent coverage relation at " + this;
         covered.mCoveredBy = replacement;
         replacement.mCoveredByThis.add(covered);
       }

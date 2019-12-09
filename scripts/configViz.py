@@ -116,8 +116,8 @@ def getFilenamesFromLine(line):
 def collectChildren(filename):
     children = dict()
     try:
+        multilineBuffer = ""
         for line in open(filename, "r"):
-            # TODO multiline statements?
             if (
                 not line.startswith(("#", "//"))
                 and line.rstrip() != line
@@ -128,6 +128,17 @@ def collectChildren(filename):
                     % (filename, line.strip()),
                     level=2,
                 )
+
+            if line.strip().endswith("\\"):
+                # multiline statement
+                multilineBuffer += line.strip()[:-1]  # remove ending
+                continue
+            else:
+                # single line or end of multiline statement
+                multilineBuffer += line
+                line = multilineBuffer
+                multilineBuffer = ""  # reset
+
             (filenames, typ) = getFilenamesFromLine(line)
             for child in filenames:
                 child = os.path.normpath(os.path.join(os.path.dirname(filename), child))
@@ -215,7 +226,7 @@ def writeDot(
         nodes = allNodesDict
 
     for filename, v in sorted(nodes.items()):
-        for child in v.children:
+        for child in sorted(v.children):
             if child in nodes:
                 out.write(
                     '"%s" -> "%s";\n'

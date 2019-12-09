@@ -228,12 +228,11 @@ public class RankingRelationBuilder {
 
     BooleanFormula formula = fmgr.getBooleanFormulaManager().or(componentFormulas);
     CExpression expression =
-        componentExpressions
-            .stream()
+        componentExpressions.stream()
             .reduce(
                 (op1, op2) ->
                     cExpressionBuilder.buildBinaryExpressionUnchecked(op1, op2, BINARY_OR))
-            .get();
+            .orElseThrow();
 
     return new RankingRelation(expression, formula, cExpressionBuilder, fmgr);
   }
@@ -257,10 +256,11 @@ public class RankingRelationBuilder {
 
     if (unprimedFunction.isPresent() && primedFunction.isPresent()) {
       CExpression unprimedGreatorThanZero =
-          cExpressionBuilder.buildBinaryExpression(primedFunction.get(), ZERO, GREATER_EQUAL);
+          cExpressionBuilder.buildBinaryExpression(
+              primedFunction.orElseThrow(), ZERO, GREATER_EQUAL);
       CExpression primedLessThanUnprimed =
           cExpressionBuilder.buildBinaryExpression(
-              unprimedFunction.get(), primedFunction.get(), LESS_THAN);
+              unprimedFunction.orElseThrow(), primedFunction.orElseThrow(), LESS_THAN);
 
       CBinaryExpression rankingRelation =
           cExpressionBuilder.buildBinaryExpression(
@@ -297,9 +297,12 @@ public class RankingRelationBuilder {
       if (primedFunction.isPresent() && unprimedFunction.isPresent() && cCoefficient.isPresent()) {
         try {
           primedFunction =
-              Optional.of(addSummand(primedFunction.get(), cCoefficient.get(), primedVariable));
+              Optional.of(
+                  addSummand(
+                      primedFunction.orElseThrow(), cCoefficient.orElseThrow(), primedVariable));
           unprimedFunction =
-              Optional.of(addSummand(unprimedFunction.get(), cCoefficient.get(), variable));
+              Optional.of(
+                  addSummand(unprimedFunction.orElseThrow(), cCoefficient.orElseThrow(), variable));
 
         } catch (UnrecognizedCodeException e) {
           // some ranking function cannot be represented by C expressions
@@ -374,9 +377,9 @@ public class RankingRelationBuilder {
             .findAny();
 
     if (variableDecl.isPresent()) {
-      CVariableDeclaration primedVariableDecl = createPrimedVariable(variableDecl.get());
+      CVariableDeclaration primedVariableDecl = createPrimedVariable(variableDecl.orElseThrow());
       CIdExpression primedVariable = new CIdExpression(DUMMY, primedVariableDecl);
-      CIdExpression variable = new CIdExpression(DUMMY, variableDecl.get());
+      CIdExpression variable = new CIdExpression(DUMMY, variableDecl.orElseThrow());
       return Pair.of(primedVariable, variable);
 
     } else {

@@ -64,6 +64,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.OverflowAssumptionManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -174,6 +176,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     this.conv = cToFormulaConverter;
     this.typeHandler = cToFormulaConverter.typeHandler;
+    this.ofmgr = new OverflowAssumptionManager(conv.machineModel, conv.logger);
     this.edge = cfaEdge;
     this.ssa = ssa;
     this.constraints = constraints;
@@ -355,7 +358,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
           return Value.nondetValue();
         }
         final Formula offset =
-            conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset.getAsLong());
+            conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset.orElseThrow());
         final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
         addEqualBaseAddressConstraint(base.getAddress(), address);
         final CType fieldType = typeHandler.simplifyType(e.getExpressionType());
@@ -726,6 +729,35 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         }
         return Value.ofValue(f);
       }
+      if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
+        List<CExpression> parameters = e.getParameterExpressions();
+        assert parameters.size() == 3;
+        CExpression var1 = parameters.get(0);
+        CExpression var2 = parameters.get(1);
+        Expression overflows =
+            BuiltinOverflowFunctions.handleOverflow(ofmgr, var1, var2, functionName).accept(this);
+        Formula f = asValueFormula(overflows, CNumericTypes.BOOL);
+        CLeftHandSide lhs =
+            new CPointerExpression(
+                FileLocation.DUMMY,
+                BuiltinOverflowFunctions.getType(functionName),
+                parameters.get(2));
+        CRightHandSide rhs =
+            BuiltinOverflowFunctions.handleOverflowSideeffects(ofmgr, var1, var2, functionName);
+
+        BooleanFormula form = null;
+        try {
+          form =
+              conv.makeAssignment(
+                  lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
+        } catch (InterruptedException e1) {
+          CtoFormulaConverter.propagateInterruptedException(e1);
+        }
+
+        constraints.addConstraint(checkNotNull(form));
+
+        return Value.ofValue(f);
+      }
     }
 
     // Pure functions returning composites are unsupported, return a nondet value
@@ -809,6 +841,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
+  private final OverflowAssumptionManager ofmgr;
   private final CFAEdge edge;
   private final SSAMapBuilder ssa;
   private final Constraints constraints;

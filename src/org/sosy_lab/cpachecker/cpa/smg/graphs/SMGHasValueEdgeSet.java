@@ -68,8 +68,9 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
   }
 
   @Override
-  public @Nullable ImmutableSet<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject) {
-    return map.get(pObject);
+  public ImmutableSet<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject) {
+    @Nullable ImmutableSet<SMGEdgeHasValue> edges = map.get(pObject);
+    return edges == null ? ImmutableSet.of() : edges;
   }
 
   @Override

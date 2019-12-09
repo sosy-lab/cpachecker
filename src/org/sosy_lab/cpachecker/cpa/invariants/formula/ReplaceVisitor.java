@@ -119,12 +119,12 @@ public class ReplaceVisitor<T> implements NumeralFormulaVisitor<T, NumeralFormul
     Preconditions.checkNotNull(pToReplaceN);
     Preconditions.checkNotNull(pReplacementN);
     Preconditions.checkNotNull(pToReplaceB);
-    Preconditions.checkNotNull(pToReplaceB);
+    Preconditions.checkNotNull(pReplacementB);
     this.toReplaceN = pToReplaceN;
     this.replacementN = pReplacementN;
     this.toReplaceB = pToReplaceB;
     this.replacementB = pReplacementB;
-    this.recursiveNumeralFormulaVisitor = new RecursiveNumeralFormulaVisitor<T>() {
+    this.recursiveNumeralFormulaVisitor = new RecursiveNumeralFormulaVisitor<>() {
 
       @Override
       protected NumeralFormula<T> visitPost(NumeralFormula<T> pFormula) {
@@ -135,7 +135,7 @@ public class ReplaceVisitor<T> implements NumeralFormulaVisitor<T, NumeralFormul
       }
 
     };
-    this.recursiveBooleanFormulaVisitor = new RecursiveBooleanFormulaVisitor<T>(this.recursiveNumeralFormulaVisitor) {
+    this.recursiveBooleanFormulaVisitor = new RecursiveBooleanFormulaVisitor<>(this.recursiveNumeralFormulaVisitor) {
 
       @Override
       protected BooleanFormula<T> visitPost(BooleanFormula<T> pFormula) {

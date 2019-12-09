@@ -1593,7 +1593,8 @@ class ASTConverter {
                   fileLoc.getStartingLineNumber(),
                   declaratorLocation.getEndingLineNumber(),
                   fileLoc.getStartingLineInOrigin(),
-                  fileLoc.getEndingLineInOrigin());
+                  fileLoc.getEndingLineInOrigin(),
+                  fileLoc.isOffsetRelatedToOrigin());
         }
         result.add(createDeclaration(declaratorLocation, cStorageClass, type, c));
       }
@@ -2247,11 +2248,8 @@ class ASTConverter {
 
       if (v instanceof CIntegerLiteralExpression) {
         value = ((CIntegerLiteralExpression)v).asLong();
-        if (negate) {
-          value = -value;
-        } else if(complement) {
-          value = ~value;
-        }
+      } else if (v instanceof CCharLiteralExpression) {
+        value = (long) ((CCharLiteralExpression) v).getCharacter();
       } else {
         // ignore unsupported enum value and set it to NULL.
         // TODO bug? constant enums are ignored, if 'cfa.simplifyConstExpressions' is disabled.
@@ -2260,6 +2258,14 @@ class ASTConverter {
             "enum constant '%s = %s' was not simplified and will be ignored in the following.",
             e.getName(),
             v.toQualifiedASTString());
+      }
+
+      if (value != null) {
+        if (negate) {
+          value = -value;
+        } else if (complement) {
+          value = ~value;
+        }
       }
     }
 

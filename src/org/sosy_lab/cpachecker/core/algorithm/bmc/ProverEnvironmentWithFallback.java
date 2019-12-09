@@ -45,7 +45,7 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-class ProverEnvironmentWithFallback
+public class ProverEnvironmentWithFallback
     implements AutoCloseable, InterpolatingProverEnvironment<Object> {
 
   private final Deque<BooleanFormula> stack = new ArrayDeque<>();
@@ -71,7 +71,7 @@ class ProverEnvironmentWithFallback
   }
 
   private ProverOptions[] getOptions() {
-    return proverOptions.toArray(new ProverOptions[proverOptions.size()]);
+    return proverOptions.toArray(new ProverOptions[0]);
   }
 
   @SuppressWarnings("unchecked")

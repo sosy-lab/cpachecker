@@ -77,7 +77,7 @@ class AutomatonASTComparator {
   private static final Pattern JOKER_PATTERN = Pattern.compile("\\$(\\d+|\\?)");
 
   static ASTMatcher generatePatternAST(String pPattern, CParser parser, Scope scope)
-      throws InvalidAutomatonException {
+      throws InvalidAutomatonException, NoException, InterruptedException {
     return CParserUtils.parseSingleStatement(replaceJokersInPattern(pPattern), parser, scope)
         .accept(ASTMatcherGenerator.INSTANCE);
   }

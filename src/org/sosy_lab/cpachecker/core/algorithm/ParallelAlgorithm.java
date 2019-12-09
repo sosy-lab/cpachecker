@@ -135,7 +135,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       Specification pSpecification,
       CFA pCfa,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     config.inject(this);
 
     stats = new ParallelAlgorithmStatistics(pLogger);
@@ -271,7 +271,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
       final AnnotatedValue<Path> pSingleConfigFileName, final int analysisNumber)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     final Path singleConfigFileName = pSingleConfigFileName.value();
     final boolean supplyReached;
     final boolean supplyRefinableReached;
@@ -285,7 +285,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final LogManager singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
 
     if (pSingleConfigFileName.annotation().isPresent()) {
-      switch (pSingleConfigFileName.annotation().get()) {
+      switch (pSingleConfigFileName.annotation().orElseThrow()) {
         case "supply-reached":
           supplyReached = true;
           supplyRefinableReached = false;

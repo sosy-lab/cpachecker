@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -154,15 +155,21 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   private final ConfigurableProgramAnalysis cpa;
 
-  public AssumptionCollectorAlgorithm(Algorithm algo,
-                                      ConfigurableProgramAnalysis pCpa,
-                                      Configuration config,
-                                      LogManager logger,
-                                      CFA cfa) throws InvalidConfigurationException {
+  private final ShutdownNotifier shutdownNotifier;
+
+  public AssumptionCollectorAlgorithm(
+      Algorithm algo,
+      ConfigurableProgramAnalysis pCpa,
+      Configuration config,
+      LogManager logger,
+      CFA cfa,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
     config.inject(this);
 
     this.logger = logger;
     this.innerAlgorithm = algo;
+    shutdownNotifier = pShutdownNotifier;
     AssumptionStorageCPA asCpa =
         CPAs.retrieveCPAOrFail(pCpa, AssumptionStorageCPA.class, AssumptionStorageCPA.class);
     if (exportAssumptions && assumptionAutomatonFile != null && !(pCpa instanceof ARGCPA)) {
@@ -342,7 +349,15 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     Scope scope = cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
 
-    List<Automaton> lst = AutomatonParser.parseAutomatonFile(assumptionAutomatonFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+    List<Automaton> lst =
+        AutomatonParser.parseAutomatonFile(
+            assumptionAutomatonFile,
+            config,
+            logger,
+            cfa.getMachineModel(),
+            scope,
+            cfa.getLanguage(),
+            shutdownNotifier);
 
     if (lst.isEmpty()) {
       throw new InvalidConfigurationException("Could not find automata in the file " + assumptionAutomatonFile.toAbsolutePath());

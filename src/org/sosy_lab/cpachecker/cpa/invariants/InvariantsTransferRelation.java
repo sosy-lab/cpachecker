@@ -654,7 +654,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     if (!variableClassification.isPresent()) {
       return pState.clear();
     }
-    VariableClassification varClassification = variableClassification.get();
+    VariableClassification varClassification = variableClassification.orElseThrow();
     InvariantsState result = pState;
     for (String variable : varClassification.getAddressedVariables()) {
       MemoryLocation location = MemoryLocation.valueOf(variable);

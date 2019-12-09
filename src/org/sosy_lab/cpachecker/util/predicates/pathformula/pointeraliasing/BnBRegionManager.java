@@ -194,7 +194,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
 
     String bnbSize;
     if(varClassification.isPresent()) {
-      VariableClassification var = varClassification.get();
+      VariableClassification var = varClassification.orElseThrow();
       int relevantSize = var.getRelevantFields().size();
       int addressedSize = var.getAddressedFields().size();
       out.println("Number of relevant fields:    " + relevantSize);

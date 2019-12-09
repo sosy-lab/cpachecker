@@ -104,7 +104,7 @@ public class NullPointerChecks {
 
       // This supplier creates the appropriate target nodes that get added
       // to the CFA for the case the dereference fails.
-      Supplier<CFANode> targetNodeSupplier = new Supplier<CFANode>() {
+      Supplier<CFANode> targetNodeSupplier = new Supplier<>() {
         @Override
         public CFANode get() {
 

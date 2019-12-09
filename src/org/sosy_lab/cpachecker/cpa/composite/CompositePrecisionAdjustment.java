@@ -92,7 +92,7 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
         return Optional.empty();
       }
 
-      PrecisionAdjustmentResult inner = out.get();
+      PrecisionAdjustmentResult inner = out.orElseThrow();
 
       AbstractState newElement = inner.abstractState();
       Precision newPrecision = inner.precision();
@@ -115,7 +115,7 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
     if (!outElementStrengthened.isPresent()) {
       return Optional.empty();
     }
-    outElement = outElementStrengthened.get();
+    outElement = outElementStrengthened.orElseThrow();
 
     PrecisionAdjustmentResult out =
         PrecisionAdjustmentResult.create(outElement, outPrecision, action);

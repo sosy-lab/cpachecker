@@ -113,6 +113,10 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     }
   }
 
+  public int getAlignof(CType type) {
+    return model.getAlignof(type);
+  }
+
   /**
    * The method should be used everywhere the type of any expression is determined.
    * This is because the encoding uses types for naming of the UFs

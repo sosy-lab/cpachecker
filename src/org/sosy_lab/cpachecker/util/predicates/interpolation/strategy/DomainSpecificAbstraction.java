@@ -157,13 +157,9 @@ public class DomainSpecificAbstraction<T> {
           .immutableCopy();
       Map<String, FormulaType> variablesUsedInBothPartsClasses = new HashMap<>();
 
-      arrayVariablesThatAreUsedInBothParts = variablesThatAreUsedInBothParts.toArray(new
-          String[variablesThatAreUsedInBothParts.size
-          ()]);
-      arrayVariablesThatAreNotUsedInBothParts = variablesThatAreNotUsedInBothParts.toArray(new
-          String[variablesThatAreNotUsedInBothParts.size
-          ()]);
-
+      arrayVariablesThatAreUsedInBothParts = variablesThatAreUsedInBothParts.toArray(new String[0]);
+      arrayVariablesThatAreNotUsedInBothParts =
+          variablesThatAreNotUsedInBothParts.toArray(new String[0]);
 
       for (int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i++) {
         Formula helperFormula;

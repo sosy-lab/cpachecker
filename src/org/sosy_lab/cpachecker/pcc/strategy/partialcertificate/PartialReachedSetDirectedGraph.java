@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -114,7 +113,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     CollectingNodeVisitor visitor = new CollectingNodeVisitor(pAsARGState);
     visitOutsideSuccessors(pNodeSetIndices, visitor);
 
-    return visitor.setRes.toArray(new AbstractState[visitor.setRes.size()]);
+    return visitor.setRes.toArray(new AbstractState[0]);
   }
 
   public long getNumSuccessorNodesOutsideSet(final Set<Integer> pNodeSetIndices) {
@@ -155,7 +154,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
           "Wrong index set must not be null and all indices must be within [0;" + numNodes
               + "-1].");
     }
-    return listRes.toArray(new AbstractState[listRes.size()]);
+    return listRes.toArray(new AbstractState[0]);
   }
 
 
@@ -224,12 +223,12 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     pOut.println("min indegree:   " + minin);
     pOut.println("in distribution:   " + Arrays.toString(inDistribution));
     pOut.println("relative in distr:   " + Arrays.toString(normalIn));
-    pOut.format(Locale.ENGLISH, "avg. indegree:  %.2f%n", avgin);
+    pOut.printf("avg. indegree:  %.2f%n", avgin);
     pOut.println("max outdegree:  " + maxout);
     pOut.println("min outdegree:  " + minout);
     pOut.println("out distribution:   " + Arrays.toString(outDistribution));
     pOut.println("relative out distr:   " + Arrays.toString(normalOut));
-    pOut.format(Locale.ENGLISH, "avg. outdegree: %.2f%n", avgout);
+    pOut.printf("avg. outdegree: %.2f%n", avgout);
   }
 
   @Override

@@ -253,8 +253,8 @@ public class ValueAnalysisTransferRelation
     stats = pStats;
 
     if (pCfa.getVarClassification().isPresent()) {
-      addressedVariables = pCfa.getVarClassification().get().getAddressedVariables();
-      booleanVariables   = pCfa.getVarClassification().get().getIntBoolVars();
+      addressedVariables = pCfa.getVarClassification().orElseThrow().getAddressedVariables();
+      booleanVariables = pCfa.getVarClassification().orElseThrow().getIntBoolVars();
     } else {
       addressedVariables = ImmutableSet.of();
       booleanVariables   = ImmutableSet.of();
@@ -434,7 +434,7 @@ public class ValueAnalysisTransferRelation
         OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
 
         if (maybeIndex.isPresent() && assignedArray != null && valueExists) {
-          assignedArray.setValue(newValue, maybeIndex.getAsInt());
+          assignedArray.setValue(newValue, maybeIndex.orElseThrow());
 
         } else {
           assignUnknownValueToEnclosingInstanceOfArray(arraySubscriptExpression);
@@ -476,12 +476,12 @@ public class ValueAnalysisTransferRelation
         // assign the value if a memory location was successfully computed
         if (memLoc.isPresent()) {
           if (!valueExists) {
-            unknownValueHandler.handle(memLoc.get(), op1.getExpressionType(), newElement, v);
+            unknownValueHandler.handle(
+                memLoc.orElseThrow(), op1.getExpressionType(), newElement, v);
 
           } else {
-            newElement.assignConstant(memLoc.get(),
-                                      newValue,
-                                      state.getTypeForMemoryLocation(functionReturnVar));
+            newElement.assignConstant(
+                memLoc.orElseThrow(), newValue, state.getTypeForMemoryLocation(functionReturnVar));
           }
         }
       }
@@ -837,10 +837,10 @@ public class ValueAnalysisTransferRelation
 
     if (memLoc.isPresent()) {
       if (!newValue.isUnknown()) {
-        newElement.assignConstant(memLoc.get(), newValue, leftSideType);
+        newElement.assignConstant(memLoc.orElseThrow(), newValue, leftSideType);
 
       } else {
-        unknownValueHandler.handle(memLoc.get(), leftSideType, newElement, evv);
+        unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, newElement, evv);
       }
     }
 
@@ -1131,7 +1131,7 @@ public class ValueAnalysisTransferRelation
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
 
-        index = maybeIndex.getAsInt();
+        index = maybeIndex.orElseThrow();
 
       } else {
         return null;
@@ -1168,7 +1168,7 @@ public class ValueAnalysisTransferRelation
       OptionalInt maybeIndex = getIndex(enclosingSubscriptExpression);
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
-        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.getAsInt());
+        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.orElseThrow());
 
       }
       // if the index of unknown array in the enclosing array is also unknown, we assign unknown at this array's

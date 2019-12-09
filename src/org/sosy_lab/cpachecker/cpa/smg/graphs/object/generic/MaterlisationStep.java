@@ -30,7 +30,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -199,9 +198,8 @@ public class MaterlisationStep {
       long offset = aField.getOffset();
       SMGValue value = aField.getValue();
       SMGObject concreteObject = concreteObjectMap.get(templateObject);
-      CType type = aField.getType();
       SMGEdgeHasValue concreteHve =
-          new SMGEdgeHasValue(type, aField.getSizeInBits(), offset, concreteObject, value);
+          new SMGEdgeHasValue(aField.getSizeInBits(), offset, concreteObject, value);
       concreteHves.add(concreteHve);
     }
 
@@ -247,9 +245,7 @@ public class MaterlisationStep {
     long offset = pAbstractField.getOffset();
     SMGValue abstractValue = pAbstractField.getAbstractValue();
     SMGValue value = pAbstractObjectToPointersMap.get(templateObject).get(abstractValue);
-    CType type = pAbstractField.getType();
-    concreteHves.add(
-        new SMGEdgeHasValue(type, pAbstractField.getSizeInBits(), offset, object, value));
+    concreteHves.add(new SMGEdgeHasValue(pAbstractField.getSizeInBits(), offset, object, value));
   }
 
   private void createPointer(

@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.SolverContextFactory;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext;
@@ -230,6 +231,7 @@ public class LassoAnalysis {
       CFA pCfa,
       LassoAnalysisStatistics pStatistics)
       throws InvalidConfigurationException {
+    pConfig = Solver.adjustConfigForSolver(pConfig);
     SolverContext solverContext =
         SolverContextFactory.createSolverContext(pConfig, pLogger, pShutdownNotifier, SMTINTERPOL);
     AbstractFormulaManager<Term, ?, ?, ?> formulaManager =
@@ -454,8 +456,17 @@ public class LassoAnalysis {
 
         try (TerminationArgumentSynthesizer terminationArgumentSynthesizer =
             createTerminationArgumentSynthesizer(lasso, rankingTemplate)) {
-
-          LBool result = terminationArgumentSynthesizer.synthesize();
+          LBool result = null;
+          try {
+            result = terminationArgumentSynthesizer.synthesize();
+          } catch (AssertionError e) {
+            // Workaround for a bug in LassoRanker (terminationArgumentSynthesizer.synthesize()):
+            // An assertion is violated if the time limit is reached.
+            if ("not yet implemented".equals(e.getMessage())) {
+              shutdownNotifier.shutdownIfNecessary();
+            }
+            throw e;
+          }
           if (result.equals(LBool.SAT) && terminationArgumentSynthesizer.synthesisSuccessful()) {
             TerminationArgument terminationArgument = terminationArgumentSynthesizer.getArgument();
             logger.logf(Level.FINE, "Found termination argument: %s", terminationArgument);
@@ -477,14 +488,6 @@ public class LassoAnalysis {
               return LassoAnalysisResult.unknown();
             }
           }
-
-        } catch (AssertionError e) {
-          // Workaround for a bug in LassoRanker (terminationArgumentSynthesizer.synthesize()):
-          // An assertion is violated if the time limit is reached.
-          if (e.getMessage().equals("not yet implemented")) {
-            shutdownNotifier.shutdownIfNecessary();
-          }
-          throw e;
         }
       }
 

@@ -224,7 +224,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       final ReachedSetFactory pReachedSetFactory,
       final TargetLocationProvider pTargetLocationProvider,
       final AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
     pConfig.inject(options);
@@ -257,7 +257,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       final ReachedSetFactory pReachedSetFactory,
       CandidateGenerator candidateGenerator,
       boolean pAsync)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     return new KInductionInvariantGenerator(
         pConfig,
@@ -281,7 +281,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       final boolean pAsync,
       final CandidateGenerator pCandidateGenerator,
       final AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     logger = pLogger;
     shutdownManager = pShutdownNotifier;
 
@@ -309,7 +309,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           @Override
           public Iterator<CandidateInvariant> iterator() {
             final Iterator<CandidateInvariant> it = pCandidateGenerator.iterator();
-            return new Iterator<CandidateInvariant>() {
+            return new Iterator<>() {
 
               @Override
               public boolean hasNext() {
@@ -503,7 +503,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       final ShutdownManager pShutdownManager,
       TargetLocationProvider pTargetLocationProvider,
       Specification pSpecification)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     final Set<CandidateInvariant> candidates = new LinkedHashSet<>();
 
@@ -535,7 +535,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         @Override
         public Iterator<CandidateInvariant> iterator() {
           final Iterator<CandidateInvariant> iterator = super.iterator();
-          return new Iterator<CandidateInvariant>() {
+          return new Iterator<>() {
 
             private CandidateInvariant candidate;
 
@@ -665,7 +665,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             getRelevantAssumeEdges(
                 pTargetLocationProvider.tryGetAutomatonTargetLocations(
                     pCfa.getMainFunction(), pSpecification));
-        return asNegatedCandidateInvariants(assumeEdges, loopHeads.get());
+        return asNegatedCandidateInvariants(assumeEdges, loopHeads.orElseThrow());
       }
     },
 
@@ -709,9 +709,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           }
         }
 
-        VariableClassification varClassification = pCfa.getVarClassification().get();
+        VariableClassification varClassification = pCfa.getVarClassification().orElseThrow();
         Equivalence<AssumeEdge> equivalence =
-            new Equivalence<AssumeEdge>() {
+            new Equivalence<>() {
 
               @Override
               protected boolean doEquivalent(AssumeEdge pA, AssumeEdge pB) {
@@ -810,7 +810,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           }
         }
         return asNegatedCandidateInvariants(
-            FluentIterable.from(assumeEdges).transform(Wrapper::get), loopHeads.get());
+            FluentIterable.from(assumeEdges).transform(Wrapper::get), loopHeads.orElseThrow());
       }
 
       private boolean allowSubstitution(AIdExpression pVariable, AIdExpression pSubstitute) {
@@ -840,7 +840,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           throw new InvalidConfigurationException(
               "Variable classification not available but required to generate candidate invariants.");
         }
-        VariableClassification varClassification = pCfa.getVarClassification().get();
+        VariableClassification varClassification = pCfa.getVarClassification().orElseThrow();
         Optional<ImmutableSet<CFANode>> loopHeads = pCfa.getAllLoopHeads();
         if (!loopHeads.isPresent()) {
           throw new InvalidConfigurationException(
@@ -963,7 +963,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             assumeEdges.add(dummyEdge);
           }
         }
-        return asNegatedCandidateInvariants(assumeEdges, loopHeads.get());
+        return asNegatedCandidateInvariants(assumeEdges, loopHeads.orElseThrow());
       }
     };
   }

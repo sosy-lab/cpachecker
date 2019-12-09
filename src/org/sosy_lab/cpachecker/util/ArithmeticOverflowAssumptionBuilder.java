@@ -27,10 +27,10 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
-import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -70,7 +69,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -81,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -122,20 +121,32 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   private final Map<CType, CLiteralExpression> upperBounds;
   private final Map<CType, CLiteralExpression> lowerBounds;
   private final Map<CType, CLiteralExpression> width;
-  private final CBinaryExpressionBuilder cBinaryExpressionBuilder;
+  private final OverflowAssumptionManager ofmgr;
   private final ExpressionSimplificationVisitor simplificationVisitor;
-  private final CFA cfa;
+  private final MachineModel machineModel;
+  private final Optional<LiveVariables> liveVariables;
   private final LogManager logger;
 
   public ArithmeticOverflowAssumptionBuilder(
       CFA cfa,
       LogManager logger,
       Configuration pConfiguration) throws InvalidConfigurationException {
+    this(cfa.getMachineModel(),cfa.getLiveVariables(),logger, pConfiguration);
+  }
+
+  public ArithmeticOverflowAssumptionBuilder(
+      MachineModel pMachineModel,
+      Optional<LiveVariables> pLiveVariables,
+      LogManager logger,
+      Configuration pConfiguration)
+      throws InvalidConfigurationException {
     pConfiguration.inject(this);
     this.logger = logger;
-    this.cfa = cfa;
+    this.liveVariables = pLiveVariables;
+    machineModel = pMachineModel;
     if (useLiveness) {
-      Preconditions.checkState(cfa.getLiveVariables().isPresent(),
+      Preconditions.checkState(
+          liveVariables.isPresent(),
           "Liveness information is required for overflow analysis.");
     }
 
@@ -153,12 +164,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     trackType(CNumericTypes.LONG_LONG_INT);
     trackType(CNumericTypes.SIGNED_LONG_LONG_INT);
 
-    cBinaryExpressionBuilder = new CBinaryExpressionBuilder(
-        cfa.getMachineModel(),
-        logger);
+    ofmgr = new OverflowAssumptionManager(machineModel, logger);
     simplificationVisitor =
-        new ExpressionSimplificationVisitor(
-            cfa.getMachineModel(), new LogManagerWithoutDuplicates(logger));
+        new ExpressionSimplificationVisitor(machineModel, new LogManagerWithoutDuplicates(logger));
   }
 
   /**
@@ -226,15 +234,15 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   private void trackType(CSimpleType type) {
     CIntegerLiteralExpression typeMinValue =
         new CIntegerLiteralExpression(
-            FileLocation.DUMMY, type, cfa.getMachineModel().getMinimalIntegerValue(type));
+            FileLocation.DUMMY, type, machineModel.getMinimalIntegerValue(type));
     CIntegerLiteralExpression typeMaxValue =
         new CIntegerLiteralExpression(
-            FileLocation.DUMMY, type, cfa.getMachineModel().getMaximalIntegerValue(type));
+            FileLocation.DUMMY, type, machineModel.getMaximalIntegerValue(type));
     CIntegerLiteralExpression typeWidth =
         new CIntegerLiteralExpression(
             FileLocation.DUMMY,
             type,
-            getWidthForMaxOf(cfa.getMachineModel().getMaximalIntegerValue(type)));
+            OverflowAssumptionManager.getWidthForMaxOf(machineModel.getMaximalIntegerValue(type)));
 
     upperBounds.put(type, typeMaxValue);
     lowerBounds.put(type, typeMinValue);
@@ -253,7 +261,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
               .transform(CIdExpression::getDeclaration)
               .toSet();
 
-      Set<ASimpleDeclaration> liveVars = cfa.getLiveVariables().get().getLiveVariablesForNode(node);
+      Set<ASimpleDeclaration> liveVars = liveVariables.orElseThrow().getLiveVariablesForNode(node);
       if (Sets.intersection(referencedDeclarations, liveVars).isEmpty()) {
         logger.log(Level.FINE, "No live variables found in expression", exp,
             "skipping");
@@ -270,34 +278,34 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       if (trackAdditiveOperations
           && (binop.equals(BinaryOperator.PLUS) || binop.equals(BinaryOperator.MINUS))) {
         if (lowerBounds.get(calculationType) != null) {
-          result.add(getLowerAssumption(op1, op2, binop, lowerBounds.get(calculationType)));
+          result.add(ofmgr.getLowerAssumption(op1, op2, binop, lowerBounds.get(calculationType)));
         }
         if (upperBounds.get(calculationType) != null) {
-          result.add(getUpperAssumption(op1, op2, binop, upperBounds.get(calculationType)));
+          result.add(ofmgr.getUpperAssumption(op1, op2, binop, upperBounds.get(calculationType)));
         }
       } else if (trackMultiplications && binop.equals(BinaryOperator.MULTIPLY)) {
         if (lowerBounds.get(calculationType) != null && upperBounds.get(calculationType) != null) {
-          addMultiplicationAssumptions(
+          ofmgr.addMultiplicationAssumptions(
               op1, op2, lowerBounds.get(calculationType), upperBounds.get(calculationType), result);
         }
       } else if (trackDivisions
           && (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.MODULO))) {
         if (lowerBounds.get(calculationType) != null) {
-          addDivisionAssumption(op1, op2, lowerBounds.get(calculationType), result);
+          ofmgr.addDivisionAssumption(op1, op2, lowerBounds.get(calculationType), result);
         }
       } else if (trackLeftShifts && binop.equals(BinaryOperator.SHIFT_LEFT)) {
         if (upperBounds.get(calculationType) != null && width.get(calculationType) != null) {
-          addLeftShiftAssumptions(op1, op2, upperBounds.get(calculationType), result);
+          ofmgr.addLeftShiftAssumptions(op1, op2, upperBounds.get(calculationType), result);
         }
       }
     } else if (exp instanceof CUnaryExpression) {
       CType calculationType = ((CUnaryExpression) exp).getExpressionType();
-      if (lowerBounds.get(calculationType) != null) {
-        CUnaryExpression unaryexp = (CUnaryExpression) exp;
+      CUnaryExpression unaryexp = (CUnaryExpression) exp;
+      if (unaryexp.getOperator().equals(CUnaryExpression.UnaryOperator.MINUS)
+          && lowerBounds.get(calculationType) != null) {
+
         CExpression operand = unaryexp.getOperand();
-        result.add(
-            cBinaryExpressionBuilder.buildBinaryExpression(
-                operand, lowerBounds.get(calculationType), BinaryOperator.NOT_EQUALS));
+        result.add(ofmgr.getNegationAssumption(operand, lowerBounds.get(calculationType)));
       }
     } else {
       // TODO: check out and implement in case this happens
@@ -324,239 +332,6 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     }
   }
 
-  /**
-   * see {@link ArithmeticOverflowAssumptionBuilder#getAdditiveAssumption(CExpression, CExpression, BinaryOperator, CLiteralExpression, boolean)}
-   */
-  private CExpression getUpperAssumption(CExpression operand1, CExpression operand2, BinaryOperator operator,
-      CLiteralExpression max) throws UnrecognizedCodeException {
-    return getAdditiveAssumption(operand1, operand2, operator, max, true);
-  }
-
-  /**
-   * see {@link ArithmeticOverflowAssumptionBuilder#getAdditiveAssumption(CExpression, CExpression, BinaryOperator, CLiteralExpression, boolean)}
-   */
-  private CExpression getLowerAssumption(CExpression operand1, CExpression operand2, BinaryOperator operator,
-      CLiteralExpression min) throws UnrecognizedCodeException {
-    return getAdditiveAssumption(operand1, operand2, operator, min, false);
-  }
-
-  /**
-   * This helper method generates assumptions for checking overflows
-   * in signed integer additions/subtractions. Since the assumptions
-   * are {@link CExpression}s as well, they are structured in such a
-   * way that they do not suffer* from overflows themselves (this is of
-   * particular importance e.g. if bit vector theory is used for
-   * representation!)
-   * *The assumptions contain overflows because the second part
-   * is always evaluated, but their resulting value will then
-   * not depend on the outcome of that part of the formula!
-   *
-   * For addition (operator = BinaryOperator.PLUS) these assumptions
-   * are lower and upper limits:
-   * (operand2 <= 0) | (operand1 <= limit - operand2) // upper limit
-   * (operand2 >= 0) | (operand1 >= limit - operand2) // lower limit
-   *
-   * For subtraction (operator = BinaryOperator.MINUS) the assumptions
-   * are lower and upper limits:
-   * (operand2 >= 0) | (operand1 <= limit + operand2) // upper limit
-   * (operand2 <= 0) | (operand1 >= limit + operand2) // lower limit
-   *
-   * @param operand1 first operand in the C Expression for which the
-   *        assumption should be generated
-   * @param operand2 second operand in the C Expression for which the
-   *        assumption should be generated
-   * @param operator either BinaryOperator.MINUS or BinaryOperator.PLUS
-   * @param limit the {@link CLiteralExpression} representing the
-   *        overflow bound for the type of the expression
-   * @param isUpperLimit whether the limit supplied is the upper bound
-   *        (otherwise it will be used as lower bound)
-   * @return an assumption that has to hold in order for the input
-   *         addition/subtraction NOT to have an overflow
-   */
-  private CExpression getAdditiveAssumption(CExpression operand1, CExpression operand2,
-      BinaryOperator operator, CLiteralExpression limit, boolean isUpperLimit)
-      throws UnrecognizedCodeException {
-
-    boolean isMinusMode = (operator == BinaryOperator.MINUS);
-    assert (isMinusMode
-        || (operator == BinaryOperator.PLUS)) : "operator has to be either BinaryOperator.PLUS or BinaryOperator.MINUS!";
-
-    // We construct assumption by writing each of the 4 possible assumptions as:
-    // term1 | term3
-
-    // where term1 is structured this way:
-    // operand2 term1Operator 0
-    BinaryOperator term1Operator =
-        (isUpperLimit ^ isMinusMode) ? BinaryOperator.LESS_EQUAL : BinaryOperator.GREATER_EQUAL;
-    CExpression term1 = cBinaryExpressionBuilder.buildBinaryExpression(operand2,
-        CIntegerLiteralExpression.ZERO, term1Operator);
-
-    // and term2 is structured this way:
-    // limit term2Operator operand2
-    BinaryOperator term2Operator = isMinusMode ? BinaryOperator.PLUS : BinaryOperator.MINUS;
-    CExpression term2 =
-        cBinaryExpressionBuilder.buildBinaryExpression(limit, operand2, term2Operator);
-
-    // and term3 is structured this way:
-    // operand1 term3Operator term2
-    BinaryOperator term3Operator =
-        isUpperLimit ? BinaryOperator.LESS_EQUAL : BinaryOperator.GREATER_EQUAL;
-    CExpression term3 =
-        cBinaryExpressionBuilder.buildBinaryExpression(operand1, term2, term3Operator);
-
-    // the final assumption will look like this:
-    // (operand1 term1Operator 0) | ( operand1 term3Operator (limit term2Operator operand2) )
-    CExpression assumption =
-        cBinaryExpressionBuilder.buildBinaryExpression(term1, term3, BinaryOperator.BINARY_OR);
-
-    return assumption;
-  }
-
-  /**
-   * This helper method generates assumptions for checking overflows
-   * in signed integer multiplications. Since the assumptions
-   * are {@link CExpression}s as well, they are structured in such a
-   * way that they do not suffer* from overflows themselves (this is of
-   * particular importance e.g. if bit vector theory is used for
-   * representation!)
-   * *The assumptions contain overflows because the second part
-   * is always evaluated, but their resulting value will then
-   * not depend on the outcome of that part of the formula!
-   *
-   * The necessary assumptions for multiplication to be free from
-   * overflows look as follows:
-   * (operand2 <= 0) | (operand1 <= pUpperLimit / operand2)
-   * (operand2 <= 0) | (operand1 >= pLowerLimit / operand2)
-   * (operand1 <= 0) | (operand2 >= pLowerLimit / operand1)
-   * (operand1 >= 0) | (operand2 >= pUpperLimit / operand1)
-   *
-   * @param operand1 first operand in the C Expression for which the
-   *        assumption should be generated
-   * @param operand2 second operand in the C Expression for which the
-   *        assumption should be generated
-   *
-   * @param pLowerLimit the {@link CLiteralExpression} representing the
-   *        overflow bound for the type of the expression
-   * @param pUpperLimit the {@link CLiteralExpression} representing the
-   *        overflow bound for the type of the expression
-   * @param result the set to which the generated assumptions are added
-   */
-  private void addMultiplicationAssumptions(CExpression operand1, CExpression operand2,
-      CLiteralExpression pLowerLimit, CLiteralExpression pUpperLimit, Set<CExpression> result)
-      throws UnrecognizedCodeException {
-
-    for (boolean operand1isFirstOperand : new boolean[] { false, true }) {
-      CExpression firstOperand = operand1isFirstOperand ? operand1 : operand2;
-      CExpression secondOperand = operand1isFirstOperand ? operand2 : operand1;
-      for (boolean usesUpperLimit : new boolean[] { false, true }) {
-        CLiteralExpression limit = usesUpperLimit ? pUpperLimit : pLowerLimit;
-
-        // We construct assumption by writing each of the 4 possible assumptions as:
-        // term1 | term3
-
-        // where term1 is structured this way:
-        // firstOperand term1Operator 0
-        BinaryOperator term1Operator = usesUpperLimit && operand1isFirstOperand
-            ? BinaryOperator.GREATER_EQUAL : BinaryOperator.LESS_EQUAL;
-        CExpression term1 = cBinaryExpressionBuilder.buildBinaryExpression(firstOperand,
-            CIntegerLiteralExpression.ZERO, term1Operator);
-
-        // and term2 is structured this way:
-        // limit BinaryOperator.DIVIDE firstOperand
-        CExpression term2 = cBinaryExpressionBuilder.buildBinaryExpression(limit, firstOperand,
-            BinaryOperator.DIVIDE);
-
-        // and term3 is structured this way:
-        // secondOperand term3Operator term2
-        BinaryOperator term3Operator = usesUpperLimit && !operand1isFirstOperand
-            ? BinaryOperator.LESS_EQUAL : BinaryOperator.GREATER_EQUAL;
-        CExpression term3 =
-            cBinaryExpressionBuilder.buildBinaryExpression(secondOperand, term2, term3Operator);
-
-        // the final assumption will look like this:
-        // (firstOperand term1Operator 0) |
-        // ( secondOperand term3Operator (limit BinaryOperator.DIVIDE firstOperand) )
-        CExpression assumption =
-            cBinaryExpressionBuilder.buildBinaryExpression(term1, term3, BinaryOperator.BINARY_OR);
-        result.add(assumption);
-      }
-    }
-  }
-
-
-  /**
-   * This helper method generates assumptions for checking overflows
-   * in signed integer divisions and modulo operations.
-   *
-   * The necessary assumption for division or modulo to be free from
-   * overflows looks as follows:
-   *
-   * (operand1 != limit) | (operand2 != -1)
-   *
-   * @param operand1 first operand in the C Expression for which the
-   *        assumption should be generated
-   * @param operand2 second operand in the C Expression for which the
-   *        assumption should be generated
-   *
-   * @param limit the smallest value in the expression's type
-   * @param result the set to which the generated assumptions are added
-   */
-  private void addDivisionAssumption(
-      CExpression operand1, CExpression operand2, CLiteralExpression limit, Set<CExpression> result)
-      throws UnrecognizedCodeException {
-
-    // operand1 != limit
-    CExpression term1 =
-        cBinaryExpressionBuilder.buildBinaryExpression(operand1, limit, BinaryOperator.NOT_EQUALS);
-    // -1
-    CExpression term2 = new CUnaryExpression(FileLocation.DUMMY, CNumericTypes.INT,
-        CIntegerLiteralExpression.ZERO, UnaryOperator.MINUS);
-    // operand2 != -1
-    CExpression term3 =
-        cBinaryExpressionBuilder.buildBinaryExpression(operand2, term2, BinaryOperator.NOT_EQUALS);
-    // (operand1 != INT_MIN) | (operand2 != -1)
-    CExpression assumption =
-        cBinaryExpressionBuilder.buildBinaryExpression(term1, term3, BinaryOperator.BINARY_OR);
-    result.add(assumption);
-  }
-
-  /**
-   * @param operand1 first operand in the C Expression for which the assumption should be generated
-   * @param operand2 second operand in the C Expression for which the assumption should be generated
-   * @param limit the largest value in the expression's type
-   * @param result the set to which the generated assumptions are added
-   */
-  private void addLeftShiftAssumptions(
-      CExpression operand1,
-      CExpression operand2,
-      CLiteralExpression limit,
-      Set<CExpression> result)
-      throws UnrecognizedCodeException {
-
-    // For no undefined behavior, both operands need to be positive:
-    // But this is (currently) not considered as overflow!
-    /*result.add(cBinaryExpressionBuilder.buildBinaryExpression(operand1,
-        CIntegerLiteralExpression.ZERO, BinaryOperator.GREATER_EQUAL));
-    result.add(cBinaryExpressionBuilder.buildBinaryExpression(operand2,
-        CIntegerLiteralExpression.ZERO, BinaryOperator.GREATER_EQUAL));*/
-
-    // Shifting the precision of the type or a bigger number of bits  is undefined behavior:
-    // operand2 < width
-    // But this is (currently) not considered as overflow!
-    /*result.add(
-    cBinaryExpressionBuilder.buildBinaryExpression(operand2, width, BinaryOperator.LESS_THAN));*/
-
-    // Shifting out set bits is undefined behavior that is considered to be an overflow.
-    // This is equivalent to the assumption:
-    // operand1 <= (limit >> operand2)
-    CExpression term1 = cBinaryExpressionBuilder.buildBinaryExpression(limit, operand2, BinaryOperator.SHIFT_RIGHT);
-    result.add(
-        cBinaryExpressionBuilder.buildBinaryExpression(operand1, term1, BinaryOperator.LESS_EQUAL));
-  }
-
-  private static BigInteger getWidthForMaxOf(BigInteger pMax) {
-    return BigInteger.valueOf(pMax.bitLength() + 1);
-  }
 
   private class AssumptionsFinder extends DefaultCExpressionVisitor<Void, UnrecognizedCodeException>
       implements CStatementVisitor<Void, UnrecognizedCodeException>,

@@ -326,6 +326,10 @@ public enum MachineModel {
     return sizeofLongLongInt;
   }
 
+  public int getSizeofInt128() {
+    return 128 / getSizeofCharInBits();
+  }
+
   public int getSizeofFloat() {
     return sizeofFloat;
   }
@@ -336,6 +340,10 @@ public enum MachineModel {
 
   public int getSizeofLongDouble() {
     return sizeofLongDouble;
+  }
+
+  public int getSizeofFloat128() {
+    return 128 / getSizeofCharInBits();
   }
 
   public int getSizeofVoid() {
@@ -373,12 +381,16 @@ public enum MachineModel {
         } else {
           return getSizeofInt();
         }
+      case INT128:
+        return getSizeofInt128();
       case DOUBLE:
         if (type.isLong()) {
           return getSizeofLongDouble();
         } else {
           return getSizeofDouble();
         }
+      case FLOAT128:
+        return getSizeofFloat128();
       default:
         throw new AssertionError("Unrecognized CBasicType " + type.getType());
     }
@@ -404,6 +416,10 @@ public enum MachineModel {
     return alignofLongLongInt;
   }
 
+  public int getAlignofInt128() {
+    return getSizeofInt128(); // alignment is same as size for this type
+  }
+
   public int getAlignofFloat() {
     return alignofFloat;
   }
@@ -414,6 +430,10 @@ public enum MachineModel {
 
   public int getAlignofLongDouble() {
     return alignofLongDouble;
+  }
+
+  public int getAlignofFloat128() {
+    return getSizeofFloat128(); // alignment is same as size for this type
   }
 
   public int getAlignofVoid() {
@@ -752,12 +772,16 @@ public enum MachineModel {
           } else {
             return model.getAlignofInt();
           }
+        case INT128:
+          return model.getAlignofInt128();
         case DOUBLE:
           if (pSimpleType.isLong()) {
             return model.getAlignofLongDouble();
           } else {
             return model.getAlignofDouble();
           }
+        case FLOAT128:
+          return model.getAlignofFloat128();
         default:
           throw new AssertionError("Unrecognized CBasicType " + pSimpleType.getType());
       }

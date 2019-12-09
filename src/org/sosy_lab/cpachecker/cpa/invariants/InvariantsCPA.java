@@ -718,7 +718,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       boolean pointersRelevant = true;
       if (inner instanceof InterestingVariableLimitAdjuster
           && cpa.cfa.getVarClassification().isPresent()) {
-        VariableClassification classification = cpa.cfa.getVarClassification().get();
+        VariableClassification classification = cpa.cfa.getVarClassification().orElseThrow();
         if (classification.getAddressedVariables().isEmpty()
             && classification.getAddressedFields().isEmpty()) {
           pointersRelevant = false;

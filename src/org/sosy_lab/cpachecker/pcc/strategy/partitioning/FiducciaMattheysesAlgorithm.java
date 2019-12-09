@@ -113,10 +113,11 @@ public class FiducciaMattheysesAlgorithm {
       return bestV2Gain;
     }
     else {
-      if(bestV1Gain.get().getFirst() > bestV2Gain.get().getFirst() && isBalanced(v1.size()-1, v2.size()+1)) {
+      if (bestV1Gain.orElseThrow().getFirst() > bestV2Gain.orElseThrow().getFirst()
+          && isBalanced(v1.size() - 1, v2.size() + 1)) {
         return bestV1Gain;
-      }
-      else if(bestV1Gain.get().getFirst() <= bestV2Gain.get().getFirst() && isBalanced(v1.size()+1, v2.size()-1)) {
+      } else if (bestV1Gain.orElseThrow().getFirst() <= bestV2Gain.orElseThrow().getFirst()
+          && isBalanced(v1.size() + 1, v2.size() - 1)) {
         // TODO handling equal case separately can be favourable
         return bestV2Gain;
       } else {
@@ -195,8 +196,8 @@ public class FiducciaMattheysesAlgorithm {
       if(!gainAndBuckets.isPresent()) {
         break;
       }
-      long g = gainAndBuckets.get().getFirst();
-      int node = pollNodeFromBucketByGain(g, gainAndBuckets.get().getSecond());
+      long g = gainAndBuckets.orElseThrow().getFirst();
+      int node = pollNodeFromBucketByGain(g, gainAndBuckets.orElseThrow().getSecond());
       lock.put(node, true);
 
       updateNeighbors(node, v1Buckets, v2Buckets, gain, lock);

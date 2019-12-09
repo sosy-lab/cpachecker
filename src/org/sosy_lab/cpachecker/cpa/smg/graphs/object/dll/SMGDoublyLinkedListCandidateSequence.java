@@ -111,14 +111,12 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
 
       SMGEdgeHasValue nfoHve =
           new SMGEdgeHasValue(
-              nextObj2hve.getType(),
               nextObj2hve.getSizeInBits(),
               nextObj2hve.getOffset(),
               newAbsObj,
               nextObj2hve.getValue());
       SMGEdgeHasValue pfoHve =
           new SMGEdgeHasValue(
-              prevObj1hve.getType(),
               prevObj1hve.getSizeInBits(),
               prevObj1hve.getOffset(),
               newAbsObj,

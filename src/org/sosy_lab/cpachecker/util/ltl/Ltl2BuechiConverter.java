@@ -42,6 +42,7 @@ import jhoafparser.parser.HOAFParser;
 import jhoafparser.parser.generated.ParseException;
 import jhoafparser.storage.StoredAutomaton;
 import org.sosy_lab.common.NativeLibraries;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -69,21 +70,25 @@ public class Ltl2BuechiConverter {
    * final {@link Automaton}.
    *
    * @param pFormula the ltl-property together with a list of its atomic propositions
+   * @param pEntryFunction the name of the entry-function
    * @return an automaton from the automaton-framework in CPAchecker
    * @throws LtlParseException if the transformation fails either due to some false values in the
    *     intermediate resulting StoredAutomaton or because of an erroneous config.
    */
   public static Automaton convertFormula(
       LabelledFormula pFormula,
+      String pEntryFunction,
       Configuration pConfig,
       LogManager pLogger,
       MachineModel pMachineModel,
-      Scope pScope)
+      Scope pScope,
+      ShutdownNotifier pShutdownNotifier)
       throws InterruptedException, LtlParseException {
     checkNotNull(pFormula);
 
     StoredAutomaton hoaAutomaton = new Ltl2BuechiConverter(pFormula).createHoaAutomaton();
-    return BuechiConverterUtils.convertFromHOAFormat(hoaAutomaton, pConfig, pLogger, pMachineModel, pScope);
+    return BuechiConverterUtils.convertFromHOAFormat(
+        hoaAutomaton, pEntryFunction, pConfig, pLogger, pMachineModel, pScope, pShutdownNotifier);
   }
 
   /**
@@ -152,11 +157,11 @@ public class Ltl2BuechiConverter {
       }
       storedAutomaton.getStoredHeader().setAPs(list);
 
-      if (storedAutomaton
+      if (!storedAutomaton
           .getStoredHeader()
           .getAPs()
           .stream()
-          .noneMatch(x -> labelledFormula.getAPs().contains(Literal.of(x, false)))) {
+          .allMatch(x -> labelledFormula.getAPs().contains(Literal.of(x, false)))) {
         throw new RuntimeException(
             "Output from external tool contains APs which are not consistent with the APs from the provided ltl formula");
       }

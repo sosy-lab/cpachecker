@@ -117,7 +117,6 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
 
       SMGEdgeHasValue nfoHve =
           new SMGEdgeHasValue(
-              nextObj2hve.getType(),
               nextObj2hve.getSizeInBits(),
               nextObj2hve.getOffset(),
               newAbsObj,

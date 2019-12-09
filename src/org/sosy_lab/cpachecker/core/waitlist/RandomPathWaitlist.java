@@ -102,7 +102,7 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
   private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
     s.defaultReadObject();
     Integer nodeNumber = (Integer) s.readObject();
-    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
     parent = nodeNumber == null ? null : cfaInfo.getNodeByNodeNumber(nodeNumber);
   }
 }

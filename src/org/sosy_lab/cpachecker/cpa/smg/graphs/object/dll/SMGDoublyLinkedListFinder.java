@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
+  @VisibleForTesting
   public SMGDoublyLinkedListFinder() {
     super();
   }
@@ -65,7 +66,9 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
   @Override
   public Set<SMGAbstractionCandidate> traverse(
-      CLangSMG pSmg, UnmodifiableSMGState pSMGState, Set<SMGAbstractionBlock> pAbstractionBlocks)
+      UnmodifiableCLangSMG pSmg,
+      UnmodifiableSMGState pSMGState,
+      Set<SMGAbstractionBlock> pAbstractionBlocks)
       throws SMGInconsistentException {
     SMGJoinDllProgress progress = new SMGJoinDllProgress();
 
@@ -88,7 +91,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
   private void startTraversal(
       SMGObject pObject,
-      CLangSMG pSmg,
+      UnmodifiableCLangSMG pSmg,
       UnmodifiableSMGState pSmgState,
       SMGJoinDllProgress pProgress)
       throws SMGInconsistentException {
@@ -102,7 +105,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
   private void createCandidatesOfObject(
       SMGObject pObject,
-      CLangSMG pSmg,
+      UnmodifiableCLangSMG pSmg,
       UnmodifiableSMGState pSMGState,
       SMGJoinDllProgress pProgress)
       throws SMGInconsistentException {
@@ -121,12 +124,9 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
       return;
     }
 
-    for (SMGEdgeHasValue hveNext : hvesOfObject) {
+    for (final SMGEdgeHasValue hveNext : hvesOfObject) {
 
-      long nfo = hveNext.getOffset();
-      CType nfoType = hveNext.getType();
       SMGValue nextPointer = hveNext.getValue();
-
       if (!pSmg.isPointer(nextPointer)) {
         continue;
       }
@@ -134,7 +134,6 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
       SMGEdgePointsTo nextPointerEdge = pSmg.getPointer(nextPointer);
       long hfo = nextPointerEdge.getOffset();
       SMGTargetSpecifier nextPointerTg = nextPointerEdge.getTargetSpecifier();
-
       if (!(nextPointerTg == SMGTargetSpecifier.REGION
           || nextPointerTg == SMGTargetSpecifier.FIRST)) {
         continue;
@@ -142,7 +141,8 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
       SMGObject nextObject = nextPointerEdge.getObject();
 
-      Set<SMGEdgeHasValue> nextObjectHves = pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject));
+      Set<SMGEdgeHasValue> nextObjectHves =
+          pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject));
 
       if (nextObjectHves.size() < 2) {
         continue;
@@ -164,16 +164,16 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         continue;
       }
 
+      long nfo = hveNext.getOffset();
       for (SMGEdgeHasValue hvePrev : nextObjectHves) {
 
         long pfo = hvePrev.getOffset();
-        CType pfoType = hvePrev.getType();
-        SMGValue prevPointer = hvePrev.getValue();
 
         if(!(nfo < pfo)) {
           continue;
         }
 
+        SMGValue prevPointer = hvePrev.getValue();
         if (!pSmg.isPointer(prevPointer)) {
           continue;
         }
@@ -210,7 +210,14 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
         SMGDoublyLinkedListCandidate candidate =
             new SMGDoublyLinkedListCandidate(
-                pObject, pObject, hfo, pfo, nfo, pfoType, nfoType, pSmg.getMachineModel());
+                pObject,
+                pObject,
+                hfo,
+                pfo,
+                nfo,
+                hvePrev.getSizeInBits(),
+                hveNext.getSizeInBits(),
+                pSmg.getMachineModel());
         pProgress.initializeCandidiate(candidate);
         continueTraversal(nextPointer, candidate, pSmg, pSMGState, pProgress);
       }
@@ -220,7 +227,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
   private void continueTraversal(
       SMGValue pValue,
       SMGDoublyLinkedListCandidate pPrevCandidate,
-      CLangSMG pSmg,
+      UnmodifiableCLangSMG pSmg,
       UnmodifiableSMGState pSmgState,
       SMGJoinDllProgress pProgress)
       throws SMGInconsistentException {
@@ -281,8 +288,8 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
               hfo,
               pfo,
               nfo,
-              pfoField.getType(),
-              nfoField.getType(),
+              pfoField.getSizeInBits(),
+              nfoField.getSizeInBits(),
               pSmg.getMachineModel());
       pProgress.initializeLastInSequenceCandidate(candidate);
     } else {

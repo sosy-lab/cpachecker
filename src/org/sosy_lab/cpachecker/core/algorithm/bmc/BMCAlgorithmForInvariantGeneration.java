@@ -72,7 +72,7 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
       BMCStatistics pBMCStatistics,
       CandidateGenerator pCandidateGenerator,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     super(
         pAlgorithm,
         pCPA,

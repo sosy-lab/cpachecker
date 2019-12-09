@@ -34,14 +34,16 @@
     <dependencies>
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-357-gc47b29f" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-380-gd4e86457" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="28.0-jre" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="28.1-jre" conf="runtime->default; contrib->sources"/>
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.3.1-15-gdb8139f" conf="runtime->runtime; contrib->sources"/>
-
+        <!-- ParallelJBDD
+            Parallel java BDD library for predicate abstraction. -->
+        <dependency org="org.sosy_lab" name="pjbdd" rev="1.0.0-2-gcbca148" conf="runtime->runtime; contrib->sources"/>
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
         <dependency org="net.sf.javabdd" name="javabdd" rev="1.0b2-sosy0" conf="runtime->runtime; contrib->sources"/>
@@ -76,7 +78,8 @@
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="3.0.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="3.2.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="3.2.0" conf="build->default"/>
 
         <!-- Antlr
              Parser generator. -->
@@ -93,7 +96,7 @@
         <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="1.0" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="28.0-jre" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava-testlib" rev="28.1-jre" conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
@@ -102,8 +105,8 @@
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
-        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.3.3" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.3.3" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.3.4" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.3.4" conf="build->default; contrib->sources" />
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
@@ -120,13 +123,14 @@
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- Checkstyle -->
-        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.34.0" conf="checkstyle->default"/>
+        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.36.0" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.26" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="java-smt" rev="3.0.0" conf="runtime->runtime; contrib->sources">
+        <dependency org="org.sosy_lab" name="java-smt" rev="3.3.0" conf="runtime->runtime; contrib->sources">
           <!-- OptiMathSAT causes segfaults: https://github.com/sosy-lab/java-smt/issues/132 -->
           <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
         </dependency>
@@ -135,10 +139,10 @@
              Synthesis of ranking functions for termination analysis. -->
         <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2016-09-06-rd1adfdb" conf="runtime->runtime; contrib->sources"/>
 
-        <dependency org="org.apache.xmlgraphics" name="batik-svggen" rev="1.9.1" conf="runtime->default; contrib->sources">
+        <dependency org="org.apache.xmlgraphics" name="batik-svggen" rev="1.12" conf="runtime->default; contrib->sources">
             <exclude org="org.apache.xmlgraphics" module="xmlgraphics-commons"/>
         </dependency>
-        <dependency org="org.apache.xmlgraphics" name="batik-dom" rev="1.9.1" conf="runtime->default; contrib->sources">
+        <dependency org="org.apache.xmlgraphics" name="batik-dom" rev="1.12" conf="runtime->default; contrib->sources">
             <exclude org="xml-apis" module="xml-apis-ext"/>
             <exclude org="xml-apis" module="xml-apis"/>
             <exclude org="xalan" module="xalan"/>
@@ -147,7 +151,7 @@
         </dependency>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.3.3"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.3.4"/>
 
     </dependencies>
 </ivy-module>

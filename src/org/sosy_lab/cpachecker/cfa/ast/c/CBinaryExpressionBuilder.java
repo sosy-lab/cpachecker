@@ -563,8 +563,7 @@ public class CBinaryExpressionBuilder {
     throw new AssertionError("unhandled type: " + t1 + " or " + t2);
   }
 
-
-  /** returns an index, so that:  BOOL < CHAR < SHORT < INT < LONG < LONGLONG. */
+  /** returns an index, so that: BOOL < CHAR < SHORT < INT < LONG < LONGLONG < INT128. */
   private static int getConversionRank(CSimpleType t) {
 
     CBasicType type = t.getType();
@@ -590,6 +589,9 @@ public class CBinaryExpressionBuilder {
       if (t.isLong()) { return 50; }
       if (t.isLongLong()) { return 60; }
       return 40;
+
+      case INT128:
+        return 70;
 
     default:
       throw new AssertionError("unhandled CSimpleType: " + t);

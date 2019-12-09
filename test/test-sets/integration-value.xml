@@ -26,6 +26,7 @@
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/floats-cbmc-regression/float4.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/newton_*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/float-newlib/*</exclude> <!-- only timeout -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
@@ -33,13 +34,12 @@
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/ntdrivers/cdaudio.i.cil-1.yml</exclude> <!-- flapping timeout -->
-    <exclude>../programs/benchmarks/systemc/transmitter.*</exclude> <!-- mostly timeout -->
-    <exclude>../programs/benchmarks/systemc/token_ring.*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/ssh/s3_srvr.*</exclude> <!-- infeasible cex can't be removed -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/list-simple/*</exclude> <!-- only timeout -->
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
@@ -48,13 +48,15 @@
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <exclude>../programs/benchmarks/systemc/transmitter.*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/systemc/token_ring.*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*</exclude> <!-- only timeouts and unknowns -->
     <exclude>../programs/benchmarks/seq-pthread/cs_s*</exclude> <!-- only timeouts and unknowns -->
     <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock-1.yml</exclude> <!-- flapping timeout/unknown -->
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>

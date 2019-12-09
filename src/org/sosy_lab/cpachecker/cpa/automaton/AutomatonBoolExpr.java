@@ -722,15 +722,14 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     private final int predecessorNodeNumber;
     private final int successorNodeNumber;
-    private final Pattern pattern; // temp.; will be removed in the future
 
-    public MatchCFAEdgeNodes(
-        int pPredecessorNodeNumber,
-        int pSuccessorNodeNumber,
-        String pPattern) {
+    public MatchCFAEdgeNodes(CFAEdge pEdge) {
+      this(pEdge.getPredecessor().getNodeNumber(), pEdge.getSuccessor().getNodeNumber());
+    }
+
+    public MatchCFAEdgeNodes(int pPredecessorNodeNumber, int pSuccessorNodeNumber) {
       predecessorNodeNumber = pPredecessorNodeNumber;
       successorNodeNumber = pSuccessorNodeNumber;
-      pattern = Pattern.compile(pPattern);
     }
 
     @Override
@@ -745,22 +744,12 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "MATCH TRANSITION ["
-          + predecessorNodeNumber
-          + " -> "
-          + successorNodeNumber
-          + " (\""
-          + pattern
-          + "\") ] ";
+      return "MATCH TRANSITION [" + predecessorNodeNumber + " -> " + successorNodeNumber + "]";
     }
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + predecessorNodeNumber;
-      result = prime * result + successorNodeNumber;
-      return result;
+      return Objects.hash(predecessorNodeNumber, successorNodeNumber);
     }
 
     @Override

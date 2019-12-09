@@ -326,10 +326,13 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
 
   @Override
   public void setPartitioning(BlockPartitioning partitioning) {
-    cpas.forEach(e -> {
-      assert e instanceof ConfigurableProgramAnalysisWithBAM;
-      ((ConfigurableProgramAnalysisWithBAM) e).setPartitioning(partitioning);
-    });
+    cpas.forEach(
+        cpa -> {
+          Preconditions.checkState(
+              cpa instanceof ConfigurableProgramAnalysisWithBAM,
+              "wrapped CPA does not support BAM: " + cpa.getClass().getCanonicalName());
+          ((ConfigurableProgramAnalysisWithBAM) cpa).setPartitioning(partitioning);
+        });
   }
 
   @Override

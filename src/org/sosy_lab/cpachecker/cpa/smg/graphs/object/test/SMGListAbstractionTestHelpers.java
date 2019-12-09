@@ -171,7 +171,7 @@ public final class SMGListAbstractionTestHelpers {
   }
 
   // in contrast to linked regions( and linked sll's), linked dll's need two addresses each
-  public static SMGValue[] linkObjectsOnHeap(
+  static SMGValue[] linkObjectsOnHeap(
       CLangSMG pSmg,
       SMGValue[] pAddresses,
       int pHfo,
@@ -218,7 +218,7 @@ public final class SMGListAbstractionTestHelpers {
       SMGEdgeHasValue previousHvNext;
       if (i == 0) {
         if (pCircularity == SMGListCircularity.OPEN && pLinkage == SMGListLinkage.DOUBLY_LINKED) {
-          hvPrev = new SMGEdgeHasValue(ptrType, ptrSize, pPfo, node, SMGZeroValue.INSTANCE);
+          hvPrev = new SMGEdgeHasValue(ptrSize, pPfo, node, SMGZeroValue.INSTANCE);
           pSmg.addHasValueEdge(hvPrev);
         }
       } else {
@@ -238,14 +238,14 @@ public final class SMGListAbstractionTestHelpers {
             } else {
               address2 = Iterables.getOnlyElement(pte).getValue();
             }
-            hvPrev = new SMGEdgeHasValue(ptrType, ptrSize, pPfo, node, address2);
+            hvPrev = new SMGEdgeHasValue(ptrSize, pPfo, node, address2);
             pSmg.addHasValueEdge(hvPrev);
           } else {
-            hvPrev = new SMGEdgeHasValue(ptrType, ptrSize, pPfo, node, previousAddress);
+            hvPrev = new SMGEdgeHasValue(ptrSize, pPfo, node, previousAddress);
             pSmg.addHasValueEdge(hvPrev);
           }
         }
-        previousHvNext = new SMGEdgeHasValue(ptrType, ptrSize, pNfo, previousNode, address);
+        previousHvNext = new SMGEdgeHasValue(ptrSize, pNfo, previousNode, address);
         pSmg.addHasValueEdge(previousHvNext);
       }
     }
@@ -253,7 +253,7 @@ public final class SMGListAbstractionTestHelpers {
     SMGEdgeHasValue hvNext;
     SMGEdgeHasValue hvPrev;
     if (pCircularity.equals(SMGListCircularity.CIRCULAR)) {
-      hvNext = new SMGEdgeHasValue(ptrType, ptrSize, pNfo, node, firstAddress);
+      hvNext = new SMGEdgeHasValue(ptrSize, pNfo, node, firstAddress);
       if (pLinkage == SMGListLinkage.DOUBLY_LINKED) {
         if (node.getKind() == SMGObjectKind.DLL) {
           SMGValue address2 = null;
@@ -270,15 +270,15 @@ public final class SMGListAbstractionTestHelpers {
           } else {
             address2 = Iterables.getOnlyElement(pte).getValue();
           }
-          hvPrev = new SMGEdgeHasValue(ptrType, ptrSize, pPfo, firstNode, address2);
+          hvPrev = new SMGEdgeHasValue(ptrSize, pPfo, firstNode, address2);
           pSmg.addHasValueEdge(hvPrev);
         } else {
-          hvPrev = new SMGEdgeHasValue(ptrType, ptrSize, pPfo, firstNode, address);
+          hvPrev = new SMGEdgeHasValue(ptrSize, pPfo, firstNode, address);
           pSmg.addHasValueEdge(hvPrev);
         }
       }
     } else {
-      hvNext = new SMGEdgeHasValue(ptrType, ptrSize, pNfo, node, SMGZeroValue.INSTANCE);
+      hvNext = new SMGEdgeHasValue(ptrSize, pNfo, node, SMGZeroValue.INSTANCE);
     }
     pSmg.addHasValueEdge(hvNext);
 
@@ -330,7 +330,7 @@ public final class SMGListAbstractionTestHelpers {
     }
   }
 
-  public static SMGValue[] addLinkedRegionsWithValuesToHeap(
+  static SMGValue[] addLinkedRegionsWithValuesToHeap(
       CLangSMG pSmg,
       SMGValue[] pValues,
       int pSize,
@@ -350,7 +350,7 @@ public final class SMGListAbstractionTestHelpers {
     return linkObjectsOnHeap(pSmg, addresses, pHfo, pNfo, pPfo, pCircularity, pLinkage);
   }
 
-  public static SMGValue[] addLinkedRegionsWithRegionsWithValuesToHeap(
+  static SMGValue[] addLinkedRegionsWithRegionsWithValuesToHeap(
       CLangSMG pSmg,
       SMGValue[] pValues,
       int pRegionSize,
@@ -377,7 +377,7 @@ public final class SMGListAbstractionTestHelpers {
     return linkObjectsOnHeap(pSmg, addresses, pHfo, pNfo, pPfo, pCircularity, pLinkage);
   }
 
-  public static SMGValue[] addLinkedRegionsWithSublistsWithValuesToHeap(
+  static SMGValue[] addLinkedRegionsWithSublistsWithValuesToHeap(
       CLangSMG pSmg,
       SMGValue[][] pSublists,
       int pNodeSize,
@@ -407,7 +407,7 @@ public final class SMGListAbstractionTestHelpers {
     return linkObjectsOnHeap(pSmg, addresses, pHfo, pNfo, pPfo, pCircularity, pLinkage);
   }
 
-  public static SMGValue[] addLinkedListsWithValuesToHeap(
+  static SMGValue[] addLinkedListsWithValuesToHeap(
       CLangSMG pSmg,
       SMGValue[][] pLists,
       int pNodeSize,
@@ -432,19 +432,18 @@ public final class SMGListAbstractionTestHelpers {
     return linkObjectsOnHeap(pSmg, addresses, pHfo, pNfo, pPfo, pCircularity, pLinkage);
   }
 
-  public static SMGRegion addGlobalListPointerToSMG(
-      CLangSMG pSmg, SMGValue pHeadAddress, String pLabel) {
+  static SMGRegion addGlobalListPointerToSMG(CLangSMG pSmg, SMGValue pHeadAddress, String pLabel) {
     SMGRegion globalVar = new SMGRegion(8 * pSmg.getMachineModel().getSizeofPtr(), pLabel);
     CSimpleType ptrType = pSmg.getMachineModel().getPointerEquivalentSimpleType();
     SMGEdgeHasValue hv =
         new SMGEdgeHasValue(
-            ptrType, pSmg.getMachineModel().getSizeofInBits(ptrType), 0, globalVar, pHeadAddress);
+            pSmg.getMachineModel().getSizeofInBits(ptrType), 0, globalVar, pHeadAddress);
     pSmg.addGlobalObject(globalVar);
     pSmg.addHasValueEdge(hv);
     return globalVar;
   }
 
-  public static void executeHeapAbstractionWithConsistencyChecks(SMGState pState, CLangSMG pSmg)
+  static void executeHeapAbstractionWithConsistencyChecks(SMGState pState, CLangSMG pSmg)
       throws SMGInconsistentException {
     SMGAbstractionManager manager =
         new SMGAbstractionManager(LogManager.createTestLogManager(), pSmg, pState);
@@ -453,7 +452,7 @@ public final class SMGListAbstractionTestHelpers {
     pState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
   }
 
-  public static void assertAbstractListSegmentAsExpected(
+  static void assertAbstractListSegmentAsExpected(
       SMGObject pSegment, int pRegionSize, int pLevel, SMGObjectKind pListKind, int pListLength) {
     assertThat(pSegment.isAbstract()).isTrue();
     Truth.assertThat(pSegment.getSize()).isEqualTo(pRegionSize);
@@ -465,7 +464,7 @@ public final class SMGListAbstractionTestHelpers {
     Truth.assertThat(segmentAsList.getMinimumLength()).isEqualTo(pListLength);
   }
 
-  public static void assertStoredDataOfAbstractList(
+  static void assertStoredDataOfAbstractList(
       CLangSMG pSmg, SMGValue[] pValues, SMGObject pObject, int pDfo) {
     boolean allValuesEqual = Arrays.stream(pValues).distinct().count() == 1;
     if (allValuesEqual) {
@@ -478,7 +477,7 @@ public final class SMGListAbstractionTestHelpers {
     }
   }
 
-  public static void assertStoredDataOfAbstractSublist(
+  static void assertStoredDataOfAbstractSublist(
       CLangSMG pSmg, SMGValue[][] pSublists, SMGObject pSubobject, int pDfo) {
     boolean onlyNonEmptySublists = Stream.of(pSublists).noneMatch(e -> e == null || e.length == 0);
     boolean allValuesEqualInUnionOfSublists =

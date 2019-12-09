@@ -171,7 +171,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if(!variableClassification.isPresent()) {
       return new BnBRegionManager(variableClassification, ImmutableMultimap.of(), typeHandler);
     }
-    VariableClassification var = variableClassification.get();
+    VariableClassification var = variableClassification.orElseThrow();
     Multimap<CCompositeType, String> relevant = var.getRelevantFields();
     Multimap<CCompositeType, String> addressed = var.getAddressedFields();
 
@@ -386,8 +386,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return Whether the variable declaration is addressed or not.
    */
   private boolean isAddressedVariable(CDeclaration var) {
-    return !variableClassification.isPresent() ||
-        variableClassification.get().getAddressedVariables().contains(var.getQualifiedName());
+    return !variableClassification.isPresent()
+        || variableClassification
+            .orElseThrow()
+            .getAddressedVariables()
+            .contains(var.getQualifiedName());
   }
 
   /**
@@ -491,7 +494,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           fields.add(CompositeField.of(compositeType, memberDeclaration));
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           addValueImportConstraints(
-              fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset.getAsLong())),
+              fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset.orElseThrow())),
               newBaseName,
               memberType,
               fields,
@@ -519,46 +522,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
-   * Expand a string literal to an array of characters.
-   *
-   * http://stackoverflow.com/a/6915917
-   * As the C99 Draft Specification's 32nd Example in §6.7.8 (p. 130) states
-   *    char s[] = "abc", t[3] = "abc";
-   *  is identical to:
-   *    char s[] = { 'a', 'b', 'c', '\0' }, t[] = { 'a', 'b', 'c' };
-   *
-   * @param e The string that has to be expanded
-   * @param type The type of the character array.
-   * @return List of character-literal expressions
-   */
-  private static List<CCharLiteralExpression> expandStringLiteral(final CStringLiteralExpression e,
-                                                                  final CArrayType type) {
-    // The string is either NULL terminated, or not.
-    // If the length is not provided explicitly, NULL termination is used
-    final String s = e.getContentString();
-    final int length = type.getLengthAsInt().orElse(s.length() + 1);
-    assert length >= s.length();
-
-    // create one CharLiteralExpression for each character of the string
-    final List<CCharLiteralExpression> result = new ArrayList<>();
-    for (int i = 0; i < s.length(); i++) {
-      result.add(new CCharLiteralExpression(e.getFileLocation(), CNumericTypes.SIGNED_CHAR, s.charAt(i)));
-    }
-
-
-    // http://stackoverflow.com/questions/10828294/c-and-c-partial-initialization-of-automatic-structure
-    // C99 Standard 6.7.8.21
-    // If there are ... fewer characters in a string literal
-    // used to initialize an array of known size than there are elements in the array,
-    // the remainder of the aggregate shall be initialized implicitly ...
-    for (int i = s.length(); i < length; i++) {
-      result.add(new CCharLiteralExpression(e.getFileLocation(), CNumericTypes.SIGNED_CHAR, '\0'));
-    }
-
-    return result;
-  }
-
-  /**
    * Expands a string literal to an array of characters.
    *
    * @param assignments The list of assignments.
@@ -577,13 +540,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         if (lhsType instanceof CArrayType) {
           lhsArrayType = (CArrayType) lhsType;
         } else if (lhsType instanceof CPointerType) {
+          //TODO someone has to check if length must be fixed to string size here if yes replace with stringExp.tranformTypeToArrayType
           lhsArrayType = new CArrayType(false, false, ((CPointerType) lhsType).getType(), null);
         } else {
           throw new UnrecognizedCodeException(
               "Assigning string literal to " + lhsType.toString(), assignment);
         }
 
-        List<CCharLiteralExpression> chars = expandStringLiteral((CStringLiteralExpression) rhs, lhsArrayType);
+        List<CCharLiteralExpression> chars = ((CStringLiteralExpression) rhs).expandStringLiteral(lhsArrayType);
 
         int offset = 0;
         for (CCharLiteralExpression e : chars) {
@@ -652,7 +616,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CType elementType = checkIsSimplified(arrayType.getType());
       final OptionalInt length = arrayType.getLengthAsInt();
       if (length.isPresent()) {
-        final int l = Math.min(length.getAsInt(), options.maxArrayLength());
+        final int l = Math.min(length.orElseThrow(), options.maxArrayLength());
         for (int i = 0; i < l; i++) {
           final CLeftHandSide newLhs = new CArraySubscriptExpression(
                                              lhs.getFileLocation(),

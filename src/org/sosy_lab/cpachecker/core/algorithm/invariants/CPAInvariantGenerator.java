@@ -328,7 +328,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
         logger.log(Level.INFO, SAFE_MESSAGE);
         programIsSafe = true;
         if (shutdownOnSafeNotifier.isPresent()) {
-          shutdownOnSafeNotifier.get().requestShutdown(SAFE_MESSAGE);
+          shutdownOnSafeNotifier.orElseThrow().requestShutdown(SAFE_MESSAGE);
         }
       }
 

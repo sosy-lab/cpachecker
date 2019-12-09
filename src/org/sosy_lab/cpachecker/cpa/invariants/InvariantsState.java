@@ -736,8 +736,10 @@ public class InvariantsState implements AbstractState,
 
     NonRecursiveEnvironment resultEnvironment = environment;
     Set<BooleanFormula<CompoundInterval>> resultAssumptions = new HashSet<>();
+    final CollectFormulasVisitor<CompoundInterval> variableCollectionVisitor =
+        new CollectFormulasVisitor<>(Predicates.instanceOf(Variable.class));
     for (BooleanFormula<CompoundInterval> assumption : assumptions) {
-      if (Collections.disjoint(assumption.accept(COLLECT_VARS_VISITOR), toClear)) {
+      if (Collections.disjoint(assumption.accept(variableCollectionVisitor), toClear)) {
         resultAssumptions.add(assumption);
       }
     }
@@ -1714,7 +1716,7 @@ public class InvariantsState implements AbstractState,
 
   private Set<Variable<CompoundInterval>> getVariables(final Predicate<MemoryLocation> pMemoryLocationPredicate) {
     final Set<Variable<CompoundInterval>> result = new HashSet<>();
-    Predicate<NumeralFormula<CompoundInterval>> pCondition = new Predicate<NumeralFormula<CompoundInterval>>() {
+    Predicate<NumeralFormula<CompoundInterval>> pCondition = new Predicate<>() {
 
       @Override
       public boolean apply(NumeralFormula<CompoundInterval> pFormula) {

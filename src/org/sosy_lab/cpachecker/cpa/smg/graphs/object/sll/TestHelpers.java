@@ -43,7 +43,6 @@ public final class TestHelpers {
       if (value == null) {
         hv =
             new SMGEdgeHasValue(
-                CPointerType.POINTER_TO_VOID,
                 pSmg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
                 pOffset,
                 node,
@@ -51,7 +50,6 @@ public final class TestHelpers {
       } else {
         hv =
             new SMGEdgeHasValue(
-                CPointerType.POINTER_TO_VOID,
                 pSmg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
                 pOffset,
                 node,
@@ -72,7 +70,6 @@ public final class TestHelpers {
     SMGRegion globalVar = new SMGRegion(64, pVariable);
     SMGEdgeHasValue hv =
         new SMGEdgeHasValue(
-            CPointerType.POINTER_TO_VOID,
             pSmg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
             0,
             globalVar,

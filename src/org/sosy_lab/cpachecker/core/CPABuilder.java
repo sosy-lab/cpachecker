@@ -117,6 +117,7 @@ public class CPABuilder {
       factory.set(cfa, CFA.class);
       factory.set(pAggregatedReachedSets, AggregatedReachedSets.class);
       factory.set(automaton, Automaton.class);
+      factory.setShutdownNotifier(shutdownNotifier);
 
       cpas.add(factory.createInstance());
     }
@@ -157,7 +158,7 @@ public class CPABuilder {
       Optional<ConfigurableProgramAnalysis> first =
           cpas.stream().filter(x -> x instanceof ControlAutomatonCPA).findFirst();
       if (first.isPresent()) {
-        ConfigurableProgramAnalysis cpa = first.get();
+        ConfigurableProgramAnalysis cpa = first.orElseThrow();
         cpas.remove(cpa);
         return cpa;
       }

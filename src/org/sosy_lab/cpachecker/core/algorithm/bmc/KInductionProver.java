@@ -41,6 +41,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -593,11 +594,9 @@ class KInductionProver implements AutoCloseable {
       Iterable<AbstractState> pReached, CandidateInvariant pCandidateInvariant, int pK)
       throws CPATransferException, InterruptedException {
     FluentIterable<AbstractState> states = filterIteration(pReached, pK, loopHeads);
-    BooleanFormula assertion = bfmgr.makeTrue();
+    final List<BooleanFormula> assertions = new ArrayList<>();
     for (CandidateInvariant component :
         CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
-      final BooleanFormula candidateAssertion;
-
       if (component instanceof TargetLocationCandidateInvariant) {
         Iterable<AbstractState> candidateAssertionStates =
             states.filter(
@@ -608,20 +607,16 @@ class KInductionProver implements AutoCloseable {
                           || from(AbstractStates.extractLocations(s))
                               .anyMatch(loopHeads::contains));
                 });
-        candidateAssertion = createFormulaFor(candidateAssertionStates, bfmgr);
+        assertions.add(createFormulaFor(candidateAssertionStates, bfmgr));
       } else {
         Iterable<AbstractState> candidateAssertionStates =
             states.filter(
                 s -> from(AbstractStates.extractLocations(s)).anyMatch(component::appliesTo));
-        candidateAssertion =
-            bfmgr.and(
-                createFormulaFor(candidateAssertionStates, bfmgr),
-                component.getAssertion(candidateAssertionStates, fmgr, pfmgr));
+        assertions.add(createFormulaFor(candidateAssertionStates, bfmgr));
+        assertions.add(component.getAssertion(candidateAssertionStates, fmgr, pfmgr));
       }
-
-      assertion = bfmgr.and(assertion, candidateAssertion);
     }
-    return assertion;
+    return bfmgr.and(assertions);
   }
 
   private BooleanFormula inductiveLoopHeadInvariantAssertion(
@@ -640,10 +635,7 @@ class KInductionProver implements AutoCloseable {
       throws InterruptedException, CPAException {
     if (pReached.size() <= 1 && cfa.getLoopStructure().isPresent()) {
       Stream<CFANode> relevantLoopHeads =
-          cfa.getLoopStructure()
-              .get()
-              .getAllLoops()
-              .stream()
+          cfa.getLoopStructure().orElseThrow().getAllLoops().stream()
               .filter(loop -> !BMCHelper.isTrivialSelfLoop(loop))
               .map(Loop::getLoopHeads)
               .flatMap(Collection::stream)
@@ -744,7 +736,7 @@ class KInductionProver implements AutoCloseable {
                 });
 
         ImmutableMap.Builder<String, ModelValue> modelBuilder = ImmutableMap.builder();
-        BooleanFormula input = bfmgr.makeTrue();
+        final List<BooleanFormula> input = new ArrayList<>();
 
         for (ValueAssignment valueAssignment : pModelAssignments) {
           if (!valueAssignment.isFunction()) {
@@ -755,8 +747,8 @@ class KInductionProver implements AutoCloseable {
             Object value = valueAssignment.getValue();
             if (index.isPresent()
                 && (ssaMap.containsVariable(actualName)
-                    ? ssaMap.getIndex(actualName) == index.getAsInt()
-                    : index.getAsInt() == 1)
+                    ? ssaMap.getIndex(actualName) == index.orElseThrow()
+                    : index.orElseThrow() == 1)
                 && value instanceof Number
                 && !inputs.containsKey(actualName)) {
               BooleanFormula assignment =
@@ -785,18 +777,17 @@ class KInductionProver implements AutoCloseable {
             boolean isUnconnected = false;
             if (index.isPresent()
                 && ssaMap.containsVariable(actualName)
-                && index.getAsInt() < ssaMap.getIndex(actualName)) {
+                && index.orElseThrow() < ssaMap.getIndex(actualName)) {
               isUnconnected = !variableFormulas.get().containsKey(fullName);
             }
             if ((!index.isPresent()
                 || (index.isPresent()
-                    && (isUnconnected || inputs.get(actualName).contains(index.getAsInt()))))) {
-              BooleanFormula assignment = valueAssignment.getAssignmentAsFormula();
-              input = bfmgr.and(input, assignment);
+                    && (isUnconnected || inputs.get(actualName).contains(index.orElseThrow()))))) {
+              input.add(valueAssignment.getAssignmentAsFormula());
             }
           }
 
-          ctis.put(cti, input);
+          ctis.put(cti, bfmgr.and(input));
         }
       }
     }

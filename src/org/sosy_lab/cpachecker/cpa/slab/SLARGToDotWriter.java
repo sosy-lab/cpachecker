@@ -104,8 +104,9 @@ public class SLARGToDotWriter {
     builder.append("label=\"").append(determineLabel(pState));
 
     Iterable<CFANode> locations = pState.getLocationNodes();
-    SortedSet<Integer> locationNumbers =
-        from(locations).transform(CFANode::getNodeNumber).toSortedSet(Comparator.naturalOrder());
+    Collection<Integer> locationNumbers =
+        from(locations).transform(CFANode::getNodeNumber).toList();
+    builder.append("@N");
     builder.append(generateLocationString(locationNumbers));
     builder.append("\" ");
     builder.append("id=\"").append(pState.getStateId()).append(String.format("\"]%n"));
@@ -199,9 +200,15 @@ public class SLARGToDotWriter {
         pInteger, pInteger, state.getStateId());
   }
 
-  private static StringBuilder generateLocationString(SortedSet<Integer> locationNumbers) {
+  /*
+   * This method can be used to generate a compact String describing a set of integers.
+   * Continous ranges will be abbreviated by a dash, e.g. 1-5, non-continous integers will be separated by commas.
+   * Example: The integers {1,3,4,5,7} will be written as "1,3-5,7"
+   */
+  public static StringBuilder generateLocationString(Collection<Integer> pLocationNumbers) {
+    SortedSet<Integer> locationNumbers =
+        from(pLocationNumbers).toSortedSet(Comparator.naturalOrder());
     StringBuilder builder = new StringBuilder();
-    builder.append("@N");
     int state = 0;
     int lastNumber = -1;
     String separator = ",";
@@ -212,7 +219,7 @@ public class SLARGToDotWriter {
           state = 1;
           break;
         case 1:
-          if (currentLocation != lastNumber + 1) {
+          if (currentLocation != lastNumber + 1 || currentLocation.equals(locationNumbers.last())) {
             builder.append(",").append(currentLocation);
             // stay in state 1
           } else {
@@ -230,18 +237,6 @@ public class SLARGToDotWriter {
           } else {
             separator = "-";
             // stay in state 2
-          }
-          break;
-        case 3:
-          assert false;
-          if (currentLocation != lastNumber + 1) {
-            builder.append("-").append(lastNumber).append(",").append(currentLocation);
-            state = 1;
-          } else if (currentLocation == locationNumbers.last()) {
-            builder.append("-").append(currentLocation);
-            state = -1; // we should be finished, next transition would lead to exception
-          } else {
-            // stay in state 3
           }
           break;
         default:

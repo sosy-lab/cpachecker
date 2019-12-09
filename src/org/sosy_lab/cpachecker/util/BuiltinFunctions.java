@@ -44,6 +44,8 @@ public class BuiltinFunctions {
 
   public static boolean isBuiltinFunction(String pFunctionName) {
     return pFunctionName.startsWith("__builtin_")
+        // https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html
+        || pFunctionName.startsWith("__atomic_")
         || pFunctionName.equals(FREE)
         || matchesStrlen(pFunctionName)
         || BuiltinFloatFunctions.isBuiltinFloatFunction(pFunctionName);

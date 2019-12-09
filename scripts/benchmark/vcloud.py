@@ -138,7 +138,7 @@ def execute_benchmark(benchmark, output_handler):
         if benchmark.config.debug:
             cmdLine.extend(["--print-new-files", "true"])
 
-        walltime_before = time.time()
+        start_time = benchexec.util.read_local_time()
 
         cloud = subprocess.Popen(
             cmdLine, stdin=subprocess.PIPE, shell=util.is_windows()
@@ -149,8 +149,7 @@ def execute_benchmark(benchmark, output_handler):
             stop()
         returnCode = cloud.wait()
 
-        walltime_after = time.time()
-        usedWallTime = walltime_after - walltime_before
+        end_time = benchexec.util.read_local_time()
 
         if returnCode:
             if STOPPED_BY_INTERRUPT:
@@ -161,9 +160,10 @@ def execute_benchmark(benchmark, output_handler):
                 output_handler.set_error(errorMsg)
     else:
         returnCode = 0
-        usedWallTime = None
+        start_time = None
+        end_time = None
 
-    handleCloudResults(benchmark, output_handler, usedWallTime)
+    handleCloudResults(benchmark, output_handler, start_time, end_time)
 
     return returnCode
 
@@ -294,6 +294,7 @@ def getToolDataForCloud(benchmark):
     logging.debug("Working dir: " + workingDir)
 
     toolpaths = benchmark.required_files()
+    validToolpaths = set()
     for file in toolpaths:
         if not os.path.exists(file):
             sys.exit(
@@ -301,11 +302,19 @@ def getToolDataForCloud(benchmark):
                     os.path.normpath(file)
                 )
             )
+        if os.path.isdir(file) and not os.listdir(file):
+            # VCloud can not handle empty directories, lets ignore them
+            logging.warning(
+                "Empty directory '%s', ignoring directory for cloud execution.",
+                os.path.normpath(file),
+            )
+        else:
+            validToolpaths.add(file)
 
-    return (workingDir, toolpaths)
+    return (workingDir, validToolpaths)
 
 
-def handleCloudResults(benchmark, output_handler, usedWallTime):
+def handleCloudResults(benchmark, output_handler, start_time, end_time):
 
     outputDir = benchmark.log_folder
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
@@ -318,6 +327,11 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
     # Write worker host informations in xml
     parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark)
 
+    if start_time and end_time:
+        usedWallTime = (end_time - start_time).total_seconds()
+    else:
+        usedWallTime = None
+
     # write results in runs and handle output after all runs are done
     executedAllRuns = True
     runsProducedErrorOutput = False
@@ -326,7 +340,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
             output_handler.output_for_skipping_run_set(runSet)
             continue
 
-        output_handler.output_before_run_set(runSet)
+        output_handler.output_before_run_set(runSet, start_time=start_time)
 
         for run in runSet.runs:
             dataFile = run.log_file + ".data"
@@ -342,6 +356,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
                         e,
                     )
                     output_handler.all_created_files.add(dataFile)
+                    output_handler.set_error("missing results", runSet)
                     executedAllRuns = False
                 else:
                     output_handler.output_before_run(run)
@@ -349,6 +364,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
                     output_handler.output_after_run(run)
             else:
                 logging.warning("No results exist for file %s.", run.identifier)
+                output_handler.set_error("missing results", runSet)
                 executedAllRuns = False
 
             if os.path.exists(run.log_file + ".stdError"):
@@ -367,7 +383,9 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
             ):
                 shutil.move(vcloudFilesDirectory, benchexecFilesDirectory)
 
-        output_handler.output_after_run_set(runSet, walltime=usedWallTime)
+        output_handler.output_after_run_set(
+            runSet, walltime=usedWallTime, end_time=end_time
+        )
 
     output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 

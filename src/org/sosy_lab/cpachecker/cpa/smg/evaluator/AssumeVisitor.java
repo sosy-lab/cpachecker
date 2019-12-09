@@ -123,6 +123,10 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       boolean isPointerOp2) {
 
     if (isPointerOp1 && isPointerOp2) {
+      if (!pNewState.getHeap().isObjectValid(((SMGKnownAddressValue) pValue1).getObject())
+          || !pNewState.getHeap().isObjectValid(((SMGKnownAddressValue) pValue2).getObject())) {
+        return false;
+      }
       return !pValue1.equals(pValue2);
     } else if ((isPointerOp1 && pValue2.isZero()) || (isPointerOp2 && pValue1.isZero())) {
       return !pValue1.equals(pValue2);
@@ -167,7 +171,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     boolean isPointerOp2 = pV2 instanceof SMGKnownAddressValue;
 
     boolean areEqual = pV1.equals(pV2);
-    boolean areNonEqual = (isUnequal(pNewState, pV1, pV2, isPointerOp1, isPointerOp2));
+    boolean areNonEqual = isUnequal(pNewState, pV1, pV2, isPointerOp1, isPointerOp2);
 
     boolean isTrue = false;
     boolean isFalse = false;
@@ -234,7 +238,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     } else if(isFalse) {
       return SMGValueAndState.of(pNewState, SMGZeroValue.INSTANCE);
     } else {
-      return SMGValueAndState.of(pNewState);
+      return SMGValueAndState.withUnknownValue(pNewState);
     }
   }
 
@@ -244,7 +248,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
     // If a value is unknown, we can't make further assumptions about it.
     if (pV2.isUnknown() || pV1.isUnknown()) {
-      return Collections.singletonList(SMGValueAndState.of(pNewState));
+      return Collections.singletonList(SMGValueAndState.withUnknownValue(pNewState));
     }
 
     List<SMGValueAndState> result = new ArrayList<>(4);

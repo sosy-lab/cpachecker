@@ -271,7 +271,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       // TODO: refactor so that the caller provides the full abstractionStatesTrace including the
       // root state. Then handling more than one root state would be no problem.
       rootState =
-          rootStates.stream().reduce((x, y) -> x.getStateId() < y.getStateId() ? x : y).get();
+          rootStates.stream()
+              .reduce((x, y) -> x.getStateId() < y.getStateId() ? x : y)
+              .orElseThrow();
       logger.log(
           Level.INFO,
           String.format(

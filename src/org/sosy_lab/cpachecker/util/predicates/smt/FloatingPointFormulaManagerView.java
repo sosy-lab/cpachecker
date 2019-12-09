@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import com.google.common.base.Preconditions;
 import java.math.BigDecimal;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -49,8 +50,8 @@ public class FloatingPointFormulaManagerView
       FloatingPointFormulaManager pManager,
       UFManager pFunctionManager) {
     super(pWrappingHandler);
-    this.manager = pManager;
-    this.functionManager = pFunctionManager;
+    this.manager = Preconditions.checkNotNull(pManager);
+    this.functionManager = Preconditions.checkNotNull(pFunctionManager);
   }
 
   @Override
@@ -291,5 +292,31 @@ public class FloatingPointFormulaManagerView
   public FloatingPointFormula round(
       FloatingPointFormula pNumber, FloatingPointRoundingMode pFloatingPointRoundingMode) {
     return manager.round(pNumber, pFloatingPointRoundingMode);
+  }
+
+  @Override
+  public FloatingPointFormula abs(FloatingPointFormula pNumber) {
+    return manager.abs(pNumber);
+  }
+
+  @Override
+  public FloatingPointFormula max(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+    return manager.max(pNumber1, pNumber2);
+  }
+
+  @Override
+  public FloatingPointFormula min(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+    return manager.min(pNumber1, pNumber2);
+  }
+
+  @Override
+  public FloatingPointFormula sqrt(FloatingPointFormula pNumber) {
+    return manager.sqrt(pNumber);
+  }
+
+  @Override
+  public FloatingPointFormula sqrt(
+      FloatingPointFormula pNumber, FloatingPointRoundingMode pRoundingMode) {
+    return manager.sqrt(pNumber, pRoundingMode);
   }
 }

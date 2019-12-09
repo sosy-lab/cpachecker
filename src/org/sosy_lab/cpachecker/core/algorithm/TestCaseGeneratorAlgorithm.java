@@ -80,12 +80,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
@@ -96,7 +98,7 @@ import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.testcase.XMLTestCaseExport;
 
 @Options(prefix = "testcase")
-public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider {
+public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, StatisticsProvider {
 
   private static enum FormatType {
     HARNESS,
@@ -159,6 +161,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
   private final SpecificationProperty specProp;
   private final String producerString;
   private FileSystem zipFS = null;
+  private double progress = 0;
 
   public TestCaseGeneratorAlgorithm(
       final Algorithm pAlgorithm,
@@ -204,6 +207,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
   public AlgorithmStatus run(final ReachedSet pReached)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
     int uncoveredGoalsAtStart = testTargets.size();
+    progress = 0;
     // clean up ARG
     if (pReached.getWaitlist().size() > 1
         || !pReached.getWaitlist().contains(pReached.getFirstState())) {
@@ -234,10 +238,11 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         openZipFS();
       }
 
-      boolean shouldReturnFalse;
+      boolean shouldReturnFalse, ignoreTargetState;
       while (pReached.hasWaitingState() && !testTargets.isEmpty()) {
         shutdownNotifier.shutdownIfNecessary();
         shouldReturnFalse = false;
+        ignoreTargetState = false;
 
         assert ARGUtils.checkARG(pReached);
         assert (from(pReached).filter(IS_TARGET_STATE).isEmpty());
@@ -251,9 +256,12 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
           // exception
           status = status.withPrecise(false);
           logger.logUserException(Level.WARNING, e, "Analysis not completed.");
-          if (!(e instanceof CounterexampleAnalysisFailed
+          if (e instanceof CounterexampleAnalysisFailed
               || e instanceof RefinementFailedException
-              || e instanceof InfeasibleCounterexampleException)) {
+              || e instanceof InfeasibleCounterexampleException) {
+
+            ignoreTargetState = true;
+          } else {
             throw e;
           }
         } catch (InterruptedException e1) {
@@ -273,6 +281,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
 
           AbstractState reachedState = from(pReached).firstMatch(IS_TARGET_STATE).orNull();
           if (reachedState != null) {
+            boolean removeState = true;
 
             ARGState argState = (ARGState) reachedState;
 
@@ -296,7 +305,17 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
                     addErrorStateWithViolatedProperty(pReached);
                     shouldReturnFalse = true;
                   }
+                  progress++;
                 } else {
+                  if (ignoreTargetState) {
+                    TestTargetState targetState =
+                        AbstractStates.extractStateByType(reachedState, TestTargetState.class);
+                    Preconditions.checkNotNull(targetState);
+                    Preconditions.checkArgument(targetState.isTarget());
+
+                    targetState.changeToStopTargetStatus();
+                    removeState = false;
+                  }
                   logger.log(
                       Level.FINE,
                       "Status was not precise. Current test target is not removed:"
@@ -312,8 +331,10 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
               logger.log(Level.FINE, "Target edge was null.");
             }
 
-            argState.removeFromARG();
-            pReached.remove(reachedState);
+            if (removeState) {
+              argState.removeFromARG();
+              pReached.remove(reachedState);
+            }
             pReached.reAddToWaitlist(parentArgState);
 
             assert ARGUtils.checkARG(pReached);
@@ -335,7 +356,6 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         logger.log(Level.SEVERE, TestTargetProvider.getCoverageInfo());
       }
       closeZipFS();
-
 
     }
 
@@ -383,7 +403,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     if (areTestsEnabled()) {
       CounterexampleInfo cexInfo =
           ARGUtils.tryGetOrCreateCounterexampleInformation(pTarget, cpa, assumptionToEdgeAllocator)
-              .get();
+              .orElseThrow();
       ARGPath targetPath = cexInfo.getTargetPath();
       Preconditions.checkState(!zipTestCases || zipFS != null);
 
@@ -451,7 +471,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
                       cfa,
                       TestCaseExporter.LINE_SEPARATED);
               if (testOutput.isPresent()) {
-                writer.write(testOutput.get());
+                writer.write(testOutput.orElseThrow());
               }
               break;
             case XML:
@@ -464,7 +484,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
                       cfa,
                       XMLTestCaseExport.XML_TEST_CASE);
               if (testOutput.isPresent()) {
-                writer.write(testOutput.get());
+                writer.write(testOutput.orElseThrow());
               }
               break;
             default:
@@ -500,7 +520,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
                     TestCaseExporter.LINE_SEPARATED);
 
             if (testOutput.isPresent()) {
-              content = (Appender) appendable -> appendable.append(testOutput.get());
+              content = (Appender) appendable -> appendable.append(testOutput.orElseThrow());
             }
             break;
           case XML:
@@ -513,7 +533,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
                     cfa,
                     XMLTestCaseExport.XML_TEST_CASE);
             if (testOutput.isPresent()) {
-              content = (Appender) appendable -> appendable.append(testOutput.get());
+              content = (Appender) appendable -> appendable.append(testOutput.orElseThrow());
             }
             break;
           default:
@@ -567,5 +587,10 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
   @Override
   public void collectStatistics(final Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(TestTargetProvider.getTestTargetStatisitics(printTestTargetInfoInStats));
+  }
+
+  @Override
+  public double getProgress() {
+    return progress / Math.max(1, TestTargetProvider.getCurrentNumOfTestTargets());
   }
 }

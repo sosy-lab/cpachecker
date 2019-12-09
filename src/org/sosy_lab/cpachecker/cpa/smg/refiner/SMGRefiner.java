@@ -126,7 +126,12 @@ public class SMGRefiner implements Refiner {
 
     SMGStrongestPostOperator strongestPostOpForCEX =
         new SMGStrongestPostOperator(
-            logger, cfa, predicateManager, smgCpa.getOptions(), SMGTransferRelationKind.STATIC);
+            logger,
+            cfa,
+            predicateManager,
+            smgCpa.getOptions(),
+            SMGTransferRelationKind.STATIC,
+            shutdownNotifier);
 
     UnmodifiableSMGState initialState =
         smgCpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
@@ -138,7 +143,12 @@ public class SMGRefiner implements Refiner {
 
     SMGStrongestPostOperator strongestPostOpForInterpolation =
         new SMGStrongestPostOperator(
-            logger, cfa, predicateManager, smgCpa.getOptions(), SMGTransferRelationKind.REFINEMENT);
+            logger,
+            cfa,
+            predicateManager,
+            smgCpa.getOptions(),
+            SMGTransferRelationKind.REFINEMENT,
+            shutdownNotifier);
 
     SMGFeasibilityChecker checkerForInterpolation =
         new SMGFeasibilityChecker(

@@ -264,7 +264,7 @@ public class BlockOperator {
   public void setCFA(CFA cfa) {
     if (absOnLoop || alwaysAtLoops) {
       if (cfa.getAllLoopHeads().isPresent()) {
-        loopHeads = cfa.getAllLoopHeads().get();
+        loopHeads = cfa.getAllLoopHeads().orElseThrow();
       }
     }
   }

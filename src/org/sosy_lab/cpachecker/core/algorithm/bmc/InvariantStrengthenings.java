@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.TotalTransitionRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -110,7 +111,7 @@ public class InvariantStrengthenings {
       pProver.pop(); // Pop the big violation disjunction
 
       if (pAssertedInvariants.isPresent()) {
-        pProver.push(pAssertedInvariants.get()); // Put the invariants back on the stack
+        pProver.push(pAssertedInvariants.orElseThrow()); // Put the invariants back on the stack
       }
 
       // Find the relevant literals for each disjunct
@@ -190,7 +191,7 @@ public class InvariantStrengthenings {
       }
       pProver.pop(); // Pop the candidate assertion
       if (pAssertedInvariants.isPresent()) {
-        pProver.push(pAssertedInvariants.get()); // Put the invariants back on the stack
+        pProver.push(pAssertedInvariants.orElseThrow()); // Put the invariants back on the stack
       }
 
       while (!restored) {
@@ -215,7 +216,7 @@ public class InvariantStrengthenings {
               SymbolicCandiateInvariant.makeSymbolicInvariant(
                   pInvariant.getApplicableLocations(),
                   pInvariant.getStateFilter(),
-                  cti.get().getFormula(pFmgr),
+                  cti.orElseThrow().getFormula(pFmgr),
                   pFmgr);
           pProver.push(pAssertCti.assertCandidate(assertableCti));
 
@@ -329,7 +330,7 @@ public class InvariantStrengthenings {
   }
 
   public static <T extends CandidateInvariant> InvariantStrengthening<T, T> unsatCoreBasedStrengthening() {
-    return new InvariantStrengthening<T, T>() {
+    return new InvariantStrengthening<>() {
 
       @SuppressWarnings("unchecked")
       @Override

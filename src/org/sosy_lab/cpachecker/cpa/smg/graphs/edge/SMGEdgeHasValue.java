@@ -25,10 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.annotations.VisibleForTesting;
 import java.math.BigInteger;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
@@ -39,46 +36,27 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
  */
 public class SMGEdgeHasValue extends SMGEdge {
 
-  final private CType type;
   private final BigInteger sizeInBits;
 
   /**
-   * @param pType type of the object's memory starting at offset.
    * @param pOffset the offset relative to the start of the source object, i.e. ZERO represents an
    *     direct access, a positive number accessed within or after the object and is used for
    *     array-element or struct-member access.
    * @param pObject the target object pointed to.
    * @param pValue the value that points to some object.
    */
-  public SMGEdgeHasValue(
-      CType pType, BigInteger pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
+  public SMGEdgeHasValue(BigInteger pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
     super(pValue, pObject, pOffset);
-    type = pType;
     sizeInBits = pSizeInBits;
   }
 
-  public SMGEdgeHasValue(
-      CType pType, long pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
-    super(pValue, pObject, pOffset);
-    type = pType;
-    sizeInBits = BigInteger.valueOf(pSizeInBits);
-  }
-
-  public SMGEdgeHasValue(int pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
-    super(pValue, pObject, pOffset);
-    type = TypeUtils.createTypeWithLength(pSizeInBits);
-    sizeInBits = BigInteger.valueOf(pSizeInBits);
+  public SMGEdgeHasValue(long pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
+    this(BigInteger.valueOf(pSizeInBits), pOffset, pObject, pValue);
   }
 
   @Override
   public String toString() {
-    return String.format(
-        "sizeof(%s)b @ %s+%db has value %s",
-        type.toASTString(""), object.getLabel(), getOffset(), value);
-  }
-
-  public CType getType() {
-    return type;
+    return String.format("%s+%db[%sb]->%s", object.getLabel(), getOffset(), sizeInBits, value);
   }
 
   public long getSizeInBits() {
@@ -93,7 +71,7 @@ public class SMGEdgeHasValue extends SMGEdge {
 
     if (object == other.object
         && getOffset() == other.getOffset()
-        && type == ((SMGEdgeHasValue) other).type) {
+        && sizeInBits.equals(((SMGEdgeHasValue) other).sizeInBits)) {
       return value.equals(other.value);
     }
 
@@ -127,20 +105,9 @@ public class SMGEdgeHasValue extends SMGEdge {
     return true;
   }
 
-  @VisibleForTesting
-  public boolean isCompatibleField(SMGEdgeHasValue other) {
-    return type.equals(other.type) && (getOffset() == other.getOffset());
-  }
-
-  public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other) {
-    return getSizeInBits() == other.getSizeInBits()
-        && getOffset() == other.getOffset()
-        && object == other.object;
-  }
-
   @Override
   public int hashCode() {
-    return 31 * super.hashCode() + type.hashCode();
+    return 31 * super.hashCode() + sizeInBits.hashCode();
   }
 
   @Override
@@ -149,7 +116,6 @@ public class SMGEdgeHasValue extends SMGEdge {
       return false;
     }
     SMGEdgeHasValue other = (SMGEdgeHasValue) obj;
-    return super.equals(obj)
-        && type.getCanonicalType().equals(other.type.getCanonicalType());
+    return super.equals(obj) && sizeInBits.equals(other.sizeInBits);
   }
 }
