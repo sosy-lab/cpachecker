@@ -318,7 +318,11 @@ public class ExpressionToFormulaVisitor
       // However, this means that we may not call makeCast() below
       // because it expects the input in the calculationType.
       // So we return here directly.
-      return conv.ifTrueThenOneElseZero(returnFormulaType, result);
+        if (returnFormulaType.isBooleanType()) {
+          return result;
+        } else {
+          return conv.ifTrueThenOneElseZero(returnFormulaType, result);
+        }
     }
     default:
         throw new UnrecognizedCodeException("Unknown binary operator", edge, exp);

@@ -1654,15 +1654,8 @@ public class CtoFormulaConverter {
   }
 
   <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
-    T one;
-    T zero;
-    if (type.isBooleanType()) {
-      one = (T) bfmgr.makeTrue();
-      zero = (T) bfmgr.makeFalse();
-    } else {
-      one = fmgr.makeNumber(type, 1);
-      zero = fmgr.makeNumber(type, 0);
-    }
+    T one = fmgr.makeNumber(type, 1);
+    T zero = fmgr.makeNumber(type, 0);
     return bfmgr.ifThenElse(pCond, one, zero);
   }
 
