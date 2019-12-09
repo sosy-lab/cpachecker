@@ -177,8 +177,9 @@ public class DCARefiner implements Refiner, StatisticsProvider {
       final CFA pCfa,
       final LogManager pLogger,
       final ShutdownNotifier pNotifier,
-      final Configuration pConfig)
+      Configuration pConfig)
       throws InvalidConfigurationException {
+    pConfig = Solver.adjustConfigForSolver(pConfig);
     pConfig.inject(this);
 
     argCPA = checkNotNull(pArgCpa);
