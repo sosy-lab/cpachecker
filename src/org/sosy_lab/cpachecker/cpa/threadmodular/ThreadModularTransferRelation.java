@@ -87,11 +87,13 @@ public class ThreadModularTransferRelation implements TransferRelation {
         AbstractState appliedState = null;
         Precision appliedPrecision = null;
         if (isProjection) {
-          stats.innerApply.start();
-          appliedState = applyOperator.apply(oldState, pState);
-          stats.applyCounter.inc();
-          stats.innerApply.stop();
-          appliedPrecision = pReached.getPrecision(oldState);
+          if (isRelevant(oldState)) {
+            stats.innerApply.start();
+            appliedState = applyOperator.apply(oldState, pState);
+            stats.applyCounter.inc();
+            stats.innerApply.stop();
+            appliedPrecision = pReached.getPrecision(oldState);
+          }
         } else {
           stats.innerApply.start();
           appliedState = applyOperator.apply(pState, oldState);

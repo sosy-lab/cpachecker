@@ -57,7 +57,7 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     super(config, logger, pBlk, pCfa, pShutdownNotifier, pSpecification, pAggregatedReachedSets);
     config.inject(this, BAMPredicateCPA.class);
     blk = pBlk; // keep reference to later inject the BlockPartitioning

@@ -291,8 +291,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       List<Path> specList = new ArrayList<>(constrSpec.getSpecFiles());
       specList.add(conditionSpec);
       specList.add(condition);
-      constrSpec = Specification.fromFiles(spec.getProperties(),
-          specList, cfa, config, logger);
+      constrSpec =
+          Specification.fromFiles(spec.getProperties(), specList, cfa, config, logger, shutdown);
 
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, constrSpec);
 

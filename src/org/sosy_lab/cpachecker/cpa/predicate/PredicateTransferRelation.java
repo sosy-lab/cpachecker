@@ -654,19 +654,10 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       if (bfmgr.isTrue(oldAbstraction.asFormula())) {
         // Do not delete! There may be value effects, and then the composite optimization will not
         // work
-        // Need to omit edge part, so return the same state, but without edge
-        PredicateAbstractState newState =
-            PredicateAbstractState
-                .mkAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
-        environmentTimer.stop();
-        return Collections.singleton(newState);
-      }
+        // Just do nothing to return the same state without edge
 
-      boolean changed = false;
-
-      if (edge == PredicateAbstractEdge.getHavocEdgeInstance()) {
+      } else if (edge == PredicateAbstractEdge.getHavocEdgeInstance()) {
         currentFormula = precisePathFormulaManager.resetSharedVariables(oldFormula);
-        changed = true;
       } else {
 
         Collection<FormulaDescription> envActions = ((PredicateAbstractEdge) edge).getFormulas();
@@ -699,7 +690,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
               fmgr.renameFreeVariablesAndUFs(disjunction, s -> updateVariables.getOrDefault(s, s));
 
           BooleanFormula conjunction =
-              bfmgr.and(currentFormula.getFormula(), newFormula);
+              bfmgr.and(oldFormula.getFormula(), newFormula);
 
           // TODO merge pts?
           currentFormula =
@@ -709,23 +700,17 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
                   oldFormula.getPointerTargetSet(),
                   oldFormula.getLength() + 1);
 
-          changed = true;
         }
       }
 
       environmentTimer.stop();
-      if (changed) {
-        PredicateAbstractState newState =
-            PredicateAbstractState
-                .mkNonAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
-        return Collections.singleton(newState);
-      } else {
-        // Need to omit edge part, so return the same state, but without edge
-        PredicateAbstractState newState =
-            PredicateAbstractState
-                .mkNonAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
-        return Collections.singleton(newState);
-      }
+      // Need to omit edge part, so return the same state, but without edge
+      // Thus even without change we need to create a new state (without edge)
+
+      PredicateAbstractState newState =
+          PredicateAbstractState
+              .mkNonAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
+      return Collections.singleton(newState);
     } else {
       throw new CPATransferException("Unsupported edge: " + edge.getClass());
     }

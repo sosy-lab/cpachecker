@@ -114,7 +114,7 @@ public class LocationStateWithEdge extends LocationState implements AbstractStat
     }
     LocationStateWithEdge other = (LocationStateWithEdge) obj;
 
-    return Objects.equals(edge, other.edge) && Objects.equals(locationNode, other.locationNode);
+    return Objects.equals(edge, other.edge) && locationNode == other.locationNode;
   }
 
   public LocationStateWithEdge updateEdge(AbstractEdge pEdge) {

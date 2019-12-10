@@ -152,7 +152,7 @@ public class PredicateCPA
       ShutdownNotifier pShutdownNotifier,
       Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     config.inject(this, PredicateCPA.class);
 
     this.config = config;

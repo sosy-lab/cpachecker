@@ -198,7 +198,8 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
               Iterables.concat(specification.getSpecFiles(), Collections.singleton(automatonFile)),
               cfa,
               lConfig,
-              lLogger);
+              lLogger,
+              shutdownNotifier);
       CoreComponentsFactory factory =
           new CoreComponentsFactory(
               lConfig, lLogger, lShutdownManager.getNotifier(), new AggregatedReachedSets());

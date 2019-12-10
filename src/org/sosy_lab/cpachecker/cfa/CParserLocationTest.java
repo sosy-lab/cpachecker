@@ -35,6 +35,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -70,11 +71,12 @@ public class CParserLocationTest {
         CParser.Factory.getParser(
             LogManager.createTestLogManager(),
             CParser.Factory.getDefaultOptions(),
-            MachineModel.LINUX32);
+            MachineModel.LINUX32,
+            ShutdownNotifier.createDummy());
   }
 
   @Test
-  public void singleFileTest() throws CParserException {
+  public void singleFileTest() throws CParserException, InterruptedException {
     String code = "void main() { }";
     ParseResult result = parser.parseString(fileName, code);
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
@@ -89,7 +91,7 @@ public class CParserLocationTest {
 
   @Test
   public void singleFileTest_lineDirectiveIgnored()
-      throws CParserException, InvalidConfigurationException {
+      throws CParserException, InvalidConfigurationException, InterruptedException {
     parser =
         new CParserWithLocationMapper(
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, false);
@@ -107,7 +109,7 @@ public class CParserLocationTest {
 
   @Test
   public void singleFileTest_lineDirective()
-      throws CParserException, InvalidConfigurationException {
+      throws CParserException, InvalidConfigurationException, InterruptedException {
     parser =
         new CParserWithLocationMapper(
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, true);
@@ -125,7 +127,7 @@ public class CParserLocationTest {
 
   @Test
   public void singleFileTest_lineDirectiveWithFilename()
-      throws CParserException, InvalidConfigurationException {
+      throws CParserException, InvalidConfigurationException, InterruptedException {
     parser =
         new CParserWithLocationMapper(
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, true);
@@ -143,7 +145,7 @@ public class CParserLocationTest {
 
   @Test
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-  public void multiFileTest() throws CParserException {
+  public void multiFileTest() throws CParserException, InterruptedException {
     String mainCode = "void main() { }";
     FileContentToParse main = new FileContentToParse(fileName, mainCode);
 

@@ -53,6 +53,7 @@ import java.util.logging.Level;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import org.junit.Test;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
@@ -83,7 +84,9 @@ public class AutomatonInternalTest {
     logger = LogManager.createTestLogManager();
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
-    parser = CParser.Factory.getParser(logger, options, MachineModel.LINUX32);
+    parser =
+        CParser.Factory.getParser(
+            logger, options, MachineModel.LINUX32, ShutdownNotifier.createDummy());
   }
 
   @Test
@@ -195,7 +198,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testJokerReplacementInAST() {
+  public void testJokerReplacementInAST() throws InterruptedException {
     // tests the replacement of Joker expressions in the AST comparison
     final String pattern = "$20 = $5($1, $?);";
     final String source = "var1 = function(var2, egal);";
@@ -282,7 +285,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testASTcomparison() {
+  public void testASTcomparison() throws InterruptedException {
     assert_().about(astMatcher).that("x= $?;").matches("x=5;");
     assert_().about(astMatcher).that("x= 10;").doesNotMatch("x=5;");
     assert_().about(astMatcher).that("$? =10;").doesNotMatch("x=5;");
@@ -309,7 +312,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testAstMatcherFunctionParameters() {
+  public void testAstMatcherFunctionParameters() throws InterruptedException {
     assert_().about(astMatcher).that("f();").matches("f();");
     assert_().about(astMatcher).that("f();").doesNotMatch("f(x);");
     assert_().about(astMatcher).that("f();").doesNotMatch("f(x, y);");
@@ -328,7 +331,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testAstMatcherFunctionCall() {
+  public void testAstMatcherFunctionCall() throws InterruptedException {
     assert_().about(astMatcher).that("$?();").matches("f();");
     assert_().about(astMatcher).that("$?();").doesNotMatch("x = f();");
     assert_().about(astMatcher).that("$1();").matches("f();").andVariable(1).isEqualTo("f");
@@ -371,7 +374,7 @@ public class AutomatonInternalTest {
       pattern = pPattern;
     }
 
-    private boolean matches0(String src) throws InvalidAutomatonException {
+    private boolean matches0(String src) throws InvalidAutomatonException, InterruptedException {
       CAstNode sourceAST;
       ASTMatcher matcher;
       try {
@@ -384,7 +387,7 @@ public class AutomatonInternalTest {
       return matcher.matches(sourceAST, args);
     }
 
-    public Matches matches(final String src) {
+    public Matches matches(final String src) throws InterruptedException {
       boolean matches;
       try {
         matches = matches0(src);
@@ -423,7 +426,7 @@ public class AutomatonInternalTest {
       };
     }
 
-    public void doesNotMatch(String src) {
+    public void doesNotMatch(String src) throws InterruptedException {
       try {
         if (matches0(src)) {
           if (args.getTransitionVariables().isEmpty()) {

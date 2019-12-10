@@ -363,8 +363,9 @@ public class CFACreator {
       parser = Parsers.getJavaParser(logger, config);
       break;
     case C:
-      CParser outerParser =
-          CParser.Factory.getParser(logger, CParser.Factory.getOptions(config), machineModel);
+        CParser outerParser =
+            CParser.Factory.getParser(
+                logger, CParser.Factory.getOptions(config), machineModel, shutdownNotifier);
 
       outerParser =
           new CParserWithLocationMapper(
@@ -616,7 +617,8 @@ public class CFACreator {
    * This method parses the program from the String and builds a CFA for each function. The
    * ParseResult is only a Wrapper for the CFAs of the functions and global declarations.
    */
-  private ParseResult parseToCFAs(final String program) throws ParserException {
+  private ParseResult parseToCFAs(final String program)
+      throws ParserException, InterruptedException {
     final ParseResult parseResult;
 
     parseResult = parser.parseString("test", program);

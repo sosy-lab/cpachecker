@@ -47,15 +47,16 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.thread.ThreadAbstractEdge.ThreadAction;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStatus;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 @Options(prefix = "cpa.thread")
-public class ThreadTransferRelation extends SingleEdgeTransferRelation {
+public class ThreadTransferRelation implements TransferRelation {
   @Option(
     secure = true,
     description = "The case when the same thread is created several times we do not support."
@@ -198,7 +199,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     }
     newSet.put(pVarName, status);
     newOrder.add(label);
-    return new ThreadState(newSet, state.getRemovedSet(), newOrder);
+    return state.copyWith(newSet, newOrder);
   }
 
   public ThreadState joinThread(ThreadState state, CThreadJoinStatement jCall) {
@@ -219,7 +220,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
         List<ThreadLabel> newOrder = new ArrayList<>(order);
         newSet.remove(var);
         newOrder.remove(toRemove);
-        return new ThreadState(newSet, state.getRemovedSet(), newOrder);
+        return state.copyWith(newSet, newOrder);
       }
     }
     return state;
@@ -235,5 +236,40 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
 
   public Statistics getStatistics() {
     return threadStatistics;
+  }
+
+  @Override
+  public Collection<? extends AbstractState>
+      getAbstractSuccessors(AbstractState pState, Precision pPrecision)
+          throws CPATransferException, InterruptedException {
+
+    ThreadTMStateWithEdge stateWithEdge = (ThreadTMStateWithEdge) pState;
+    ThreadAbstractEdge edge = stateWithEdge.getAbstractEdge();
+    Map<String, ThreadStatus> tSet = stateWithEdge.getThreadSet();
+    List<ThreadLabel> order = stateWithEdge.getOrder();
+
+    if (edge != null) {
+      ThreadAction action = edge.getAction().getFirst();
+      String threadName = edge.getAction().getSecond();
+
+      // TMP implementation
+      ThreadStatus status = ThreadStatus.CREATED_THREAD;
+      ThreadLabel label = new ThreadLabel("", threadName);
+      Map<String, ThreadStatus> newSet = new TreeMap<>(tSet);
+      List<ThreadLabel> newOrder = new ArrayList<>(order);
+      if (action == ThreadAction.CREATE) {
+        newSet.put(threadName, status);
+        newOrder.add(label);
+      } else if (action == ThreadAction.JOIN) {
+        newSet.remove(threadName);
+        newOrder.remove(label);
+      } else {
+        throw new UnsupportedOperationException("Unsupported action " + action);
+      }
+      return Collections.singleton(stateWithEdge.copyWith(newSet, newOrder));
+    } else {
+      // To reset the edge
+      return Collections.singleton(stateWithEdge.copyWith(tSet, order));
+    }
   }
 }

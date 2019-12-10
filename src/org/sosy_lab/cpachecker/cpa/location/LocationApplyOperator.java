@@ -259,13 +259,17 @@ public class LocationApplyOperator implements ApplyOperator {
         CAssignment asgn = (CAssignment) stmnt;
         return !asgn.getRightHandSide().accept(new GlobalExpressionVisitor());
       } else if (stmnt instanceof CFunctionCallStatement) {
-        // Here we get an undefined function without body. Thus, just ignore it
-        return true;
+        // There may be a specific function, for example, locks, which strongly affect the
+        // application
+        return false;
       }
     } else if (edge instanceof CFunctionCallEdge) {
-      CFunctionCallExpression fcall =
-          ((CFunctionCallEdge) edge).getSummaryEdge().getExpression().getFunctionCallExpression();
-      return !fcall.accept(new GlobalExpressionVisitor());
+      // CFunctionCallExpression fcall =
+      // ((CFunctionCallEdge) edge).getSummaryEdge().getExpression().getFunctionCallExpression();
+      // return !fcall.accept(new GlobalExpressionVisitor());
+
+      // There may be a specific function, for example, locks, which strongly affect the application
+      return false;
     } else if (edge instanceof CReturnStatementEdge) {
       Optional<CExpression> oExp = ((CReturnStatementEdge) edge).getExpression();
       if (oExp.isPresent()) {

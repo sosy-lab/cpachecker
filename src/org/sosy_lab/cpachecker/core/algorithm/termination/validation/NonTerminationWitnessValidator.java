@@ -224,7 +224,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 logger,
                 cfa.getMachineModel(),
                 scope,
-                cfa.getLanguage())
+                cfa.getLanguage(),
+                pShutdownNotifier)
             .get(0);
     terminationAutomatonName = AUTOMATANAMEPREFIX + terminationAutomaton.getName();
 
@@ -1092,7 +1093,13 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
 
     return AutomatonParser.parseAutomatonFile(
-            automatonSpec, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage())
+            automatonSpec,
+            config,
+            logger,
+            cfa.getMachineModel(),
+            scope,
+            cfa.getLanguage(),
+            shutdown)
         .get(0);
   }
 

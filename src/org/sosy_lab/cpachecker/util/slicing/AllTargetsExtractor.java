@@ -39,7 +39,8 @@ public class AllTargetsExtractor implements SlicingCriteriaExtractor {
       final CFA pCfa,
       final Specification pError,
       final ShutdownNotifier shutdownNotifier,
-      LogManager logger) {
+      LogManager logger)
+      throws InterruptedException {
     TargetLocationProvider targetProvider =
         new CachingTargetLocationProvider(shutdownNotifier, logger, pCfa);
 

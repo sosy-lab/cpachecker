@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
@@ -101,9 +100,6 @@ public class SMGEdgeHasValueFilter {
     Set<SMGEdgeHasValue> filtered;
     if (object != null) {
       filtered = pEdges.getEdgesForObject(object);
-      if (filtered == null) {
-        return ImmutableSet.of();
-      }
     } else {
       filtered = pEdges.getHvEdges();
     }

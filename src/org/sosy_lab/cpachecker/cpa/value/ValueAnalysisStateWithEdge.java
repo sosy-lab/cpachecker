@@ -65,22 +65,23 @@ public class ValueAnalysisStateWithEdge extends ValueAnalysisState implements Ab
       Map<MemoryLocation, ValueAndType> otherAssignments =
           ((ValueAbstractEdge) otherEdge).getDifference().getAssignments();
 
-      if (!assignments.keySet().equals(otherAssignments.keySet())) {
-        return false;
-      }
-      for (Entry<MemoryLocation, ValueAndType> entry : assignments.entrySet()) {
+      for (Entry<MemoryLocation, ValueAndType> entry : otherAssignments.entrySet()) {
         MemoryLocation mem = entry.getKey();
         ValueAndType val = entry.getValue();
-        ValueAndType otherVal = otherAssignments.get(mem);
-        if (val.equals(otherVal) || otherVal.getValue() == UnknownValue.getInstance()) {
+        if (assignments.containsKey(mem)) {
+          ValueAndType otherVal = assignments.get(mem);
+          if (val.equals(otherVal) || val.getValue() == UnknownValue.getInstance()) {
 
+          } else {
+            return false;
+          }
         } else {
           return false;
         }
       }
     }
 
-    return false;
+    return true;
   }
 
   @Override

@@ -136,7 +136,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       CFA pCFA,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     super(
         pAlgorithm,
         pCPA,

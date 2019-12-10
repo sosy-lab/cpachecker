@@ -43,6 +43,7 @@ import jhoafparser.storage.StoredEdgeWithLabel;
 import jhoafparser.storage.StoredHeader;
 import jhoafparser.storage.StoredHeader.NameAndExtra;
 import jhoafparser.storage.StoredState;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -79,10 +80,17 @@ public class BuechiConverterUtils {
       Configuration pConfig,
       LogManager pLogger,
       MachineModel pMachineModel,
-      Scope pScope)
-      throws LtlParseException {
+      Scope pScope,
+      ShutdownNotifier pShutdownNotifier)
+      throws LtlParseException, InterruptedException {
     return new HoaToAutomatonTransformer(
-            pStoredAutomaton, pEntryFunction, pConfig, pLogger, pMachineModel, pScope)
+            pStoredAutomaton,
+            pEntryFunction,
+            pConfig,
+            pLogger,
+            pMachineModel,
+            pScope,
+            pShutdownNotifier)
         .doConvert();
   }
 
@@ -90,11 +98,10 @@ public class BuechiConverterUtils {
    * Produces an {@link Automaton} from a {@link StoredAutomaton} (an automaton in HOA-format)
    * without requiring a logger, machine-model and scope.
    *
-   * <p>
-   * This method can be used for testing the transformation outside of CPAchecker.
+   * <p>This method can be used for testing the transformation outside of CPAchecker.
    */
   public static Automaton convertFromHOAFormat(StoredAutomaton pStoredAutomaton)
-      throws LtlParseException {
+      throws LtlParseException, InterruptedException {
     return new HoaToAutomatonTransformer(pStoredAutomaton).doConvert();
   }
 
@@ -111,14 +118,18 @@ public class BuechiConverterUtils {
 
     private final StoredAutomaton storedAutomaton;
     private final Optional<String> entryFunctionOpt;
+    private final ShutdownNotifier shutdownNotifier;
 
     private HoaToAutomatonTransformer(StoredAutomaton pStoredAutomaton) {
       storedAutomaton = checkNotNull(pStoredAutomaton);
 
       logger = LogManager.createNullLogManager();
       machineModel = MachineModel.LINUX64;
+      shutdownNotifier = ShutdownNotifier.createDummy();
       scope = CProgramScope.empty();
-      parser = CParser.Factory.getParser(logger, CParser.Factory.getDefaultOptions(), machineModel);
+      parser =
+          CParser.Factory.getParser(
+              logger, CParser.Factory.getDefaultOptions(), machineModel, shutdownNotifier);
       entryFunctionOpt = Optional.empty();
     }
 
@@ -128,24 +139,28 @@ public class BuechiConverterUtils {
         Configuration pConfig,
         LogManager pLogger,
         MachineModel pMachineModel,
-        Scope pScope)
+        Scope pScope,
+        ShutdownNotifier pShutdownNotifier)
         throws LtlParseException {
       storedAutomaton = checkNotNull(pStoredAutomaton);
       checkArgument(!isNullOrEmpty(pEntryFunction));
       entryFunctionOpt = Optional.of(pEntryFunction);
 
+      logger = checkNotNull(pLogger);
+      machineModel = checkNotNull(pMachineModel);
+      scope = checkNotNull(pScope);
+      shutdownNotifier = checkNotNull(pShutdownNotifier);
+
       try {
-        logger = checkNotNull(pLogger);
-        machineModel = checkNotNull(pMachineModel);
-        scope = checkNotNull(pScope);
         parser =
-            CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(pConfig), machineModel);
+            CParser.Factory.getParser(
+                pLogger, CParser.Factory.getOptions(pConfig), machineModel, shutdownNotifier);
       } catch (InvalidConfigurationException e) {
         throw new LtlParseException(e.getMessage(), e);
       }
     }
 
-    private Automaton doConvert() throws LtlParseException {
+    private Automaton doConvert() throws LtlParseException, InterruptedException {
 
       StoredHeader storedHeader = storedAutomaton.getStoredHeader();
 
@@ -312,9 +327,9 @@ public class BuechiConverterUtils {
       return pState.getInfo() != null ? pState.getInfo() : String.valueOf(pState.getStateId());
     }
 
-    private List<AutomatonTransition>
-        getTransitions(BooleanExpression<AtomLabel> pLabelExpr, String pSuccessorName)
-            throws LtlParseException, UnrecognizedCodeException {
+    private List<AutomatonTransition> getTransitions(
+        BooleanExpression<AtomLabel> pLabelExpr, String pSuccessorName)
+        throws LtlParseException, UnrecognizedCodeException, InterruptedException {
       ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
 
       switch (pLabelExpr.getType()) {
@@ -331,7 +346,7 @@ public class BuechiConverterUtils {
     }
 
     private List<AExpression> getExpressions(BooleanExpression<AtomLabel> pLabelExpr)
-        throws LtlParseException, UnrecognizedCodeException {
+        throws LtlParseException, UnrecognizedCodeException, InterruptedException {
       ImmutableList.Builder<AExpression> expBuilder = ImmutableList.builder();
 
       Type type = pLabelExpr.getType();
@@ -364,7 +379,7 @@ public class BuechiConverterUtils {
       return expBuilder.build();
     }
 
-    private CExpression assume(String pExpression) throws LtlParseException {
+    private CExpression assume(String pExpression) throws LtlParseException, InterruptedException {
       CAstNode sourceAST;
       try {
         sourceAST = CParserUtils.parseSingleStatement(pExpression, parser, scope);
