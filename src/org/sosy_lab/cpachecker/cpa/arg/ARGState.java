@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractEdge;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractEdge.FormulaDescription;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateProjectedState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class ARGState extends AbstractSingleWrapperState
@@ -232,6 +233,10 @@ public class ARGState extends AbstractSingleWrapperState
         while (!currentLoc.equals(childLoc)) {
           // we didn't find a proper connection to the child so we return an empty list
           if (currentLoc.getNumLeavingEdges() != 1) {
+            if (CFAUtils.allSuccessorsOf(currentLoc).contains(childLoc)) {
+              allEdges.add(currentLoc.getEdgeTo(childLoc));
+              return allEdges;
+            }
             return ImmutableList.of();
           }
 
