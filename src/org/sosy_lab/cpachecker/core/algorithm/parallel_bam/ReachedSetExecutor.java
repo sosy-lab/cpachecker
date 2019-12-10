@@ -80,7 +80,6 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
 class ReachedSetExecutor {
 
   private static final Level level = Level.ALL;
-  private static final Runnable NOOP = () -> {};
 
   /** the working reached-set, single-threaded access. */
   private final ReachedSet rs;
@@ -170,7 +169,8 @@ class ReachedSetExecutor {
     addingStatesTimer = stats.addingStatesTime.getNewTimer();
     terminationCheckTimer = stats.terminationCheckTime.getNewTimer();
 
-    waitingTask = CompletableFuture.runAsync(NOOP, pool); // initialization
+    // initialization with a NOOP, more tasks are appended later
+    waitingTask = CompletableFuture.runAsync(() -> {}, pool);
   }
 
   public Runnable asRunnable() {

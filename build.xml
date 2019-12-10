@@ -38,7 +38,6 @@
         -Xep:GuardedBy:OFF
         -Xep:Finally:OFF
         -Xep:MixedMutabilityReturnType:OFF
-        -Xep:UnnecessaryLambda:OFF
         -Xep:UnnecessaryAnonymousClass:OFF
         "/>
 
