@@ -100,28 +100,32 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     assert predicateCpa != null;
 
     BlockFormulaStrategy blockFormulaStrategy;
-    UsageStatisticsRefinementStrategy pStrategy;
+    Function<ARGState, ARGState> transformer;
+
+    ConfigurationBuilder configBuilder = Configuration.builder();
+    configBuilder = configBuilder.copyFrom(predicateCpa.getConfiguration());
+    configBuilder.setOption("cpa.predicate.useHavocAbstraction", "true");
+    Configuration newConfig = configBuilder.build();
+
+    PathFormulaManager pfmgr = predicateCpa.createPathFormulaManager(newConfig);
 
     if (withBAM) {
-      pStrategy =
-          new UsageStatisticsRefinementStrategy(
-              bamPredicateCpa.getConfiguration(),
-              pLogger,
-              bamPredicateCpa.getSolver(),
-              bamPredicateCpa.getPredicateManager(),
-              s -> ((BackwardARGState) s).getARGState());
-      PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
+      transformer = s -> ((BackwardARGState) s).getARGState();
       blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr);
     } else {
-      pStrategy =
-          new UsageStatisticsRefinementStrategy(
-              predicateCpa.getConfiguration(),
-              pLogger,
-              predicateCpa.getSolver(),
-              predicateCpa.getPredicateManager(),
-              s -> s);
-      blockFormulaStrategy = new BlockFormulaStrategy();
+      transformer = s -> s;
+      // Anyway we need to recompute the formulas to avoid problems with the last nonabstraction
+      // state
+      blockFormulaStrategy = new RecomputeBlockFormulaStrategy(pfmgr);
     }
+
+    UsageStatisticsRefinementStrategy pStrategy =
+        new UsageStatisticsRefinementStrategy(
+            predicateCpa.getConfiguration(),
+            pLogger,
+            predicateCpa.getSolver(),
+            predicateCpa.getPredicateManager(),
+            transformer);
 
     ARGBasedRefiner pRefiner =
         new PredicateCPARefinerFactory(pCpa).setBlockFormulaStrategy(blockFormulaStrategy)
