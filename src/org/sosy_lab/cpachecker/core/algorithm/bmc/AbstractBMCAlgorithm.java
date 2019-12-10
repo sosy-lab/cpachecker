@@ -1265,18 +1265,9 @@ abstract class AbstractBMCAlgorithm
 
       private final CountDownLatch latch;
 
-      private final ShutdownRequestListener shutdownListener =
-          new ShutdownRequestListener() {
-
-            @Override
-            public void shutdownRequested(String pReason) {
-              latch.countDown();
-            }
-          };
-
       public HeadStartWithLatch(AbstractBMCAlgorithm pBmcAlgorithm, CountDownLatch pLatch) {
         latch = Objects.requireNonNull(pLatch);
-        pBmcAlgorithm.shutdownNotifier.registerAndCheckImmediately(shutdownListener);
+        pBmcAlgorithm.shutdownNotifier.registerAndCheckImmediately(reason -> latch.countDown());
       }
 
       @Override

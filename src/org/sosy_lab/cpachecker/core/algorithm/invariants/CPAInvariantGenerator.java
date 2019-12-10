@@ -43,7 +43,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.ShutdownManager;
-import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -123,16 +122,6 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   private Future<AggregatedReachedSets> invariantGenerationFuture = null;
 
   private volatile boolean programIsSafe = false;
-
-  private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
-
-    @Override
-    public void shutdownRequested(String pReason) {
-      if (!invariantGenerationFuture.isDone() && !programIsSafe) {
-        invariantGenerationFuture.cancel(true);
-      }
-    }
-  };
 
   private Optional<ShutdownManager> shutdownOnSafeNotifier;
 
@@ -241,7 +230,11 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     // create future for lazy synchronous invariant generation
     invariantGenerationFuture = new LazyFutureTask<>(task);
 
-    shutdownManager.getNotifier().registerAndCheckImmediately(shutdownListener);
+    shutdownManager.getNotifier().registerAndCheckImmediately(reason-> {
+      if (!invariantGenerationFuture.isDone() && !programIsSafe) {
+        invariantGenerationFuture.cancel(true);
+      }
+    });
   }
 
   @Override
