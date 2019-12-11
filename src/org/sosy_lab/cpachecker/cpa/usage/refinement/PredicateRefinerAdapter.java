@@ -102,12 +102,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     BlockFormulaStrategy blockFormulaStrategy;
     Function<ARGState, ARGState> transformer;
 
-    ConfigurationBuilder configBuilder = Configuration.builder();
-    configBuilder = configBuilder.copyFrom(predicateCpa.getConfiguration());
-    configBuilder.setOption("cpa.predicate.useHavocAbstraction", "true");
-    Configuration newConfig = configBuilder.build();
-
-    PathFormulaManager pfmgr = predicateCpa.createPathFormulaManager(newConfig);
+    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
 
     if (withBAM) {
       transformer = s -> ((BackwardARGState) s).getARGState();
