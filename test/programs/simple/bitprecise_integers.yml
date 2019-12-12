@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: bitprecise_integers.c
+input_files: 'bitprecise_integers.c'
+
+properties: []

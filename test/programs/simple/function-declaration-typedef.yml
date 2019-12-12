@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: function-declaration-typedef.c
+input_files: 'function-declaration-typedef.c'
+
+properties: []

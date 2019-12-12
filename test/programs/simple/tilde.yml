@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: tilde.c
+input_files: 'tilde.c'
+
+properties: []

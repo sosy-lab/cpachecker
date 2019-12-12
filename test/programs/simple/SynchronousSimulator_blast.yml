@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: SynchronousSimulator_blast.i
+input_files: 'SynchronousSimulator_blast.i'
+
+properties: []

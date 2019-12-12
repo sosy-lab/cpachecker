@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: uninitializedVariableUsed2_BUG.cil.c
+input_files: 'uninitializedVariableUsed2_BUG.cil.c'
+
+properties: []

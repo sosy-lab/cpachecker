@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: pointerAnalysis.c
+input_files: 'pointerAnalysis.c'
+
+properties: []
