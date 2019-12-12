@@ -135,6 +135,8 @@ def execute_benchmark(benchmark, output_handler):
             cmdLine.extend(["--master", benchmark.config.cloudMaster])
         if benchmark.config.zipResultFiles:
             cmdLine.extend(["--zip-result-files", str(benchmark.config.zipResultFiles)])
+        if benchmark.config.cgroupAccess:
+            cmdLine.extend(["--cgroupAccess", str(benchmark.config.cgroupAccess)])
         if benchmark.config.debug:
             cmdLine.extend(["--print-new-files", "true"])
 
