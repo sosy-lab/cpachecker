@@ -172,11 +172,7 @@ public class PredicateCPA
     formulaManager = solver.getFormulaManager();
     String libraries = solver.getVersion();
 
-    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, direction);
-    if (useCache) {
-      pfMgr = new CachingPathFormulaManager(pfMgr);
-    }
-    preciseFormulaManager = pfMgr;
+    preciseFormulaManager = createPathFormulaManager(config);
 
     if (useImpreciseFormulaManager) {
       ConfigurationBuilder configBuilder = Configuration.builder();
@@ -184,18 +180,7 @@ public class PredicateCPA
       configBuilder.setOption("cpa.predicate.useHavocAbstraction", "true");
       Configuration newConfig = configBuilder.build();
 
-      pfMgr =
-          new PathFormulaManagerImpl(
-              formulaManager,
-              newConfig,
-              logger,
-              shutdownNotifier,
-              cfa,
-              direction);
-      if (useCache) {
-        pfMgr = new CachingPathFormulaManager(pfMgr);
-      }
-      impreciseFormulaManager = pfMgr;
+      impreciseFormulaManager = createPathFormulaManager(newConfig);
     } else {
       impreciseFormulaManager = null;
     }
@@ -435,6 +420,22 @@ public class PredicateCPA
   @Override
   public ApplyOperator getApplyOperator() {
     return new PredicateApplyOperator(solver, formulaManager, preciseFormulaManager, config);
+  }
+
+  public PathFormulaManager createPathFormulaManager(Configuration pConfig)
+      throws InvalidConfigurationException {
+    PathFormulaManager pMgr =
+        new PathFormulaManagerImpl(
+            formulaManager,
+            pConfig,
+            logger,
+            shutdownNotifier,
+            cfa,
+            direction);
+    if (useCache) {
+      pMgr = new CachingPathFormulaManager(pMgr);
+    }
+    return pMgr;
   }
 
   public void setPrecisionAdjustmentExternalCheck(Predicate<AbstractState> pPredicate) {
