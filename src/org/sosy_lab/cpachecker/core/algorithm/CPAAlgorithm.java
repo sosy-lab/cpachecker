@@ -105,9 +105,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       forcedCoveringTimer.stopIfRunning();
     }
 
-    private void updateReachedSetStatistics(
-        Map<String, ? extends AbstractStatValue> newStatistics) {
-      for (Entry<String, ? extends AbstractStatValue> e : newStatistics.entrySet()) {
+    private void updateReachedSetStatistics(Map<String, AbstractStatValue> newStatistics) {
+      for (Entry<String, AbstractStatValue> e : newStatistics.entrySet()) {
         String key = e.getKey();
         AbstractStatValue val = e.getValue();
         if (!reachedSetStatistics.containsKey(key)) {
