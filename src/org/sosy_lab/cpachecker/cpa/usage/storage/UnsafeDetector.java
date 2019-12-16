@@ -23,20 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Set;
 import java.util.SortedSet;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cpa.lock.DeadLockState.DeadLockTreeNode;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.util.Pair;
 
-@Options(prefix="cpa.usage.unsafedetector")
 public class UnsafeDetector {
 
   public static enum UnsafeMode {
@@ -45,19 +41,10 @@ public class UnsafeDetector {
     DEADLOCKDISPATCH
   }
 
-  @Option(description = "ignore unsafes only with empty callstacks", secure = true)
-  private boolean ignoreEmptyLockset = true;
+  private final UsageConfiguration config;
 
-  @Option(description="defines what is unsafe",
-      secure = true)
-  private UnsafeMode unsafeMode = UnsafeMode.RACE;
-
-  @Option(name = "intLock", description="A name of interrupt lock for checking deadlock free",
-      secure = true)
-  private String intLockName = null;
-
-  public UnsafeDetector(Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
+  public UnsafeDetector(UsageConfiguration pConfig) {
+    config = pConfig;
   }
 
   public boolean isUnsafe(AbstractUsagePointSet set) {
@@ -127,8 +114,8 @@ public class UnsafeDetector {
         }
       }
     }
-    //Now we find an unsafe only from one usage
-    if (!ignoreEmptyLockset) {
+    // Now we find an unsafe only from one usage
+    if (!config.ignoreEmptyLockset()) {
       for (UsagePoint point : set) {
         if (isUnsafePair(point, point)) {
           return Pair.of(point, point);
@@ -141,7 +128,7 @@ public class UnsafeDetector {
 
   public boolean isUnsafePair(UsagePoint point1, UsagePoint point2) {
     if (point1.isCompatible(point2)) {
-      switch (unsafeMode) {
+      switch (config.getUnsafeMode()) {
         case RACE:
           return isRace(point1, point2);
 
@@ -152,7 +139,7 @@ public class UnsafeDetector {
           return isDeadlockCircular(point1, point2);
 
         default:
-          Preconditions.checkState(false, "Unknown mode: " + unsafeMode);
+          throw new AssertionError("Unknown mode: " + config.getUnsafeMode());
       }
     }
     return false;
@@ -161,7 +148,7 @@ public class UnsafeDetector {
 
   private boolean isRace(UsagePoint point1, UsagePoint point2) {
     if (point1.getAccess() == Access.WRITE || point2.getAccess() == Access.WRITE) {
-      if (ignoreEmptyLockset && point1.isEmpty() && point2.isEmpty()) {
+      if (config.ignoreEmptyLockset() && point1.isEmpty() && point2.isEmpty()) {
         return false;
       }
       return true;
@@ -170,8 +157,7 @@ public class UnsafeDetector {
   }
 
   private boolean isDeadlockDispatch(UsagePoint point1, UsagePoint point2) {
-    Preconditions.checkNotNull(intLockName);
-    LockIdentifier intLock = LockIdentifier.of(intLockName);
+    LockIdentifier intLock = LockIdentifier.of(checkNotNull(config.getIntLockName()));
     DeadLockTreeNode node1 = point1.get(DeadLockTreeNode.class);
     DeadLockTreeNode node2 = point2.get(DeadLockTreeNode.class);
 

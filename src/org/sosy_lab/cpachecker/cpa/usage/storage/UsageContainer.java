@@ -40,10 +40,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.lock.LockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
@@ -59,7 +55,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@Options(prefix="cpa.usage")
 public class UsageContainer {
   private final SortedMap<SingleIdentifier, UnrefinedUsagePointSet> unrefinedIds;
   private final SortedMap<SingleIdentifier, RefinedUsagePointSet> refinedIds;
@@ -75,6 +70,7 @@ public class UsageContainer {
   private int initialUsages;
 
   private final LogManager logger;
+  private final UsageConfiguration config;
 
   private final StatTimer resetTimer = new StatTimer("Time for reseting unsafes");
   private final StatTimer copyTimer = new StatTimer("Time for filling global container");
@@ -83,28 +79,31 @@ public class UsageContainer {
   int unsafeUsages = -1;
   int totalIds = 0;
 
-  @Option(description="output only true unsafes",
-      secure = true)
-  private boolean printOnlyTrueUnsafes = false;
-
-  public UsageContainer(Configuration config, LogManager l) throws InvalidConfigurationException {
-    this(new TreeMap<SingleIdentifier, UnrefinedUsagePointSet>(),
+  public UsageContainer(UsageConfiguration config, LogManager l, UnsafeDetector unsafeDetector) {
+    this(
+        new TreeMap<SingleIdentifier, UnrefinedUsagePointSet>(),
         new TreeMap<SingleIdentifier, RefinedUsagePointSet>(),
         new TreeMap<SingleIdentifier, RefinedUsagePointSet>(),
-        new TreeSet<SingleIdentifier>(), l, new UnsafeDetector(config));
-    config.inject(this);
+        new TreeSet<SingleIdentifier>(),
+        l,
+        config,
+        unsafeDetector);
   }
 
-  private UsageContainer(SortedMap<SingleIdentifier, UnrefinedUsagePointSet> pUnrefinedStat,
+  private UsageContainer(
+      SortedMap<SingleIdentifier, UnrefinedUsagePointSet> pUnrefinedStat,
       SortedMap<SingleIdentifier, RefinedUsagePointSet> pRefinedStat,
       SortedMap<SingleIdentifier, RefinedUsagePointSet> failedStat,
-      Set<SingleIdentifier> pFalseUnsafes, LogManager pLogger,
+      Set<SingleIdentifier> pFalseUnsafes,
+      LogManager pLogger,
+      UsageConfiguration pConfig,
       UnsafeDetector pDetector) {
     unrefinedIds = pUnrefinedStat;
     refinedIds = pRefinedStat;
     failedIds = failedStat;
     falseUnsafes = pFalseUnsafes;
     logger = pLogger;
+    config = pConfig;
     detector = pDetector;
   }
 
@@ -264,7 +263,7 @@ public class UsageContainer {
   }
 
   public Iterator<SingleIdentifier> getUnsafeIterator() {
-    if (printOnlyTrueUnsafes) {
+    if (config.printOnlyTrueUnsafes()) {
       return getTrueUnsafeIterator();
     } else {
       return getAllUnsafes().iterator();
@@ -288,7 +287,7 @@ public class UsageContainer {
 
   public int getUnsafeSize() {
     calculateUnsafesIfNecessary();
-    if (printOnlyTrueUnsafes) {
+    if (config.printOnlyTrueUnsafes()) {
       return refinedIds.size();
     } else {
       return getTotalUnsafeSize();
