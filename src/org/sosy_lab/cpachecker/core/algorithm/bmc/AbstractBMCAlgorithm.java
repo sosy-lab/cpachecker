@@ -277,7 +277,6 @@ abstract class AbstractBMCAlgorithm
 
         @Override
         public void shutdownRequested(String pReason) {
-          InvariantGenerator invariantGenerator = AbstractBMCAlgorithm.this.invariantGenerator;
           if (invariantGenerator != null && invariantGenerator.isProgramSafe()) {
             pShutdownManager.requestShutdown(pReason);
           }
