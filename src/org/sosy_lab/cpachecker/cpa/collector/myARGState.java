@@ -27,8 +27,10 @@ package org.sosy_lab.cpachecker.cpa.collector;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -43,26 +45,46 @@ public class myARGState implements Graphable {
   private final int currentID;
   private final AbstractState wrappedelement;
   private final Collection<ARGState> currentChildren;
+  private final Iterable<Integer> childrenToGive;
+  private final boolean toMergeID;
+  private final Collection<ARGState> parents;
+  private ImmutableList<ARGState> childrenlist;
+  private Iterable<Integer> myparentsM;
   private AbstractState parentwrapped;
   private ARGState parentelement;
   private Collection<ARGState> myparentsCollection;
   private ARGState element;
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
   private final int stateId;
+  private Iterable<Integer> parentsToGive;
+  private ImmutableList<ARGState> parentslist;
+  private static int myCount = 0;
+  private final int mycount2;
+
 
   public myARGState(ARGState cElement,
                     @Nullable ARGState pParentElement,
                     @Nullable Collection<ARGState> cParents,
+                    @Nullable Collection<ARGState> cChildren,
+                    boolean toMerge,
                     LogManager clogger){
     logger = clogger;
     stateId = idGenerator.getFreshId();
+    mycount2= this.getCount();
+    myCount ++;
     element = cElement;
+    toMergeID = toMerge;
     wrappedelement = element.getWrappedState();
     currentID = element.getStateId();
     currentChildren = element.getChildren();
+    childrenToGive =stateIdsOf(currentChildren);
+    parents = element.getParents();
+    if (cChildren != null) {
+      childrenlist = ImmutableList.copyOf(cChildren);
+    }
 
     if (cParents != null) {
-      myparentsCollection = cParents;
+      parentslist = ImmutableList.copyOf(cParents);
     }
     if (pParentElement != null) {
       addParent(pParentElement);
@@ -71,6 +93,8 @@ public class myARGState implements Graphable {
     }
   }
 
+  private int getCount() { return myCount;}
+
   public void addParent(ARGState pOtherParent) {
     checkNotNull(pOtherParent);
     // Manually enforce set semantics.
@@ -78,6 +102,7 @@ public class myARGState implements Graphable {
      // assert !pOtherParent.children.contains(this);
       myparents.add(pOtherParent);
       //pOtherParent.children.add();
+      parentsToGive = stateIdsOf(myparents);
     }
   }
 
@@ -85,13 +110,26 @@ public class myARGState implements Graphable {
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("myARG State (Id: ");
-    //sb.append(stateId);
+    sb.append("myARG State (myId: ");
+    sb.append(stateId);
+    sb.append(", myCount: ");
+    sb.append(mycount2);
+    sb.append(", ARGId: ");
     sb.append(currentID);
+    sb.append(", toMerge: ");
+    sb.append(toMergeID);
       if (myparents != null){
         sb.append(", myParents: ");
       sb.append(stateIdsOf(myparents));
       }
+    if (parentslist != null){
+      sb.append(", myParentslist: ");
+      sb.append(stateIdsOf(parentslist));
+    }
+    if (childrenlist != null){
+      sb.append(", myChildrenlist: ");
+      sb.append(stateIdsOf(childrenlist));
+    }
       sb.append(", myChildren: ");
       sb.append(stateIdsOf(currentChildren));
       sb.append(") ");
@@ -107,6 +145,13 @@ public class myARGState implements Graphable {
   private Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
     return from(elements).transform(ARGState::getStateId);
   }
+
+  public Collection<ARGState> getChildren() {
+    return Collections.unmodifiableCollection(currentChildren);
+  }
+
+  public Iterable<Integer> getMyChildren() {return childrenToGive; }
+  public Iterable<Integer> getMyParents() {return parentsToGive; }
   public ARGState getARGState() {
     return element;
   }
@@ -114,5 +159,9 @@ public class myARGState implements Graphable {
     return parentelement;
   }
   public AbstractState getwrappedState() { return wrappedelement; }
- public AbstractState getwrappedParentState() { return parentwrapped; }
+  public AbstractState getwrappedParentState() { return parentwrapped; }
+  public int getStateId(){return currentID;}
+  public int getMyStateId(){return stateId;}
+  public boolean isToMergeID(){return toMergeID;}
+  public ImmutableList<ARGState> getParentslist(){return parentslist;}
 }

@@ -91,7 +91,7 @@ public class CollectorPrecisionAdjustment implements PrecisionAdjustment{
       Precision precision = unwrappedResult.precision();
 
 
-      CollectorState preAdj = new CollectorState(wrappedState2, null,null,false,null,null,logger);
+      CollectorState preAdj = new CollectorState(wrappedState2, null,null,false,null,null,null,logger);
       Collection<AbstractState> wrappedAbstract = new ArrayList<>();
       wrappedAbstract.add(preAdj);
 
@@ -99,7 +99,7 @@ public class CollectorPrecisionAdjustment implements PrecisionAdjustment{
       PrecisionAdjustmentResult finalResult;
       if (state != wrappedState2 ) {
         // something changed
-        CollectorState preAdjchange = new CollectorState(state, null,null,false,null,null,logger);
+        CollectorState preAdjchange = new CollectorState(state, null,null,false,null,null,null,logger);
         wrappedAbstract.add(preAdjchange);
 
 

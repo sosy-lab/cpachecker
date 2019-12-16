@@ -116,7 +116,7 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
 
     AbstractState initialState = super.getInitialState(pNode, pPartition);
-    CollectorState is = new CollectorState(initialState, null, null,false,null,null,logger);
+    CollectorState is = new CollectorState(initialState, null, null,false,null,null,null,logger);
     return is;
   }
 

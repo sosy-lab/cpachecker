@@ -23,21 +23,26 @@
  */
 
 
-p, input {font:14px Verdana;}
+p, input {font-size:16px; font-family: sans-serif; color:darkblue;}
+
+h1, input {font-size:18px; font-family: sans-serif; color:darkblue;}
+
+h3, input {font-size:24px; font-family: sans-serif; color:darkblue;}
 
 .node text { font: 12px sans-serif; }
 
-g.bla > rect {
-    fill: plum
-}
-g.not-expanded > rect {
-    fill: #e5ff00;
-}
 g.merged > rect {
-    fill: #00ffd0;
+
 }
 g.toMerge > rect {
+
+}
+g.highlight > rect {
     fill: plum
+}
+
+g.currentMerge > rect {
+    fill: #00ffd0;
 }
 text {
     font-weight: 300;
@@ -54,49 +59,6 @@ text {
     stroke-width: 1.5px;
 }
 
-
-.slidecontainer2 {
-    width: 100%;
-}
-
-
-.slider2 {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    height: 5px;
-    background: #d3d3d3;
-    outline: none;
-    opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
-    -webkit-transition: .2s; /* 0.2 seconds transition on hover */
-    transition: opacity .2s;
-}
-
-/* Mouse-over effects */
-.slider2:hover {
-    opacity: 1; /* Fully shown on mouse-over */
-}
-
-/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
-.slider2::-webkit-slider-thumb {
-    -webkit-appearance: none; /* Override default look */
-    appearance: none;
-    width: 15px; /* Set a specific slider handle width */
-    height: 15px; /* Slider handle height */
-    background: deepskyblue;
-    cursor: pointer; /* Cursor on hover */
-}
-
-.slider2::-moz-range-thumb {
-    width: 15px; /* Set a specific slider handle width */
-    height: 15px; /* Slider handle height */
-    background: deepskyblue;
-    cursor: pointer; /* Cursor on hover */
-}
-
-.blabla > rect {
-    fill: red
-}
 .wannahide {
     visibility: hidden;
 }
@@ -106,4 +68,198 @@ text {
 
 .contentshow {
     visibility: visible;
+}
+.contentshow:hover{
+    fill: darkmagenta;
+    opacity: 1;
+}
+.button {
+    width: 140px;
+    height: 45px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    font-weight: 500;
+    color: #000;
+    background-color: #fff;
+    border: none;
+    border-radius: 5px;
+    box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease 0s;
+    cursor: pointer;
+    outline: none;
+}
+
+.button:hover {
+    background-color: #2EE59D;
+    box-shadow: 0px 15px 20px rgba(46, 229, 157, 0.4);
+    color: #fff;
+    transform: translateY(2px);
+}
+
+.dropbtn {
+    width: 140px;
+    height: 45px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    font-weight: 500;
+    color: #000;
+    background-color: #fff;
+    border: none;
+    border-radius: 5px;
+    box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease 0s;
+    cursor: pointer;
+    outline: none;
+}
+
+.dropbtn:hover, .dropbtn:focus {
+    background-color: #2EE59D;
+    box-shadow: 0px 15px 20px rgba(46, 229, 157, 0.4);
+    color: #fff;
+    transform: translateY(2px);
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+
+.dropbtn2 {
+    background-color: #3498DB;
+    color: white;
+    padding: 12px;
+    font-size: 12px;
+    border: none;
+}
+
+.dropbtn2:hover, .dropbtn:focus {
+    background-color: #2980B9;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f1f1f1;
+    min-width: 160px;
+    overflow: auto;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    border-radius: 5px;
+}
+
+.dropdown-content a {
+    color: #2db97b;
+    padding: 10px 12px;
+    text-decoration: none;
+    display: block;
+    font-size: 10px;
+    font-family: 'Roboto', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+}
+
+.dropdown a:hover {background-color: #ddd;}
+
+.show {display: block;}
+
+.button2 {
+    background-color: #3498DB;
+    color: white;
+    padding: 12px;
+    font-size: 12px;
+    border: none;
+}
+
+.button2 :hover, .dropbtn:focus {
+    background-color: #2980B9;
+}
+.slidecontainer {
+    width: 100%;
+}
+
+.slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 25px;
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+}
+
+.slider:hover {
+    opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    background: #2EE59D;
+    cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    background: #2EE59D;
+    cursor: pointer;
+}
+
+#infoBox {
+    visibility: hidden;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1;
+    width: 200px;
+    background-color: #2EE59D;
+    display: inline-block;
+    border-radius: 6px;
+}
+
+.tool_tip #boxContent::after {
+    content: "";
+    position: absolute;
+    top: 25%;
+    right: 100%;
+    margin-top: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent #2EE59D transparent transparent;
+}
+
+#insideBox {
+    padding-top: 0px;
+}
+
+#boxContent {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 8px;
+    line-height: 130%;
+    color: black;
+    text-align: center;
+    padding: 50px 0;
+}
+
+.bold {
+    font-weight: bold;
+    font-size: 12px;
+
+}
+
+.standard {
+    font-size: 12px;
 }

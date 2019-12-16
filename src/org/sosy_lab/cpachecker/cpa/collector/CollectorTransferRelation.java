@@ -68,6 +68,8 @@ public class CollectorTransferRelation implements TransferRelation {
   private final LogManager logger;
   private myARGState mytransferARG;
   private CollectorState successorElem;
+  private boolean toMerge;
+  private ArrayList parents = new ArrayList<ARGState>();
 
 
   public CollectorTransferRelation(TransferRelation tr, LogManager trLogger) {
@@ -83,8 +85,8 @@ public class CollectorTransferRelation implements TransferRelation {
 
   assert pElement instanceof CollectorState;
 
+    toMerge = false;
     AbstractState state = pElement;
-    //logger.log(Level.INFO, "sonja pElement:\n" + pElement);
     ARGState wrappedState = (ARGState) ((CollectorState) state).getWrappedState();
 
     Collection<? extends AbstractState> successors;
@@ -93,17 +95,19 @@ public class CollectorTransferRelation implements TransferRelation {
           + " relation, but " + transferRelation.getClass().getSimpleName();
 
       successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision);
-      //logger.log(Level.INFO, "sonja successors:\n" + successors);
+
 
       Collection<AbstractState> wrappedSuccessors = new ArrayList<>();
       for (AbstractState absElement : successors) {
         ARGState succARG = (ARGState) absElement;
-        mytransferARG = new myARGState(succARG,wrappedState,null, logger);
-        successorElem = new CollectorState(absElement, null, mytransferARG, false,null,null,logger);
+        Collection<ARGState> wrappedParent = succARG.getParents();
+        parents.addAll(wrappedParent);
+        mytransferARG = new myARGState(succARG,wrappedState,parents, null,toMerge, logger);
+        successorElem = new CollectorState(absElement, null, mytransferARG, false,null,null,null,logger);
         wrappedSuccessors.add(successorElem);
+        parents.clear();
       }
 
-      //logger.log(Level.INFO, "sonja wrappedSuccesors:\n" + wrappedSuccessors);
       return wrappedSuccessors;
 
     } catch (UnsupportedCodeException e) {

@@ -72,8 +72,6 @@ public class ARGState extends AbstractSingleWrapperState
   private boolean mayCover = true;
   private boolean destroyed = false;
   private boolean hasCoveredParent = false;
-  private boolean merged = false;
-  private boolean toMerge = false;
 
   private ARGState mergedWith = null;
 
@@ -288,12 +286,6 @@ public class ARGState extends AbstractSingleWrapperState
   public ARGState getMergedWith() {
     return mergedWith;
   }
-
-  public boolean merged() { return merged; }
-  public boolean markMerged() { return merged = true; }
-  public boolean toMerge() { return toMerge; }
-  public boolean markToMerge() { return toMerge = true; }
-
 
   // was-expanded marker so we can identify open leafs
 

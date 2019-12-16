@@ -31,6 +31,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
@@ -54,6 +55,8 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   private final AbstractState current;
   private final AbstractState wrappedWrapped;
   private final Boolean ismerged;
+  private final boolean toMerge=false;
+  private final int count2;
   private Object secondparent;
   private Object firstparent;
   private ImmutableList<AbstractState> states;
@@ -67,6 +70,10 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   private myARGState myARGTransferRelation;
   private myARGState myARG1;
   private myARGState myARG2;
+  private myARGState myARGmerged;
+  //private boolean merged = false;
+  //private boolean toMerge = false;
+  private static int count;
 
   public CollectorState(AbstractState pWrappedState,
                         @Nullable Collection<AbstractState> pCollectorState,
@@ -74,6 +81,7 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
                         Boolean merged,
                         @Nullable myARGState pMyARG1,
                         @Nullable myARGState pMyARG2,
+                        @Nullable myARGState pMyARGmerged,
                         LogManager cLogger) {
     super(pWrappedState);
     logger = cLogger;
@@ -86,7 +94,9 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
     }
     if (pMyARG2 != null) {
       this.myARG2 = pMyARG2;
-      //logger.log(Level.INFO, "sonja MyARG2:\n" + MyARG2.toDOTLabel());
+    }
+    if (pMyARGmerged != null) {
+      this.myARGmerged = pMyARGmerged;
     }
 
     if (pCollectorState != null) {
@@ -100,27 +110,33 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
     wrappedChildren = wrapped.getChildren();
     StateID_wrappedChildren = stateIdsOf(wrappedChildren);
     current =  getWrappedState();
-    //logger.log(Level.INFO, "sonja currentTEST:\n" + current);
     List_wrappedParent = ImmutableList.copyOf(StateID_wrappedParent);
     List_wrappedChildren = ImmutableList.copyOf(StateID_wrappedChildren);
     currentARGid = ((ARGState) pWrappedState).getStateId();
     stateId = idGenerator.getFreshId();
     wrappedWrapped = argstate.getWrappedState();
+    count2= this.getCount();
+    count ++;
 
   }
+
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    //sb.append("\nCollectorStateID:  ");
-    //sb.append(stateId + "\n");
-    if (states != null) {
-     sb.append("Current:  ");
-     sb.append("Sucessors: ");
-     sb.append(List_wrappedChildren);
-     sb.append(" Ancestors: ");
-     sb.append(List_wrappedParent);
-     sb.append (" StateID: " + currentARGid);
+    sb.append("\nCollectorCount:  ");
+    sb.append(count2 + "\n");
+    sb.append("Current:  ");
+    sb.append("Sucessors: ");
+    sb.append(List_wrappedChildren);
+    sb.append(" Ancestors: ");
+    sb.append(List_wrappedParent);
+    sb.append (" StateID: " + currentARGid);
+
+      sb.append("\n Current myARGID:  ");
+      if (myARGmerged != null){
+        sb.append("\n" + myARGmerged.toDOTLabel());
+      }
       sb.append("\n" + "myARG 1:  ");
       if (myARG1 != null){
       sb.append("\n" + myARG1.toDOTLabel());
@@ -129,20 +145,10 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
       if (myARG2 != null){
         sb.append("\n" + myARG2.toDOTLabel());
       }
-      sb.append("\n" + "Storage:  ");
-      sb.append(states);
-   }
-   else{
-     sb.append("Current:  ");
-     sb.append("Sucessors: ");
-     sb.append(List_wrappedChildren);
-     sb.append(" Ancestors: ");
-     sb.append(List_wrappedParent);
-     sb.append (" StateID: " + currentARGid);
       if (myARGTransferRelation != null){
         sb.append("\n" +"MyARGTransfer:");
         sb.append("\n" + myARGTransferRelation.toDOTLabel());}
-   }
+
     sb.append ("\n");
     return sb.toString();
   }
@@ -178,7 +184,11 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   public myARGState getMyARG2() {
     return myARG2;
   }
+  public myARGState getMyARGmerged() {
+    return myARGmerged;
+  }
   public int getStateId() { return currentARGid; }
+  public int getCount(){return count;}
 
   /**
    * Get the child elements of this state.
@@ -190,39 +200,12 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
 
   public ImmutableList<AbstractState> getStorage() { return states; }
 
-  public AbstractState getfirstStorage(){return states.get(0);}
-  public AbstractState getsecondStorage(){return states.get(1);}
-
-  public int getfirstID() {
-    first =states.get(0);
-    id = ((CollectorState) first).getStateId();
-    return id;
-  }
-  public int getsecondID() {
-    second =states.get(1);
-    id = ((CollectorState) second).getStateId();
-    return id;
-  }
-
-  public Object getParentsID() {
-    firstParent = List_wrappedParent.get(0);
-    return firstParent;
-  }
-
-  public Object getChildrenID() {
-    if (List_wrappedChildren.size() >= 1) {
-      firstChildren = List_wrappedChildren.get(0);
-      return firstChildren;
-    } else {
-      return "";
-    }
-  }
 
   public AbstractState getWrappedWrappedState() {
     return wrappedWrapped;
   }
   public ImmutableList getAncestor(){return List_wrappedParent; }
-  public Boolean ismerged() {
+  public boolean ismerged() {
     return ismerged;
   }
 

@@ -39,44 +39,43 @@
 </head>
 <body>
 <h3>CPAchecker Computation steps</h3>
-<script>    d3.select('h3').style('color', 'darkblue');
-d3.select('h3').style('font-size', '24px');
-d3.select('h3').style('font-family', 'sans-serif');
-</script>
 </body></html>
-
 
 <h1>
-    <script>    d3.select('h1').style('color', 'darkblue');
-    d3.select('h1').style('font-size', '18px');
-    d3.select('h1').style('font-family', 'sans-serif');
-    </script>
 
-    <input type="button" class="button" value="FINAL ARG GRAPH" onclick="buttonFinalGraph()">
-    <input type="button" class="button" value="START ARG GRAPH" onclick="buttonStart()">
-    <br />
-    <br />
-
-    <div class="slidecontainer2">
-        <input type="range" min="0" max="100" value="0" class="slider2" id="sliderRange"
-               oninput="slide(this.value)" onchange="slide(this.value)">
-        <br />
-        <br />
-        Computation step <span id="range2"></span>
-        <br/> <br/>
+    <div class="dropdown">
+        <button onclick="myFunction()" class="dropbtn">Final ARG GRAPH</button>
+        <div id="myDropdown" class="dropdown-content">
+            <a onclick="buttonFinalGraph()" >highlight Merge</a>
+            <a onclick="buttonFinalGraph2()">standard ARG Graph</a>
+        </div>
     </div>
+    <button onclick="reset()" class="dropbtn">Reset ARG GRAPH</button>
+    <br />
+    <br />
+
+
+    <div class="slidecontainer">
+        <input type="range" min="0" max="100" value="0" class="slider" id="myRange">
+        <p> <b>Computation step: <span id="demo"></span></b></p>
+    </div>
+
     <div id="statButtons">
-        <input type="button" class="button" value="NEXT" onclick="buttonUP()">
-        <input type="button" class="button" value="NEXT new!" onclick="shownode()" id="shownode">
-        <br />
-        <input type="button" class="button" value="PREV" onclick="buttonDN()">
-        <input type="button" class="button" value="PREV new!" onclick="removenode()" id="removenode">
+        <input type="button" class="button" value="PREV" onclick="removenode()" id="removenode">
+        <input type="button" class="button" value="NEXT" onclick="shownode()" id="shownode">
         <br />
     </div>
+
 </h1>
 
-<svg id="canvas" onclick="showCoords(document.getElementById('canvas'),event)" ></svg>
+    </div>
+<div class="tool_tip" id="infoBox" style="z-index: 1; visibility: hidden;">
+    <div id="insideBox">
+        <span id="boxContent">&nbsp;</span>
+    </div>
+</div>
 
-</body></html>
+<svg id="canvas" ></svg>
 
-
+</body>
+</html>
