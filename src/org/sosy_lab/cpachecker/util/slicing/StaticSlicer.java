@@ -67,7 +67,11 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           + "the target location, but also on the paths to that target location.")
   private boolean preserveTargetPaths = false;
 
+  private final LogManager logger;
+
   private DependenceGraph depGraph;
+
+  private final SliceExporter sliceExporter;
 
   private StatInt candidateSliceCount =
       new StatInt(StatKind.SUM, "Number of proposed slicing " + "procedures");
@@ -85,7 +89,11 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     pConfig.inject(this);
 
+    logger = pLogger;
+
     depGraph = pDependenceGraph;
+
+    sliceExporter = new SliceExporter(pConfig);
   }
 
   @Override
@@ -133,6 +141,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         }
       }
 
+      sliceExporter.execute(pCfa, relevantEdges, sliceCount.getUpdateCount(), logger);
 
     } finally {
       sliceCount.setNextValue(realSlices);
