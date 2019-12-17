@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
@@ -81,6 +83,8 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   private PathTemplate errorPathFile = PathTemplate.ofFormatString("witness.%s.graphml");
 
   private static final String WARNING_MESSAGE = "Access was not found";
+
+  String defaultSourcefileName;
 
   private static class ThreadIterator implements Iterator<Integer> {
     private Set<Integer> usedThreadIds;
@@ -164,7 +168,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     CFAEdge secondEdge = secondIterator.next();
     int forkThread = 0;
 
-    String defaultSourcefileName =
+    defaultSourcefileName =
         firstEdge.getFileLocation().getFileName();
 
     String status;
@@ -295,9 +299,15 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private void dumpCommonInfoForEdge(GraphMlBuilder builder, Element result, CFAEdge pEdge) {
-    if (pEdge.getSuccessor() instanceof FunctionEntryNode) {
-      FunctionEntryNode in = (FunctionEntryNode) pEdge.getSuccessor();
-      builder.addDataElementChild(result, KeyDef.FUNCTIONENTRY, in.getFunctionName());
+    CFANode succ = pEdge.getSuccessor();
+    String functionName = null;
+    if (succ instanceof FunctionEntryNode) {
+      functionName = ((FunctionEntryNode) succ).getFunctionDefinition().getOrigName();
+    } else if (AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
+      functionName = succ.getFunctionName();
+    }
+    if (functionName != null) {
+      builder.addDataElementChild(result, KeyDef.FUNCTIONENTRY, functionName);
     }
     if (pEdge.getSuccessor() instanceof FunctionExitNode) {
       FunctionExitNode out = (FunctionExitNode) pEdge.getSuccessor();
@@ -310,11 +320,16 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       builder.addDataElementChild(result, KeyDef.CONTROLCASE, assumeCase.toString());
     }
 
-    FileLocation location = pEdge.getFileLocation();
+    final Set<FileLocation> locations =
+        AutomatonGraphmlCommon.getFileLocationsFromCfaEdge0(pEdge, cfa.getMainFunction());
+    FileLocation location = locations.iterator().next();
     assert (location != null) : "should be filtered";
     builder.addDataElementChild(result, KeyDef.ORIGINFILE, location.getFileName());
+
     builder.addDataElementChild(
-        result, KeyDef.STARTLINE, Integer.toString(location.getStartingLineInOrigin()));
+        result,
+        KeyDef.STARTLINE,
+        Integer.toString(location.getStartingLineInOrigin()));
     builder.addDataElementChild(result, KeyDef.OFFSET, Integer.toString(location.getNodeOffset()));
 
     if (!pEdge.getRawStatement().trim().isEmpty()) {
