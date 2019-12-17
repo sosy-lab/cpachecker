@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -322,15 +324,36 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
     final Set<FileLocation> locations =
         AutomatonGraphmlCommon.getFileLocationsFromCfaEdge0(pEdge, cfa.getMainFunction());
-    FileLocation location = locations.iterator().next();
-    assert (location != null) : "should be filtered";
-    builder.addDataElementChild(result, KeyDef.ORIGINFILE, location.getFileName());
+    final Comparator<FileLocation> nodeOffsetComparator =
+        Comparator.comparingInt(FileLocation::getNodeOffset);
+    final FileLocation min =
+        locations.isEmpty() ? null : Collections.min(locations, nodeOffsetComparator);
+    final FileLocation max =
+        locations.isEmpty() ? null : Collections.max(locations, nodeOffsetComparator);
 
-    builder.addDataElementChild(
-        result,
-        KeyDef.STARTLINE,
-        Integer.toString(location.getStartingLineInOrigin()));
-    builder.addDataElementChild(result, KeyDef.OFFSET, Integer.toString(location.getNodeOffset()));
+    if (min != null) {
+      builder.addDataElementChild(result, KeyDef.ORIGINFILE, min.getFileName());
+      builder.addDataElementChild(
+          result,
+          KeyDef.STARTLINE,
+          Integer.toString(min.getStartingLineInOrigin()));
+    }
+    if (max != null) {
+      builder.addDataElementChild(
+          result,
+          KeyDef.ENDLINE,
+          Integer.toString(max.getEndingLineInOrigin()));
+    }
+
+    if (min != null && min.isOffsetRelatedToOrigin()) {
+      builder.addDataElementChild(result, KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
+    }
+    if (max != null && max.isOffsetRelatedToOrigin()) {
+          builder.addDataElementChild(
+              result,
+              KeyDef.ENDOFFSET,
+              Integer.toString(max.getNodeOffset() + max.getNodeLength() - 1));
+    }
 
     if (!pEdge.getRawStatement().trim().isEmpty()) {
       builder.addDataElementChild(result, KeyDef.SOURCECODE, pEdge.getRawStatement());
