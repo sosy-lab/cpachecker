@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -279,6 +280,10 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
   private Element printEdge(GraphMlBuilder builder, CFAEdge edge) {
 
+    if (handleAsEpsilonEdge0(edge)) {
+      return null;
+    }
+
     if (isThreadCreateFunction(edge)) {
       CFunctionSummaryEdge sEdge = ((CFunctionCallEdge) edge).getSummaryEdge();
       Element result = printEdge(builder, sEdge);
@@ -410,5 +415,25 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       declaration = ((LocalVariableIdentifier) id).getFunction() + "::" + declaration;
     }
     return declaration;
+  }
+
+  private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
+    if (edge instanceof BlankEdge) {
+      if (AutomatonGraphmlCommon.isMainFunctionEntry(edge)) {
+        return false;
+      }
+      if (edge.getSuccessor() instanceof FunctionExitNode) {
+        return AutomatonGraphmlCommon
+            .isEmptyStub(((FunctionExitNode) edge.getSuccessor()).getEntryNode());
+      }
+      if (AutomatonGraphmlCommon.treatAsTrivialAssume(edge)) {
+        return false;
+      }
+      if (AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
+        return false;
+      }
+      return true;
+    }
+    return false;
   }
 }
