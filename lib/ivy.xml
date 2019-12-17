@@ -78,7 +78,7 @@
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="3.2.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="3.2.4" conf="test->default"/>
         <dependency org="org.mockito" name="mockito-errorprone" rev="3.2.0" conf="build->default"/>
 
         <!-- Antlr
