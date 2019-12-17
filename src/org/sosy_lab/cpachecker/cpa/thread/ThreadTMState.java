@@ -24,16 +24,23 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
 public class ThreadTMState extends ThreadState {
+
+  private final String current;
 
   public ThreadTMState(
       Map<String, ThreadStatus> Tset,
       ImmutableMap<ThreadLabel, ThreadStatus> Rset,
       List<ThreadLabel> pOrder) {
     super(Tset, Rset, pOrder);
+    if (pOrder.size() > 0) {
+      current = pOrder.get(pOrder.size() - 1).getVarName();
+    } else {
+      current = "";
+    }
   }
 
   @Override
@@ -42,14 +49,40 @@ public class ThreadTMState extends ThreadState {
     ThreadTMState other = (ThreadTMState) state;
 
     // Does not matter which set to iterate, anyway we need an intersection
-    for (Entry<String, ThreadStatus> entry : threadSet.entrySet()) {
-      String l = entry.getKey();
-
-      if (!other.threadSet.containsKey(l)) {
-        return false;
-      }
+    if (!this.threadSet.containsKey(other.current)) {
+      return false;
+    }
+    if (!other.threadSet.containsKey(this.current)) {
+      return false;
+    }
+    if (this.current == other.current) {
+      return threadSet.get(current) == ThreadStatus.SELF_PARALLEL_THREAD;
     }
     return true;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!super.equals(obj)) {
+      return false;
+    }
+    ThreadTMState other = (ThreadTMState) obj;
+    return Objects.equals(current, other.current);
+  }
+
+  @Override
+  public int compareTo(CompatibleState pOther) {
+    int result = super.compareTo(pOther);
+    ThreadTMState other = (ThreadTMState) pOther;
+
+    if (result != 0) {
+      return result;
+    }
+    result = this.current.compareTo(other.current);
+    return result;
   }
 
   public ThreadTMStateWithEdge copyWithEdge(ThreadAbstractEdge pEdge) {
@@ -68,5 +101,11 @@ public class ThreadTMState extends ThreadState {
   @Override
   public ThreadState prepareToStore() {
     return new ThreadTMState(this.threadSet, ImmutableMap.of(), ImmutableList.of());
+  }
+
+  @Override
+  public boolean isLessOrEqual(ThreadState pOther) {
+    return Objects.equals(removedSet, pOther.removedSet)
+        && Objects.equals(threadSet, pOther.threadSet);
   }
 }
