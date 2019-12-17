@@ -42,7 +42,7 @@ public class ThreadTMApplyOperator implements ApplyOperator {
   @Override
   public AbstractState project(AbstractState pParent, AbstractState pChild) {
     ThreadTMState parent = (ThreadTMState) pParent;
-    ThreadTMState child = (ThreadTMState) pParent;
+    ThreadTMState child = (ThreadTMState) pChild;
     Set<String> parentThreads = parent.getThreadSet().keySet();
     Set<String> childThreads = child.getThreadSet().keySet();
     if (parentThreads.size() == childThreads.size()) {

@@ -49,13 +49,10 @@ public class ThreadTMState extends ThreadState {
     ThreadTMState other = (ThreadTMState) state;
 
     // Does not matter which set to iterate, anyway we need an intersection
-    if (!this.threadSet.containsKey(other.current)) {
+    if (!this.threadSet.containsKey(other.current) && !other.threadSet.containsKey(this.current)) {
       return false;
     }
-    if (!other.threadSet.containsKey(this.current)) {
-      return false;
-    }
-    if (this.current == other.current) {
+    if (this.current.equals(other.current)) {
       return threadSet.get(current) == ThreadStatus.SELF_PARALLEL_THREAD;
     }
     return true;
@@ -105,7 +102,9 @@ public class ThreadTMState extends ThreadState {
 
   @Override
   public boolean isLessOrEqual(ThreadState pOther) {
-    return Objects.equals(removedSet, pOther.removedSet)
-        && Objects.equals(threadSet, pOther.threadSet);
+    assert (pOther instanceof ThreadTMState);
+    return Objects.equals(current, ((ThreadTMState) pOther).current)
+        && Objects.equals(removedSet, pOther.removedSet)
+        && pOther.threadSet.entrySet().containsAll(this.threadSet.entrySet());
   }
 }
