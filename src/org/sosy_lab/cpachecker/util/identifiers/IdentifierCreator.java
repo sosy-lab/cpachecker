@@ -48,7 +48,15 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
   protected int dereference;
   protected String function;
 
+  public IdentifierCreator() {
+  }
+
   public IdentifierCreator(String func) {
+    this();
+    setCurrentFunction(func);
+  }
+
+  public void setCurrentFunction(String func) {
     function = func;
   }
 
@@ -74,6 +82,15 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
       // Composite type
       return null;
     }
+  }
+
+  public AbstractIdentifier
+      createIdentifier(CExpression expression, int pDereference, String function) {
+    Preconditions.checkNotNull(expression);
+    setCurrentFunction(function);
+
+    dereference = pDereference;
+    return expression.accept(this);
   }
 
   public AbstractIdentifier createIdentifier(CExpression expression, int pDereference) {

@@ -30,15 +30,11 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -66,17 +62,11 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
-import org.sosy_lab.cpachecker.util.identifiers.RegionBasedIdentifierCreator;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-@Options(prefix = "cpa.usage")
 public class UsageProcessor {
-
-  @Option(description = "use sound regions as identifiers", secure = true)
-  private boolean useSoundRegions = false;
 
   private final Map<String, BinderFunctionInfo> binderFunctionInfo;
 
@@ -87,10 +77,11 @@ public class UsageProcessor {
   private Map<CFAEdge, Collection<Pair<AbstractIdentifier, Access>>> usages;
   // Not a set, as usage.equals do not consider id
   private List<UsageInfo> result;
-  private Optional<VariableClassification> varClassification;
 
   private Collection<CFANode> uselessNodes;
   private Collection<SingleIdentifier> redundantIds;
+
+  private final IdentifierCreator creator;
 
   StatTimer totalTimer = new StatTimer("Total time for usage processing");
   StatTimer localTimer = new StatTimer("Time for sharedness check");
@@ -103,17 +94,16 @@ public class UsageProcessor {
       LogManager pLogger,
       Map<CFANode, Map<GeneralIdentifier, DataType>> pPrecision,
       Map<String, BinderFunctionInfo> pBinderFunctionInfo,
-      CFA pCfa)
+      IdentifierCreator pCreator)
       throws InvalidConfigurationException {
     logger = pLogger;
     binderFunctionInfo = pBinderFunctionInfo;
 
-    config.inject(this);
     varSkipper = new VariableSkipper(config);
     precision = pPrecision;
     uselessNodes = new IdentityHashSet<>();
     usages = new IdentityHashMap<>();
-    varClassification = pCfa.getVarClassification();
+    creator = pCreator;
   }
 
   public void updateRedundantUnsafes(Set<SingleIdentifier> set) {
@@ -428,10 +418,7 @@ public class UsageProcessor {
   }
 
   private IdentifierCreator getIdentifierCreator(String functionName) {
-    if (useSoundRegions) {
-      return new RegionBasedIdentifierCreator(functionName, varClassification);
-    } else {
-      return new IdentifierCreator(functionName);
-    }
+    creator.setCurrentFunction(functionName);
+    return creator;
   }
 }

@@ -56,6 +56,18 @@ public class RegionBasedIdentifierCreator extends IdentifierCreator {
     }
   }
 
+  public RegionBasedIdentifierCreator(
+      Optional<VariableClassification> pVariableClassification) {
+    super();
+    if (pVariableClassification.isPresent()) {
+      addressedVariables = pVariableClassification.get().getAddressedVariables();
+      addressedFields = pVariableClassification.get().getAddressedFields();
+    } else {
+      addressedVariables = null;
+      addressedFields = null;
+    }
+  }
+
   @Override
   public AbstractIdentifier createIdentifier(CSimpleDeclaration decl, int pDereference) {
     Preconditions.checkNotNull(decl);

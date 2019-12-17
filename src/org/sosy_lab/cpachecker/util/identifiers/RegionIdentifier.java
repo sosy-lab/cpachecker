@@ -54,4 +54,16 @@ public class RegionIdentifier extends SingleIdentifier implements GeneralIdentif
     return this;
   }
 
+  @Override
+  public int compareTo(AbstractIdentifier pO) {
+    if (pO instanceof GlobalVariableIdentifier
+        || pO instanceof LocalVariableIdentifier
+        || pO instanceof StructureIdentifier) {
+      return -1;
+    } else if (pO instanceof RegionIdentifier) {
+      return super.compareTo(pO);
+    } else {
+      return 1;
+    }
+  }
 }
