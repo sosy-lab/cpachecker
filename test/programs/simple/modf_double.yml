@@ -4,5 +4,5 @@ format_version: '1.0'
 input_files: 'modf_double.c'
 
 properties:
-  - property_file: ../benchmarks/properties/unreach-call.prp
+  - property_file: ../../../config/properties/unreach-call.prp
     expected_verdict: true
