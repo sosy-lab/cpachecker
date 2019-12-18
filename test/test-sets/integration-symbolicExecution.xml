@@ -11,11 +11,11 @@
 
   <tasks>
     <includesfile>../programs/simple/explicit/symbolic/symbolic.set</includesfile>
-    <propertyfile>../programs/simple/explicit/symbolic/ALL.prp</propertyfile>
+    <propertyfile>../../config/properties/unreach-label.prp</propertyfile>
   </tasks>
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
-    <propertyfile>../programs/simple/ALL.prp</propertyfile>
+    <propertyfile>../../config/properties/unreach-label.prp</propertyfile>
     <exclude>../programs/simple/struct-char-array-initializer.yml</exclude> <!-- flapping timeout / out of memory -->
   </tasks>
   <tasks>

@@ -92,7 +92,7 @@
   <tasks>
     <option name="-predicateAnalysis-bam"/>
     <includesfile>../programs/simple/simple.set</includesfile>
-    <propertyfile>../programs/simple/ALL.prp</propertyfile>
+    <propertyfile>../../config/properties/unreach-label.prp</propertyfile>
     <exclude>../programs/benchmarks/forester-heap/*</exclude>
   </tasks>
   <tasks>
