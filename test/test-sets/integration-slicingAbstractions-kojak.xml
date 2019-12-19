@@ -14,6 +14,10 @@
     <propertyfile>../../config/properties/unreach-label.prp</propertyfile>
   </tasks>
   <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
