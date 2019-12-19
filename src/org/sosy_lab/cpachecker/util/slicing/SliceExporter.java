@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.slicing;
 
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.io.IOException;
@@ -30,7 +31,12 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -45,11 +51,22 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
@@ -74,6 +91,7 @@ public class SliceExporter {
     pConfig.inject(this);
   }
 
+  /** Returns true if any leaving edge of any node is contained in pRelevantEdges. */
   private boolean containsRelevantEdge(Collection<CFANode> pNodes, Set<CFAEdge> pRelevantEdges) {
 
     for (CFANode node : pNodes) {
@@ -87,77 +105,299 @@ public class SliceExporter {
     return false;
   }
 
-  private void replaceIrrelevantEdges(Collection<CFANode> pNodes, Set<CFAEdge> pRelevantEdges) {
+  /**
+   * Returns a node with content copied from specified pNode.
+   *
+   * <p>If pNodeMap already contains a node for the specified pNode (only one clone per node
+   * number), the cached node from pNodeMap is returned; otherwise a new node with content copied
+   * from specified pNode is created, stored in pNodeMap, and returned.
+   */
+  private CFANode cloneNode(CFANode pNode, Map<Integer, CFANode> pNodeMap) {
 
-    for (CFANode node : pNodes) {
-      for (int index = 0; index < node.getNumLeavingEdges(); index++) {
+    CFANode newNode = pNodeMap.get(pNode.getNodeNumber());
+    if (newNode != null) {
+      return newNode;
+    }
 
-        CFAEdge edge = node.getLeavingEdge(index);
+    String functionName = pNode.getFunctionName();
 
-        if (edge.getEdgeType() == CFAEdgeType.StatementEdge && !pRelevantEdges.contains(edge)) {
+    if (pNode instanceof CLabelNode) {
 
-          CFANode successor = edge.getSuccessor();
+      CLabelNode labelNode = (CLabelNode) pNode;
+      newNode = new CLabelNode(functionName, labelNode.getLabel());
 
-          CFAEdge newEdge =
-              new BlankEdge(
-                  edge.getRawStatement(),
-                  edge.getFileLocation(),
-                  node,
-                  successor,
-                  edge.getDescription());
+    } else if (pNode instanceof CFATerminationNode) {
 
-          node.removeLeavingEdge(edge);
-          node.addLeavingEdge(newEdge);
+      newNode = new CFATerminationNode(functionName);
 
-          successor.removeEnteringEdge(edge);
-          successor.addEnteringEdge(newEdge);
+    } else if (pNode instanceof FunctionExitNode) {
 
-          index = 0; // prevent skipping of edges
-        }
-      }
+      newNode = new FunctionExitNode(functionName);
+
+    } else if (pNode instanceof CFunctionEntryNode) {
+
+      CFunctionEntryNode entryNode = (CFunctionEntryNode) pNode;
+      FunctionExitNode newExitNode =
+          (FunctionExitNode) cloneNode(entryNode.getExitNode(), pNodeMap);
+
+      newNode =
+          new CFunctionEntryNode(
+              entryNode.getFileLocation(),
+              entryNode.getFunctionDefinition(),
+              newExitNode,
+              entryNode.getReturnVariable());
+      newExitNode.setEntryNode((CFunctionEntryNode) newNode);
+
+    } else {
+
+      newNode = new CFANode(functionName);
+    }
+
+    newNode.setReversePostorderId(pNode.getReversePostorderId());
+
+    if (pNode.isLoopStart()) {
+      newNode.setLoopStart();
+    }
+
+    pNodeMap.put(pNode.getNodeNumber(), newNode);
+
+    return newNode;
+  }
+
+  /**
+   * Creates a new CFunctionCallEdge with the following connections:
+   *
+   * <p><code>
+   *                                                           (dummy nodes)
+   * [pPredecessor] --- CFunctionCallEdge ---> new CFunctionEntryNode(newFunctionExitNode())
+   *        |                    |
+   *        ----------- CFunctionSummaryEdge ---> [pSuccessor]
+   * </code>
+   */
+  private CFunctionCallEdge cloneFunctionCall(
+      CFunctionCallEdge pEdge, CFANode pPredecessor, CFANode pSuccessor) {
+
+    CFunctionSummaryEdge summaryEdge = pEdge.getSummaryEdge();
+    CFunctionEntryNode entryNode = pEdge.getSuccessor();
+
+    FunctionExitNode newExitNode = new FunctionExitNode(entryNode.getFunctionName());
+
+    CFunctionEntryNode newEntryNode =
+        new CFunctionEntryNode(
+            pEdge.getFileLocation(),
+            entryNode.getFunctionDefinition(),
+            newExitNode,
+            entryNode.getReturnVariable());
+
+    CFunctionSummaryEdge newSummaryEdge =
+        new CFunctionSummaryEdge(
+            summaryEdge.getRawStatement(),
+            summaryEdge.getFileLocation(),
+            pPredecessor,
+            pSuccessor,
+            summaryEdge.getExpression(),
+            newEntryNode);
+
+    return new CFunctionCallEdge(
+        pEdge.getRawStatement(),
+        pEdge.getFileLocation(),
+        pPredecessor,
+        newEntryNode,
+        pEdge.getRawAST().get(),
+        newSummaryEdge);
+  }
+
+  /**
+   * Returns a new edge with content copied from specified pEdge and with specified predecessor and
+   * successor.
+   *
+   * <p>Treatment of CFunctionCallEdges is special and handled in {@link #cloneFunctionCall}.
+   */
+  private CFAEdge cloneEdge(CFAEdge pEdge, CFANode pPredecessor, CFANode pSuccessor) {
+
+    FileLocation loc = pEdge.getFileLocation();
+    String raw = pEdge.getRawStatement();
+    String desc = pEdge.getDescription();
+    CFAEdgeType type = pEdge.getEdgeType();
+
+    if (type == CFAEdgeType.BlankEdge) {
+
+      return new BlankEdge(raw, loc, pPredecessor, pSuccessor, desc);
+
+    } else if (type == CFAEdgeType.AssumeEdge && pEdge instanceof CAssumeEdge) {
+
+      CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
+      return new CAssumeEdge(
+          raw,
+          loc,
+          pPredecessor,
+          pSuccessor,
+          assumeEdge.getRawAST().get(),
+          assumeEdge.getTruthAssumption(),
+          assumeEdge.isSwapped(),
+          assumeEdge.isArtificialIntermediate());
+
+    } else if (type == CFAEdgeType.StatementEdge && pEdge instanceof CStatementEdge) {
+
+      CStatementEdge statementEdge = (CStatementEdge) pEdge;
+      return new CStatementEdge(raw, statementEdge.getStatement(), loc, pPredecessor, pSuccessor);
+
+    } else if (type == CFAEdgeType.DeclarationEdge && pEdge instanceof CDeclarationEdge) {
+
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
+      return new CDeclarationEdge(
+          raw, loc, pPredecessor, pSuccessor, declarationEdge.getDeclaration());
+
+    } else if (type == CFAEdgeType.ReturnStatementEdge && pEdge instanceof CReturnStatementEdge) {
+
+      CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pEdge;
+      return new CReturnStatementEdge(
+          raw,
+          returnStatementEdge.getRawAST().get(),
+          loc,
+          pPredecessor,
+          (FunctionExitNode) pSuccessor);
+
+    } else if (type == CFAEdgeType.FunctionCallEdge && pEdge instanceof CFunctionCallEdge) {
+
+      return cloneFunctionCall((CFunctionCallEdge) pEdge, pPredecessor, pSuccessor);
+
+    } else {
+      throw new AssertionError(
+          String.format(
+              "Cannot clone edge: type=%s, class=%s", type.toString(), pEdge.getClass().getName()));
     }
   }
 
-  private CFA createSliceCfa(CFA pCfa, Set<CFAEdge> pRelevantEdges) {
+  /** Adds all leaving edges from specified pNode to pQueue. */
+  private void addAllLeavingEdges(Queue<CFAEdge> pQueue, CFANode pNode) {
+    for (int index = 0; index < pNode.getNumLeavingEdges(); index++) {
+      pQueue.add(pNode.getLeavingEdge(index));
+    }
+  }
 
-    NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
-    SortedSetMultimap<String, CFANode> nodes = TreeMultimap.create();
-    FunctionEntryNode mainEntryNode = null;
+  /**
+   * Creates a new function that resembles the sliced function (as specified by pRelevantEdges) as
+   * closely as possible.
+   *
+   * <p>Nodes of the created function are added to pNewNodes.
+   *
+   * @param pEntryNode the entry node for the function.
+   * @param pRelevantEdges the relevant edges for the program slice.
+   * @param pNewNodes the mapping of function names to function nodes (multimap).
+   * @return the function entry node of the created function.
+   */
+  private FunctionEntryNode createRelevantFunction(
+      CFunctionEntryNode pEntryNode,
+      Set<CFAEdge> pRelevantEdges,
+      Multimap<String, CFANode> pNewNodes) {
+
+    Map<Integer, CFANode> nodeMap =
+        new HashMap<>(); // mapping of old-node-number --> new-node-clone
+    Queue<CFAEdge> waitlist = new LinkedList<>(); // edges to be processed (cloned or replaced)
+    Set<CFANode> visited =
+        new HashSet<>(); // a node is visited when all its leaving edges were added to the waitlist
+
+    FunctionEntryNode newEntryNode = (FunctionEntryNode) cloneNode(pEntryNode, nodeMap);
+    addAllLeavingEdges(waitlist, pEntryNode);
+    visited.add(pEntryNode);
+
+    while (!waitlist.isEmpty()) {
+
+      CFAEdge edge = waitlist.remove();
+
+      CFANode pred = edge.getPredecessor();
+      CFANode succ = edge.getSuccessor();
+
+      CFANode newPred = cloneNode(pred, nodeMap);
+      CFANode newSucc;
+      CFAEdge newEdge;
+
+      // step over function
+      if (edge instanceof CFunctionCallEdge) {
+        succ = ((CFunctionCallEdge) edge).getSummaryEdge().getSuccessor();
+      }
+
+      newSucc = cloneNode(succ, nodeMap);
+
+      if (pRelevantEdges.contains(edge)
+          || edge.getEdgeType() == CFAEdgeType.BlankEdge
+          || edge.getEdgeType() == CFAEdgeType.AssumeEdge
+          || edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+
+        newEdge = cloneEdge(edge, newPred, newSucc);
+
+      } else {
+        newEdge = new BlankEdge("", edge.getFileLocation(), newPred, newSucc, "slice-irrelevant");
+      }
+
+      newPred.addLeavingEdge(newEdge);
+
+      // newSucc is only the successor of all non-function-call edges
+      if (!(newEdge instanceof CFunctionCallEdge)) {
+        newSucc.addEnteringEdge(newEdge);
+      }
+
+      // don't visit a node twice and don't leave function
+      if (!visited.contains(succ) && !(succ instanceof FunctionExitNode)) {
+        addAllLeavingEdges(waitlist, succ);
+        visited.add(succ);
+      }
+    }
+
+    pNewNodes.putAll(pEntryNode.getFunctionName(), nodeMap.values());
+
+    return newEntryNode;
+  }
+
+  /**
+   * Creates a new CFA that resembles the program slice (as specified by pRelevantEdges) as closely
+   * as possible.
+   */
+  private CFA createRelevantCfa(CFA pCfa, Set<CFAEdge> pRelevantEdges) {
+
+    NavigableMap<String, FunctionEntryNode> newFunctions = new TreeMap<>();
+    SortedSetMultimap<String, CFANode> newNodes = TreeMultimap.create();
+    FunctionEntryNode newMainEntryNode = null;
 
     for (String functionName : pCfa.getAllFunctionNames()) {
       FunctionEntryNode entryNode = pCfa.getFunctionHead(functionName);
 
-      if (mainEntryNode == null && functionName.equals(pCfa.getMainFunction().getFunctionName())) {
-        mainEntryNode = entryNode;
-      }
-
       Collection<CFANode> functionNodes = CFATraversal.dfs().collectNodesReachableFrom(entryNode);
 
       if (containsRelevantEdge(functionNodes, pRelevantEdges)) {
-        replaceIrrelevantEdges(functionNodes, pRelevantEdges);
-      } else {
 
-        while (entryNode.getNumLeavingEdges() > 0) {
-          entryNode.removeLeavingEdge(entryNode.getLeavingEdge(0));
+        FunctionEntryNode newEntryNode =
+            createRelevantFunction((CFunctionEntryNode) entryNode, pRelevantEdges, newNodes);
+        newFunctions.put(functionName, newEntryNode);
+
+        if (newMainEntryNode == null
+            && functionName.equals(pCfa.getMainFunction().getFunctionName())) {
+          newMainEntryNode = newEntryNode;
         }
 
-        entryNode.addLeavingEdge(
-            new BlankEdge("", entryNode.getFileLocation(), entryNode, entryNode.getExitNode(), ""));
       }
 
-      functions.put(functionName, entryNode);
-      nodes.putAll(functionName, functionNodes);
     }
 
     return new MutableCFA(
         pCfa.getMachineModel(),
-        functions,
-        nodes,
-        mainEntryNode,
+        newFunctions,
+        newNodes,
+        newMainEntryNode,
         pCfa.getFileNames(),
         pCfa.getLanguage());
   }
 
+  /**
+   * Executes the slice-exporter, which (depending on the configuration) exports program slices to C
+   * program files.
+   *
+   * @param pCfa the CFA used for slice creation.
+   * @param pRelevantEdges the set containing all relevant edges for the slice.
+   * @param pSliceCounter the value of the slice counter; used for numbering the slice files.
+   * @param pLogger the logger for this export procedure.
+   */
   public void execute(
       CFA pCfa, Set<CFAEdge> pRelevantEdges, int pSliceCounter, LogManager pLogger) {
 
@@ -166,10 +406,9 @@ public class SliceExporter {
       Concurrency.newThread(
               "Slice-Exporter",
               () -> {
-                Path path = exportToCFile.getPath(pSliceCounter);
+                CFA sliceCfa = createRelevantCfa(pCfa, pRelevantEdges);
 
-                // TODO: clone CFA before slice creation
-                CFA sliceCfa = createSliceCfa(pCfa, pRelevantEdges);
+                Path path = exportToCFile.getPath(pSliceCounter);
 
                 try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
 
