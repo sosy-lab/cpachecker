@@ -3,4 +3,5 @@ format_version: '1.0'
 # old file name: array_with_casted_size.c
 input_files: 'array_with_casted_size.c'
 
-properties: []
+properties:
+  - property_file: ../../../config/properties/unreach-label.prp

@@ -3,4 +3,5 @@ format_version: '1.0'
 # old file name: functionCall2.c
 input_files: 'functionCall2.c'
 
-properties: []
+properties:
+  - property_file: ../../../config/properties/unreach-label.prp

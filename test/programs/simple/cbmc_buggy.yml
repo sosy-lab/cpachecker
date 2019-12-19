@@ -3,4 +3,5 @@ format_version: '1.0'
 # old file name: cbmc_buggy.c
 input_files: 'cbmc_buggy.c'
 
-properties: []
+properties:
+  - property_file: ../../../config/properties/unreach-label.prp

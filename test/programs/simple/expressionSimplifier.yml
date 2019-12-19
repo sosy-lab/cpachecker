@@ -3,4 +3,5 @@ format_version: '1.0'
 # old file name: expressionSimplifier.c
 input_files: 'expressionSimplifier.c'
 
-properties: []
+properties:
+  - property_file: ../../../config/properties/unreach-label.prp

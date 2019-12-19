@@ -3,4 +3,5 @@ format_version: '1.0'
 # old file name: lock-loop.c
 input_files: 'lock-loop.c'
 
-properties: []
+properties:
+  - property_file: ../../../config/properties/unreach-label.prp

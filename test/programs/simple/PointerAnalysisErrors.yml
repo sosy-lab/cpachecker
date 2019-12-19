@@ -3,4 +3,5 @@ format_version: '1.0'
 # old file name: PointerAnalysisErrors.c
 input_files: 'PointerAnalysisErrors.c'
 
-properties: []
+properties:
+  - property_file: ../../../config/properties/unreach-label.prp

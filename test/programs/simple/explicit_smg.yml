@@ -3,4 +3,5 @@ format_version: '1.0'
 # old file name: explicit_smg.c
 input_files: 'explicit_smg.c'
 
-properties: []
+properties:
+  - property_file: ../../../config/properties/unreach-label.prp

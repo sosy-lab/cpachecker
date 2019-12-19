@@ -3,4 +3,5 @@ format_version: '1.0'
 # old file name: branching_BUG.c
 input_files: 'branching_BUG.c'
 
-properties: []
+properties:
+  - property_file: ../../../config/properties/unreach-label.prp

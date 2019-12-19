@@ -3,4 +3,5 @@ format_version: '1.0'
 # old file name: struct_copy.cil.c
 input_files: 'struct_copy.cil.c'
 
-properties: []
+properties:
+  - property_file: ../../../config/properties/unreach-label.prp
