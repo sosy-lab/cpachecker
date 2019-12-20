@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
 public class ThreadTMState extends ThreadState {
@@ -69,6 +70,30 @@ public class ThreadTMState extends ThreadState {
     return true;
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!super.equals(obj)) {
+      return false;
+    }
+    ThreadTMState other = (ThreadTMState) obj;
+    return Objects.equals(current, other.current);
+  }
+
+  @Override
+  public int compareTo(CompatibleState pOther) {
+    int result = super.compareTo(pOther);
+    ThreadTMState other = (ThreadTMState) pOther;
+
+    if (result != 0) {
+      return result;
+    }
+    result = this.current.compareTo(other.current);
+    return result;
+  }
+
   public ThreadTMStateWithEdge copyWithEdge(ThreadAbstractEdge pEdge) {
     return new ThreadTMStateWithEdge(threadSet, removedSet, getOrder(), pEdge);
   }
@@ -85,5 +110,11 @@ public class ThreadTMState extends ThreadState {
   @Override
   public ThreadState prepareToStore() {
     return new ThreadTMState(this.threadSet, ImmutableMap.of(), ImmutableList.of());
+  }
+
+  @Override
+  public boolean isLessOrEqual(ThreadState pOther) {
+    return Objects.equals(removedSet, pOther.removedSet)
+        && Objects.equals(threadSet, pOther.threadSet);
   }
 }
