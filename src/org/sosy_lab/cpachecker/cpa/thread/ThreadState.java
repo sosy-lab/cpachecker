@@ -198,7 +198,7 @@ public class ThreadState
     return true;
   }
 
-  Map<String, ThreadStatus> getThreadSet() {
+  public Map<String, ThreadStatus> getThreadSet() {
     return threadSet;
   }
 

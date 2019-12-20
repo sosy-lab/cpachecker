@@ -37,7 +37,19 @@ public class ThreadTMState extends ThreadState {
       List<ThreadLabel> pOrder) {
     super(Tset, Rset, pOrder);
     if (pOrder.size() > 0) {
-      current = pOrder.get(pOrder.size() - 1).getVarName();
+      String tmp = null;
+      for (int i = pOrder.size() - 1; i >= 0; i--) {
+        ThreadLabel l = pOrder.get(i);
+        if (Tset.get(l.getVarName()) == ThreadStatus.CREATED_THREAD) {
+          tmp = l.getVarName();
+          break;
+        }
+      }
+      if (tmp != null) {
+        current = tmp;
+      } else {
+        current = "";
+      }
     } else {
       current = "";
     }
@@ -48,12 +60,12 @@ public class ThreadTMState extends ThreadState {
     Preconditions.checkArgument(state instanceof ThreadTMState);
     ThreadTMState other = (ThreadTMState) state;
 
-    // Does not matter which set to iterate, anyway we need an intersection
-    if (!this.threadSet.containsKey(other.current) && !other.threadSet.containsKey(this.current)) {
-      return false;
-    }
     if (this.current.equals(other.current)) {
       return threadSet.get(current) == ThreadStatus.SELF_PARALLEL_THREAD;
+    }
+    // Does not matter which set to iterate, anyway we need an intersection
+    if (!this.threadSet.containsKey(other.current) || !other.threadSet.containsKey(this.current)) {
+      return false;
     }
     return true;
   }
