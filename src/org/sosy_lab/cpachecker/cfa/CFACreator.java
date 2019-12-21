@@ -638,10 +638,12 @@ public class CFACreator {
     return parseResult;
   }
 
-  /** This method parses the sourceFiles and builds a CFA for each function.
-   * The ParseResult is only a Wrapper for the CFAs of the functions and global declarations. */
+  /**
+   * This method parses the sourceFiles and builds a CFA for each function. The ParseResult is only
+   * a Wrapper for the CFAs of the functions and global declarations.
+   */
   private ParseResult parseToCFAs(final List<String> sourceFiles)
-          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     final ParseResult parseResult;
 
     if (language == Language.C) {
@@ -652,13 +654,20 @@ public class CFACreator {
     }
 
     if (sourceFiles.size() == 1) {
-      parseResult = parser.parseFile(sourceFiles.get(0));
+      if (language == Language.JAVA) {
+
+        parseResult =
+            parser.parseFile(((JavaParser) parser).getAbsolutePathToMainFile());
+      } else {
+        parseResult = parser.parseFile(sourceFiles.get(0));
+      }
     } else {
       // when there is more than one file which should be evaluated, the
-      // programdenotations are separated from each other and a prefix for
+      // program denotations are separated from each other and a prefix for
       // static variables is generated
       if (language != Language.C) {
-        throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
+        throw new InvalidConfigurationException(
+            "Multiple program files not supported for languages other than C.");
       }
 
       parseResult = ((CParser) parser).parseFile(sourceFiles);
