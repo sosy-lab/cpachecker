@@ -646,9 +646,8 @@ public class CFACreator {
     if (language == Language.C) {
       checkIfValidFiles(sourceFiles);
     } else if (language == Language.JAVA) {
-      for (String sourceFile : sourceFiles) {
-        checkIfValidFile(((JavaParser) parser).getPathToFile(sourceFile));
-      }
+      // TODO Handling is different for java as files are extracted in EclipseJavaParser
+      // TODO Thus verification is different
     }
 
     if (sourceFiles.size() == 1) {
