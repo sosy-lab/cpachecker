@@ -203,14 +203,13 @@ class EclipseJavaParser implements JavaParser {
   /**
    * Parse the program of the Main class in this file into a CFA.
    *
-   * @param mainClassName The Main Class File of the program to parse.
+   * @param mainClassFileName The Main Class File of the program to parse.
    * @return The CFA.
    */
   @Override
-  public ParseResult parseFile(String mainClassName) throws JParserException, IOException {
-    Path mainClassFile = getPathToFile(mainClassName);
-    Scope scope = prepareScope(mainClassName);
-    ParseResult result = buildCFA(parse(mainClassFile), scope);
+  public ParseResult parseFile(String mainClassFileName) throws JParserException, IOException {
+    Scope scope = prepareScope(mainClassFileName);
+    ParseResult result = buildCFA(parse(getPathToFile(mainClassFileName)), scope);
     exportTypeHierarchy(scope);
     return result;
   }
