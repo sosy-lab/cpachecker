@@ -788,19 +788,23 @@ public class CFACreator {
     if (mainFunction != null) {
       return mainFunction;
     }
-
-    if (!mainFunctionName.equals("main")) {
+    if (!((JavaParser) parser).getMainMethodName().equals("main")) {
       // function explicitly given by user, but not found
-      throw new InvalidConfigurationException("Method " + mainFunctionName + " not found.\n" +
-          "Please note that a method has to be given in the following notation:\n <ClassName>_" +
-          "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_pack1.Car\n" +
-          "for the method drive(int speed, Car car) in the class Car.");
+      throw new InvalidConfigurationException(
+          "Method "
+              + mainFunctionName
+              + " not found.\n"
+              + "Please note that a method has to be given in the following notation:\n <ClassName>_"
+              + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_pack1.Car\n"
+              + "for the method drive(int speed, Car car) in the class Car.");
     }
 
-    mainFunction = cfas.get(mainClassName + JAVA_MAIN_METHOD_CFA_SUFFIX);
+    String mainClassName = ((JavaParser) parser).getMainClassName();
+    mainFunction = cfas.get(mainClassName.replace("/", ".") + JAVA_MAIN_METHOD_CFA_SUFFIX);
 
     if (mainFunction == null) {
-      throw new InvalidConfigurationException("No main method in given main class found, please specify one.");
+      throw new InvalidConfigurationException(
+          "No main method in given main class found, please specify one.");
     }
 
     return mainFunction;
