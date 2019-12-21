@@ -125,6 +125,7 @@ public class CFACreator {
   private static final String JAVA_MAIN_METHOD_CFA_SUFFIX = "_main_String[]";
 
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
+  public static final String VALID_JAVA_FUNCTION_NAME_PATTERN = ".*"; //TODO
 
   @Option(secure = true, name = "parser.usePreprocessor",
       description = "For C files, run the preprocessor on them before parsing. " +
@@ -137,7 +138,7 @@ public class CFACreator {
               + " (Always enabled when pre-processing is used.)")
   private boolean readLineDirectives = false;
 
-  @Option(secure = true, name = "analysis.entryFunction", // TODO Check regex for java and c separately regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
+  @Option(secure = true, name = "analysis.entryFunction",
       description = "entry function")
   private String mainFunctionName = "main";
 
@@ -358,22 +359,32 @@ public class CFACreator {
     this.stats = new CFACreatorStatistics(logger);
 
     stats.parserInstantiationTime.start();
-
+    String regExPattern;
     switch (language) {
-    case JAVA:
-      parser = Parsers.getJavaParser(logger, config, mainFunctionName);
-      break;
-    case C:
+      case JAVA:
+        regExPattern = "^" + VALID_JAVA_FUNCTION_NAME_PATTERN + "$";
+        if (!mainFunctionName.matches(regExPattern)) {
+          throw new InvalidConfigurationException(
+              "Entry function for java programs must match pattern " + regExPattern);
+        }
+        parser = Parsers.getJavaParser(logger, config, mainFunctionName);
+        break;
+      case C:
+        regExPattern = "^" + VALID_C_FUNCTION_NAME_PATTERN + "$";
+        if (!mainFunctionName.matches(regExPattern)) {
+          throw new InvalidConfigurationException(
+              "Entry function for c programs must match pattern " + regExPattern);
+        }
         CParser outerParser =
             CParser.Factory.getParser(
                 logger, CParser.Factory.getOptions(config), machineModel, shutdownNotifier);
 
-      outerParser =
-          new CParserWithLocationMapper(
-              config, logger, outerParser, readLineDirectives || usePreprocessor);
+        outerParser =
+            new CParserWithLocationMapper(
+                config, logger, outerParser, readLineDirectives || usePreprocessor);
 
-      if (usePreprocessor) {
-        CPreprocessor preprocessor = new CPreprocessor(config, logger);
+        if (usePreprocessor) {
+          CPreprocessor preprocessor = new CPreprocessor(config, logger);
         outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
       }
 
