@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
 
 /**
  * Wrapper around the JDT Parser and CFA-Builder Implementation.
- *
  */
 @Options
 class EclipseJavaParser implements JavaParser {
@@ -214,6 +213,25 @@ class EclipseJavaParser implements JavaParser {
     return result;
   }
 
+  @Override
+  public String getMainMethodName() {
+    return mainFunctionName;
+  }
+
+  @Override
+  public String getMainClassName() {
+    return programs.get(0);
+  }
+
+  private String getAbsolutePathToMainClass() {
+    return absolutePathToEntryClass;
+  }
+
+  @Override
+  public String getAbsolutePathToMainFile() {
+    return getAbsolutePathToMainClass() + JAVA_SOURCE_FILE_EXTENSION;
+  }
+
   /**
    * Returns the path of a file using javaSourcePaths variable.
    *
@@ -221,16 +239,15 @@ class EclipseJavaParser implements JavaParser {
    * @return path to file
    * @throws JParserException is thrown if file is not found
    */
-  @Override
-  public Path getPathToFile(String fileName) throws JParserException {
+  private Path getPathToFile(String fileName) throws JParserException {
     Path mainClassFile;
-    if(!fileName.endsWith(".java")) {
+    if (!fileName.endsWith(".java")) {
       mainClassFile =
           searchForClassFile(fileName)
               .orElseThrow(
                   () -> new JParserException("Could not find main class in the specified paths"));
     } else {
-      mainClassFile = Paths.get(fileName); //TODO check for file exists
+      mainClassFile = Paths.get(fileName); // TODO check for file exists
     }
     return mainClassFile;
   }

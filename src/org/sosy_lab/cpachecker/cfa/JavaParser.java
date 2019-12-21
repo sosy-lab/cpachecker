@@ -27,5 +27,9 @@ import java.nio.file.Path;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 
 public interface JavaParser extends Parser {
-  Path getPathToFile(String fileName) throws JParserException;
+  String getAbsolutePathToMainFile();
+
+  String getMainMethodName();
+
+  String getMainClassName();
 }
