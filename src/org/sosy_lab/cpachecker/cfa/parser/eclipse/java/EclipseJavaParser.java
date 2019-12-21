@@ -249,15 +249,19 @@ class EclipseJavaParser implements JavaParser {
     if (mainFunctionPath.endsWith(".java")) {
       mainFunctionPath = mainFunctionPath.substring(mainFunctionPath.length() - ".java".length());
     }
-    Path path = Paths.get(mainFunctionPath.replaceAll("\\.", "/"));
+    //TODO check if replacing with slash works for windows
+    mainFunctionPath = mainFunctionPath.replaceAll("\\.", "/");
     for (Path javaClassPath : javaClassPaths) {
-      path = javaClassPath.resolve(path);
+      //In case only file without method name is given
+      Path path = javaClassPath.resolve(Paths.get( mainFunctionPath+".java"));
       if (Files.exists(path)) {
         return new String[]{path.toString(), ""};
       }
-      Path pathParent = path.getParent().resolve(".java");
+      //In case file and method name is given
+      int indexOfLastSlash=mainFunctionPath.lastIndexOf('/');
+      Path pathParent = javaClassPath.resolve(Paths.get( mainFunctionPath.substring(0,indexOfLastSlash) +".java"));
       if (Files.exists(pathParent)) {
-        return new String[]{pathParent.toString(), path.getFileName().toString()};
+        return new String[]{pathParent.toString(), mainFunctionPath.substring(indexOfLastSlash + 1)};
       }
     }
     throw new JParserException("Could not find entry point");
