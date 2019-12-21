@@ -234,12 +234,13 @@ class EclipseJavaParser implements JavaParser {
   }
 
   /**
-   * Splits the path to an entry point into the path including the file name and the entry method.
-   * If the entry point method is not given, method will return "" as first element of return List.
-   * JavaClassPaths has to be set for this method to work!
+   * Splits the path to an entry point into path to class and entry method. If the entry point
+   * method is not given, method will return default entry method. JavaClassPaths has to be set for
+   * this method to work!
    *
-   * @param mainFunctionPath path to entry method in String form
-   * @return List with first element being method name, second element path to file including file
+   * @param mainFunctionPath path to entry method
+   * @return Array with first element being absolute path to class, second element relative path and
+   *     third element entry method
    */
   private String[] splitPathToClassAndMainMethod(String mainFunctionPath) throws JParserException {
     if (mainFunctionPath.endsWith(JAVA_SOURCE_FILE_EXTENSION)) {
@@ -253,10 +254,9 @@ class EclipseJavaParser implements JavaParser {
       // In case only file without method name is given
       Path path = javaClassPath.resolve(Paths.get(mainFunctionPath + JAVA_SOURCE_FILE_EXTENSION));
       if (Files.exists(path)) {
-        String pathToFile = path.toString();
-        return new String[] {
-          pathToFile.substring(0, pathToFile.length() - JAVA_SOURCE_FILE_EXTENSION.length()), ""
-        };
+        String absolutePathToEntryClass =
+            javaClassPath.resolve(Paths.get(mainFunctionPath)).toString();
+        return new String[]{absolutePathToEntryClass, mainFunctionPath, DEFAULT_ENTRY_METHOD};
       }
       // In case file and method name is given
       int indexOfLastSlash = mainFunctionPath.lastIndexOf('/');
@@ -265,10 +265,14 @@ class EclipseJavaParser implements JavaParser {
               Paths.get(
                   mainFunctionPath.substring(0, indexOfLastSlash) + JAVA_SOURCE_FILE_EXTENSION));
       if (Files.exists(pathToFileParent)) {
-        Path pathToClass =
-            javaClassPath.resolve(Paths.get(mainFunctionPath.substring(0, indexOfLastSlash)));
-        return new String[] {
-          pathToClass.toString(), mainFunctionPath.substring(indexOfLastSlash + 1)
+        String absolutePathToEntryClass =
+            javaClassPath
+                .resolve(Paths.get(mainFunctionPath.substring(0, indexOfLastSlash)))
+                .toString();
+        return new String[]{
+            absolutePathToEntryClass,
+            mainFunctionPath.substring(0, indexOfLastSlash),
+            mainFunctionPath.substring(indexOfLastSlash + 1)
         };
       }
     }
