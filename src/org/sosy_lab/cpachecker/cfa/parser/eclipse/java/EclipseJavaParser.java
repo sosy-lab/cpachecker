@@ -157,8 +157,8 @@ class EclipseJavaParser implements JavaParser {
         } else {
           javaClassPaths = ImmutableList.of(pathToProgram.get(0));
           String[] mainMethodAndPath = splitPathToFileAndMainMethod(mainFunctionName);
-          mainFunctionName = mainMethodAndPath[0];
-          programs = ImmutableList.of(mainMethodAndPath[1]);
+          programs = ImmutableList.of(mainMethodAndPath[0]);
+          mainFunctionName = mainMethodAndPath[1];
         }
       } else {
         throw new InvalidConfigurationException("No valid Paths could be found.");
