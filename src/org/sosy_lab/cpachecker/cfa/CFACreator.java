@@ -126,26 +126,27 @@ public class CFACreator {
 
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
 
-  @Option(secure=true, name="parser.usePreprocessor",
-      description="For C files, run the preprocessor on them before parsing. " +
-                  "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
+  @Option(secure = true, name = "parser.usePreprocessor",
+      description = "For C files, run the preprocessor on them before parsing. " +
+          "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
   private boolean usePreprocessor = false;
 
-  @Option(secure=true, name="parser.readLineDirectives",
-      description="For C files, read #line preprocessor directives and use their information for outputting line numbers."
-          + " (Always enabled when pre-processing is used.)")
+  @Option(secure = true, name = "parser.readLineDirectives",
+      description =
+          "For C files, read #line preprocessor directives and use their information for outputting line numbers."
+              + " (Always enabled when pre-processing is used.)")
   private boolean readLineDirectives = false;
 
-  @Option(secure=true, name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
-      description="entry function")
+  @Option(secure = true, name = "analysis.entryFunction", // TODO Check regex for java and c separately regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
+      description = "entry function")
   private String mainFunctionName = "main";
 
-  @Option(secure=true, name="analysis.machineModel",
+  @Option(secure = true, name = "analysis.machineModel",
       description = "the machine model, which determines the sizes of types like int")
   private MachineModel machineModel = MachineModel.LINUX32;
 
-  @Option(secure=true, name="analysis.interprocedural",
-      description="run interprocedural analysis")
+  @Option(secure = true, name = "analysis.interprocedural",
+      description = "run interprocedural analysis")
   private boolean interprocedural = true;
 
   @Option(secure=true, name="analysis.functionPointerCalls",
