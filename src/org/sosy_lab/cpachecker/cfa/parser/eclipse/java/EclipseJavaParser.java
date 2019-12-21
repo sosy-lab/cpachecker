@@ -135,6 +135,7 @@ class EclipseJavaParser implements JavaParser {
   static final String JAVA_SOURCE_FILE_EXTENSION = ".java";
 
   private String mainFunctionName;
+  private String absolutePathToEntryClass;
 
   public EclipseJavaParser(LogManager pLogger, Configuration config, String entryFunction)
       throws InvalidConfigurationException, JParserException {
@@ -154,7 +155,7 @@ class EclipseJavaParser implements JavaParser {
         } else {
           javaClassPaths = ImmutableList.of(pathToProgram.get(0));
           String[] mainMethodAndPath = splitPathToClassAndMainMethod(mainFunctionName);
-          absolutePathToMainFunction = mainMethodAndPath[0];
+          absolutePathToEntryClass = mainMethodAndPath[0];
           programs = ImmutableList.of(mainMethodAndPath[1]);
           mainFunctionName = mainMethodAndPath[2];
         }
