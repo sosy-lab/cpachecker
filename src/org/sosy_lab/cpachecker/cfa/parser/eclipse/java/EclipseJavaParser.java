@@ -163,6 +163,7 @@ class EclipseJavaParser implements JavaParser {
       }
     } else {
       javaClassPaths = convertToPathList(javaClasspath);
+      setEntryPointVariables(programs.get(0));
     }
 
     if (javaSourcepath.isEmpty()) {
