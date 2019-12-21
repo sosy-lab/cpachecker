@@ -423,16 +423,18 @@ public class CFACreator {
   /**
    * Parse some files and create a CFA, including all post-processing etc.
    *
-   * @param sourceFiles  The files to parse.
+   * @param sourceFiles The files to parse.
    * @return A representation of the CFA.
-   * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
-   * @throws IOException If an I/O error occurs.
-   * @throws ParserException If the parser or the CFA builder cannot handle the C code.
+   * @throws InvalidConfigurationException If the main function that was specified in the
+   *                                       configuration is not found.
+   * @throws IOException                   If an I/O error occurs.
+   * @throws ParserException               If the parser or the CFA builder cannot handle the C code.
    */
   public CFA parseFileAndCreateCFA(List<String> sourceFiles)
-          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
-    Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
+    Preconditions.checkArgument(
+        !sourceFiles.isEmpty(), "At least one source file must be provided!");
 
     stats.totalTime.start();
     try {
@@ -446,14 +448,16 @@ public class CFACreator {
       FunctionEntryNode mainFunction;
 
       switch (language) {
-      case JAVA:
-        mainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
-        break;
-      case C:
-        mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
-        break;
-      default:
-        throw new AssertionError();
+        case JAVA:
+          Preconditions.checkArgument(
+              sourceFiles.size() == 1, "Multiple input files not supported by 'getJavaMainMethod'");
+          mainFunction = getJavaMainMethod(c.getFunctions());
+          break;
+        case C:
+          mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
+          break;
+        default:
+          throw new AssertionError();
       }
 
       return createCFA(c, mainFunction);
@@ -775,11 +779,8 @@ public class CFACreator {
     return false;
   }
 
-  private FunctionEntryNode getJavaMainMethod(List<String> sourceFiles, Map<String, FunctionEntryNode> cfas)
+  private FunctionEntryNode getJavaMainMethod(Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
-
-    Preconditions.checkArgument(sourceFiles.size() == 1, "Multiple input files not supported by 'getJavaMainMethod'");
-    String mainClassName = sourceFiles.get(0);
 
     // try specified function
     FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
