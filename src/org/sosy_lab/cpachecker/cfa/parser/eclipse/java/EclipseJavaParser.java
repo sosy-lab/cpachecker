@@ -105,13 +105,6 @@ class EclipseJavaParser implements JavaParser {
 
   @Option(
       secure = true,
-      name = "analysis.entryFunction",
-      // regexp = "^[_a-zA-Z][_a-zA-Z0-9]*$",
-      description = "entry function")
-  private String mainFunctionName = "main";
-
-  @Option(
-      secure = true,
       name = "java.exportTypeHierarchy",
       description = "export TypeHierarchy as .dot file")
   private boolean exportTypeHierarchy = true;
@@ -140,13 +133,16 @@ class EclipseJavaParser implements JavaParser {
   private static final boolean PARSE_METHOD_BODY = false;
   static final String JAVA_SOURCE_FILE_EXTENSION = ".java";
 
-  public EclipseJavaParser(LogManager pLogger, Configuration config)
+  private String mainFunctionName;
+
+  public EclipseJavaParser(LogManager pLogger, Configuration config, String entryFunction)
       throws InvalidConfigurationException, JParserException {
 
     config.inject(this);
 
     logger = pLogger;
 
+    mainFunctionName = entryFunction;
     // TODO Handle multiple program files. Multiple program files might be forbidden. Needs to be
     // checked.
     if (javaClasspath.isEmpty() && programs.size() == 1) {

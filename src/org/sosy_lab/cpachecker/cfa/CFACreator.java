@@ -360,7 +360,7 @@ public class CFACreator {
 
     switch (language) {
     case JAVA:
-      parser = Parsers.getJavaParser(logger, config);
+      parser = Parsers.getJavaParser(logger, config, mainFunctionName);
       break;
     case C:
         CParser outerParser =
