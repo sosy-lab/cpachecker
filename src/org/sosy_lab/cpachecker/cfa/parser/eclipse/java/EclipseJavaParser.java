@@ -131,6 +131,7 @@ class EclipseJavaParser implements JavaParser {
 
   private static final boolean IGNORE_METHOD_BODY = true;
   private static final boolean PARSE_METHOD_BODY = false;
+  private static final String DEFAULT_ENTRY_METHOD = "main";
   static final String JAVA_SOURCE_FILE_EXTENSION = ".java";
 
   private String mainFunctionName;
