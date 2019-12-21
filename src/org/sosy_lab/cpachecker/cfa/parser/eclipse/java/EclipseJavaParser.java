@@ -156,7 +156,7 @@ class EclipseJavaParser implements JavaParser {
           javaClassPaths = ImmutableList.of(pathToProgram.get(0).getParent());
         } else {
           javaClassPaths = ImmutableList.of(pathToProgram.get(0));
-          String[] mainMethodAndPath = splitPathToFileAndMainMethod(mainFunctionName);
+          String[] mainMethodAndPath = splitPathToClassAndMainMethod(mainFunctionName);
           programs = ImmutableList.of(mainMethodAndPath[0]);
           mainFunctionName = mainMethodAndPath[1];
         }
@@ -245,23 +245,35 @@ class EclipseJavaParser implements JavaParser {
    * @param mainFunctionPath path to entry method in String form
    * @return List with first element being method name, second element path to file including file
    */
-  private String[] splitPathToFileAndMainMethod(String mainFunctionPath) throws JParserException {
-    if (mainFunctionPath.endsWith(".java")) {
-      mainFunctionPath = mainFunctionPath.substring(mainFunctionPath.length() - ".java".length());
+  private String[] splitPathToClassAndMainMethod(String mainFunctionPath) throws JParserException {
+    if (mainFunctionPath.endsWith(JAVA_SOURCE_FILE_EXTENSION)) {
+      mainFunctionPath =
+          mainFunctionPath.substring(
+              mainFunctionPath.length() - JAVA_SOURCE_FILE_EXTENSION.length());
     }
-    //TODO check if replacing with slash works for windows
+    // TODO check if replacing with slash works for windows
     mainFunctionPath = mainFunctionPath.replaceAll("\\.", "/");
     for (Path javaClassPath : javaClassPaths) {
-      //In case only file without method name is given
-      Path path = javaClassPath.resolve(Paths.get( mainFunctionPath+".java"));
+      // In case only file without method name is given
+      Path path = javaClassPath.resolve(Paths.get(mainFunctionPath + JAVA_SOURCE_FILE_EXTENSION));
       if (Files.exists(path)) {
-        return new String[]{path.toString(), ""};
+        String pathToFile = path.toString();
+        return new String[] {
+          pathToFile.substring(0, pathToFile.length() - JAVA_SOURCE_FILE_EXTENSION.length()), ""
+        };
       }
-      //In case file and method name is given
-      int indexOfLastSlash=mainFunctionPath.lastIndexOf('/');
-      Path pathParent = javaClassPath.resolve(Paths.get( mainFunctionPath.substring(0,indexOfLastSlash) +".java"));
-      if (Files.exists(pathParent)) {
-        return new String[]{pathParent.toString(), mainFunctionPath.substring(indexOfLastSlash + 1)};
+      // In case file and method name is given
+      int indexOfLastSlash = mainFunctionPath.lastIndexOf('/');
+      Path pathToFileParent =
+          javaClassPath.resolve(
+              Paths.get(
+                  mainFunctionPath.substring(0, indexOfLastSlash) + JAVA_SOURCE_FILE_EXTENSION));
+      if (Files.exists(pathToFileParent)) {
+        Path pathToClass =
+            javaClassPath.resolve(Paths.get(mainFunctionPath.substring(0, indexOfLastSlash)));
+        return new String[] {
+          pathToClass.toString(), mainFunctionPath.substring(indexOfLastSlash + 1)
+        };
       }
     }
     throw new JParserException("Could not find entry point");
