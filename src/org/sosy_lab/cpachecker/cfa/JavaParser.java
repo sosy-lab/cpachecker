@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.nio.file.Path;
-import org.sosy_lab.cpachecker.exceptions.JParserException;
-
 public interface JavaParser extends Parser {
   String getAbsolutePathToMainFile();
 
