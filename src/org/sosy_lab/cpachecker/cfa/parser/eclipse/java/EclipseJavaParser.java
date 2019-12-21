@@ -264,7 +264,7 @@ class EclipseJavaParser implements JavaParser {
   private String[] splitPathToClassAndMainMethod(String mainFunctionPath) throws JParserException {
     if (mainFunctionPath.endsWith(JAVA_SOURCE_FILE_EXTENSION)) {
       mainFunctionPath =
-          mainFunctionPath.substring(
+          mainFunctionPath.substring(0,
               mainFunctionPath.length() - JAVA_SOURCE_FILE_EXTENSION.length());
     }
     // TODO check if replacing with slash works for windows
