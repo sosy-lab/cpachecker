@@ -60,10 +60,12 @@ public class SMGPredicateManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final BitvectorFormulaManagerView efmgr;
+  private final SMGStatistics statistics;
 
 
-  public SMGPredicateManager(Configuration pConfig, LogManager pLogger, ShutdownNotifier
-      shutdownNotifier)
+  public SMGPredicateManager(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier
+      shutdownNotifier, SMGStatistics pStats)
       throws InvalidConfigurationException {
     config = pConfig;
     config.inject(this);
@@ -72,6 +74,7 @@ public class SMGPredicateManager {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     efmgr = fmgr.getBitvectorFormulaManager();
+    statistics = pStats;
   }
 
   private BooleanFormula createBooleanFormula(
@@ -190,8 +193,10 @@ public class SMGPredicateManager {
   public boolean isUnsat(BooleanFormula pFormula) throws SolverException, InterruptedException {
     if (verifyPredicates && pFormula != null) {
       boolean result = solver.isUnsat(pFormula);
+      statistics.predicateChecks.inc();
       if (result) {
         logger.log(Level.FINER, "Unsat: " + pFormula);
+        statistics.unsatPredicateChecks.inc();
       }
       return result;
     } else {
@@ -210,6 +215,7 @@ public class SMGPredicateManager {
       try {
         if (!isUnsat(errorPredicateFormula)) {
           logger.log(Level.FINER, "Sat: ", errorPredicateFormula);
+          statistics.derefByPredicateChecks.inc();
           return true;
         } else {
           return false;

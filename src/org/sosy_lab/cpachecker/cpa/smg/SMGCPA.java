@@ -124,7 +124,7 @@ public class SMGCPA
 
     precision = SMGPrecision.createStaticPrecision(options.isHeapAbstractionEnabled());
 
-    smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
+    smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier, stats);
   }
 
   /**

@@ -36,6 +36,9 @@ public class SMGStatistics implements Statistics {
 
   final StatCounter abstractions = new StatCounter("Number of abstraction computations");
   final StatTimer totalAbstraction = new StatTimer("Total time for abstraction computation");
+  final StatCounter predicateChecks = new StatCounter("Number of predicate checks");
+  final StatCounter unsatPredicateChecks = new StatCounter("Number of unsat predicate checks");
+  final StatCounter derefByPredicateChecks = new StatCounter("Dereference discovered by predicate checks");
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
@@ -45,6 +48,9 @@ public class SMGStatistics implements Statistics {
     put(pOut, 1, SMGIsLessOrEqual.heapTimer);
     put(pOut, 0, abstractions);
     put(pOut, 0, totalAbstraction);
+    put(pOut, 0, predicateChecks);
+    put(pOut, 0, unsatPredicateChecks);
+    put(pOut, 0, derefByPredicateChecks);
   }
 
   @Override
