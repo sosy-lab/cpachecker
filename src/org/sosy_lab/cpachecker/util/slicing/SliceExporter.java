@@ -305,13 +305,12 @@ public class SliceExporter {
     while (!waitlist.isEmpty()) {
 
       CFAEdge edge = waitlist.remove();
-
       CFANode pred = edge.getPredecessor();
       CFANode succ = edge.getSuccessor();
 
+      CFAEdge newEdge;
       CFANode newPred = cloneNode(pred, nodeMap);
       CFANode newSucc;
-      CFAEdge newEdge;
 
       // step over function
       if (edge instanceof CFunctionCallEdge) {
@@ -340,7 +339,32 @@ public class SliceExporter {
 
       // don't visit a node twice and don't leave function
       if (!visited.contains(succ) && !(succ instanceof FunctionExitNode)) {
-        addAllLeavingEdges(waitlist, succ);
+
+        boolean irrelevantAssumes = (succ.getNumLeavingEdges() > 1);
+
+        for (int index = 0; irrelevantAssumes && index < succ.getNumLeavingEdges(); index++) {
+          if (succ.getLeavingEdge(index).getEdgeType() != CFAEdgeType.AssumeEdge
+              || pRelevantEdges.contains(succ.getLeavingEdge(index))) {
+            irrelevantAssumes = false;
+          }
+        }
+
+        if (irrelevantAssumes) {
+
+          CFAEdge assumeEdge = succ.getLeavingEdge(0);
+          waitlist.add(
+              new BlankEdge(
+                  "",
+                  assumeEdge.getFileLocation(),
+                  succ,
+                  assumeEdge.getSuccessor(),
+                  "slice-irrelevant"));
+
+        } else {
+
+          addAllLeavingEdges(waitlist, succ);
+        }
+
         visited.add(succ);
       }
     }
