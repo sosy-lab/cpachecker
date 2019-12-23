@@ -64,10 +64,12 @@ public class ThreadTMState extends ThreadState {
       return threadSet.get(current) == ThreadStatus.SELF_PARALLEL_THREAD;
     }
     // Does not matter which set to iterate, anyway we need an intersection
-    if (!this.threadSet.containsKey(other.current) || !other.threadSet.containsKey(this.current)) {
+    if ((this.threadSet.containsKey(other.current) || other.current.equals(""))
+        && (other.threadSet.containsKey(this.current) || this.current.equals(""))) {
+      return true;
+    } else {
       return false;
     }
-    return true;
   }
 
   @Override
