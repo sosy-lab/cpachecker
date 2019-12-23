@@ -30,10 +30,10 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Queue;
@@ -294,7 +294,7 @@ public class SliceExporter {
 
     Map<Integer, CFANode> nodeMap =
         new HashMap<>(); // mapping of old-node-number --> new-node-clone
-    Queue<CFAEdge> waitlist = new LinkedList<>(); // edges to be processed (cloned or replaced)
+    Queue<CFAEdge> waitlist = new ArrayDeque<>(); // edges to be processed (cloned or replaced)
     Set<CFANode> visited =
         new HashSet<>(); // a node is visited when all its leaving edges were added to the waitlist
 
