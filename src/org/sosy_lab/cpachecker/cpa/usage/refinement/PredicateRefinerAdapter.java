@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefinerFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.cpa.predicate.RecomputeBlockFormulaStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -116,7 +117,8 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
               predicateCpa.getSolver(),
               predicateCpa.getPredicateManager(),
               s -> s);
-      blockFormulaStrategy = new BlockFormulaStrategy();
+      PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
+      blockFormulaStrategy = new RecomputeBlockFormulaStrategy(pfmgr);
     }
 
     refiner = new PredicateCPARefinerFactory(pCpa)
