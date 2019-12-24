@@ -31,11 +31,22 @@ public class ThreadTMState extends ThreadState {
 
   private final String current;
 
+  private ThreadTMState( String pCurrent,
+      Map<String, ThreadStatus> Tset,
+      ImmutableMap<ThreadLabel, ThreadStatus> Rset,
+      List<ThreadLabel> pOrder) {
+
+    super(Tset, Rset, pOrder);
+    current = pCurrent;
+  }
+
   public ThreadTMState(
       Map<String, ThreadStatus> Tset,
       ImmutableMap<ThreadLabel, ThreadStatus> Rset,
       List<ThreadLabel> pOrder) {
+
     super(Tset, Rset, pOrder);
+    assert (Tset.size() == pOrder.size());
     if (pOrder.size() > 0) {
       String tmp = null;
       for (int i = pOrder.size() - 1; i >= 0; i--) {
@@ -111,12 +122,13 @@ public class ThreadTMState extends ThreadState {
 
   @Override
   public ThreadState prepareToStore() {
-    return new ThreadTMState(this.threadSet, ImmutableMap.of(), ImmutableList.of());
+    return new ThreadTMState(this.current, this.threadSet, ImmutableMap.of(), ImmutableList.of());
   }
 
   @Override
   public boolean isLessOrEqual(ThreadState pOther) {
-    return Objects.equals(removedSet, pOther.removedSet)
+    return Objects.equals(current, ((ThreadTMState) pOther).current)
+        && Objects.equals(removedSet, pOther.removedSet)
         && Objects.equals(threadSet, pOther.threadSet);
   }
 }
