@@ -146,7 +146,7 @@ class EclipseJavaParser implements JavaParser {
     mainFunctionName = entryFunction;
     // TODO Handle multiple program files. Multiple program files might be forbidden. Needs to be
     // checked.
-    if (javaClasspath.isEmpty()) {
+    if (javaClasspath.isEmpty() && !programs.isEmpty()) {
       ImmutableList<Path> pathToProgram = convertToPathList(programs.get(0));
 
       if (pathToProgram.isEmpty()) {
@@ -159,11 +159,12 @@ class EclipseJavaParser implements JavaParser {
       } else {
         javaClassPaths = ImmutableList.of(pathToProgram.get(0));
         setEntryPointVariables(mainFunctionName);
-
       }
     } else {
       javaClassPaths = convertToPathList(javaClasspath);
-      setEntryPointVariables(programs.get(0));
+      if (!programs.isEmpty()) {
+        setEntryPointVariables(programs.get(0));
+      }
     }
 
     if (javaSourcepath.isEmpty()) {
