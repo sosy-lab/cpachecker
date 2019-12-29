@@ -29,10 +29,8 @@ public enum CBasicType {
   BOOL("_Bool"),
   CHAR("char"),
   INT("int"),
-  INT128("__int128"),
   FLOAT("float"),
   DOUBLE("double"),
-  FLOAT128("__float128"),
   ;
 
   private final String code;
@@ -46,7 +44,8 @@ public enum CBasicType {
    * the C standard §6.2.5.
    */
   public boolean isFloatingPointType() {
-    return this == FLOAT || this == DOUBLE || this == FLOAT128;
+    return this == FLOAT
+        || this == DOUBLE;
   }
 
   /**
@@ -54,7 +53,10 @@ public enum CBasicType {
    * the C standard §6.2.5.
    */
   public boolean isIntegerType() {
-    return this == BOOL || this == CHAR || this == INT || this == INT128 || this == UNSPECIFIED;
+    return this == BOOL
+        || this == CHAR
+        || this == INT
+        || this == UNSPECIFIED;
   }
 
   public String toASTString() {

@@ -178,7 +178,7 @@ public class ARGPath extends AbstractAppender {
    * Return (predecessor,successor) pairs of ARGStates for every edge in the path.
    */
   public List<Pair<ARGState, ARGState>> getStatePairs() {
-    return new AbstractList<>() {
+    return new AbstractList<Pair<ARGState, ARGState>>() {
 
       @Override
       public Pair<ARGState, ARGState> get(int pIndex) {

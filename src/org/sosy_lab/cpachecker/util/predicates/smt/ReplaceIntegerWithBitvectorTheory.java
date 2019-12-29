@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import com.google.common.base.Preconditions;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -68,8 +67,8 @@ class ReplaceIntegerWithBitvectorTheory extends BaseManagerView implements Integ
       BooleanFormulaManager pBooleanFormulaManager,
       ReplaceIntegerEncodingOptions pOptions) {
     super(pWrappingHandler);
-    booleanFormulaManager = Preconditions.checkNotNull(pBooleanFormulaManager);
-    bvFormulaManager = Preconditions.checkNotNull(pReplacementManager);
+    booleanFormulaManager = pBooleanFormulaManager;
+    bvFormulaManager = pReplacementManager;
     bitsize = pOptions.getBitsize();
   }
 

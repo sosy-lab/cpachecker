@@ -146,7 +146,7 @@ public class ValueAnalysisPathInterpolator
 
     Set<String> booleanVariables =
         cfa.getVarClassification().isPresent()
-            ? cfa.getVarClassification().orElseThrow().getIntBoolVars()
+            ? cfa.getVarClassification().get().getIntBoolVars()
             : ImmutableSet.of();
 
     UseDefRelation useDefRelation = new UseDefRelation(errorPathPrefix,

@@ -59,7 +59,7 @@ public class BDDPartitionOrderer {
 
   public BDDPartitionOrderer(CFA cfa) {
     assert cfa.getVarClassification().isPresent();
-    this.varClass = cfa.getVarClassification().orElseThrow();
+    this.varClass = cfa.getVarClassification().get();
 
     // collect assumption, they are split-points
     CFAAssumptionCollector aCol = new CFAAssumptionCollector();

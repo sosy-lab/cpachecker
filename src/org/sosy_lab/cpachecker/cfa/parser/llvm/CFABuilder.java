@@ -1303,7 +1303,7 @@ public class CFABuilder {
     CInitializer init;
     CType canonicalType = pExpectedType.getCanonicalType();
     if (canonicalType instanceof CArrayType) {
-      int length = ((CArrayType) canonicalType).getLengthAsInt().orElseThrow();
+      int length = ((CArrayType) canonicalType).getLengthAsInt().getAsInt();
       CType elementType = ((CArrayType) canonicalType).getType().getCanonicalType();
       CInitializer zeroInitializer = getZeroInitializer(pForElement, elementType, pFileName);
       List<CInitializer> initializers = Collections.nCopies(length, zeroInitializer);
@@ -1347,7 +1347,7 @@ public class CFABuilder {
       CArrayType arrayType = (CArrayType) typeConverter.getCType(pAggregateValue.typeOf());
       OptionalInt maybeArrayLength = arrayType.getLengthAsInt();
       assert maybeArrayLength.isPresent() : "Constant array has non-constant length";
-      return maybeArrayLength.orElseThrow();
+      return maybeArrayLength.getAsInt();
     } else if (aggregateType instanceof CCompositeType) {
       return ((CCompositeType) aggregateType).getMembers().size();
     } else {

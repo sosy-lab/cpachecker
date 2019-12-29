@@ -171,7 +171,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if(!variableClassification.isPresent()) {
       return new BnBRegionManager(variableClassification, ImmutableMultimap.of(), typeHandler);
     }
-    VariableClassification var = variableClassification.orElseThrow();
+    VariableClassification var = variableClassification.get();
     Multimap<CCompositeType, String> relevant = var.getRelevantFields();
     Multimap<CCompositeType, String> addressed = var.getAddressedFields();
 
@@ -386,11 +386,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return Whether the variable declaration is addressed or not.
    */
   private boolean isAddressedVariable(CDeclaration var) {
-    return !variableClassification.isPresent()
-        || variableClassification
-            .orElseThrow()
-            .getAddressedVariables()
-            .contains(var.getQualifiedName());
+    return !variableClassification.isPresent() ||
+        variableClassification.get().getAddressedVariables().contains(var.getQualifiedName());
   }
 
   /**
@@ -494,7 +491,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           fields.add(CompositeField.of(compositeType, memberDeclaration));
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           addValueImportConstraints(
-              fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset.orElseThrow())),
+              fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset.getAsLong())),
               newBaseName,
               memberType,
               fields,
@@ -616,7 +613,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CType elementType = checkIsSimplified(arrayType.getType());
       final OptionalInt length = arrayType.getLengthAsInt();
       if (length.isPresent()) {
-        final int l = Math.min(length.orElseThrow(), options.maxArrayLength());
+        final int l = Math.min(length.getAsInt(), options.maxArrayLength());
         for (int i = 0; i < l; i++) {
           final CLeftHandSide newLhs = new CArraySubscriptExpression(
                                              lhs.getFileLocation(),

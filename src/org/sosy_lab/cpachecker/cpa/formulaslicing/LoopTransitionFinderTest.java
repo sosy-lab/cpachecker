@@ -49,6 +49,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
+
 public class LoopTransitionFinderTest {
   private CFACreator creator;
   private LogManager logger;
@@ -83,10 +84,12 @@ public class LoopTransitionFinderTest {
           "x += 1; y += 1;",
         "}"
     );
-    CFANode loopHead = cfa.getAllLoopHeads().orElseThrow().iterator().next();
+    CFANode loopHead = cfa.getAllLoopHeads().get().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
         new LoopTransitionFinder(
-            config, cfa.getLoopStructure().orElseThrow(), pfmgr, fmgr, logger, notifier);
+            config,
+            cfa.getLoopStructure().get(),
+            pfmgr, fmgr, logger, notifier);
 
     PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
         SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), loopHead);
@@ -103,10 +106,9 @@ public class LoopTransitionFinderTest {
           "if (p) { x += 1; } else { y += 1; }",
         "}"
     );
-    CFANode loopHead = cfa.getAllLoopHeads().orElseThrow().iterator().next();
+    CFANode loopHead = cfa.getAllLoopHeads().get().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
-        new LoopTransitionFinder(
-            config, cfa.getLoopStructure().orElseThrow(), pfmgr, fmgr, logger, notifier);
+        new LoopTransitionFinder(config, cfa.getLoopStructure().get(), pfmgr, fmgr, logger, notifier);
     PathFormula summary = loopTransitionFinder.generateLoopTransition(
         SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), loopHead);
 
@@ -133,10 +135,9 @@ public class LoopTransitionFinderTest {
         "}"
     );
 
-    CFANode loopHead = cfa.getAllLoopHeads().orElseThrow().iterator().next();
+    CFANode loopHead = cfa.getAllLoopHeads().get().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
-        new LoopTransitionFinder(
-            config, cfa.getLoopStructure().orElseThrow(), pfmgr, fmgr, logger, notifier);
+        new LoopTransitionFinder(config, cfa.getLoopStructure().get(), pfmgr, fmgr, logger, notifier);
     PathFormula summary = loopTransitionFinder.generateLoopTransition(
         SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), loopHead);
 

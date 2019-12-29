@@ -90,8 +90,7 @@ public class SymbolicValueAnalysisPrecisionAdjustment implements PrecisionAdjust
         delegate.prec(pState, pPrecision, pStates, pStateProjection, pFullState);
 
     if (maybeAdjusted.isPresent()) {
-      ValueAnalysisState newValState =
-          (ValueAnalysisState) maybeAdjusted.orElseThrow().abstractState();
+      ValueAnalysisState newValState = (ValueAnalysisState) maybeAdjusted.get().abstractState();
       symbolicStats.symbolicValuesAfter.setNextValue(getSymbolicValueCount(newValState));
     }
     return maybeAdjusted;

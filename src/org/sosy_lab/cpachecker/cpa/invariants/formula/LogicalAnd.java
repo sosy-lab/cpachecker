@@ -77,8 +77,7 @@ public class LogicalAnd<ConstantType> implements BooleanFormula<ConstantType> {
 
   @Override
   public int hashCode() {
-    // needs to be symmetric, see equals()
-    return getOperand1().hashCode() + getOperand2().hashCode();
+    return 31 * getOperand1().hashCode() + getOperand2().hashCode();
   }
 
   @Override

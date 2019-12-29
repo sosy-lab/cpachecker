@@ -59,7 +59,7 @@ public class SSAMap implements Serializable {
   private final int defaultValue;
 
   private static MergeConflictHandler<String, CType> TYPE_CONFLICT_CHECKER =
-      new MergeConflictHandler<>() {
+      new MergeConflictHandler<String, CType>() {
         @Override
         public CType resolveConflict(String name, CType type1, CType type2) {
           Preconditions.checkArgument(

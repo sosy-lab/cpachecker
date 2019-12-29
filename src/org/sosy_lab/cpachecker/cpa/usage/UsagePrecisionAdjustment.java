@@ -79,7 +79,7 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
       return Optional.empty();
     }
 
-    PrecisionAdjustmentResult unwrappedResult = optionalUnwrappedResult.orElseThrow();
+    PrecisionAdjustmentResult unwrappedResult = optionalUnwrappedResult.get();
 
     AbstractState newElement = unwrappedResult.abstractState();
     Precision newPrecision = unwrappedResult.precision();

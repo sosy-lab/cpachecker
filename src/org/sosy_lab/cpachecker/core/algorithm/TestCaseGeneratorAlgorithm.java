@@ -403,7 +403,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     if (areTestsEnabled()) {
       CounterexampleInfo cexInfo =
           ARGUtils.tryGetOrCreateCounterexampleInformation(pTarget, cpa, assumptionToEdgeAllocator)
-              .orElseThrow();
+              .get();
       ARGPath targetPath = cexInfo.getTargetPath();
       Preconditions.checkState(!zipTestCases || zipFS != null);
 
@@ -471,7 +471,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                       cfa,
                       TestCaseExporter.LINE_SEPARATED);
               if (testOutput.isPresent()) {
-                writer.write(testOutput.orElseThrow());
+                writer.write(testOutput.get());
               }
               break;
             case XML:
@@ -484,7 +484,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                       cfa,
                       XMLTestCaseExport.XML_TEST_CASE);
               if (testOutput.isPresent()) {
-                writer.write(testOutput.orElseThrow());
+                writer.write(testOutput.get());
               }
               break;
             default:
@@ -520,7 +520,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                     TestCaseExporter.LINE_SEPARATED);
 
             if (testOutput.isPresent()) {
-              content = (Appender) appendable -> appendable.append(testOutput.orElseThrow());
+              content = (Appender) appendable -> appendable.append(testOutput.get());
             }
             break;
           case XML:
@@ -533,7 +533,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                     cfa,
                     XMLTestCaseExport.XML_TEST_CASE);
             if (testOutput.isPresent()) {
-              content = (Appender) appendable -> appendable.append(testOutput.orElseThrow());
+              content = (Appender) appendable -> appendable.append(testOutput.get());
             }
             break;
           default:

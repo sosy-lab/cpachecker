@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
-import java.util.Optional;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -38,8 +35,12 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorState.TimeoutState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
+
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import java.util.Optional;
+import com.google.common.base.Preconditions;
 
 /**
  * Precision Adjustment for Monitoring.
@@ -100,7 +101,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
       return Optional.empty();
     }
 
-    PrecisionAdjustmentResult unwrapped = unwrappedResult.orElseThrow();
+    PrecisionAdjustmentResult unwrapped = unwrappedResult.get();
 
     // no. of nodes and no. of branches on the path does not change, just update the
       // set the adjusted wrapped element and update the time

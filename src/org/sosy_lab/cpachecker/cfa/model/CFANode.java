@@ -88,11 +88,8 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   }
 
   public void addLeavingEdge(CFAEdge pNewLeavingEdge) {
-    checkArgument(
-        pNewLeavingEdge.getPredecessor().equals(this),
-        "Cannot add edge \"%s\" to node %s as leaving edge",
-        pNewLeavingEdge,
-        this);
+    checkArgument(pNewLeavingEdge.getPredecessor() == this,
+        "Cannot add edge \"%s\" to node %s as leaving edge", pNewLeavingEdge, this);
     leavingEdges.add(pNewLeavingEdge);
   }
 
@@ -111,11 +108,8 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   }
 
   public void addEnteringEdge(CFAEdge pEnteringEdge) {
-    checkArgument(
-        pEnteringEdge.getSuccessor().equals(this),
-        "Cannot add edge \"%s\" to node %s as entering edge",
-        pEnteringEdge,
-        this);
+    checkArgument(pEnteringEdge.getSuccessor() == this,
+        "Cannot add edge \"%s\" to node %s as entering edge", pEnteringEdge, this);
     enteringEdges.add(pEnteringEdge);
   }
 
@@ -135,7 +129,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
 
   public CFAEdge getEdgeTo(CFANode pOther) {
     for (CFAEdge edge : leavingEdges) {
-      if (edge.getSuccessor().equals(pOther)) {
+      if (edge.getSuccessor() == pOther) {
         return edge;
       }
     }
@@ -146,7 +140,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   public boolean hasEdgeTo(CFANode pOther) {
     boolean hasEdge = false;
     for (CFAEdge edge : leavingEdges) {
-      if (edge.getSuccessor().equals(pOther)) {
+      if (edge.getSuccessor() == pOther) {
         hasEdge = true;
         break;
       }
@@ -188,20 +182,14 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   }
 
   public void removeEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
-    checkArgument(
-        enteringSummaryEdge.equals(pEdge),
-        "Cannot remove non-existing entering summary edge \"%s\" from node \"%s\"",
-        pEdge,
-        this);
+    checkArgument(enteringSummaryEdge == pEdge,
+        "Cannot remove non-existing entering summary edge \"%s\" from node \"%s\"", pEdge, this);
     enteringSummaryEdge = null;
   }
 
   public void removeLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
-    checkArgument(
-        leavingSummaryEdge.equals(pEdge),
-        "Cannot remove non-existing leaving summary edge \"%s\" from node \"%s\"",
-        pEdge,
-        this);
+    checkArgument(leavingSummaryEdge == pEdge,
+        "Cannot remove non-existing leaving summary edge \"%s\" from node \"%s\"", pEdge, this);
     leavingSummaryEdge = null;
   }
 

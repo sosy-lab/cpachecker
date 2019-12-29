@@ -34,7 +34,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -279,7 +278,7 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("fontcolor=blue;"));
     pSb.append(newLineWithOffset("label=\"#" + pIndex + ": " + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
 
-    Map<String, SMGRegion> to_print = new LinkedHashMap<>(pStackFrame.getVariables());
+    Map<String, SMGRegion> to_print = new HashMap<>(pStackFrame.getVariables());
 
     SMGRegion returnObject = pStackFrame.getReturnObject();
     if (returnObject != null) {
@@ -293,20 +292,27 @@ public final class SMGPlotter {
 
   }
 
-  private String smgScopeFrameAsDot(Map<String, SMGRegion> pNamespace, String structId) {
+  private String smgScopeFrameAsDot(Map<String, SMGRegion> pNamespace, String pStructId) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("struct").append(pStructId).append("[shape=record,label=\" ");
+
+    // I sooo wish for Python list comprehension here...
     List<String> nodes = new ArrayList<>();
     for (Entry<String, SMGRegion> entry : pNamespace.entrySet()) {
       String key = entry.getKey();
-      if (key.equals("node")) { // escape "node" for dot
+      SMGObject obj = entry.getValue();
+
+      if (key.equals("node")) {
+        // escape Node1
         key = "node1";
       }
-      SMGObject obj = entry.getValue();
-      nodes.add("<item_" + key + "> " + obj);
-      objectIndex.put(obj, new SMGObjectNode("struct" + structId + ":item_" + key));
+
+      nodes.add("<item_" + key + "> " + obj.toString());
+      objectIndex.put(obj, new SMGObjectNode("struct" + pStructId + ":item_" + key));
     }
-    return String.format(
-        "struct%s [shape=record, height=%d, label=\"%s\"];%n",
-        structId, nodes.size(), Joiner.on(" | ").join(nodes));
+    sb.append(Joiner.on(" | ").join(nodes));
+    sb.append("\"];\n");
+    return sb.toString();
   }
 
   private void addGlobalObjectSubgraph(UnmodifiableCLangSMG pSmg, StringBuilder pSb) {

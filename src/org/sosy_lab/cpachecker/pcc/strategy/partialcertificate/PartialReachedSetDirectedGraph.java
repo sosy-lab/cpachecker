@@ -51,34 +51,32 @@ public class PartialReachedSetDirectedGraph implements Statistics {
   private final ImmutableList<ImmutableList<Integer>> adjacencyList;
 
   public PartialReachedSetDirectedGraph(final ARGState[] pNodes) {
+    List<List<Integer>> adjacencyList;
     if (pNodes == null) {
       nodes = new AbstractState[0];
       numNodes = 0;
-      adjacencyList = ImmutableList.of();
+      adjacencyList = new ArrayList<>(0);
     } else {
-      nodes = pNodes.clone();
+      nodes = Arrays.copyOf(pNodes, pNodes.length);
       numNodes = nodes.length;
-      this.adjacencyList = buildAdjacencyList(pNodes);
-    }
-  }
+      adjacencyList = new ArrayList<>(nodes.length);
+      for (@SuppressWarnings("unused")
+      AbstractState node : nodes) {
+        adjacencyList.add(new ArrayList<Integer>());
+      }
 
-  private static ImmutableList<ImmutableList<Integer>> buildAdjacencyList(final ARGState[] pNodes) {
-    List<List<Integer>> adjacencyList = new ArrayList<>(pNodes.length);
-    for (@SuppressWarnings("unused") AbstractState node : pNodes) {
-      adjacencyList.add(new ArrayList<Integer>());
-    }
-
-    SuccessorEdgeConstructor edgeConstructor = new SuccessorEdgeConstructor(pNodes, adjacencyList);
-    for (ARGState node : pNodes) {
-      edgeConstructor.setPredecessorBeforeARGPass(node);
-      edgeConstructor.passARG(node);
+      SuccessorEdgeConstructor edgeConstructor = new SuccessorEdgeConstructor(adjacencyList);
+      for (ARGState node : pNodes) {
+        edgeConstructor.setPredecessorBeforeARGPass(node);
+        edgeConstructor.passARG(node);
+      }
     }
 
     List<ImmutableList<Integer>> newList = new ArrayList<>(adjacencyList.size());
     for (int i = 0; i < adjacencyList.size(); i++) {
       newList.add(ImmutableList.copyOf(adjacencyList.get(i)));
     }
-    return ImmutableList.copyOf(newList);
+    this.adjacencyList = ImmutableList.copyOf(newList);
   }
 
   public Set<Integer> getPredecessorsOf(int node) {
@@ -318,7 +316,8 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     }
   }
 
-  private static class SuccessorEdgeConstructor extends AbstractARGPass {
+
+  private class SuccessorEdgeConstructor extends AbstractARGPass {
 
     private ARGState predecessor;
     private int indexPredecessor;
@@ -326,14 +325,14 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     private final List<List<Integer>> changeableAdjacencyList;
     private final Set<Pair<Integer, Integer>> knownEdges;
 
-    public SuccessorEdgeConstructor(ARGState pNodes[], List<List<Integer>> pAdjacencyList) {
+    public SuccessorEdgeConstructor(List<List<Integer>> pAdjacencyList) {
       super(false);
       nodeToIndex = new HashMap<>();
-      for (int i = 0; i < pNodes.length; i++) {
-        nodeToIndex.put(pNodes[i], i);
+      for (int i = 0; i < nodes.length; i++) {
+        nodeToIndex.put(nodes[i], i);
       }
       changeableAdjacencyList = pAdjacencyList;
-      knownEdges = Sets.newHashSetWithExpectedSize(pNodes.length);
+      knownEdges = Sets.newHashSetWithExpectedSize(nodes.length);
     }
 
     public void setPredecessorBeforeARGPass(ARGState pNewPredecessor) {

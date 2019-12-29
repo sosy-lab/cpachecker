@@ -64,14 +64,14 @@ public class PowerSetPrecisionAdjustment implements PrecisionAdjustment {
       if (wrappedRes.isPresent()) {
         present = true;
 
-        if (wrappedRes.orElseThrow().abstractState() != pState) {
+        if (wrappedRes.get().abstractState() != pState) {
           changed = true;
-          newStates.add(wrappedRes.orElseThrow().abstractState());
+          newStates.add(wrappedRes.get().abstractState());
         } else {
           newStates.add(state);
         }
 
-        if (wrappedRes.orElseThrow().action() == Action.BREAK) {
+        if (wrappedRes.get().action() == Action.BREAK) {
           action = Action.BREAK;
         }
 

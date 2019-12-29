@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -190,28 +189,12 @@ public class SMGTransferRelation
       return String.format("initial-%03d", pState.getId());
     } else {
       return String.format(
-          "%04d-%04d-%04d", pState.getPredecessorId(), pState.getId(), ID_COUNTER.getFreshId());
+          "%03d-%03d-%03d", pState.getPredecessorId(), pState.getId(), ID_COUNTER.getFreshId());
     }
   }
 
   @Override
-  protected Set<SMGState> handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
-    if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
-      assert "default return".equals(cfaEdge.getDescription())
-          || "skipped unnecessary edges".equals(cfaEdge.getDescription());
-
-      // if this is the entry function, there is no FunctionReturnEdge
-      // so we have to check for memleaks here
-      if (cfaEdge.getSuccessor().getNumLeavingEdges() == 0) {
-        // TODO: Handle leaks at any program exit point (abort, etc.)
-        SMGState successor = state.copyOf();
-        if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
-          successor.dropStackFrame();
-        }
-        successor.pruneUnreachable();
-        return Collections.singleton(successor);
-      }
-    }
+  protected Set<SMGState> handleBlankEdge(BlankEdge cfaEdge) {
     return Collections.singleton(state);
   }
 
@@ -385,12 +368,8 @@ public class SMGTransferRelation
      if(exp instanceof CStringLiteralExpression) {
        CStringLiteralExpression strExp = (CStringLiteralExpression) exp;
        cParamType =  strExp.transformTypeToArrayType();
-        // 1. create region and save string as char array
-        SMGRegion stringObj =
-            initialNewState
-                .addAnonymousVariable(
-                    machineModel.getSizeofPtrInBits() * (strExp.getValue().length() + 1))
-                .orElseThrow();
+       // 1. create region and save string as char array
+       SMGRegion stringObj = initialNewState.addAnonymousVariable(machineModel.getSizeofPtrInBits() * (strExp.getValue().length()+1)).get();
        CInitializerExpression initializer =
            new CInitializerExpression(exp.getFileLocation(), exp);
        CVariableDeclaration decl = new CVariableDeclaration(exp.getFileLocation(), false, CStorageClass.AUTO,
@@ -909,7 +888,7 @@ public class SMGTransferRelation
         if (!addedLocalVariable.isPresent()) {
           throw new SMGInconsistentException("Cannot add a local variable to an empty stack.");
         }
-        newObject = addedLocalVariable.orElseThrow();
+        newObject = addedLocalVariable.get();
       }
     }
 
@@ -1019,11 +998,7 @@ public class SMGTransferRelation
     //handle string initializer nested in struct type
     if (realCType instanceof CCompositeType ) {
       // create a new region for string expression
-      SMGRegion region =
-          pNewState
-              .addAnonymousVariable(
-                  machineModel.getSizeofCharInBits() * (pExpression.getValue().length() + 1))
-              .orElseThrow();
+      SMGRegion region = pNewState.addAnonymousVariable(machineModel.getSizeofCharInBits() * (pExpression.getValue().length()+1)).get();
       CInitializerExpression initializer = new CInitializerExpression(pExpression.getFileLocation(), pExpression);
       CType cParamType = pExpression.transformTypeToArrayType();
       CVariableDeclaration decl = new CVariableDeclaration(pFileLocation, false, CStorageClass.AUTO, cParamType, region.getLabel(), region.getLabel(), region.getLabel(), initializer);

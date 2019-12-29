@@ -429,7 +429,7 @@ class EclipseJavaParser implements JavaParser {
         if (classFile.isPresent()) {
 
           cfaTimer.stop();
-          CompilationUnit astNext = parse(classFile.orElseThrow());
+          CompilationUnit astNext = parse(classFile.get());
           cfaTimer.start();
 
           //astNext.accept(checker);

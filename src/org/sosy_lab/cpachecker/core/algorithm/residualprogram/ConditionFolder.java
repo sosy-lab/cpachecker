@@ -129,9 +129,8 @@ public abstract class ConditionFolder {
             }
           }
 
-          if (cfa.getAllLoopHeads().orElseThrow().contains(edge.getSuccessor())) {
-            Set<Loop> loop =
-                cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(edge.getSuccessor());
+          if (cfa.getAllLoopHeads().get().contains(edge.getSuccessor())) {
+            Set<Loop> loop = cfa.getLoopStructure().get().getLoopsForLoopHead(edge.getSuccessor());
             assert (loop.size() >= 1);
             lsucc = loop.iterator().next();
 
@@ -158,7 +157,7 @@ public abstract class ConditionFolder {
     }
 
     public boolean startNewLoopIteation(final CFAEdge pEdge) {
-      if (cfa.getAllLoopHeads().orElseThrow().contains(pEdge.getSuccessor())) {
+      if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
         if (loopMap.get(pEdge.getPredecessor()) == loopMap.get(pEdge.getSuccessor())) {
           return true;
         }
@@ -327,7 +326,7 @@ public abstract class ConditionFolder {
       super(type);
       cfa = pCfa;
       Preconditions.checkState(cfa.getAllLoopHeads().isPresent());
-      loopHeads = cfa.getAllLoopHeads().orElseThrow();
+      loopHeads = cfa.getAllLoopHeads().get();
     }
 
     protected abstract T getRootFoldId(final ARGState pRoot);
@@ -528,7 +527,7 @@ public abstract class ConditionFolder {
       }
 
       // enter loop or start next iteration
-      if (cfa.getAllLoopHeads().orElseThrow().contains(pEdge.getSuccessor())) {
+      if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
         newLoopContext += "|L" + pEdge.getSuccessor().getNodeNumber() + "L";
       }
 
@@ -625,7 +624,7 @@ public abstract class ConditionFolder {
       }
 
       // enter loop or start next iteration
-      if (cfa.getAllLoopHeads().orElseThrow().contains(pEdge.getSuccessor())) {
+      if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
         newLoopBoundID +=
             "|" + pEdge.getSuccessor().getNodeNumber() + ":" + Math.min(prevLoopIt + 1, maxUnrolls);
       }
@@ -705,7 +704,7 @@ public abstract class ConditionFolder {
       }
 
       // enter loop or start next iteration
-      if (cfa.getAllLoopHeads().orElseThrow().contains(pEdge.getSuccessor())) {
+      if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
         newLoopBoundContextID +=
             "|L"
                 + pEdge.getSuccessor().getNodeNumber()
@@ -769,7 +768,7 @@ public abstract class ConditionFolder {
       }
 
       // enter loop or start next iteration
-      if (cfa.getAllLoopHeads().orElseThrow().contains(pEdge.getSuccessor())) {
+      if (cfa.getAllLoopHeads().get().contains(pEdge.getSuccessor())) {
         newLoopNesting += "|" + pChild.getStateId();
       }
 

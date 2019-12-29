@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.states;
 
+import java.io.Serializable;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public class PointerToMemoryLocation extends MemoryLocation {
+public class PointerToMemoryLocation extends MemoryLocation implements Comparable<MemoryLocation>, Serializable {
 
   private static final long serialVersionUID = -8910967707373729035L;
 

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.assumptions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import java.io.IOException;
@@ -67,9 +68,7 @@ public class AssumptionWithLocation implements Appender {
 
   @Override
   public void appendTo(Appendable out) throws IOException {
-    Joiner.on('\n')
-        .appendTo(
-            out, Collections2.transform(map.entrySet(), AssumptionWithLocation::formatAssumption));
+    Joiner.on('\n').appendTo(out, Collections2.transform(map.entrySet(), assumptionFormatter));
   }
 
   @Override
@@ -77,11 +76,12 @@ public class AssumptionWithLocation implements Appender {
     return Appenders.toString(this);
   }
 
-  private static final String formatAssumption(Entry<CFANode, BooleanFormula> entry) {
-    int nodeId = entry.getKey().getNodeNumber();
-    BooleanFormula assumption = entry.getValue();
-    return "pc = " + nodeId + "\t =====>  " + assumption;
-  }
+  private static final Function<Entry<CFANode, BooleanFormula>, String> assumptionFormatter =
+      entry -> {
+        int nodeId = entry.getKey().getNodeNumber();
+        BooleanFormula assumption = entry.getValue();
+        return "pc = " + nodeId + "\t =====>  " + assumption;
+      };
 
   public void add(CFANode node, BooleanFormula assumption) {
     checkNotNull(node);

@@ -164,9 +164,8 @@ public class ElementTestingSymbolicEdgeInterpolator
           break;
         }
 
-        intermediate =
-            strongestPost.getStrongestPost(
-                intermediate.orElseThrow(), valuePrecision, it.getOutgoingEdge());
+        intermediate = strongestPost.getStrongestPost(intermediate.get(), valuePrecision,
+            it.getOutgoingEdge());
         it.advance();
       } while (!it.isPositionWithState());
       maybeSuccessor = intermediate;
@@ -178,7 +177,7 @@ public class ElementTestingSymbolicEdgeInterpolator
       return interpolantManager.getFalseInterpolant();
     }
 
-    ForgettingCompositeState successorState = maybeSuccessor.orElseThrow();
+    ForgettingCompositeState successorState = maybeSuccessor.get();
 
     // if nothing changed we keep the same interpolant
     if (originState.equals(successorState)) {

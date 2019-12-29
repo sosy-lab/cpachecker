@@ -75,7 +75,7 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
   @Override
   public String getRepresentation() {
     if (getRepresentedLocation().isPresent()) {
-      return getRepresentedLocation().orElseThrow().toString();
+      return getRepresentedLocation().get().toString();
     } else {
       return toString();
     }

@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.argReplay;
 
-import com.google.common.collect.Sets;
 import java.util.Set;
+
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+
+import com.google.common.collect.Sets;
 
 /** Abstract state of a powerset domain. */
 public class ARGReplayState implements LatticeAbstractState<ARGReplayState> {
@@ -56,7 +58,7 @@ public class ARGReplayState implements LatticeAbstractState<ARGReplayState> {
 
   @Override
   public ARGReplayState join(ARGReplayState other) {
-    if (this.equals(other)) {
+    if (this == other) {
       return this;
     }
     return new ARGReplayState(Sets.union(this.states, other.states), cpa);
@@ -64,7 +66,7 @@ public class ARGReplayState implements LatticeAbstractState<ARGReplayState> {
 
   @Override
   public boolean isLessOrEqual(ARGReplayState other) {
-    if (this.equals(other)) {
+    if (this == other) {
       return true;
     }
     return other.states.containsAll(this.states);

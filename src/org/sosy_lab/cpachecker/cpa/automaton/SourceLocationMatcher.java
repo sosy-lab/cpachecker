@@ -46,7 +46,7 @@ class SourceLocationMatcher {
       if (!originFileName.isPresent()) {
         return true;
       }
-      String fileName = this.originFileName.orElseThrow();
+      String fileName = this.originFileName.get();
       String fileLocationFileName = pFileLocation.getFileName();
       fileName = getBaseName(fileName);
       fileLocationFileName = getBaseName(fileLocationFileName);

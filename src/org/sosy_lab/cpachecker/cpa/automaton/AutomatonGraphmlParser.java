@@ -542,7 +542,7 @@ public class AutomatonGraphmlParser {
       String resultFunctionName =
           getFunction(
                   pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction())
-              .orElseThrow();
+              .get();
       conditionTransformations.add(
           condition ->
               and(condition, new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName)));
@@ -551,7 +551,7 @@ public class AutomatonGraphmlParser {
     // Add a source-code guard for specified function exits
     if (pTransition.getFunctionExit().isPresent()) {
       String function =
-          getFunction(pGraphMLParserState, thread, pTransition.getFunctionExit()).orElseThrow();
+          getFunction(pGraphMLParserState, thread, pTransition.getFunctionExit()).get();
       conditionTransformations.add(condition -> and(condition, getFunctionExitMatcher(function)));
     }
 
@@ -559,7 +559,7 @@ public class AutomatonGraphmlParser {
     Function<AutomatonBoolExpr, AutomatonBoolExpr> applyMatchFunctionEntry = Function.identity();
     if (pTransition.getFunctionEntry().isPresent()) {
       String function =
-          getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry()).orElseThrow();
+          getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry()).get();
       applyMatchFunctionEntry = condition -> and(condition, getFunctionCallMatcher(function));
       conditionTransformations.add(applyMatchFunctionEntry);
     }
@@ -624,8 +624,7 @@ public class AutomatonGraphmlParser {
           and(
               transitionConditionWithoutFunctionEntry,
               getFunctionPointerAssumeCaseMatcher(
-                  getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry())
-                      .orElseThrow(),
+                  getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry()).get(),
                   pTransition.getTarget().isSinkState()));
       transitions.add(
           createAutomatonSinkTransition(
@@ -887,19 +886,17 @@ public class AutomatonGraphmlParser {
       GraphMLThread pThread,
       Optional<String> pFunctionName)
       throws WitnessParseException {
-    if (!pFunctionName.isPresent()
-        || !cfa.getAllFunctionNames().contains(pFunctionName.orElseThrow())) {
+    if (!pFunctionName.isPresent() || !cfa.getAllFunctionNames().contains(pFunctionName.get())) {
       return pFunctionName;
     }
     Optional<String> functionName =
-        pGraphmlParserState.getFunctionForThread(pThread, pFunctionName.orElseThrow());
+        pGraphmlParserState.getFunctionForThread(pThread, pFunctionName.get());
     if (functionName.isPresent()) {
       return functionName;
     }
     throw new WitnessParseException(
         String.format(
-            "Unable to assign function <%s> to thread <%s>.",
-            pFunctionName.orElseThrow(), pThread));
+            "Unable to assign function <%s> to thread <%s>.", pFunctionName.get(), pThread));
   }
 
   /**
@@ -914,15 +911,14 @@ public class AutomatonGraphmlParser {
       Optional<Predicate<FileLocation>> offsetMatcherPredicate =
           pTransition.getOffsetMatcherPredicate();
       if (offsetMatcherPredicate.isPresent()) {
-        locationMatcherPredicate =
-            locationMatcherPredicate.and(offsetMatcherPredicate.orElseThrow());
+        locationMatcherPredicate = locationMatcherPredicate.and(offsetMatcherPredicate.get());
       }
     }
     if (matchOriginLine) {
       Optional<Predicate<FileLocation>> lineMatcherPredicate =
           pTransition.getLineMatcherPredicate();
       if (lineMatcherPredicate.isPresent()) {
-        locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.orElseThrow());
+        locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.get());
       }
     }
     return locationMatcherPredicate;
@@ -963,17 +959,17 @@ public class AutomatonGraphmlParser {
           logger.log(
               Level.WARNING,
               "Trying to return from function",
-              functionExit.orElseThrow(),
+              functionExit.get(),
               "although no function is on the stack.");
         } else {
           newStack = new ArrayDeque<>(newStack);
           String oldFunction = newStack.pop();
-          if (!oldFunction.equals(functionExit.orElseThrow())) {
+          if (!oldFunction.equals(functionExit.get())) {
             logger.log(
                 Level.WARNING,
                 String.format(
                     "Trying to return from function %s, but current function on call stack is %s",
-                    functionExit.orElseThrow(), oldFunction));
+                    functionExit.get(), oldFunction));
           } else if (newStack.isEmpty()) {
             pGraphMLParserState.releaseFunctions(thread);
           }
@@ -982,7 +978,7 @@ public class AutomatonGraphmlParser {
       // Now enter the new function
       if (functionEntry.isPresent()) {
         newStack = new ArrayDeque<>(newStack);
-        newStack.push(functionEntry.orElseThrow());
+        newStack.push(functionEntry.get());
       }
     }
     // Store the stack in its state after the edge is applied
@@ -991,7 +987,7 @@ public class AutomatonGraphmlParser {
     // If the edge enters and exits the same function, assume this function for this edge only
     if (functionEntry.isPresent()
         && functionEntry.equals(functionExit)
-        && (newStack.isEmpty() || !newStack.peek().equals(functionExit.orElseThrow()))) {
+        && (newStack.isEmpty() || !newStack.peek().equals(functionExit.get()))) {
       newStack = new ArrayDeque<>(newStack);
     }
     return newStack;
@@ -1017,7 +1013,7 @@ public class AutomatonGraphmlParser {
 
     Optional<AutomatonAction> threadAssignment = pTransition.getThreadAssignment();
     if (threadAssignment.isPresent()) {
-      actionBuilder.add(threadAssignment.orElseThrow());
+      actionBuilder.add(threadAssignment.get());
     }
     return actionBuilder.build();
   }
@@ -1199,7 +1195,7 @@ public class AutomatonGraphmlParser {
     }
 
     return new AutomatonBoolExpr.MatchLocationDescriptor(
-        cfa.getMainFunction(), pMatcherPredicate.orElseThrow());
+        cfa.getMainFunction(), pMatcherPredicate.get());
   }
 
   /**
@@ -1438,7 +1434,7 @@ public class AutomatonGraphmlParser {
     Optional<GraphMLTransition.GraphMLThread> thread = getThread(pTransition, pNumericThreadIdProvider);
     Optional<AutomatonAction> threadIdAssignment =
         thread.isPresent()
-            ? Optional.of(getThreadIdAssignment(thread.orElseThrow().getId()))
+            ? Optional.of(getThreadIdAssignment(thread.get().getId()))
             : Optional.empty();
 
     GraphMLTransition transition =
@@ -1517,7 +1513,7 @@ public class AutomatonGraphmlParser {
         message =
             String.format(
                 "The state with id <%s> does not exist, but is referenced in the transition <%s>",
-                pStateId, transitionToString(pReference.orElseThrow()));
+                pStateId, transitionToString(pReference.get()));
       } else {
         message = String.format("The state with if <%s> does not exist.", pStateId);
       }
@@ -1567,7 +1563,7 @@ public class AutomatonGraphmlParser {
       String witnessTypeToParse = witnessTypeText.iterator().next().trim();
       Optional<WitnessType> parsedGraphType = WitnessType.tryParse(witnessTypeToParse);
       if (parsedGraphType.isPresent()) {
-        witnessType = parsedGraphType.orElseThrow();
+        witnessType = parsedGraphType.get();
       } else {
         witnessType = WitnessType.VIOLATION_WITNESS;
         logger.log(
@@ -1733,7 +1729,7 @@ public class AutomatonGraphmlParser {
       if (pExplicitScope.isPresent() || !pFunctionStack.isEmpty()) {
         final String functionName;
         if (pExplicitScope.isPresent()) {
-          functionName = pExplicitScope.orElseThrow();
+          functionName = pExplicitScope.get();
         } else {
           functionName = pFunctionStack.peek();
         }
@@ -1933,7 +1929,7 @@ public class AutomatonGraphmlParser {
 
           Optional<AutomatonSafetyProperty> violatedProperty = other.getOptionalViolatedPropertyDescription();
           if (violatedProperty.isPresent()) {
-            violatedPropDesc = violatedProperty.orElseThrow().toString();
+            violatedPropDesc = violatedProperty.get().toString();
           }
 
           if (!violatedPropDesc.isEmpty()) {
@@ -2138,7 +2134,7 @@ public class AutomatonGraphmlParser {
       String witnessTypeToParse = graphTypeText.iterator().next().trim();
       Optional<WitnessType> parsedWitnessType = WitnessType.tryParse(witnessTypeToParse);
       if (parsedWitnessType.isPresent()) {
-        graphType = parsedWitnessType.orElseThrow();
+        graphType = parsedWitnessType.get();
       } else {
         throw new WitnessParseException("Witness type not recognized: " + witnessTypeToParse);
       }
@@ -2240,13 +2236,13 @@ public class AutomatonGraphmlParser {
 
   /** return a nice {@link Iterable} wrapping the interface {@link NodeList}. */
   private static Iterable<Node> asIterable(final NodeList pNodeList) {
-    return new Iterable<>() {
+    return new Iterable<Node>() {
 
       private Integer length = null;
 
       @Override
       public Iterator<Node> iterator() {
-        return new Iterator<>() {
+        return new Iterator<Node>() {
 
           private int index = 0;
 

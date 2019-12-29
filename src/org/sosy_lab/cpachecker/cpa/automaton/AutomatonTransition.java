@@ -379,7 +379,7 @@ class AutomatonTransition {
     for (AExpression assumption : assumptions) {
       Optional<AExpression> resolved = tryResolve(assumption, pEdge, pLogger, pMachineModel);
       if (resolved.isPresent()) {
-        builder.add(resolved.orElseThrow());
+        builder.add(resolved.get());
       }
     }
     return builder.build();

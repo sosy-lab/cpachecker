@@ -393,11 +393,13 @@ public class LassoBuilder {
 
       } else if (substitution.containsValue(variable)) {
         Formula originalFormula =
-            substitution.entrySet().stream()
+            substitution
+                .entrySet()
+                .stream()
                 .filter(e -> e.getValue().equals(variable))
                 .map(Entry::getKey)
                 .findAny()
-                .orElseThrow();
+                .get();
         Formula uninstantiatedOriginalFormula = fmgrView.uninstantiate(originalFormula);
         Term originalTerm = fmgr.extractInfo(uninstantiatedOriginalFormula);
         rankVars.put(new RankVar(originalTerm.toString(), true, originalTerm), term);

@@ -296,8 +296,7 @@ public class CFATraversal {
 
     @Override
     public TraversalProcess visitNode(CFANode pNode) {
-      if (visitedNodes.add(pNode)
-          && !(stopVisitingNode != null && stopVisitingNode.equals(pNode))) {
+      if (visitedNodes.add(pNode) && !(stopVisitingNode != null && stopVisitingNode == pNode)) {
         return super.visitNode(pNode);
       }
 

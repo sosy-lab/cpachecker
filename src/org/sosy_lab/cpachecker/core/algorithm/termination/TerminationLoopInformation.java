@@ -143,8 +143,7 @@ public class TerminationLoopInformation {
 
   public boolean isPredecessorOfIncommingEdge(CFANode pLocation) {
     return loop.isPresent()
-        && leavingEdges(pLocation)
-            .anyMatch(edge -> loop.orElseThrow().getIncomingEdges().contains(edge));
+        && leavingEdges(pLocation).anyMatch(edge -> loop.get().getIncomingEdges().contains(edge));
   }
 
   public CExpression getRankingRelationAsCExpression() {
@@ -313,12 +312,12 @@ public class TerminationLoopInformation {
 
   public CFAEdge createEdgeToNonTerminationLabel(CFANode pLocation) {
     Preconditions.checkState(targetNode.isPresent());
-    return createBlankEdge(pLocation, targetNode.orElseThrow(), "Label: " + NON_TERMINATION_LABEL);
+    return createBlankEdge(pLocation, targetNode.get(), "Label: " + NON_TERMINATION_LABEL);
   }
 
   public CFAEdge createNegatedRankingRelationAssumeEdgeToTargetNode(CFANode pLoopHead) {
     Preconditions.checkState(targetNode.isPresent());
-    return createRankingRelationAssumeEdge(pLoopHead, targetNode.orElseThrow(), false);
+    return createRankingRelationAssumeEdge(pLoopHead, targetNode.get(), false);
   }
 
   private CFANode creatCfaNode(String functionName) {

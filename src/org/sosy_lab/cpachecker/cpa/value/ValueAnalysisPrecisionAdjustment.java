@@ -118,7 +118,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
       config.inject(this);
 
       if (alwaysAtLoop && pCfa.getAllLoopHeads().isPresent()) {
-        loopHeads = pCfa.getAllLoopHeads().orElseThrow();
+        loopHeads = pCfa.getAllLoopHeads().get();
       } else {
         loopHeads = null;
       }
@@ -296,9 +296,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
       // less live
       if (!onlyBlankEdgesEntering) {
         for (MemoryLocation variable : pState.getTrackedMemoryLocations()) {
-          if (!liveVariables
-              .orElseThrow()
-              .isVariableLive(variable.getAsSimpleString(), location.getLocationNode())) {
+          if (!liveVariables.get().isVariableLive(variable.getAsSimpleString(), location.getLocationNode())) {
             resultState.forget(variable);
           }
         }

@@ -207,7 +207,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   // to be able to ask for termination and see thrown exceptions.
   private Future<Pair<InvariantSupplier, ExpressionTreeSupplier>> invariantGenerationFuture = null;
 
-  @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
   private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
 
     @Override
@@ -310,7 +309,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           @Override
           public Iterator<CandidateInvariant> iterator() {
             final Iterator<CandidateInvariant> it = pCandidateGenerator.iterator();
-            return new Iterator<>() {
+            return new Iterator<CandidateInvariant>() {
 
               @Override
               public boolean hasNext() {
@@ -536,7 +535,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         @Override
         public Iterator<CandidateInvariant> iterator() {
           final Iterator<CandidateInvariant> iterator = super.iterator();
-          return new Iterator<>() {
+          return new Iterator<CandidateInvariant>() {
 
             private CandidateInvariant candidate;
 
@@ -666,7 +665,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             getRelevantAssumeEdges(
                 pTargetLocationProvider.tryGetAutomatonTargetLocations(
                     pCfa.getMainFunction(), pSpecification));
-        return asNegatedCandidateInvariants(assumeEdges, loopHeads.orElseThrow());
+        return asNegatedCandidateInvariants(assumeEdges, loopHeads.get());
       }
     },
 
@@ -710,9 +709,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           }
         }
 
-        VariableClassification varClassification = pCfa.getVarClassification().orElseThrow();
+        VariableClassification varClassification = pCfa.getVarClassification().get();
         Equivalence<AssumeEdge> equivalence =
-            new Equivalence<>() {
+            new Equivalence<AssumeEdge>() {
 
               @Override
               protected boolean doEquivalent(AssumeEdge pA, AssumeEdge pB) {
@@ -811,7 +810,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           }
         }
         return asNegatedCandidateInvariants(
-            FluentIterable.from(assumeEdges).transform(Wrapper::get), loopHeads.orElseThrow());
+            FluentIterable.from(assumeEdges).transform(Wrapper::get), loopHeads.get());
       }
 
       private boolean allowSubstitution(AIdExpression pVariable, AIdExpression pSubstitute) {
@@ -841,7 +840,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           throw new InvalidConfigurationException(
               "Variable classification not available but required to generate candidate invariants.");
         }
-        VariableClassification varClassification = pCfa.getVarClassification().orElseThrow();
+        VariableClassification varClassification = pCfa.getVarClassification().get();
         Optional<ImmutableSet<CFANode>> loopHeads = pCfa.getAllLoopHeads();
         if (!loopHeads.isPresent()) {
           throw new InvalidConfigurationException(
@@ -964,7 +963,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             assumeEdges.add(dummyEdge);
           }
         }
-        return asNegatedCandidateInvariants(assumeEdges, loopHeads.orElseThrow());
+        return asNegatedCandidateInvariants(assumeEdges, loopHeads.get());
       }
     };
   }

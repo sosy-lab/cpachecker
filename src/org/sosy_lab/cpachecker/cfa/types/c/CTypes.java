@@ -311,7 +311,7 @@ public final class CTypes {
         OptionalInt lengthB = arrayB.getLengthAsInt();
 
         if (lengthA.isPresent() && lengthB.isPresent()) {
-          if (lengthA.orElseThrow() == lengthB.orElseThrow()) {
+          if (lengthA.getAsInt() == lengthB.getAsInt()) {
             return true;
           }
         } else {

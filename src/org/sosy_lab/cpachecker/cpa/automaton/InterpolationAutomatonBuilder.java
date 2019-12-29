@@ -195,12 +195,7 @@ public class InterpolationAutomatonBuilder {
         // The children states of this child have not been handled yet.
         // Continue to recursively explore on them
         exploreChildren(
-            pItpAutomaton,
-            childState,
-            pCoveredStates,
-            pPredicates,
-            pPredVariables,
-            bfOpt.orElseThrow());
+            pItpAutomaton, childState, pCoveredStates, pPredicates, pPredVariables, bfOpt.get());
       }
     }
   }

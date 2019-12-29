@@ -370,13 +370,10 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (pStartLocation.isOnFunctionStack()) {
 
         return MemoryLocation.valueOf(
-            pStartLocation.getFunctionName(),
-            pStartLocation.getIdentifier(),
-            baseOffset + offset.orElseThrow());
+            pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset.getAsLong());
       } else {
 
-        return MemoryLocation.valueOf(
-            pStartLocation.getIdentifier(), baseOffset + offset.orElseThrow());
+        return MemoryLocation.valueOf(pStartLocation.getIdentifier(), baseOffset + offset.getAsLong());
       }
     }
 

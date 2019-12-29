@@ -629,7 +629,7 @@ public class SlicingAbstractionsUtils {
 
     final ARGPath path;
     if (errorState.getCounterexampleInformation().isPresent()) {
-      CounterexampleInfo cexInfo = errorState.getCounterexampleInformation().orElseThrow();
+      CounterexampleInfo cexInfo = errorState.getCounterexampleInformation().get();
       path = cexInfo.getTargetPath();
     } else {
       // fall back solution:

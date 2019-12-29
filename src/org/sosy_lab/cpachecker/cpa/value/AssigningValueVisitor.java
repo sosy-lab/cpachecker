@@ -229,7 +229,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
           // we only want BooleanValue objects for boolean values in the future
           assert rightValueV instanceof BooleanValue;
-          BooleanValue booleanValueRight = BooleanValue.valueOf(rightValueV).orElseThrow();
+          BooleanValue booleanValueRight = BooleanValue.valueOf(rightValueV).get();
 
           if (!booleanValueRight.isTrue()) {
             assignValueToState((AIdExpression) lVarInBinaryExp, BooleanValue.valueOf(true));
@@ -241,7 +241,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
           // we only want BooleanValue objects for boolean values in the future
           assert leftValueV instanceof BooleanValue;
-          BooleanValue booleanValueLeft = BooleanValue.valueOf(leftValueV).orElseThrow();
+          BooleanValue booleanValueLeft = BooleanValue.valueOf(leftValueV).get();
 
           if (!booleanValueLeft.isTrue()) {
             assignValueToState((AIdExpression) rVarInBinaryExp, BooleanValue.valueOf(true));

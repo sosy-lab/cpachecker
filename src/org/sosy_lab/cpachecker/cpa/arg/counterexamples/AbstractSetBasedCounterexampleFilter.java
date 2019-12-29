@@ -25,14 +25,16 @@ package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.errorprone.annotations.ForOverride;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+
+import java.util.Optional;
+import com.google.errorprone.annotations.ForOverride;
 
 /**
  * Abstract base implementation of {@link CounterexampleFilter}.
@@ -74,7 +76,7 @@ public abstract class AbstractSetBasedCounterexampleFilter<T> implements Counter
       return true;
     }
 
-    boolean setChanged = foundCounterexamples.add(representation.orElseThrow());
+    boolean setChanged = foundCounterexamples.add(representation.get());
     return setChanged; // relevant <=> new cex <=> set changed
   }
 

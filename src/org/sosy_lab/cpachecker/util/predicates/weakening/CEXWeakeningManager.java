@@ -197,7 +197,7 @@ public class CEXWeakeningManager {
 
         if (selector.isPresent()) {
           if (shouldAbstract(bfmgr.or(operands))) {
-            handleAnnotatedLiteral(selector.orElseThrow());
+            handleAnnotatedLiteral(selector.get());
           }
           return TraversalProcess.SKIP;
         } else {

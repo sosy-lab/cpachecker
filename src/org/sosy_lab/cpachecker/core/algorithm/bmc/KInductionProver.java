@@ -635,7 +635,10 @@ class KInductionProver implements AutoCloseable {
       throws InterruptedException, CPAException {
     if (pReached.size() <= 1 && cfa.getLoopStructure().isPresent()) {
       Stream<CFANode> relevantLoopHeads =
-          cfa.getLoopStructure().orElseThrow().getAllLoops().stream()
+          cfa.getLoopStructure()
+              .get()
+              .getAllLoops()
+              .stream()
               .filter(loop -> !BMCHelper.isTrivialSelfLoop(loop))
               .map(Loop::getLoopHeads)
               .flatMap(Collection::stream)
@@ -747,8 +750,8 @@ class KInductionProver implements AutoCloseable {
             Object value = valueAssignment.getValue();
             if (index.isPresent()
                 && (ssaMap.containsVariable(actualName)
-                    ? ssaMap.getIndex(actualName) == index.orElseThrow()
-                    : index.orElseThrow() == 1)
+                    ? ssaMap.getIndex(actualName) == index.getAsInt()
+                    : index.getAsInt() == 1)
                 && value instanceof Number
                 && !inputs.containsKey(actualName)) {
               BooleanFormula assignment =
@@ -777,12 +780,12 @@ class KInductionProver implements AutoCloseable {
             boolean isUnconnected = false;
             if (index.isPresent()
                 && ssaMap.containsVariable(actualName)
-                && index.orElseThrow() < ssaMap.getIndex(actualName)) {
+                && index.getAsInt() < ssaMap.getIndex(actualName)) {
               isUnconnected = !variableFormulas.get().containsKey(fullName);
             }
             if ((!index.isPresent()
                 || (index.isPresent()
-                    && (isUnconnected || inputs.get(actualName).contains(index.orElseThrow()))))) {
+                    && (isUnconnected || inputs.get(actualName).contains(index.getAsInt()))))) {
               input.add(valueAssignment.getAssignmentAsFormula());
             }
           }

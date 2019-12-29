@@ -29,7 +29,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -205,19 +204,30 @@ public class DirectedGraph {
 
     @Override
     public boolean equals(Object other) {
+
       if (other == this) {
         return true;
       }
-      if (!(other instanceof DirectedGraph.Edge)) {
+      if (other == null) {
         return false;
       }
+      if (!other.getClass().equals(this.getClass())) {
+        return false;
+      }
+
       DirectedGraph.Edge o = (DirectedGraph.Edge) other;
+
       return this.src.equals(o.src) && this.dest.equals(o.dest);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(src, dest);
+
+      int hash = 61;
+      hash = 31 * hash + src.hashCode();
+      hash = 31 * hash + dest.hashCode();
+
+      return hash;
     }
   }
 

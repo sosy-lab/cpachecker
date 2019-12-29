@@ -53,7 +53,7 @@ public class ProofResult {
   @Override
   public String toString() {
     if (earlyReturn.isPresent()) {
-      return earlyReturn.orElseThrow().toString();
+      return earlyReturn.get().toString();
     }
     return successful ? "Successful" : "Failure";
   }

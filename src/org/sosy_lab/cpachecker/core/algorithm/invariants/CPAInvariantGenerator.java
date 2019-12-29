@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -124,7 +125,6 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
   private volatile boolean programIsSafe = false;
 
-  @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
   private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
 
     @Override
@@ -323,13 +323,12 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
         }
       }
 
-      if (!taskReached.hasViolatedProperties()
-          && !from(taskReached).anyMatch(CPAInvariantGenerator::hasAssumption)) {
+      if (!taskReached.hasViolatedProperties() && !from(taskReached).anyMatch(HAS_ASSUMPTIONS)) {
         // program is safe (waitlist is empty, algorithm was sound, no target states present)
         logger.log(Level.INFO, SAFE_MESSAGE);
         programIsSafe = true;
         if (shutdownOnSafeNotifier.isPresent()) {
-          shutdownOnSafeNotifier.orElseThrow().requestShutdown(SAFE_MESSAGE);
+          shutdownOnSafeNotifier.get().requestShutdown(SAFE_MESSAGE);
         }
       }
 
@@ -339,9 +338,13 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     }
   }
 
-  private static final boolean hasAssumption(AbstractState state) {
-    AssumptionStorageState assumption =
-        AbstractStates.extractStateByType(state, AssumptionStorageState.class);
-    return assumption != null && !assumption.isStopFormulaTrue() && !assumption.isAssumptionTrue();
-  }
+
+  private final Predicate<AbstractState> HAS_ASSUMPTIONS =
+      state -> {
+        AssumptionStorageState assumption =
+            AbstractStates.extractStateByType(state, AssumptionStorageState.class);
+        return assumption != null
+            && !assumption.isStopFormulaTrue()
+            && !assumption.isAssumptionTrue();
+      };
 }

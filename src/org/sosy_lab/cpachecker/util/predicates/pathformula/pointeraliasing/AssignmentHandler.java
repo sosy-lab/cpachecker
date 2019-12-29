@@ -531,7 +531,7 @@ class AssignmentHandler {
     }
     int length =
         lvalueLength.isPresent()
-            ? Integer.min(options.maxArrayLength(), lvalueLength.orElseThrow())
+            ? Integer.min(options.maxArrayLength(), lvalueLength.getAsInt())
             : options.defaultArrayLength();
 
     // There are two cases of assignment to an array
@@ -647,7 +647,7 @@ class AssignmentHandler {
           continue; // TODO this looses values of bit fields
         }
         final Formula offsetFormula =
-            fmgr.makeNumber(conv.voidPointerFormulaType, offset.orElseThrow());
+            fmgr.makeNumber(conv.voidPointerFormulaType, offset.getAsLong());
         final Location newLvalue;
         if (lvalue.isAliased()) {
           final MemoryRegion region =
@@ -740,7 +740,7 @@ class AssignmentHandler {
       final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
       rhs =
           value.isPresent()
-              ? conv.makeCast(rvalueType, lvalueType, value.orElseThrow(), constraints, edge)
+              ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
               : null;
     }
 
@@ -891,7 +891,7 @@ class AssignmentHandler {
       throws AssertionError, UnrecognizedCodeException, UnsupportedCodeException {
     final Expression newRhsExpression;
     if (CTypeUtils.isSimpleType(rhsType) && !rhsExpression.isNondetValue()) {
-      Formula rhsFormula = getValueFormula(rhsType, rhsExpression).orElseThrow();
+      Formula rhsFormula = getValueFormula(rhsType, rhsExpression).get();
       rhsFormula = conv.makeCast(rhsType, lhsType, rhsFormula, constraints, edge);
       rhsFormula = conv.makeValueReinterpretation(lhsType, newLhsType, rhsFormula);
       newRhsExpression = Value.ofValueOrNondet(rhsFormula);
@@ -920,7 +920,7 @@ class AssignmentHandler {
                       innerMember.getType(),
                       createRHSExpression(
                           innerMemberFieldReference, innerMember.getType(), expVisitor))
-                  .orElseThrow();
+                  .get();
           if (!(memberFormula instanceof BitvectorFormula)) {
             CType interType = TypeUtils.createTypeWithLength(innerMemberSize);
             memberFormula =
@@ -1012,7 +1012,7 @@ class AssignmentHandler {
       int endIndex = fieldOffset + fieldSize - 1;
 
       // "treatAsMemberType"
-      Formula rhsFormula = getValueFormula(rhsType, rhsExpression).orElseThrow();
+      Formula rhsFormula = getValueFormula(rhsType, rhsExpression).get();
       if (rhsType instanceof CPointerType) {
         // Do not break on Pointer-Handling
         CType rhsCasted = TypeUtils.createTypeWithLength(rhsSize);

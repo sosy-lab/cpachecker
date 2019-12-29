@@ -200,7 +200,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   private final ConditionAdjuster conditionAdjuster;
 
   @GuardedBy("itself")
-  private final Set<MemoryLocation> currentInterestingVariables = new LinkedHashSet<>();
+  private final Set<MemoryLocation> interestingVariables = new LinkedHashSet<>();
 
   private final MergeOperator mergeOperator;
   private final AbstractDomain abstractDomain;
@@ -322,8 +322,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     Set<CFAEdge> relevantEdges = new LinkedHashSet<>();
     Set<NumeralFormula<CompoundInterval>> interestingPredicates = new LinkedHashSet<>();
     Set<MemoryLocation> interestingVariables;
-    synchronized (this.currentInterestingVariables) {
-      interestingVariables = new LinkedHashSet<>(this.currentInterestingVariables);
+    synchronized (this.interestingVariables) {
+      interestingVariables = new LinkedHashSet<>(this.interestingVariables);
     }
 
     if (interestingVariableLimit > 0 && !determineTargetLocations) {
@@ -448,8 +448,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   }
 
   public void addInterestingVariables(Iterable<MemoryLocation> pInterestingVariables) {
-    synchronized (this.currentInterestingVariables) {
-      Iterables.addAll(this.currentInterestingVariables, pInterestingVariables);
+    synchronized (this.interestingVariables) {
+      Iterables.addAll(this.interestingVariables, pInterestingVariables);
     }
   }
 
@@ -718,7 +718,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       boolean pointersRelevant = true;
       if (inner instanceof InterestingVariableLimitAdjuster
           && cpa.cfa.getVarClassification().isPresent()) {
-        VariableClassification classification = cpa.cfa.getVarClassification().orElseThrow();
+        VariableClassification classification = cpa.cfa.getVarClassification().get();
         if (classification.getAddressedVariables().isEmpty()
             && classification.getAddressedFields().isEmpty()) {
           pointersRelevant = false;

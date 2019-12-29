@@ -126,8 +126,7 @@
   <tasks>
     <option name="-predicateAnalysis-bam"/>
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeout -->
-    <exclude>../programs/benchmarks/seq-mthreaded-reduced/*lcr-var*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
     <exclude>../programs/benchmarks/seq-pthread/*</exclude>
     <exclude>../programs/benchmarks/systemc/token_ring.*</exclude>
     <exclude>../programs/benchmarks/systemc/toy1.cil.c</exclude>

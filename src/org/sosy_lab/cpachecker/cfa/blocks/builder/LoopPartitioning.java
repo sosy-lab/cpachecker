@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
+
 /**
  * <code>PartitioningHeuristic</code> that creates blocks for each loop-body.
  */
@@ -57,7 +58,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   private void initLoopMap() {
     loopHeaderToLoopBody = new HashMap<>();
     if (cfa.getLoopStructure().isPresent()) {
-      for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+      for (Loop loop : cfa.getLoopStructure().get().getAllLoops()) {
         if (loop.getLoopHeads().size() == 1) {
           //currently only loops with single loop heads supported
           loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
@@ -71,7 +72,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private boolean isLoopHead(CFANode pNode) {
-    return cfa.getAllLoopHeads().orElseThrow().contains(pNode);
+    return cfa.getAllLoopHeads().get().contains(pNode);
   }
 
   private boolean hasBlankEdgeFromLoop(CFANode pNode) {

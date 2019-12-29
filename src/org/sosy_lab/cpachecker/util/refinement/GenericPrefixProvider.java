@@ -147,7 +147,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
 
             holeIt.advance();
             if (successor.isPresent()) {
-              intermediateState = successor.orElseThrow();
+              intermediateState = successor.get();
             }
 
           } while (!holeIt.isPositionWithState() && successor.isPresent());
@@ -185,7 +185,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
         }
 
         // extract singleton successor state
-        next = successor.orElseThrow();
+        next = successor.get();
 
         // some variables might be blacklisted or tracked by BDDs
         // so perform abstraction computation here
@@ -224,7 +224,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
         new UseDefRelation(
             infeasiblePrefix,
             cfa.getVarClassification().isPresent()
-                ? cfa.getVarClassification().orElseThrow().getIntBoolVars()
+                ? cfa.getVarClassification().get().getIntBoolVars()
                 : ImmutableSet.of(),
             false);
 

@@ -139,8 +139,9 @@ public class VerificationTaskMetaData {
       }
       Optional<Path> correctnessWitness =
           Optional.ofNullable(hackyOptions.invariantsAutomatonFile).map(Path::normalize);
-      if (correctnessWitness.isPresent() && !specs.contains(correctnessWitness.orElseThrow())) {
-        witnessAutomatonFilesBuilder.add(correctnessWitness.orElseThrow());
+      if (correctnessWitness.isPresent()
+          && !specs.contains(correctnessWitness.get())) {
+        witnessAutomatonFilesBuilder.add(correctnessWitness.get());
       }
       witnessAutomatonFiles = witnessAutomatonFilesBuilder.build();
       nonWitnessAutomatonFiles = nonWitnessAutomatonFilesBuilder.build();

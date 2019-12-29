@@ -110,7 +110,7 @@ public class AppliedCustomInstructionParserTest {
             LogManager.createTestLogManager(),
             cfa);
     GlobalInfo.getInstance().storeCFA(cfa);
-    cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
+    cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
     labelNodes = getLabelNodes(cfa);
   }
 

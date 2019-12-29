@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+
 public class SignTransferRelation extends ForwardingTransferRelation<SignState, SignState, SingletonPrecision> {
 
   LogManager logger;
@@ -153,7 +154,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     if (!optStrongestId.isPresent()) {
       return Optional.empty(); // No refinement possible, since no strongest identifier was found
     }
-    CExpression strongestId = optStrongestId.orElseThrow();
+    CExpression strongestId = optStrongestId.get();
     logger.log(Level.FINER, "Filtered strongest identifier " + strongestId + " from assume expression" + pAssumeExp);
     CExpression refinementExpression = getRefinementExpression(strongestId, pAssumeExp);
     BinaryOperator resultOp = truthAssumption ? pAssumeExp.getOperator() : pAssumeExp.getOperator().getOppositLogicalOperator();
@@ -269,29 +270,14 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     }
     Optional<IdentifierValuePair> result = evaluateAssumption((CBinaryExpression)pExpression, pTruthAssumption, pCfaEdge);
     if (result.isPresent()) {
-      logger.log(
-          Level.FINE,
-          "Assumption: "
-              + (pTruthAssumption ? pExpression : "!(" + pExpression + ")")
-              + " --> "
-              + result.orElseThrow().identifier
-              + " = "
-              + result.orElseThrow().value);
+      logger.log(Level.FINE, "Assumption: " + (pTruthAssumption ? pExpression : "!(" + pExpression + ")") + " --> " + result.get().identifier + " = " + result.get().value);
       // assure that does not become more abstract after assumption
-      if (state
-          .getSignForVariable(getScopedVariableName(result.orElseThrow().identifier))
-          .covers(result.orElseThrow().value)) {
-        return state.assignSignToVariable(
-            getScopedVariableName(result.orElseThrow().identifier), result.orElseThrow().value);
-      }
+      if (state.getSignForVariable(getScopedVariableName(result.get().identifier))
+          .covers(result.get().value)) { return state.assignSignToVariable(
+          getScopedVariableName(result.get().identifier), result.get().value); }
       // check if results distinct, then no successor exists
-      if (!result
-          .orElseThrow()
-          .value
-          .intersects(
-              state.getSignForVariable(getScopedVariableName(result.orElseThrow().identifier)))) {
-        return null;
-      }
+      if (!result.get().value.intersects(state.getSignForVariable(
+          getScopedVariableName(result.get().identifier)))) { return null; }
     }
     return state;
   }

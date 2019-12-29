@@ -121,7 +121,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     bitsize = pBitsize;
     compressIntEqual = pCompressIntEqual;
     assert cfa.getVarClassification().isPresent();
-    this.varClass = cfa.getVarClassification().orElseThrow();
+    this.varClass = cfa.getVarClassification().get();
   }
 
   @Override

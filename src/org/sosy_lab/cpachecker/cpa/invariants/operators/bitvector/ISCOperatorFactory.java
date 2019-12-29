@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector;
 
 import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
@@ -42,7 +43,7 @@ public enum ISCOperatorFactory {
    * The addition operator for adding scalar values to intervals.
    */
   public Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval> getAdd(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<>() {
+    return new Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -56,7 +57,7 @@ public enum ISCOperatorFactory {
    * The division operator for dividing intervals by scalar values.
    */
   public Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval> getDivide(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-      return new Operator<>() {
+      return new Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -70,7 +71,7 @@ public enum ISCOperatorFactory {
    * The modulo operator for computing the remainders of dividing intervals by scalar values.
    */
   public Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval> getModulo(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<>() {
+    return new Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pValue) {
@@ -185,7 +186,7 @@ public enum ISCOperatorFactory {
    */
   public Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval> getMultiply(
       final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<>() {
+    return new Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -199,7 +200,7 @@ public enum ISCOperatorFactory {
    * The left shift operator for left shifting intervals by scalar values.
    */
   public Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval> getShiftLeft(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<>() {
+    return new Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -213,7 +214,7 @@ public enum ISCOperatorFactory {
    * The right shift operator for right shifting intervals by scalar values.
    */
   public Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval> getShiftRight(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-      return new Operator<>() {
+      return new Operator<BitVectorInterval, BigInteger, CompoundBitVectorInterval>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {

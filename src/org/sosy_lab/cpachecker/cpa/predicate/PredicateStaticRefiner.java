@@ -280,7 +280,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     Set<String> referenced =
         CFAUtils.getVariableNamesOfExpression((CExpression) e.getExpression()).toSet();
     Set<String> loopExitConditionVariables =
-        cfa.getLoopStructure().orElseThrow().getLoopExitConditionVariables();
+        cfa.getLoopStructure().get().getLoopExitConditionVariables();
 
     return !Collections.disjoint(referenced, loopExitConditionVariables);
   }

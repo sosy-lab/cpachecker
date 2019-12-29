@@ -201,7 +201,7 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   }
 
   @Override
-  public ImmutableMap<String, AbstractStatValue> getStatistics() {
+  public ImmutableMap<String, ? extends AbstractStatValue> getStatistics() {
     return delegate.getStatistics();
   }
 }

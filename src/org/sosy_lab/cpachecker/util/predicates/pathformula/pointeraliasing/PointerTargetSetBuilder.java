@@ -291,17 +291,6 @@ public interface PointerTargetSetBuilder {
         }
       }
 
-      // Add alignment constraint
-      // For incomplete types, better not add constraints (imprecise) than a wrong one (unsound).
-      if (!type.isIncomplete()) {
-        constraints.addConstraint(
-            formulaManager.makeModularCongruence(
-                newBaseFormula,
-                formulaManager.makeNumber(typeHandler.getPointerType(), 0L),
-                typeHandler.getAlignof(type),
-                false));
-      }
-
       final int typeSize =
           type.isIncomplete() ? options.defaultAllocationSize() : typeHandler.getSizeof(type);
       final Formula typeSizeF = formulaManager.makeNumber(pointerType, typeSize);
@@ -391,7 +380,7 @@ public interface PointerTargetSetBuilder {
             addTargets(
                 base,
                 memberDeclaration.getType(),
-                offset.orElseThrow(),
+                offset.getAsLong(),
                 containerOffset + properOffset,
                 field);
           }
@@ -403,7 +392,7 @@ public interface PointerTargetSetBuilder {
                     newRegion,
                     memberDeclaration.getType(),
                     compositeType,
-                    offset.orElseThrow(),
+                    offset.getAsLong(),
                     containerOffset + properOffset,
                     targets,
                     fields);

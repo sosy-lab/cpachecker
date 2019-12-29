@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.DOUBLE;
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.FLOAT;
-import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.FLOAT128;
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.INT;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -486,13 +485,6 @@ public class CBinaryExpressionBuilder {
     if (t1.getType() == FLOAT) { return t1; }
     if (t2.getType() == FLOAT) { return t2; }
 
-    if (t1.getType() == FLOAT128) {
-      return t1;
-    }
-    if (t2.getType() == FLOAT128) {
-      return t2;
-    }
-
     /* Otherwise, the integer promotions are performed on both operands. */
 
     return getLongestIntegerPromotion(t1, t2);
@@ -571,7 +563,8 @@ public class CBinaryExpressionBuilder {
     throw new AssertionError("unhandled type: " + t1 + " or " + t2);
   }
 
-  /** returns an index, so that: BOOL < CHAR < SHORT < INT < LONG < LONGLONG < INT128. */
+
+  /** returns an index, so that:  BOOL < CHAR < SHORT < INT < LONG < LONGLONG. */
   private static int getConversionRank(CSimpleType t) {
 
     CBasicType type = t.getType();
@@ -597,9 +590,6 @@ public class CBinaryExpressionBuilder {
       if (t.isLong()) { return 50; }
       if (t.isLongLong()) { return 60; }
       return 40;
-
-      case INT128:
-        return 70;
 
     default:
       throw new AssertionError("unhandled CSimpleType: " + t);

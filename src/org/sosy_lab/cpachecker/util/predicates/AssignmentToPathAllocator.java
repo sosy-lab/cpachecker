@@ -466,13 +466,12 @@ public class AssignmentToPathAllocator {
       Pair<String, OptionalInt> pair = FormulaManagerView.parseName(fullName);
       if (pair.getSecond().isPresent()) {
         String canonicalName = pair.getFirst();
-        int newIndex = pair.getSecond().orElseThrow();
+        int newIndex = pair.getSecond().getAsInt();
 
         if (variableEnvironment.containsKey(canonicalName)) {
           ValueAssignment oldVariable = variableEnvironment.get(canonicalName);
 
-          int oldIndex =
-              FormulaManagerView.parseName(oldVariable.getName()).getSecond().orElseThrow();
+          int oldIndex = FormulaManagerView.parseName(oldVariable.getName()).getSecond().getAsInt();
 
           if (oldIndex < newIndex) {
 

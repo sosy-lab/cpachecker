@@ -132,7 +132,7 @@ public class TestCaseExporter {
                             valueMap.get(previous),
                             pCfa);
                     if (value.isPresent()) {
-                      values.add(value.orElseThrow());
+                      values.add(value.get());
                     }
                   }
                 }

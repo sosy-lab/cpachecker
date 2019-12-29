@@ -210,8 +210,8 @@ class TypeHierachyCreator extends ASTVisitor {
                || classBinding.isEnum()
                || classBinding.isInterface());
 
-    final THTypeConverter typeConverter = new THTypeConverter(typeTable);
-    final JClassOrInterfaceType classType = typeConverter.convertClassOrInterfaceType(classBinding);
+    final THTypeConverter converter = new THTypeConverter(typeTable);
+    final JClassOrInterfaceType classType = converter.convertClassOrInterfaceType(classBinding);
 
     typeTable.registerFileNameOfType(classType, fileOfCU);
 

@@ -29,10 +29,11 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -122,7 +123,8 @@ public class AppliedCustomInstructionParser {
 
     CustomInstruction ci = null;
 
-    try (BufferedReader br = Files.newBufferedReader(file)) {
+
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.toFile()), "UTF-8"))) {
       String line = br.readLine();
       if(line == null) {
         throw new AppliedCustomInstructionParsingFailedException("Empty specification. Missing at least function name for custom instruction.");
@@ -156,7 +158,7 @@ public class AppliedCustomInstructionParser {
 
   public CustomInstructionApplications parse(final CustomInstruction pCi, final Path file)
       throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
-    try (BufferedReader br = Files.newBufferedReader(file)) {
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.toFile()), "UTF-8"))) {
       return parseACIs(br, pCi);
     }
   }
@@ -164,7 +166,7 @@ public class AppliedCustomInstructionParser {
   private CustomInstructionApplications parseACIs(final BufferedReader br, final CustomInstruction ci)
       throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
     ImmutableMap.Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
-    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
+    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
 
     CFANode startNode;
     AppliedCustomInstruction aci;

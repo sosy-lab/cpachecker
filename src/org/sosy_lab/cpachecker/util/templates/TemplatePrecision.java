@@ -228,7 +228,8 @@ public class TemplatePrecision implements Precision {
     logger.log(Level.FINE, "Generated templates", extractedFromAssertTemplates);
     generatedTemplates = new HashSet<>();
 
-    allVariables = ImmutableSet.copyOf(cfa.getLiveVariables().orElseThrow().getAllLiveVariables());
+    allVariables = ImmutableSet.copyOf(
+        cfa.getLiveVariables().get().getAllLiveVariables());
 
     ImmutableSetMultimap.Builder<String, ASimpleDeclaration> builder =
         ImmutableSetMultimap.builder();
@@ -351,7 +352,7 @@ public class TemplatePrecision implements Precision {
   private Stream<LinearExpression<CIdExpression>> filterRedundantExpressions(
       Stream<LinearExpression<CIdExpression>> pLinearExpressions) {
     Predicate<Optional<Rational>> existsAndMoreThanOne =
-        (coeff -> coeff.isPresent() && coeff.orElseThrow().compareTo(Rational.ONE) > 0);
+        (coeff -> coeff.isPresent() && coeff.get().compareTo(Rational.ONE) > 0);
     Set<LinearExpression<CIdExpression>> linearExpressions =
         pLinearExpressions.collect(toImmutableSet());
     return linearExpressions
@@ -441,7 +442,7 @@ public class TemplatePrecision implements Precision {
     if (varFiltering == VarFilteringStrategy.ALL) {
       return true;
     }
-    LiveVariables liveVariables = cfa.getLiveVariables().orElseThrow();
+    LiveVariables liveVariables = cfa.getLiveVariables().get();
     for (Entry<CIdExpression, Rational> e : t.getLinearExpression()) {
       CIdExpression id = e.getKey();
       if (varFiltering == VarFilteringStrategy.ONE_LIVE &&
@@ -519,9 +520,7 @@ public class TemplatePrecision implements Precision {
 
   private Collection<LinearExpression<CIdExpression>> expressionToTemplate(CExpression expression) {
     Optional<LinearExpression<CIdExpression>> t = expressionToSingleTemplate(expression);
-    return t.isPresent()
-        ? ImmutableList.of(t.orElseThrow(), t.orElseThrow().negate())
-        : ImmutableList.of();
+    return t.isPresent() ? ImmutableList.of(t.get(), t.get().negate()) : ImmutableList.of();
   }
 
   private Optional<LinearExpression<CIdExpression>> expressionToSingleTemplate(
@@ -547,13 +546,15 @@ public class TemplatePrecision implements Precision {
         if (operand1 instanceof CIntegerLiteralExpression
             && templateB.isPresent()) {
 
-          return Optional.of(
-              useCoeff((CIntegerLiteralExpression) operand1, templateB.orElseThrow()));
+          return Optional.of(useCoeff(
+              (CIntegerLiteralExpression) operand1, templateB.get()
+          ));
         } else if (operand2 instanceof CIntegerLiteralExpression
             && templateA.isPresent()) {
 
           return Optional.of(
-              useCoeff((CIntegerLiteralExpression) operand2, templateA.orElseThrow()));
+              useCoeff((CIntegerLiteralExpression) operand2, templateA.get())
+          );
         } else {
           return Optional.empty();
         }
@@ -562,8 +563,8 @@ public class TemplatePrecision implements Precision {
       // Otherwise just add/subtract templates.
       if (templateA.isPresent() && templateB.isPresent()
           && binaryExpression.getCalculationType() instanceof CSimpleType) {
-        LinearExpression<CIdExpression> a = templateA.orElseThrow();
-        LinearExpression<CIdExpression> b = templateB.orElseThrow();
+        LinearExpression<CIdExpression> a = templateA.get();
+        LinearExpression<CIdExpression> b = templateB.get();
 
         // Calculation type is the casting of both types to a suitable "upper"
         // type.
@@ -600,7 +601,7 @@ public class TemplatePrecision implements Precision {
   }
 
   public boolean injectPrecisionFromInterpolant(CFANode pNode, Set<String> usedVars) {
-    LiveVariables liveVars = cfa.getLiveVariables().orElseThrow();
+    LiveVariables liveVars = cfa.getLiveVariables().get();
 
     Map<String, ASimpleDeclaration> map =
         Maps.uniqueIndex(liveVars.getAllLiveVariables(), ASimpleDeclaration::getQualifiedName);
@@ -711,7 +712,7 @@ public class TemplatePrecision implements Precision {
   private Collection<ASimpleDeclaration> getVarsForNode(CFANode node) {
     if (varFiltering == VarFilteringStrategy.ALL_LIVE) {
       return Sets.union(
-          cfa.getLiveVariables().orElseThrow().getLiveVariablesForNode(node),
+          cfa.getLiveVariables().get().getLiveVariablesForNode(node),
           functionParameters.get(node.getFunctionName()));
     } else if (varFiltering == VarFilteringStrategy.INTERPOLATION_BASED) {
       return varsInInterpolant.get(node);

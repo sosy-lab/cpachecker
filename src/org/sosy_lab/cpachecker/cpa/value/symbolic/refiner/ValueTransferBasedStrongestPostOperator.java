@@ -142,8 +142,7 @@ public class ValueTransferBasedStrongestPostOperator
         }
 
         return Optional.of(
-            getNewCompositeState(
-                valueStrengthenResult.orElseThrow(), constraintsStrengthenResult.orElseThrow()));
+            getNewCompositeState(valueStrengthenResult.get(), constraintsStrengthenResult.get()));
       }
     }
   }

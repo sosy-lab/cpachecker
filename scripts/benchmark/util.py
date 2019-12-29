@@ -61,7 +61,7 @@ def parse_vcloud_run_result(values):
         elif key == "exitsignal":
             set_exitcode(benchexec.util.ProcessExitCode.create(signal=int(value)))
         elif (
-            key in ["host", "terminationreason", "cpuCores", "memoryNodes", "starttime"]
+            key in ["host", "terminationreason", "cpuCores", "memoryNodes"]
             or key.startswith("blkio-")
             or key.startswith("cpuenergy")
             or key.startswith("energy-")

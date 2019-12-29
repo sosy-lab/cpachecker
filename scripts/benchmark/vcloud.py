@@ -135,12 +135,10 @@ def execute_benchmark(benchmark, output_handler):
             cmdLine.extend(["--master", benchmark.config.cloudMaster])
         if benchmark.config.zipResultFiles:
             cmdLine.extend(["--zip-result-files", str(benchmark.config.zipResultFiles)])
-        if benchmark.config.cgroupAccess:
-            cmdLine.extend(["--cgroupAccess", str(benchmark.config.cgroupAccess)])
         if benchmark.config.debug:
             cmdLine.extend(["--print-new-files", "true"])
 
-        start_time = benchexec.util.read_local_time()
+        walltime_before = time.time()
 
         cloud = subprocess.Popen(
             cmdLine, stdin=subprocess.PIPE, shell=util.is_windows()
@@ -151,7 +149,8 @@ def execute_benchmark(benchmark, output_handler):
             stop()
         returnCode = cloud.wait()
 
-        end_time = benchexec.util.read_local_time()
+        walltime_after = time.time()
+        usedWallTime = walltime_after - walltime_before
 
         if returnCode:
             if STOPPED_BY_INTERRUPT:
@@ -162,10 +161,9 @@ def execute_benchmark(benchmark, output_handler):
                 output_handler.set_error(errorMsg)
     else:
         returnCode = 0
-        start_time = None
-        end_time = None
+        usedWallTime = None
 
-    handleCloudResults(benchmark, output_handler, start_time, end_time)
+    handleCloudResults(benchmark, output_handler, usedWallTime)
 
     return returnCode
 
@@ -296,7 +294,6 @@ def getToolDataForCloud(benchmark):
     logging.debug("Working dir: " + workingDir)
 
     toolpaths = benchmark.required_files()
-    validToolpaths = set()
     for file in toolpaths:
         if not os.path.exists(file):
             sys.exit(
@@ -304,19 +301,11 @@ def getToolDataForCloud(benchmark):
                     os.path.normpath(file)
                 )
             )
-        if os.path.isdir(file) and not os.listdir(file):
-            # VCloud can not handle empty directories, lets ignore them
-            logging.warning(
-                "Empty directory '%s', ignoring directory for cloud execution.",
-                os.path.normpath(file),
-            )
-        else:
-            validToolpaths.add(file)
 
-    return (workingDir, validToolpaths)
+    return (workingDir, toolpaths)
 
 
-def handleCloudResults(benchmark, output_handler, start_time, end_time):
+def handleCloudResults(benchmark, output_handler, usedWallTime):
 
     outputDir = benchmark.log_folder
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
@@ -329,11 +318,6 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
     # Write worker host informations in xml
     parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark)
 
-    if start_time and end_time:
-        usedWallTime = (end_time - start_time).total_seconds()
-    else:
-        usedWallTime = None
-
     # write results in runs and handle output after all runs are done
     executedAllRuns = True
     runsProducedErrorOutput = False
@@ -342,7 +326,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             output_handler.output_for_skipping_run_set(runSet)
             continue
 
-        output_handler.output_before_run_set(runSet, start_time=start_time)
+        output_handler.output_before_run_set(runSet)
 
         for run in runSet.runs:
             dataFile = run.log_file + ".data"
@@ -385,9 +369,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             ):
                 shutil.move(vcloudFilesDirectory, benchexecFilesDirectory)
 
-        output_handler.output_after_run_set(
-            runSet, walltime=usedWallTime, end_time=end_time
-        )
+        output_handler.output_after_run_set(runSet, walltime=usedWallTime)
 
     output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 

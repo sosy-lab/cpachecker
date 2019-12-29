@@ -712,11 +712,11 @@ class DynamicMemoryHandler {
 
     // Reveal the type from the assignment itself (i.e. lhs from rhs and vice versa)
     if (toHandle.isPresent()) {
-      Optional<String> s = toHandle.orElseThrow().getFirst().accept(pointerApproximatingVisitor);
+      Optional<String> s = toHandle.get().getFirst().accept(pointerApproximatingVisitor);
       if (s.isPresent()
-          && !lhsLearnedPointerTypes.containsKey(s.orElseThrow())
-          && !rhsLearnedPointerTypes.containsKey(s.orElseThrow())) {
-        handleDeferredAllocationTypeRevelation(s.orElseThrow(), toHandle.orElseThrow().getSecond());
+          && !lhsLearnedPointerTypes.containsKey(s.get())
+          && !rhsLearnedPointerTypes.containsKey(s.get())) {
+        handleDeferredAllocationTypeRevelation(s.get(), toHandle.get().getSecond());
       }
     }
 
@@ -727,9 +727,8 @@ class DynamicMemoryHandler {
     } else {
       // Else try to remove bindings and only actually remove if no dangling objects arises
       Optional<String> lhsPointer = lhs.accept(pointerApproximatingVisitor);
-      if (lhsPointer.isPresent()
-          && pts.canRemoveDeferredAllocationPointer(lhsPointer.orElseThrow())) {
-        pts.removeDeferredAllocationPointer(lhsPointer.orElseThrow());
+      if (lhsPointer.isPresent() && pts.canRemoveDeferredAllocationPointer(lhsPointer.get())) {
+        pts.removeDeferredAllocationPointer(lhsPointer.get());
       }
     }
 
@@ -737,7 +736,7 @@ class DynamicMemoryHandler {
     Optional<String> l = lhs.accept(pointerApproximatingVisitor);
     if (l.isPresent() && rhs != null) {
       rhs.accept(pointerApproximatingVisitor)
-          .ifPresent(r -> pts.addDeferredAllocationPointer(l.orElseThrow(), r));
+          .ifPresent(r -> pts.addDeferredAllocationPointer(l.get(), r));
     }
   }
 

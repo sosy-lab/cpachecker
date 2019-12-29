@@ -118,15 +118,11 @@ public class CallstackState
   }
 
   public boolean sameStateInProofChecking(CallstackState pOther) {
-    if (pOther.callerNode.equals(callerNode)
+    if (pOther.callerNode == callerNode
         && pOther.depth == depth
         && pOther.currentFunction.equals(currentFunction)
-        && (pOther.previousState == previousState
-            || (previousState != null
-                && pOther.previousState != null
-                && previousState.sameStateInProofChecking(pOther.previousState)))) {
-      return true;
-    }
+        && (pOther.previousState == previousState || (previousState != null && pOther.previousState != null && previousState
+            .sameStateInProofChecking(pOther.previousState)))) { return true; }
     return false;
   }
 
@@ -158,7 +154,6 @@ public class CallstackState
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int nodeNumber = in.readInt();
-    callerNode =
-        GlobalInfo.getInstance().getCFAInfo().orElseThrow().getNodeByNodeNumber(nodeNumber);
+    callerNode = GlobalInfo.getInstance().getCFAInfo().get().getNodeByNodeNumber(nodeNumber);
   }
 }

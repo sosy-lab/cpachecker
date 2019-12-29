@@ -158,7 +158,7 @@ public class CPABuilder {
       Optional<ConfigurableProgramAnalysis> first =
           cpas.stream().filter(x -> x instanceof ControlAutomatonCPA).findFirst();
       if (first.isPresent()) {
-        ConfigurableProgramAnalysis cpa = first.orElseThrow();
+        ConfigurableProgramAnalysis cpa = first.get();
         cpas.remove(cpa);
         return cpa;
       }

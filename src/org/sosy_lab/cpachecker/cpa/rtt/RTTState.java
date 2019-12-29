@@ -333,10 +333,17 @@ public class RTTState extends AbstractAppender implements
     if (this == other) {
       return true;
     }
-    if (!(other instanceof RTTState)) {
+
+    if (other == null) {
       return false;
     }
+
+    if (!getClass().equals(other.getClass())) {
+      return false;
+    }
+
     RTTState otherElement = (RTTState) other;
+
     return otherElement.constantsMap.equals(constantsMap);
   }
 

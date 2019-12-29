@@ -367,7 +367,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     }
 
     Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
-    VariableClassification variableClassification = cfa.getVarClassification().orElseThrow();
+    VariableClassification variableClassification = cfa.getVarClassification().get();
 
     if (!variableClassification.getRelevantVariables().isEmpty()) {
       stats.relevantBoolRatio =
@@ -397,7 +397,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
             || !variableClassification.getAddressedFields().isEmpty();
 
     stats.requiresLoopHandling =
-        !loopStructure.isPresent() || !loopStructure.orElseThrow().getAllLoops().isEmpty();
+        !loopStructure.isPresent() || !loopStructure.get().getAllLoops().isEmpty();
 
     stats.requiresCompositeTypeHandling = !variableClassification.getRelevantFields().isEmpty();
 

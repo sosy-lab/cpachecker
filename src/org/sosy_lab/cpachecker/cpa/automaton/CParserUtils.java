@@ -410,7 +410,7 @@ class CParserUtils {
   private static String replaceResultVar(
       Optional<String> pResultFunction, Scope pScope, String assumeCode) {
     if (pResultFunction.isPresent()) {
-      String resultFunctionName = pResultFunction.orElseThrow();
+      String resultFunctionName = pResultFunction.get();
       if (pScope instanceof CProgramScope) {
         CProgramScope scope = (CProgramScope) pScope;
         if (scope.hasFunctionReturnVariable(resultFunctionName)) {

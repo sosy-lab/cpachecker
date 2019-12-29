@@ -171,7 +171,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       assert returnVar.isPresent()
           : "Return edge with assignment, but no return variable: " + summaryEdge;
 
-      LocationSet pointedTo = pState.getPointsToSet(returnVar.orElseThrow());
+      LocationSet pointedTo = pState.getPointsToSet(returnVar.get());
 
       return handleAssignment(pState, callAssignment.getLeftHandSide(), pointedTo);
     } else {
@@ -186,7 +186,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       ABinaryExpression binOp = (ABinaryExpression) expression;
       if (binOp.getOperator() == BinaryOperator.EQUALS) {
         Optional<Boolean> areEq = areEqual(pState, binOp.getOperand1(), binOp.getOperand2());
-        if (areEq.isPresent() && areEq.orElseThrow() != pAssumeEdge.getTruthAssumption()) {
+        if (areEq.isPresent() && areEq.get() != pAssumeEdge.getTruthAssumption()) {
           return null;
         }
       }
@@ -299,7 +299,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     if (!returnVariable.isPresent()) {
       return pState;
     }
-    return handleAssignment(pState, returnVariable.orElseThrow(), pCfaEdge.getExpression().get());
+    return handleAssignment(pState, returnVariable.get(), pCfaEdge.getExpression().get());
   }
 
   private Optional<MemoryLocation> getFunctionReturnVariable(FunctionEntryNode pFunctionEntryNode) {
@@ -771,7 +771,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       Optional<AFunctionCall> functionCall = asFunctionCall(pCfaEdge);
       if (functionCall.isPresent()) {
         AFunctionCallExpression functionCallExpression =
-            functionCall.orElseThrow().getFunctionCallExpression();
+            functionCall.get().getFunctionCallExpression();
         AExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
         if (functionNameExpression instanceof CPointerExpression) {
           CExpression derefNameExpr = ((CPointerExpression) functionNameExpression).getOperand();
@@ -780,7 +780,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
             Optional<CallstackState> callstackState = find(pOtherStates, CallstackState.class);
             if (callstackState.isPresent()) {
               return strengthenFieldReference(
-                  (PointerState) pState, callstackState.orElseThrow(), fieldReference);
+                  (PointerState) pState, callstackState.get(), fieldReference);
             }
           }
         }

@@ -1727,9 +1727,9 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     final CFANode lastNotCaseNode = switchCaseStack.pop();
     switchExprStack.pop(); // switchExpr is not needed after this point
 
-    assert postSwitchNode.equals(loopNextStack.peek());
+    assert postSwitchNode == loopNextStack.peek();
     loopNextStack.pop();
-    assert postSwitchNode.equals(locStack.peek());
+    assert postSwitchNode == locStack.peek();
     assert switchExprStack.size() == switchCaseStack.size();
 
     final BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY,
@@ -1932,7 +1932,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       addToCFA(blankEdge);
     }
     CFANode nextNode = loopNextStack.pop();
-    assert nextNode.equals(locStack.peek());
+    assert nextNode == locStack.peek();
   }
 
 
@@ -2005,9 +2005,9 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         fileloc, lastNodeInLoop, loopStart, "");
     addToCFA(loopEndToStart);
 
-    assert postLoopNode.equals(loopNextStack.peek());
+    assert postLoopNode == loopNextStack.peek();
     loopNextStack.pop();
-    assert postLoopNode.equals(locStack.peek());
+    assert postLoopNode == locStack.peek();
 
     scope.leaveBlock();
 
@@ -2116,11 +2116,11 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     createLastNodesAndEdgeForForLoop(updateBlock, fileloc,
                                         lastNodeInLoop, loopStart);
 
-    assert lastNodeInLoop.equals(loopStartStack.peek());
+    assert lastNodeInLoop == loopStartStack.peek();
     loopStartStack.pop();
-    assert postLoopNode.equals(loopNextStack.peek());
+    assert postLoopNode == loopNextStack.peek();
     loopNextStack.pop();
-    assert postLoopNode.equals(locStack.peek());
+    assert postLoopNode == locStack.peek();
 
     scope.leaveBlock();
 

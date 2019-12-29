@@ -253,8 +253,7 @@ public class ControlAutomatonCPA
                   .collect(MoreCollectors.toOptional());
           safetyProp =
               assumptionOpt.isPresent()
-                  ? new AutomatonSafetyProperty(
-                      pAutomaton, t, assumptionOpt.orElseThrow().toASTString())
+                  ? new AutomatonSafetyProperty(pAutomaton, t, assumptionOpt.get().toASTString())
                   : new AutomatonSafetyProperty(pAutomaton, t);
           break;
         }

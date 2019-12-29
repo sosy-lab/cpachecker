@@ -468,19 +468,14 @@ public final class CInitializers {
       // find the designated field and advance the iterator up to this point
       while (fields.hasNext()) {
         CFieldReference f = fields.next();
-        if (f.getFieldName().equals(startingFieldName.orElseThrow())) {
+        if (f.getFieldName().equals(startingFieldName.get())) {
           designatedField = f;
           break;
         }
       }
       if (designatedField == null) {
-        throw new UnrecognizedCodeException(
-            "Initializer for field "
-                + startingFieldName.orElseThrow()
-                + " but no field with this name exists in "
-                + structType,
-            edge,
-            designator);
+        throw new UnrecognizedCodeException("Initializer for field " + startingFieldName.get()
+            + " but no field with this name exists in " + structType, edge, designator);
       }
 
     } else {

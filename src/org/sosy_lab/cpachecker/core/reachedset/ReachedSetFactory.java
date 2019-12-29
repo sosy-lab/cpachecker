@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.core.waitlist.WeightedRandomWaitlist;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariableWaitlist;
 import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
-import org.sosy_lab.cpachecker.cpa.usage.storage.UsageConfiguration;
 
 @Options(prefix="analysis")
 public class ReachedSetFactory {
@@ -200,25 +199,21 @@ public class ReachedSetFactory {
       description = "track more statistics about the reachedset")
   private boolean withStatistics = false;
 
+  private final Configuration config;
   private @Nullable BlockConfiguration blockConfig;
-  private @Nullable UsageConfiguration usageConfig;
   private WeightedRandomWaitlist.@Nullable WaitlistOptions weightedWaitlistOptions;
   private final LogManager logger;
 
   public ReachedSetFactory(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
+    this.config = pConfig;
     this.logger = checkNotNull(pLogger);
 
     if (useBlocks) {
       blockConfig = new BlockConfiguration(pConfig);
     } else {
       blockConfig = null;
-    }
-    if (reachedSet == ReachedSetType.USAGE) {
-      usageConfig = new UsageConfiguration(pConfig);
-    } else {
-      usageConfig = null;
     }
     if (useWeightedDepthOrder || useWeightedBranchOrder) {
       weightedWaitlistOptions = new WeightedRandomWaitlist.WaitlistOptions(pConfig);
@@ -293,7 +288,7 @@ public class ReachedSetFactory {
         reached = new LocationMappedReachedSet(waitlistFactory);
         break;
     case USAGE:
-        reached = new UsageReachedSet(waitlistFactory, usageConfig, logger);
+        reached = new UsageReachedSet(waitlistFactory, config, logger);
         break;
     case NORMAL:
     default:

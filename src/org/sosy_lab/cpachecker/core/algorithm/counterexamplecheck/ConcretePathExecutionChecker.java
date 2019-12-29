@@ -166,7 +166,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
     assert cFile != null;
 
     timer.start();
-    CounterexampleInfo ceInfo = pErrorState.getCounterexampleInformation().orElseThrow();
+    CounterexampleInfo ceInfo = pErrorState.getCounterexampleInformation().get();
 
     Appender pathProgram = PathToConcreteProgramTranslator.translatePaths(pRootState, pErrorPathStates, ceInfo.getCFAPathWithAssignments());
 

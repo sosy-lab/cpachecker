@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -33,6 +30,10 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.base.Function;
+import java.util.Optional;
+import com.google.common.base.Preconditions;
 
 /**
  * Base implementation for precision adjustment implementations wrap other
@@ -62,11 +63,10 @@ public abstract class WrappingPrecisionAdjustment implements PrecisionAdjustment
     Optional<PrecisionAdjustmentResult> result = wrappedPrecOp.prec(pState, pPrecision, pStates, pProjection, pFullState);
 
     if (result.isPresent()) {
-      if (result.orElseThrow().action() == Action.BREAK) {
+      if (result.get().action() == Action.BREAK) {
         return result;
       } else {
-        return wrappingPrec(
-            result.orElseThrow().abstractState(), pPrecision, pStates, pProjection, pFullState);
+        return wrappingPrec(result.get().abstractState(), pPrecision, pStates, pProjection, pFullState);
       }
     } else {
       return wrappingPrec(pState, pPrecision, pStates, pProjection, pFullState);

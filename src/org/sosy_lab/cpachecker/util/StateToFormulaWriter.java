@@ -179,8 +179,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
    */
   private boolean isImportantNode(CFANode location) {
     if (exportOnlyImporantLocations) {
-      return (cfa.getAllLoopHeads().isPresent()
-              && cfa.getAllLoopHeads().orElseThrow().contains(location))
+      return (cfa.getAllLoopHeads().isPresent() && cfa.getAllLoopHeads().get().contains(location))
           || location instanceof FunctionEntryNode
           || location instanceof FunctionExitNode
           || location.getLeavingSummaryEdge() != null

@@ -49,7 +49,7 @@ class FrontierExtensionResult extends ProofResult {
   }
 
   public ProofObligation getProofObligation() {
-    return proofObligation.orElseThrow();
+    return proofObligation.get();
   }
 
   public static FrontierExtensionResult getSuccess() {

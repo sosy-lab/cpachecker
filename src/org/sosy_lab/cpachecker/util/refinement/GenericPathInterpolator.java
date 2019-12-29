@@ -273,7 +273,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
         new UseDefRelation(
                 pErrorPathPrefix,
                 cfa.getVarClassification().isPresent()
-                    ? cfa.getVarClassification().orElseThrow().getIntBoolVars()
+                    ? cfa.getVarClassification().get().getIntBoolVars()
                     : ImmutableSet.of(),
                 false)
             .getUseDefStates();

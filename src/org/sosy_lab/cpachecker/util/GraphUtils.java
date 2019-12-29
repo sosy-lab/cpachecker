@@ -168,7 +168,7 @@ public class GraphUtils {
       List<ARGState> subList = pStates.subList(startIndex, pStates.size());
       Set<ARGState> excludeSet = new HashSet<>(pStates);
       if (pExcludeStates.isPresent()) {
-        excludeSet.addAll(pExcludeStates.orElseThrow());
+        excludeSet.addAll(pExcludeStates.get());
       }
       excludeSet.removeAll(subList);
       ImmutableSet<StronglyConnectedComponent> SCCs =
@@ -184,7 +184,7 @@ public class GraphUtils {
                 .map(x -> pStates.indexOf(x.getRootNode()))
                 .reduce((x, y) -> x.compareTo(y) <= 0 ? x : y)
                 .map(pStates::get)
-                .orElseThrow();
+                .get();
 
         blockedSet.clear();
         blockedMap.clear();
@@ -212,7 +212,7 @@ public class GraphUtils {
       List<List<ARGState>> pAllCycles,
       Optional<Set<ARGState>> pExcludeSet) {
 
-    if (pExcludeSet.isPresent() && pExcludeSet.orElseThrow().contains(pCurrentState)) {
+    if (pExcludeSet.isPresent() && pExcludeSet.get().contains(pCurrentState)) {
       // Do not regard nodes which were deliberately put into a set of excluded states
       return false;
     }
@@ -306,7 +306,7 @@ public class GraphUtils {
 
     for (ARGState state : pARGStates) {
       if (pExcludeStates.isPresent()) {
-        if (pExcludeStates.orElseThrow().contains(state)) {
+        if (pExcludeStates.get().contains(state)) {
           continue;
         }
       }
@@ -335,7 +335,7 @@ public class GraphUtils {
 
     for (Iterator<ARGState> iterator = pState.getChildren().iterator(); iterator.hasNext(); ) {
       ARGState sucessorState = iterator.next();
-      if (pExcludeStates.isPresent() && pExcludeStates.orElseThrow().contains(sucessorState)) {
+      if (pExcludeStates.isPresent() && pExcludeStates.get().contains(sucessorState)) {
         continue;
       }
       if (!pStateIndex.containsKey(sucessorState)) {

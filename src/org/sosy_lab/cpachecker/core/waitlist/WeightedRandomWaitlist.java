@@ -153,7 +153,7 @@ public class WeightedRandomWaitlist implements Waitlist {
   @Override
   public Iterator<AbstractState> iterator() {
     if(states.isEmpty()) {
-      return new Iterator<>() {
+      return new Iterator<AbstractState>() {
 
         @Override
         public boolean hasNext() {
@@ -166,7 +166,7 @@ public class WeightedRandomWaitlist implements Waitlist {
         }
       };
     }
-    return new Iterator<>() {
+    return new Iterator<AbstractState>() {
 
       private Iterator<AbstractState> currIt = states.firstEntry().getValue().iterator();
       private int currRank = 0;

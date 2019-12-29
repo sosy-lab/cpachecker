@@ -72,7 +72,7 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
     if (!successor.isPresent()) {
       return Optional.empty();
     } else {
-      ValueAnalysisState next = successor.orElseThrow();
+      ValueAnalysisState next = successor.get();
       return Optional.of(new ForgettingCompositeState(next, INITIAL_CONSTRAINTS));
     }
   }

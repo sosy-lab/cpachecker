@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.SolverContextFactory;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext;
@@ -231,7 +230,6 @@ public class LassoAnalysis {
       CFA pCfa,
       LassoAnalysisStatistics pStatistics)
       throws InvalidConfigurationException {
-    pConfig = Solver.adjustConfigForSolver(pConfig);
     SolverContext solverContext =
         SolverContextFactory.createSolverContext(pConfig, pLogger, pShutdownNotifier, SMTINTERPOL);
     AbstractFormulaManager<Term, ?, ?, ?> formulaManager =

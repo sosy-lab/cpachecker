@@ -630,18 +630,16 @@ public class CPAchecker {
         initialLocations = ImmutableSet.copyOf(pCfa.getAllFunctionHeads());
         break;
       case FUNCTION_SINKS:
-          initialLocations =
-              ImmutableSet.<CFANode>builder()
-                  .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
-                  .addAll(getAllFunctionExitNodes(pCfa))
-                  .build();
+        initialLocations = ImmutableSet.<CFANode>builder().addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().get()))
+                                                          .addAll(getAllFunctionExitNodes(pCfa))
+                                                          .build();
         break;
       case PROGRAM_SINKS:
           initialLocations =
               ImmutableSet.<CFANode>builder()
                   .addAll(
                       CFAUtils.getProgramSinks(
-                          pCfa, pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
+                          pCfa, pCfa.getLoopStructure().get(), pAnalysisEntryFunction))
                   .build();
 
         break;

@@ -26,10 +26,11 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract class AbstractCFAEdge implements CFAEdge {
 
@@ -99,7 +100,13 @@ public abstract class AbstractCFAEdge implements CFAEdge {
     }
 
     AbstractCFAEdge otherEdge = (AbstractCFAEdge) pOther;
-    return predecessor.equals(otherEdge.predecessor) && successor.equals(otherEdge.successor);
+
+    if ((otherEdge.predecessor != predecessor)
+        || (otherEdge.successor != successor)) {
+      return false;
+    }
+
+    return true;
   }
 
   @Override

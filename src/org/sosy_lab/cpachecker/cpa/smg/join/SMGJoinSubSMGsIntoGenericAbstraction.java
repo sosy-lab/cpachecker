@@ -528,7 +528,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         return false;
       }
 
-      SMGEdgePointsToTemplate pointerEdgeTemplate = pointerEdgeTemplateOpt.orElseThrow();
+      SMGEdgePointsToTemplate pointerEdgeTemplate = pointerEdgeTemplateOpt.get();
 
       if(pointerEdgeTemplate.getOffset() != pointerEdge.getOffset()) {
         return false;

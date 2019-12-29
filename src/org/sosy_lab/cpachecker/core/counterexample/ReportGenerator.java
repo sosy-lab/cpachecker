@@ -656,7 +656,7 @@ public class ReportGenerator {
     if (!witnessOptional.isPresent()) {
       return;
     }
-    Witness witness = witnessOptional.orElseThrow();
+    Witness witness = witnessOptional.get();
     WitnessToOutputFormatsUtils.witnessToMapsForHTMLReport(witness, argReducedNodes, argReducedEdges);
   }
 

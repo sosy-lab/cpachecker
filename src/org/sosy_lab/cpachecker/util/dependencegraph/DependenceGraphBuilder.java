@@ -406,7 +406,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
    */
   private DGNode createNode(final CFAEdge pCfaEdge, final Optional<MemoryLocation> pCause) {
     if (pCause.isPresent()) {
-      return new DGNode(pCfaEdge, pCause.orElseThrow());
+      return new DGNode(pCfaEdge, pCause.get());
     } else {
       return new DGNode(pCfaEdge);
     }
@@ -634,7 +634,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
       FunctionEntryNode mainFunction = pCfa.getMainFunction();
       Collection<CFANode> startNodes =
-          CFAUtils.getProgramSinks(pCfa, pCfa.getLoopStructure().orElseThrow(), mainFunction);
+          CFAUtils.getProgramSinks(pCfa, pCfa.getLoopStructure().get(), mainFunction);
 
       for (CFANode n : startNodes) {
         StateSpacePartition partition = StateSpacePartition.getDefaultPartition();

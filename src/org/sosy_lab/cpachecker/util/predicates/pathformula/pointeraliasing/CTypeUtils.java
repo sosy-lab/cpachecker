@@ -54,7 +54,7 @@ class CTypeUtils {
   static int getArrayLength(CArrayType t, FormulaEncodingWithPointerAliasingOptions options) {
     OptionalInt length = t.getLengthAsInt();
     return length.isPresent()
-        ? Integer.min(options.maxArrayLength(), length.orElseThrow())
+        ? Integer.min(options.maxArrayLength(), length.getAsInt())
         : options.defaultArrayLength();
   }
 
