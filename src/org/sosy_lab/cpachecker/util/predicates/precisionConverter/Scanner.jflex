@@ -3,7 +3,7 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 import java_cup.runtime.*;
 import java_cup.runtime.ComplexSymbolFactory.Location;
 
-@javax.annotation.Generated("JFlex")
+@javax.annotation.processing.Generated("JFlex")
 @SuppressWarnings(value = { "all", "cast", "FallThrough" })
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE"})
 %%

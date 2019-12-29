@@ -149,6 +149,7 @@ public class ConfigurationFileChecks {
           "cpa.automaton.breakOnTargetState",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
           "witness.stopNotBreakAtSinkStates",
+          "witness.invariantsSpecificationAutomaton",
           // handled by component that is loaded lazily on demand
           "invariantGeneration.config",
           "invariantGeneration.kInduction.async",
@@ -601,7 +602,7 @@ public class ConfigurationFileChecks {
     // during the parsing of configuration files
     Stream<LogRecord> logRecords = pLogHandler.getStoredLogRecords().stream();
     if (pOptions.useParallelAlgorithm) {
-      Iterator<LogRecord> logRecordIterator = new Iterator<LogRecord>() {
+      Iterator<LogRecord> logRecordIterator = new Iterator<>() {
 
         private Iterator<LogRecord> underlyingIterator = pLogHandler.getStoredLogRecords().iterator();
 
@@ -615,12 +616,12 @@ public class ConfigurationFileChecks {
         @Override
         public LogRecord next() {
           LogRecord result = underlyingIterator.next();
-          if (!oneComponentSuccessful && result.getLevel() == Level.INFO ) {
+          if (!oneComponentSuccessful && Level.INFO.equals(result.getLevel())) {
             if (result.getMessage().endsWith("finished successfully.")) {
               oneComponentSuccessful = true;
               underlyingIterator = Iterators.filter(
                   underlyingIterator,
-                  r -> r.getLevel() != Level.WARNING
+                      r -> !Level.WARNING.equals(r.getLevel())
                     || !PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS.matcher(r.getMessage()).matches());
             }
           }

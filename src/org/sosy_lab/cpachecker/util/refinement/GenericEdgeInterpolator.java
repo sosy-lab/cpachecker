@@ -164,7 +164,8 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
           break;
         }
 
-        intermediate = getInitialSuccessor(intermediate.get(), it.getOutgoingEdge(), pCallstack);
+        intermediate =
+            getInitialSuccessor(intermediate.orElseThrow(), it.getOutgoingEdge(), pCallstack);
         it.advance();
       } while (!it.isPositionWithState());
       maybeSuccessor = intermediate;
@@ -176,7 +177,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       return interpolantManager.getFalseInterpolant();
     }
 
-    S initialSuccessor = maybeSuccessor.get();
+    S initialSuccessor = maybeSuccessor.orElseThrow();
 
     // if initial state and successor are equal, return the input interpolant
     // in general, this returned interpolant might be stronger than needed, but only in very rare

@@ -176,7 +176,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
           @Override
           public void printStatistics(
               PrintStream out, Result result, UnmodifiableReachedSet reached) {
-            VariableClassification varClass = cfa.getVarClassification().get();
+            VariableClassification varClass = cfa.getVarClassification().orElseThrow();
             final Set<Partition> intBool = varClass.getIntBoolPartitions();
             int numOfBooleans = varClass.getIntBoolVars().size();
 

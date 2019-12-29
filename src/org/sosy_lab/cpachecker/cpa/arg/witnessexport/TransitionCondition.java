@@ -83,7 +83,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
         newMap.put(e.getKey(), e.getValue());
       }
     }
-    return newMap == null ? tc : new TransitionCondition(newMap, newScope.get());
+    return newMap == null ? tc : new TransitionCondition(newMap, newScope.orElseThrow());
   }
 
   public TransitionCondition removeAndCopy(final KeyDef pKey) {
@@ -235,7 +235,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     }
 
     public String getFunctionName() {
-      return functionName.get();
+      return functionName.orElseThrow();
     }
 
     public Collection<ASimpleDeclaration> getUsedDeclarations() {
@@ -275,7 +275,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     public int compareTo(Scope pOther) {
       return ComparisonChain.start()
           .compareTrueFirst(isGlobal(), pOther.isGlobal())
-          .compare(functionName.get(), pOther.functionName.get())
+          .compare(functionName.orElseThrow(), pOther.functionName.orElseThrow())
           .compare(
               usedDeclarations,
               pOther.usedDeclarations,
@@ -311,7 +311,8 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
         Optional<String> pNewFunctionName, Collection<ASimpleDeclaration> pUsedDeclarations) {
       final Optional<String> newFunctionName;
       if (pNewFunctionName.isPresent()) {
-        if (functionName.isPresent() && !functionName.get().equals(pNewFunctionName.get())) {
+        if (functionName.isPresent()
+            && !functionName.orElseThrow().equals(pNewFunctionName.orElseThrow())) {
           return Optional.empty();
         }
         if (!functionName.isPresent() && !usedDeclarations.isEmpty()) {

@@ -568,6 +568,12 @@ public class ExpressionToFormulaVisitor
     final String functionName;
     if (functionNameExpression instanceof CIdExpression) {
       functionName = ((CIdExpression)functionNameExpression).getName();
+
+      final String isUnsupported = CtoFormulaConverter.isUnsupportedFunction(functionName);
+      if (isUnsupported != null) {
+        throw new UnsupportedCodeException(isUnsupported, edge, e);
+      }
+
       if (conv.options.isNondetFunction(functionName)
           || conv.options.isMemoryAllocationFunction(functionName)
           || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
@@ -581,10 +587,6 @@ public class ExpressionToFormulaVisitor
         BooleanFormula result = loader.handleExternModelFunction(parameters, ssa);
         FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
         return conv.ifTrueThenOneElseZero(returnFormulaType, result);
-
-      } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
-        throw new UnsupportedCodeException(
-            CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
 
       } else if (BuiltinFloatFunctions.matchesInfinity(functionName)) {
 

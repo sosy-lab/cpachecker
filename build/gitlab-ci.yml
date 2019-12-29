@@ -23,6 +23,7 @@ build-dependencies:
   stage: dependencies
   dependencies: []
   script: "ant build-dependencies"
+  interruptible: true
   cache:
     key: "$CI_JOB_NAME"
     paths:
@@ -37,27 +38,25 @@ build-dependencies:
 .build: &build
   stage: build
   script: "ant $ANT_PROPS_BUILD jar"
+  interruptible: true
   artifacts:
     paths:
       - "bin/"
       - "*.jar"
 
-build:jdk-8:
-  <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
-
 build:jdk-11:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-build:jdk-12:
+build:jdk-13:
   <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-13
 
 
 # For checks that need the binaries
 .binary_check: &binary_check
   stage: checks
+  interruptible: true
 
 # For checks that only need the source code, not the binaries
 .source_check: &source_check
@@ -66,23 +65,20 @@ build:jdk-12:
     - build-dependencies
   needs:
     - build-dependencies
+  interruptible: true
 
 
 .build-project-ecj: &build-project-ecj
   <<: *source_check
   script: "ant $ANT_PROPS_BUILD build-project-ecj"
 
-build-project-ecj:jdk-8:
-  <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
-
 build-project-ecj:jdk-11:
   <<: *build-project-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-build-project-ecj:jdk-12:
+build-project-ecj:jdk-13:
   <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-13
 
 
 check-format:
@@ -140,16 +136,6 @@ spotbugs:
     reports:
       junit: "junit/TESTS-TestSuites.xml"
 
-unit-tests:jdk-8:
-  <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-8
-  needs:
-    - build-dependencies
-    - build:jdk-8
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
-
 unit-tests:jdk-11:
   <<: *unit-tests
   dependencies:
@@ -160,15 +146,15 @@ unit-tests:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-unit-tests:jdk-12:
+unit-tests:jdk-13:
   <<: *unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-12
+    - build:jdk-13
   needs:
     - build-dependencies
-    - build:jdk-12
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
+    - build:jdk-13
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-13
 
 
 refaster:
@@ -184,6 +170,7 @@ refaster:
     - 'cd -'
   script:
     - 'ant refaster -Drefaster.rule.file=rule.refaster'
+  interruptible: true
   cache:
     key: "$CI_JOB_NAME"
     paths:
@@ -254,20 +241,14 @@ deploy-gh-pages:
     - schedules
     - web
 
-build-docker:test:jdk-8:
-  extends: .build-docker
-  variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-8
-    IMAGE: test:jdk-8
-
 build-docker:test:jdk-11:
   extends: .build-docker
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-11
     IMAGE: test:jdk-11
 
-build-docker:test:jdk-12:
+build-docker:test:jdk-13:
   extends: .build-docker
   variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-12
-    IMAGE: test:jdk-12
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-13
+    IMAGE: test:jdk-13

@@ -531,7 +531,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
       return Optional.empty();
     }
 
-    SMGObject object = initialRegion.get();
+    SMGObject object = initialRegion.orElseThrow();
     final ImmutableLongArray offsets = pLocation.getPathOffset();
 
     for (int i = 0; i < offsets.length(); i++) {
@@ -662,7 +662,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     if (!edgeToForget.isPresent()) {
       return Optional.empty();
     }
-    removeHasValueEdge(edgeToForget.get());
+    removeHasValueEdge(edgeToForget.orElseThrow());
     return edgeToForget;
   }
 

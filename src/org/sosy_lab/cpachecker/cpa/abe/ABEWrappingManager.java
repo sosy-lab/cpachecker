@@ -296,7 +296,7 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
         LoopBoundState loopState =
             AbstractStates.extractStateByType(totalState, LoopBoundState.class);
 
-        return (cfa.getAllLoopHeads().get().contains(node)
+        return (cfa.getAllLoopHeads().orElseThrow().contains(node)
             && (loopState == null || loopState.isLoopCounterAbstracted()));
       case MERGE:
         return node.getNumEnteringEdges() > 1;

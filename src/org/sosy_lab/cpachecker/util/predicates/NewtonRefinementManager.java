@@ -329,7 +329,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
           Set<BooleanFormula> pathFormulaElements =
               bfmgr.toConjunctionArgs(pathFormula.getFormula(), true);
           for (BooleanFormula pathFormulaElement : pathFormulaElements) {
-            if (pUnsatCore.get().contains(pathFormulaElement)) {
+            if (pUnsatCore.orElseThrow().contains(pathFormulaElement)) {
               requiredPart.add(pathFormulaElement);
               break;
             }
@@ -460,7 +460,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     // Try to eliminate the intermediate Variables
     Optional<BooleanFormula> result = qeManager.eliminateQuantifiers(intermediateVars, toExist);
     if (result.isPresent()) {
-      return result.get();
+      return result.orElseThrow();
     } else {
       logger.log(
           Level.FINE, "Quantifier elimination failed, keeping old assignments in predicate.");
@@ -589,7 +589,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
           Optional<BooleanFormula> quantifiedPred =
               qeManager.eliminateQuantifiers(toQuantify, pred);
           if (quantifiedPred.isPresent()) {
-            newPredicates.add(quantifiedPred.get());
+            newPredicates.add(quantifiedPred.orElseThrow());
             stats.noOfQuantifiedFutureLives += toQuantify.size();
           } else {
             // Keep the old predicate as QE is not possible
@@ -714,7 +714,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
      */
     boolean hasAbstractionState() {
       if (hasCorrespondingARGState()) {
-        return PredicateAbstractState.getPredicateState(state.get()).isAbstractionState();
+        return PredicateAbstractState.getPredicateState(state.orElseThrow()).isAbstractionState();
       } else {
         return false;
       }
@@ -722,7 +722,9 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     @Override
     public String toString() {
-      return (lastEdge != null ? lastEdge.toString() : ("First State: " + state.get().toDOTLabel()))
+      return (lastEdge != null
+              ? lastEdge.toString()
+              : ("First State: " + state.orElseThrow().toDOTLabel()))
           + ", PathFormula: "
           + pathFormula.toString();
     }

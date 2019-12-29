@@ -263,8 +263,14 @@ class ASTTypeConverter {
         case eFloat:
           type = CBasicType.FLOAT;
           break;
+        case eFloat128:
+          type = CBasicType.FLOAT128;
+          break;
         case eInt:
           type = CBasicType.INT;
+          break;
+        case eInt128:
+          type = CBasicType.INT128;
           break;
         case eUnspecified:
           type = CBasicType.UNSPECIFIED;
@@ -387,8 +393,14 @@ class ASTTypeConverter {
     case IASTSimpleDeclSpecifier.t_float:
       type = CBasicType.FLOAT;
       break;
+    case IASTSimpleDeclSpecifier.t_float128:
+      type = CBasicType.FLOAT128;
+      break;
     case IASTSimpleDeclSpecifier.t_int:
       type = CBasicType.INT;
+      break;
+    case IASTSimpleDeclSpecifier.t_int128:
+      type = CBasicType.INT128;
       break;
     case IASTSimpleDeclSpecifier.t_unspecified:
       type = CBasicType.UNSPECIFIED;

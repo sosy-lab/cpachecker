@@ -131,13 +131,13 @@ def collectChildren(filename):
 
             if line.strip().endswith("\\"):
                 # multiline statement
-                multilineBuffer += line.strip()[:-1] # remove ending
+                multilineBuffer += line.strip()[:-1]  # remove ending
                 continue
             else:
                 # single line or end of multiline statement
                 multilineBuffer += line
                 line = multilineBuffer
-                multilineBuffer = "" # reset
+                multilineBuffer = ""  # reset
 
             (filenames, typ) = getFilenamesFromLine(line)
             for child in filenames:

@@ -309,7 +309,7 @@ public class PdrAlgorithm implements Algorithm {
         Optional<AlgorithmStatus> initialPushResult =
             initialPush(candidateGenerator, bmcReachedSet, frameSet);
         if (initialPushResult.isPresent()) {
-          return initialPushResult.get();
+          return initialPushResult.orElseThrow();
         }
 
         while (candidateGenerator.hasCandidatesAvailable()) {
@@ -350,7 +350,7 @@ public class PdrAlgorithm implements Algorithm {
             Optional<AlgorithmStatus> candidateConfirmationResult =
                 handleConfirmedCandidates(candidateGenerator, frameSet, rawBmcReachedSet);
             if (candidateConfirmationResult.isPresent()) {
-              return candidateConfirmationResult.get();
+              return candidateConfirmationResult.orElseThrow();
             }
           }
 
@@ -358,7 +358,7 @@ public class PdrAlgorithm implements Algorithm {
           Optional<AlgorithmStatus> strengthenResult =
               strengthen(candidateGenerator, frameSet, pTransitionRelation);
           if (strengthenResult.isPresent()) {
-            return strengthenResult.get();
+            return strengthenResult.orElseThrow();
           }
         }
 
@@ -563,13 +563,13 @@ public class PdrAlgorithm implements Algorithm {
                 prover,
                 invariants,
                 pTransitionRelation,
-                obligation.getBlockedConcreteCti().get(),
+                obligation.getBlockedConcreteCti().orElseThrow(),
                 invariantAbstraction,
                 liftingForConcreteCheck);
         if (concreteResult.isSuccessful()) {
           // If the concrete check is successful, the abstraction was spurious
           // and we have a consecution abstraction failure. (CAF)
-          assert implies(prover, invariants, obligation.getBlockedConcreteCti().get());
+          assert implies(prover, invariants, obligation.getBlockedConcreteCti().orElseThrow());
           if (mustRefineOnConsecutionAbstractionFailure(obligation)) {
             // CAF-case 1: If we exceeded the threshold for spurious transitions
             // or are in frame zero, we perform consecution refinement:
@@ -612,7 +612,7 @@ public class PdrAlgorithm implements Algorithm {
               obligation.find(o -> o != obligation && o.getBlockedConcreteCti().isPresent());
           if (nextLAF.isPresent()) {
             // If there is another spurious transition on the trace, we need to refine it.
-            ProofObligation next = nextLAF.get();
+            ProofObligation next = nextLAF.orElseThrow();
             next = next.addSpuriousTransition();
             forceEagerLiftingRefinement.add(next);
             proofObligations.offer(next);
@@ -1008,10 +1008,7 @@ public class PdrAlgorithm implements Algorithm {
     if (!cfa.getLoopStructure().isPresent()) {
       return loopHeads.stream();
     }
-    return cfa.getLoopStructure()
-        .get()
-        .getAllLoops()
-        .stream()
+    return cfa.getLoopStructure().orElseThrow().getAllLoops().stream()
         .filter(loop -> !isTrivialSelfLoop(loop))
         .map(Loop::getLoopHeads)
         .flatMap(Collection::stream)

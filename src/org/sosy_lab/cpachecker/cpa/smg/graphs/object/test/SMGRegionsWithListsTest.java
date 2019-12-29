@@ -147,7 +147,10 @@ public class SMGRegionsWithListsTest {
     SMGObject subobject = smg.getObjectPointedBy(dataValue);
     Truth.assertThat(subobject).isNotNull();
     int minSublistLength =
-        Stream.of(sublists).map(e -> e.length).min(Comparator.comparing(Integer::valueOf)).get();
+        Stream.of(sublists)
+            .map(e -> e.length)
+            .min(Comparator.comparing(Integer::valueOf))
+            .orElseThrow();
 
     SMGListAbstractionTestHelpers.assertAbstractListSegmentAsExpected(
         subobject, nodeSize, LEVEL_ONE, listKind, minSublistLength);

@@ -220,7 +220,7 @@ class DefaultReachedSet implements ReachedSet, Serializable {
 
   @Override
   public Collection<AbstractState> getWaitlist() {
-    return new AbstractCollection<AbstractState>() {
+    return new AbstractCollection<>() {
 
       @Override
       public Iterator<AbstractState> iterator() {
@@ -292,7 +292,7 @@ class DefaultReachedSet implements ReachedSet, Serializable {
   }
 
   @Override
-  public ImmutableMap<String, ? extends AbstractStatValue> getStatistics() {
+  public ImmutableMap<String, AbstractStatValue> getStatistics() {
     if (waitlist instanceof AbstractSortedWaitlist) {
       return ImmutableMap.copyOf(((AbstractSortedWaitlist<?>) waitlist).getDelegationCounts());
 

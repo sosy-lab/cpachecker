@@ -23,15 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
+import java.util.Deque;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.Deque;
-import java.util.Optional;
 
 /**
  * Interface for the strongest post-operator as used in CEGAR.
@@ -117,7 +116,7 @@ public interface StrongestPostOperator<S extends ForgetfulState<?>> {
 
     } else {
       // extract singleton successor state
-      next = successors.get();
+      next = successors.orElseThrow();
 
       // some variables might be blacklisted or tracked by BDDs
       // so perform abstraction computation here

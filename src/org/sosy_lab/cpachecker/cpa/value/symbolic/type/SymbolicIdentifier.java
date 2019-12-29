@@ -177,7 +177,7 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
     public String convertToStringEncoding(SymbolicIdentifier pIdentifier) {
       Optional<MemoryLocation> representedLocation = pIdentifier.getRepresentedLocation();
       assert representedLocation.isPresent();
-      return representedLocation.get().getAsSimpleString() + "#" + pIdentifier.getId();
+      return representedLocation.orElseThrow().getAsSimpleString() + "#" + pIdentifier.getId();
     }
 
     /**

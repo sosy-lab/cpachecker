@@ -107,7 +107,7 @@ public class LiveVariables {
    * then has storageType auto: for live variables we need to consider them
    * as one).
    */
-  public static final Equivalence<ASimpleDeclaration> LIVE_DECL_EQUIVALENCE = new Equivalence<ASimpleDeclaration>() {
+  public static final Equivalence<ASimpleDeclaration> LIVE_DECL_EQUIVALENCE = new Equivalence<>() {
 
     @Override
     protected boolean doEquivalent(ASimpleDeclaration pA, ASimpleDeclaration pB) {
@@ -437,7 +437,8 @@ public class LiveVariables {
 
     // create live variables
     if (parts.isPresent()) {
-      liveVariables = addLiveVariablesFromCFA(cfa, logger, parts.get(), config.evaluationStrategy);
+      liveVariables =
+          addLiveVariablesFromCFA(cfa, logger, parts.orElseThrow(), config.evaluationStrategy);
     }
 
     if (limitChecker != null) {
@@ -514,7 +515,7 @@ public class LiveVariables {
     }
 
     if(loopStructure.isPresent()){
-      LoopStructure structure = loopStructure.get();
+      LoopStructure structure = loopStructure.orElseThrow();
       ImmutableCollection<Loop> loops = structure.getAllLoops();
 
       for (Loop l : loops) {

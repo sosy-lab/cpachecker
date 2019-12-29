@@ -25,9 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
-
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class RestrictedProgramDomainAlgorithm implements Algorithm {
 
@@ -43,7 +42,7 @@ public class RestrictedProgramDomainAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       CPAEnabledAnalysisPropertyViolationException {
     if (cfa.getVarClassification().isPresent()) {
-      if (cfa.getVarClassification().get().hasRelevantNonIntAddVars()) {
+      if (cfa.getVarClassification().orElseThrow().hasRelevantNonIntAddVars()) {
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
     }

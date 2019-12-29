@@ -176,7 +176,7 @@ public class ConstraintsTransferRelation
 
     if (oNewConstraint.isPresent()) {
       ConstraintsState newState = pOldState.copyOf();
-      final Constraint newConstraint = oNewConstraint.get();
+      final Constraint newConstraint = oNewConstraint.orElseThrow();
 
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
@@ -314,7 +314,7 @@ public class ConstraintsTransferRelation
         if (oNewStrengthenedStates.isPresent()) {
           newStates.clear(); // remove the old state to replace it with the new, strengthened result
           nothingChanged = false;
-          Collection<ConstraintsState> strengthenedStates = oNewStrengthenedStates.get();
+          Collection<ConstraintsState> strengthenedStates = oNewStrengthenedStates.orElseThrow();
 
           if (!strengthenedStates.isEmpty()) {
             ConstraintsState newState = Iterables.getOnlyElement(strengthenedStates);

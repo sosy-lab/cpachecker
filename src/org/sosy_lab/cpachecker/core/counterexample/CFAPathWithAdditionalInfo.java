@@ -77,7 +77,7 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
       path.addConverter(wrappedCpa.exportAdditionalInfoConverter());
 
       if (result.isPresent()) {
-        result = result.get().mergePaths(path);
+        result = result.orElseThrow().mergePaths(path);
         // If there were conflicts during merging, stop
         if (!result.isPresent()) {
           break;
@@ -90,7 +90,7 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
     if (!result.isPresent()) {
       return CFAPathWithAdditionalInfo.empty();
     } else {
-      return result.get();
+      return result.orElseThrow();
     }
   }
 
