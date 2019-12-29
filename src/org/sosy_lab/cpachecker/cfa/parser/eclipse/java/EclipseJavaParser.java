@@ -140,13 +140,15 @@ class EclipseJavaParser implements JavaParser {
       throws InvalidConfigurationException, JParserException {
 
     config.inject(this);
-
+    if (programs.isEmpty()) {
+      throw new InvalidConfigurationException("Programs parameter can't be empty.");
+    }
     logger = pLogger;
 
     mainFunctionName = entryFunction;
     // TODO Handle multiple program files. Multiple program files might be forbidden. Needs to be
     // checked.
-    if (javaClasspath.isEmpty() && !programs.isEmpty()) {
+    if (javaClasspath.isEmpty()) {
       ImmutableList<Path> pathToProgram = convertToPathList(programs.get(0));
 
       if (pathToProgram.isEmpty()) {
@@ -162,9 +164,7 @@ class EclipseJavaParser implements JavaParser {
       }
     } else {
       javaClassPaths = convertToPathList(javaClasspath);
-      if (!programs.isEmpty()) {
-        setEntryPointVariables(programs.get(0));
-      }
+      setEntryPointVariables(programs.get(0));
     }
 
     if (javaSourcepath.isEmpty()) {
