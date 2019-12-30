@@ -64,7 +64,7 @@ public class SimpleThreadState extends ThreadState {
       }
 
       ThreadStatus currentStatus = threadSet.get(currentVar);
-      ThreadStatus status = threadSet.get(otherVar);
+      ThreadStatus status = other.threadSet.get(otherVar);
 
       return currentStatus == ThreadStatus.SELF_PARALLEL_THREAD
           || status == ThreadStatus.SELF_PARALLEL_THREAD;
@@ -82,6 +82,6 @@ public class SimpleThreadState extends ThreadState {
 
   @Override
   public ThreadState prepareToStore() {
-    return new SimpleThreadState(this.threadSet, ImmutableMap.of(), ImmutableList.of());
+    return new SimpleThreadState(this.threadSet, ImmutableMap.of(), this.getOrder());
   }
 }
