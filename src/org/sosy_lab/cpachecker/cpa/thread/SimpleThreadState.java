@@ -30,14 +30,26 @@ import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
 public class SimpleThreadState extends ThreadState {
 
+  private final Optional<ThreadLabel> mainThread;
+
+  private SimpleThreadState(
+      Map<String, ThreadStatus> Tset,
+      ImmutableMap<ThreadLabel, ThreadStatus> Rset,
+      List<ThreadLabel> pOrder,
+      Optional<ThreadLabel> pMainThread) {
+    super(Tset, Rset, pOrder);
+    mainThread = pMainThread;
+  }
+
   public SimpleThreadState(
-      @SuppressWarnings("unused") Map<String, ThreadStatus> Tset,
-      @SuppressWarnings("unused") ImmutableMap<ThreadLabel, ThreadStatus> Rset,
+      Map<String, ThreadStatus> Tset,
+      ImmutableMap<ThreadLabel, ThreadStatus> Rset,
       List<ThreadLabel> pOrder) {
     super(
         Tset,
         Rset,
         pOrder);
+    mainThread = getMainThread();
   }
 
   @Override
@@ -46,8 +58,8 @@ public class SimpleThreadState extends ThreadState {
     Preconditions.checkArgument(state instanceof SimpleThreadState);
     SimpleThreadState other = (SimpleThreadState) state;
 
-    Optional<ThreadLabel> currentLabel = this.getMainThread();
-    Optional<ThreadLabel> otherLabel = other.getMainThread();
+    Optional<ThreadLabel> currentLabel = this.mainThread;
+    Optional<ThreadLabel> otherLabel = other.mainThread;
 
     if (!currentLabel.isPresent() && !otherLabel.isPresent()) {
       return false;
@@ -77,11 +89,28 @@ public class SimpleThreadState extends ThreadState {
 
   @Override
   public ThreadState copyWith(Map<String, ThreadStatus> tSet, List<ThreadLabel> pOrder) {
-    return new SimpleThreadState(tSet, this.removedSet, pOrder);
+    return new SimpleThreadState(tSet, this.removedSet, ImmutableList.of());
   }
 
   @Override
   public ThreadState prepareToStore() {
-    return new SimpleThreadState(this.threadSet, ImmutableMap.of(), this.getOrder());
+    return new SimpleThreadState(this.threadSet, ImmutableMap.of(), ImmutableList.of(), mainThread);
+  }
+
+  @Override
+  public boolean isLessOrEqual(ThreadState pOther) {
+    Optional<ThreadLabel> currentLabel = this.mainThread;
+    Optional<ThreadLabel> otherLabel = ((SimpleThreadState) pOther).mainThread;
+    boolean b = currentLabel.equals(otherLabel);
+    if (b && currentLabel.isPresent()) {
+      String currentVar = currentLabel.get().getVarName();
+      String otherVar = otherLabel.get().getVarName();
+
+      ThreadStatus currentStatus = threadSet.get(currentVar);
+      ThreadStatus status = ((SimpleThreadState) pOther).threadSet.get(otherVar);
+      return currentStatus.equals(status);
+    } else {
+      return false;
+    }
   }
 }
