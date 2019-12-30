@@ -52,8 +52,14 @@ public class ThreadCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider,
     ConfigurableProgramAnalysisTM {
 
-  @Option(secure = true, description = "Use special case with environment actions")
-  private boolean withEnvironmentActions = false;
+  public enum ThreadMode {
+    SIMPLE,
+    ENVIRONMENT,
+    BASE;
+  }
+
+  @Option(secure = true, description = "Use specific mode for thread analysis")
+  private ThreadMode mode = ThreadMode.BASE;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ThreadCPA.class);
@@ -79,10 +85,15 @@ public class ThreadCPA extends AbstractCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Preconditions.checkNotNull(pNode);
-    if (withEnvironmentActions) {
-      return ThreadTMState.emptyState();
-    } else {
-      return ThreadState.emptyState();
+    switch (mode) {
+      case SIMPLE:
+        return SimpleThreadState.emptyState();
+      case ENVIRONMENT:
+        return ThreadTMState.emptyState();
+      case BASE:
+        return ThreadState.emptyState();
+      default:
+        throw new UnsupportedOperationException("Unexpected thread analysis mode: " + mode);
     }
   }
 
@@ -103,10 +114,11 @@ public class ThreadCPA extends AbstractCPA
 
   @Override
   public ApplyOperator getApplyOperator() {
-    if (withEnvironmentActions) {
-      return new ThreadTMApplyOperator();
-    } else {
-      return new ThreadApplyOperator();
+    switch (mode) {
+      case ENVIRONMENT:
+        return new ThreadTMApplyOperator();
+      default:
+        return new ThreadApplyOperator();
     }
   }
 }
