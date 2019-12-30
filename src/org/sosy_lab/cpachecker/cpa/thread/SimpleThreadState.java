@@ -34,21 +34,40 @@ public class SimpleThreadState extends ThreadState {
       @SuppressWarnings("unused") ImmutableMap<ThreadLabel, ThreadStatus> Rset,
       List<ThreadLabel> pOrder) {
     super(
-        ImmutableMap.of(),
-        ImmutableMap.of(),
+        Tset,
+        Rset,
         pOrder);
   }
 
   @Override
   public boolean isCompatibleWith(CompatibleState state) {
     // Consider compatibility as if we knows only the last state
-    Preconditions.checkArgument(state instanceof ThreadTMState);
-    ThreadTMState other = (ThreadTMState) state;
+    Preconditions.checkArgument(state instanceof SimpleThreadState);
+    SimpleThreadState other = (SimpleThreadState) state;
 
-    ThreadLabel currentLabel = this.getOrder().get(0);
-    ThreadLabel otherLabel = other.getOrder().get(0);
+    List<ThreadLabel> currentOrder = this.getOrder();
+    List<ThreadLabel> otherOrder = other.getOrder();
 
-    return !currentLabel.getVarName().equals(otherLabel.getVarName());
+    if (currentOrder.isEmpty() && otherOrder.isEmpty()) {
+      return false;
+    } else if (currentOrder.isEmpty() || otherOrder.isEmpty()) {
+      return true;
+    } else {
+      String currentVar = currentOrder.get(currentOrder.size() - 1).getVarName();
+      String otherVar = otherOrder.get(otherOrder.size() - 1).getVarName();
+
+      boolean res = Objects.equals(currentVar, otherVar);
+
+      if (!res) {
+        return true;
+      }
+
+      ThreadStatus currentStatus = threadSet.get(currentVar);
+      ThreadStatus status = threadSet.get(otherVar);
+
+      return currentStatus == ThreadStatus.SELF_PARALLEL_THREAD
+          || status == ThreadStatus.SELF_PARALLEL_THREAD;
+    }
   }
 
   public static ThreadState emptyState() {
@@ -63,24 +82,5 @@ public class SimpleThreadState extends ThreadState {
   @Override
   public ThreadState prepareToStore() {
     return new SimpleThreadState(this.threadSet, ImmutableMap.of(), ImmutableList.of());
-  }
-
-  @Override
-  public boolean isLessOrEqual(ThreadState pOther) {
-    assert (pOther instanceof SimpleThreadState);
-
-    List<ThreadLabel> currentOrder = this.getOrder();
-    List<ThreadLabel> otherOrder = pOther.getOrder();
-
-    if (currentOrder.isEmpty() && otherOrder.isEmpty()) {
-      return true;
-    } else if (currentOrder.isEmpty() || otherOrder.isEmpty()) {
-      return false;
-    } else {
-      ThreadLabel currentLabel = currentOrder.get(0);
-      ThreadLabel otherLabel = otherOrder.get(0);
-
-      return Objects.equals(currentLabel.getVarName(), otherLabel.getVarName());
-    }
   }
 }
