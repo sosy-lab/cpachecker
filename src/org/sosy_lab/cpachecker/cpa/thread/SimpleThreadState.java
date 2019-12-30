@@ -22,7 +22,6 @@ package org.sosy_lab.cpachecker.cpa.thread;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -37,7 +36,7 @@ public class SimpleThreadState extends ThreadState {
     super(
         ImmutableMap.of(),
         ImmutableMap.of(),
-        Collections.singletonList(pOrder.get(pOrder.size() - 1)));
+        pOrder);
   }
 
   @Override
@@ -69,6 +68,19 @@ public class SimpleThreadState extends ThreadState {
   @Override
   public boolean isLessOrEqual(ThreadState pOther) {
     assert (pOther instanceof SimpleThreadState);
-    return Objects.equals(pOther.getOrder(), this.getOrder());
+
+    List<ThreadLabel> currentOrder = this.getOrder();
+    List<ThreadLabel> otherOrder = pOther.getOrder();
+
+    if (currentOrder.isEmpty() && otherOrder.isEmpty()) {
+      return true;
+    } else if (currentOrder.isEmpty() || otherOrder.isEmpty()) {
+      return false;
+    } else {
+      ThreadLabel currentLabel = currentOrder.get(0);
+      ThreadLabel otherLabel = otherOrder.get(0);
+
+      return Objects.equals(currentLabel.getVarName(), otherLabel.getVarName());
+    }
   }
 }
