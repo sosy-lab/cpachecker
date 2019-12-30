@@ -19,6 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.thread;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -45,16 +46,16 @@ public class SimpleThreadState extends ThreadState {
     Preconditions.checkArgument(state instanceof SimpleThreadState);
     SimpleThreadState other = (SimpleThreadState) state;
 
-    List<ThreadLabel> currentOrder = this.getOrder();
-    List<ThreadLabel> otherOrder = other.getOrder();
+    Optional<ThreadLabel> currentLabel = this.getMainThread();
+    Optional<ThreadLabel> otherLabel = other.getMainThread();
 
-    if (currentOrder.isEmpty() && otherOrder.isEmpty()) {
+    if (!currentLabel.isPresent() && !otherLabel.isPresent()) {
       return false;
-    } else if (currentOrder.isEmpty() || otherOrder.isEmpty()) {
+    } else if (!currentLabel.isPresent() || !otherLabel.isPresent()) {
       return true;
     } else {
-      String currentVar = currentOrder.get(currentOrder.size() - 1).getVarName();
-      String otherVar = otherOrder.get(otherOrder.size() - 1).getVarName();
+      String currentVar = currentLabel.get().getVarName();
+      String otherVar = otherLabel.get().getVarName();
 
       boolean res = Objects.equals(currentVar, otherVar);
 
