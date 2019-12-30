@@ -27,6 +27,8 @@ import com.google.common.base.Preconditions;
 import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -43,8 +45,17 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
+@Options(prefix = "cpa.thread")
 public class ThreadCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+
+  public enum ThreadMode {
+    SIMPLE,
+    BASE;
+  }
+
+  @Option(secure = true, description = "Use specific mode for thread analysis")
+  private ThreadMode mode = ThreadMode.BASE;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ThreadCPA.class);
@@ -69,7 +80,14 @@ public class ThreadCPA extends AbstractCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Preconditions.checkNotNull(pNode);
-    return ThreadState.emptyState();
+    switch (mode) {
+      case SIMPLE:
+        return SimpleThreadState.emptyState();
+      case BASE:
+        return ThreadState.emptyState();
+      default:
+        throw new UnsupportedOperationException("Unexpected thread analysis mode: " + mode);
+    }
   }
 
   @Override

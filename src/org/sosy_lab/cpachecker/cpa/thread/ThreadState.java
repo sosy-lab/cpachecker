@@ -46,35 +46,11 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     SELF_PARALLEL_THREAD;
   }
 
-  public static class SimpleThreadState extends ThreadState {
-
-    public SimpleThreadState(
-        Map<String, ThreadStatus> Tset,
-        ImmutableMap<ThreadLabel, ThreadStatus> Rset,
-        List<ThreadLabel> pOrder) {
-      super(Tset, Rset, pOrder);
-    }
-
-    @Override
-    public boolean isCompatibleWith(CompatibleState state) {
-      return !Objects.equals(this.getThreadSet(), ((ThreadState) state).getThreadSet());
-    }
-
-    @Override
-    public ThreadState prepareToStore() {
-      return new SimpleThreadState(this.getThreadSet(), ImmutableMap.of(), ImmutableList.of());
-    }
-
-    public static ThreadState emptyState() {
-      return new SimpleThreadState(ImmutableMap.of(), ImmutableMap.of(), ImmutableList.of());
-    }
-  }
-
-  private final Map<String, ThreadStatus> threadSet;
+  protected final Map<String, ThreadStatus> threadSet;
   // The removedSet is useless now, but it will be used in future in more complicated cases
   // Do not remove it now
-  private final ImmutableMap<ThreadLabel, ThreadStatus> removedSet;
-  private final List<ThreadLabel> order;
+  protected final ImmutableMap<ThreadLabel, ThreadStatus> removedSet;
+  protected final List<ThreadLabel> order;
 
   public ThreadState(
       Map<String, ThreadStatus> Tset,
@@ -169,17 +145,23 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   @Override
   public String toString() {
     // Info method, in difficult cases may be wrong
-    Optional<ThreadLabel> createdThread =
-        from(order)
-            .filter(
-                l -> threadSet.getOrDefault(l.getVarName(), null) == ThreadStatus.CREATED_THREAD)
-            .last();
+    Optional<ThreadLabel> createdThread = getMainThread();
 
     if (createdThread.isPresent()) {
       return createdThread.get().getName();
     } else {
       return "";
     }
+  }
+
+  protected Optional<ThreadLabel> getMainThread() {
+    return from(order)
+        .filter(l -> threadSet.getOrDefault(l.getVarName(), null) == ThreadStatus.CREATED_THREAD)
+        .last();
+  }
+
+  public ThreadState copyWith(Map<String, ThreadStatus> tSet, List<ThreadLabel> pOrder) {
+    return new ThreadState(tSet, this.removedSet, pOrder);
   }
 
   @Override
