@@ -69,9 +69,6 @@ public class ThreadTransferRelation implements TransferRelation {
         + "We may try to support it with self-parallelizm.")
   private boolean supportSelfCreation = false;
 
-  @Option(secure = true, description = "Simple thread analysis from theory paper")
-  private boolean simpleMode = false;
-
   private final ThreadCPAStatistics threadStatistics;
 
   public ThreadTransferRelation(Configuration pConfig) throws InvalidConfigurationException {
@@ -187,16 +184,8 @@ public class ThreadTransferRelation implements TransferRelation {
       }
     }
     ThreadLabel label = new ThreadLabel(pFunctionName, pVarName);
-    Map<String, ThreadStatus> newSet;
-    List<ThreadLabel> newOrder;
-    if (simpleMode) {
-      // Store only current creation
-      newSet = new TreeMap<>();
-      newOrder = new ArrayList<>();
-    } else {
-      newSet = new TreeMap<>(tSet);
-      newOrder = new ArrayList<>(order);
-    }
+    Map<String, ThreadStatus> newSet = new TreeMap<>(tSet);
+    List<ThreadLabel> newOrder = new ArrayList<>(order);
     newSet.put(pVarName, status);
     newOrder.add(label);
     return state.copyWith(newSet, newOrder);

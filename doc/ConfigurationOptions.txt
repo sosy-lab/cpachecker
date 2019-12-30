@@ -293,8 +293,10 @@ analysis.programNames = []
 # states' lattice (maybe faster for some special analyses which use merge_sep
 # and stop_sep
 analysis.reachedSet = PARTITIONED
-  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE,
-             THREADMODULAR]
+  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
+
+# use thread-modular wrapper to support thread-modular approach
+analysis.reachedSet.useThreadModularWrapper = false
 
 # track more statistics about the reachedset
 analysis.reachedSet.withStatistics = false
@@ -438,9 +440,6 @@ analysis.useParallelAnalyses = false
 
 # generate test cases for covered test targets
 analysis.useTestCaseGeneratorAlgorithm = false
-
-# use thread-modular wrapper to support thread-modular approach
-analysis.useThreadModularWrapper = false
 
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)
@@ -748,7 +747,7 @@ cfa.simplifyConstExpressions = true
 cfa.simplifyPointerExpressions = false
 
 # A name of thread_create function
-cfa.threads.threadCreate = "pthread_create"
+cfa.threads.threadCreate = {"pthread_create"}
 
 # A name of thread_join function
 cfa.threads.threadJoin = "pthread_join"
@@ -1838,6 +1837,9 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
+# Apply only relevant effects.
+cpa.predicate.applyRelevantEffects = false
+
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
 
@@ -1849,6 +1851,10 @@ cpa.predicate.bam.usePrecisionReduction = true
 
 # The bitsize is used to encode integers as bitvectors.
 cpa.predicate.bitsize = 32
+
+# force abstractions at each branch node after assume edges, regardless of
+# threshold
+cpa.predicate.blk.alwaysAfterAssume = false
 
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
@@ -2842,6 +2848,9 @@ cpa.usage.refinement.iterationLimit = Integer.MAX_VALUE
 # The way how to identify two paths as equal
 cpa.usage.refinement.pathEquality = CFANodeId
   enum:     [ARGStateId, CFANodeId]
+
+# Refine any inconsistency of lock states or just incompatible pairs
+cpa.usage.refinement.refineOnlyIncompatiblePairs = false
 
 # The order of refinement blocks
 cpa.usage.refinement.refinementChain = no default value

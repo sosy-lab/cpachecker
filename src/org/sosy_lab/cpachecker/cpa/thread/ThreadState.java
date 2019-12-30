@@ -161,17 +161,20 @@ public class ThreadState
   @Override
   public String toString() {
     // Info method, in difficult cases may be wrong
-    Optional<ThreadLabel> createdThread =
-        from(order)
-            .filter(
-                l -> threadSet.getOrDefault(l.getVarName(), null) == ThreadStatus.CREATED_THREAD)
-            .last();
+    Optional<ThreadLabel> createdThread = getMainThread();
+
 
     if (createdThread.isPresent()) {
       return createdThread.get().getName();
     } else {
       return "main";
     }
+  }
+
+  protected Optional<ThreadLabel> getMainThread() {
+    return from(order)
+        .filter(l -> threadSet.getOrDefault(l.getVarName(), null) == ThreadStatus.CREATED_THREAD)
+        .last();
   }
 
   @Override
