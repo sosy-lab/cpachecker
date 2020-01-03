@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -45,15 +47,13 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
   protected CompositeState getVariableReducedState0(
       CompositeState pExpandedState, Block pContext, CFANode pLocation)
       throws InterruptedException {
-
     List<AbstractState> states = pExpandedState.getWrappedStates();
-
-    List<AbstractState> result = new ArrayList<>(wrappedReducers.size());
+    Builder<AbstractState> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(
           wrappedReducers.get(i).getVariableReducedState(states.get(i), pContext, pLocation));
     }
-    return new CompositeState(result);
+    return new CompositeState(result.build());
   }
 
   @Override
@@ -64,14 +64,14 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
     List<AbstractState> rootStates = pRootState.getWrappedStates();
     List<AbstractState> reducedStates = pReducedState.getWrappedStates();
 
-    List<AbstractState> result = new ArrayList<>();
+    Builder<AbstractState> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(
           wrappedReducers
               .get(i)
               .getVariableExpandedState(rootStates.get(i), pReducedContext, reducedStates.get(i)));
     }
-    return new CompositeState(result);
+    return new CompositeState(result.build());
   }
 
   @Override
@@ -92,12 +92,12 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
   protected Precision getVariableReducedPrecision0(CompositePrecision pPrecision, Block pContext) {
     List<Precision> precisions = pPrecision.getWrappedPrecisions();
 
-    List<Precision> result = new ArrayList<>(wrappedReducers.size());
+    Builder<Precision> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(wrappedReducers.get(i).getVariableReducedPrecision(precisions.get(i), pContext));
     }
 
-    return new CompositePrecision(result);
+    return new CompositePrecision(result.build());
   }
 
   @Override
@@ -106,7 +106,7 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
     List<Precision> rootPrecisions = pRootPrecision.getWrappedPrecisions();
     List<Precision> reducedPrecisions = pReducedPrecision.getWrappedPrecisions();
 
-    List<Precision> result = new ArrayList<>(wrappedReducers.size());
+    Builder<Precision> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(
           wrappedReducers
@@ -114,7 +114,7 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
               .getVariableExpandedPrecision(
                   rootPrecisions.get(i), pRootContext, reducedPrecisions.get(i)));
     }
-    return new CompositePrecision(result);
+    return new CompositePrecision(result.build());
   }
 
   @Override
@@ -141,14 +141,14 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
 
     List<AbstractState> expandedStates = pExpandedState.getWrappedStates();
 
-    List<AbstractState> result = new ArrayList<>(wrappedReducers.size());
+    Builder<AbstractState> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(
           wrappedReducers
               .get(i)
               .getVariableReducedStateForProofChecking(expandedStates.get(i), pContext, pCallNode));
     }
-    return new CompositeState(result);
+    return new CompositeState(result.build());
   }
 
   @Override
@@ -158,7 +158,7 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
     List<AbstractState> rootStates = pRootState.getWrappedStates();
     List<AbstractState> reducedStates = pReducedState.getWrappedStates();
 
-    List<AbstractState> result = new ArrayList<>(wrappedReducers.size());
+    Builder<AbstractState> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(
           wrappedReducers
@@ -166,7 +166,7 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
               .getVariableExpandedStateForProofChecking(
                   rootStates.get(i), pReducedContext, reducedStates.get(i)));
     }
-    return new CompositeState(result);
+    return new CompositeState(result.build());
   }
 
   @Override
@@ -179,7 +179,7 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
     List<AbstractState> entryStates = pEntryState.getWrappedStates();
     List<AbstractState> expandedStates = pExpandedState.getWrappedStates();
 
-    List<AbstractState> result = new ArrayList<>(wrappedReducers.size());
+    Builder<AbstractState> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(
           wrappedReducers
@@ -187,7 +187,7 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
               .rebuildStateAfterFunctionCall(
                   rootStates.get(i), entryStates.get(i), expandedStates.get(i), exitLocation));
     }
-    return new CompositeState(result);
+    return new CompositeState(result.build());
   }
 
   @Override
