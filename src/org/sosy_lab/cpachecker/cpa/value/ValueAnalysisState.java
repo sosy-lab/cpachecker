@@ -772,6 +772,9 @@ public class ValueAnalysisState
 
     @Override
     public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
       if (!(o instanceof ValueAndType)) {
         return false;
       }
