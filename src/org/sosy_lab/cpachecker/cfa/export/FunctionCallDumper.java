@@ -107,7 +107,7 @@ public class FunctionCallDumper {
           pAppender.append(String.format("%s [label=\"%s\", %s];%n", callee, label, format));
         }
 
-        pAppender.append(caller + " -> " + callee + ";\n");
+        pAppender.append(String.format("%s -> %s;%n", caller, callee));
       }
 
       for (final String calleeFunctionName : finder.threadCreations.get(callerFunctionName)) {
@@ -123,7 +123,7 @@ public class FunctionCallDumper {
 
         pAppender.append(
             String.format(
-                "%s -> %s [style=\"dashed\" label=\"%s\"];\n", caller, callee, THREAD_START));
+                "%s -> %s [style=\"dashed\" label=\"%s\"];%n", caller, callee, THREAD_START));
       }
     }
 
