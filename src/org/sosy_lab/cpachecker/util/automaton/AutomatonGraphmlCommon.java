@@ -64,6 +64,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
@@ -103,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -675,7 +677,8 @@ public class AutomatonGraphmlCommon {
     return getFileLocationsFromCfaEdge0(pEdge, pMainEntry);
   }
 
-  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode
+  public static Set<FileLocation> getFileLocationsFromCfaEdge(
+      CFAEdge pEdge, FunctionEntryNode
       pMainEntry) {
     if (handleAsEpsilonEdge(pEdge)) {
       return ImmutableSet.of();
@@ -683,8 +686,8 @@ public class AutomatonGraphmlCommon {
     return getFileLocationsFromCfaEdge0(pEdge, pMainEntry);
   }
 
-  public static Set<FileLocation> getFileLocationsFromCfaEdge0(CFAEdge pEdge, FunctionEntryNode
-    pMainEntry) {
+  public static Set<FileLocation> getFileLocationsFromCfaEdge0(
+      CFAEdge pEdge, FunctionEntryNode pMainEntry) {
 
     if (isMainFunctionEntry(pEdge)
         && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
@@ -734,7 +737,8 @@ public class AutomatonGraphmlCommon {
       FileLocation location = assumeEdge.getFileLocation();
       if (isDefaultCase(assumeEdge)) {
         CFANode successorNode = assumeEdge.getSuccessor();
-        FileLocation switchLocation = Iterables.getOnlyElement(CFAUtils.leavingEdges(successorNode)).getFileLocation();
+        FileLocation switchLocation =
+            Iterables.getOnlyElement(CFAUtils.leavingEdges(successorNode)).getFileLocation();
         if (!FileLocation.DUMMY.equals(switchLocation)) {
           location = switchLocation;
         } else {
@@ -745,7 +749,6 @@ public class AutomatonGraphmlCommon {
                   switchDetector.getEdgesBackwardToSwitchNode(), CFAEdge::getFileLocation);
           location = FileLocation.merge(caseLocations);
         }
-
       }
       if (!FileLocation.DUMMY.equals(location)) {
         return Collections.singleton(location);
@@ -758,7 +761,15 @@ public class AutomatonGraphmlCommon {
         return Collections.singleton(declaration.getFileLocation());
       }
     }
-    return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+    // TODO Dirty fix. Language should be passed and not detected.
+    Language language;
+    if (pMainEntry instanceof JMethodEntryNode) {
+      language = Language.JAVA;
+    } else {
+      language = Language.C;
+    }
+
+    return CFAUtils.getFileLocationsFromCfaEdge(pEdge, language);
   }
 
   public static boolean isPartOfSwitchStatement(AssumeEdge pAssumeEdge) {

@@ -42,10 +42,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
@@ -355,11 +357,19 @@ public class WitnessExporter {
   protected String getInitialFileName(ARGState pRootState) {
     Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
     Set<CFANode> visited = new HashSet<>();
+
+    // TODO Dirty fix. Language should be passed and not detected.
+    Language language;
+    if (cfa.getMainFunction() instanceof JMethodEntryNode) {
+      language = Language.JAVA;
+    } else {
+      language = Language.C;
+    }
     while (!worklist.isEmpty()) {
       CFANode l = worklist.pop();
       visited.add(l);
       for (CFAEdge e : CFAUtils.leavingEdges(l)) {
-        Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
+        Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e, language);
         if (!fileLocations.isEmpty()) {
           String fileName = fileLocations.iterator().next().getFileName();
           if (fileName != null) {
