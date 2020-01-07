@@ -115,6 +115,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -186,6 +187,7 @@ public class CtoFormulaConverter {
 
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
+  protected final IntegerFormulaManagerView ifmgr;
   private final BitvectorFormulaManagerView efmgr;
   final FunctionFormulaManagerView ffmgr;
   protected final LogManagerWithoutDuplicates logger;
@@ -215,6 +217,7 @@ public class CtoFormulaConverter {
     this.typeHandler = pTypeHandler;
 
     this.bfmgr = fmgr.getBooleanFormulaManager();
+    this.ifmgr = fmgr.getIntegerFormulaManager();
     this.efmgr = fmgr.getBitvectorFormulaManager();
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(logger);
@@ -709,8 +712,8 @@ public class CtoFormulaConverter {
         final CSimpleType sType = (CSimpleType) cType;
         final boolean signed = machineModel.isSigned(sType);
         IntegerFormula iformula = efmgr.toIntegerFormula((BitvectorFormula) formula, signed);
-        IntegerFormula zero = nfmgr.makeNumber(0);
-        return bfmgr.not(nfmgr.equal(iformula, zero));
+        IntegerFormula zero = ifmgr.makeNumber(0);
+        return bfmgr.not(ifmgr.equal(iformula, zero));
       } else if (toType.isIntegerType()) {
         final CSimpleType sType = (CSimpleType) cType;
         final boolean signed = machineModel.isSigned(sType);
@@ -730,8 +733,8 @@ public class CtoFormulaConverter {
     }
     if (fromType.isIntegerType()) {
       if (toType.isBooleanType()) {
-        IntegerFormula zero = nfmgr.makeNumber(0);
-        return bfmgr.not(nfmgr.equal((IntegerFormula) formula, zero));
+        IntegerFormula zero = ifmgr.makeNumber(0);
+        return bfmgr.not(ifmgr.equal((IntegerFormula) formula, zero));
       } else if (toType.isFloatingPointType()) {
         final CSimpleType sType = (CSimpleType) cType;
         final boolean signed = machineModel.isSigned(sType);
@@ -766,9 +769,9 @@ public class CtoFormulaConverter {
   private Formula
       intBoolToInt(BooleanFormula formula, CType type, SSAMapBuilder ssa, Constraints constraints) {
     int index = this.makeFreshIndex(INT_BOOL_TO_INT, type, ssa);
-    IntegerFormula placeh = nfmgr.makeVariable(INT_BOOL_TO_INT, index);
-    IntegerFormula zero = nfmgr.makeNumber(0);
-    BooleanFormula rhs = bfmgr.not(nfmgr.equal(placeh, zero));
+    IntegerFormula placeh = ifmgr.makeVariable(INT_BOOL_TO_INT, index);
+    IntegerFormula zero = ifmgr.makeNumber(0);
+    BooleanFormula rhs = bfmgr.not(ifmgr.equal(placeh, zero));
     BooleanFormula constraint = bfmgr.equivalence(formula, rhs);
     constraints.addConstraint(constraint);
 
