@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -48,7 +47,8 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
       CompositeState pExpandedState, Block pContext, CFANode pLocation)
       throws InterruptedException {
     List<AbstractState> states = pExpandedState.getWrappedStates();
-    Builder<AbstractState> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
+    ImmutableList.Builder<AbstractState> result =
+        ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(
           wrappedReducers.get(i).getVariableReducedState(states.get(i), pContext, pLocation));
@@ -64,7 +64,8 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
     List<AbstractState> rootStates = pRootState.getWrappedStates();
     List<AbstractState> reducedStates = pReducedState.getWrappedStates();
 
-    Builder<AbstractState> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
+    ImmutableList.Builder<AbstractState> result =
+        ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(
           wrappedReducers
@@ -92,7 +93,8 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
   protected Precision getVariableReducedPrecision0(CompositePrecision pPrecision, Block pContext) {
     List<Precision> precisions = pPrecision.getWrappedPrecisions();
 
-    Builder<Precision> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
+    ImmutableList.Builder<Precision> result =
+        ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(wrappedReducers.get(i).getVariableReducedPrecision(precisions.get(i), pContext));
     }
@@ -106,7 +108,8 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
     List<Precision> rootPrecisions = pRootPrecision.getWrappedPrecisions();
     List<Precision> reducedPrecisions = pReducedPrecision.getWrappedPrecisions();
 
-    Builder<Precision> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
+    ImmutableList.Builder<Precision> result =
+        ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(
           wrappedReducers
@@ -141,7 +144,8 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
 
     List<AbstractState> expandedStates = pExpandedState.getWrappedStates();
 
-    Builder<AbstractState> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
+    ImmutableList.Builder<AbstractState> result =
+        ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(
           wrappedReducers
@@ -158,7 +162,8 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
     List<AbstractState> rootStates = pRootState.getWrappedStates();
     List<AbstractState> reducedStates = pReducedState.getWrappedStates();
 
-    Builder<AbstractState> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
+    ImmutableList.Builder<AbstractState> result =
+        ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(
           wrappedReducers
@@ -179,7 +184,8 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
     List<AbstractState> entryStates = pEntryState.getWrappedStates();
     List<AbstractState> expandedStates = pExpandedState.getWrappedStates();
 
-    Builder<AbstractState> result = ImmutableList.builderWithExpectedSize(wrappedReducers.size());
+    ImmutableList.Builder<AbstractState> result =
+        ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
       result.add(
           wrappedReducers
