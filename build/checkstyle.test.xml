@@ -39,7 +39,7 @@
     <module name="TypeName"/>
     <module name="IllegalImport"/>
     <module name="IllegalImport">
-      <property name="illegalClasses" value=".*\.(Builder|of|copyOf)|org\.junit\.Assert(\..*)?|com\.google\.common\.base\.Objects(\..*)?"/>
+      <property name="illegalClasses" value=".*\.(Builder|of|copyOf)|org\.junit\.Assert(\.(?!assertThrows).*)?|com\.google\.common\.base\.Objects(\..*)?"/>
       <property name="regexp" value="true"/>
     </module>
     <module name="RedundantImport"/>
