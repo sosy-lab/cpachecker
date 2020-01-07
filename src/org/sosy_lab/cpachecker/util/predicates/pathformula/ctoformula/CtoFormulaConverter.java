@@ -1006,8 +1006,10 @@ public class CtoFormulaConverter {
       throw new IllegalArgumentException("Cast from " + pFromCType + " to " + pToCType
           + " needs theory conversion between " + fromType + " and " + toType);
     }
-
-    assert fmgr.getFormulaType(ret).equals(toType) : "types do not match: " + fmgr.getFormulaType(ret) + " vs " + toType;
+    if (!options.useVariableClassification()) {
+      assert fmgr.getFormulaType(ret)
+          .equals(toType) : "types do not match: " + fmgr.getFormulaType(ret) + " vs " + toType;
+    }
     return ret;
   }
 
