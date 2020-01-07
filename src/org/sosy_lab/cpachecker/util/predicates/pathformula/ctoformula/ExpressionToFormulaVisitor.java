@@ -240,7 +240,18 @@ public class ExpressionToFormulaVisitor
 
       break;
     case BINARY_AND:
-      ret =  mgr.makeAnd(f1, f2);
+        if (!(mgr.getFormulaType(f1).isIntegerType() || mgr.getFormulaType(f2).isIntegerType())) {
+          ret = mgr.makeAnd(f1, f2);
+        } else {
+          FormulaType<?> BitVType = conv.getFormulaTypeFromCType(calculationType);
+          // makeFormulaTypeCast returns formulas unchanged, if either
+          // of the them is already a Bitvector Formula
+          Formula f1BitV =
+              conv.makeFormulaTypeCast(BitVType, calculationType, f1, ssa, constraints, edge);
+          Formula f2BitV =
+              conv.makeFormulaTypeCast(BitVType, calculationType, f2, ssa, constraints, edge);
+          ret = mgr.makeAnd(f1BitV, f2BitV);
+        }
       break;
     case BINARY_OR:
       ret =  mgr.makeOr(f1, f2);
