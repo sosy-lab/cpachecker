@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -154,7 +155,7 @@ public class UCBRefinementManager {
     CFANode dstNode = AbstractStates.extractLocation(dst);
 
     if (srcNode != null && dstNode != null) {
-      return computeWeakestPrecondition(srcNode, dstNode, postCondition, Collections.emptySet());
+      return computeWeakestPrecondition(srcNode, dstNode, postCondition, ImmutableSet.of());
     }
 
     return bfmgr.makeFalse();
