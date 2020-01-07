@@ -215,7 +215,6 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
     final AtomicBoolean mainRScontainsTarget = new AtomicBoolean(false);
     final AtomicBoolean otherRScontainsTarget = new AtomicBoolean(false);
-    final AtomicBoolean timeoutAlreadyLogged = new AtomicBoolean(false);
 
     pReachedSetMapping
         .entrySet()
@@ -237,22 +236,18 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
                   }
                 }
 
-              } catch (RejectedExecutionException e) {
+              } catch (RejectedExecutionException | ExecutionException e) {
                 logger.log(Level.SEVERE, e);
-              } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                boolean wasAlreadyLogged = timeoutAlreadyLogged.getAndSet(true);
-                if (!wasAlreadyLogged) {
-                  logger.log(Level.SEVERE, e);
-                  error.compareAndSet(null, e);
-                }
+                error.compareAndSet(null, e);
+              } catch (InterruptedException | TimeoutException e) {
+                error.compareAndSet(null, e);
               }
               logger.log(Level.ALL, "finishing", rse, job.isCompletedExceptionally());
             });
 
     Throwable toThrow = error.get();
     if (toThrow != null) {
-      logger.logException(Level.WARNING, toThrow, null);
-      throw new CPAException(toThrow.getMessage());
+      throw new CPAException(toThrow.getMessage(), toThrow);
     }
 
     Preconditions.checkState(
