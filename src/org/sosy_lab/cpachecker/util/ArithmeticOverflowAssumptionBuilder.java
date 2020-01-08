@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -228,7 +229,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     if (simplifyExpressions) {
       return transformedImmutableSetCopy(result, x -> x.accept(simplificationVisitor));
     }
-    return result;
+    return ImmutableSet.copyOf(result);
   }
 
   private void trackType(CSimpleType type) {
