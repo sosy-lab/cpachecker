@@ -72,19 +72,16 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 
-@Options(prefix = "programSlice")
+@Options(prefix = "programSlice.exportToC")
 public class SliceExporter {
 
   @Option(
       secure = true,
-      name = "exportToC.enable",
+      name = "enable",
       description = "Whether to export slices as C program files")
   private boolean exportToC = false;
 
-  @Option(
-      secure = true,
-      name = "exportToC.file",
-      description = "File template for exported C program slices")
+  @Option(secure = true, name = "file", description = "File template for exported C program slices")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate exportToCFile = PathTemplate.ofFormatString("programSlice.%d.c");
 
