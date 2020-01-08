@@ -104,6 +104,21 @@ public class SliceExporter {
   }
 
   /**
+   * Returns true if the node hast at least one leaving edge and only leaving edges that are assume
+   * edges and not contained in pRelevantEdges.
+   */
+  private boolean skipAssumeBranching(CFANode pNode, Set<CFAEdge> pRelevantEdges) {
+
+    for (CFAEdge succEdge : CFAUtils.leavingEdges(pNode)) {
+      if (succEdge.getEdgeType() != CFAEdgeType.AssumeEdge || pRelevantEdges.contains(succEdge)) {
+        return false;
+      }
+    }
+
+    return pNode.getNumLeavingEdges() > 0;
+  }
+
+  /**
    * Returns a node with content copied from specified pNode.
    *
    * <p>If pNodeMap already contains a node for the specified pNode (only one clone per node
@@ -331,17 +346,15 @@ public class SliceExporter {
       // don't visit a node twice and don't leave function
       if (!visited.contains(succ) && !(succ instanceof FunctionExitNode)) {
 
-        boolean irrelevantAssumes = true;
-
-        for (CFAEdge succEdge : CFAUtils.leavingEdges(succ)) {
-          if (succEdge.getEdgeType() != CFAEdgeType.AssumeEdge
-              || pRelevantEdges.contains(succEdge)) {
-            irrelevantAssumes = false;
-            break;
-          }
-        }
-
-        if (irrelevantAssumes) {
+        // If all leaving edges are irrelevant assume edges, one branch is chosen (arbitrarily)
+        // and used as the only leaving branch.
+        // This makes it possible to replace all of the assume edges by a single blank edge.
+        // WARNING: It is assumed that there are no relevant edges in all the other branches.
+        //          Edges of those branches (even relevant edges) will not be cloned!
+        //          This code *must* be updated if any slicing method is used that creates
+        //          irrelevant branching conditions, but at the same time allows nested relevant
+        //          statements in those branches.
+        if (skipAssumeBranching(succ, pRelevantEdges)) {
 
           CFAEdge assumeEdge = succ.getLeavingEdge(0);
           waitlist.add(
