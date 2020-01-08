@@ -167,10 +167,13 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       if (!pool.isTerminated()) {
         // in case of problems we must kill the thread pool,
         // otherwise we have a running daemon thread and CPAchecker does not terminate.
-        logger.log(Level.WARNING, "threadpool did not terminate, killing threadpool now.");
-        logger.log(Level.ALL, "remaining dependencies:\n", rse.getDependenciesAsDot());
+        try {
+          logger.log(Level.WARNING, "threadpool did not terminate, killing threadpool now.");
+          logger.log(Level.ALL, "remaining dependencies:\n", rse.getDependenciesAsDot());
+        } finally {
+          pool.shutdownNow();
+        }
         isSound = false;
-        pool.shutdownNow();
       }
     }
 
