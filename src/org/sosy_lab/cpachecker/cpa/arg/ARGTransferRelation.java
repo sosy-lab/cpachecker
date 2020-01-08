@@ -70,13 +70,13 @@ public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
       return ImmutableSet.of();
     }
 
-    Collection<ARGState> wrappedSuccessors = new ArrayList<>();
+    ImmutableList.Builder<ARGState> wrappedSuccessors = ImmutableList.builder();
     for (AbstractState absElement : successors) {
       ARGState successorElem = new ARGState(absElement, element);
       wrappedSuccessors.add(successorElem);
     }
 
-    return wrappedSuccessors;
+    return wrappedSuccessors.build();
   }
 
   @Override
