@@ -116,10 +116,10 @@ public class EdgeAnalyzer {
         if (initializer == null) {
           return ImmutableMap.of(declaredVariable, type);
         }
-        Map<MemoryLocation, CType> result = new HashMap<>();
+          ImmutableMap.Builder<MemoryLocation, CType> result = ImmutableMap.builder();
         result.put(declaredVariable, type);
         result.putAll(getInvolvedVariableTypes(initializer, pCfaEdge));
-        return result;
+          return result.build();
       } else if (declaration instanceof AVariableDeclaration) {
         throw new UnsupportedOperationException("Only C expressions are supported");
       } else {
@@ -128,7 +128,7 @@ public class EdgeAnalyzer {
     }
     case FunctionCallEdge: {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
-      Map<MemoryLocation, CType> result = new HashMap<>();
+        ImmutableMap.Builder<MemoryLocation, CType> result = ImmutableMap.builder();
 
       // Extract arguments
       String callerFunctionName = pCfaEdge.getPredecessor().getFunctionName();
@@ -148,7 +148,7 @@ public class EdgeAnalyzer {
         result.putAll(getInvolvedVariableTypes(parameter, pCfaEdge));
       }
 
-      return result;
+        return result.build();
     }
     case ReturnStatementEdge: {
       AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
@@ -293,11 +293,11 @@ public class EdgeAnalyzer {
       return getInvolvedVariableTypes(((CInitializerExpression) pCInitializer).getExpression(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerList) {
       CInitializerList initializerList = (CInitializerList) pCInitializer;
-      Map<MemoryLocation, CType> result = new HashMap<>();
+      ImmutableMap.Builder<MemoryLocation, CType> result = ImmutableMap.builder();
       for (CInitializer initializer : initializerList.getInitializers()) {
         result.putAll(getInvolvedVariableTypes(initializer, pCfaEdge));
       }
-      return result;
+      return result.build();
     }
     return ImmutableMap.of();
   }
@@ -330,7 +330,7 @@ public class EdgeAnalyzer {
       return ImmutableMap.of();
     }
     if (pExpression instanceof CExpression) {
-      Map<MemoryLocation, CType> result = new HashMap<>();
+      ImmutableMap.Builder<MemoryLocation, CType> result = ImmutableMap.builder();
 
       for (ALeftHandSide leftHandSide : ((CExpression) pExpression).accept(LHSVisitor.INSTANCE)) {
         NumeralFormula<CompoundInterval> formula;
@@ -348,7 +348,7 @@ public class EdgeAnalyzer {
         }
       }
 
-      return result;
+      return result.build();
     } else {
       throw new UnsupportedOperationException("Only C expressions are supported");
     }
