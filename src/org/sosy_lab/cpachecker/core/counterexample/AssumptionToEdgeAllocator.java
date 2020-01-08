@@ -376,7 +376,7 @@ public class AssumptionToEdgeAllocator {
         CExpression op1 = binExp.getOperand1();
         CExpression op2 = binExp.getOperand2();
 
-        List<AExpressionStatement> result = new ArrayList<>();
+        ImmutableList.Builder<AExpressionStatement> result = ImmutableList.builder();
         if (op1 instanceof CLeftHandSide) {
           result.addAll(handleAssignment(pCFAEdge, (CLeftHandSide) op1, pConcreteState));
         }
@@ -384,7 +384,7 @@ public class AssumptionToEdgeAllocator {
         if (op2 instanceof CLeftHandSide) {
           result.addAll(handleAssignment(pCFAEdge, (CLeftHandSide) op2, pConcreteState));
         }
-        return result;
+        return result.build();
       }
     }
   }
@@ -427,11 +427,11 @@ public class AssumptionToEdgeAllocator {
     if (parameterDeclarations.isEmpty()) {
       return ImmutableList.of();
     }
-    List<AExpressionStatement> result = new ArrayList<>(parameterDeclarations.size());
+    ImmutableList.Builder<AExpressionStatement> result = ImmutableList.builder();
     for (AParameterDeclaration parameterDeclaration : parameterDeclarations) {
       result.addAll(handleDeclaration(parameterDeclaration, functionName, pConcreteState));
     }
-    return result;
+    return result.build();
   }
 
   private List<AExpressionStatement> handleAssignment(CFAEdge pCFAEdge, CLeftHandSide pLeftHandSide, ConcreteState pConcreteState) {
