@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -137,8 +136,8 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   }
 
   @Override
-  public MergeOperator getMergeOperator() {
-    return new BAMMergeOperator(getWrappedCpa().getMergeOperator(), bamPccManager);
+  public BAMMergeOperator getMergeOperator() {
+    return super.getMergeOperator().withBAMPCCManager(bamPccManager);
   }
 
   @Override
