@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 
 @Options(prefix = "programSlice")
@@ -95,8 +96,8 @@ public class SliceExporter {
   private boolean containsRelevantEdge(Collection<CFANode> pNodes, Set<CFAEdge> pRelevantEdges) {
 
     for (CFANode node : pNodes) {
-      for (int index = 0; index < node.getNumLeavingEdges(); index++) {
-        if (pRelevantEdges.contains(node.getLeavingEdge(index))) {
+      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+        if (pRelevantEdges.contains(edge)) {
           return true;
         }
       }
@@ -269,13 +270,6 @@ public class SliceExporter {
     }
   }
 
-  /** Adds all leaving edges from specified pNode to pQueue. */
-  private void addAllLeavingEdges(Queue<CFAEdge> pQueue, CFANode pNode) {
-    for (int index = 0; index < pNode.getNumLeavingEdges(); index++) {
-      pQueue.add(pNode.getLeavingEdge(index));
-    }
-  }
-
   /**
    * Creates a new function that resembles the sliced function (as specified by pRelevantEdges) as
    * closely as possible.
@@ -299,7 +293,7 @@ public class SliceExporter {
         new HashSet<>(); // a node is visited when all its leaving edges were added to the waitlist
 
     FunctionEntryNode newEntryNode = (FunctionEntryNode) cloneNode(pEntryNode, nodeMap);
-    addAllLeavingEdges(waitlist, pEntryNode);
+    CFAUtils.leavingEdges(pEntryNode).copyInto(waitlist);
     visited.add(pEntryNode);
 
     while (!waitlist.isEmpty()) {
@@ -340,12 +334,13 @@ public class SliceExporter {
       // don't visit a node twice and don't leave function
       if (!visited.contains(succ) && !(succ instanceof FunctionExitNode)) {
 
-        boolean irrelevantAssumes = (succ.getNumLeavingEdges() > 1);
+        boolean irrelevantAssumes = true;
 
-        for (int index = 0; irrelevantAssumes && index < succ.getNumLeavingEdges(); index++) {
-          if (succ.getLeavingEdge(index).getEdgeType() != CFAEdgeType.AssumeEdge
-              || pRelevantEdges.contains(succ.getLeavingEdge(index))) {
+        for (CFAEdge succEdge : CFAUtils.leavingEdges(succ)) {
+          if (succEdge.getEdgeType() != CFAEdgeType.AssumeEdge
+              || pRelevantEdges.contains(succEdge)) {
             irrelevantAssumes = false;
+            break;
           }
         }
 
@@ -361,8 +356,7 @@ public class SliceExporter {
                   "slice-irrelevant"));
 
         } else {
-
-          addAllLeavingEdges(waitlist, succ);
+          CFAUtils.leavingEdges(succ).copyInto(waitlist);
         }
 
         visited.add(succ);
