@@ -222,7 +222,7 @@ public final class CSimpleType implements CType, Serializable {
     }
 
     boolean newIsSigned = isSigned;
-    if (newType == CBasicType.INT && !isSigned && !isUnsigned) {
+    if ((newType == CBasicType.INT || newType == CBasicType.INT128) && !isSigned && !isUnsigned) {
       newIsSigned = true;
     }
 

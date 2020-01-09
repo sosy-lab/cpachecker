@@ -60,7 +60,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
     ImmutableMultimap.Builder<CFANode, Loop> heads = ImmutableMultimap.builder();
 
-    for (Loop l : pCFA.getLoopStructure().get().getAllLoops()) {
+    for (Loop l : pCFA.getLoopStructure().orElseThrow().getAllLoops()) {
       // function edges do not count as incoming/outgoing edges
       Stream<CFAEdge> incomingEdges = l.getIncomingEdges()
           .stream()

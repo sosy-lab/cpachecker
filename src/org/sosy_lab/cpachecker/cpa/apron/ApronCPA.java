@@ -123,7 +123,8 @@ public final class ApronCPA
 
     apronManager = new ApronManager(domainType);
 
-    this.transferRelation = new ApronTransferRelation(logger, cfa.getLoopStructure().get(), splitDisequalities);
+    this.transferRelation =
+        new ApronTransferRelation(logger, cfa.getLoopStructure().orElseThrow(), splitDisequalities);
 
     MergeOperator apronMergeOp = ApronMergeOperator.getInstance(apronDomain, config);
 

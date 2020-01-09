@@ -272,7 +272,8 @@ public class SymbolicValueFactory {
 
       if (typeOfOuterCast instanceof CType && pMachineModel.isPresent()) {
         assert typeOfInnerCast instanceof CType && typeOfBasicExpression instanceof CType;
-        if (Types.canHoldAllValues(typeOfInnerCast, typeOfBasicExpression, pMachineModel.get())) {
+        if (Types.canHoldAllValues(
+            typeOfInnerCast, typeOfBasicExpression, pMachineModel.orElseThrow())) {
           return cast(nextOperand, typeOfOuterCast, pMachineModel);
         }
 

@@ -256,7 +256,7 @@ public class BlockedCFAReducer implements BlockComputer {
     public ReducedNode getWrapper(CFANode pNode) {
       ReducedNode result = nodeMapping.get(pNode);
       if (result == null) {
-        boolean isLoopHead = cfa.getAllLoopHeads().get().contains(pNode);
+        boolean isLoopHead = cfa.getAllLoopHeads().orElseThrow().contains(pNode);
         result = new ReducedNode(pNode, isLoopHead);
         result.setFunctionCallId(this.functionCallId);
         this.nodeMapping.put(pNode, result);

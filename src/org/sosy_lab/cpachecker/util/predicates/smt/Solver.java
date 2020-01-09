@@ -226,9 +226,15 @@ public final class Solver implements AutoCloseable {
    * Load and instantiate an SMT solver. The returned instance should be closed by calling {@link
    * #close} when it is not used anymore.
    */
-  @SuppressWarnings("deprecation")
   public static Solver create(
       Configuration config, LogManager logger, ShutdownNotifier shutdownNotifier)
+      throws InvalidConfigurationException {
+    return new Solver(adjustConfigForSolver(config), logger, shutdownNotifier);
+  }
+
+  /** Adjust config by overriding defaults of some JavaSMT options */
+  @SuppressWarnings("deprecation")
+  public static Configuration adjustConfigForSolver(Configuration config)
       throws InvalidConfigurationException {
     if (!config.hasProperty(SOLVER_OPTION_NON_LINEAR_ARITHMETIC)) {
       // Set a default for solver.nonLinearArithmetic, because with JavaSMT's default CPAchecker
@@ -237,13 +243,12 @@ public final class Solver implements AutoCloseable {
       // solvers unfair, and at least small experiments showed no benefit in practice
       // (if non-linear arithmetic is useful, it would be better to use bitvectors than linear
       // approximation anyway).
-      config =
-          Configuration.builder()
-              .copyFrom(config)
-              .setOption(SOLVER_OPTION_NON_LINEAR_ARITHMETIC, "APPROXIMATE_ALWAYS")
-              .build();
+      return Configuration.builder()
+          .copyFrom(config)
+          .setOption(SOLVER_OPTION_NON_LINEAR_ARITHMETIC, "APPROXIMATE_ALWAYS")
+          .build();
     }
-    return new Solver(config, logger, shutdownNotifier);
+    return config;
   }
 
   /**

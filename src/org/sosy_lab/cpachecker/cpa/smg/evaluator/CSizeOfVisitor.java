@@ -108,7 +108,7 @@ class CSizeOfVisitor extends BaseSizeofVisitor {
 
         List<SMGAddressAndState> addressOfFieldAndState;
         try {
-          addressOfFieldAndState = expression.get().accept(visitor);
+          addressOfFieldAndState = expression.orElseThrow().accept(visitor);
         } catch (CPATransferException e) {
           return handleUnkownArrayLengthValue(pArrayType);
         }

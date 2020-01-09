@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -85,17 +86,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 // Note that this class is not complete yet. Most of the comments are just for me and my advisor, they will disappear later!
-public class CustomInstruction{
+public class CustomInstruction {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((ciEndNodes == null) ? 0 : ciEndNodes.hashCode());
-    result = prime * result + ((ciStartNode == null) ? 0 : ciStartNode.hashCode());
-    result = prime * result + ((inputVariables == null) ? 0 : inputVariables.hashCode());
-    result = prime * result + ((outputVariables == null) ? 0 : outputVariables.hashCode());
-    return result;
+    return Objects.hash(ciEndNodes, ciStartNode, inputVariables, outputVariables);
   }
 
   @Override
@@ -103,42 +98,14 @@ public class CustomInstruction{
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof CustomInstruction)) {
       return false;
     }
     CustomInstruction other = (CustomInstruction) obj;
-    if (ciEndNodes == null) {
-      if (other.ciEndNodes != null) {
-        return false;
-      }
-    } else if (!ciEndNodes.equals(other.ciEndNodes)) {
-      return false;
-    }
-    if (ciStartNode == null) {
-      if (other.ciStartNode != null) {
-        return false;
-      }
-    } else if (!ciStartNode.equals(other.ciStartNode)) {
-      return false;
-    }
-    if (inputVariables == null) {
-      if (other.inputVariables != null) {
-        return false;
-      }
-    } else if (!inputVariables.equals(other.inputVariables)) {
-      return false;
-    }
-    if (outputVariables == null) {
-      if (other.outputVariables != null) {
-        return false;
-      }
-    } else if (!outputVariables.equals(other.outputVariables)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(ciEndNodes, other.ciEndNodes)
+        && Objects.equals(ciStartNode, other.ciStartNode)
+        && Objects.equals(inputVariables, other.inputVariables)
+        && Objects.equals(outputVariables, other.outputVariables);
   }
 
   private final CFANode ciStartNode;

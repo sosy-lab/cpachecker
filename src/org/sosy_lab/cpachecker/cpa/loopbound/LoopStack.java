@@ -123,7 +123,7 @@ final class LoopStack implements Iterable<LoopIterationState> {
 
   @Override
   public Iterator<LoopIterationState> iterator() {
-    return new Iterator<LoopIterationState>() {
+    return new Iterator<>() {
 
       private LoopStack current = LoopStack.this;
 
@@ -138,7 +138,6 @@ final class LoopStack implements Iterable<LoopIterationState> {
         current = current.pop();
         return next;
       }
-
     };
   }
 

@@ -110,7 +110,7 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
       ProofObligation current = this;
       T accumulated = pMap.apply(current);
       while (current.getCause().isPresent()) {
-        current = current.getCause().get();
+        current = current.getCause().orElseThrow();
         accumulated = pAccumulator.apply(accumulated, pMap.apply(current));
       }
       return accumulated;
@@ -118,7 +118,7 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
 
     @Override
     public Iterator<ProofObligation> iterator() {
-      return new Iterator<ProofObligation>() {
+      return new Iterator<>() {
 
         private Optional<ProofObligation> current = Optional.of(NonLeafProofObligation.this);
 
@@ -132,7 +132,7 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
           if (!hasNext()) {
             throw new NoSuchElementException();
           }
-          ProofObligation result = current.get();
+          ProofObligation result = current.orElseThrow();
           current = result.getCause();
           return result;
         }
@@ -252,7 +252,7 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
             .compare(getFrameIndex(), pOther.frameIndex)
             .compareFalseFirst(getCause().isPresent(), pOther.getCause().isPresent());
     if (getCause().isPresent()) {
-      compChain = compChain.compare(getCause().get(), pOther.getCause().get());
+      compChain = compChain.compare(getCause().orElseThrow(), pOther.getCause().orElseThrow());
     }
     return compChain
         .compare(getNSpuriousTransitions(), pOther.getNSpuriousTransitions())

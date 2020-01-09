@@ -79,7 +79,7 @@ public class MemoryLocationLocator implements SymbolicValueVisitor<Collection<Me
     Optional<MemoryLocation> maybeLocation = pValue.getRepresentedLocation();
 
     if (maybeLocation.isPresent()) {
-      return Collections.singleton(maybeLocation.get());
+      return Collections.singleton(maybeLocation.orElseThrow());
     } else {
       return ImmutableSet.of();
     }
@@ -89,7 +89,7 @@ public class MemoryLocationLocator implements SymbolicValueVisitor<Collection<Me
     Optional<MemoryLocation> maybeLocation = pExpression.getRepresentedLocation();
 
     if (maybeLocation.isPresent()) {
-      return Collections.singleton(maybeLocation.get());
+      return Collections.singleton(maybeLocation.orElseThrow());
     } else {
       return pExpression.getOperand().accept(this);
     }
@@ -99,7 +99,7 @@ public class MemoryLocationLocator implements SymbolicValueVisitor<Collection<Me
     Optional<MemoryLocation> maybeLocation = pExpression.getRepresentedLocation();
 
     if (maybeLocation.isPresent()) {
-      return Collections.singleton(maybeLocation.get());
+      return Collections.singleton(maybeLocation.orElseThrow());
     } else {
       Collection<MemoryLocation> locations = new HashSet<>();
 
@@ -115,7 +115,7 @@ public class MemoryLocationLocator implements SymbolicValueVisitor<Collection<Me
     Optional<MemoryLocation> maybeLocation = pExpression.getRepresentedLocation();
 
     if (maybeLocation.isPresent()) {
-      return Collections.singleton(maybeLocation.get());
+      return Collections.singleton(maybeLocation.orElseThrow());
 
     } else {
       Value innerValue = pExpression.getValue();

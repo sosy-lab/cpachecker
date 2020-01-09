@@ -116,10 +116,20 @@ public class EdgeAnalyzer {
         if (initializer == null) {
           return ImmutableMap.of(declaredVariable, type);
         }
-        Map<MemoryLocation, CType> result = new HashMap<>();
-        result.put(declaredVariable, type);
-        result.putAll(getInvolvedVariableTypes(initializer, pCfaEdge));
-        return result;
+
+            final Map<MemoryLocation, CType> initializerVariableTypes =
+                getInvolvedVariableTypes(initializer, pCfaEdge);
+            if (initializerVariableTypes.containsKey(declaredVariable)) {
+              // happens with "int x = x;"
+              assert initializerVariableTypes.get(declaredVariable).equals(type);
+              return initializerVariableTypes;
+            }
+            return ImmutableMap.<MemoryLocation, CType>builderWithExpectedSize(
+                    initializerVariableTypes.size() + 1)
+                .put(declaredVariable, type)
+                .putAll(initializerVariableTypes)
+                .build();
+
       } else if (declaration instanceof AVariableDeclaration) {
         throw new UnsupportedOperationException("Only C expressions are supported");
       } else {
@@ -128,7 +138,7 @@ public class EdgeAnalyzer {
     }
     case FunctionCallEdge: {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
-      Map<MemoryLocation, CType> result = new HashMap<>();
+          Map<MemoryLocation, CType> result = new HashMap<>();
 
       // Extract arguments
       String callerFunctionName = pCfaEdge.getPredecessor().getFunctionName();
@@ -148,7 +158,7 @@ public class EdgeAnalyzer {
         result.putAll(getInvolvedVariableTypes(parameter, pCfaEdge));
       }
 
-      return result;
+          return ImmutableMap.copyOf(result);
     }
     case ReturnStatementEdge: {
       AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
@@ -278,15 +288,14 @@ public class EdgeAnalyzer {
     return ImmutableMap.of();
   }
 
-
   /**
    * Gets the variables involved in the given CInitializer.
    *
    * @param pCInitializer the CInitializer to be analyzed.
-   *
    * @return the variables involved in the given CInitializer.
    */
-  private Map<MemoryLocation, CType> getInvolvedVariableTypes(CInitializer pCInitializer, CFAEdge pCfaEdge) {
+  private ImmutableMap<MemoryLocation, CType> getInvolvedVariableTypes(
+      CInitializer pCInitializer, CFAEdge pCfaEdge) {
     if (pCInitializer instanceof CDesignatedInitializer) {
       return getInvolvedVariableTypes(((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerExpression) {
@@ -297,7 +306,7 @@ public class EdgeAnalyzer {
       for (CInitializer initializer : initializerList.getInitializers()) {
         result.putAll(getInvolvedVariableTypes(initializer, pCfaEdge));
       }
-      return result;
+      return ImmutableMap.copyOf(result);
     }
     return ImmutableMap.of();
   }
@@ -307,10 +316,10 @@ public class EdgeAnalyzer {
    *
    * @param pExpression the expression to be analyzed.
    * @param pCFAEdge the CFA edge to obtain the function name from, if required.
-   *
    * @return the variables involved in the given expression.
    */
-  public Map<MemoryLocation, CType> getInvolvedVariableTypes(AExpression pExpression, CFAEdge pCFAEdge) {
+  public ImmutableMap<MemoryLocation, CType> getInvolvedVariableTypes(
+      AExpression pExpression, CFAEdge pCFAEdge) {
     return getInvolvedVariableTypes(
         pExpression,
         new MemoryLocationExtractor(
@@ -322,10 +331,10 @@ public class EdgeAnalyzer {
    *
    * @param pExpression the expression to be analyzed.
    * @param pVariableNameExtractor the variable name extractor to be used.
-   *
    * @return the variables involved in the given expression.
    */
-  public Map<MemoryLocation, CType> getInvolvedVariableTypes(AExpression pExpression, MemoryLocationExtractor pVariableNameExtractor) {
+  public ImmutableMap<MemoryLocation, CType> getInvolvedVariableTypes(
+      AExpression pExpression, MemoryLocationExtractor pVariableNameExtractor) {
     if (pExpression == null) {
       return ImmutableMap.of();
     }
@@ -348,7 +357,7 @@ public class EdgeAnalyzer {
         }
       }
 
-      return result;
+      return ImmutableMap.copyOf(result);
     } else {
       throw new UnsupportedOperationException("Only C expressions are supported");
     }

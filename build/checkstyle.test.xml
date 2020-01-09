@@ -21,12 +21,8 @@
     <module name="PackageAnnotation"/>
     <module name="SuppressWarnings"/>
     <module name="JavadocMethod">
-      <property name="allowUndeclaredRTE" value="true"/>
       <property name="allowMissingParamTags" value="true"/>
-      <property name="allowMissingThrowsTags" value="true"/>
       <property name="allowMissingReturnTag" value="true"/>
-      <property name="allowMissingJavadoc" value="true"/>
-      <property name="suppressLoadErrors" value="true"/>
     </module>
     <module name="ClassTypeParameterName">
       <property name="format" value="^[A-Z][0-9]?$"/>
@@ -40,7 +36,7 @@
     <module name="TypeName"/>
     <module name="IllegalImport"/>
     <module name="IllegalImport">
-      <property name="illegalClasses" value=".*\.(Builder|of|copyOf)|org\.junit\.Assert(\..*)?|com\.google\.common\.base\.Objects(\..*)?"/>
+      <property name="illegalClasses" value=".*\.(Builder|of|copyOf)|org\.junit\.Assert(\.(?!assertThrows).*)?|com\.google\.common\.base\.Objects(\..*)?"/>
       <property name="regexp" value="true"/>
     </module>
     <module name="RedundantImport"/>

@@ -394,7 +394,7 @@ class MainCPAStatistics implements Statistics {
     final ListMultimap<CFANode, AbstractState> locationIndex
         =  Multimaps.index(pReachedSet, EXTRACT_LOCATION);
 
-    Function<CFANode, String> nodeLabelFormatter = new Function<CFANode, String>() {
+    Function<CFANode, String> nodeLabelFormatter = new Function<>() {
       @Override
       public String apply(CFANode node) {
         StringBuilder buf = new StringBuilder();

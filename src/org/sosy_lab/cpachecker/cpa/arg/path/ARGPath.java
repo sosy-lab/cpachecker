@@ -142,7 +142,7 @@ public class ARGPath extends AbstractAppender {
    */
   @ForOverride
   protected List<CFAEdge> buildFullPath() {
-    List<CFAEdge> newFullPath = new ArrayList<>();
+    ImmutableList.Builder<CFAEdge> newFullPath = ImmutableList.builder();
     PathIterator it = pathIterator();
 
     while (it.hasNext()) {
@@ -167,7 +167,7 @@ public class ARGPath extends AbstractAppender {
       }
     }
 
-    return newFullPath;
+    return newFullPath.build();
   }
 
   public ImmutableSet<ARGState> getStateSet() {
@@ -178,7 +178,7 @@ public class ARGPath extends AbstractAppender {
    * Return (predecessor,successor) pairs of ARGStates for every edge in the path.
    */
   public List<Pair<ARGState, ARGState>> getStatePairs() {
-    return new AbstractList<Pair<ARGState, ARGState>>() {
+    return new AbstractList<>() {
 
       @Override
       public Pair<ARGState, ARGState> get(int pIndex) {

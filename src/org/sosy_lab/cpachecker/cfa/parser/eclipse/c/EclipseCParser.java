@@ -527,6 +527,11 @@ class EclipseCParser implements CParser {
       macrosBuilder.put("__builtin_va_arg(ap,t)", "*(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))");
       // macrosBuilder.put("__builtin_va_end(ap)", "(ap = (va_list)0)");
 
+      // specifying a GCC version >= 4.7 enables handling of 128-bit types in
+      // GCCScannerExtensionConfiguration
+      macrosBuilder.put("__GNUC__", "4");
+      macrosBuilder.put("__GNUC_MINOR__", "7");
+
       MACROS = macrosBuilder.build();
     }
 

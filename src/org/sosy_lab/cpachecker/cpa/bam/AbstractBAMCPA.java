@@ -178,6 +178,11 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
+  public BAMMergeOperator getMergeOperator() {
+    return new BAMMergeOperator(getWrappedCpa().getMergeOperator());
+  }
+
+  @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     assert !Iterables.any(pStatsCollection, Predicates.instanceOf(ARGStatistics.class))
         : "exporting ARGs should only be done at this place, when using BAM.";

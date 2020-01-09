@@ -42,7 +42,7 @@ public enum IIIOperatorFactory {
   INSTANCE;
 
   public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getAdd(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval>() {
+    return new Operator<>() {
 
       /**
        * Computes the interval of possible results from adding any value of
@@ -99,7 +99,7 @@ public enum IIIOperatorFactory {
   }
 
   public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getDivide(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval>() {
+    return new Operator<>() {
 
       /**
        * Calculates a superset of the possible results from dividing any value
@@ -157,7 +157,7 @@ public enum IIIOperatorFactory {
   }
 
   public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getModulo(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval>() {
+    return new Operator<>() {
 
       /**
        * Computes a superset of the possible values resulting from calculating
@@ -300,7 +300,7 @@ public enum IIIOperatorFactory {
   }
 
   public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getMultiply(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval>() {
+    return new Operator<>() {
 
       /**
        * Calculates a superset of the possible results obtained by multiplying
@@ -374,7 +374,7 @@ public enum IIIOperatorFactory {
   }
 
   public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getShiftLeft(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval>() {
+    return new Operator<>() {
 
       /**
        * Computes an interval representing a superset of the possible values
@@ -449,7 +449,7 @@ public enum IIIOperatorFactory {
   }
 
   public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getShiftRight(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval>() {
+    return new Operator<>() {
 
       /**
        * Computes an interval representing a superset of the possible values

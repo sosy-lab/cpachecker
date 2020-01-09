@@ -84,13 +84,11 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
 
     if (substitution.containsValue(pF)) {
       Formula originalFormula =
-          substitution
-              .entrySet()
-              .stream()
+          substitution.entrySet().stream()
               .filter(e -> e.getValue().equals(pF))
               .map(Entry::getKey)
               .findAny()
-              .get();
+              .orElseThrow();
 
       formulaManagerView.visit(originalFormula, new SubstitutionVisitor());
 

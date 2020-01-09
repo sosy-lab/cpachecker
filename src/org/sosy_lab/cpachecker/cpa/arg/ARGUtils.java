@@ -420,17 +420,18 @@ public class ARGUtils {
     return new ARGPath(states);
   }
 
-  private static final Predicate<CFANode> IS_RELEVANT_LOCATION =
-      pInput ->
-          pInput.isLoopStart()
-              || pInput instanceof FunctionEntryNode
-              || pInput instanceof FunctionExitNode;
+  private static final boolean isRelevantLocation(CFANode pInput) {
+    return pInput.isLoopStart()
+        || pInput instanceof FunctionEntryNode
+        || pInput instanceof FunctionExitNode;
+  }
 
-  private static final Predicate<Iterable<CFANode>> CONTAINS_RELEVANT_LOCATION =
-      nodes -> Iterables.any(nodes, IS_RELEVANT_LOCATION);
+  private static final boolean containsRelevantLocation(Iterable<CFANode> nodes) {
+    return Iterables.any(nodes, ARGUtils::isRelevantLocation);
+  }
 
   private static final Predicate<AbstractState> AT_RELEVANT_LOCATION =
-      Predicates.compose(CONTAINS_RELEVANT_LOCATION, AbstractStates::extractLocations);
+      Predicates.compose(ARGUtils::containsRelevantLocation, AbstractStates::extractLocations);
 
   @SuppressWarnings("unchecked")
   public static final Predicate<ARGState> RELEVANT_STATE =
@@ -602,7 +603,7 @@ public class ARGUtils {
     ARGPath result = getPathFromBranchingInformation(root, arg, branchingInformation);
 
     checkArgument(
-        result.getLastState() == target, "ARG target path reached the wrong target state!");
+        result.getLastState().equals(target), "ARG target path reached the wrong target state!");
 
     return result;
   }
@@ -620,12 +621,12 @@ public class ARGUtils {
    * @return The children with covered states transparently replaced.
    */
   public static Collection<ARGState> getUncoveredChildrenView(final ARGState s) {
-    return new AbstractCollection<ARGState>() {
+    return new AbstractCollection<>() {
 
       @Override
       public Iterator<ARGState> iterator() {
 
-        return new UnmodifiableIterator<ARGState>() {
+        return new UnmodifiableIterator<>() {
           private final Iterator<ARGState> children = s.getChildren().iterator();
 
           @Override
@@ -1102,7 +1103,7 @@ public class ARGUtils {
           CFANode sumEdgeSuccessor = sumEdge.getSuccessor();
 
           // only continue if we do not meet the loophead again
-          if (sumEdgeSuccessor != loopHead) {
+          if (!sumEdgeSuccessor.equals(loopHead)) {
             nodesToHandle.offer(sumEdgeSuccessor);
           }
 
@@ -1133,7 +1134,7 @@ public class ARGUtils {
           handleMatchCase(sb, edge);
 
           // we are still in the loop, so we do not need to handle special cases
-          if (stillInLoop && edgeSuccessor != loopHead) {
+          if (stillInLoop && !edgeSuccessor.equals(loopHead)) {
             handleGotoNode(sb, edgeSuccessor, false);
 
             nodesToHandle.offer(edgeSuccessor);
@@ -1196,7 +1197,7 @@ public class ARGUtils {
                                                        CFANode loopHead, CFANode successor) throws IOException {
 
     // depending on successor add the transition for going out of the loop
-    if (successor == loopHead) {
+    if (successor.equals(loopHead)) {
       handleGotoArg(sb, intoLoopState);
     } else {
       handleGotoNode(sb, successor, false);

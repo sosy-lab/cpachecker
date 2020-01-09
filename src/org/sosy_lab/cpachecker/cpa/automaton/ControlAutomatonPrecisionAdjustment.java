@@ -69,7 +69,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
     // Handle the BREAK state
     if (internalState.getName().equals(AutomatonInternalState.BREAK.getName())) {
-      return Optional.of(wrappedPrecResult.get().withAction(Action.BREAK));
+      return Optional.of(wrappedPrecResult.orElseThrow().withAction(Action.BREAK));
     }
 
     // Handle SINK state

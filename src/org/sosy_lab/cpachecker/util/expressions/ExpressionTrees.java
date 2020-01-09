@@ -67,7 +67,7 @@ public final class ExpressionTrees {
   }
 
   private static final ExpressionTree<Object> TRUE =
-      new AbstractExpressionTree<Object>() {
+      new AbstractExpressionTree<>() {
 
         @Override
         public <T, E extends Throwable> T accept(ExpressionTreeVisitor<Object, T, E> pVisitor)
@@ -87,7 +87,7 @@ public final class ExpressionTrees {
       };
 
   private static final ExpressionTree<Object> FALSE =
-      new AbstractExpressionTree<Object>() {
+      new AbstractExpressionTree<>() {
 
         @Override
         public <T, E extends Throwable> T accept(ExpressionTreeVisitor<Object, T, E> pVisitor)
@@ -208,12 +208,12 @@ public final class ExpressionTrees {
 
   public static <LeafType> Iterable<ExpressionTree<LeafType>> traverseRecursively(
       ExpressionTree<LeafType> pExpressionTree) {
-    return new Iterable<ExpressionTree<LeafType>>() {
+    return new Iterable<>() {
 
       @Override
       public Iterator<ExpressionTree<LeafType>> iterator() {
 
-        return new Iterator<ExpressionTree<LeafType>>() {
+        return new Iterator<>() {
 
           private final Deque<ExpressionTree<LeafType>> stack = new ArrayDeque<>();
 
@@ -459,7 +459,7 @@ public final class ExpressionTrees {
 
   public static <LeafType> Simplifier<LeafType> newSimplifier(
       final ExpressionTreeFactory<LeafType> pFactory) {
-    return new Simplifier<LeafType>() {
+    return new Simplifier<>() {
 
       private final Map<
               Set<ExpressionTree<LeafType>>,
@@ -520,7 +520,7 @@ public final class ExpressionTrees {
     final Function<ExpressionTree<S>, ExpressionTree<T>> convert =
         pTree -> convert(pTree, pLeafConverter);
     ExpressionTreeVisitor<S, ExpressionTree<T>, NoException> converter =
-        new CachingVisitor<S, ExpressionTree<T>, NoException>() {
+        new CachingVisitor<>() {
 
           @Override
           public ExpressionTree<T> cacheMissAnd(And<S> pAnd) {
@@ -901,7 +901,7 @@ public final class ExpressionTrees {
   }
 
   private static final ExpressionTreeVisitor<Object, Integer, NoException> TYPE_ORDER_VISITOR =
-      new ExpressionTreeVisitor<Object, Integer, NoException>() {
+      new ExpressionTreeVisitor<>() {
 
         @Override
         public Integer visitFalse() {
@@ -928,5 +928,4 @@ public final class ExpressionTrees {
           return 4;
         }
       };
-
 }

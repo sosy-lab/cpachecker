@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Preconditions;
+import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
@@ -58,12 +59,7 @@ public class AutomatonSafetyProperty implements Property {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + automaton.hashCode();
-    result = prime * result + automatonTrans.hashCode();
-    result = prime * result + propertyInstanceDescription.hashCode();
-    return result;
+    return Objects.hash(automaton, automatonTrans, propertyInstanceDescription);
   }
 
   @Override
@@ -71,27 +67,13 @@ public class AutomatonSafetyProperty implements Property {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof AutomatonSafetyProperty)) {
       return false;
     }
     AutomatonSafetyProperty other = (AutomatonSafetyProperty) obj;
-
-    if (!automatonTrans.equals(other.automatonTrans)) {
-      return false;
-    }
-
-    if (!automaton.equals(other.automaton)) {
-      return false;
-    }
-
-    if (!propertyInstanceDescription.equals(other.propertyInstanceDescription)) {
-      return false;
-    }
-
-    return true;
+    return automatonTrans.equals(other.automatonTrans)
+        && automaton.equals(other.automaton)
+        && propertyInstanceDescription.equals(other.propertyInstanceDescription);
   }
 
 }

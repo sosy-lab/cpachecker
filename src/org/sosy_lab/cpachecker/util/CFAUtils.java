@@ -128,11 +128,11 @@ public class CFAUtils {
    */
   public static FluentIterable<CFAEdge> allEnteringEdges(final CFANode node) {
     checkNotNull(node);
-    return new FluentIterable<CFAEdge>() {
+    return new FluentIterable<>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<CFAEdge>() {
+        return new UnmodifiableIterator<>() {
 
           // the index of the next edge (-1 means the summary edge)
           private int i = (node.getEnteringSummaryEdge() != null) ? -1 : 0;
@@ -161,11 +161,11 @@ public class CFAUtils {
    */
   public static FluentIterable<CFAEdge> enteringEdges(final CFANode node) {
     checkNotNull(node);
-    return new FluentIterable<CFAEdge>() {
+    return new FluentIterable<>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<CFAEdge>() {
+        return new UnmodifiableIterator<>() {
 
           // the index of the next edge
           private int i = 0;
@@ -190,11 +190,11 @@ public class CFAUtils {
    */
   public static FluentIterable<CFAEdge> allLeavingEdges(final CFANode node) {
     checkNotNull(node);
-    return new FluentIterable<CFAEdge>() {
+    return new FluentIterable<>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<CFAEdge>() {
+        return new UnmodifiableIterator<>() {
 
           // the index of the next edge (-1 means the summary edge)
           private int i = (node.getLeavingSummaryEdge() != null) ? -1 : 0;
@@ -223,11 +223,11 @@ public class CFAUtils {
    */
   public static FluentIterable<CFAEdge> leavingEdges(final CFANode node) {
     checkNotNull(node);
-    return new FluentIterable<CFAEdge>() {
+    return new FluentIterable<>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<CFAEdge>() {
+        return new UnmodifiableIterator<>() {
 
           // the index of the next edge
           private int i = 0;

@@ -464,7 +464,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   }
 
   private void exportViolationWitness(final ARGState root, final ARGState loopStart) {
-    CounterexampleInfo cexInfo = loopStart.getCounterexampleInformation().get();
+    CounterexampleInfo cexInfo = loopStart.getCounterexampleInformation().orElseThrow();
 
     ARGState loopStartInCEX =
         new ARGState(AbstractStates.extractStateByType(loopStart, LocationState.class), null);

@@ -2342,7 +2342,7 @@ public class DomainSpecificAbstraction<T> {
   private List<Formula> StringtoIntegerFormulaList(String input, List<FormulaType>
       formulaTypes){
     Formula helperFormula1, helperFormula2, helperFormula3;
-    List<Formula> maximumFeasibleAbstraction = new ArrayList<>(formulas.size() - 1);
+    ImmutableList.Builder<Formula> maximumFeasibleAbstraction = ImmutableList.builder();
 
     if (input.equals("root")){
       return ImmutableList.of();
@@ -2374,7 +2374,7 @@ public class DomainSpecificAbstraction<T> {
       maximumFeasibleAbstraction.add(helperFormula3);
       j++;
     }
-    return maximumFeasibleAbstraction;
+    return maximumFeasibleAbstraction.build();
   }
 
   @SuppressWarnings("unused")

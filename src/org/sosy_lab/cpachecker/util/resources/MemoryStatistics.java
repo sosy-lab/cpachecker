@@ -41,6 +41,7 @@ import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+import javax.management.RuntimeErrorException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 
@@ -215,6 +216,8 @@ public class MemoryStatistics implements Runnable {
           maxProcess = Math.max(maxProcess, memUsed);
           sumProcess += memUsed;
 
+        } catch (RuntimeErrorException e) {
+          throw ManagementUtils.handleRuntimeErrorException(e);
         } catch (JMException e) {
           logger.logDebugException(e, "Querying memory size failed");
           osMbean = null;
