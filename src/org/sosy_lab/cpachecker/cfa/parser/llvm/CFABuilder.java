@@ -437,7 +437,7 @@ public class CFABuilder {
               new CBinaryExpression(
                   comparisonLhs.getFileLocation(),
                   CNumericTypes.BOOL,
-                  CNumericTypes.BOOL,
+                  compType,
                   comparisonLhs,
                   comparisonRhs,
                   BinaryOperator.EQUALS);
