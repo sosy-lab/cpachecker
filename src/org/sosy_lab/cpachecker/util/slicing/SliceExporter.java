@@ -391,7 +391,8 @@ public class SliceExporter {
     for (String functionName : pCfa.getAllFunctionNames()) {
       FunctionEntryNode entryNode = pCfa.getFunctionHead(functionName);
 
-      Collection<CFANode> functionNodes = CFATraversal.dfs().collectNodesReachableFrom(entryNode);
+      Collection<CFANode> functionNodes =
+          CFATraversal.dfs().collectNodesReachableFromTo(entryNode, entryNode.getExitNode());
 
       if (containsRelevantEdge(functionNodes, pRelevantEdges)) {
 
