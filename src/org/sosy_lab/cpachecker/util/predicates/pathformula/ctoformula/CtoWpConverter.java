@@ -131,7 +131,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
         }
       case FunctionReturnEdge:
         {
-          return makePreconditionForFunctionExit(((CFunctionReturnEdge)pEdge).getSummaryEdge(), pPostcond, functionName);
+          return makePreconditionForFunctionExit(((CFunctionReturnEdge)pEdge).getSummaryEdge(), pPostcond);
         }
       case BlankEdge:
         {
@@ -332,8 +332,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
 
   private BooleanFormula makePreconditionForFunctionExit(
       final CFunctionSummaryEdge pEdge,
-      final BooleanFormula pPostcond,
-      final String pFunction)
+      final BooleanFormula pPostcond)
       throws UnrecognizedCodeException {
 
     var retExp = pEdge.getExpression();
