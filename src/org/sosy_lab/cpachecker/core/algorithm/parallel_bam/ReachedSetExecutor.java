@@ -90,7 +90,7 @@ class ReachedSetExecutor {
   /** the working algorithm for the reached-set, single-threaded access. */
   private final Algorithm algorithm;
 
-  /** flag that causes termination if enabled. */
+  /** flag that causes termination if enabled. Never disabled after being enabled. */
   private boolean targetStateFound = false;
 
   /** main reached-set is used for checking termination of the algorithm. */
@@ -177,7 +177,7 @@ class ReachedSetExecutor {
     return asRunnable(ImmutableSet.of());
   }
 
-  public Runnable asRunnable(Collection<AbstractState> pStatesToBeAdded) {
+  private Runnable asRunnable(Collection<AbstractState> pStatesToBeAdded) {
     // copy needed, because access to pStatesToBeAdded is done in the future
     ImmutableSet<AbstractState> copy = ImmutableSet.copyOf(pStatesToBeAdded);
     return () -> apply(copy);
@@ -287,6 +287,7 @@ class ReachedSetExecutor {
       terminateAnalysis.set(true);
     }
   }
+
   private static String id(final Collection<AbstractState> states) {
     return Collections2.transform(states, s -> id(s)).toString();
   }
@@ -296,11 +297,12 @@ class ReachedSetExecutor {
   }
 
   private static String id(ReachedSet pRs) {
+    if (pRs.getFirstState() == null) {
+      // - happens on empty reached set, i.e. very rarely.
+      // - happens with a merge-join operator, if a loop-head is merged with itself.
+      return "no initial state";
+    }
     return id(pRs.getFirstState());
-  }
-
-  private String idd() {
-    return id(rs);
   }
 
   /**
@@ -555,7 +557,7 @@ class ReachedSetExecutor {
 
   @Override
   public String toString() {
-    return "RSE " + idd();
+    return "RSE " + id(rs);
   }
 
   /** for debugging, warning: might not be thread-safe! */
