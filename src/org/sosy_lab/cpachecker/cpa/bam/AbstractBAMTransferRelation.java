@@ -246,6 +246,13 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
       AbstractState expandedState =
           wrappedReducer.getVariableExpandedState(state, innerSubtree, reducedState);
 
+      if (expandedState == null) {
+        // if the expanded reducedResult is not satisfiable, ignore it.
+        // TODO If this happens, we might want to re-analyze
+        // the nested reached-set for further states from the waitlist.
+        continue;
+      }
+
       Precision expandedPrecision =
           outerSubtree == null
               ? reducedPrecision

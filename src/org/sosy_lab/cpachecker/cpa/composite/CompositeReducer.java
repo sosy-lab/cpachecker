@@ -67,10 +67,14 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
     ImmutableList.Builder<AbstractState> result =
         ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
-      result.add(
+      AbstractState nestedState =
           wrappedReducers
               .get(i)
-              .getVariableExpandedState(rootStates.get(i), pReducedContext, reducedStates.get(i)));
+              .getVariableExpandedState(rootStates.get(i), pReducedContext, reducedStates.get(i));
+      if (nestedState == null) {
+        return null;
+      }
+      result.add(nestedState);
     }
     return new CompositeState(result.build());
   }
@@ -165,11 +169,15 @@ class CompositeReducer extends GenericReducer<CompositeState, CompositePrecision
     ImmutableList.Builder<AbstractState> result =
         ImmutableList.builderWithExpectedSize(wrappedReducers.size());
     for (int i = 0; i < wrappedReducers.size(); i++) {
-      result.add(
+      AbstractState nestedState =
           wrappedReducers
               .get(i)
               .getVariableExpandedStateForProofChecking(
-                  rootStates.get(i), pReducedContext, reducedStates.get(i)));
+                  rootStates.get(i), pReducedContext, reducedStates.get(i));
+      if (nestedState == null) {
+        return null;
+      }
+      result.add(nestedState);
     }
     return new CompositeState(result.build());
   }
