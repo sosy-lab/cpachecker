@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import com.google.common.base.Joiner;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -95,6 +96,10 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   @Option(secure = true, name = "logfile", description = "Dump tracked variables to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpfile = Paths.get("BDDCPA_tracked_variables.log");
+
+  @Option(secure = true, name = "variablesFile", description = "Dump tracked variables to a file.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path variablesFile = Paths.get("BDDCPA_ordered_variables.txt");
 
   @Option(secure = true, description = "max bitsize for values and vars, initial value")
   private int bitsize = 64;
@@ -248,6 +253,23 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
           @Override
           public String getName() {
             return "BDDCPA";
+          }
+
+          @Override
+          public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+            if (variablesFile != null) {
+              try {
+                IO.writeFile(
+                    variablesFile,
+                    Charset.defaultCharset(),
+                    Joiner.on("\n").join(manager.getOrderedPredicates()));
+              } catch (IOException e) {
+                logger.logUserException(
+                    Level.WARNING,
+                    e,
+                    "Could not write ordered variables to file");
+              }
+            }
           }
         });
   }

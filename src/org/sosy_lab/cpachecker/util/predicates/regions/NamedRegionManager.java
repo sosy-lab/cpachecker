@@ -28,11 +28,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -278,6 +281,33 @@ public class NamedRegionManager implements RegionManager {
   public Set<String> getPredicates() {
     synchronized (regionMap) {
       return ImmutableSet.copyOf(regionMap.keySet());
+    }
+  }
+
+  /**
+   * Get a snapshot of the current variable ordering in the BDD.
+   *
+   * This method also works if the delegated manager changed its ordering internally,
+   * as long as the ordering is not changed while running this method.
+   */
+  public List<String> getOrderedPredicates() {
+    synchronized (regionMap) {
+      // sort predicates according to BDD ordering.
+      // create small BDDs "AND(A,B)" and check which node is the root.
+      List<String> predicates = Lists.newArrayList(regionMap.keySet());
+      Collections.sort(predicates, (a, b) -> {
+        Region ra = regionMap.get(a);
+        Region rb = regionMap.get(b);
+        Region root = getIfThenElse(makeAnd(ra, rb)).getFirst();
+        if (ra.equals(root)) {
+          return 1;
+        } else if (rb.equals(root)) {
+          return -1;
+        } else {
+          throw new AssertionError("should not happen, all predicates are unique");
+        }
+      });
+      return predicates;
     }
   }
 
