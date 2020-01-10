@@ -47,10 +47,10 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.LinearRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.NestedRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
+import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
-import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -286,7 +286,7 @@ public class RankingRelationBuilder {
     unprimedFormulaSummands.add(ifmgr.makeNumber(function.getConstant()));
 
     for (IProgramVar programVar : function.getVariables()) {
-      RankVar rankVar = (RankVar) programVar; // Only RankVars were passed to LassoRanler!
+      RankVar rankVar = (RankVar) programVar; // Only RankVars were passed to LassoRanker!
       BigInteger coefficient = function.get(rankVar);
       Optional<CExpression> cCoefficient = createLiteral(coefficient);
       Pair<CIdExpression, CExpression> variables = getVariable(rankVar, pRelevantVariables);
@@ -316,7 +316,7 @@ public class RankingRelationBuilder {
         unprimedFunction = Optional.empty();
       }
 
-      NumeralFormula unprimedVariableFormula = encapsulate(rankVar.getDefinition());
+      NumeralFormula unprimedVariableFormula = encapsulate(rankVar.getTerm());
       String primedVariableName = primedVariable.getDeclaration().getQualifiedName();
       FormulaType<NumeralFormula> formulaType = fmgr.getFormulaType(unprimedVariableFormula);
       NumeralFormula primedVariableFormula = fmgr.makeVariable(formulaType, primedVariableName);
@@ -383,7 +383,7 @@ public class RankingRelationBuilder {
       return Pair.of(primedVariable, variable);
 
     } else {
-      Term term = pRankVar.getDefinition();
+      Term term = pRankVar.getTerm();
       if (term instanceof ApplicationTerm
           && !((ApplicationTerm) term).getFunction().isInterpreted()) {
         ApplicationTerm uf = ((ApplicationTerm) term);

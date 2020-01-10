@@ -45,12 +45,12 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.GeometricN
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.InfiniteFixpointRepetition;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
+import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Rational;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
-import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -679,8 +679,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
       for (Entry<IProgramVar, Rational> entry : arg.getStateHonda().entrySet()) {
         RankVar rankVar = (RankVar) entry.getKey();
-        if (rankVar.getDefinition() instanceof ApplicationTerm
-            && ((ApplicationTerm) rankVar.getDefinition()).getParameters().length != 0) {
+        if (rankVar.getTerm() instanceof ApplicationTerm
+            && ((ApplicationTerm) rankVar.getTerm()).getParameters().length != 0) {
           // ignore UFs
           continue;
         }
