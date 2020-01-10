@@ -1279,6 +1279,12 @@ cpa.bdd.bitsize = 64
 # use a smaller bitsize for all vars, that have only intEqual values
 cpa.bdd.compressIntEqual = true
 
+# add some additional variables (with prefix) for each variable that can be
+# used for more complex BDD operations later. In the ordering, we declare
+# them as narrow as possible to the original variable, such that the overhead
+# for using them stays small. A value 0 disables this feature.
+cpa.bdd.initAdditionalVariables = 0
+
 # declare the bits of a var from 0 to N or from N to 0
 cpa.bdd.initBitsIncreasing = true
 
