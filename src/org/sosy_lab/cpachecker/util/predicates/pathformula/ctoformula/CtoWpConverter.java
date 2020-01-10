@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import com.google.common.collect.Streams;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -252,12 +250,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
     final Map<Formula, Formula> substitution = new HashMap<>();
     substitution.put(fmgr.uninstantiate(l), fmgr.uninstantiate(r));
 
-    try {
-      var result = fmgr.substitute(pPostcond, substitution);
-      return result;
-    } catch (IllegalArgumentException err) {
-      throw err;
-    }
+    return fmgr.substitute(pPostcond, substitution);
   }
 
 
