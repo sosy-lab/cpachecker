@@ -108,7 +108,7 @@ public class SliceExporter {
    * Returns true if the node hast at least one leaving edge and only leaving edges that are assume
    * edges and not contained in pRelevantEdges.
    */
-  private boolean skipAssumeBranching(CFANode pNode, Set<CFAEdge> pRelevantEdges) {
+  private boolean skipNextAssumeBranching(CFANode pNode, Set<CFAEdge> pRelevantEdges) {
 
     for (CFAEdge succEdge : CFAUtils.leavingEdges(pNode)) {
       if (succEdge.getEdgeType() != CFAEdgeType.AssumeEdge || pRelevantEdges.contains(succEdge)) {
@@ -362,7 +362,8 @@ public class SliceExporter {
       if (!visited.contains(succ)
           && !(succ instanceof FunctionExitNode)
           && !(succ instanceof FunctionEntryNode)) {
-        // If all leaving edges are irrelevant assume edges, one branch is chosen (arbitrarily)
+        // If all leaving edges of the current successors
+        // are irrelevant assume edges, one branch is chosen (arbitrarily)
         // and used as the only leaving branch.
         // This makes it possible to replace all of the assume edges by a single blank edge.
         // WARNING: It is assumed that there are no relevant edges in all the other branches.
@@ -370,7 +371,7 @@ public class SliceExporter {
         //          This code *must* be updated if any slicing method is used that creates
         //          irrelevant branching conditions, but at the same time allows nested relevant
         //          statements in those branches.
-        if (skipAssumeBranching(succ, pRelevantEdges)) {
+        if (skipNextAssumeBranching(succ, pRelevantEdges)) {
 
           CFAEdge assumeEdge = succ.getLeavingEdge(0);
           waitlist.add(
