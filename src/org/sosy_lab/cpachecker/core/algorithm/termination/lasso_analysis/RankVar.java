@@ -33,10 +33,9 @@ import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 import de.uni_freiburg.informatik.ultimate.logic.Theory;
 import javax.annotation.concurrent.Immutable;
 
+@SuppressWarnings("serial")
 @Immutable
 public class RankVar implements IProgramVar {
-
-  private static final long serialVersionUID = -600124674528443840L;
 
   private static final Theory THEORY = new Theory(Logics.ALL);
 
