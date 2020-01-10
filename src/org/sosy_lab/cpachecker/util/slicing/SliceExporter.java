@@ -212,6 +212,9 @@ public class SliceExporter {
             summaryEdge.getExpression(),
             newEntryNode);
 
+    pPredecessor.addLeavingSummaryEdge(newSummaryEdge);
+    pSuccessor.addEnteringSummaryEdge(newSummaryEdge);
+
     return new CFunctionCallEdge(
         pEdge.getRawStatement(),
         pEdge.getFileLocation(),
