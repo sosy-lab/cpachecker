@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -250,6 +251,18 @@ public class SliceExporter {
           assumeEdge.isSwapped(),
           assumeEdge.isArtificialIntermediate());
 
+    } else if (pEdge instanceof CFunctionSummaryStatementEdge) {
+
+      CFunctionSummaryStatementEdge statementEdge = (CFunctionSummaryStatementEdge) pEdge;
+      return new CFunctionSummaryStatementEdge(
+          raw,
+          statementEdge.getStatement(),
+          loc,
+          pPredecessor,
+          pSuccessor,
+          statementEdge.getFunctionCall(),
+          statementEdge.getFunctionName());
+
     } else if (type == CFAEdgeType.StatementEdge && pEdge instanceof CStatementEdge) {
 
       CStatementEdge statementEdge = (CStatementEdge) pEdge;
@@ -328,7 +341,8 @@ public class SliceExporter {
       if (pRelevantEdges.contains(edge)
           || edge.getEdgeType() == CFAEdgeType.BlankEdge
           || edge.getEdgeType() == CFAEdgeType.AssumeEdge
-          || edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+          || edge.getEdgeType() == CFAEdgeType.DeclarationEdge
+          || edge instanceof CFunctionSummaryStatementEdge) {
 
         newEdge = cloneEdge(edge, newPred, newSucc);
 
@@ -338,14 +352,16 @@ public class SliceExporter {
 
       newPred.addLeavingEdge(newEdge);
 
-      // newSucc is only the successor of all non-function-call edges
+      // newSucc is only the successor of all non-function-call edges. function call handling
+      // takes care of special node-edge relations during node creation
       if (!(newEdge instanceof CFunctionCallEdge)) {
         newSucc.addEnteringEdge(newEdge);
       }
 
-      // don't visit a node twice and don't leave function
-      if (!visited.contains(succ) && !(succ instanceof FunctionExitNode)) {
-
+      // don't visit a node twice and stay in function
+      if (!visited.contains(succ)
+          && !(succ instanceof FunctionExitNode)
+          && !(succ instanceof FunctionEntryNode)) {
         // If all leaving edges are irrelevant assume edges, one branch is chosen (arbitrarily)
         // and used as the only leaving branch.
         // This makes it possible to replace all of the assume edges by a single blank edge.
@@ -403,9 +419,7 @@ public class SliceExporter {
             && functionName.equals(pCfa.getMainFunction().getFunctionName())) {
           newMainEntryNode = newEntryNode;
         }
-
       }
-
     }
 
     return new MutableCFA(
