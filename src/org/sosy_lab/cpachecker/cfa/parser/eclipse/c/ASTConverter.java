@@ -987,7 +987,7 @@ class ASTConverter {
     for (CCompositeTypeMemberDeclaration member : owner.getMembers()) {
       if (member.getName().equals(fieldName)) {
         allReferences.add(Pair.of(member.getName(), member.getType()));
-        return allReferences;
+        return ImmutableList.copyOf(allReferences);
       }
     }
 
@@ -1000,7 +1000,7 @@ class ASTConverter {
         tmp.add(Pair.of(member.getName(), member.getType()));
         tmp = getWayToInnerField((CCompositeType)memberType, fieldName, loc, tmp);
         if (!tmp.isEmpty()) {
-          return tmp;
+          return ImmutableList.copyOf(tmp);
         }
       }
     }

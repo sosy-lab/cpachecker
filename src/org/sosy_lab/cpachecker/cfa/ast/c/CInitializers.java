@@ -34,7 +34,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
@@ -185,7 +184,8 @@ public final class CInitializers {
       }
     }
 
-    List<CExpressionAssignmentStatement> result = new ArrayList<>(initializerList.getInitializers().size());
+    ImmutableList.Builder<CExpressionAssignmentStatement> result =
+        ImmutableList.builderWithExpectedSize(initializerList.getInitializers().size());
     for (CInitializer init : initializerList.getInitializers()) {
 
       if (init instanceof CDesignatedInitializer) {
@@ -250,7 +250,7 @@ public final class CInitializers {
       }
     }
 
-    return result;
+    return result.build();
   }
 
 
