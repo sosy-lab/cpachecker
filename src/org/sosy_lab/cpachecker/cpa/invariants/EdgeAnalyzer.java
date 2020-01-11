@@ -138,7 +138,7 @@ public class EdgeAnalyzer {
     }
     case FunctionCallEdge: {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
-          Map<MemoryLocation, CType> result = new HashMap<>();
+        ImmutableMap.Builder<MemoryLocation, CType> result = ImmutableMap.builder();
 
       // Extract arguments
       String callerFunctionName = pCfaEdge.getPredecessor().getFunctionName();
@@ -158,13 +158,13 @@ public class EdgeAnalyzer {
         result.putAll(getInvolvedVariableTypes(parameter, pCfaEdge));
       }
 
-          return ImmutableMap.copyOf(result);
+        return result.build();
     }
     case ReturnStatementEdge: {
       AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
       if (returnStatementEdge.getExpression().isPresent()) {
         AExpression returnExpression = returnStatementEdge.getExpression().get();
-        Map<MemoryLocation, CType> result = new HashMap<>();
+          ImmutableMap.Builder<MemoryLocation, CType> result = ImmutableMap.builder();
             Optional<? extends AAssignment> returnAssignment = returnStatementEdge.asAssignment();
             if (returnAssignment.isPresent()) {
               result.putAll(getInvolvedVariableTypes(returnAssignment.get(), pCfaEdge));
@@ -179,7 +179,7 @@ public class EdgeAnalyzer {
               }
         }
         result.putAll(getInvolvedVariableTypes(returnExpression, pCfaEdge));
-        return result;
+          return result.build();
       }
           return ImmutableMap.of();
     }
@@ -194,11 +194,11 @@ public class EdgeAnalyzer {
             return getInvolvedVariableTypes((AFunctionCallAssignmentStatement) statement, pCfaEdge);
       } else if (statement instanceof AFunctionCallStatement) {
         AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
-        Map<MemoryLocation, CType> result = new HashMap<>();
+          ImmutableMap.Builder<MemoryLocation, CType> result = ImmutableMap.builder();
         for (AExpression expression : functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
           result.putAll(getInvolvedVariableTypes(expression, pCfaEdge));
         }
-        return result;
+          return result.build();
       } else {
             return ImmutableMap.of();
       }
@@ -211,7 +211,7 @@ public class EdgeAnalyzer {
             (AFunctionCallAssignmentStatement) functionCall;
         AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
         if (functionCallExpression != null) {
-          Map<MemoryLocation, CType> result = new HashMap<>();
+            ImmutableMap.Builder<MemoryLocation, CType> result = ImmutableMap.builder();
           Optional<? extends AVariableDeclaration> retVar = functionReturnEdge.getFunctionEntry().getReturnVariable();
           if (retVar.isPresent()) {
               AExpression idExpression =
@@ -231,7 +231,7 @@ public class EdgeAnalyzer {
                           ImmutableMap.of())));
           }
           result.putAll(getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
-          return result;
+            return result.build();
         }
       }
         return ImmutableMap.of();
