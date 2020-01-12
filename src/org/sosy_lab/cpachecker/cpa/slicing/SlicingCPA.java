@@ -33,7 +33,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -183,7 +182,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
       CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     Precision wrappedPrec = getWrappedCpa().getInitialPrecision(pNode, pPartition);
 
-    Set<CFAEdge> relevantEdges;
+    ImmutableSet<CFAEdge> relevantEdges;
     if (useRefinableSlice) {
       relevantEdges = ImmutableSet.of();
     } else {
@@ -193,7 +192,8 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
     return new SlicingPrecision(wrappedPrec, relevantEdges);
   }
 
-  private Set<CFAEdge> computeSlice(CFA pCfa, Specification pSpec) throws InterruptedException {
+  private ImmutableSet<CFAEdge> computeSlice(CFA pCfa, Specification pSpec)
+      throws InterruptedException {
     return slicer.getRelevantEdges(pCfa, pSpec);
   }
 

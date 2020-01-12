@@ -448,7 +448,6 @@ public class SliceExporter {
       CFA pCfa, Set<CFAEdge> pRelevantEdges, int pSliceCounter, LogManager pLogger) {
 
     if (exportToC) {
-
       Concurrency.newThread(
               "Slice-Exporter",
               () -> {

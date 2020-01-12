@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.slicing;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -42,12 +42,13 @@ public interface Slicer {
    * Returns the set of {@link CFAEdge CFA edges} in the given CFA that are relevant for the given
    * specification.
    */
-  Set<CFAEdge> getRelevantEdges(CFA pCfa, Specification pSpecification) throws InterruptedException;
+  ImmutableSet<CFAEdge> getRelevantEdges(CFA pCfa, Specification pSpecification)
+      throws InterruptedException;
 
   /**
    * Returns the set of {@link CFAEdge CFA edges} in the given CFA that are relevant for the given
    * specification.
    */
-  Set<CFAEdge> getRelevantEdges(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
+  ImmutableSet<CFAEdge> getRelevantEdges(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
       throws InterruptedException;
 }

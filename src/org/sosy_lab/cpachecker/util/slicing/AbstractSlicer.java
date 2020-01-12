@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.slicing;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -80,7 +81,7 @@ public abstract class AbstractSlicer implements Slicer {
   }
 
   @Override
-  public Set<CFAEdge> getRelevantEdges(CFA pCfa, Specification pSpecification)
+  public ImmutableSet<CFAEdge> getRelevantEdges(CFA pCfa, Specification pSpecification)
       throws InterruptedException {
 
     Set<CFAEdge> slicingCriteria =
