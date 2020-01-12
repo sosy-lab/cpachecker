@@ -87,6 +87,11 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   )
   private boolean compressIntEqual = true;
 
+  @Option(
+    secure = true,
+    description = "reduce and expand BDD states for BAM, otherwise use plain identity")
+  private boolean useBlockAbstraction = false;
+
   private BDDCPA(CFA pCfa, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -158,7 +163,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public Reducer getReducer() {
-    return new BDDReducer();
+    return new BDDReducer(manager, bvmgr, predmgr, cfa.getMachineModel(), useBlockAbstraction);
   }
 
   public Configuration getConfiguration() {

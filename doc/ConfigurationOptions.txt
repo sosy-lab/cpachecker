@@ -1311,6 +1311,9 @@ cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 cpa.bdd.merge = "join"
   allowed values: [sep, join]
 
+# reduce and expand BDD states for BAM, otherwise use plain identity
+cpa.bdd.useBlockAbstraction = false
+
 # Dump tracked variables to a file.
 cpa.bdd.variablesFile = "BDDCPA_ordered_variables.txt"
 

@@ -131,16 +131,20 @@ public class PredicateManager {
     }
 
     Map<Partition, String> partitionToTmpVar = new LinkedHashMap<>();
-    MachineModel machineModel = cfa.getMachineModel();
+    int bitsize = getMaxBitsize(cfa.getMachineModel());
     for (Partition partition : partitions) {
       // maxBitSize is too much for most variables. we only create an order here, so this should not
       // matter.
       createPredicates(
           partition,
-          machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits(),
+          bitsize,
           partitionToTmpVar);
     }
     return ImmutableMap.copyOf(partitionToTmpVar);
+  }
+
+  static int getMaxBitsize(MachineModel machineModel) {
+    return machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits();
   }
 
   /**
@@ -200,8 +204,12 @@ public class PredicateManager {
   private void createPredicateDirectly(final String varName, final int index) {
     createPredicateDirectly0(varName, index);
     for (int i = 0; i < initAdditionalVariables; i++) {
-      createPredicateDirectly0(TMP_VARIABLE_PREFIX + i + "__" + varName, index);
+      createPredicateDirectly0(getAdditionalVariableWithIndex(varName, i), index);
     }
+  }
+
+  String getAdditionalVariableWithIndex(final String varName, int i) {
+    return TMP_VARIABLE_PREFIX + i + "__" + varName;
   }
 
   /**
