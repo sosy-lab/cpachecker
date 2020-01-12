@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -383,7 +384,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     if (addCexConstraintsToSlice) {
       // this must always be added _after_ adding the slices, otherwise
       // slices may be incomplete
-      relevantEdges = Sets.union(relevantEdges, Set.copyOf(cexConstraints));
+      relevantEdges = Sets.union(relevantEdges, ImmutableSet.copyOf(cexConstraints));
     }
 
     return relevantEdges;
