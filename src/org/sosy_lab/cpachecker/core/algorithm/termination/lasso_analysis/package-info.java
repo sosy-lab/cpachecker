@@ -22,9 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Synthesis of (non)-termination arguments extracted from a counterexample
- * that might be a prove for non-termination.
- * The LassoRanker library from UltimateAutomizer is used.
+ * Synthesis of (non)-termination arguments extracted from a counterexample that might be a proof
+ * for non-termination. The LassoRanker library from UltimateAutomizer is used.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault

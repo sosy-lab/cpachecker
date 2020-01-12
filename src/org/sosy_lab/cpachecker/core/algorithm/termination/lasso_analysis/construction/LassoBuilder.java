@@ -24,24 +24,26 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter.NlaHandling.EXCEPTION;
+import static com.google.common.base.Verify.verify;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import de.uni_freiburg.informatik.ultimate.icfgtransformer.transformulatransformers.TermException;
 import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
 import de.uni_freiburg.informatik.ultimate.lassoranker.LinearInequality;
 import de.uni_freiburg.informatik.ultimate.lassoranker.LinearTransition;
-import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter;
+import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter.NlaHandling;
+import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
+import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
-import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
+import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -78,7 +80,9 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
+import org.sosy_lab.java_smt.api.visitors.FormulaTransformationVisitor;
 import org.sosy_lab.java_smt.basicimpl.AbstractFormulaManager;
+import org.sosy_lab.java_smt.solvers.smtinterpol.SmtInterpolEnvironment;
 import org.sosy_lab.java_smt.utils.SolverUtils;
 import org.sosy_lab.java_smt.utils.UfElimination;
 import org.sosy_lab.java_smt.utils.UfElimination.Result;
@@ -107,6 +111,7 @@ public class LassoBuilder {
   private final FormulaManagerView fmgrView;
   private final BooleanFormulaManagerView bfmrView;
   private final PathFormulaManager pathFormulaManager;
+  private final SmtInterpolEnvironment env;
 
   private final DivAndModElimination divAndModElimination;
   private final NonLinearMultiplicationElimination nonLinearMultiplicationElimination;
@@ -114,6 +119,8 @@ public class LassoBuilder {
   private final IfThenElseElimination ifThenElseElimination;
   private final EqualElimination equalElimination;
   private final NotEqualAndNotInequalityElimination notEqualAndNotInequalityElimination;
+
+  private final FormulaTransformationVisitor formulaVisitor;
 
   private final LassoAnalysisStatistics stats;
 
@@ -131,6 +138,7 @@ public class LassoBuilder {
     logger = checkNotNull(pLogger);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     fmgr = checkNotNull(pFormulaManager);
+    env = (SmtInterpolEnvironment) fmgr.getEnvironment();
     proverEnvironmentSupplier = checkNotNull(pProverEnvironmentSupplier);
     fmgrView = checkNotNull(pFormulaManagerView);
     bfmrView = fmgrView.getBooleanFormulaManager();
@@ -142,6 +150,17 @@ public class LassoBuilder {
     ifThenElseElimination = new IfThenElseElimination(fmgrView, fmgr);
     equalElimination = new EqualElimination(fmgrView);
     notEqualAndNotInequalityElimination = new NotEqualAndNotInequalityElimination(fmgrView);
+
+    formulaVisitor =
+        new FormulaTransformationVisitor(fmgr) {
+
+          @Override
+          public Formula visitFreeVariable(Formula pF, String pName) {
+            ApplicationTerm appTerm = (ApplicationTerm) fmgr.extractInfo(pF);
+            Term result = env.variable(appTerm.getFunction().getName(), appTerm.getSort());
+            return fmgr.getFormulaCreator().encapsulateWithTypeOf(result);
+          }
+        };
 
     stats = pLassoAnalysisStats;
   }
@@ -197,7 +216,7 @@ public class LassoBuilder {
         } else { // last state of the lasso has to be a loop state
           TerminationState state =
               extractStateByType(path.getAbstractState(), TerminationState.class);
-          Verify.verify(state.isPartOfLoop());
+          verify(state.isPartOfLoop());
           loopStarted = true;
         }
       }
@@ -302,8 +321,13 @@ public class LassoBuilder {
 
     List<List<LinearInequality>> polyhedra = new ArrayList<>(clauses.size());
     for (BooleanFormula clause : clauses) {
-      Term term = fmgr.extractInfo(clause);
-      polyhedra.add(InequalityConverter.convert(term, EXCEPTION));
+
+      // Free variables ('ApplicationTerm' with zero parameters) are replaced by bound variables
+      // ('FreeVariable'), because LassoRanker requires this
+      Formula converted = fmgr.transformRecursively(clause, formulaVisitor);
+
+      Term term = fmgr.extractInfo(converted);
+      polyhedra.add(InequalityConverter.convert(term, NlaHandling.EXCEPTION));
     }
     return polyhedra;
   }
@@ -364,32 +388,41 @@ public class LassoBuilder {
             fmgrView, inSsa, outSsa, pRelevantVariables.keySet(), substitution);
     fmgrView.visitRecursively(pDnf.getUfEliminationResult().getFormula(), variablesCollector);
 
-    ImmutableMap<RankVar, Term> inRankVars =
+    ImmutableMap<RankVar, TermVariable> inRankVars =
         createRankVars(variablesCollector.getInVariables(), pRelevantVariables, substitution);
-    ImmutableMap<RankVar, Term> outRankVars =
+    ImmutableMap<RankVar, TermVariable> outRankVars =
         createRankVars(variablesCollector.getOutVariables(), pRelevantVariables, substitution);
 
     return new InOutVariables(inRankVars, outRankVars);
   }
 
-  private ImmutableMap<RankVar, Term> createRankVars(
+  private ImmutableMap<RankVar, TermVariable> createRankVars(
       Set<Formula> variables,
       Map<String, CVariableDeclaration> pRelevantVariables,
       Map<Formula, Formula> substitution) {
-    ImmutableMap.Builder<RankVar, Term> rankVars = ImmutableMap.builder();
+    ImmutableMap.Builder<RankVar, TermVariable> rankVars = ImmutableMap.builder();
     for (Formula variable : variables) {
       Term term = fmgr.extractInfo(variable);
+
+      verify(
+          term instanceof ApplicationTerm,
+          "Variable 'term' is expected to be an instance of ApplicationTerm");
+
       Formula uninstantiatedVariable = fmgrView.uninstantiate(variable);
       Set<String> variableNames = fmgrView.extractVariableNames(uninstantiatedVariable);
       String variableName = Iterables.getOnlyElement(variableNames);
 
       if (pRelevantVariables.get(variableName) != null) {
+
+        TermVariable termVar =
+            env.variable(((ApplicationTerm) term).getFunction().getName(), term.getSort());
+
         rankVars.put(
             new RankVar(
                 variableName,
                 pRelevantVariables.get(variableName).isGlobal(),
                 fmgr.extractInfo(uninstantiatedVariable)),
-            term);
+            termVar);
 
       } else if (substitution.containsValue(variable)) {
         Formula originalFormula =
@@ -398,9 +431,15 @@ public class LassoBuilder {
                 .map(Entry::getKey)
                 .findAny()
                 .orElseThrow();
+
         Formula uninstantiatedOriginalFormula = fmgrView.uninstantiate(originalFormula);
         Term originalTerm = fmgr.extractInfo(uninstantiatedOriginalFormula);
-        rankVars.put(new RankVar(originalTerm.toString(), true, originalTerm), term);
+
+        TermVariable termVar =
+            env.variable(
+                ((ApplicationTerm) originalTerm).getFunction().getName(), originalTerm.getSort());
+
+        rankVars.put(new RankVar(originalTerm.toString(), true, originalTerm), termVar);
 
       } else if (!isMetaVariable(variableName)
           && !variableName.startsWith(TERMINATION_AUX_VARS_PREFIX)) {
@@ -412,20 +451,20 @@ public class LassoBuilder {
 
   private static class InOutVariables {
 
-    private final ImmutableMap<RankVar, Term> inVars;
-    private final ImmutableMap<RankVar, Term> outVars;
+    private final ImmutableMap<RankVar, TermVariable> inVars;
+    private final ImmutableMap<RankVar, TermVariable> outVars;
 
     public InOutVariables(
-        ImmutableMap<RankVar, Term> pInVars, ImmutableMap<RankVar, Term> pOutVars) {
+        ImmutableMap<RankVar, TermVariable> pInVars, ImmutableMap<RankVar, TermVariable> pOutVars) {
       inVars = checkNotNull(pInVars);
       outVars = checkNotNull(pOutVars);
     }
 
-    public ImmutableMap<IProgramVar, Term> getInVars() {
+    public ImmutableMap<IProgramVar, TermVariable> getInVars() {
       return ImmutableMap.copyOf(inVars);
     }
 
-    public ImmutableMap<IProgramVar, Term> getOutVars() {
+    public ImmutableMap<IProgramVar, TermVariable> getOutVars() {
       return ImmutableMap.copyOf(outVars);
     }
   }

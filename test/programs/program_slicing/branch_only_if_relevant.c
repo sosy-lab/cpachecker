@@ -1,0 +1,23 @@
+int check(int i) {
+  if (i == 1) {
+    return 0;
+  } else {
+  ERROR:
+    return 0;
+  }
+}
+
+int main(void) {
+  int i = 0;
+  int c = 0;
+
+  if (c == 0) {
+    i++;
+  } else {
+    return 0;
+  }
+
+  int r = check(i);
+
+  return r;
+}
