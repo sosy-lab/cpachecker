@@ -1258,6 +1258,13 @@ cpa.bam.indexedArgFile = "ARGs/ARG_%d.dot"
 # disables this option.
 cpa.bam.maximalDepthForExplicitRecursion = -1
 
+# By default, the CPA algorithm terminates when finding the first target
+# state, which makes it easy to identify this last state. For special
+# analyses, we need to search for more target states in the reached-set, when
+# reaching a block-exit. This flag is needed if the option
+# 'cpa.automaton.breakOnTargetState' is unequal to 1.
+cpa.bam.searchTargetStatesOnExit = false
+
 # export used parts of blocked ARG as .dot file
 cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
 

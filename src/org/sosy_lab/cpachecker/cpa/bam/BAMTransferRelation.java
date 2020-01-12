@@ -72,11 +72,14 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
   private final BAMCPAStatistics stats;
 
+  private final boolean searchTargetStatesOnExit;
+
   public BAMTransferRelation(
       BAMCPA bamCpa,
       ShutdownNotifier pShutdownNotifier,
       AlgorithmFactory pFactory,
-      BAMPCCManager pBamPccManager) {
+      BAMPCCManager pBamPccManager,
+      boolean pSearchTargetStatesOnExit) {
     super(bamCpa, pShutdownNotifier);
     algorithmFactory = pFactory;
     callstackTransfer =
@@ -85,6 +88,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
                 .retrieveWrappedTransferRelation(CallstackTransferRelation.class));
     bamPccManager = pBamPccManager;
     stats = bamCpa.getStatistics();
+    searchTargetStatesOnExit = pSearchTargetStatesOnExit;
   }
 
   @Override
@@ -401,7 +405,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     // if the element is an error element
     final Set<AbstractState> returnStates;
     final AbstractState lastState = reached.getLastState();
-    if (isTargetState(lastState)) {
+    if (!searchTargetStatesOnExit && isTargetState(lastState)) {
       // found a target state inside a recursive subgraph call
       // this needs to be propagated to outer subgraph (till main is reached)
       returnStates = Collections.singleton(lastState);
@@ -416,6 +420,12 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
           AbstractStates.filterLocations(reached, innerSubtree.getReturnNodes())) {
         if (((ARGState) returnState).getChildren().isEmpty()) {
           returnStates.add(returnState);
+        }
+      }
+      if (searchTargetStatesOnExit) {
+        for (AbstractState targetState : Iterables.filter(reached, AbstractStates::isTargetState)) {
+          assert ((ARGState) targetState).getChildren().isEmpty();
+          returnStates.add(targetState);
         }
       }
     }

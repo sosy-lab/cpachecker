@@ -73,16 +73,25 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   private boolean handleRecursiveProcedures = false;
 
   @Option(
-    secure = true,
-    description =
-        "If enabled, cache queries also consider blocks with " + "non-matching precision for reuse."
-  )
+      secure = true,
+      description =
+          "If enabled, cache queries also consider blocks with non-matching precision for reuse.")
   private boolean aggressiveCaching = true;
 
   @Option(
       secure = true,
       description = "Should the nested CPA-algorithm be wrapped with CEGAR within BAM?")
   private boolean useCEGAR = false;
+
+  @Option(
+      secure = true,
+      description =
+          "By default, the CPA algorithm terminates when finding the first target state, "
+              + "which makes it easy to identify this last state. For special analyses, "
+              + "we need to search for more target states in the reached-set, "
+              + "when reaching a block-exit. This flag is needed if the option "
+              + "'cpa.automaton.breakOnTargetState' is unequal to 1.")
+  private boolean searchTargetStatesOnExit = false;
 
   private BAMCPA(
       ConfigurableProgramAnalysis pCpa,
@@ -129,9 +138,11 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
     if (handleRecursiveProcedures) {
       transfer =
           new BAMTransferRelationWithFixPointForRecursion(
-              config, this, pShutdownNotifier, factory, bamPccManager);
+              config, this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit);
     } else {
-      transfer = new BAMTransferRelation(this, pShutdownNotifier, factory, bamPccManager);
+      transfer =
+          new BAMTransferRelation(
+              this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit);
     }
   }
 
