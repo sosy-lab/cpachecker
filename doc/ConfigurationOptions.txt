@@ -1162,7 +1162,7 @@ cpa.arg.witness.removeInsufficientEdges = true
 cpa.arg.witness.revertThreadFunctionRenaming = false
 
 # signal the analysis to break in case the given number of error state is
-# reached 
+# reached. Use -1 to disable this limit.
 cpa.automaton.breakOnTargetState = 1
 
 # export automaton to file
@@ -1173,8 +1173,8 @@ cpa.automaton.dotExport = false
 cpa.automaton.dotExportFile = "%s.dot"
 
 # the maximum number of iterations performed after the initial error is
-# found, despite the limitgiven as cpa.automaton.breakOnTargetState is not
-# yet reached
+# found, despite the limit given as cpa.automaton.breakOnTargetState is not
+# yet reached. Use -1 to disable this limit.
 cpa.automaton.extraIterationsLimit = -1
 
 # file with automaton specification for ObserverAutomatonCPA and
