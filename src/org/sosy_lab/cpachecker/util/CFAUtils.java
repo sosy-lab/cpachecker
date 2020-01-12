@@ -50,7 +50,6 @@ import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNodeVisitor;
@@ -479,24 +478,16 @@ public class CFAUtils {
   }
 
   /**
-   * Get all {@link FileLocation} objects that are attached to an edge or its AST nodes. The result
-   * has non-deterministic order.
+   * Get all {@link FileLocation} objects that are attached to an edge or its AST nodes.
+   * The result has non-deterministic order.
    */
-  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, Language language) {
-    Set<FileLocation> result;
-    if (language == Language.JAVA) {
-      result =
-          from(getAstNodesFromCfaEdge(pEdge))
-              .transformAndConcat(node -> traverseRecursively((JAstNode) node))
-              .transform(JAstNode::getFileLocation)
-              .copyInto(new HashSet<>());
-    } else {
-      result =
-          from(getAstNodesFromCfaEdge(pEdge))
-              .transformAndConcat(node -> traverseRecursively((CAstNode) node))
-              .transform(CAstNode::getFileLocation)
-              .copyInto(new HashSet<>());
-    }
+  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
+    Set<FileLocation> result =
+        from(getAstNodesFromCfaEdge(pEdge))
+            .transformAndConcat(node -> traverseRecursively((CAstNode) node))
+            .transform(CAstNode::getFileLocation)
+            .copyInto(new HashSet<>());
+
     result.add(pEdge.getFileLocation());
     result.remove(FileLocation.DUMMY);
 
