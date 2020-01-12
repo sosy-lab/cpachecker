@@ -208,6 +208,10 @@ public class PredicateManager {
     }
   }
 
+  int getNumberOfAdditionalVariables() {
+    return initAdditionalVariables;
+  }
+
   String getAdditionalVariableWithIndex(final String varName, int i) {
     return TMP_VARIABLE_PREFIX + i + "__" + varName;
   }

@@ -163,7 +163,14 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public Reducer getReducer() {
-    return new BDDReducer(manager, bvmgr, predmgr, cfa.getMachineModel(), useBlockAbstraction);
+    return new BDDReducer(
+        manager,
+        bvmgr,
+        predmgr,
+        cfa.getMachineModel(),
+        shutdownNotifier,
+        logger,
+        useBlockAbstraction);
   }
 
   public Configuration getConfiguration() {
