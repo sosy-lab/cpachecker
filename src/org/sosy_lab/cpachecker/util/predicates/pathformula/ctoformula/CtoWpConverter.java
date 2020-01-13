@@ -31,6 +31,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -155,10 +156,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
 
     } else {
       if (stmt instanceof CFunctionCallStatement) {
-        // TODO: add support
-        throw new UnrecognizedCodeException(
-            "Preconditions for a function call are not supported", pEdge);
-
+        return makePreconditionForFunctionCallStatement(pEdge, (CFunctionCallStatement)stmt, pPostcond, pFunction);
       } else if (!(stmt instanceof CExpressionStatement)) {
         throw new UnrecognizedCodeException("Unknown statement", pEdge, stmt);
       }
@@ -349,5 +347,22 @@ public class CtoWpConverter extends CtoFormulaConverter {
       throw new UnrecognizedCodeException("Unknown function exit expression", pEdge, retExp);
     }
 
+  }
+
+  private BooleanFormula makePreconditionForFunctionCallStatement(
+      final CStatementEdge pEdge,
+      final CFunctionCall pStmt,
+      final BooleanFormula pPostcond,
+      final String pFunction)
+      throws UnrecognizedCodeException {
+
+    if (pStmt instanceof CFunctionCallStatement) {
+      return pPostcond;
+    } else if (pStmt instanceof CFunctionCallAssignmentStatement) {
+      final var callStmt = (CFunctionCallAssignmentStatement)pStmt;
+      return makePreconditionForAssignement(callStmt.getLeftHandSide(), callStmt.getRightHandSide(), pEdge, pPostcond, pFunction);
+    } else {
+      throw new UnrecognizedCodeException("Unknown call statement", pEdge, pStmt);
+    }
   }
 }
