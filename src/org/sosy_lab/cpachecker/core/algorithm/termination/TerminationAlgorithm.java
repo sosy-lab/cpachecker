@@ -340,14 +340,14 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         setExplicitAbstractionNodes(ImmutableSet.of());
       }
       resetReachedSet(pReachedSet, initialLocation);
-      CPAcheckerResult.Result loopTermiantion =
-          prooveLoopTermination(pReachedSet, loop, initialLocation);
+      CPAcheckerResult.Result loopTermination =
+          proveLoopTermination(pReachedSet, loop, initialLocation);
 
-      if (loopTermiantion == Result.FALSE) {
+      if (loopTermination == Result.FALSE) {
         logger.logf(Level.FINE, "Proved non-termination of %s.", loop);
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
 
-      } else if (loopTermiantion != Result.TRUE) {
+      } else if (loopTermination != Result.TRUE) {
         logger.logf(FINE, "Could not prove (non-)termination of %s.", loop);
         status = status.withSound(false);
       }
@@ -367,7 +367,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     return status;
   }
 
-  private Result prooveLoopTermination(ReachedSet pReachedSet, Loop pLoop, CFANode initialLocation)
+  private Result proveLoopTermination(ReachedSet pReachedSet, Loop pLoop, CFANode initialLocation)
       throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
 
     logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);

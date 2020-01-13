@@ -147,7 +147,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
       throw new UnsupportedOperationException("TransferRelation requires location information.");
 
     } else if (terminationState.isPartOfStem()
-        && terminationInformation.isPredecessorOfIncommingEdge(location)) {
+        && terminationInformation.isPredecessorOfIncomingEdge(location)) {
       statesAtCurrentLocation = declarePrimedVariables(terminationState, pPrecision, location);
       targetStatesAtCurrentLocation = ImmutableList.of();
 
@@ -217,7 +217,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
         functionName);
 
     // loopHead - [!(rankingFunction)] -> potentialNonTerminationNode
-    CFANode potentialNonTerminationNode = creatCfaNode(functionName);
+    CFANode potentialNonTerminationNode = createCfaNode(functionName);
     CFAEdge negativeRankingRelation =
         terminationInformation.createRankingRelationAssumeEdge(
             loopHead, potentialNonTerminationNode, false);
@@ -247,7 +247,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
           .copyInto(resultingSuccessors);
     }
 
-    CFANode node1 = creatCfaNode(functionName);
+    CFANode node1 = createCfaNode(functionName);
     Collection<TerminationState> statesAtNode1 = new ArrayList<>(2);
 
     // potentialNonTerminationNode --> node1
@@ -263,13 +263,13 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
             Collections.singleton(loopHeadState), pPrecision, positiveRankingRelation));
 
     // node1 - int __CPAchecker_termination_temp;  -> node 2
-    CFANode node2 = creatCfaNode(functionName);
+    CFANode node2 = createCfaNode(functionName);
     CDeclarationEdge nondetEdge = createTmpVarDeclaration(node1, node2);
     Collection<TerminationState> statesAtNode2 =
         getAbstractSuccessorsForEdge0(statesAtNode1, pPrecision, nondetEdge);
 
     // node2 - __CPAchecker_termination_temp = __VERIFIER_nondet_int()  -> node 3
-    CFANode node3 = creatCfaNode(functionName);
+    CFANode node3 = createCfaNode(functionName);
     CFunctionCallAssignmentStatement nondetAssignment =
         new CFunctionCallAssignmentStatement(
             FileLocation.DUMMY,
@@ -286,7 +286,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
         getAbstractSuccessorsForEdge0(statesAtNode2, pPrecision, nondetAssignmentEdge);
 
     // node3 - [! (__CPAchecker_termination_temp == 0)] -> node 4
-    CFANode node4 = creatCfaNode(functionName);
+    CFANode node4 = createCfaNode(functionName);
     CExpression nondetTmpVariable = new CIdExpression(DUMMY, nondetEdge.getDeclaration());
     CExpression nondetTmpVariableAssumption =
         new CBinaryExpression(
@@ -296,7 +296,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
             nondetTmpVariable,
             CIntegerLiteralExpression.ZERO,
             BinaryOperator.EQUALS);
-    CFAEdge negativeNodetAssumeEdge =
+    CFAEdge negativeNondetAssumeEdge =
         createAssumeEdge(nondetTmpVariableAssumption, node3, node4, false);
 
     // Enter loop only once.
@@ -306,12 +306,12 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
             .filter(TerminationState::isPartOfStem)
             .collect(Collectors.toCollection(ArrayList::new));
     Collection<TerminationState> statesAtNode4 =
-        getAbstractSuccessorsForEdge0(nonLoopStatesAtNode3, pPrecision, negativeNodetAssumeEdge);
+        getAbstractSuccessorsForEdge0(nonLoopStatesAtNode3, pPrecision, negativeNondetAssumeEdge);
 
     Collection<TerminationState> statesAtNode5 = new ArrayList<>();
 
     // node4 - x' = x; y' = y; ... -> node 5
-    CFANode node5 = creatCfaNode(functionName);
+    CFANode node5 = createCfaNode(functionName);
     initializePrimedVariables(node4, node5, statesAtNode4, pPrecision)
         .stream()
         .map((s) -> s.enterLoop(loopHead)) // pc' = loopHead
@@ -409,7 +409,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     return edge;
   }
 
-  private CFANode creatCfaNode(String functionName) {
+  private CFANode createCfaNode(String functionName) {
     return new CFANode(functionName);
   }
 
