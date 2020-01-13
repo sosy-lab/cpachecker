@@ -11,5 +11,6 @@
 
   <tasks>
     <include>../programs/llvm/*yml</include>
+    <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
   </tasks>
 </benchmark>
