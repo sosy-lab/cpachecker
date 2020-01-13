@@ -929,7 +929,7 @@ public class SMGBuiltins {
       case ASSUME_SAFE:
         return ImmutableList.of(SMGAddressValueAndState.of(pState));
       case ASSUME_EXTERNAL_ALLOCATED:
-        return expressionEvaluator.handleSafeExternFuction(cFCExpression, pState, pCfaEdge);
+        return expressionEvaluator.handleSafeExternFunction(cFCExpression, pState, pCfaEdge);
       default:
         throw new AssertionError(
             "Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
