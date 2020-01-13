@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.slicing;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
@@ -409,22 +411,24 @@ public class SliceExporter {
     FunctionEntryNode newMainEntryNode = null;
 
     for (String functionName : pCfa.getAllFunctionNames()) {
+      final boolean isMainFunction = functionName.equals(pCfa.getMainFunction().getFunctionName());
+
       FunctionEntryNode entryNode = pCfa.getFunctionHead(functionName);
 
       Collection<CFANode> functionNodes = CFATraversal.dfs().collectNodesReachableFrom(entryNode);
 
-      if (containsRelevantEdge(functionNodes, pRelevantEdges)) {
-
-        FunctionEntryNode newEntryNode =
+      if (isMainFunction || containsRelevantEdge(functionNodes, pRelevantEdges)) {
+        final FunctionEntryNode newEntryNode =
             createRelevantFunction((CFunctionEntryNode) entryNode, pRelevantEdges, newNodes);
         newFunctions.put(functionName, newEntryNode);
 
-        if (newMainEntryNode == null
-            && functionName.equals(pCfa.getMainFunction().getFunctionName())) {
+        if (isMainFunction) {
+          checkState(newMainEntryNode == null, "Trying to set entry node of main function, but one already exists: " + newMainEntryNode);
           newMainEntryNode = newEntryNode;
         }
       }
     }
+    assert newMainEntryNode != null;
 
     return new MutableCFA(
         pCfa.getMachineModel(),
