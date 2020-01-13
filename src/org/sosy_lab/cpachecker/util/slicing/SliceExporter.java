@@ -73,7 +73,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 
-@Options(prefix = "programSlice.exportToC")
+@Options(prefix = "slicing.exportToC")
 public class SliceExporter {
 
   @Option(

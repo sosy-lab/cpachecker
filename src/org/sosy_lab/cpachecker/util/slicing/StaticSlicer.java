@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  * <p>For a given slicing criterion CFA edge g and a dependence graph, the slice consists of all CFA
  * edges reachable in the dependence graph through backwards-traversal from g.
  */
-@Options(prefix = "programSlice")
+@Options(prefix = "slicing")
 public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
 

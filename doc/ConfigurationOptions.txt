@@ -2487,12 +2487,6 @@ cpa.slicing.applyLBETransformation = true
 # Check target states reachability
 cpa.slicing.checkTargetStates = true
 
-# Whether to export the final slice to a file
-cpa.slicing.exportSlice = true
-
-# File to export final slice to
-cpa.slicing.exportSliceFile = "ProgramSlice.txt"
-
 # Filter lemmas by liveness
 cpa.slicing.filterByLiveness = true
 
@@ -3691,16 +3685,6 @@ program.splitter.heuristic = no default value
 # maximal number
 program.splitter.max = 2
 
-# Whether to export slices as C program files
-programSlice.exportToC.enable = false
-
-# File template for exported C program slices
-programSlice.exportToC.file = "programSlice.%d.c"
-
-# Whether to create slices that are behaviorally equivalent not only to the
-# target location, but also on the paths to that target location.
-programSlice.preserveTargetPaths = false
-
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
@@ -3793,9 +3777,19 @@ slicing.conditionFiles = [
           Paths.get("output/AssumptionAutomaton.txt"),
           Paths.get("config/specification/AssumptionGuiding.spc")]
 
+# Whether to export slices as C program files
+slicing.exportToC.enable = false
+
+# File template for exported C program slices
+slicing.exportToC.file = "programSlice.%d.c"
+
 # which type of extractor for slicing criteria to use
 slicing.extractor = ALL
   enum:     [ALL, REDUCER, SYNTAX]
+
+# Whether to create slices that are behaviorally equivalent not only to the
+# target location, but also on the paths to that target location.
+slicing.preserveTargetPaths = false
 
 # Extract and cache unsat cores for satisfiability checking
 solver.cacheUnsatCores = true
