@@ -224,6 +224,9 @@ analysis.checkProof = false
 # use assumption collecting algorithm
 analysis.collectAssumptions = false
 
+# Construct the program slice for the given configuration.
+analysis.constructProgramSlice = false
+
 # Solely construct the residual program for a given condition/assumption.
 analysis.constructResidualProgram = false
 
