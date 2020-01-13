@@ -2633,6 +2633,10 @@ cpa.smg.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 cpa.smg.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
 
+# Which unknown function are always considered as safe functions, i.e., free
+# of memory-related side-effects?
+cpa.smg.safeUnknownFunctions = {"abort"}
+
 # which stop operator to use for the SMGCPA
 cpa.smg.stop = "SEP"
   allowed values: [SEP, NEVER, END_BLOCK]
