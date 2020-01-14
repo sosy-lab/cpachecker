@@ -516,14 +516,14 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   private void dumpSubcoverage(ReachedSet reached, ConfigurableProgramAnalysis currentCpa) {
 
      if (currentCpa instanceof AbstractBAMCPA) {
-       FluentIterable<AbstractState> reachedStates = FluentIterable.from(reached);
-       Collection<ReachedSet> otherReachedSets =
-           ((AbstractBAMCPA) currentCpa).getData().getCache().getAllCachedReachedStates();
-       reachedStates = reachedStates.append(FluentIterable.concat(otherReachedSets));
+      if (subcoverageFile != null) {
+        FluentIterable<AbstractState> reachedStates = FluentIterable.from(reached);
+        Collection<ReachedSet> otherReachedSets =
+            ((AbstractBAMCPA) currentCpa).getData().getCache().getAllCachedReachedStates();
+        reachedStates = reachedStates.append(FluentIterable.concat(otherReachedSets));
 
-       CoverageData infosPerFile = CoverageCollector.fromReachedSet(reachedStates, cfa);
+        CoverageData infosPerFile = CoverageCollector.fromReachedSet(reachedStates, cfa);
 
-       if (subcoverageFile != null) {
          try (Writer gcovOut = IO.openOutputFile(subcoverageFile, Charset.defaultCharset())) {
            CoverageReportGcov.write(infosPerFile, gcovOut);
          } catch (IOException e) {
