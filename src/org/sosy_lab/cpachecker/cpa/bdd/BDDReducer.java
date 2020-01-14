@@ -188,7 +188,8 @@ class BDDReducer extends GenericReducer<BDDState, Precision> {
   private BDDState replace(BDDState state, String oldName, String newName) {
     Region[] oldVariable = predmgr.createPredicateWithoutPrecisionCheck(oldName, maxBitsize);
     Region[] newVariable = predmgr.createPredicateWithoutPrecisionCheck(newName, maxBitsize);
-    return state.addAssignment(oldVariable, newVariable).forget(oldVariable);
+    return new BDDState(
+        manager, bvmgr, manager.replace(state.getRegion(), oldVariable, newVariable));
   }
 
   @Override
