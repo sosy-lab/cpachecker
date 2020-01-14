@@ -246,4 +246,9 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public void setVarOrder(ImmutableIntArray pOrder) {}
+
+  @Override
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+    throw new UnsupportedOperationException();
+  }
 }

@@ -97,4 +97,15 @@ public interface RegionManager extends RegionCreator {
    * @param strategy the reorder strategy that should be applied.
    */
   void reorder(PredicateOrderingStrategy strategy);
+
+  /**
+   * Replace predicates in the region with a new predicates.
+   *
+   * Corresponds to '\exists old : (region && old==new)'.
+   *
+   * We assume that the predicates only consist of plain predicates,
+   * nothing more complex. We will only use the root variable of the predicate.
+   * We also assume identical lengths of the old and new predicates.
+   */
+  Region replace(Region region, Region[] oldPredicates, Region[] newPredicates);
 }

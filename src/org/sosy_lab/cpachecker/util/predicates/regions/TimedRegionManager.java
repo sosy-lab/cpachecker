@@ -220,4 +220,14 @@ public class TimedRegionManager implements RegionManager {
       orderingTimer.stop();
     }
   }
+
+  @Override
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+    timer.start();
+    try {
+      return delegate.replace(pRegion, pOldPredicates, pNewPredicates);
+    } finally {
+      timer.stop();
+    }
+  }
 }
