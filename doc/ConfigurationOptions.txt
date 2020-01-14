@@ -499,6 +499,10 @@ bdd.javabdd.initTableRatio = 0.001
 # Initial size of the BDD node table, use 0 for size based on initTableRatio.
 bdd.javabdd.initTableSize = 0
 
+# measure the time spent in the BDD library. The behaviour in case of
+# concurrent accesses is undefined!
+bdd.measureLibraryAccess = false
+
 # Which BDD package should be used?
 # - java:   JavaBDD (default, no dependencies, many features)
 # - sylvan: Sylvan (only 64bit Linux, uses multiple threads)
