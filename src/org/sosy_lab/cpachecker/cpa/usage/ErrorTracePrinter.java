@@ -290,7 +290,10 @@ public abstract class ErrorTracePrinter {
         .put(skippedUnsafes)
         .put(emptyLockSetUnsafes);
 
-    container.printUsagesStatistics(out);
+    if (container != null) {
+      // Timeout
+      container.printUsagesStatistics(out);
+    }
   }
 
   protected String getNoteFor(CFAEdge pEdge) {
