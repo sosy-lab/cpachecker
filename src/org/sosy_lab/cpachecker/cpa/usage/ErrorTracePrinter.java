@@ -199,6 +199,15 @@ public abstract class ErrorTracePrinter {
 
     logger.log(Level.FINEST, "Processing unsafe identifiers");
     List<Pair<UsageInfo, UsageInfo>> unsafes = uReached.getUnsafes();
+
+    if (unsafes == null) {
+      // Means that there are no stable unsafes, nothing to print, but warn
+      logger.log(
+          Level.WARNING,
+          "Can not find information about unsafes, it does not mean that the program is safe");
+      return;
+    }
+
     container = uReached.getUsageContainer();
 
     init();
