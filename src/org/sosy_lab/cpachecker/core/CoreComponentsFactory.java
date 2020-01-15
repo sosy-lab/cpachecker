@@ -586,7 +586,8 @@ public class CoreComponentsFactory {
         || useProofCheckWithARGCMCStrategy
         || asConditionalVerifier
         || useNonTerminationWitnessValidation
-        || useUndefinedFunctionCollector) {
+        || useUndefinedFunctionCollector
+        || constructProgramSlice) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
