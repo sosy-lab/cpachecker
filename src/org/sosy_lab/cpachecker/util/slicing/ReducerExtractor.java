@@ -52,7 +52,7 @@ public class ReducerExtractor extends AllTargetsExtractor {
   private List<Path> conditionFiles =
       ImmutableList.of(
           Paths.get("output/AssumptionAutomaton.txt"),
-          Paths.get("config/specification/AssumptionGuiding.spc"));
+          Paths.get("config/specification/AssumptionGuidingAutomaton.spc"));
 
   public ReducerExtractor(final Configuration pConfig) throws InvalidConfigurationException {
     config = pConfig;
