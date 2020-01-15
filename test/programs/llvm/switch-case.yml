@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+input_files: 'switch-case.ll'
+
+properties:
+  - property_file: ../../config/properties/unreach-call.prp
+    expected_verdict: true

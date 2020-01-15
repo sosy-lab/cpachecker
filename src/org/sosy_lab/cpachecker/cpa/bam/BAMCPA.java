@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -74,16 +73,25 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   private boolean handleRecursiveProcedures = false;
 
   @Option(
-    secure = true,
-    description =
-        "If enabled, cache queries also consider blocks with " + "non-matching precision for reuse."
-  )
+      secure = true,
+      description =
+          "If enabled, cache queries also consider blocks with non-matching precision for reuse.")
   private boolean aggressiveCaching = true;
 
   @Option(
       secure = true,
       description = "Should the nested CPA-algorithm be wrapped with CEGAR within BAM?")
   private boolean useCEGAR = false;
+
+  @Option(
+      secure = true,
+      description =
+          "By default, the CPA algorithm terminates when finding the first target state, "
+              + "which makes it easy to identify this last state. For special analyses, "
+              + "we need to search for more target states in the reached-set, "
+              + "when reaching a block-exit. This flag is needed if the option "
+              + "'cpa.automaton.breakOnTargetState' is unequal to 1.")
+  private boolean searchTargetStatesOnExit = false;
 
   private BAMCPA(
       ConfigurableProgramAnalysis pCpa,
@@ -130,15 +138,17 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
     if (handleRecursiveProcedures) {
       transfer =
           new BAMTransferRelationWithFixPointForRecursion(
-              config, this, pShutdownNotifier, factory, bamPccManager);
+              config, this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit);
     } else {
-      transfer = new BAMTransferRelation(this, pShutdownNotifier, factory, bamPccManager);
+      transfer =
+          new BAMTransferRelation(
+              this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit);
     }
   }
 
   @Override
-  public MergeOperator getMergeOperator() {
-    return new BAMMergeOperator(getWrappedCpa().getMergeOperator(), bamPccManager);
+  public BAMMergeOperator getMergeOperator() {
+    return super.getMergeOperator().withBAMPCCManager(bamPccManager);
   }
 
   @Override

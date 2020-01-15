@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -251,7 +252,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       return Collections.singletonList(SMGValueAndState.withUnknownValue(pNewState));
     }
 
-    List<SMGValueAndState> result = new ArrayList<>(4);
+    ImmutableList.Builder<SMGValueAndState> result = ImmutableList.builderWithExpectedSize(4);
 
     for (SMGValueAndState operand1AndState : getOperand(pNewState, pV1)) {
       SMGSymbolicValue operand1 = operand1AndState.getObject();
@@ -265,7 +266,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       }
     }
 
-    return result;
+    return result.build();
   }
 
   private List<? extends SMGValueAndState> getOperand(SMGState pNewState, SMGSymbolicValue pV)

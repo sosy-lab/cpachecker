@@ -67,6 +67,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.ShutdownManager;
+import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -205,6 +206,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   // We use a Future instead of just the atomic reference below
   // to be able to ask for termination and see thrown exceptions.
   private Future<Pair<InvariantSupplier, ExpressionTreeSupplier>> invariantGenerationFuture = null;
+
+  @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
+  private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
+
+    @Override
+    public void shutdownRequested(String pReason) {
+      invariantGenerationFuture.cancel(true);
+    }
+  };
 
   public static KInductionInvariantGenerator create(
       final Configuration pConfig,
@@ -381,8 +391,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       invariantGenerationFuture = new LazyFutureTask<>(task);
     }
 
-    shutdownManager.getNotifier()
-        .registerAndCheckImmediately(reason -> invariantGenerationFuture.cancel(true));
+    shutdownManager.getNotifier().registerAndCheckImmediately(shutdownListener);
   }
 
   private final AtomicBoolean cancelled = new AtomicBoolean();

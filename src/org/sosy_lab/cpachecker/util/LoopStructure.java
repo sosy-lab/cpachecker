@@ -671,7 +671,7 @@ public final class LoopStructure implements Serializable {
       }
     } while (!toRemove.isEmpty());
 
-    return loops;
+    return ImmutableList.copyOf(loops);
   }
 
   private static boolean identifyLoops(boolean reverseMerge, SortedSet<CFANode> nodes,

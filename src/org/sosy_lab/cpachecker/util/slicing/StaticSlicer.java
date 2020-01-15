@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Comparator;
@@ -58,7 +59,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  * <p>For a given slicing criterion CFA edge g and a dependence graph, the slice consists of all CFA
  * edges reachable in the dependence graph through backwards-traversal from g.
  */
-@Options(prefix = "programSlice")
+@Options(prefix = "slicing")
 public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
 
@@ -67,7 +68,11 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           + "the target location, but also on the paths to that target location.")
   private boolean preserveTargetPaths = false;
 
+  private final LogManager logger;
+
   private DependenceGraph depGraph;
+
+  private final SliceExporter sliceExporter;
 
   private StatInt candidateSliceCount =
       new StatInt(StatKind.SUM, "Number of proposed slicing " + "procedures");
@@ -85,11 +90,15 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     pConfig.inject(this);
 
+    logger = pLogger;
+
     depGraph = pDependenceGraph;
+
+    sliceExporter = new SliceExporter(pConfig);
   }
 
   @Override
-  public Set<CFAEdge> getRelevantEdges(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
+  public ImmutableSet<CFAEdge> getRelevantEdges(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
       throws InterruptedException {
     candidateSliceCount.setNextValue(pSlicingCriteria.size());
     int realSlices = 0;
@@ -133,12 +142,13 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         }
       }
 
+      sliceExporter.execute(pCfa, relevantEdges, sliceCount.getUpdateCount(), logger);
 
     } finally {
       sliceCount.setNextValue(realSlices);
     }
     slicingTime.stop();
-    return relevantEdges;
+    return ImmutableSet.copyOf(relevantEdges);
   }
 
   @Override

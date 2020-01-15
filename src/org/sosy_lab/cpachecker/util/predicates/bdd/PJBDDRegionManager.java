@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.predicates.bdd.PJBDDRegion.unwrap;
 import static org.sosy_lab.cpachecker.util.predicates.bdd.PJBDDRegion.wrap;
 
+import com.google.common.base.Preconditions;
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -171,6 +172,19 @@ public class PJBDDRegionManager implements RegionManager {
     BDD[] bddF2 = new BDD[f2.length];
     IntStream.range(0, f2.length).forEach(i -> bddF2[i] = unwrap(f2[i]));
     return wrap(bddCreator.makeExists(unwrap(f1), bddF2));
+  }
+
+  @Override
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+    Preconditions.checkArgument(pOldPredicates.length == pNewPredicates.length);
+    BDD bdd = unwrap(pRegion);
+    for (int i = 0; i < pOldPredicates.length; i++) {
+      BDD oldVar = bddCreator.makeIthVar(unwrap(pOldPredicates[i]).getVariable());
+      BDD newVar = bddCreator.makeIthVar(unwrap(pNewPredicates[i]).getVariable());
+      bdd = bddCreator.makeAnd(bdd, bddCreator.makeEqual(oldVar, newVar));
+      bdd = bddCreator.makeExists(bdd, oldVar);
+    }
+    return wrap(bdd);
   }
 
   /**

@@ -24,13 +24,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain;
 
 import com.google.common.base.Preconditions;
-
-import org.sosy_lab.common.log.LogManager;
-
-import java.io.Writer;
-
 import de.uni_freiburg.informatik.ultimate.core.model.services.ILogger;
+import de.uni_freiburg.informatik.ultimate.core.model.services.ILogger.LogLevel;
 import de.uni_freiburg.informatik.ultimate.core.model.services.ILoggingService;
+import de.uni_freiburg.informatik.ultimate.core.model.services.IToolchainStorage;
+import java.io.Writer;
+import org.sosy_lab.common.log.LogManager;
 
 public class LassoRankerLoggingService implements ILoggingService {
 
@@ -62,16 +61,47 @@ public class LassoRankerLoggingService implements ILoggingService {
 
   @Override
   public Object getBacking(ILogger pLogger, Class<?> pBackingType) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(
+        getClass() + "::getBacking(ILogger, Class<?>) is not implemented");
   }
 
   @Override
   public void addWriter(Writer pWriter, String pLogPattern) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(
+        getClass() + "::addWriter(Writer, String) is not implemented");
   }
 
   @Override
   public void removeWriter(Writer pWriter) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(
+        getClass() + "::removeWriter(Writer) is not implemented");
+  }
+
+  @Override
+  public void setLogLevel(Class<?> pClazz, LogLevel pLevel) {
+    throw new UnsupportedOperationException(
+        getClass() + "::setLogLevel(Class<?>, LogLevel) is not implemented");
+  }
+
+  @Override
+  public void setLogLevel(String pId, LogLevel pLevel) {
+    throw new UnsupportedOperationException(
+        getClass() + "::setLogLevel(String, LogLevel) is not implemented");
+  }
+
+  @Override
+  public void reloadLoggers() {
+    throw new UnsupportedOperationException(getClass() + "::reloadLoggers() is not implemented");
+  }
+
+  @Override
+  public void setCurrentControllerID(String pName) {
+    throw new UnsupportedOperationException(
+        getClass() + "::setCurrentControllerID(String) is not implemented");
+  }
+
+  @Override
+  public void store(IToolchainStorage pStorage) {
+    throw new UnsupportedOperationException(getClass() + "::store() is not implemented");
   }
 }

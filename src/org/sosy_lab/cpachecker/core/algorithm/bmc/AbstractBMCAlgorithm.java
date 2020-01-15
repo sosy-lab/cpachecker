@@ -277,7 +277,6 @@ abstract class AbstractBMCAlgorithm
 
         @Override
         public void shutdownRequested(String pReason) {
-          InvariantGenerator invariantGenerator = AbstractBMCAlgorithm.this.invariantGenerator;
           if (invariantGenerator != null && invariantGenerator.isProgramSafe()) {
             pShutdownManager.requestShutdown(pReason);
           }
@@ -1265,9 +1264,19 @@ abstract class AbstractBMCAlgorithm
 
       private final CountDownLatch latch;
 
+      @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
+      private final ShutdownRequestListener shutdownListener =
+          new ShutdownRequestListener() {
+
+            @Override
+            public void shutdownRequested(String pReason) {
+              latch.countDown();
+            }
+          };
+
       public HeadStartWithLatch(AbstractBMCAlgorithm pBmcAlgorithm, CountDownLatch pLatch) {
         latch = Objects.requireNonNull(pLatch);
-        pBmcAlgorithm.shutdownNotifier.registerAndCheckImmediately(reason -> latch.countDown());
+        pBmcAlgorithm.shutdownNotifier.registerAndCheckImmediately(shutdownListener);
       }
 
       @Override

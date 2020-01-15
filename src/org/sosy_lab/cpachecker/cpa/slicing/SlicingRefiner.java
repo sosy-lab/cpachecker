@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -364,15 +365,14 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private Set<CFAEdge> getSlice(ARGPath pPath) throws InterruptedException {
     List<CFAEdge> innerEdges = pPath.getInnerEdges();
 
-    List<CFAEdge> cexConstraints =
-        innerEdges
-            .stream()
+    Set<CFAEdge> cexConstraints =
+        innerEdges.stream()
             .filter(Predicates.instanceOf(CAssumeEdge.class))
-            .collect(Collectors.toList());
+            .collect(Collectors.toSet());
 
     List<CFAEdge> criteriaEdges = new ArrayList<>(1);
     if (takeEagerSlice) {
-      criteriaEdges = cexConstraints;
+      criteriaEdges.addAll(cexConstraints);
     }
     CFANode finalNode = AbstractStates.extractLocation(pPath.getLastState());
     List<CFAEdge> edgesToTarget =
@@ -384,7 +384,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     if (addCexConstraintsToSlice) {
       // this must always be added _after_ adding the slices, otherwise
       // slices may be incomplete
-      relevantEdges.addAll(cexConstraints);
+      relevantEdges = Sets.union(relevantEdges, ImmutableSet.copyOf(cexConstraints));
     }
 
     return relevantEdges;

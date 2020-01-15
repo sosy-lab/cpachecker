@@ -27,6 +27,7 @@ import com.google.common.base.Joiner;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import org.sosy_lab.common.Concurrency;
@@ -44,6 +45,8 @@ class ForceTerminationOnShutdown implements Runnable {
   // (which is fully sufficient given that all instance would just kill the JVM)
   // We need this instance to be able to cancel the forced termination.
   private static final AtomicReference<Thread> forceTerminationOnShutdownThread = new AtomicReference<>();
+
+  private static final AtomicBoolean canceled = new AtomicBoolean();
 
   // Time that a shutdown may last before we kill the program.
   private static final int SHUTDOWN_GRACE_PERIOD = 10; // seconds
@@ -80,6 +83,9 @@ class ForceTerminationOnShutdown implements Runnable {
               "but there is already a thread waiting to terminate the JVM.");
           return;
         }
+        if (canceled.get()) {
+          return;
+        }
 
         logger.log(
             Level.WARNING, "Shutdown requested", "(" + pReason + "),", "waiting for termination.");
@@ -104,6 +110,7 @@ class ForceTerminationOnShutdown implements Runnable {
    * so that no action will be done.
    */
   static void cancelPendingTermination() {
+    canceled.set(true);
     Thread t = forceTerminationOnShutdownThread.getAndSet(null);
     if (t != null) {
       t.interrupt();
@@ -121,6 +128,9 @@ class ForceTerminationOnShutdown implements Runnable {
       TimeUnit.SECONDS.sleep(SHUTDOWN_GRACE_PERIOD);
     } catch (InterruptedException e) {
       return; // Cancel termination
+    }
+    if (canceled.get()) {
+      return;
     }
     logger.log(Level.WARNING, "Shutdown was requested but CPAchecker is still running after",
         SHUTDOWN_GRACE_PERIOD + "s, forcing immediate termination now.");
@@ -143,6 +153,9 @@ class ForceTerminationOnShutdown implements Runnable {
     try {
       TimeUnit.SECONDS.sleep(SHUTDOWN_GRACE_PERIOD_2);
     } catch (InterruptedException e) {
+      return;
+    }
+    if (canceled.get()) {
       return;
     }
 
