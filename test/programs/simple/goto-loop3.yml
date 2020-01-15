@@ -4,4 +4,4 @@ format_version: '1.0'
 input_files: 'goto-loop3.c'
 
 properties:
-  - property_file: ../../../config/properties/unreach-label.prp
+  - property_file: ../../config/properties/unreach-label.prp

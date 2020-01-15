@@ -4,4 +4,4 @@ format_version: '1.0'
 input_files: 'enum-large-llu.c'
 
 properties:
-  - property_file: ../../../config/properties/unreach-label.prp
+  - property_file: ../../config/properties/unreach-label.prp

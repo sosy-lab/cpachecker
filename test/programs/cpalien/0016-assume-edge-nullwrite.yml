@@ -4,6 +4,6 @@ format_version: '1.0'
 input_files: '0016-assume-edge-nullwrite.c'
 
 properties:
-  - property_file: ../../../config/properties/valid-memsafety.prp
+  - property_file: ../../config/properties/valid-memsafety.prp
     expected_verdict: false
     subproperty: valid-deref

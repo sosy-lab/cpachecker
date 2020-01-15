@@ -20,7 +20,7 @@
       <option name="-setprop">cpa.smg.handleUnknownFunctions=assume_safe</option>
 
       <include>../programs/smg_Explicity_Test/lists/*.yml</include>
-      <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
+      <propertyfile>../config/properties/unreach-call.prp</propertyfile>
     </tasks>
 
     <tasks name="memsafety">
@@ -28,7 +28,7 @@
       <option name="-setprop">memorysafety.config=config/smg.properties</option>
 
       <include>../programs/smg_Explicity_Test/heap-memory/*.yml</include>
-      <propertyfile>../../config/properties/valid-memsafety.prp</propertyfile>
+      <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
     </tasks>
   </rundefinition>
 </benchmark>

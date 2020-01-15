@@ -4,6 +4,6 @@ format_version: '1.0'
 input_files: 'lockfree-3.1.c'
 
 properties:
-  - property_file: ../../../../config/properties/valid-memsafety.prp
+  - property_file: ../../../config/properties/valid-memsafety.prp
     expected_verdict: false
     subproperty: valid-memtrack

@@ -4,5 +4,5 @@ format_version: '1.0'
 input_files: 'list-ext_1.c'
 
 properties:
-  - property_file: ../../../../config/properties/unreach-error.prp
+  - property_file: ../../../config/properties/unreach-error.prp
     expected_verdict: true

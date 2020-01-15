@@ -4,4 +4,4 @@ format_version: '1.0'
 input_files: 'non_pure_function_BUG.c'
 
 properties:
-  - property_file: ../../../config/properties/unreach-label.prp
+  - property_file: ../../config/properties/unreach-label.prp

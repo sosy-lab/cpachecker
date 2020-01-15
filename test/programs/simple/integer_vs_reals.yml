@@ -4,4 +4,4 @@ format_version: '1.0'
 input_files: 'integer_vs_reals.c'
 
 properties:
-  - property_file: ../../../config/properties/unreach-label.prp
+  - property_file: ../../config/properties/unreach-label.prp

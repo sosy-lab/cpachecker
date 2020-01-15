@@ -4,4 +4,4 @@ format_version: '1.0'
 input_files: 'ssh_s3_clnt_errorpath_CBMC-bitwidth-sensitive2.c'
 
 properties:
-  - property_file: ../../../config/properties/unreach-label.prp
+  - property_file: ../../config/properties/unreach-label.prp

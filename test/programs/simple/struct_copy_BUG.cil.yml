@@ -4,4 +4,4 @@ format_version: '1.0'
 input_files: 'struct_copy_BUG.cil.c'
 
 properties:
-  - property_file: ../../../config/properties/unreach-label.prp
+  - property_file: ../../config/properties/unreach-label.prp
