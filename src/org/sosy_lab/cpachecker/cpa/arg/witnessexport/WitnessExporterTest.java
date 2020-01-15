@@ -79,14 +79,14 @@ public class WitnessExporterTest {
 
   @Test(timeout = 90000)
   public void multivar_true() throws Exception {
-    newWitnessTester("multivar_true-unreach-call1_true-termination.i")
+    newWitnessTester("multivar.i")
         .useGenerationConfig(WitnessGenerationConfig.K_INDUCTION)
         .performTest();
   }
 
   @Test(timeout = 90000)
   public void minepump_spec1_product33_false() throws Exception {
-    newWitnessTester("minepump_spec1_product33_false-unreach-call_false-termination.cil.c")
+    newWitnessTester("minepump_spec1_product33.cil.c")
         .performTest()
         .useGenerationConfig(WitnessGenerationConfig.K_INDUCTION)
         .performTest();

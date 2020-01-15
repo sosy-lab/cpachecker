@@ -1,7 +1,7 @@
 format_version: '1.0'
 
-# old file name: main1_false-unreach-call_drivers-vhost-vhost_net-ko--32_7a--linux-3.7.3.c
-input_files: 'main1_drivers-vhost-vhost_net-ko--32_7a--linux-3.7.3.c'
+# old file name: rule60_list2.c_false-unreach-call_1.i
+input_files: 'rule60_list2.i'
 
 properties:
   - property_file: ../../config/properties/unreach-call.prp
