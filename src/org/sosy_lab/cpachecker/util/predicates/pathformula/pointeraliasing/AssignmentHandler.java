@@ -368,7 +368,7 @@ class AssignmentHandler {
         || !lhsLocation.isAliased()) {
       // Fallback case, if we have no initialization of the form "<variable> = <value>"
       // Example code snippet
-      // (cf. test/programs/simple/struct-initializer-for-composite-field_false-unreach-label.c)
+      // (cf. test/programs/simple/struct-initializer-for-composite-field.c)
       //    struct s { int x; };
       //    struct t { struct s s; };
       //    ...

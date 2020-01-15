@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.CPATestRunner.ExpectedVerdict;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
@@ -18,8 +19,6 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 public class PolicyIterationTest {
 
   private static final String TEST_DIR_PATH = "test/programs/policyiteration/";
-
-  private enum ExpectedVerdict { TRUE, FALSE, NONE }
 
   @Test public void stateful_true_assert() throws Exception {
     check("stateful.c", ExpectedVerdict.TRUE);
@@ -230,16 +229,14 @@ public class PolicyIterationTest {
     check(
         filename,
         getProperties("policyIteration-with-overflow.properties", ImmutableMap.of()),
-        pExpected,
-    );
+        pExpected);
   }
 
   private void checkWithBAM(String filename, ExpectedVerdict pExpected) throws Exception {
     check(
         filename,
         getProperties("policyIteration-with-bam.properties", ImmutableMap.of()),
-        pExpected,
-    );
+        pExpected);
   }
 
   private void check(String filename, Configuration config, ExpectedVerdict pExpected) throws Exception {
