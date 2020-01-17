@@ -95,8 +95,6 @@ class EclipseJavaParser implements JavaParser {
   // Make sure to keep the option name synchronized with CPAMain#areJavaOptionsSet
   private String javaClasspath = "";
 
-  private String mainClassName;
-
   @Option(
       secure = true,
       name = "java.exportTypeHierarchy",
@@ -129,7 +127,8 @@ class EclipseJavaParser implements JavaParser {
   static final String JAVA_SOURCE_FILE_EXTENSION = ".java";
 
   private String mainMethodName;
-  private String absolutePathToEntryClass;
+  private String mainClassRelativePath;
+  private String mainClassAbsolutePath;
 
   public EclipseJavaParser(LogManager pLogger, Configuration config)
       throws InvalidConfigurationException {
@@ -145,9 +144,6 @@ class EclipseJavaParser implements JavaParser {
       throw new InvalidConfigurationException("Programs parameter can't be empty.");
     }
 
-    mainMethodName = entryFunction;
-    // TODO Handle multiple program files. Multiple program files might be forbidden. Needs to be
-    // checked.
     if (javaClasspath.isEmpty()) {
       ImmutableList<Path> pathToProgram = convertToPathList(sourceFiles.get(0));
 
@@ -160,7 +156,7 @@ class EclipseJavaParser implements JavaParser {
         setEntryPointVariables(pathToProgram.get(0).getFileName().toString());
       } else {
         javaClassPaths = ImmutableList.of(pathToProgram.get(0));
-        setEntryPointVariables(mainMethodName);
+        setEntryPointVariables(entryFunction);
       }
     } else {
       javaClassPaths = convertToPathList(javaClasspath);
@@ -180,8 +176,8 @@ class EclipseJavaParser implements JavaParser {
 
   private void setEntryPointVariables(String entryFunctionPath) throws JParserException {
     String[] entryPointPathAndMethod = splitPathToClassAndMainMethod(entryFunctionPath);
-    absolutePathToEntryClass = entryPointPathAndMethod[0];
-    mainClassName = entryPointPathAndMethod[1];
+    mainClassAbsolutePath = entryPointPathAndMethod[0];
+    mainClassRelativePath = entryPointPathAndMethod[1];
     mainMethodName = entryPointPathAndMethod[2];
   }
 
@@ -228,17 +224,17 @@ class EclipseJavaParser implements JavaParser {
   }
 
   @Override
-  public String getMainClassName() {
-    return mainClassName;
+  public String getMainClassRelativePath() {
+    return mainClassRelativePath;
   }
 
-  private String getAbsolutePathToEntryClass() {
-    return absolutePathToEntryClass;
+  private String getMainClassAbsolutePath() {
+    return mainClassAbsolutePath;
   }
 
   @Override
-  public String getAbsolutePathToEntryFile() {
-    return getAbsolutePathToEntryClass() + JAVA_SOURCE_FILE_EXTENSION;
+  public String getAbsolutePathToMainFile() {
+    return getMainClassAbsolutePath() + JAVA_SOURCE_FILE_EXTENSION;
   }
 
   /**
@@ -273,8 +269,8 @@ class EclipseJavaParser implements JavaParser {
   private String[] splitPathToClassAndMainMethod(String mainFunctionPath) throws JParserException {
     if (mainFunctionPath.endsWith(JAVA_SOURCE_FILE_EXTENSION)) {
       mainFunctionPath =
-          mainFunctionPath.substring(0,
-              mainFunctionPath.length() - JAVA_SOURCE_FILE_EXTENSION.length());
+          mainFunctionPath.substring(
+              0, mainFunctionPath.length() - JAVA_SOURCE_FILE_EXTENSION.length());
     }
     // TODO check if replacing with slash works for windows
     mainFunctionPath = mainFunctionPath.replaceAll("\\.", "/");
@@ -321,13 +317,13 @@ class EclipseJavaParser implements JavaParser {
     }
   }
 
-  private Scope prepareScope(String mainClassName) throws JParserException, IOException {
+  private Scope prepareScope(String mainClassFileName) throws JParserException, IOException {
 
     List<JavaFileAST> astsOfFoundFiles = getASTsOfProgram();
 
     TypeHierarchy typeHierarchy = TypeHierarchy.createTypeHierachy(logger, astsOfFoundFiles);
 
-    return new Scope(mainClassName, typeHierarchy, logger);
+    return new Scope(mainClassFileName, typeHierarchy, logger);
   }
 
   private List<JavaFileAST> getASTsOfProgram() throws IOException {

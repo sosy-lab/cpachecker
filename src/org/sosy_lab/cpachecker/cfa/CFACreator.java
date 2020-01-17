@@ -672,7 +672,7 @@ public class CFACreator {
       if (language == Language.JAVA) {
         ((JavaParser) parser).setPathsAndEntryFunction(sourceFiles, mainFunctionName);
         parseResult =
-            parser.parseFile(((JavaParser) parser).getAbsolutePathToEntryFile());
+            parser.parseFile(((JavaParser) parser).getAbsolutePathToMainFile());
       } else {
         parseResult = parser.parseFile(sourceFiles.get(0));
       }
@@ -810,7 +810,7 @@ public class CFACreator {
               + "for the method drive(int speed, Car car) in the class Car.");
     }
 
-    String mainClassName = ((JavaParser) parser).getMainClassName();
+    String mainClassName = ((JavaParser) parser).getMainClassRelativePath();
     mainFunction = cfas.get(mainClassName.replace("/", ".") + JAVA_MAIN_METHOD_CFA_SUFFIX);
 
     if (mainFunction == null) {
