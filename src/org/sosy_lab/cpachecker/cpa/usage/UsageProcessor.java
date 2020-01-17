@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
+import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -346,6 +347,10 @@ public class UsageProcessor {
       CFANode pNode,
       AbstractState pChild,
       Access pAccess) {
+
+    if (pId instanceof LocalVariableIdentifier && !pId.isDereferenced()) {
+      return;
+    }
 
     usageCreationTimer.start();
     UsageInfo usage = UsageInfo.createUsageInfo(pAccess, pChild, pId);
