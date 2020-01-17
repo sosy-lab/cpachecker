@@ -283,7 +283,7 @@ class ReachedSetExecutor {
           "when a target was found before, we want to stop further scheduling");
     }
 
-    if (endsWithTargetState) {
+    if (endsWithTargetState && !bamcpa.searchTargetStatesOnExit()) {
       targetStateFound = true;
       terminateAnalysis.set(true);
     }
