@@ -95,11 +95,6 @@ class EclipseJavaParser implements JavaParser {
   // Make sure to keep the option name synchronized with CPAMain#areJavaOptionsSet
   private String javaClasspath = "";
 
-  @Option(
-      secure = true,
-      name = "analysis.programNames",
-      // required=true, NOT required because we want to give a nicer user message ourselves
-      description = "A String, denoting the programs to be analyzed")
   private ImmutableList<String> programs = ImmutableList.of();
 
   @Option(
@@ -123,8 +118,8 @@ class EclipseJavaParser implements JavaParser {
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
 
-  private final ImmutableList<Path> javaSourcePaths;
-  private final ImmutableList<Path> javaClassPaths;
+  private ImmutableList<Path> javaSourcePaths;
+  private ImmutableList<Path> javaClassPaths;
 
   private final List<Path> parsedFiles = new ArrayList<>();
 
@@ -136,16 +131,22 @@ class EclipseJavaParser implements JavaParser {
   private String mainFunctionName;
   private String absolutePathToEntryClass;
 
-  public EclipseJavaParser(LogManager pLogger, Configuration config, String entryFunction)
-      throws InvalidConfigurationException, JParserException {
+  public EclipseJavaParser(LogManager pLogger, Configuration config)
+      throws InvalidConfigurationException {
 
     config.inject(this);
-    if (programs.isEmpty()) {
+
+    logger = pLogger;
+  }
+
+  public void setPathsAndEntryFunction(List<String> sourceFiles, String entryFunction)
+      throws InvalidConfigurationException, JParserException {
+    if (sourceFiles.isEmpty()) {
       throw new InvalidConfigurationException("Programs parameter can't be empty.");
     }
-    logger = pLogger;
 
     mainFunctionName = entryFunction;
+    programs = ImmutableList.copyOf(sourceFiles);
     // TODO Handle multiple program files. Multiple program files might be forbidden. Needs to be
     // checked.
     if (javaClasspath.isEmpty()) {

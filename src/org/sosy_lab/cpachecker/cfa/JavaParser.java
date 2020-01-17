@@ -23,10 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.List;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.exceptions.JParserException;
+
 public interface JavaParser extends Parser {
   String getAbsolutePathToMainFile();
 
   String getMainMethodName();
 
   String getMainClassName();
+
+  void setPathsAndEntryFunction(List<String> sourceFiles, String entryFunction)
+      throws InvalidConfigurationException, JParserException;
 }

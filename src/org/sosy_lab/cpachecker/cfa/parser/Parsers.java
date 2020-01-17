@@ -165,7 +165,7 @@ public class Parsers {
     }
   }
 
-  public static Parser getJavaParser(LogManager logger, Configuration config, String entryFunction)
+  public static Parser getJavaParser(LogManager logger, Configuration config)
       throws InvalidConfigurationException {
 
     try {
@@ -178,13 +178,13 @@ public class Parsers {
         Class<? extends CParser> parserClass =
             (Class<? extends CParser>) classLoader.loadClass(JAVA_PARSER_CLASS);
         parserConstructor =
-            parserClass.getConstructor(LogManager.class, Configuration.class, String.class);
+            parserClass.getConstructor(LogManager.class, Configuration.class);
         parserConstructor.setAccessible(true);
         loadedJavaParser = new WeakReference<>(parserConstructor);
       }
 
       try {
-        return parserConstructor.newInstance(logger, config, entryFunction);
+        return parserConstructor.newInstance(logger, config);
       } catch (InvocationTargetException e) {
         if (e.getCause() instanceof InvalidConfigurationException) {
           throw (InvalidConfigurationException) e.getCause();
