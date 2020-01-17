@@ -138,6 +138,7 @@ class EclipseJavaParser implements JavaParser {
     logger = pLogger;
   }
 
+  @Override
   public void setPathsAndEntryFunction(List<String> sourceFiles, String entryFunction)
       throws InvalidConfigurationException, JParserException {
     if (sourceFiles.isEmpty()) {
