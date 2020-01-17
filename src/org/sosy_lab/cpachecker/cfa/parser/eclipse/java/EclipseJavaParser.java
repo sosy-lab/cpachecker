@@ -145,6 +145,10 @@ class EclipseJavaParser implements JavaParser {
       throw new InvalidConfigurationException("Programs parameter can't be empty.");
     }
 
+    if (!javaSourcepath.isEmpty() && javaClasspath.isEmpty()) {
+      javaClasspath = javaSourcepath;
+    }
+
     if (javaClasspath.isEmpty()) {
       ImmutableList<Path> pathToProgram = convertToPathList(sourceFiles.get(0));
 
