@@ -95,7 +95,7 @@ class EclipseJavaParser implements JavaParser {
   // Make sure to keep the option name synchronized with CPAMain#areJavaOptionsSet
   private String javaClasspath = "";
 
-  private ImmutableList<String> programs = ImmutableList.of();
+  private String mainClassName;
 
   @Option(
       secure = true,
@@ -128,7 +128,7 @@ class EclipseJavaParser implements JavaParser {
   private static final String DEFAULT_ENTRY_METHOD = "main";
   static final String JAVA_SOURCE_FILE_EXTENSION = ".java";
 
-  private String mainFunctionName;
+  private String mainMethodName;
   private String absolutePathToEntryClass;
 
   public EclipseJavaParser(LogManager pLogger, Configuration config)
@@ -145,27 +145,26 @@ class EclipseJavaParser implements JavaParser {
       throw new InvalidConfigurationException("Programs parameter can't be empty.");
     }
 
-    mainFunctionName = entryFunction;
-    programs = ImmutableList.copyOf(sourceFiles);
+    mainMethodName = entryFunction;
     // TODO Handle multiple program files. Multiple program files might be forbidden. Needs to be
     // checked.
     if (javaClasspath.isEmpty()) {
-      ImmutableList<Path> pathToProgram = convertToPathList(programs.get(0));
+      ImmutableList<Path> pathToProgram = convertToPathList(sourceFiles.get(0));
 
       if (pathToProgram.isEmpty()) {
         throw new InvalidConfigurationException("No valid Paths could be found.");
       }
 
-      if (programs.get(0).endsWith(".java")) {
+      if (sourceFiles.get(0).endsWith(".java")) {
         javaClassPaths = ImmutableList.of(pathToProgram.get(0).getParent());
         setEntryPointVariables(pathToProgram.get(0).getFileName().toString());
       } else {
         javaClassPaths = ImmutableList.of(pathToProgram.get(0));
-        setEntryPointVariables(mainFunctionName);
+        setEntryPointVariables(mainMethodName);
       }
     } else {
       javaClassPaths = convertToPathList(javaClasspath);
-      setEntryPointVariables(programs.get(0));
+      setEntryPointVariables(sourceFiles.get(0));
     }
 
     if (javaSourcepath.isEmpty()) {
@@ -182,8 +181,8 @@ class EclipseJavaParser implements JavaParser {
   private void setEntryPointVariables(String entryFunctionPath) throws JParserException {
     String[] entryPointPathAndMethod = splitPathToClassAndMainMethod(entryFunctionPath);
     absolutePathToEntryClass = entryPointPathAndMethod[0];
-    programs = ImmutableList.of(entryPointPathAndMethod[1]);
-    mainFunctionName = entryPointPathAndMethod[2];
+    mainClassName = entryPointPathAndMethod[1];
+    mainMethodName = entryPointPathAndMethod[2];
   }
 
   /**
@@ -225,21 +224,21 @@ class EclipseJavaParser implements JavaParser {
 
   @Override
   public String getMainMethodName() {
-    return mainFunctionName;
+    return mainMethodName;
   }
 
   @Override
   public String getMainClassName() {
-    return programs.get(0);
+    return mainClassName;
   }
 
-  private String getAbsolutePathToMainClass() {
+  private String getAbsolutePathToEntryClass() {
     return absolutePathToEntryClass;
   }
 
   @Override
-  public String getAbsolutePathToMainFile() {
-    return getAbsolutePathToMainClass() + JAVA_SOURCE_FILE_EXTENSION;
+  public String getAbsolutePathToEntryFile() {
+    return getAbsolutePathToEntryClass() + JAVA_SOURCE_FILE_EXTENSION;
   }
 
   /**

@@ -28,7 +28,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 
 public interface JavaParser extends Parser {
-  String getAbsolutePathToMainFile();
+  String getAbsolutePathToEntryFile();
 
   String getMainMethodName();
 
