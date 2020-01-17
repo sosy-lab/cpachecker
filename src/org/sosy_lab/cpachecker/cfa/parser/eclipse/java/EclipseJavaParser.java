@@ -284,15 +284,18 @@ class EclipseJavaParser implements JavaParser {
       }
       // In case file and method name is given
       int indexOfLastSlash = mainFunctionPath.lastIndexOf('/');
-      Path pathToFileParent =
-          javaClassPath.resolve(
-              Paths.get(
-                  mainFunctionPath.substring(0, indexOfLastSlash) + JAVA_SOURCE_FILE_EXTENSION));
-      if (Files.exists(pathToFileParent)) {
-        String absolutePathEntryClass =
-            javaClassPath
-                .resolve(Paths.get(mainFunctionPath.substring(0, indexOfLastSlash)))
-                .toString();
+      if (indexOfLastSlash >= 0) {
+        Path pathToFileParent =
+            javaClassPath.resolve(
+                Paths.get(
+                    mainFunctionPath.substring(0, indexOfLastSlash) + JAVA_SOURCE_FILE_EXTENSION));
+        String absolutePathEntryClass = "";
+        if (Files.exists(pathToFileParent)) {
+          absolutePathEntryClass =
+              javaClassPath
+                  .resolve(Paths.get(mainFunctionPath.substring(0, indexOfLastSlash)))
+                  .toString();
+        }
         return new String[]{
             absolutePathEntryClass,
             mainFunctionPath.substring(0, indexOfLastSlash),
