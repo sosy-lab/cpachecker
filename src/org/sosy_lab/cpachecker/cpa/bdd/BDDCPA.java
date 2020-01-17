@@ -112,7 +112,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
     bvComputer =
         new BitvectorComputer(
             compressIntEqual,
-            cfa.getVarClassification().get(),
+            cfa.getVarClassification().orElseThrow(),
             bvmgr,
             manager,
             predmgr,
@@ -177,7 +177,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
         bvmgr,
         predmgr,
         cfa.getMachineModel(),
-        cfa.getVarClassification().get(),
+        cfa.getVarClassification().orElseThrow(),
         shutdownNotifier,
         logger,
         useBlockAbstraction,
