@@ -67,7 +67,7 @@ class BitvectorComputer {
    * and one for each (maybe uninitialized) variable). For N+M different values we need at least
    * log_2(N+M) bits in the representation.
    *
-   * <p>For other variables, the lengthof the CType is used.
+   * <p>For other variables, the length of the CType is used.
    */
   int getBitsize(@Nullable Partition partition, @Nullable CType type) {
     if (partition == null) {
@@ -86,8 +86,11 @@ class BitvectorComputer {
       }
       int M = partition.getVars().size();
       return (int) Math.ceil(Math.log(N + M) / Math.log(2));
-    } else {
+    } else if (type != null) {
       return machineModel.getSizeofInBits(type).intValueExact();
+    } else {
+      // we know nothing
+      return 0;
     }
   }
 
