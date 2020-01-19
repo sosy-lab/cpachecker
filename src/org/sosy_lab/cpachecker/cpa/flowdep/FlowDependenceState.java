@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  *
  * <p>All objects of this class are immutable.
  */
-public class FlowDependenceState implements AbstractState, AbstractWrapperState, Graphable {
+public final class FlowDependenceState implements AbstractState, AbstractWrapperState, Graphable {
 
   /**
    * Data-flow dependencies. Represented by a table with entries of the form (g, m, D). {@link

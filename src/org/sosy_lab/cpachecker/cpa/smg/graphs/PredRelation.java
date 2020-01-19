@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class PredRelation {
+public final class PredRelation {
   /** The Multimap is used as Bi-Map, i.e. each pair (K,V) is also inserted as pair (V,K). */
   private final SetMultimap<Pair<SMGValue, SMGValue>, SymbolicRelation> smgValuesRelation =
       HashMultimap.create();

@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Objects;
 
-public class ConstantIdentifier implements AbstractIdentifier {
+public final class ConstantIdentifier implements AbstractIdentifier {
 
   protected String name;
   protected int dereference;

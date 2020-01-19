@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 /**
  * Information about {@link Constraint}s needed for symbolic interpolation.
  */
-public class ConstraintsInformation {
+public final class ConstraintsInformation {
 
   public static final ConstraintsInformation EMPTY = new ConstraintsInformation(ImmutableSet.of());
 
