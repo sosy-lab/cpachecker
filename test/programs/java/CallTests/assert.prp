@@ -1,0 +1,1 @@
+CHECK( init(pack5.CallTests_true_assert.main()), LTL(G assert) )
