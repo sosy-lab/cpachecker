@@ -50,7 +50,7 @@ import org.sosy_lab.java_smt.api.Formula;
 /**
  * Converting {@link Template} to {@link Formula}.
  */
-public class TemplateToFormulaConversionManager {
+public final class TemplateToFormulaConversionManager {
   private final CFA cfa;
 
   private static final CFAEdge dummyEdge = new BlankEdge("",
@@ -221,7 +221,7 @@ public class TemplateToFormulaConversionManager {
       if (this == pO) {
         return true;
       }
-      if (pO == null || getClass() != pO.getClass()) {
+      if (!(pO instanceof ToFormulaCacheKey)) {
         return false;
       }
       ToFormulaCacheKey that = (ToFormulaCacheKey) pO;
