@@ -106,8 +106,14 @@ public class SliceExporter {
   private PathTemplate exportCriteriaFile =
       PathTemplate.ofFormatString("programSlice.%d.criteria.txt");
 
-  public SliceExporter(Configuration pConfig) throws InvalidConfigurationException {
+  private final LogManager logger;
+  private int exportCount = -1;
+
+  public SliceExporter(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
+
+    logger = pLogger;
   }
 
   /** Returns true if any leaving edge of any node is contained in pRelevantEdges. */
@@ -463,28 +469,34 @@ public class SliceExporter {
    * program files.
    *
    * @param pSlice program slice to export
-   * @param pSliceCounter the value of the slice counter; used for numbering the slice files.
-   * @param pLogger the logger for this export procedure.
    */
-  public void execute(Slice pSlice, int pSliceCounter, LogManager pLogger) {
+  public void execute(Slice pSlice) {
+    exportCount++;
     if (exportCriteria) {
       Concurrency.newThread(
-          "Slice-criteria-Exporter",
-          () -> {
-            Path path = exportCriteriaFile.getPath(pSliceCounter);
+              "Slice-criteria-Exporter",
+              () -> {
+                Path path = exportCriteriaFile.getPath(exportCount);
 
-            try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
-              StringBuilder output = new StringBuilder();
-              for (CFAEdge e : pSlice.getUsedCriteria()) {
-                FileLocation loc = e.getFileLocation();
-                output.append(loc.getFileName()).append(":").append(loc.getStartingLineNumber()).append(":").append(e.getCode()).append("\n");
-              }
-              writer.write(output.toString());
+                try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
+                  StringBuilder output = new StringBuilder();
+                  for (CFAEdge e : pSlice.getUsedCriteria()) {
+                    FileLocation loc = e.getFileLocation();
+                    output
+                        .append(loc.getFileName())
+                        .append(":")
+                        .append(loc.getStartingLineNumber())
+                        .append(":")
+                        .append(e.getCode())
+                        .append("\n");
+                  }
+                  writer.write(output.toString());
 
-            } catch (IOException e) {
-              pLogger.logUserException(Level.WARNING, e, "Could not write slicing criteria to file " + path);
-            }
-          })
+                } catch (IOException e) {
+                  logger.logUserException(
+                      Level.WARNING, e, "Could not write slicing criteria to file " + path);
+                }
+              })
           .start();
     }
 
@@ -494,7 +506,7 @@ public class SliceExporter {
               () -> {
                 CFA sliceCfa = createRelevantCfa(pSlice);
 
-                Path path = exportToCFile.getPath(pSliceCounter);
+                Path path = exportToCFile.getPath(exportCount);
 
                 try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
 
@@ -502,7 +514,7 @@ public class SliceExporter {
                   writer.write(code);
 
                 } catch (CPAException | IOException | InvalidConfigurationException e) {
-                  pLogger.logUserException(Level.WARNING, e, "Could not write CFA to C file.");
+                  logger.logUserException(Level.WARNING, e, "Could not write CFA to C file.");
                 }
               })
           .start();
