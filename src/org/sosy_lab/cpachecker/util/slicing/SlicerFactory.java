@@ -45,7 +45,19 @@ public class SlicerFactory {
   }
 
   private enum SlicingType {
-    STATIC
+    /**
+     * Use static program slicing based on dependence graph of CFA
+     *
+     * @see org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph
+     * @see StaticSlicer
+     */
+    STATIC,
+    /**
+     * Use identity function as slicer.
+     *
+     * @see IdentitySlicer
+     */
+    IDENTITY
   }
 
   @Options(prefix = "slicing")
@@ -102,6 +114,8 @@ public class SlicerFactory {
     switch (slicingType) {
       case STATIC:
         return new StaticSlicer(extractor, pLogger, pShutdownNotifier, pConfig, pCfa);
+      case IDENTITY:
+        return new IdentitySlicer(extractor, pLogger, pShutdownNotifier);
       default:
         throw new AssertionError("Unhandled slicing type " + slicingType);
     }
