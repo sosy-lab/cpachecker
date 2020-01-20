@@ -519,14 +519,6 @@ bdd.package = "JAVA"
 # size of the BDD cache.
 bdd.pjbdd.cacheSize = 10000
 
-# Which parallel bdd creator should be used? PJBDD only!
-# - serial-int: uses serial int-based algorithms with concurrent access
-# - serial: uses serial algorithms with concurrent access
-# - comp-fut: uses CompletableFuture based concurrent algorithms
-# - fork-join:  uses ForkJoin based concurrent algorithms
-bdd.pjbdd.creator = "FORK-JOIN"
-  allowed values: [COMP-FUT, FORK-JOIN, SERIAL, SERIAL-INT]
-
 # increase factor for resizing tables
 bdd.pjbdd.increaseFactor = 1
 
@@ -535,13 +527,6 @@ bdd.pjbdd.tableParallelism = 1000
 
 # initial size of the BDD node table.
 bdd.pjbdd.tableSize = 50000
-
-# Which uniquetable implementation should be used?
-# - array:  a concurrent resizing array
-# - map:    a concurrent hash map
-# - bucket: a concurrent hash bucket
-bdd.pjbdd.tableType = "ARRAY"
-  allowed values: [ARRAY, MAP, BUCKET]
 
 # Number of worker threads, Runtime.getRuntime().availableProcessors()
 # default
