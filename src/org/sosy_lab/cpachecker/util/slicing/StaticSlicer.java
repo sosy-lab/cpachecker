@@ -83,7 +83,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfig,
-      DependenceGraph pDependenceGraph,
       CFA pCfa)
       throws InvalidConfigurationException {
     super(pLogger, pShutdownNotifier, pConfig, pCfa);
@@ -92,7 +91,10 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     logger = pLogger;
 
-    depGraph = pDependenceGraph;
+    depGraph =
+        pCfa.getDependenceGraph()
+            .orElseThrow(
+                () -> new InvalidConfigurationException("Dependence graph required, but missing"));
 
     sliceExporter = new SliceExporter(pConfig);
   }
