@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.core.Specification;
  * <p>Classes implementing this interface provide means to get the {@link CFAEdge CFA edges} of a
  * {@link CFA} that are relevant regarding a {@link Specification} or a set of slicing criteria.
  * Slicing criteria are given as CFA edges.
+ *
+ * @see SlicerFactory
  */
 public interface Slicer {
 

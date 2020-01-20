@@ -74,7 +74,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
-import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
+import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
 
 /**
  * Refiner for {@link SlicingPrecision}. Precision refinement is done through program slicing [1].
@@ -176,12 +176,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
             fullSlicingPrecision, Predicates.instanceOf(SlicingPrecision.class));
 
     ShutdownNotifier shutdownNotifier = slicingCPA.getShutdownNotifier();
-    Slicer slicer =
-        new StaticSlicer(
-            logger,
-            shutdownNotifier,
-            config,
-            cfa);
+    Slicer slicer = new SlicerFactory().create(logger, shutdownNotifier, config, cfa);
 
     return new SlicingRefiner(
         pathExtractor,
