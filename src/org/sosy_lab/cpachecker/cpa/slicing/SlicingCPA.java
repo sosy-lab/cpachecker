@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.util.slicing.Slice;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
 import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
 
@@ -151,15 +152,14 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
     if (useRefinableSlice) {
       relevantEdges = ImmutableSet.of();
     } else {
-      relevantEdges = computeSlice(cfa, spec);
+      relevantEdges = computeSlice(cfa, spec).getRelevantEdges();
     }
 
     return new SlicingPrecision(wrappedPrec, relevantEdges);
   }
 
-  private ImmutableSet<CFAEdge> computeSlice(CFA pCfa, Specification pSpec)
-      throws InterruptedException {
-    return slicer.getRelevantEdges(pCfa, pSpec);
+  private Slice computeSlice(CFA pCfa, Specification pSpec) throws InterruptedException {
+    return slicer.getSlice(pCfa, pSpec);
   }
 
   public LogManager getLogger() {

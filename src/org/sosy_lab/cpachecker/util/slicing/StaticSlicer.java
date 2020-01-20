@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Comparator;
@@ -100,7 +99,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   }
 
   @Override
-  public ImmutableSet<CFAEdge> getRelevantEdges(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
+  public Slice getSlice(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
       throws InterruptedException {
     candidateSliceCount.setNextValue(pSlicingCriteria.size());
     int realSlices = 0;
@@ -144,13 +143,14 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         }
       }
 
-      sliceExporter.execute(pCfa, relevantEdges, sliceCount.getUpdateCount(), logger);
+      final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria);
+      slicingTime.stop();
+      sliceExporter.execute(slice, sliceCount.getUpdateCount(), logger);
+      return slice;
 
     } finally {
       sliceCount.setNextValue(realSlices);
     }
-    slicingTime.stop();
-    return ImmutableSet.copyOf(relevantEdges);
   }
 
   @Override
