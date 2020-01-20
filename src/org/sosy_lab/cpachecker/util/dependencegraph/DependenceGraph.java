@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * <p>A dependence graph G = (V, E) is a directed graph. His nodes V are CFA edges of the program.
  * Given two nodes i and j, if j is a dependence of i, a directed edge (j, i) from j to i is in E.
  */
-public final class DependenceGraph implements Serializable {
+public class DependenceGraph implements Serializable {
 
   private static final long serialVersionUID = -6721168496945584302L;
 
@@ -194,7 +194,7 @@ public final class DependenceGraph implements Serializable {
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof DependenceGraph)) {
+    if (pO == null || getClass() != pO.getClass()) {
       return false;
     }
     DependenceGraph that = (DependenceGraph) pO;
@@ -243,7 +243,7 @@ public final class DependenceGraph implements Serializable {
       if (this == pO) {
         return true;
       }
-      if (!(pO instanceof ImmutableNodeMap)) {
+      if (pO == null || getClass() != pO.getClass()) {
         return false;
       }
       ImmutableNodeMap that = (ImmutableNodeMap) pO;
@@ -297,7 +297,7 @@ public final class DependenceGraph implements Serializable {
       if (this == pO) {
         return true;
       }
-      if (!(pO instanceof NodeMap)) {
+      if (pO == null || getClass() != pO.getClass()) {
         return false;
       }
       NodeMap nodeMap = (NodeMap) pO;
