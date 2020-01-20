@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
@@ -62,6 +63,37 @@ public class FunctionToIndicesResolver {
           Formula value = values.get(i);
           IntegerFormula newIntegerFormula =
               (IntegerFormula) functionFormulaManagerView.callUF(pIndexFunctionDeclaration, value);
+          @Nullable
+          BigInteger index = proverEnvironment.getModel().evaluate(newIntegerFormula);
+
+          int intIndex = index.intValue();
+          indices.add(intIndex);
+        }
+        indicesOfFunctions.put(functionDeclaration, indices);
+      }
+    }
+    return indicesOfFunctions;
+  }
+
+ public Map<AFunctionDeclaration, List<Integer>> resolveFunctionsByTypes(
+      Set<AFunctionDeclaration> pUnimplementedPointerReturnTypeFunctions,
+      Map<AFunctionDeclaration, List<Formula>> pNewNamesForFunctions,
+      Map<CType, FunctionDeclaration<?>> pIndexFunctionDeclarations)
+      throws SolverException, InterruptedException {
+    Map<AFunctionDeclaration, List<Integer>> indicesOfFunctions = new HashMap<>();
+    if (!proverEnvironment.isUnsat()) {
+
+      for (AFunctionDeclaration functionDeclaration : pUnimplementedPointerReturnTypeFunctions) {
+        List<Formula> values = pNewNamesForFunctions.get(functionDeclaration);
+        int size = values.size();
+        List<Integer> indices = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+          Formula value = values.get(i);
+          CType functionReturnType = (CType) functionDeclaration.getType().getReturnType();
+          FunctionDeclaration<?> indexFunctionDeclaration =
+              pIndexFunctionDeclarations.get(functionReturnType);
+          IntegerFormula newIntegerFormula =
+              (IntegerFormula) functionFormulaManagerView.callUF(indexFunctionDeclaration, value);
           @Nullable
           BigInteger index = proverEnvironment.getModel().evaluate(newIntegerFormula);
 

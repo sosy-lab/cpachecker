@@ -30,6 +30,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import java.util.Map;
 
 public class ExportedLocationMapper {
 
@@ -38,6 +40,37 @@ public class ExportedLocationMapper {
   public ExportedLocationMapper(FormulaManagerView pFormulaManagerView) {
     formulaManagerView = pFormulaManagerView;
   }
+
+  public BooleanFormula getExportedLocationsToTypeSpecificIndexFormula(
+      Map<CType, List<Formula>> pExternallyKnownPointersByType,
+      PathFormulaManager pPathFormulaManager,
+      Map<CType, FunctionDeclaration<?>> pIndexFunctionDeclarationMap) {
+    BooleanFormulaManagerView booleanFormulaManagerView =
+        formulaManagerView.getBooleanFormulaManager();
+    FunctionFormulaManagerView functionFormulaManagerView =
+        formulaManagerView.getFunctionFormulaManager();
+    IntegerFormulaManagerView integerFormulaManagerView =
+        formulaManagerView.getIntegerFormulaManager();
+
+    PathFormula emptyFormula = pPathFormulaManager.makeEmptyPathFormula();
+
+    BooleanFormula resultConjunction = booleanFormulaManagerView.and(emptyFormula.getFormula());
+
+    for (Map.Entry<CType, List<Formula>> entry : pExternallyKnownPointersByType.entrySet()) {
+
+      for (Formula exportedExpression : entry.getValue()) {
+        int index = entry.getValue().indexOf(exportedExpression);
+        IntegerFormula value = integerFormulaManagerView.makeNumber(index);
+        IntegerFormula newBooleanFormula =
+            (IntegerFormula) functionFormulaManagerView
+                .callUF(pIndexFunctionDeclarationMap.get(entry.getKey()), exportedExpression);
+        BooleanFormula valueFormula = integerFormulaManagerView.equal(newBooleanFormula, value);
+        resultConjunction = booleanFormulaManagerView.and(resultConjunction, valueFormula);
+      }
+    }
+    return resultConjunction;
+  }
+
 
   public BooleanFormula getExportedLocationsToIndexFormula(
       List<Formula> pExternallyKnownPointers,
