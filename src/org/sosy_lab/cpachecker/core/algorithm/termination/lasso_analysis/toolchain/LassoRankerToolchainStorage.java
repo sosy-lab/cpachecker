@@ -35,6 +35,7 @@ import de.uni_freiburg.informatik.ultimate.core.model.services.IStorable;
 import de.uni_freiburg.informatik.ultimate.core.model.services.IToolchainStorage;
 import de.uni_freiburg.informatik.ultimate.core.model.services.IUltimateServiceProvider;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -55,11 +56,13 @@ public class LassoRankerToolchainStorage implements IToolchainStorage, IUltimate
   }
 
   @Override
-  public void destroyStorable(String pKey) {
+  public boolean destroyStorable(String pKey) {
     final IStorable storable = removeStorable(pKey);
     if (storable != null) {
       storable.destroy();
+      return true;
     }
+    return false;
   }
 
   @Override
@@ -93,18 +96,8 @@ public class LassoRankerToolchainStorage implements IToolchainStorage, IUltimate
   }
 
   @Override
-  public IBacktranslationService getBacktranslationService() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public ILoggingService getLoggingService() {
     return lassoRankerLoggingService;
-  }
-
-  @Override
-  public IResultService getResultService() {
-    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -113,13 +106,59 @@ public class LassoRankerToolchainStorage implements IToolchainStorage, IUltimate
   }
 
   @Override
+  public IToolchainStorage getStorage() {
+    return this;
+  }
+
+  @Override
+  public Set<String> keys() {
+    return toolchainStorage.keySet();
+  }
+
+  @Override
+  public IBacktranslationService getBacktranslationService() {
+    throw new UnsupportedOperationException(
+        getClass() + "::getBacktranslationService is not implemented");
+  }
+
+  @Override
+  public IResultService getResultService() {
+    throw new UnsupportedOperationException(getClass() + "::getResultService is not implemented");
+  }
+
+  @Override
   public <T extends IService, K extends IServiceFactory<T>> T getServiceInstance(
       Class<K> pServiceType) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(
+        getClass() + "::getServiceInstance is not implemented");
   }
 
   @Override
   public IPreferenceProvider getPreferenceProvider(String pPluginId) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(
+        getClass() + "::getPreferenceProvider is not implemented");
+  }
+
+  @Override
+  public IUltimateServiceProvider registerPreferenceLayer(Class<?> pCreator, String... pPluginIds) {
+    throw new UnsupportedOperationException(
+        getClass() + "::registerPreferenceLayer is not implemented");
+  }
+
+  @Override
+  public IUltimateServiceProvider registerDefaultPreferenceLayer(
+      Class<?> pCreator, String... pPluginIds) {
+    throw new UnsupportedOperationException(
+        getClass() + "::registerDefaultPreferenceLayer is not implemented");
+  }
+
+  @Override
+  public void pushMarker(Object pMarker) throws IllegalArgumentException {
+    throw new UnsupportedOperationException(getClass() + "::pushMarker is not implemented");
+  }
+
+  @Override
+  public Set<String> destroyMarker(Object pMarker) {
+    throw new UnsupportedOperationException(getClass() + "::destroyMarker is not implemented");
   }
 }

@@ -131,15 +131,17 @@ abstract class AutomatonAction {
   /** Assigns the value of a AutomatonIntExpr to a AutomatonVariable determined by its name.
    */
   static class Assignment extends AutomatonAction {
-    private String varId;
-    private AutomatonIntExpr var;
+    private final String varId;
+    private final AutomatonIntExpr var;
+
     public Assignment(String pVarId, AutomatonIntExpr pVar) {
       this.varId = pVarId;
       this.var = pVar;
     }
+
     @Override
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
-      return ! var.eval(pArgs).canNotEvaluate();
+      return !var.eval(pArgs).canNotEvaluate();
     }
 
     @Override

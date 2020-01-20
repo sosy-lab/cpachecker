@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
  * After precision adjustment, the ConstraintsState only consists of <code>'s1(a) > 5'</code>.
  * </p>
  */
-class ConstraintBasedConstraintsPrecision
+final class ConstraintBasedConstraintsPrecision
     implements ConstraintsPrecision {
 
   private final static ConstraintBasedConstraintsPrecision

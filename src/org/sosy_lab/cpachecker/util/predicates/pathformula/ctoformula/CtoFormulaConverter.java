@@ -324,6 +324,8 @@ public class CtoFormulaConverter {
           return FormulaType.getSinglePrecisionFloatingPointType();
         case DOUBLE:
           return FormulaType.getDoublePrecisionFloatingPointType();
+        case FLOAT128:
+          return FormulaType.getFloatingPointType(15, 112);
         default:
           break;
       }

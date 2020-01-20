@@ -49,15 +49,11 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
 
   private final Collection<OverflowEventHandler> overflowEventHandlers = new CopyOnWriteArrayList<>();
 
-  private final OverflowEventHandler compositeHandler = new OverflowEventHandler() {
-
-    @Override
-    public void signedOverflow() {
-      for (OverflowEventHandler component : overflowEventHandlers) {
-        component.signedOverflow();
-      }
+  private final void handleAllOverflowHandlers() {
+    for (OverflowEventHandler component : overflowEventHandlers) {
+      component.signedOverflow();
     }
-  };
+  }
 
   @Override
   public CompoundIntervalManager createCompoundIntervalManager(MachineModel pMachineModel, Type pType) {
@@ -72,7 +68,9 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
   public CompoundIntervalManager createCompoundIntervalManager(TypeInfo pInfo, boolean pWithOverflowHandlers) {
     if (pInfo instanceof BitVectorInfo) {
       return new CompoundBitVectorIntervalManager(
-          (BitVectorInfo) pInfo, isSignedWrapAroundAllowed(), pWithOverflowHandlers ? compositeHandler : () -> {});
+          (BitVectorInfo) pInfo,
+          isSignedWrapAroundAllowed(),
+          pWithOverflowHandlers ? this::handleAllOverflowHandlers : () -> {});
     }
     if (pInfo instanceof FloatingPointTypeInfo) {
       return new CompoundFloatingPointIntervalManager((FloatingPointTypeInfo) pInfo);

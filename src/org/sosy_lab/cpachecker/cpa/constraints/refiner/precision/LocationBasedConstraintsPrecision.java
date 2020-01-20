@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
  * {@link ConstraintsPrecision} that determines whether a {@link Constraint} is tracked based on the
  * memory locations occurring in it.
  */
-class LocationBasedConstraintsPrecision implements ConstraintsPrecision {
+final class LocationBasedConstraintsPrecision implements ConstraintsPrecision {
 
   private static final LocationBasedConstraintsPrecision EMPTY =
       new LocationBasedConstraintsPrecision();

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.chc;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -511,7 +513,7 @@ public class ConstraintManager {
           Collection<Pair<Term, List<Term>>> opUnion =
               new ArrayList<>(addOperands(">", operand1, operand2));
           opUnion.addAll(addOperands("<", operand1, operand2));
-          return opUnion;
+          return ImmutableList.copyOf(opUnion);
         case LESS_THAN:
           return addOperands("<", operand1, operand2);
         case LESS_EQUAL:
@@ -549,7 +551,8 @@ public class ConstraintManager {
     } else if (ce instanceof CBinaryExpression ) {
       CBinaryExpression bexp = (CBinaryExpression)ce;
       Collection<Pair<Term, List<Term>>> aexpTerms = expressionToCLP(ce);
-      Collection<Pair<Term, List<Term>>> paramAexpTerms = new ArrayList<>(aexpTerms.size());
+      ImmutableCollection.Builder<Pair<Term, List<Term>>> paramAexpTerms =
+          ImmutableList.builderWithExpectedSize(aexpTerms.size());
       switch (bexp.getOperator()) {
         case PLUS:
         case MINUS:
@@ -561,7 +564,7 @@ public class ConstraintManager {
             Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, aexpTerm.getFirst()});
             paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), aexpTermVars));
           }
-          return paramAexpTerms;
+          return paramAexpTerms.build();
         // add an extra atomic constraint
         case EQUALS:
         case LESS_THAN:
@@ -579,7 +582,7 @@ public class ConstraintManager {
               paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm, negAexpTerm.getFirst()}), aexpTermVars));
             }
           }
-          return paramAexpTerms;
+          return paramAexpTerms.build();
         default:
           return null;
       }
@@ -593,7 +596,7 @@ public class ConstraintManager {
       Collection<Pair<Term, List<Term>>> operand1,
       Collection<Pair<Term, List<Term>>> operand2) {
 
-    Collection<Pair<Term, List<Term>>> termList = new ArrayList<>();
+    ImmutableCollection.Builder<Pair<Term, List<Term>>> termList = ImmutableList.builder();
     List<Term> vars = new ArrayList<>();
 
     for (Pair<Term, List<Term>> subop1 : operand1) {
@@ -606,7 +609,7 @@ public class ConstraintManager {
       }
     }
 
-    return termList;
+    return termList.build();
   }
 
 

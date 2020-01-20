@@ -326,7 +326,8 @@ class PointerTargetSetManager {
     shutdownNotifier.shutdownIfNecessary();
 
     PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
-      merge(pts1.getTargets(), pts2.getTargets(), mergeOnConflict());
+        merge(
+            pts1.getTargets(), pts2.getTargets(), (key, list1, list2) -> mergeLists(list1, list2));
     shutdownNotifier.shutdownIfNecessary();
 
     // Targets is always the cross product of bases and fields.
@@ -488,17 +489,6 @@ class PointerTargetSetManager {
       result = result.with(target);
     }
     return result;
-  }
-
-  /**
-   * Gives a handler for merge conflicts.
-   *
-   * @param <K> The type of the keys in the merge conflict handler.
-   * @param <T> The type of the list entries in the merge conflict handler.
-   * @return A handler for merge conflicts.
-   */
-  private static <K, T> MergeConflictHandler<K, PersistentList<T>> mergeOnConflict() {
-    return (key, list1, list2) -> mergeLists(list1, list2);
   }
 
   /**

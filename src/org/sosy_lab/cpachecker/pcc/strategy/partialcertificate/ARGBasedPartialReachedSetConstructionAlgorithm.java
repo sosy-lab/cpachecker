@@ -57,12 +57,12 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
     if (!GlobalInfo.getInstance().getCPA().isPresent()) {
       throw new InvalidConfigurationException("No CPA specified.");
     } else {
-      ARGCPA cpa =
+      ARGCPA argCpa =
           CPAs.retrieveCPAOrFail(
               GlobalInfo.getInstance().getCPA().orElseThrow(),
               ARGCPA.class,
               ARGBasedPartialReachedSetConstructionAlgorithm.class);
-      this.cpa = cpa.getWrappedCPAs().get(0); // TODO this line looks dangerous!
+      this.cpa = argCpa.getWrappedCPAs().get(0); // TODO this line looks dangerous!
     }
     return new ExtendedNodeSelectionARGPass(pRootPrecision, pRoot);
   }

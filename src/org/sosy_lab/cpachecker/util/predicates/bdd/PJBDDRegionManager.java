@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.predicates.bdd.PJBDDRegion.unwrap;
 import static org.sosy_lab.cpachecker.util.predicates.bdd.PJBDDRegion.wrap;
 
+import com.google.common.base.Preconditions;
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -54,8 +55,9 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
-import org.sosy_lab.pjbdd.CreatorBuilder;
-import org.sosy_lab.pjbdd.creators.Creator;
+import org.sosy_lab.pjbdd.Builders;
+import org.sosy_lab.pjbdd.creator.bdd.BDDBuilder;
+import org.sosy_lab.pjbdd.creator.bdd.Creator;
 import org.sosy_lab.pjbdd.node.BDD;
 
 public class PJBDDRegionManager implements RegionManager {
@@ -96,7 +98,7 @@ public class PJBDDRegionManager implements RegionManager {
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region f) {
     BDD bdd = unwrap(f);
-    return Triple.of(f, wrap(bdd.getHigh()), wrap(bdd.getLow()));
+    return Triple.of(wrap(bddCreator.makeIthVar(bdd.getVariable())), wrap(bdd.getHigh()), wrap(bdd.getLow()));
   }
 
   @Override
@@ -171,6 +173,19 @@ public class PJBDDRegionManager implements RegionManager {
     BDD[] bddF2 = new BDD[f2.length];
     IntStream.range(0, f2.length).forEach(i -> bddF2[i] = unwrap(f2[i]));
     return wrap(bddCreator.makeExists(unwrap(f1), bddF2));
+  }
+
+  @Override
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+    Preconditions.checkArgument(pOldPredicates.length == pNewPredicates.length);
+    BDD bdd = unwrap(pRegion);
+    for (int i = 0; i < pOldPredicates.length; i++) {
+      BDD oldVar = bddCreator.makeIthVar(unwrap(pOldPredicates[i]).getVariable());
+      BDD newVar = bddCreator.makeIthVar(unwrap(pNewPredicates[i]).getVariable());
+      bdd = bddCreator.makeAnd(bdd, bddCreator.makeEqual(oldVar, newVar));
+      bdd = bddCreator.makeExists(bdd, oldVar);
+    }
+    return wrap(bdd);
   }
 
   /**
@@ -389,76 +404,25 @@ public class PJBDDRegionManager implements RegionManager {
     @IntegerOption(min = 1)
     private int threads = Runtime.getRuntime().availableProcessors();
 
-    @Option(
-        secure = true,
-        description =
-            "Which parallel bdd creator should be used? PJBDD only!"
-                + "\n- serial-int: uses serial int-based algorithms with concurrent access"
-                + "\n- serial: uses serial algorithms with concurrent access"
-                + "\n- comp-fut: uses CompletableFuture based concurrent algorithms"
-                + "\n- fork-join:  uses ForkJoin based concurrent algorithms",
-        values = {"COMP-FUT", "FORK-JOIN", "SERIAL", "SERIAL-INT"},
-        toUppercase = true)
-    private String creator = "FORK-JOIN";
 
-    @Option(
-        secure = true,
-        description =
-            "Which uniquetable implementation should be used?"
-                + "\n- array:  a concurrent resizing array"
-                + "\n- map:    a concurrent hash map"
-                + "\n- bucket: a concurrent hash bucket",
-        values = {"ARRAY", "MAP", "BUCKET"},
-        toUppercase = true)
-    private String tableType = "ARRAY";
-
-    private CreatorBuilder builder;
+    private BDDBuilder builder;
 
     private BuildFromConfig(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
-      builder = CreatorBuilder.newBuilder();
+      builder = Builders.newBDDBuilder();
     }
 
     private Creator makeCreator() {
       resolveProperties(builder);
-      resolveTable(builder);
-      switch (creator) {
-        case "SERIAL-INT":
-          return builder.makeSerialIntCreator();
-        case "SERIAL":
-          return builder.makeSerialApplyCreator();
-        case "COMP-FUT":
-          return builder.makeCompletableFutureApplyCreator();
-        case "FORK-JOIN":
-          return builder.makeConcurrentApplyCreator();
-        default:
-          return builder.makeConcurrentApplyCreator();
-      }
+      return builder.build();
     }
 
-    private void resolveTable(CreatorBuilder pBuilder) {
-      switch (tableType) {
-        case "ARRAY":
-          pBuilder.useConcurrentResizingArray();
-          break;
-        case "MAP":
-          pBuilder.useConcurrentHashMap();
-          break;
-        case "BUCKET":
-          pBuilder.useConcurrentHashBucket();
-          break;
-        default:
-          pBuilder.useConcurrentResizingArray();
-          break;
-      }
-    }
 
-    private void resolveProperties(CreatorBuilder pBuilder) {
-      pBuilder
-          .setParallelism(tableParallelism)
-          .setVarNum(varCount)
+    private void resolveProperties(BDDBuilder pBuilder) {
+      pBuilder.setParallelism(tableParallelism)
+          .setVarCount(varCount)
           .setSelectedCacheSize(cacheSize)
-          .setNumWorkerThreads(threads)
+          .setThreads(threads)
           .setTableSize(tableSize)
           .setIncreaseFactor(increaseFactor);
     }

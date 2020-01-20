@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -54,30 +53,23 @@ public class SlicingAbstractionsTest {
 
   private static final String TEST_DIR_PATH = "test/programs/slicingabstractions/";
   private static final String CONFIG_DIR_PATH = "config/";
-  private static final FileFilter CONFIG_FILTER =
-      new FileFilter() {
-        @Override
-        public boolean accept(File pPathname) {
+
+  private static final boolean isConfig(File pPathname) {
           return ((pPathname.getName().contains("Kojak")
                   || pPathname.getName().contains("SlicingAbstractions"))
               && !pPathname.getName().contains("overflow"));
-        }
-      };
-  private static final FileFilter SLAB_CONFIG_FILTER = new FileFilter() {
-    @Override
-    public boolean accept(File pPathname) {
+  }
+
+  private static final boolean isSlabConfig(File pPathname) {
       return pPathname.getName().contains("Slab");
-    }
-  };
-  private static final FileFilter OVERFLOW_CONFIG_FILTER =
-      new FileFilter() {
-        @Override
-        public boolean accept(File pPathname) {
+  }
+
+  private static final boolean isOverflowConfig(File pPathname) {
           return ((pPathname.getName().contains("Kojak")
                   || pPathname.getName().contains("SlicingAbstractions"))
               && pPathname.getName().contains("overflow"));
-        }
-      };
+  }
+
   private static final ImmutableMap<String, String> EMPTY_OPTIONS = ImmutableMap.of();
   private static final ImmutableMap<String, String> LINEAR_OPTIONS =
       ImmutableMap.of(
@@ -110,17 +102,17 @@ public class SlicingAbstractionsTest {
 
     File configfolder = new File(CONFIG_DIR_PATH);
     List<Object> configs =
-        FluentIterable.from(configfolder.listFiles(CONFIG_FILTER))
+        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isConfig))
             .<Object>transform(x -> x.getName())
             .toList();
 
     List<Object> slabConfigs =
-        FluentIterable.from(configfolder.listFiles(SLAB_CONFIG_FILTER))
+        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isSlabConfig))
             .<Object>transform(x -> x.getName())
             .toList();
 
     List<Object> overflowConfigs =
-        FluentIterable.from(configfolder.listFiles(OVERFLOW_CONFIG_FILTER))
+        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isOverflowConfig))
             .<Object>transform(x -> x.getName())
             .toList();
 

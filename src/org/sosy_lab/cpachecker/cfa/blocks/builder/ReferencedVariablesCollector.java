@@ -151,6 +151,13 @@ public class ReferencedVariablesCollector {
           Set<String> vars = collectVars(argument);
           allVars.addAll(vars);
         }
+        for (CExpression parameter : functionCallEdge.getSummaryEdge()
+            .getExpression()
+            .getFunctionCallExpression()
+            .getParameterExpressions()) {
+          Set<String> vars = collectVars(parameter);
+          allVars.addAll(vars);
+        }
         break;
       }
       case StatementEdge: {

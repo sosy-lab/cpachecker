@@ -17,7 +17,7 @@
 	<classpathentry kind="lib" path="lib/java/runtime/javabdd.jar" sourcepath="lib/java-contrib/javabdd-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/java-cup-runtime.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/icu4j.jar"/>
-	<classpathentry kind="lib" path="lib/java/test/junit.jar"/>
+	<classpathentry kind="lib" path="lib/java/test/junit.jar" sourcepath="lib/java-contrib/junit-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/mockito-core.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/hamcrest-core.jar"/>
 	<classpathentry kind="lib" path="lib/edu.cmu.sei.rtss.jldd.jar"/>
@@ -37,6 +37,9 @@
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-util.jar" sourcepath="lib/java-contrib/ultimate-util-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-smt-solver-bridge.jar" sourcepath="lib/java-contrib/ultimate-smt-solver-bridge-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-core.jar" sourcepath="lib/java-contrib/ultimate-core-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/ultimate-icfg-transformer.jar" sourcepath="lib/java-contrib/ultimate-icfg-transformer-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/ultimate-java-cup.jar" sourcepath="lib/java-contrib/ultimate-java-cup-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/ultimate-library-smtlib.jar" sourcepath="lib/java-contrib/ultimate-library-smtlib-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/smtinterpol.jar" sourcepath="lib/java-contrib/smtinterpol-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/truth-java8-extension.jar" sourcepath="lib/java-contrib/truth-java8-extension-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/checker-qual.jar" sourcepath="lib/java-contrib/checker-qual-sources.jar"/>

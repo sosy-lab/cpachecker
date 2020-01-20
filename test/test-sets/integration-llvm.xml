@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="1">
+
+  <option name="-noout"/>
+  <option name="-heap">2000M</option>
+
+  <rundefinition>
+    <option name="-valueAnalysis-NoCegar"/>
+  </rundefinition>
+
+  <tasks>
+    <include>../programs/llvm/*yml</include>
+    <propertyfile>../../test/config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+</benchmark>

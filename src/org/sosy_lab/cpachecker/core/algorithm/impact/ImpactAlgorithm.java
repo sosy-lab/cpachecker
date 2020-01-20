@@ -226,7 +226,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       path = path.subList(0, path.size()-1); // skip last element, itp is always false there
       assert cex.getInterpolants().size() ==  path.size();
 
-      List<Vertex> changedElements = new ArrayList<>();
+      ImmutableList.Builder<Vertex> changedElements = ImmutableList.builder();
 
       for (Pair<BooleanFormula, Vertex> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
         BooleanFormula itp = interpolationPoint.getFirst();
@@ -253,7 +253,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         changedElements.add(v);
       }
 
-      return changedElements;
+      return changedElements.build();
     } finally {
       refinementTime.stop();
     }

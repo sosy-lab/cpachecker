@@ -207,6 +207,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   // to be able to ask for termination and see thrown exceptions.
   private Future<Pair<InvariantSupplier, ExpressionTreeSupplier>> invariantGenerationFuture = null;
 
+  @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
   private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
 
     @Override

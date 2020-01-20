@@ -29,6 +29,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -419,7 +421,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       return ImmutableSet.of();
     }
 
-    Collection<Pair<List<AbstractState>, List<ARGState>>> result = new ArrayList<>(count);
+    ImmutableCollection.Builder<Pair<List<AbstractState>, List<ARGState>>> result =
+        ImmutableList.builder();
 
     // compute cartesian product
     int[] indices = new int[pSuccessorsForEdge.size()];
@@ -460,7 +463,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       }
     }
 
-    return result;
+    return result.build();
   }
 
   private ARGState getUncoveredSuccessor(ARGState pMaybeCovered) {

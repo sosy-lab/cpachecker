@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -92,15 +91,10 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
 
   private final Collection<Statistics> stats = new ArrayList<>();
 
-  private final Predicate<? super AbstractState> IS_STOP =
-      (AbstractState e) -> {
-        AssumptionStorageState ass =
-            AbstractStates.extractStateByType(e, AssumptionStorageState.class);
-        if (ass == null) {
-          return false;
-        }
-        return ass.isStop();
-      };
+  private static final boolean isStop(AbstractState e) {
+    AssumptionStorageState ass = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
+    return ass != null && ass.isStop();
+  }
 
   public ResidualProgramConstructionAfterAnalysisAlgorithm(final CFA pCfa, final Algorithm pAlgorithm,
       final Configuration pConfig, final LogManager pLogger, final ShutdownNotifier pShutdown,
@@ -131,7 +125,8 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     } catch (InfeasibleCounterexampleException | RefinementFailedException e) {
     }
 
-    if (!pReachedSet.hasWaitingState() && !from(pReachedSet).anyMatch(IS_STOP)) {
+    if (!pReachedSet.hasWaitingState()
+        && !from(pReachedSet).anyMatch(ResidualProgramConstructionAfterAnalysisAlgorithm::isStop)) {
       logger.log(Level.INFO, "Analysis complete");
       // analysis alone succeeded
       return status;
@@ -206,7 +201,8 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       toAdd.push((ARGState) unexplored);
     }
 
-    for (AbstractState stop : from(pReachedSet).filter(IS_STOP)) {
+    for (AbstractState stop :
+        from(pReachedSet).filter(ResidualProgramConstructionAfterAnalysisAlgorithm::isStop)) {
       toAdd.push((ARGState) stop);
     }
 

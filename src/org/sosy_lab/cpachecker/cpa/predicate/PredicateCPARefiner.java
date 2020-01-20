@@ -420,7 +420,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       }
     } else if (useUCBRefinement) {
       logger.log(Level.FINEST, "Starting unsat-core-based refinement");
-      return performUCBRefinement(abstractionStatesTrace, formulas);
+      return performUCBRefinement(allStatesTrace, abstractionStatesTrace, formulas);
 
     } else {
       logger.log(Level.FINEST, "Starting interpolation-based refinement.");
@@ -486,11 +486,11 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   }
 
   private CounterexampleTraceInfo performUCBRefinement(
-      final List<ARGState> pAbstractionStatesTrace, final BlockFormulas pFormulas)
+      final ARGPath allStatesTrace, final List<ARGState> pAbstractionStatesTrace, final BlockFormulas pFormulas)
       throws CPAException, InterruptedException {
 
     assert ucbManager.isPresent();
-    return ucbManager.orElseThrow().buildCounterexampleTrace(pAbstractionStatesTrace, pFormulas);
+    return ucbManager.orElseThrow().buildCounterexampleTrace(allStatesTrace, pAbstractionStatesTrace, pFormulas);
   }
 
   private List<BooleanFormula> addInvariants(final List<ARGState> abstractionStatesTrace)

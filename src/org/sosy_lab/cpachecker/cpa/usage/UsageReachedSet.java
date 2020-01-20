@@ -28,15 +28,14 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ObjectOutputStream;
 import java.util.Collections;
 import java.util.Set;
-import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
+import org.sosy_lab.cpachecker.cpa.usage.storage.UsageConfiguration;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -54,16 +53,18 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   private static final RaceProperty propertyInstance = new RaceProperty();
 
-  private final Configuration config;
+  private final UsageConfiguration config;
   private final LogManager logger;
+  private final UnsafeDetector unsafeDetector;
 
   private UsageContainer container = null;
 
   public UsageReachedSet(
-      WaitlistFactory waitlistFactory, Configuration pConfig, LogManager pLogger) {
+      WaitlistFactory waitlistFactory, UsageConfiguration pConfig, LogManager pLogger) {
     super(waitlistFactory);
     config = pConfig;
     logger = pLogger;
+    unsafeDetector = new UnsafeDetector(pConfig);
   }
 
   @Override
@@ -93,8 +94,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   @Override
   public boolean hasViolatedProperties() {
-    UsageContainer container = getUsageContainer();
-    return container == null ? false : container.getTotalUnsafeSize() > 0;
+    return getUsageContainer().getTotalUnsafeSize() > 0;
   }
 
   @Override
@@ -107,22 +107,16 @@ public class UsageReachedSet extends PartitionedReachedSet {
   }
 
   public UsageContainer getUsageContainer() {
-    try {
-      if (container == null) {
-        container = new UsageContainer(config, logger);
-      }
-      // TODO lastState = null
-      UsageState lastState = UsageState.get(getLastState());
-      container.initContainerIfNecessary(lastState.getFunctionContainer());
-      return container;
-
-    } catch (InvalidConfigurationException e) {
-      logger.log(Level.SEVERE, e.getMessage());
-      return null;
+    if (container == null) {
+      container = new UsageContainer(config, logger, unsafeDetector);
     }
+    // TODO lastState = null
+    UsageState lastState = UsageState.get(getLastState());
+    container.initContainerIfNecessary(lastState.getFunctionContainer());
+    return container;
   }
 
   private void writeObject(@SuppressWarnings("unused") ObjectOutputStream stream) {
-    throw new UnsupportedOperationException("cannot serialize Loger and Configuration.");
+    throw new UnsupportedOperationException("cannot serialize Logger");
   }
 }

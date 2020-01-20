@@ -171,4 +171,11 @@ public class SynchronizedRegionManager implements RegionManager {
       delegate.reorder(pStrategy);
     }
   }
+
+  @Override
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+    synchronized (delegate) {
+      return delegate.replace(pRegion, pOldPredicates, pNewPredicates);
+    }
+  }
 }

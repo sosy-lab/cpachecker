@@ -78,9 +78,10 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       BAMCPA pBamCpa,
       ShutdownNotifier pShutdownNotifier,
       AlgorithmFactory pAlgorithmFactory,
-      BAMPCCManager pBamPccManager)
+      BAMPCCManager pBamPccManager,
+      boolean pSearchTargetStatesOnExit)
       throws InvalidConfigurationException {
-    super(pBamCpa, pShutdownNotifier, pAlgorithmFactory, pBamPccManager);
+    super(pBamCpa, pShutdownNotifier, pAlgorithmFactory, pBamPccManager, pSearchTargetStatesOnExit);
     pConfig.inject(this);
     bamCpa = pBamCpa;
   }

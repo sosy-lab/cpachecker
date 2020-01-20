@@ -484,8 +484,8 @@ public class CFAUtils {
   public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
     Set<FileLocation> result =
         from(getAstNodesFromCfaEdge(pEdge))
-            .transformAndConcat(node -> traverseRecursively((CAstNode) node))
-            .transform(CAstNode::getFileLocation)
+            .transformAndConcat(node -> traverseRecursively(node))
+            .transform(AAstNode::getFileLocation)
             .copyInto(new HashSet<>());
 
     result.add(pEdge.getFileLocation());

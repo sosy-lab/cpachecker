@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -162,6 +163,7 @@ public class CFAToCTranslator {
     Collection<CFAEdge> outgoingEdges =
         CFAUtils.leavingEdges(currentElement)
             .filter(e -> !(e instanceof FunctionReturnEdge))
+            .filter(e -> !(e instanceof CFunctionSummaryStatementEdge))
             .toList();
 
     if (outgoingEdges.size() == 1) {
