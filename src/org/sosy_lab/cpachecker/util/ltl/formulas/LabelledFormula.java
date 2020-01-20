@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.util.Property;
 
-public class LabelledFormula implements Property {
+public final class LabelledFormula implements Property {
 
   public static LabelledFormula of(LtlFormula pFormula, List<Literal> pList) {
     return new LabelledFormula(pFormula, pList);

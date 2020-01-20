@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class AssumeEdgesInPathConditionState
+public final class AssumeEdgesInPathConditionState
     implements AbstractState, AvoidanceReportingState {
 
   private final int assumeEdgesInPath;

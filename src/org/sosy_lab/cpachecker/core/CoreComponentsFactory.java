@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -132,6 +133,9 @@ public class CoreComponentsFactory {
 
   @Option(secure = true, description="Construct a residual program from condition and verify residual program")
   private boolean asConditionalVerifier = false;
+
+  @Option(secure = true, description = "Construct the program slice for the given configuration.")
+  private boolean constructProgramSlice = false;
 
   @Option(secure=true, name="algorithm.BMC",
       description="use a BMC like algorithm that checks for satisfiability "
@@ -404,6 +408,14 @@ public class CoreComponentsFactory {
             specification, cpa, algorithm);
       }
 
+      if (constructProgramSlice) {
+        logger.log(
+            Level.INFO,
+            "Constructing program slice. (Sub-)analysis will stop after this"
+                + " and ignore other algorithms in this configuration.");
+        algorithm = new SlicingAlgorithm(logger, shutdownNotifier, config, cfa, specification);
+      }
+
       if (useParallelBAM) {
         algorithm = new ParallelBAMAlgorithm(cpa, config, logger, shutdownNotifier);
       }
@@ -574,7 +586,8 @@ public class CoreComponentsFactory {
         || useProofCheckWithARGCMCStrategy
         || asConditionalVerifier
         || useNonTerminationWitnessValidation
-        || useUndefinedFunctionCollector) {
+        || useUndefinedFunctionCollector
+        || constructProgramSlice) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

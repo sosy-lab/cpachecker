@@ -73,10 +73,9 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   private boolean handleRecursiveProcedures = false;
 
   @Option(
-    secure = true,
-    description =
-        "If enabled, cache queries also consider blocks with " + "non-matching precision for reuse."
-  )
+      secure = true,
+      description =
+          "If enabled, cache queries also consider blocks with non-matching precision for reuse.")
   private boolean aggressiveCaching = true;
 
   @Option(
@@ -129,9 +128,11 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
     if (handleRecursiveProcedures) {
       transfer =
           new BAMTransferRelationWithFixPointForRecursion(
-              config, this, pShutdownNotifier, factory, bamPccManager);
+              config, this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit());
     } else {
-      transfer = new BAMTransferRelation(this, pShutdownNotifier, factory, bamPccManager);
+      transfer =
+          new BAMTransferRelation(
+              this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit());
     }
   }
 

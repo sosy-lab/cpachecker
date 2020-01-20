@@ -341,4 +341,9 @@ public class NamedRegionManager implements RegionManager {
   public Region makeIte(Region pF1, Region pF2, Region pF3) {
     return delegate.makeIte(pF1, pF2, pF3);
   }
+
+  @Override
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+    return delegate.replace(pRegion, pOldPredicates, pNewPredicates);
+  }
 }

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.slicing;
 
 import java.util.Collection;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -35,19 +34,14 @@ import org.sosy_lab.cpachecker.core.Specification;
  * <p>Classes implementing this interface provide means to get the {@link CFAEdge CFA edges} of a
  * {@link CFA} that are relevant regarding a {@link Specification} or a set of slicing criteria.
  * Slicing criteria are given as CFA edges.
+ *
+ * @see SlicerFactory
  */
 public interface Slicer {
 
-  /**
-   * Returns the set of {@link CFAEdge CFA edges} in the given CFA that are relevant for the given
-   * specification.
-   */
-  Set<CFAEdge> getRelevantEdges(CFA pCfa, Specification pSpecification) throws InterruptedException;
+  /** Returns the {@link Slice} of the given CFA that is relevant for the given specification. */
+  Slice getSlice(CFA pCfa, Specification pSpecification) throws InterruptedException;
 
-  /**
-   * Returns the set of {@link CFAEdge CFA edges} in the given CFA that are relevant for the given
-   * specification.
-   */
-  Set<CFAEdge> getRelevantEdges(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
-      throws InterruptedException;
+  /** Returns the {@link Slice} in the given CFA that is relevant for the given specification. */
+  Slice getSlice(CFA pCfa, Collection<CFAEdge> pSlicingCriteria) throws InterruptedException;
 }

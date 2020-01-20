@@ -62,5 +62,7 @@
     <exclude>../programs/benchmarks/loops/sum*</exclude>
     <exclude>../programs/benchmarks/loops/eureka*</exclude>
     <exclude>../programs/benchmarks/loops/*string*</exclude>
+    <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.p+sep-reducer.yml</exclude> <!-- flapping OOM/StackOverflow -->
+    <exclude>../programs/benchmarks/loop-invgen/id_build.i.p+sep-reducer.yml</exclude> <!-- flapping timeout/StackOverflow -->
   </tasks>
 </benchmark>

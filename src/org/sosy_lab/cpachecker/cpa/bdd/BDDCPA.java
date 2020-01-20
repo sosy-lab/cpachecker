@@ -70,6 +70,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final LogManager logger;
   private final CFA cfa;
   private final BDDStatistics stats;
+  private final BitvectorComputer bvComputer;
 
   @Option(
     secure = true,
@@ -87,6 +88,11 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   )
   private boolean compressIntEqual = true;
 
+  @Option(
+    secure = true,
+    description = "reduce and expand BDD states for BAM, otherwise use plain identity")
+  private boolean useBlockAbstraction = false;
+
   private BDDCPA(CFA pCfa, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -103,6 +109,14 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
     manager           = new NamedRegionManager(rmgr);
     bvmgr             = new BitvectorManager(rmgr);
     predmgr           = new PredicateManager(config, manager, cfa);
+    bvComputer =
+        new BitvectorComputer(
+            compressIntEqual,
+            cfa.getVarClassification().orElseThrow(),
+            bvmgr,
+            manager,
+            predmgr,
+            cfa.getMachineModel());
     stats = new BDDStatistics(config, cfa, logger, manager, predmgr);
   }
 
@@ -138,7 +152,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new BDDTransferRelation(manager, bvmgr, predmgr, cfa, bitsize, compressIntEqual);
+    return new BDDTransferRelation(manager, bvmgr, predmgr, cfa, bitsize, bvComputer);
   }
 
   @Override
@@ -158,7 +172,16 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public Reducer getReducer() {
-    return new BDDReducer();
+    return new BDDReducer(
+        manager,
+        bvmgr,
+        predmgr,
+        cfa.getMachineModel(),
+        cfa.getVarClassification().orElseThrow(),
+        shutdownNotifier,
+        logger,
+        useBlockAbstraction,
+        bvComputer);
   }
 
   public Configuration getConfiguration() {

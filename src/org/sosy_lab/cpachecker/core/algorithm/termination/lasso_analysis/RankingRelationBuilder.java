@@ -33,8 +33,6 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.PLUS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.createDummyLiteral;
-import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.LONG_INT;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.createDereferencedVariable;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.createPrimedVariable;
 
@@ -67,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -415,7 +414,9 @@ public class RankingRelationBuilder {
   private static Optional<CExpression> createLiteral(BigInteger value) {
     if (value.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) <= 0
         && value.compareTo(BigInteger.valueOf(Long.MIN_VALUE)) >= 0) {
-      return Optional.of(createDummyLiteral(value.longValueExact(), LONG_INT));
+      return Optional.of(
+          CIntegerLiteralExpression.createDummyLiteral(
+              value.longValueExact(), CNumericTypes.LONG_LONG_INT));
     } else {
       return Optional.empty();
     }

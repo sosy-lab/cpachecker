@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cpa.lock.effects.ReleaseLockEffect;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
-public class LockState extends AbstractLockState {
+public final class LockState extends AbstractLockState {
 
   @SuppressWarnings("checkstyle:IllegalType") // TODO: use composition instead of inheritance
   public static class LockTreeNode extends TreeSet<LockIdentifier> implements CompatibleNode {

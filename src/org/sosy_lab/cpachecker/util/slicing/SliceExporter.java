@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.slicing;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
@@ -73,18 +76,35 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 
-@Options(prefix = "programSlice.exportToC")
+@Options(prefix = "slicing")
 public class SliceExporter {
 
   @Option(
       secure = true,
-      name = "enable",
+      name = "exportToC.enable",
       description = "Whether to export slices as C program files")
   private boolean exportToC = false;
 
-  @Option(secure = true, name = "file", description = "File template for exported C program slices")
+  @Option(
+      secure = true,
+      name = "exportToC.file",
+      description = "File template for exported C program slices")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate exportToCFile = PathTemplate.ofFormatString("programSlice.%d.c");
+
+  @Option(
+      secure = true,
+      name = "exportCriteria.enable",
+      description = "Export the used slicing criteria to file")
+  private boolean exportCriteria = false;
+
+  @Option(
+      secure = true,
+      name = "exportCriteria.file",
+      description = "File template for export of used slicing criteria")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate exportCriteriaFile =
+      PathTemplate.ofFormatString("programSlice.%d.criteria.txt");
 
   public SliceExporter(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -398,61 +418,81 @@ public class SliceExporter {
     return newEntryNode;
   }
 
-  /**
-   * Creates a new CFA that resembles the program slice (as specified by pRelevantEdges) as closely
-   * as possible.
-   */
-  private CFA createRelevantCfa(CFA pCfa, Set<CFAEdge> pRelevantEdges) {
+  /** Creates a new CFA that resembles the program slice as closely as possible. */
+  private CFA createRelevantCfa(final Slice pSlice) {
+
+    final CFA originalCfa = pSlice.getOriginalCfa();
+    final ImmutableSet<CFAEdge> relevantEdges = pSlice.getRelevantEdges();
 
     NavigableMap<String, FunctionEntryNode> newFunctions = new TreeMap<>();
     SortedSetMultimap<String, CFANode> newNodes = TreeMultimap.create();
     FunctionEntryNode newMainEntryNode = null;
 
-    for (String functionName : pCfa.getAllFunctionNames()) {
-      FunctionEntryNode entryNode = pCfa.getFunctionHead(functionName);
+    for (String functionName : originalCfa.getAllFunctionNames()) {
+      final boolean isMainFunction =
+          functionName.equals(originalCfa.getMainFunction().getFunctionName());
+
+      FunctionEntryNode entryNode = originalCfa.getFunctionHead(functionName);
 
       Collection<CFANode> functionNodes = CFATraversal.dfs().collectNodesReachableFrom(entryNode);
 
-      if (containsRelevantEdge(functionNodes, pRelevantEdges)) {
-
-        FunctionEntryNode newEntryNode =
-            createRelevantFunction((CFunctionEntryNode) entryNode, pRelevantEdges, newNodes);
+      if (isMainFunction || containsRelevantEdge(functionNodes, relevantEdges)) {
+        final FunctionEntryNode newEntryNode =
+            createRelevantFunction((CFunctionEntryNode) entryNode, relevantEdges, newNodes);
         newFunctions.put(functionName, newEntryNode);
 
-        if (newMainEntryNode == null
-            && functionName.equals(pCfa.getMainFunction().getFunctionName())) {
+        if (isMainFunction) {
+          checkState(newMainEntryNode == null, "Trying to set entry node of main function, but one already exists: " + newMainEntryNode);
           newMainEntryNode = newEntryNode;
         }
       }
     }
+    assert newMainEntryNode != null;
 
     return new MutableCFA(
-        pCfa.getMachineModel(),
+        originalCfa.getMachineModel(),
         newFunctions,
         newNodes,
         newMainEntryNode,
-        pCfa.getFileNames(),
-        pCfa.getLanguage());
+        originalCfa.getFileNames(),
+        originalCfa.getLanguage());
   }
 
   /**
    * Executes the slice-exporter, which (depending on the configuration) exports program slices to C
    * program files.
    *
-   * @param pCfa the CFA used for slice creation.
-   * @param pRelevantEdges the set containing all relevant edges for the slice.
+   * @param pSlice program slice to export
    * @param pSliceCounter the value of the slice counter; used for numbering the slice files.
    * @param pLogger the logger for this export procedure.
    */
-  public void execute(
-      CFA pCfa, Set<CFAEdge> pRelevantEdges, int pSliceCounter, LogManager pLogger) {
+  public void execute(Slice pSlice, int pSliceCounter, LogManager pLogger) {
+    if (exportCriteria) {
+      Concurrency.newThread(
+          "Slice-criteria-Exporter",
+          () -> {
+            Path path = exportCriteriaFile.getPath(pSliceCounter);
+
+            try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
+              StringBuilder output = new StringBuilder();
+              for (CFAEdge e : pSlice.getUsedCriteria()) {
+                FileLocation loc = e.getFileLocation();
+                output.append(loc.getFileName()).append(":").append(loc.getStartingLineNumber()).append(":").append(e.getCode()).append("\n");
+              }
+              writer.write(output.toString());
+
+            } catch (IOException e) {
+              pLogger.logUserException(Level.WARNING, e, "Could not write slicing criteria to file " + path);
+            }
+          })
+          .start();
+    }
 
     if (exportToC) {
-
       Concurrency.newThread(
               "Slice-Exporter",
               () -> {
-                CFA sliceCfa = createRelevantCfa(pCfa, pRelevantEdges);
+                CFA sliceCfa = createRelevantCfa(pSlice);
 
                 Path path = exportToCFile.getPath(pSliceCounter);
 

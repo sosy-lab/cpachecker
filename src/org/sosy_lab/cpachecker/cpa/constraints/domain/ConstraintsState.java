@@ -44,7 +44,7 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 /**
  * State for Constraints Analysis. Stores constraints and whether they are solvable.
  */
-public class ConstraintsState implements AbstractState, Graphable, Set<Constraint> {
+public final class ConstraintsState implements AbstractState, Graphable, Set<Constraint> {
 
   /** The constraints of this state */
   private List<Constraint> constraints;

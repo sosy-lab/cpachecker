@@ -1250,11 +1250,13 @@ public class FormulaManagerView {
           toProcess.pop();
           Formula out;
           if (decl.getKind() == FunctionDeclarationKind.UF) {
-
-            out =
-                unwrap(
-                    getFunctionFormulaManager().declareAndCallUF(
-                        pRenameFunction.apply(decl.getName()), getFormulaType(f), newArgs));
+            FunctionDeclaration<Formula> uf =
+                getFunctionFormulaManager()
+                    .declareUF(
+                        pRenameFunction.apply(decl.getName()),
+                        getFormulaType(f),
+                        decl.getArgumentTypes());
+            out = unwrap(getFunctionFormulaManager().callUF(uf, newArgs));
 
           } else {
             out = manager.makeApplication(decl, newArgs);

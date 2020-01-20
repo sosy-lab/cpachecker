@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -73,7 +74,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
-import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
+import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
 
 /**
  * Refiner for {@link SlicingPrecision}. Precision refinement is done through program slicing [1].
@@ -175,16 +176,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
             fullSlicingPrecision, Predicates.instanceOf(SlicingPrecision.class));
 
     ShutdownNotifier shutdownNotifier = slicingCPA.getShutdownNotifier();
-    Slicer slicer =
-        new StaticSlicer(
-            logger,
-            shutdownNotifier,
-            config,
-            cfa.getDependenceGraph()
-                .orElseThrow(
-                    () ->
-                        new InvalidConfigurationException("Dependence graph of CFA " + "missing")),
-            cfa);
+    Slicer slicer = new SlicerFactory().create(logger, shutdownNotifier, config, cfa);
 
     return new SlicingRefiner(
         pathExtractor,
@@ -364,27 +356,26 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private Set<CFAEdge> getSlice(ARGPath pPath) throws InterruptedException {
     List<CFAEdge> innerEdges = pPath.getInnerEdges();
 
-    List<CFAEdge> cexConstraints =
-        innerEdges
-            .stream()
+    Set<CFAEdge> cexConstraints =
+        innerEdges.stream()
             .filter(Predicates.instanceOf(CAssumeEdge.class))
-            .collect(Collectors.toList());
+            .collect(Collectors.toSet());
 
     List<CFAEdge> criteriaEdges = new ArrayList<>(1);
     if (takeEagerSlice) {
-      criteriaEdges = cexConstraints;
+      criteriaEdges.addAll(cexConstraints);
     }
     CFANode finalNode = AbstractStates.extractLocation(pPath.getLastState());
     List<CFAEdge> edgesToTarget =
         CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
     criteriaEdges.addAll(edgesToTarget);
 
-    Set<CFAEdge> relevantEdges = slicer.getRelevantEdges(cfa, criteriaEdges);
+    Set<CFAEdge> relevantEdges = slicer.getSlice(cfa, criteriaEdges).getRelevantEdges();
 
     if (addCexConstraintsToSlice) {
       // this must always be added _after_ adding the slices, otherwise
       // slices may be incomplete
-      relevantEdges.addAll(cexConstraints);
+      relevantEdges = Sets.union(relevantEdges, ImmutableSet.copyOf(cexConstraints));
     }
 
     return relevantEdges;

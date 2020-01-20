@@ -224,6 +224,9 @@ analysis.checkProof = false
 # use assumption collecting algorithm
 analysis.collectAssumptions = false
 
+# Construct the program slice for the given configuration.
+analysis.constructProgramSlice = false
+
 # Solely construct the residual program for a given condition/assumption.
 analysis.constructResidualProgram = false
 
@@ -496,6 +499,10 @@ bdd.javabdd.initTableRatio = 0.001
 # Initial size of the BDD node table, use 0 for size based on initTableRatio.
 bdd.javabdd.initTableSize = 0
 
+# measure the time spent in the BDD library. The behaviour in case of
+# concurrent accesses is undefined!
+bdd.measureLibraryAccess = false
+
 # Which BDD package should be used?
 # - java:   JavaBDD (default, no dependencies, many features)
 # - sylvan: Sylvan (only 64bit Linux, uses multiple threads)
@@ -512,14 +519,6 @@ bdd.package = "JAVA"
 # size of the BDD cache.
 bdd.pjbdd.cacheSize = 10000
 
-# Which parallel bdd creator should be used? PJBDD only!
-# - serial-int: uses serial int-based algorithms with concurrent access
-# - serial: uses serial algorithms with concurrent access
-# - comp-fut: uses CompletableFuture based concurrent algorithms
-# - fork-join:  uses ForkJoin based concurrent algorithms
-bdd.pjbdd.creator = "FORK-JOIN"
-  allowed values: [COMP-FUT, FORK-JOIN, SERIAL, SERIAL-INT]
-
 # increase factor for resizing tables
 bdd.pjbdd.increaseFactor = 1
 
@@ -528,13 +527,6 @@ bdd.pjbdd.tableParallelism = 1000
 
 # initial size of the BDD node table.
 bdd.pjbdd.tableSize = 50000
-
-# Which uniquetable implementation should be used?
-# - array:  a concurrent resizing array
-# - map:    a concurrent hash map
-# - bucket: a concurrent hash bucket
-bdd.pjbdd.tableType = "ARRAY"
-  allowed values: [ARRAY, MAP, BUCKET]
 
 # Number of worker threads, Runtime.getRuntime().availableProcessors()
 # default
@@ -1162,7 +1154,7 @@ cpa.arg.witness.removeInsufficientEdges = true
 cpa.arg.witness.revertThreadFunctionRenaming = false
 
 # signal the analysis to break in case the given number of error state is
-# reached 
+# reached. Use -1 to disable this limit.
 cpa.automaton.breakOnTargetState = 1
 
 # export automaton to file
@@ -1173,8 +1165,8 @@ cpa.automaton.dotExport = false
 cpa.automaton.dotExportFile = "%s.dot"
 
 # the maximum number of iterations performed after the initial error is
-# found, despite the limitgiven as cpa.automaton.breakOnTargetState is not
-# yet reached
+# found, despite the limit given as cpa.automaton.breakOnTargetState is not
+# yet reached. Use -1 to disable this limit.
 cpa.automaton.extraIterationsLimit = -1
 
 # file with automaton specification for ObserverAutomatonCPA and
@@ -1258,6 +1250,13 @@ cpa.bam.indexedArgFile = "ARGs/ARG_%d.dot"
 # disables this option.
 cpa.bam.maximalDepthForExplicitRecursion = -1
 
+# By default, the CPA algorithm terminates when finding the first target
+# state, which makes it easy to identify this last state. For special
+# analyses, we need to search for more target states in the reached-set, when
+# reaching a block-exit. This flag is needed if the option
+# 'cpa.automaton.breakOnTargetState' is unequal to 1.
+cpa.bam.searchTargetStatesOnExit = false
+
 # export used parts of blocked ARG as .dot file
 cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
 
@@ -1303,6 +1302,9 @@ cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 # mergeType
 cpa.bdd.merge = "join"
   allowed values: [sep, join]
+
+# reduce and expand BDD states for BAM, otherwise use plain identity
+cpa.bdd.useBlockAbstraction = false
 
 # Dump tracked variables to a file.
 cpa.bdd.variablesFile = "BDDCPA_ordered_variables.txt"
@@ -2477,12 +2479,6 @@ cpa.slicing.applyLBETransformation = true
 # Check target states reachability
 cpa.slicing.checkTargetStates = true
 
-# Whether to export the final slice to a file
-cpa.slicing.exportSlice = true
-
-# File to export final slice to
-cpa.slicing.exportSliceFile = "ProgramSlice.txt"
-
 # Filter lemmas by liveness
 cpa.slicing.filterByLiveness = true
 
@@ -2622,6 +2618,10 @@ cpa.smg.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 # Sets the level of runtime checking: NONE, HALF, FULL
 cpa.smg.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
+
+# Which unknown function are always considered as safe functions, i.e., free
+# of memory-related side-effects?
+cpa.smg.safeUnknownFunctions = {"abort"}
 
 # which stop operator to use for the SMGCPA
 cpa.smg.stop = "SEP"
@@ -3677,16 +3677,6 @@ program.splitter.heuristic = no default value
 # maximal number
 program.splitter.max = 2
 
-# Whether to export slices as C program files
-programSlice.exportToC.enable = false
-
-# File template for exported C program slices
-programSlice.exportToC.file = "programSlice.%d.c"
-
-# Whether to create slices that are behaviorally equivalent not only to the
-# target location, but also on the paths to that target location.
-programSlice.preserveTargetPaths = false
-
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
@@ -3777,11 +3767,31 @@ slicing.conditionFile = "output/AssumptionAutomaton.txt"
 # condition itself is in propriertary format and not in witness format
 slicing.conditionFiles = [
           Paths.get("output/AssumptionAutomaton.txt"),
-          Paths.get("config/specification/AssumptionGuiding.spc")]
+          Paths.get("config/specification/AssumptionGuidingAutomaton.spc")]
+
+# Export the used slicing criteria to file
+slicing.exportCriteria.enable = false
+
+# File template for export of used slicing criteria
+slicing.exportCriteria.file = "programSlice.%d.criteria.txt"
+
+# Whether to export slices as C program files
+slicing.exportToC.enable = false
+
+# File template for exported C program slices
+slicing.exportToC.file = "programSlice.%d.c"
 
 # which type of extractor for slicing criteria to use
 slicing.extractor = ALL
   enum:     [ALL, REDUCER, SYNTAX]
+
+# Whether to create slices that are behaviorally equivalent not only to the
+# target location, but also on the paths to that target location.
+slicing.preserveTargetPaths = false
+
+# what kind of slicing to use
+slicing.type = STATIC
+  enum:     [STATIC, IDENTITY]
 
 # Extract and cache unsat cores for satisfiability checking
 solver.cacheUnsatCores = true

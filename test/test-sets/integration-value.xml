@@ -54,6 +54,7 @@
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*</exclude> <!-- only timeouts and unknowns -->
     <exclude>../programs/benchmarks/seq-pthread/cs_s*</exclude> <!-- only timeouts and unknowns -->
     <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock-1.yml</exclude> <!-- flapping timeout/unknown -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock-2.yml</exclude> <!-- flapping timeout/unknown -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>

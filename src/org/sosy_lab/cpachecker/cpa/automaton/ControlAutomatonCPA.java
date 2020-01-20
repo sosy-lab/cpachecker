@@ -107,19 +107,35 @@ public class ControlAutomatonCPA
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
   }
 
-  @Option(secure=true, required=false,
-      description="file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
+  @Option(
+      secure = true,
+      required = false,
+      description =
+          "file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path inputFile = null;
 
-  @Option(secure=true, description="signal the analysis to break in case the given number of error state is reached ")
+  @Option(
+      secure = true,
+      description =
+          "signal the analysis to break in case the given number of "
+              + "error state is reached. Use -1 to disable this limit.")
   private int breakOnTargetState = 1;
 
-  @Option(secure=true, description="the maximum number of iterations performed after the initial error is found, despite the limit"
-      + "given as cpa.automaton.breakOnTargetState is not yet reached")
+  @Option(
+      secure = true,
+      description =
+          "the maximum number of iterations performed after the "
+              + "initial error is found, despite the limit given as "
+              + "cpa.automaton.breakOnTargetState is not yet reached. "
+              + "Use -1 to disable this limit.")
   private int extraIterationsLimit = -1;
 
-  @Option(secure=true, description="Whether to treat automaton states with an internal error state as targets. This should be the standard use case.")
+  @Option(
+      secure = true,
+      description =
+          "Whether to treat automaton states with an internal error "
+              + "state as targets. This should be the standard use case.")
   private boolean treatErrorsAsTargets = true;
 
   @Option(secure=true, description="Merge two automata states if one of them is TOP.")

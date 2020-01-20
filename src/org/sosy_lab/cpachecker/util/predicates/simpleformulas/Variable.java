@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.simpleformulas;
 
-public class Variable implements Term {
+public final class Variable implements Term {
 
   private String mName;
 

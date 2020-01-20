@@ -41,7 +41,8 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 /**
  * Abstract state for tracking overflows.
  */
-class OverflowState implements AbstractStateWithAssumptions,
+final class OverflowState
+    implements AbstractStateWithAssumptions,
     Graphable,
     AbstractQueryableState {
 

@@ -240,7 +240,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
                 }
 
               } catch (RejectedExecutionException | ExecutionException e) {
-                logger.log(Level.SEVERE, e);
+                logger.logException(Level.SEVERE, e, e.getMessage());
                 error.compareAndSet(null, e);
               } catch (InterruptedException | TimeoutException e) {
                 error.compareAndSet(null, e);
@@ -250,7 +250,12 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
     Throwable toThrow = error.get();
     if (toThrow != null) {
-      throw new CPAException(toThrow.getMessage(), toThrow);
+      // just re-throw plain errors, this results in better stack traces
+      if (toThrow instanceof RuntimeException || toThrow instanceof Error) {
+        throw new RuntimeException(toThrow.getMessage(), toThrow);
+      } else {
+        throw new CPAException(toThrow.getMessage(), toThrow);
+      }
     }
 
     Preconditions.checkState(

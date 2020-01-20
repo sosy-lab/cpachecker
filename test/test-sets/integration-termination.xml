@@ -4,7 +4,6 @@
 
   <option name="-noout"/>
   <option name="-heap">2000M</option>
-  <option name="-disable-java-assertions"/> <!-- Temporarily until #609 is fixed. -->
 
   <rundefinition>
     <option name="-terminationAnalysis"/>
@@ -16,7 +15,7 @@
     <option name="-64"/>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>../programs/benchmarks/termination-crafted/2Nested-1.c</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/termination-restricted-15/Swingers.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
 
   <columns>

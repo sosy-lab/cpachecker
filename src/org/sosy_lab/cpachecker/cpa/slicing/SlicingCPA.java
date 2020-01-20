@@ -23,32 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.slicing;
 
-import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.Set;
-import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -63,11 +48,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
+import org.sosy_lab.cpachecker.util.slicing.Slice;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
-import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
+import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
 
 /**
  * CPA that performs program slicing during analysis. The Slicing CPA wraps another CPA. If a CFA
@@ -80,16 +63,6 @@ import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
  */
 @Options(prefix = "cpa.slicing")
 public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {
-
-  @Option(
-      secure = true,
-      name = "exportSlice",
-      description = "Whether to export the final slice to a file")
-  private boolean exportSlice = true;
-
-  @Option(secure = true, name = "exportSliceFile", description = "File to export final slice to")
-  @FileOption(Type.OUTPUT_FILE)
-  private Path exportSliceFile = Paths.get("ProgramSlice.txt");
 
   @Option(
       secure = true,
@@ -130,10 +103,6 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
     super(pCpa);
     pConfig.inject(this);
 
-    if (exportSlice && exportSliceFile == null) {
-      throw new InvalidConfigurationException("File to export slice to is 'null'.");
-    }
-
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     config = pConfig;
@@ -145,11 +114,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
     stopOperator = new PrecisionDelegatingStop(pCpa.getStopOperator());
     precisionAdjustment = new PrecisionDelegatingPrecisionAdjustment(pCpa.getPrecisionAdjustment());
 
-    final DependenceGraph dependenceGraph =
-        pCfa.getDependenceGraph()
-            .orElseThrow(
-                () -> new InvalidConfigurationException("SlicingCPA requires dependence graph"));
-    slicer = new StaticSlicer(logger, shutdownNotifier, config, dependenceGraph, pCfa);
+    slicer = new SlicerFactory().create(logger, shutdownNotifier, config, pCfa);
   }
 
   @Override
@@ -183,18 +148,18 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
       CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     Precision wrappedPrec = getWrappedCpa().getInitialPrecision(pNode, pPartition);
 
-    Set<CFAEdge> relevantEdges;
+    ImmutableSet<CFAEdge> relevantEdges;
     if (useRefinableSlice) {
       relevantEdges = ImmutableSet.of();
     } else {
-      relevantEdges = computeSlice(cfa, spec);
+      relevantEdges = computeSlice(cfa, spec).getRelevantEdges();
     }
 
     return new SlicingPrecision(wrappedPrec, relevantEdges);
   }
 
-  private Set<CFAEdge> computeSlice(CFA pCfa, Specification pSpec) throws InterruptedException {
-    return slicer.getRelevantEdges(pCfa, pSpec);
+  private Slice computeSlice(CFA pCfa, Specification pSpec) throws InterruptedException {
+    return slicer.getSlice(pCfa, pSpec);
   }
 
   public LogManager getLogger() {
@@ -215,48 +180,6 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(
-        new Statistics() {
-
-          @Override
-          public void printStatistics(
-              PrintStream out, Result result, UnmodifiableReachedSet reached) {
-
-            if (exportSlice) {
-              try (Writer sliceFile =
-                  IO.openOutputFile(exportSliceFile, Charset.defaultCharset())) {
-                SlicingPrecision fullPrec = null;
-                for (Precision p : reached.getPrecisions()) {
-                  SlicingPrecision slicingPrec =
-                      Precisions.extractPrecisionByType(p, SlicingPrecision.class);
-                  if (fullPrec == null) {
-                    fullPrec = slicingPrec;
-                  } else {
-                    fullPrec =
-                        fullPrec.getNew(slicingPrec.getWrappedPrec(), slicingPrec.getRelevant());
-                  }
-                }
-                ImmutableList<String> edges =
-                    ImmutableList.sortedCopyOf(
-                        Collections2.transform(fullPrec.getRelevant(), Object::toString));
-
-                for (String e : edges) {
-                  sliceFile.write(e);
-                  sliceFile.write('\n');
-                }
-              } catch (IOException pE) {
-                logger.logException(Level.INFO, pE, "Writing slice failed");
-              }
-            }
-          }
-
-          @Nullable
-          @Override
-          public String getName() {
-            return SlicingCPA.class.getSimpleName();
-          }
-        });
-
     if (slicer instanceof StatisticsProvider) {
       ((StatisticsProvider) slicer).collectStatistics(pStatsCollection);
     }
