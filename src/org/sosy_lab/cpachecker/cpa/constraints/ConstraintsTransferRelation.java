@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
@@ -326,14 +325,14 @@ public class ConstraintsTransferRelation
       // if a strengthening resulted in bottom, we can return bottom without performing other
       // strengthen operations
       if (newStates.isEmpty()) {
-        return newStates;
+        return ImmutableList.of();
       }
     }
 
     if (nothingChanged) {
-      return Collections.singleton(pStateToStrengthen);
+      return ImmutableList.of(pStateToStrengthen);
     } else {
-      return newStates;
+      return ImmutableList.copyOf(newStates);
     }
   }
 

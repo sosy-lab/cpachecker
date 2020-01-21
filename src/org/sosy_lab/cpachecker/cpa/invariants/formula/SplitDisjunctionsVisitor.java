@@ -26,36 +26,35 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 /**
- * Instances of this class are invariants formula visitors used to split the
- * visited formulae on their outer conjunctions into lists of the conjunction
- * operands. This is done recursively so that nested conjunctions are split
- * as well.
+ * Instances of this class are invariants formula visitors used to split the visited formulae on
+ * their outer conjunctions into lists of the conjunction operands. This is done recursively so that
+ * nested conjunctions are split as well.
  *
  * @param <T> the type of the constants used in the formulae.
  */
-public class SplitDisjunctionsVisitor<T> implements BooleanFormulaVisitor<T, List<BooleanFormula<T>>> {
+public class SplitDisjunctionsVisitor<T>
+    implements BooleanFormulaVisitor<T, ImmutableList<BooleanFormula<T>>> {
 
   @Override
-  public List<BooleanFormula<T>> visit(Equal<T> pEqual) {
-    return Collections.<BooleanFormula<T>>singletonList(pEqual);
+  public ImmutableList<BooleanFormula<T>> visit(Equal<T> pEqual) {
+    return ImmutableList.of(pEqual);
   }
 
   @Override
-  public List<BooleanFormula<T>> visit(LessThan<T> pLessThan) {
-    return Collections.<BooleanFormula<T>>singletonList(pLessThan);
+  public ImmutableList<BooleanFormula<T>> visit(LessThan<T> pLessThan) {
+    return ImmutableList.of(pLessThan);
   }
 
   @Override
-  public List<BooleanFormula<T>> visit(LogicalAnd<T> pAnd) {
-    return Collections.<BooleanFormula<T>>singletonList(pAnd);
+  public ImmutableList<BooleanFormula<T>> visit(LogicalAnd<T> pAnd) {
+    return ImmutableList.of(pAnd);
   }
 
   @Override
-  public List<BooleanFormula<T>> visit(LogicalNot<T> pNot) {
+  public ImmutableList<BooleanFormula<T>> visit(LogicalNot<T> pNot) {
     if (pNot.getNegated() instanceof LogicalAnd<?>) {
       List<BooleanFormula<T>> result = new ArrayList<>();
       LogicalAnd<T> formula = (LogicalAnd<T>) pNot.getNegated();
@@ -82,19 +81,19 @@ public class SplitDisjunctionsVisitor<T> implements BooleanFormulaVisitor<T, Lis
         return visitTrue();
       }
       result.addAll(toAdd);
-      return result;
+      return ImmutableList.copyOf(result);
     }
-    return Collections.<BooleanFormula<T>>singletonList(pNot);
+    return ImmutableList.of(pNot);
   }
 
   @Override
-  public List<BooleanFormula<T>> visitFalse() {
+  public ImmutableList<BooleanFormula<T>> visitFalse() {
     return ImmutableList.of();
   }
 
   @Override
-  public List<BooleanFormula<T>> visitTrue() {
-    return Collections.<BooleanFormula<T>>singletonList(BooleanConstant.<T>getTrue());
+  public ImmutableList<BooleanFormula<T>> visitTrue() {
+    return ImmutableList.of(BooleanConstant.getTrue());
   }
 
 }

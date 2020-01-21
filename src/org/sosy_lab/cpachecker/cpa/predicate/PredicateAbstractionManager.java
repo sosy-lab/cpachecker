@@ -44,7 +44,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1240,25 +1239,22 @@ public class PredicateAbstractionManager {
   // Creating AbstractionPredicates
 
   /**
-   * Extract all atoms from a formula and create predicates for them.
-   * If instead a single predicate should be created for the whole formula,
-   * call {@link #getPredicateFor(BooleanFormula)} instead.
+   * Extract all atoms from a formula and create predicates for them. If instead a single predicate
+   * should be created for the whole formula, call {@link #getPredicateFor(BooleanFormula)} instead.
    *
    * @param pFormula The formula with the atoms (with SSA indices).
    * @return A (possibly empty) collection of AbstractionPredicates without duplicates.
    */
-  public Set<AbstractionPredicate> getPredicatesForAtomsOf(BooleanFormula pFormula) {
+  public ImmutableSet<AbstractionPredicate> getPredicatesForAtomsOf(BooleanFormula pFormula) {
     if (bfmgr.isFalse(pFormula)) {
       return ImmutableSet.of(amgr.makeFalsePredicate());
     }
 
     Set<BooleanFormula> atoms = fmgr.extractAtoms(pFormula, splitItpAtoms);
 
-    Set<AbstractionPredicate> preds = new LinkedHashSet<>(atoms.size());
-
-    for (BooleanFormula atom : atoms) {
-      preds.add(amgr.makePredicate(fmgr.uninstantiate(atom)));
-    }
+    ImmutableSet<AbstractionPredicate> preds =
+        Collections3.transformedImmutableSetCopy(
+            atoms, atom -> amgr.makePredicate(fmgr.uninstantiate(atom)));
 
     amgr.reorderPredicates();
     return preds;
