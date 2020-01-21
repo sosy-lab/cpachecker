@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -469,7 +470,8 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
       // Adding constants to or subtracting them from terms is also supported by treating
       // the constant as a coefficient of a "const" variable
       int constant = firstAsConstant != null ? firstAsConstant : secondAsConstant;
-      Map<String, Pair<Integer, Integer>> term = firstAsTerm != null ? firstAsTerm : secondAsTerm;
+      Map<String, Pair<Integer, Integer>> term =
+          Objects.requireNonNullElse(firstAsTerm, secondAsTerm);
       switch (operator) {
       case MULTIPLY:
         for (Map.Entry<String, Pair<Integer, Integer>> coeff : term.entrySet()) {

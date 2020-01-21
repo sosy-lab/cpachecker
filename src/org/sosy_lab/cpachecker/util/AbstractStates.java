@@ -124,7 +124,7 @@ public final class AbstractStates {
                         .filter(notNull());
   }
 
-  public static CFANode extractLocation(AbstractState pState) {
+  public static @Nullable CFANode extractLocation(AbstractState pState) {
     AbstractStateWithLocation e = extractStateByType(pState, AbstractStateWithLocation.class);
     return e == null ? null : e.getLocationNode();
   }

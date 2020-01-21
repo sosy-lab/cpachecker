@@ -249,6 +249,7 @@ public final class SMGListAbstractionTestHelpers {
         pSmg.addHasValueEdge(previousHvNext);
       }
     }
+    assert node != null;
     // circular lists: connect first and last nodes; else point to NULL
     SMGEdgeHasValue hvNext;
     SMGEdgeHasValue hvPrev;
