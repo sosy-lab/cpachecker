@@ -472,7 +472,7 @@ public class SliceExporter {
    */
   public void execute(Slice pSlice) {
     exportCount++;
-    if (exportCriteria) {
+    if (exportCriteria && exportCriteriaFile != null) {
       Concurrency.newThread(
               "Slice-criteria-Exporter",
               () -> {
@@ -500,7 +500,7 @@ public class SliceExporter {
           .start();
     }
 
-    if (exportToC) {
+    if (exportToC && exportToCFile != null) {
       Concurrency.newThread(
               "Slice-Exporter",
               () -> {
