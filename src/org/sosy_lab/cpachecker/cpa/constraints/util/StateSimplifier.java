@@ -311,7 +311,7 @@ public class StateSimplifier {
 
   private enum Activity { ACTIVE, UNUSED, DELETED }
 
-  private static class ActivityInfo {
+  private static final class ActivityInfo {
     private final static Map<SymbolicIdentifier, ActivityInfo> infos = new HashMap<>();
 
     private final SymbolicIdentifier identifier;

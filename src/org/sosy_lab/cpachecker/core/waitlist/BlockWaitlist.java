@@ -138,7 +138,7 @@ public class BlockWaitlist implements Waitlist {
     }
   }
 
-  private static class BKey implements Comparable<BKey> {
+  private static final class BKey implements Comparable<BKey> {
     private final String name;
     private final int callStackDepth;
 
