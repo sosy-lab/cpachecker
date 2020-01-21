@@ -27,7 +27,7 @@ import static java.util.Objects.requireNonNull;
 
 public abstract class UnaryFormula implements LtlFormula {
 
-  public final LtlFormula operand;
+  private final LtlFormula operand;
 
   UnaryFormula(LtlFormula pOperand) {
     this.operand = requireNonNull(pOperand);

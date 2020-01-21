@@ -29,12 +29,20 @@ import java.util.Objects;
 
 public abstract class BinaryFormula implements LtlFormula {
 
-  public final LtlFormula left;
-  public final LtlFormula right;
+  private final LtlFormula left;
+  private final LtlFormula right;
 
   BinaryFormula(LtlFormula pLeft, LtlFormula pRight) {
     this.left = requireNonNull(pLeft);
     this.right = requireNonNull(pRight);
+  }
+
+  public LtlFormula getLeft() {
+    return left;
+  }
+
+  public LtlFormula getRight() {
+    return right;
   }
 
   @Override

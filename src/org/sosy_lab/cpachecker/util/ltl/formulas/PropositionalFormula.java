@@ -28,16 +28,18 @@ import com.google.common.collect.Iterables;
 
 public abstract class PropositionalFormula implements LtlFormula {
 
-  public ImmutableList<? extends LtlFormula> children;
+  private final ImmutableList<? extends LtlFormula> children;
 
   PropositionalFormula(Iterable<? extends LtlFormula> pChildren) {
-    ImmutableList<? extends LtlFormula> list = ImmutableList.copyOf(pChildren);
-    this.children = list;
+    children = ImmutableList.copyOf(pChildren);
   }
 
   PropositionalFormula(LtlFormula... pChildren) {
-    ImmutableList<? extends LtlFormula> list = ImmutableList.copyOf(pChildren);
-    this.children = list;
+    children = ImmutableList.copyOf(pChildren);
+  }
+
+  public ImmutableList<? extends LtlFormula> getChildren() {
+    return children;
   }
 
   @Override
@@ -72,9 +74,8 @@ public abstract class PropositionalFormula implements LtlFormula {
 
   @Override
   public String toString() {
-    String delimiter = String.valueOf(getSymbol());
     return "("
-        + String.join(" " + delimiter + " ", Iterables.transform(children, Object::toString))
+        + String.join(" " + getSymbol() + " ", Iterables.transform(children, Object::toString))
         + ")";
   }
 }
