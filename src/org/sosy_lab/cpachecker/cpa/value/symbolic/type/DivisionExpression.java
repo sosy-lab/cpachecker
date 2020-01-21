@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * {@link BinarySymbolicExpression} representing division.
- */
-public class DivisionExpression extends BinarySymbolicExpression {
+/** {@link BinarySymbolicExpression} representing division. */
+public final class DivisionExpression extends BinarySymbolicExpression {
 
   private static final long serialVersionUID = -5975310977950553115L;
 

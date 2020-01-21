@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 /**
- * Instances of this class are multiplication formulae over other invariants
- * formulae.
+ * Instances of this class are multiplication formulae over other invariants formulae.
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class Multiply<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
+public final class Multiply<ConstantType> extends AbstractBinaryFormula<ConstantType>
+    implements NumeralFormula<ConstantType> {
 
   /**
    * Creates a new multiplication formula with the given factors.
