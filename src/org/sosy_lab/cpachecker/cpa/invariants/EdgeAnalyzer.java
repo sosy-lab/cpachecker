@@ -95,10 +95,11 @@ public class EdgeAnalyzer {
    * Gets the variables involved in the given edge.
    *
    * @param pCfaEdge the edge to be analyzed.
-   *
    * @return the variables involved in the given edge.
    */
-  public Map<MemoryLocation, CType> getInvolvedVariableTypes(CFAEdge pCfaEdge) {
+  @SuppressWarnings(
+      "MixedMutabilityReturnType") // would need lots of copying, result for short-term use only
+  Map<MemoryLocation, CType> getInvolvedVariableTypes(CFAEdge pCfaEdge) {
     switch (pCfaEdge.getEdgeType()) {
     case AssumeEdge: {
       AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
@@ -242,6 +243,8 @@ public class EdgeAnalyzer {
     }
   }
 
+  @SuppressWarnings(
+      "MixedMutabilityReturnType") // would need lots of copying, result for short-term use only
   private Map<MemoryLocation, CType> getInvolvedVariableTypes(
       AAssignment pAssignment, CFAEdge pCfaEdge) {
     if (pAssignment instanceof AExpressionAssignmentStatement) {
