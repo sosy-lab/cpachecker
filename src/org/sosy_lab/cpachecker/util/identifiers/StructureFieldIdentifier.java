@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+@SuppressWarnings("EqualsGetClass") // should be refactored
 public class StructureFieldIdentifier extends StructureIdentifier {
 
   public StructureFieldIdentifier(String pNm, CType pTp, int dereference, AbstractIdentifier own) {
