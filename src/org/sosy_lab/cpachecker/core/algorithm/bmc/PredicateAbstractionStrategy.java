@@ -147,7 +147,7 @@ public class PredicateAbstractionStrategy implements AbstractionStrategy {
     if (!variableClassification.isPresent()) {
       return true;
     }
-    VariableClassification varClassification = variableClassification.get();
+    VariableClassification varClassification = variableClassification.orElseThrow();
     Set<String> intAddVars = varClassification.getIntAddVars();
     if (intAddVars.contains(pVar1) && intAddVars.contains(pVar2)) {
       return true;

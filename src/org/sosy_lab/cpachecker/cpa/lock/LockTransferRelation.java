@@ -289,7 +289,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
             .getFunctionNameExpression()
             .toASTString();
     if (annotatedFunctions.containsKey(fName)) {
-      List<AbstractLockEffect> result = new ArrayList<>();
+      ImmutableList.Builder<AbstractLockEffect> result = ImmutableList.builder();
 
       AnnotationInfo currentAnnotation = annotatedFunctions.get(fName);
       if (currentAnnotation.getRestoreLocks().isEmpty()
@@ -322,7 +322,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
                     targetId, lockDescription.getMaxLevel(targetId.getName()), stopAfterLockLimit));
           }
         }
-        return result;
+        return result.build();
       }
     }
     return ImmutableList.of();
@@ -338,7 +338,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     LockEffect effect = locksWithEffect.getFirst();
     LockIdUnprepared uId = locksWithEffect.getSecond();
 
-    List<AbstractLockEffect> result = new ArrayList<>();
+    ImmutableList.Builder<AbstractLockEffect> result = ImmutableList.builder();
 
     if (effect == SetLockEffect.getInstance()) {
       CExpression expression = function.getParameterExpressions().get(0);
@@ -352,7 +352,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
         effect = SetLockEffect.createEffectForId(newValue, uId.apply(null));
       } else {
         // We can not process not integers
-        return result;
+        return result.build();
       }
     }
 
@@ -363,7 +363,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       effect = effect.cloneWithTarget(id);
     }
     result.add(effect);
-    return result;
+    return result.build();
   }
 
   private List<AbstractLockEffect> handleStatement(CStatementEdge statementEdge) {

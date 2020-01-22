@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
@@ -176,7 +175,7 @@ public class ConstraintsTransferRelation
 
     if (oNewConstraint.isPresent()) {
       ConstraintsState newState = pOldState.copyOf();
-      final Constraint newConstraint = oNewConstraint.get();
+      final Constraint newConstraint = oNewConstraint.orElseThrow();
 
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
@@ -314,7 +313,7 @@ public class ConstraintsTransferRelation
         if (oNewStrengthenedStates.isPresent()) {
           newStates.clear(); // remove the old state to replace it with the new, strengthened result
           nothingChanged = false;
-          Collection<ConstraintsState> strengthenedStates = oNewStrengthenedStates.get();
+          Collection<ConstraintsState> strengthenedStates = oNewStrengthenedStates.orElseThrow();
 
           if (!strengthenedStates.isEmpty()) {
             ConstraintsState newState = Iterables.getOnlyElement(strengthenedStates);
@@ -326,14 +325,14 @@ public class ConstraintsTransferRelation
       // if a strengthening resulted in bottom, we can return bottom without performing other
       // strengthen operations
       if (newStates.isEmpty()) {
-        return newStates;
+        return ImmutableList.of();
       }
     }
 
     if (nothingChanged) {
-      return Collections.singleton(pStateToStrengthen);
+      return ImmutableList.of(pStateToStrengthen);
     } else {
-      return newStates;
+      return ImmutableList.copyOf(newStates);
     }
   }
 

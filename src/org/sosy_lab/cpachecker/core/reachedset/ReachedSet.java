@@ -79,7 +79,7 @@ public interface ReachedSet extends UnmodifiableReachedSet {
 
   AbstractState popFromWaitlist();
 
-  default ImmutableMap<String, ? extends AbstractStatValue> getStatistics() {
+  default ImmutableMap<String, AbstractStatValue> getStatistics() {
     return ImmutableMap.of();
   }
 }

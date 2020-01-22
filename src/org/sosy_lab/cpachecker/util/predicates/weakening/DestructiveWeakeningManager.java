@@ -147,7 +147,7 @@ public class DestructiveWeakeningManager {
 
       if (core.isPresent()) {
 
-        List<BooleanFormula> unsatCore = core.get();
+        List<BooleanFormula> unsatCore = core.orElseThrow();
         toWalk = new HashSet<>(unsatCore);
         toAbstract = new HashSet<>(unsatCore);
       } else {
@@ -171,7 +171,7 @@ public class DestructiveWeakeningManager {
 
         if (core.isPresent()) {
 
-          List<BooleanFormula> unsatCore = core.get();
+          List<BooleanFormula> unsatCore = core.orElseThrow();
           toWalk = new HashSet<>(unsatCore);
           toAbstract = new HashSet<>(unsatCore);
         } else {

@@ -66,21 +66,11 @@ Other utilities may be found in the package `util.test`.
   because you will get unhelpful failure messages such as `expected result was 'true', but is 'false'`
   instead of for example `expected that string '...' contains '...'`.
 
-- For tests that expect an exception to be thrown, it is often better to use the ExpectedException Rule of JUnit
-  instead of writing `@Test(expected=...Exception.class)`.
-  To do this, add
-  ```
-    @Rule
-    public final ExpectedException thrown = ExpectedException.none();
-  ```
-  to your test class and write
-  ```
-    thrown.expect(...Exception.class);
-  ```
-  in the test method directly before the statement that should throw.
-  This will ensure that it will be detected if a different statement in the test
-  happens to throw the same exception although it should not.
-  ExpectedException can also be used to check whether the thrown exception has a specific cause or message.
+- For tests that expect an exception to be thrown,
+  use JUnit's `org.junit.Assert.assertThrows`
+  (statically import this to avoid the Checkstyle warning).
+  This method returns the thrown exception,
+  so any further checks on the condition can be done with Truth's `assertThat`.
 
 - Sometimes there are tests that make sense to be executed with different values of one or more parameters,
   for example if you have code that depends on the MachineModel and should work with any instance of MachineModel.

@@ -91,7 +91,8 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
       octagonManager = new OctagonIntManager();
     }
 
-    this.transferRelation = new OctagonTransferRelation(logger, cfa.getLoopStructure().get());
+    this.transferRelation =
+        new OctagonTransferRelation(logger, cfa.getLoopStructure().orElseThrow());
     this.abstractDomain = octagonDomain;
     this.mergeOperator = OctagonMergeOperator.getInstance(octagonDomain, config);
     this.stopOperator = new StopSepOperator(octagonDomain);

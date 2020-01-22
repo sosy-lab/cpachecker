@@ -160,7 +160,7 @@ class FunctionCloner implements CFAVisitor {
 
     final CFAEdge newEdge = cloneEdge(edge, start, end);
 
-    assert newEdge.getPredecessor() == start && newEdge.getSuccessor() == end;
+    assert newEdge.getPredecessor().equals(start) && newEdge.getSuccessor().equals(end);
 
     CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
 

@@ -437,7 +437,7 @@ public class CFABuilder {
               new CBinaryExpression(
                   comparisonLhs.getFileLocation(),
                   CNumericTypes.BOOL,
-                  CNumericTypes.BOOL,
+                  compType,
                   comparisonLhs,
                   comparisonRhs,
                   BinaryOperator.EQUALS);
@@ -1182,9 +1182,26 @@ public class CFABuilder {
     FileLocation location = getLocation(pItem, pFileName);
     if (pItem.isConstantInt()) {
       BigInteger constantValue = BigInteger.valueOf(pItem.constIntGetSExtValue());
-      CType type = getTypeForInteger(constantValue);
-      return new CIntegerLiteralExpression(
-          getLocation(pItem, pFileName), type, constantValue);
+
+      if (pExpectedType instanceof CSimpleType) {
+        CSimpleType castType = (CSimpleType) pExpectedType;
+
+        if (castType.getType().equals(CBasicType.INT)) {
+          assert machineModel.getMinimalIntegerValue(castType).compareTo(constantValue) <= 0;
+          assert machineModel.getMaximalIntegerValue(castType).compareTo(constantValue) >= 0;
+          return new CIntegerLiteralExpression(
+              getLocation(pItem, pFileName), pExpectedType, constantValue);
+        }
+      }
+
+      // if the expected type is no integer type and we have to cast the literal,
+      // just use the largest available value.
+      // Since llvm-j only provides us a 'long' value for Value#constIntGetSExtValue,
+      // we can always use a signed long long and don't have to consider using an unsigned long long
+      CExpression literalExpression =
+          new CIntegerLiteralExpression(
+              getLocation(pItem, pFileName), CNumericTypes.SIGNED_LONG_LONG_INT, constantValue);
+      return castToExpectedType(literalExpression, pExpectedType, location);
 
     } else if (pItem.isConstantPointerNull()) {
       return new CCastExpression(location, pExpectedType,
@@ -1240,25 +1257,6 @@ public class CFABuilder {
     }
   }
 
-  private CType getTypeForInteger(BigInteger pConstantValue) throws LLVMException{
-    // While clang-3.9 translates C integers larger than 'signed long long int' to negative values,
-    // literals of arbitrary size can be given in LLVM when written by hand,
-    // so we use the largest types available in C and throw an exception if the values are too large.
-    if (machineModel.getMaximalIntegerValue(CNumericTypes.SIGNED_LONG_LONG_INT).compareTo(pConstantValue) < 0) {
-      if (machineModel.getMaximalIntegerValue(CNumericTypes.UNSIGNED_LONG_LONG_INT).compareTo(pConstantValue) < 0) {
-        throw new LLVMException("Value not representable in CPAchecker's CFA representation of LLVM (too large): " + pConstantValue);
-      }
-
-      return CNumericTypes.UNSIGNED_LONG_LONG_INT;
-    }
-
-    if (machineModel.getMinimalIntegerValue(CNumericTypes.SIGNED_LONG_LONG_INT).compareTo(pConstantValue) > 0) {
-      throw new LLVMException("Value not representable in CPAchecker's CFA representation of LLVM (too small): " + pConstantValue);
-    }
-
-    return CNumericTypes.SIGNED_LONG_LONG_INT;
-  }
-
   private CExpression getNull(final FileLocation pLocation) {
     // it's safe to assume integer as type for a constant NULL
     return new CIntegerLiteralExpression(pLocation, CNumericTypes.INT, BigInteger.ZERO);
@@ -1303,7 +1301,7 @@ public class CFABuilder {
     CInitializer init;
     CType canonicalType = pExpectedType.getCanonicalType();
     if (canonicalType instanceof CArrayType) {
-      int length = ((CArrayType) canonicalType).getLengthAsInt().getAsInt();
+      int length = ((CArrayType) canonicalType).getLengthAsInt().orElseThrow();
       CType elementType = ((CArrayType) canonicalType).getType().getCanonicalType();
       CInitializer zeroInitializer = getZeroInitializer(pForElement, elementType, pFileName);
       List<CInitializer> initializers = Collections.nCopies(length, zeroInitializer);
@@ -1347,7 +1345,7 @@ public class CFABuilder {
       CArrayType arrayType = (CArrayType) typeConverter.getCType(pAggregateValue.typeOf());
       OptionalInt maybeArrayLength = arrayType.getLengthAsInt();
       assert maybeArrayLength.isPresent() : "Constant array has non-constant length";
-      return maybeArrayLength.getAsInt();
+      return maybeArrayLength.orElseThrow();
     } else if (aggregateType instanceof CCompositeType) {
       return ((CCompositeType) aggregateType).getMembers().size();
     } else {

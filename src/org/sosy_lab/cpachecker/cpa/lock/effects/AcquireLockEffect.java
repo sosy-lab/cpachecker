@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
 public class AcquireLockEffect extends LockEffect {
 
-  private static class StopAcquireLockEffect extends AcquireLockEffect {
+  private static final class StopAcquireLockEffect extends AcquireLockEffect {
 
     private StopAcquireLockEffect(LockIdentifier id, int t) {
       super(id, t);

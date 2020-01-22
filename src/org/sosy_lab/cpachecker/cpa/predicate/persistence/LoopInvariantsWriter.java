@@ -79,7 +79,7 @@ public class LoopInvariantsWriter {
 
     for (AbstractState state : reached) {
       CFANode loc = extractLocation(state);
-      if (cfa.getAllLoopHeads().get().contains(loc)) {
+      if (cfa.getAllLoopHeads().orElseThrow().contains(loc)) {
         PredicateAbstractState predicateState = getPredicateState(state);
         if (!predicateState.isAbstractionState()) {
           logger.log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
@@ -103,7 +103,7 @@ public class LoopInvariantsWriter {
 
     try (Writer writer = IO.openOutputFile(invariantsFile, Charset.defaultCharset())) {
       for (CFANode loc :
-          from(cfa.getAllLoopHeads().get())
+          from(cfa.getAllLoopHeads().orElseThrow())
               .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {
 
         Region region = regions.getOrDefault(loc, rmgr.makeFalse());
@@ -133,7 +133,7 @@ public class LoopInvariantsWriter {
 
     try (Writer writer = IO.openOutputFile(invariantPrecisionsFile, Charset.defaultCharset())) {
       for (CFANode loc :
-          from(cfa.getAllLoopHeads().get())
+          from(cfa.getAllLoopHeads().orElseThrow())
               .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {
         Region region = regions.getOrDefault(loc, rmgr.makeFalse());
         BooleanFormula formula = absmgr.convertRegionToFormula(region);

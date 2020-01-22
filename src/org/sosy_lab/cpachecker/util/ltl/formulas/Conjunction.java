@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.ltl.formulas;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.util.ltl.LtlFormulaVisitor;
 
 public final class Conjunction extends PropositionalFormula {
@@ -59,7 +60,7 @@ public final class Conjunction extends PropositionalFormula {
       }
 
       if (child instanceof Conjunction) {
-        builder.addAll(((Conjunction) child).children);
+        builder.addAll(((Conjunction) child).getChildren());
       } else {
         builder.add(child);
       }
@@ -84,14 +85,8 @@ public final class Conjunction extends PropositionalFormula {
 
   @Override
   public LtlFormula not() {
-    ImmutableSet.Builder<LtlFormula> builder = ImmutableSet.builder();
-
-    for (LtlFormula child : children) {
-      builder.add(child.not());
-    }
-
-    ImmutableSet<LtlFormula> set = builder.build();
-    return new Disjunction(set);
+    return new Disjunction(
+        Collections3.transformedImmutableSetCopy(getChildren(), LtlFormula::not));
   }
 
   @Override

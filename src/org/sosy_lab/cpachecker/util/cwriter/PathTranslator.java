@@ -309,7 +309,7 @@ public abstract class PathTranslator {
       // if there are more than one relevant child, then this is a condition
       // we need to update the stack
       assert relevantChildrenOfElement.size() == 2;
-      Collection<Edge> result = new ArrayList<>(2);
+      ImmutableList.Builder<Edge> result = ImmutableList.builder();
       int ind = 0;
       for (ARGState elem : relevantChildrenOfElement) {
         Deque<FunctionBody> newStack = cloneStack(functionStack);
@@ -342,7 +342,7 @@ public abstract class PathTranslator {
         Edge newEdge = new Edge(elem, currentElement, e, newStack);
         result.add(newEdge);
       }
-      return result;
+      return result.build();
     }
     return ImmutableList.of();
   }

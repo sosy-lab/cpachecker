@@ -174,6 +174,7 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
       }
       index++;
     }
+    assert bounds != null;
 
     OctagonInterval infBounds;
 

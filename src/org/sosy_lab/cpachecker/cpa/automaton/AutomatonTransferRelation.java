@@ -34,7 +34,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -150,7 +149,7 @@ public class AutomatonTransferRelation implements TransferRelation {
    * <p>If the state is a NonDet-State multiple following states may be returned. If the only
    * following state is BOTTOM an empty set is returned.
    */
-  private Collection<AutomatonState> getFollowStates(
+  private ImmutableSet<AutomatonState> getFollowStates(
       AutomatonState state,
       List<AbstractState> otherElements,
       CFAEdge edge,
@@ -179,7 +178,7 @@ public class AutomatonTransferRelation implements TransferRelation {
       }
     }
 
-    Collection<AutomatonState> lSuccessors = Sets.newLinkedHashSetWithExpectedSize(2);
+    ImmutableSet.Builder<AutomatonState> lSuccessors = ImmutableSet.builderWithExpectedSize(2);
     AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state, state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     int failedMatches = 0;
@@ -311,7 +310,7 @@ public class AutomatonTransferRelation implements TransferRelation {
           // add nothing
         }
       }
-      return lSuccessors;
+      return lSuccessors.build();
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
       AutomatonState stateNewCounters =

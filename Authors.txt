@@ -7,31 +7,23 @@ Former Maintainers:
 
 Developers/Contributors:
   Pavel Andrianov (since 2014), ISP RAS, Russia
-  Moritz Buhl (since 2018), LMU Munich, Germany
+  Moritz Beck (since 2019), LMU Munich, Germany
   Thomas Bunk (since 2018), LMU Munich, Germany
-  Johannes Bürdek (since 2014), University of Darmstadt, Germany
-  Rodrigo Castaño (since 2017), University of Buenos Aires, Argentina
   Marek Chalupa (since 2018), Masaryk University, Czech Republic
   Matthias Dangl (since 2012), LMU Munich, Germany
   Karlheinz Friedberger (since 2011), LMU Munich, Germany
-  Matthias Gerlach (since 2017), LMU Munich, Germany
-  Raphael Hagl (since 2018), LMU Munich, Germany
-  Marie-Christine Jakobs (since 2012), LMU Munich, Germany
-  Johannes Knaut (since 2018), LMU Munich, Germany
-  Alexander Koos (since 2017), LMU Munich, Germany
-  Michal Kotoun (since 2018), Brno University of Technology, Czech Republic
+  Stephan Holzner (since 2019), LMU Munich, Germany
+  Marie-Christine Jakobs (since 2012), University of Darmstadt, Germany
   Thomas Lemberger (since 2014), LMU Munich, Germany
-  Michael Maier (since 2017), LMU Munich, Germany
-  Mikhail Mandrykin (since 2013), ISP RAS, Russia
   Vitaly Mordan (since 2014), ISP RAS, Russia
   Vadim Mutilin (since 2012), ISP RAS, Russia
+  Daniel Pöllmann (since 2019), LMU Munich, Germany
+  Balthasar Schüss (since 2019), LMU Munich, Germany
   Jakob Selberg (since 2018), LMU Munich, Germany
   Martin Spießl (since 2017), LMU Munich, Germany
-  Mirjam Trapp (since 2018), LMU Munich, Germany
+  Sarita Sridharan (since 2019), LMU Munich, Germany
   Anton Vasilyev (since 2015), ISP RAS, Russia
   Anton Volkov (since 2015), ISP RAS, Russia
-  Max Wiesholler (since 2018), LMU Munich, Germany
-  Katharina Winter (since 2018), LMU Munich, Germany
 
 Former Developers/Contributors:
   Emanuele De Angelis (2013 - 2014), University of Chieti and Pescara, Italy
@@ -40,6 +32,9 @@ Former Developers/Contributors:
   Stefan Brand (2015), University of Passau, Germany
   Henrik Bröcher (2016), University of Paderborn, Germany
   Michael Bruckmeier (2011), University of Passau, Germany
+  Moritz Buhl (2018), LMU Munich, Germany
+  Johannes Bürdek (2014 - 2018), University of Darmstadt, Germany
+  Rodrigo Castaño (2017 - 2018), University of Buenos Aires, Argentina
   Mike Czech (2013 - 2014), University of Paderborn, Germany
   Przemislaw Daca (2011 - 2012), Technical University of Denmark, Denmark
   Peter Dahlberg (2013 - 2016), University of Passau, Germany
@@ -53,8 +48,10 @@ Former Developers/Contributors:
   Flutura Estler (2018), LMU Munich, Germany
   Ashgan Fararooy (2009), Simon Fraser University, Canada
   Tobias Friedl (2013 - 2014), University of Passau, Germany
+  Matthias Gerlach (2017 - 2018), LMU Munich, Germany
   Alberto Griggio (2008 - 2009), Simon Fraser University, Canada / University of Trento, Italy
   Christian Hagenhof (2015), University of Passau, Germany
+  Raphael Hagl (2018 - 2019), LMU Munich, Germany
   Peter Häring (2011 - 2014), University of Passau, Germany
   Julian Heydebrand (2015), University of Passau, Germany
   Andreas Holzer (2008 - 2015), University of Darmstadt, Germany / TU Vienna, Austria
@@ -62,11 +59,16 @@ Former Developers/Contributors:
   George Karpenkov (2014 - 2017), Verimag, Grenoble
   Michael Käufl (2011), University of Passau, Germany
   Steven Kieffer (2011 - 2012), Simon Fraser University, Canada
+  Johannes Knaut (2018), LMU Munich, Germany
+  Alexander Koos (2017 - 2018), LMU Munich, Germany
   Philipp Korth (2012), University of Paderborn, Germany
+  Michal Kotoun (2018), Brno University of Technology, Czech Republic
   Stefan Kronawitter (2012), University of Passau, Germany
   Zdenek Letko (2014), Brno University of Technology, Czech Republic
   Stefan Löwe (2010 - 2016), University of Passau, Germany
   Stephan Lukasczyk (2015 - 2016), University of Passau, Germany
+  Michael Maier (2017 - 2019), LMU Munich, Germany
+  Mikhail Mandrykin (2013 - 2017), ISP RAS, Russia
   Alexander Maringer (2010), University of Passau, Germany
   Grigory Markin (2017), University of Lübeck, Germany
   Petr Muller (2012 - 2014), Brno University of Technology, Czech Republic
@@ -89,6 +91,9 @@ Former Developers/Contributors:
   Gregory Theoduloz (2009 - 2010), EPFL, Switzerland
   Manuel Töws (2016), University of Paderborn, Germany
   Tanja Tornede (2014 - 2016), University of Paderborn, Germany
+  Mirjam Trapp (2018 - 2019), LMU Munich, Germany
+  Max Wiesholler (2018 - 2019), LMU Munich, Germany
+  Katharina Winter (2018 - 2019), LMU Munich, Germany
   Christoph Woller (2014 - 2015), University of Passau, Germany
   Daniel Wonisch (2011 - 2012), University of Paderborn, Germany
   Geoff Zenger (2007), Simon Fraser University, Canada

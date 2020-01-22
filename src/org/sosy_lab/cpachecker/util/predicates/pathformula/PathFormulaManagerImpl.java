@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -514,24 +513,25 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   /**
-   * Extract the information about the branching predicates created by
-   * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
+   * Extract the information about the branching predicates created by {@link
+   * #buildBranchingFormula(Set)} from a satisfying assignment.
    *
-   * A map is created that stores for each ARGState (using its element id as
-   * the map key) which edge was taken (the positive or the negated one).
+   * <p>A map is created that stores for each ARGState (using its element id as the map key) which
+   * edge was taken (the positive or the negated one).
    *
    * @param model A satisfying assignment that should contain values for branching predicates.
    * @return A map from ARG state id to a boolean value indicating direction.
    */
   @Override
-  public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> model) {
+  public ImmutableMap<Integer, Boolean> getBranchingPredicateValuesFromModel(
+      Iterable<ValueAssignment> model) {
     // Do not use fmgr here, this fails if a separate solver is used for interpolation.
     if (!model.iterator().hasNext()) {
       logger.log(Level.WARNING, "No satisfying assignment given by solver!");
       return ImmutableMap.of();
     }
 
-    Map<Integer, Boolean> preds = new HashMap<>();
+    ImmutableMap.Builder<Integer, Boolean> preds = ImmutableMap.builder();
     for (ValueAssignment entry : model) {
       String canonicalName = entry.getName();
 
@@ -542,14 +542,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
           // no NumberFormatException because of RegExp match earlier
           Integer nodeId = Integer.parseInt(name);
-
-          assert !preds.containsKey(nodeId);
-
-          preds.put(nodeId, (Boolean)entry.getValue());
+          preds.put(nodeId, (Boolean) entry.getValue()); // fails on duplicate key
         }
       }
     }
-    return preds;
+    return preds.build();
   }
 
   @Override

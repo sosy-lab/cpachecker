@@ -60,7 +60,7 @@ This also works with GitHub.
 Develop CPAchecker from within Eclipse
 --------------------------------------
 
-0. Install a Java 8 compatible JDK (c.f. [`../INSTALL.md`](../INSTALL.md)).
+0. Install a Java 11 compatible JDK (c.f. [`../INSTALL.md`](../INSTALL.md)).
 
 1. Install [Eclipse](http://www.eclipse.org/) with at least version 4.6, with JDT.
 
@@ -74,13 +74,13 @@ Develop CPAchecker from within Eclipse
    Create new project from [SVN repository](https://svn.sosy-lab.org/software/cpachecker/trunk)
    (or use GIT as described above).
 
-4. Copy the file `.factorypath.template` to `.factorypath`,
+4. Creat a copy of the file `.factorypath.template` and name it `.factorypath`,
    and (if necessary) adjust the path to the CPAchecker directory within it.
 
 5. If Eclipse complains about a missing JDK
-   (`Unbound classpath container: 'JRE System Library [JavaSE-1.8]'`),
+   (`Unbound classpath container: 'JRE System Library [JavaSE-11]'`),
    go to Window -> Preferences -> Java -> Installed JREs,
-   click the "Search" button and select the path where your Java 8 installation
+   click the "Search" button and select the path where your Java 11 installation
    can be found (on Ubuntu `/usr/lib/jvm` will do).
 
 6. In order to run CPAchecker, use one of the supplied launch configurations
@@ -133,9 +133,13 @@ Releasing a new Version
    and ensure that [`Copyright.txt`](../Copyright.txt) and [`Authors.txt`](../Authors.txt) are up-to-date.
 
 2. Define a new version by setting `version.base` in [`build.xml`](../build.xml) to the new value.
+   Our versioning system is `decade.year.month`,
+   but the first release in a year is `decade.year`.
 
 3. Build binary versions with `ant clean dist` and test them to ensure
    that all necessary files are contained in them.
+   Make sure that you do not have any local changes
+   or unversioned files in your checkout.
 
 4. Update homepage:
    - Add release archives to `/html` in the repository.
@@ -150,4 +154,7 @@ Releasing a new Version
    cpachecker-users mailing lists.
 
 7. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
-   to a new development version (ending with `-svn`).
+   to a new development version, which is the next possible version number
+   with the suffix `-svn`.
+   For example, if `1.9` was just released, the next possible version
+   is `1.9.1` and the new development version should be `1.9.1-svn`.

@@ -50,6 +50,8 @@
     <exclude>../programs/benchmarks/loops/sum0*</exclude>
     <exclude>../programs/benchmarks/loop-acceleration/diamond_*</exclude>
     <exclude>../programs/benchmarks/loop-lit/cggmp2005_*</exclude>
+    <exclude>../programs/benchmarks/loops-crafted-1/*</exclude> <!-- only timeouts -->
+    <exclude>../programs/benchmarks/nla-digbench/*</exclude> <!-- only timeouts -->
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
@@ -57,7 +59,7 @@
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->

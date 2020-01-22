@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /**
  * Information about value assignments needed for symbolic interpolation.
  */
-public class ValueAnalysisInformation {
+public final class ValueAnalysisInformation {
 
   public static final ValueAnalysisInformation EMPTY = new ValueAnalysisInformation();
 

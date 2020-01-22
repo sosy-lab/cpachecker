@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.delegation;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -37,10 +40,6 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOpera
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.SymbolicStrongestPostOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Optional;
 
 /**
  * Strongest-post operator with the semantics of
@@ -65,17 +64,15 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
 
   @Override
   public Optional<ForgettingCompositeState> getStrongestPost(
-      final ForgettingCompositeState pOrigin,
-      final Precision pPrecision,
-      final CFAEdge pOperation
-  ) throws CPAException {
+      final ForgettingCompositeState pOrigin, final Precision pPrecision, final CFAEdge pOperation)
+      throws CPAException, InterruptedException {
     Optional<ValueAnalysisState> successor =
         explicitStrongestPost.getStrongestPost(pOrigin.getValueState(), pPrecision, pOperation);
 
     if (!successor.isPresent()) {
       return Optional.empty();
     } else {
-      ValueAnalysisState next = successor.get();
+      ValueAnalysisState next = successor.orElseThrow();
       return Optional.of(new ForgettingCompositeState(next, INITIAL_CONSTRAINTS));
     }
   }

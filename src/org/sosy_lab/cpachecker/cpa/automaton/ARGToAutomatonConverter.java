@@ -513,7 +513,7 @@ public class ARGToAutomatonConverter {
    */
   private boolean shouldExportAutomatonFor(
       ARGState root, ARGState s, Map<ARGState, BranchingInfo> pDependencies) {
-    if (s == root) { // if no other automaton is exported, then export the whole ARG via root
+    if (s.equals(root)) { // if no other automaton is exported, then export the whole ARG via root
       return true;
     }
     int rootSize = sizeOfBranch(root);
@@ -577,7 +577,7 @@ public class ARGToAutomatonConverter {
       }
 
       BranchingInfo branch = dependencies.get(branchingPoint);
-      Preconditions.checkArgument(branch.current == branchingPoint);
+      Preconditions.checkArgument(branch.current.equals(branchingPoint));
 
       for (Entry<ARGState, ARGState> viaChild : branch.children.entries()) {
         ARGState nextState = viaChild.getValue();
@@ -589,7 +589,7 @@ public class ARGToAutomatonConverter {
             // for loop-states, we cannot split the automaton -> ignore this case
             // for non-loop-states, we split the automaton
             for (ARGState sibling :
-                from(branchingPoint.getChildren()).filter(s -> s != viaChild.getKey())) {
+                from(branchingPoint.getChildren()).filter(s -> !s.equals(viaChild.getKey()))) {
               newIgnoreBranch = newIgnoreBranch.addAndCopy(uncover(sibling));
             }
           }
@@ -725,7 +725,7 @@ public class ARGToAutomatonConverter {
       if (!finished.add(s)) {
         continue;
       }
-      if (s == pRoot) {
+      if (s.equals(pRoot)) {
         return true;
       }
       waitlist.addAll(pDependencies.get(s).getNextStates());
@@ -766,7 +766,7 @@ public class ARGToAutomatonConverter {
   /** generate an automaton that leads to the leaf state. */
   private Automaton getAutomatonForLeaf(ARGState pRoot, ARGState pLeaf) {
 
-    Preconditions.checkArgument(pRoot != pLeaf);
+    Preconditions.checkArgument(!pRoot.equals(pLeaf));
     Preconditions.checkArgument(!pLeaf.isCovered());
 
     switch (dataStrategy) {
@@ -915,7 +915,7 @@ public class ARGToAutomatonConverter {
         if (parents.add(parent)) {
           CFANode leafNode = AbstractStates.extractLocation(leaf);
           if (parentsToLeafNode.containsKey(parent)) {
-            assert parentsToLeafNode.get(parent) == leafNode
+            assert parentsToLeafNode.get(parent).equals(leafNode)
                 : "Expected to have only one CFANode for the children"
                     + "(this holds at least when considering overflows with OverflowCPA)";
           }

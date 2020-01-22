@@ -200,14 +200,15 @@ class BAMCPAStatistics implements Statistics {
     // write block data as CSV
     if (blockStatisticsFile != null) {
       try (Writer w = IO.openOutputFile(blockStatisticsFile, Charset.defaultCharset())) {
-        w.write("start; end; #locations; #variables; sumtime; maxtime; avgtime; #intervals");
+        w.write(
+            "start; end; #locations; #variables; sumtime; maxtime; avgtime; #intervals; variables;");
         w.write("\n");
         for (Entry<Block, Timer> entry : timeForBlock.entrySet()) {
           Block block = entry.getKey();
           Timer timer = entry.getValue();
           w.write(
               String.format(
-                  "%s; %s; %s; %s; %s; %s; %s; %s",
+                  "%s; %s; %s; %s; %s; %s; %s; %s; %s;",
                   block.getCallNodes(),
                   block.getReturnNodes(),
                   block.getNodes().size(),
@@ -215,7 +216,8 @@ class BAMCPAStatistics implements Statistics {
                   timer.getSumTime(),
                   timer.getMaxTime(),
                   timer.getAvgTime(),
-                  timer.getNumberOfIntervals()));
+                  timer.getNumberOfIntervals(),
+                  block.getVariables()));
           w.write("\n");
         }
       } catch (IOException e) {

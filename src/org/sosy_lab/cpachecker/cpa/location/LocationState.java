@@ -174,7 +174,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
           CFAEdge enteringEdge = locationNode.getEnteringEdge(0);
           if (enteringEdge.getDescription().equals("Function start dummy edge")
               && enteringEdge.getEdgeType() == CFAEdgeType.BlankEdge
-              && enteringEdge.getFileLocation() == FileLocation.DUMMY) {
+              && FileLocation.DUMMY.equals(enteringEdge.getFileLocation())) {
             return true;
           }
         }
@@ -238,7 +238,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     }
 
     private Object readResolve() {
-      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
       return cfaInfo.getLocationStateFactory().getState(cfaInfo.getNodeByNodeNumber(nodeNumber));
     }
   }

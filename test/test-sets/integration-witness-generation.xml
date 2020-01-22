@@ -20,11 +20,13 @@
   <tasks name="BitVectorsOverflows">
     <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    <exclude>../programs/termination-crafted-lit/*</exclude> <!-- only timeout -->
     <option name="-64"/>
   </tasks>
     <tasks name="HeapReach">
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/forester-heap/*</exclude> <!-- only timeout -->
   </tasks>
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
@@ -32,10 +34,13 @@
     <!-- exclude files where several properties are available -->
     <exclude>../programs/benchmarks/list-ext-properties/list-ext.yml</exclude>
     <exclude>../programs/benchmarks/list-ext-properties/list-ext_flag.yml</exclude>
+    <exclude>../programs/benchmarks/mem-safety*/*</exclude> <!-- only timeout -->
   </tasks>
   <tasks name="Floats">
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/floats-cdfpl/newton*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/floats-bench/*</exclude> <!-- mostly timeout -->
   </tasks>
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>

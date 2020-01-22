@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.simpleformulas;
 
-public class Constant implements Term {
+public final class Constant implements Term {
 
   private int mValue;
 

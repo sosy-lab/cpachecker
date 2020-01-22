@@ -179,11 +179,11 @@ public class HarnessExporter {
       codeAppender.appendln("extern void exit(int __status) __attribute__ ((__noreturn__));");
 
       // implement error-function
-      CFAEdge edgeToTarget = testVector.get().edgeToTarget;
+      CFAEdge edgeToTarget = testVector.orElseThrow().edgeToTarget;
       Optional<AFunctionDeclaration> errorFunction =
           getErrorFunction(edgeToTarget, externalFunctions);
       if (errorFunction.isPresent()) {
-        codeAppender.append(errorFunction.get());
+        codeAppender.append(errorFunction.orElseThrow());
         codeAppender.appendln(" {");
         codeAppender.appendln("  fprintf(stderr, \"" + ERR_MSG + "\\n\");");
         codeAppender.appendln("  exit(107);");
@@ -201,10 +201,10 @@ public class HarnessExporter {
       // implement actual harness
       TestVector vector =
           completeExternalFunctions(
-              testVector.get().testVector,
+              testVector.orElseThrow().testVector,
               errorFunction.isPresent()
                   ? FluentIterable.from(externalFunctions)
-                      .filter(Predicates.not(Predicates.equalTo(errorFunction.get())))
+                      .filter(Predicates.not(Predicates.equalTo(errorFunction.orElseThrow())))
                   : externalFunctions);
       codeAppender.append(vector);
     } else {
@@ -320,8 +320,8 @@ public class HarnessExporter {
               if (parentLoc.hasEdgeTo(childLoc)) {
                 CFAEdge edge = parentLoc.getEdgeTo(childLoc);
                 Optional<State> nextState = computeNextState(previous, child, edge, pValueMap);
-                if (nextState.isPresent() && visited.add(nextState.get())) {
-                  stack.push(nextState.get());
+                if (nextState.isPresent() && visited.add(nextState.orElseThrow())) {
+                  stack.push(nextState.orElseThrow());
                   lastEdgeStack.push(edge);
                 }
               }
@@ -526,7 +526,7 @@ public class HarnessExporter {
         for (AExpression assumption : automatonState.getAssumptions()) {
           Optional<AExpression> value = getOther(assumption, pLeftHandSide);
           if (value.isPresent()) {
-            AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.get());
+            AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.orElseThrow());
             return Optional.of(new State(pChild, pUpdate.apply(v).apply(pPrevious.testVector)));
           }
         }
@@ -540,7 +540,7 @@ public class HarnessExporter {
                 .transform(AExpressionStatement::getExpression)) {
           Optional<AExpression> value = getOther(assumption, pLeftHandSide);
           if (value.isPresent()) {
-            AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.get());
+            AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.orElseThrow());
             return Optional.of(new State(pChild, pUpdate.apply(v).apply(pPrevious.testVector)));
           }
         }

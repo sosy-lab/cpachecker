@@ -124,7 +124,7 @@ class Edge implements Comparable<Edge> {
     if (!newScope.isPresent()) {
       return Optional.empty();
     }
-    newLabel = newLabel.withScope(newScope.get());
+    newLabel = newLabel.withScope(newScope.orElseThrow());
     newLabel = newLabel.putAllAndCopy(label);
     for (Map.Entry<KeyDef, ValueDifference<String>> diffEntry :
         difference.entriesDiffering().entrySet()) {

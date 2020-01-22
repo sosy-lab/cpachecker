@@ -110,7 +110,7 @@ public class AppliedCustomInstructionParserTest {
             LogManager.createTestLogManager(),
             cfa);
     GlobalInfo.getInstance().storeCFA(cfa);
-    cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+    cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
     labelNodes = getLabelNodes(cfa);
   }
 
@@ -266,12 +266,12 @@ public class AppliedCustomInstructionParserTest {
   }
 
   private void testParse(Path p, Path signatureFile) throws Exception {
-    CFANode expectedStart = null;
-    for(CLabelNode n: getLabelNodes(cfa)){
-      if(n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("main")) {
-        expectedStart = n;
-      }
-    }
+    CFANode expectedStart =
+        getLabelNodes(cfa)
+            .stream()
+            .filter(n -> n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("main"))
+            .findAny()
+            .orElseThrow();
     int startNodeNr = expectedStart.getNodeNumber();
 
     CustomInstructionApplications cia = aciParser.parse(p, signatureFile);

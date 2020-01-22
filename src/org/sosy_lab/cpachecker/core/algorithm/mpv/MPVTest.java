@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -184,18 +183,15 @@ public class MPVTest {
     return builder.build();
   }
 
-  private List<AbstractSingleProperty> parseResult(CPAcheckerResult result)
-      throws UnsupportedEncodingException {
+  private List<AbstractSingleProperty> parseResult(CPAcheckerResult result) {
     // Get property names with their results based on 'printResult'
     ImmutableList.Builder<AbstractSingleProperty> builder = ImmutableList.builder();
     ByteArrayOutputStream outputStreamResults = new ByteArrayOutputStream();
     @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for results
-    PrintStream printStreamResults =
-        new PrintStream(outputStreamResults, true, DEFAULT_CHARSET.name());
+    PrintStream printStreamResults = new PrintStream(outputStreamResults, true, DEFAULT_CHARSET);
     result.printResult(printStreamResults);
 
-    for (String line :
-        Splitter.on("\n").split(outputStreamResults.toString(DEFAULT_CHARSET.name()))) {
+    for (String line : Splitter.on("\n").split(outputStreamResults.toString(DEFAULT_CHARSET))) {
       Matcher matcher = PROPERTY_RESULT_PATTERN.matcher(line);
       if (matcher.find()) {
         String name = matcher.group(1);
@@ -210,12 +206,11 @@ public class MPVTest {
     // Get additional parameters for properties from statistics
     ByteArrayOutputStream outputStreamStats = new ByteArrayOutputStream();
     @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
-    PrintStream printStreamStats = new PrintStream(outputStreamStats, true, DEFAULT_CHARSET.name());
+    PrintStream printStreamStats = new PrintStream(outputStreamStats, true, DEFAULT_CHARSET);
     result.printStatistics(printStreamStats);
 
     AbstractSingleProperty currentProperty = null;
-    for (String line :
-        Splitter.on("\n").split(outputStreamStats.toString(DEFAULT_CHARSET.name()))) {
+    for (String line : Splitter.on("\n").split(outputStreamStats.toString(DEFAULT_CHARSET))) {
       Matcher matcher = PROPERTY_PATTERN.matcher(line);
       if (matcher.find()) {
         String name = matcher.group(1);
@@ -274,8 +269,7 @@ public class MPVTest {
   }
 
   private void checkResults(
-      TestResults actualResults, String[][] idealResults, Result overallExpectedResult)
-      throws UnsupportedEncodingException {
+      TestResults actualResults, String[][] idealResults, Result overallExpectedResult) {
     actualResults.assertIs(overallExpectedResult);
     List<AbstractSingleProperty> propertiesResults = parseResult(actualResults.getCheckerResult());
     if (overallExpectedResult.equals(Result.NOT_YET_STARTED)) {

@@ -15,7 +15,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 /**
  * Policy with a local bound.
  */
-public class PolicyBound {
+public final class PolicyBound {
 
   /**
    * Location of an abstracted state which has caused an update.

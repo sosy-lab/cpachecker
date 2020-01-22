@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * A composite state of {@link ValueAnalysisState} and {@link ConstraintsState}
  * that allows to remove and re-add values.
  */
-public class ForgettingCompositeState
+public final class ForgettingCompositeState
     implements ForgetfulState<ValueAnalysisInformation> {
 
   private final ValueAnalysisState values;

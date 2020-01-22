@@ -302,7 +302,7 @@ public class SymbolicValueAnalysisRefiner
             "Counterexample said to be feasible but spurious at edge: " + currentEdge);
 
         } else {
-          currentState = maybeNext.get();
+          currentState = maybeNext.orElseThrow();
           if (!pIdentifierAssignment.isEmpty()) {
             ValueAnalysisState currentValueState = currentState.getValueState();
             Set<SymbolicIdentifier> usedIdentifiers = new HashSet<>();

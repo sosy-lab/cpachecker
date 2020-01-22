@@ -263,7 +263,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
       CFAPathWithAssumptions cexPath = CFAPathWithAssumptions.of(path, pAssumptionToEdgeAllocator);
 
       if (result.isPresent()) {
-        result = result.get().mergePaths(cexPath);
+        result = result.orElseThrow().mergePaths(cexPath);
         // If there were conflicts during merging, stop
         if (!result.isPresent()) {
           break;
@@ -276,7 +276,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     if (!result.isPresent()) {
       return CFAPathWithAssumptions.empty();
     } else {
-      return result.get();
+      return result.orElseThrow();
     }
   }
 }

@@ -38,7 +38,6 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.function.BiPredicate;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -77,18 +76,19 @@ class BAMReachedSetExporter implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path simplifiedArgFile = Paths.get("BlockedARGSimplified.dot");
 
-  private final BiPredicate<ARGState, ARGState> highlightSummaryEdge =
-      (firstState, secondState) ->
-          firstState.getEdgeToChild(secondState) instanceof FunctionSummaryEdge;
-
   private final LogManager logger;
   private final AbstractBAMCPA bamcpa;
+
 
   BAMReachedSetExporter(Configuration pConfig, LogManager pLogger, AbstractBAMCPA pCpa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
     bamcpa = pCpa;
+  }
+
+  private static boolean highlightSummaryEdge(ARGState firstState, ARGState secondState) {
+    return firstState.getEdgeToChild(secondState) instanceof FunctionSummaryEdge;
   }
 
   @Override
@@ -158,7 +158,7 @@ class BAMReachedSetExporter implements Statistics {
           connections,
           ARGState::getChildren,
           Predicates.alwaysTrue(),
-          highlightSummaryEdge);
+          BAMReachedSetExporter::highlightSummaryEdge);
     } catch (IOException e) {
       logger.logUserException(
           Level.WARNING, e, String.format("Could not write ARG to file: %s", file));

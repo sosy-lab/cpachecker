@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /**
  * {@link SymbolicExpression} that represents a single constant value of a specific type.
  */
-public class ConstantSymbolicExpression extends SymbolicExpression {
+public final class ConstantSymbolicExpression extends SymbolicExpression {
 
   private static final long serialVersionUID = 8720056661933193765L;
 
@@ -75,7 +75,7 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
   @Override
   public String getRepresentation() {
     if (getRepresentedLocation().isPresent()) {
-      return getRepresentedLocation().get().toString();
+      return getRepresentedLocation().orElseThrow().toString();
     } else {
       return toString();
     }

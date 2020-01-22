@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -123,6 +124,10 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       boolean isPointerOp2) {
 
     if (isPointerOp1 && isPointerOp2) {
+      if (!pNewState.getHeap().isObjectValid(((SMGKnownAddressValue) pValue1).getObject())
+          || !pNewState.getHeap().isObjectValid(((SMGKnownAddressValue) pValue2).getObject())) {
+        return false;
+      }
       return !pValue1.equals(pValue2);
     } else if ((isPointerOp1 && pValue2.isZero()) || (isPointerOp2 && pValue1.isZero())) {
       return !pValue1.equals(pValue2);
@@ -167,7 +172,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     boolean isPointerOp2 = pV2 instanceof SMGKnownAddressValue;
 
     boolean areEqual = pV1.equals(pV2);
-    boolean areNonEqual = (isUnequal(pNewState, pV1, pV2, isPointerOp1, isPointerOp2));
+    boolean areNonEqual = isUnequal(pNewState, pV1, pV2, isPointerOp1, isPointerOp2);
 
     boolean isTrue = false;
     boolean isFalse = false;
@@ -247,7 +252,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       return Collections.singletonList(SMGValueAndState.withUnknownValue(pNewState));
     }
 
-    List<SMGValueAndState> result = new ArrayList<>(4);
+    ImmutableList.Builder<SMGValueAndState> result = ImmutableList.builderWithExpectedSize(4);
 
     for (SMGValueAndState operand1AndState : getOperand(pNewState, pV1)) {
       SMGSymbolicValue operand1 = operand1AndState.getObject();
@@ -261,7 +266,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       }
     }
 
-    return result;
+    return result.build();
   }
 
   private List<? extends SMGValueAndState> getOperand(SMGState pNewState, SMGSymbolicValue pV)

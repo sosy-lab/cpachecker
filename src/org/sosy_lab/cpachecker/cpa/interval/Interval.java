@@ -31,7 +31,7 @@ import com.google.common.primitives.Longs;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class Interval implements Serializable{
+public final class Interval implements Serializable {
   private static final long serialVersionUID = 4223098080993616295L;
 
   /**

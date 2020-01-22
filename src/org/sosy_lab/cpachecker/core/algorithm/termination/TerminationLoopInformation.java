@@ -141,9 +141,10 @@ public class TerminationLoopInformation {
     return loop.map(Loop::getLoopHeads).map(lh -> lh.contains(pLocation)).orElse(false);
   }
 
-  public boolean isPredecessorOfIncommingEdge(CFANode pLocation) {
+  public boolean isPredecessorOfIncomingEdge(CFANode pLocation) {
     return loop.isPresent()
-        && leavingEdges(pLocation).anyMatch(edge -> loop.get().getIncomingEdges().contains(edge));
+        && leavingEdges(pLocation)
+            .anyMatch(edge -> loop.orElseThrow().getIncomingEdges().contains(edge));
   }
 
   public CExpression getRankingRelationAsCExpression() {
@@ -223,10 +224,7 @@ public class TerminationLoopInformation {
     relevantVariables = builder.build();
   }
 
-  /**
-   * The {@link TerminationLoopInformation} is reseted.
-   * No loop will be checked for non-termination.
-   */
+  /** Reset the {@link TerminationLoopInformation}. No loop will be checked for non-termination. */
   void reset() {
     loop = Optional.empty();
     loopLeavingLocations = ImmutableSet.of();
@@ -297,7 +295,7 @@ public class TerminationLoopInformation {
     CFANode currentNode = startLocation;
 
     for (CVariableDeclaration primedVariable : relevantVariables.values()) {
-      CFANode nextNode = creatCfaNode(function);
+      CFANode nextNode = createCfaNode(function);
       CFAEdge edge = createDeclarationEdge(primedVariable, currentNode, nextNode);
       builder.add(edge);
       currentNode = nextNode;
@@ -312,15 +310,15 @@ public class TerminationLoopInformation {
 
   public CFAEdge createEdgeToNonTerminationLabel(CFANode pLocation) {
     Preconditions.checkState(targetNode.isPresent());
-    return createBlankEdge(pLocation, targetNode.get(), "Label: " + NON_TERMINATION_LABEL);
+    return createBlankEdge(pLocation, targetNode.orElseThrow(), "Label: " + NON_TERMINATION_LABEL);
   }
 
   public CFAEdge createNegatedRankingRelationAssumeEdgeToTargetNode(CFANode pLoopHead) {
     Preconditions.checkState(targetNode.isPresent());
-    return createRankingRelationAssumeEdge(pLoopHead, targetNode.get(), false);
+    return createRankingRelationAssumeEdge(pLoopHead, targetNode.orElseThrow(), false);
   }
 
-  private CFANode creatCfaNode(String functionName) {
+  private CFANode createCfaNode(String functionName) {
     return new CFANode(functionName);
   }
 

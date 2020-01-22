@@ -24,12 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 /**
- * Instances of this class represent right shifts of invariants formulae by
- * other invariants formulae.
+ * Instances of this class represent right shifts of invariants formulae by other invariants
+ * formulae.
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class ShiftRight<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
+public final class ShiftRight<ConstantType> extends AbstractBinaryFormula<ConstantType>
+    implements NumeralFormula<ConstantType> {
 
   /**
    * Creates a new right shift formula over the given operands.

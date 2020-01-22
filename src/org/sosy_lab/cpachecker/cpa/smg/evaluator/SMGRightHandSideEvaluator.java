@@ -293,7 +293,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     return pNewState;
   }
 
-  public List<SMGAddressValueAndState> handleSafeExternFuction(
+  public List<SMGAddressValueAndState> handleSafeExternFunction(
       CFunctionCallExpression pFunctionCallExpression, SMGState pSmgState, CFAEdge pCfaEdge)
       throws CPATransferException {
     String calledFunctionName = pFunctionCallExpression.getFunctionNameExpression().toString();

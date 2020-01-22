@@ -167,10 +167,13 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       if (!pool.isTerminated()) {
         // in case of problems we must kill the thread pool,
         // otherwise we have a running daemon thread and CPAchecker does not terminate.
-        logger.log(Level.WARNING, "threadpool did not terminate, killing threadpool now.");
-        logger.log(Level.ALL, "remaining dependencies:\n", rse.getDependenciesAsDot());
+        try {
+          logger.log(Level.WARNING, "threadpool did not terminate, killing threadpool now.");
+          logger.log(Level.ALL, "remaining dependencies:\n", rse.getDependenciesAsDot());
+        } finally {
+          pool.shutdownNow();
+        }
         isSound = false;
-        pool.shutdownNow();
       }
     }
 
@@ -215,7 +218,6 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
     final AtomicBoolean mainRScontainsTarget = new AtomicBoolean(false);
     final AtomicBoolean otherRScontainsTarget = new AtomicBoolean(false);
-    final AtomicBoolean timeoutAlreadyLogged = new AtomicBoolean(false);
 
     pReachedSetMapping
         .entrySet()
@@ -237,22 +239,23 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
                   }
                 }
 
-              } catch (RejectedExecutionException e) {
-                logger.log(Level.SEVERE, e);
-              } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                boolean wasAlreadyLogged = timeoutAlreadyLogged.getAndSet(true);
-                if (!wasAlreadyLogged) {
-                  logger.log(Level.SEVERE, e);
-                  error.compareAndSet(null, e);
-                }
+              } catch (RejectedExecutionException | ExecutionException e) {
+                logger.logException(Level.SEVERE, e, e.getMessage());
+                error.compareAndSet(null, e);
+              } catch (InterruptedException | TimeoutException e) {
+                error.compareAndSet(null, e);
               }
               logger.log(Level.ALL, "finishing", rse, job.isCompletedExceptionally());
             });
 
     Throwable toThrow = error.get();
     if (toThrow != null) {
-      logger.logException(Level.WARNING, toThrow, null);
-      throw new CPAException(toThrow.getMessage());
+      // just re-throw plain errors, this results in better stack traces
+      if (toThrow instanceof RuntimeException || toThrow instanceof Error) {
+        throw new RuntimeException(toThrow.getMessage(), toThrow);
+      } else {
+        throw new CPAException(toThrow.getMessage(), toThrow);
+      }
     }
 
     Preconditions.checkState(

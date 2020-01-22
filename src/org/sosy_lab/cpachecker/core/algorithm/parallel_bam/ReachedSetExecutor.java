@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
+import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.bam.MissingBlockAbstractionState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
@@ -80,7 +81,6 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
 class ReachedSetExecutor {
 
   private static final Level level = Level.ALL;
-  private static final Runnable NOOP = () -> {};
 
   /** the working reached-set, single-threaded access. */
   private final ReachedSet rs;
@@ -91,7 +91,7 @@ class ReachedSetExecutor {
   /** the working algorithm for the reached-set, single-threaded access. */
   private final Algorithm algorithm;
 
-  /** flag that causes termination if enabled. */
+  /** flag that causes termination if enabled. Never disabled after being enabled. */
   private boolean targetStateFound = false;
 
   /** main reached-set is used for checking termination of the algorithm. */
@@ -170,14 +170,15 @@ class ReachedSetExecutor {
     addingStatesTimer = stats.addingStatesTime.getNewTimer();
     terminationCheckTimer = stats.terminationCheckTime.getNewTimer();
 
-    waitingTask = CompletableFuture.runAsync(NOOP, pool); // initialization
+    // initialization with a NOOP, more tasks are appended later
+    waitingTask = CompletableFuture.runAsync(() -> {}, pool);
   }
 
   public Runnable asRunnable() {
     return asRunnable(ImmutableSet.of());
   }
 
-  public Runnable asRunnable(Collection<AbstractState> pStatesToBeAdded) {
+  private Runnable asRunnable(Collection<AbstractState> pStatesToBeAdded) {
     // copy needed, because access to pStatesToBeAdded is done in the future
     ImmutableSet<AbstractState> copy = ImmutableSet.copyOf(pStatesToBeAdded);
     return () -> apply(copy);
@@ -282,11 +283,12 @@ class ReachedSetExecutor {
           "when a target was found before, we want to stop further scheduling");
     }
 
-    if (endsWithTargetState) {
+    if (endsWithTargetState && !bamcpa.searchTargetStatesOnExit()) {
       targetStateFound = true;
       terminateAnalysis.set(true);
     }
   }
+
   private static String id(final Collection<AbstractState> states) {
     return Collections2.transform(states, s -> id(s)).toString();
   }
@@ -296,11 +298,12 @@ class ReachedSetExecutor {
   }
 
   private static String id(ReachedSet pRs) {
+    if (pRs.getFirstState() == null) {
+      // - happens on empty reached set, i.e. very rarely.
+      // - happens with a merge-join operator, if a loop-head is merged with itself.
+      return "no initial state";
+    }
     return id(pRs.getFirstState());
-  }
-
-  private String idd() {
-    return id(rs);
   }
 
   /**
@@ -330,7 +333,7 @@ class ReachedSetExecutor {
     boolean isFinished = dependsOn.isEmpty();
     if (isFinished) {
       if (rs.getWaitlist().isEmpty() || targetStateFound) {
-        updateCache(targetStateFound);
+        updateCache();
       } else {
         // otherwise we have an unfinished reached-set and do not cache the incomplete result.
       }
@@ -352,7 +355,7 @@ class ReachedSetExecutor {
         level, "%s :: finished=%s, targetStateFound=%s", this, isFinished, targetStateFound);
   }
 
-  private void updateCache(boolean pEndsWithTargetState) {
+  private void updateCache() {
     if (isMainReachedSet) {
       // we do not cache main reached set, because it should not be used internally
       return;
@@ -361,7 +364,8 @@ class ReachedSetExecutor {
     AbstractState reducedInitialState = rs.getFirstState();
     Precision reducedInitialPrecision = rs.getPrecision(reducedInitialState);
     Block innerBlock = getBlockForState(reducedInitialState);
-    final List<AbstractState> exitStates = extractExitStates(pEndsWithTargetState, innerBlock);
+    final Set<AbstractState> exitStates =
+        BAMTransferRelation.extractExitStates(rs, innerBlock, bamcpa.searchTargetStatesOnExit());
     BAMCacheEntry entry =
         bamcpa.getCache().get(reducedInitialState, reducedInitialPrecision, innerBlock);
     assert entry.getReachedSet() == rs
@@ -377,17 +381,6 @@ class ReachedSetExecutor {
               Collections2.transform(entry.getExitStates(), s -> id(s)));
       entry.setExitStates(exitStates);
       entry.setRootOfBlock(null);
-    }
-  }
-
-  private List<AbstractState> extractExitStates(boolean pEndsWithTargetState, Block pBlock) {
-    if (pEndsWithTargetState) {
-      assert AbstractStates.isTargetState(rs.getLastState());
-      return Collections.singletonList(rs.getLastState());
-    } else {
-      return AbstractStates.filterLocations(rs, pBlock.getReturnNodes())
-          .filter(s -> ((ARGState) s).getChildren().isEmpty())
-          .toList();
     }
   }
 
@@ -555,7 +548,7 @@ class ReachedSetExecutor {
 
   @Override
   public String toString() {
-    return "RSE " + idd();
+    return "RSE " + id(rs);
   }
 
   /** for debugging, warning: might not be thread-safe! */

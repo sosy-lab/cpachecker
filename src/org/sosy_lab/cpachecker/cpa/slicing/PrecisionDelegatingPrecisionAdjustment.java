@@ -68,7 +68,7 @@ public class PrecisionDelegatingPrecisionAdjustment
         delegate.prec(wrappedState, wrappedPrecision, pStates, pStateProjection, pFullState);
 
     if (delegateResult.isPresent()) {
-      PrecisionAdjustmentResult adjustmentResult = delegateResult.get();
+      PrecisionAdjustmentResult adjustmentResult = delegateResult.orElseThrow();
       AbstractState state = adjustmentResult.abstractState();
       Precision precision = adjustmentResult.precision();
 

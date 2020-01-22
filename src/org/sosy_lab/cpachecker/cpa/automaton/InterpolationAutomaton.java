@@ -219,7 +219,7 @@ public class InterpolationAutomaton {
         ARGState pCurrentState, ARGState pChildState, String pNextItpState) {
       Optional<CFAEdge> singleEdgeOpt = handleSingleEdge(pCurrentState, pChildState, pNextItpState);
       if (singleEdgeOpt.isPresent()) {
-        return ImmutableList.of(singleEdgeOpt.get());
+        return ImmutableList.of(singleEdgeOpt.orElseThrow());
       } else {
         // aggregateBasicBlocks is enabled!
         throw new UnsupportedOperationException(
@@ -236,7 +236,7 @@ public class InterpolationAutomaton {
         String buechiExpression =
             Joiner.on("; ")
                 .join(Collections2.transform(dcaState.getAssumptions(), AExpression::toASTString));
-        addEdgeToTransition(singleEdgeOpt.get(), pNextItpState, buechiExpression);
+        addEdgeToTransition(singleEdgeOpt.orElseThrow(), pNextItpState, buechiExpression);
       }
       return singleEdgeOpt;
     }
@@ -270,7 +270,8 @@ public class InterpolationAutomaton {
           stream.reduce((x, y) -> new AutomatonBoolExpr.And(x, y));
       verify(boolExprOpt.isPresent());
       AutomatonTransition transition =
-          new AutomatonTransition.Builder(boolExprOpt.get(), sinkState.getStateName()).build();
+          new AutomatonTransition.Builder(boolExprOpt.orElseThrow(), sinkState.getStateName())
+              .build();
 
       transitions.add(transition);
       return ImmutableList.copyOf(transitions);

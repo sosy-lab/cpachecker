@@ -99,6 +99,16 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   )
   private boolean useCopyOnWriteRefinement = false;
 
+  @Option(
+      secure = true,
+      description =
+          "By default, the CPA algorithm terminates when finding the first target state, "
+              + "which makes it easy to identify this last state. For special analyses, "
+              + "we need to search for more target states in the reached-set, "
+              + "when reaching a block-exit. This flag is needed if the option "
+              + "'cpa.automaton.breakOnTargetState' is unequal to 1.")
+  private boolean searchTargetStatesOnExit = false;
+
   final Timer blockPartitioningTimer = new Timer();
   final ReducerStatistics reducerStatistics;
 
@@ -178,6 +188,11 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
+  public BAMMergeOperator getMergeOperator() {
+    return new BAMMergeOperator(getWrappedCpa().getMergeOperator());
+  }
+
+  @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     assert !Iterables.any(pStatsCollection, Predicates.instanceOf(ARGStatistics.class))
         : "exporting ARGs should only be done at this place, when using BAM.";
@@ -209,5 +224,9 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   boolean useDynamicAdjustment() {
     return useDynamicAdjustment;
+  }
+
+  public boolean searchTargetStatesOnExit() {
+    return searchTargetStatesOnExit;
   }
 }

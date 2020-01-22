@@ -284,7 +284,7 @@ public class ConstraintsSolver {
     if (performMinimalSatCheck && pConstraints.getLastAddedConstraint().isPresent()) {
       try {
         stats.timeForIndependentComputation.start();
-        Constraint lastConstraint = pConstraints.getLastAddedConstraint().get();
+        Constraint lastConstraint = pConstraints.getLastAddedConstraint().orElseThrow();
         // Always add the last added constraint to the set of relevant constraints.
         // It may not contain any symbolic identifiers (e.g., 0 == 5) and will thus
         // not be automatically included in the iteration over dependent sets below.
@@ -600,7 +600,7 @@ public class ConstraintsSolver {
 
     public ImmutableList<ValueAssignment> getModelAssignment() {
       checkState(modelAssignment.isPresent(), "No model exists");
-      return modelAssignment.get();
+      return modelAssignment.orElseThrow();
     }
   }
 }

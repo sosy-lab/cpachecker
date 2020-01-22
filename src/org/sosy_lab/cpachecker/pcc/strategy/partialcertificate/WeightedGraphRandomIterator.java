@@ -70,10 +70,11 @@ public class WeightedGraphRandomIterator implements Iterator<WeightedNode> {
   }
   /**
    * Compute permutation of 0..n-1 to randomly iterate over an array
+   *
    * @param n number of list entries
    * @return a list containing 0..n-1 in a randomized order
    */
-  private List<Integer> shuffledIndices(int n) {
+  private static List<Integer> shuffledIndices(int n) {
     List<Integer> permutation = new ArrayList<>(n);
     for (int i = 0; i < n; i++) {
       permutation.add(i);

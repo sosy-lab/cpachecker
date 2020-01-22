@@ -14,9 +14,9 @@ DEFAULT_STACK_SIZE="1024k"
 java_version="`$JAVA -XX:-UsePerfData -Xmx5m -version 2>&1`"
 result=$?
 if [ $result -eq 127 ]; then
-  echo "Java not found, please install Java 1.8 or newer." 1>&2
-  echo "For Ubuntu: sudo apt-get install openjdk-8-jre" 1>&2
-  echo "If you have installed Java 8, but it is not in your PATH," 1>&2
+  echo "Java not found, please install Java 11 or newer." 1>&2
+  echo "For Ubuntu: sudo apt-get install openjdk-11-jre" 1>&2
+  echo "If you have installed Java 11, but it is not in your PATH," 1>&2
   echo "let the environment variable JAVA point to the \"java\" binary." 1>&2
   exit 1
 fi
@@ -26,11 +26,11 @@ if [ $result -ne 0 ]; then
   echo "Please make sure you are able to execute Java processes by running \"$JAVA\"."
   exit 1
 fi
-java_version="`echo "$java_version" | grep -e "^\(java\|openjdk\) version" | cut -f2 -d\\\" | sed 's/\.//g' | cut -b1-2`"
-if [ -z "$java_version" ] || [ "$java_version" -lt 18 -a "$java_version" -gt 13 ] ; then
-  echo "Your Java version is too old, please install Java 1.8 or newer." 1>&2
-  echo "For Ubuntu: sudo apt-get install openjdk-8-jre" 1>&2
-  echo "If you have installed Java 8, but it is not in your PATH," 1>&2
+java_version="`echo "$java_version" | grep -e "^\(java\|openjdk\) version" | cut -f2 -d\\\" | cut -f1 -d.`"
+if [ -z "$java_version" ] || [ "$java_version" -lt 11 ] ; then
+  echo "Your Java version is too old, please install Java 11 or newer." 1>&2
+  echo "For Ubuntu: sudo apt-get install openjdk-11-jre" 1>&2
+  echo "If you have installed Java 11, but it is not in your PATH," 1>&2
   echo "let the environment variable JAVA point to the \"java\" binary." 1>&2
   exit 1
 fi

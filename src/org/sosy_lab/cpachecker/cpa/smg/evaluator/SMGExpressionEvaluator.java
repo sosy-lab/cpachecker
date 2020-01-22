@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import static java.util.Collections.singletonList;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -463,7 +464,8 @@ public class SMGExpressionEvaluator {
       case PLUS:
       case MINUS: {
 
-        List<SMGAddressValueAndState> result = new ArrayList<>(4);
+        ImmutableList.Builder<SMGAddressValueAndState> result =
+            ImmutableList.builderWithExpectedSize(4);
 
           for (SMGAddressValueAndState addressValueAndState :
               evaluateAddress(initialSmgState, cfaEdge, address)) {
@@ -506,7 +508,7 @@ public class SMGExpressionEvaluator {
               result.addAll(createAddress(newState, target, newAddressOffset));
           }
         }
-          return result;
+        return result.build();
       }
 
       case EQUALS:

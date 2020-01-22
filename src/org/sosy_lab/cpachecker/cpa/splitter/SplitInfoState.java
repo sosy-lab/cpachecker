@@ -58,7 +58,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
     throw new InvalidQueryException("The Query \"" + property + "\" is invalid.");
   }
 
-  static class SequenceSplitInfoState extends SplitInfoState {
+  static final class SequenceSplitInfoState extends SplitInfoState {
 
     private final int[] inSplit;
 
@@ -166,7 +166,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
     }
   }
 
-  static class SetSplitInfoState extends SplitInfoState {
+  static final class SetSplitInfoState extends SplitInfoState {
     private final Set<Integer> inSplit;
 
     private SetSplitInfoState(final Set<Integer> pInSplit) {
