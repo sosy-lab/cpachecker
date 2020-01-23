@@ -118,7 +118,7 @@ public class HarnessState extends AbstractSingleWrapperState implements Abstract
     Map<CType, List<Formula>> newCTypesToFormulasMap = new HashMap<>();
     for (Map.Entry<CType, List<Formula>> entry : pCTypesToFormulasMap.entrySet()) {
       Builder<Formula> builder = ImmutableList.builder();
-      builder.addAll(orderedExternallyKnownLocationsByType.get(entry.getKey()));
+      builder.addAll(orderedExternallyKnownLocationsByType.getOrDefault(entry.getKey(), ImmutableList.of()));
       builder.addAll(entry.getValue());
       ImmutableList<Formula> newLocations = builder.build();
       newCTypesToFormulasMap.put(entry.getKey(), newLocations);
