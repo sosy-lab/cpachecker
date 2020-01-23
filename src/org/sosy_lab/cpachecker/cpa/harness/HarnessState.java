@@ -32,20 +32,17 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class HarnessState extends AbstractSingleWrapperState implements AbstractState {
 
   private static final long serialVersionUID = 1L;
   private final ImmutableList<Formula> orderedExternallyKnownLocations;
-  private final Map<CType, List<Formula>> orderedExternallyKnownLocationsByType;
   private Map<AFunctionDeclaration, List<Integer>> functionToIndicesMap;
 
   public HarnessState(AbstractState pWrappedState) {
     super(pWrappedState);
     orderedExternallyKnownLocations = ImmutableList.of();
     functionToIndicesMap = new HashMap<>();
-    orderedExternallyKnownLocationsByType = new HashMap<>();
   }
 
   public HarnessState(
@@ -54,7 +51,6 @@ public class HarnessState extends AbstractSingleWrapperState implements Abstract
     super(pWrappedState);
     orderedExternallyKnownLocations = pOrderedExternallyKnownLocations;
     functionToIndicesMap = new HashMap<>();
-    orderedExternallyKnownLocationsByType = new HashMap<>();
   }
 
   public HarnessState(
@@ -64,31 +60,16 @@ public class HarnessState extends AbstractSingleWrapperState implements Abstract
     super(pWrappedSuccessor);
     orderedExternallyKnownLocations = pOrderedExternallyKnownLocations;
     functionToIndicesMap = pFunctionToIndicesMap;
-    orderedExternallyKnownLocationsByType = new HashMap<>();
   }
-
-  public HarnessState(
-      AbstractState pWrappedSuccessor,
-      ImmutableList<Formula> pOrderedExternallyKnownLocations,
-      Map<AFunctionDeclaration, List<Integer>> pFunctionToIndicesMap,
-      Map<CType, List<Formula>> pOrderedExternallyKnownLocationsByType) {
-    super(pWrappedSuccessor);
-    orderedExternallyKnownLocations = pOrderedExternallyKnownLocations;
-    functionToIndicesMap = pFunctionToIndicesMap;
-    orderedExternallyKnownLocationsByType = pOrderedExternallyKnownLocationsByType;
-   }
 
   public List<Formula> getExternallyKnownPointers() {
     return orderedExternallyKnownLocations;
   }
 
-  public Map<CType, List<Formula>> getCTypeToExternallyKnownPointersMap() {
-        return orderedExternallyKnownLocationsByType;
-  }
-
   public int getExternPointersArrayLength() {
     return orderedExternallyKnownLocations.size();
   }
+
 
   public HarnessState setWrappedState(AbstractState pWrappedSuccessor) {
     return new HarnessState(
@@ -112,23 +93,5 @@ public class HarnessState extends AbstractSingleWrapperState implements Abstract
     ImmutableList<Formula> newLocations = builder.build();
     return new HarnessState(getWrappedState(), newLocations);
   }
-
-  public HarnessState addExternallyKnownLocationsFromCTypesToFormulasMap(
-      Map<CType, List<Formula>> pCTypesToFormulasMap) {
-    Map<CType, List<Formula>> newCTypesToFormulasMap = new HashMap<>();
-    for (Map.Entry<CType, List<Formula>> entry : pCTypesToFormulasMap.entrySet()) {
-      Builder<Formula> builder = ImmutableList.builder();
-      builder.addAll(orderedExternallyKnownLocationsByType.getOrDefault(entry.getKey(), ImmutableList.of()));
-      builder.addAll(entry.getValue());
-      ImmutableList<Formula> newLocations = builder.build();
-      newCTypesToFormulasMap.put(entry.getKey(), newLocations);
-    }
-    return new HarnessState(
-        getWrappedState(),
-        orderedExternallyKnownLocations,
-        functionToIndicesMap,
-        newCTypesToFormulasMap);
-  }
-
 
 }

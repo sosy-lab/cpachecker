@@ -76,7 +76,6 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class HarnessTransferRelation implements TransferRelation {
 
@@ -190,17 +189,6 @@ public class HarnessTransferRelation implements TransferRelation {
           FunctionToIndicesResolver functionToIndicesResolver =
               new FunctionToIndicesResolver(proverEnvironment, functionFormulaManager);
 
-          Map<CType, List<Formula>> typesToLocationsMap = harnessState.getCTypeToExternallyKnownPointersMap();
-          Map<CType, FunctionDeclaration<?>> indexFunctionDeclarationMap = new HashMap<>();
-          for (CType type : typesToLocationsMap.keySet()) {
-            FunctionDeclaration<?> indexFunctionDeclarationForType =
-                functionFormulaManager.declareUF(
-                    "__harness__location_index_" + type.toString(),
-                    FormulaType.IntegerType,
-                    typeHandler.getPointerType());
-            indexFunctionDeclarationMap.put(type, indexFunctionDeclarationForType);
-          }
-
           FunctionDeclaration<?> indexFunctionDeclaration =
               functionFormulaManager.declareUF(
                   "__harness__location_index",
@@ -215,10 +203,10 @@ public class HarnessTransferRelation implements TransferRelation {
           proverEnvironment.push(renamedExternFunctionCallsFormula);
 
           BooleanFormula exportedLocationsToIndexFormula =
-              exportedLocationMapper.getExportedLocationsToTypeSpecificIndexFormula(
-                  harnessState.getCTypeToExternallyKnownPointersMap(),
+              exportedLocationMapper.getExportedLocationsToIndexFormula(
+                  harnessState.getExternallyKnownPointers(),
                   predicateCPA.getPathFormulaManager(),
-                  indexFunctionDeclarationMap);
+                  indexFunctionDeclaration);
 
           proverEnvironment.push(exportedLocationsToIndexFormula);
 
@@ -318,11 +306,11 @@ public class HarnessTransferRelation implements TransferRelation {
                         || cExpression.getExpressionType() instanceof CArrayType)
                 .collect(Collectors.toList());
 
-    Map<CType, List<Formula>> cTypeToFormulasMap =
+        List<Formula> formulas =
             pFormulaFromExpressionBuilder
-                .buildCTypeToFormulasMapFromExpressions(pEdge, functionParametersOfPointerType);
+                .buildFormulasFromExpressions(pEdge, functionParametersOfPointerType);
         HarnessState newState =
-            pState.addExternallyKnownLocationsFromCTypesToFormulasMap(cTypeToFormulasMap);
+            pState.addExternallyKnownLocations(formulas);
         return newState;
       }
     }

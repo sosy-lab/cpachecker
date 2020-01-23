@@ -20,9 +20,7 @@
 package org.sosy_lab.cpachecker.cpa.harness;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -32,7 +30,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -72,59 +69,6 @@ public class FormulaFromExpressionBuilder {
     predicateState = pPredicateState;
     config = pConfig;
     shutdownNotifier = pShutdownNotifier;
-  }
-
-  public Map<CType, List<Formula>> buildCTypeToFormulasMapFromExpressions(
-      CFAEdge pEdge,
-      List<CExpression> pFunctionParametersOfPointerType)
-      throws InvalidConfigurationException {
-    Map<CType, List<Formula>> result = new HashMap<>();
-
-    PredicateCPA predicateCPA =
-        CPAs.retrieveCPAOrFail(wrappedCpa, PredicateCPA.class, HarnessTransferRelation.class);
-
-    Solver solver = predicateCPA.getSolver();
-    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, cfa.getMachineModel());
-    CtoFormulaConverter converter =
-        new CtoFormulaConverter(
-            new FormulaEncodingOptions(config),
-            solver.getFormulaManager(),
-            cfa.getMachineModel(),
-            Optional.empty(),
-            logger,
-            shutdownNotifier,
-            typeHandler,
-            AnalysisDirection.FORWARD);
-
-    SSAMapBuilder ssaBuilder = predicateState.getPathFormula().getSsa().builder();
-    PointerTargetSetBuilder pointerTargetSetBuilder =
-        PointerTargetSetBuilder.DummyPointerTargetSetBuilder.INSTANCE;
-    BooleanFormulaManagerView booleanManagerView =
-        solver.getFormulaManager().getBooleanFormulaManager();
-    Constraints constraints = new Constraints(booleanManagerView);
-    ErrorConditions errorConditions = ErrorConditions.dummyInstance(booleanManagerView);
-
-    for (CExpression pointerParameter : pFunctionParametersOfPointerType) {
-      try {
-        Formula term =
-            converter.buildTerm(
-                pointerParameter,
-                pEdge,
-                pEdge.getPredecessor().getFunctionName(),
-                ssaBuilder,
-                pointerTargetSetBuilder,
-                constraints,
-                errorConditions);
-        CType cType = pointerParameter.getExpressionType();
-        result.putIfAbsent(cType, new ArrayList<>());
-        List<Formula> listForThisType = result.get(cType);
-        listForThisType.add(term);
-      } catch (UnrecognizedCodeException e) {
-        logger.log(Level.WARNING, "Could not generate Formula from CExpression.");
-      }
-    }
-
-    return result;
   }
 
   public List<Formula>
