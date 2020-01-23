@@ -76,7 +76,7 @@ public class PJBDDRegionManager implements RegionManager {
 
   @Override
   public boolean entails(Region f1, Region f2) {
-    return bddCreator.entails(unwrap(f1), unwrap(f2));
+    return bddCreator.makeImply(unwrap(f1), unwrap(f2)).isTrue();
   }
 
   @Override
@@ -171,6 +171,7 @@ public class PJBDDRegionManager implements RegionManager {
 
   @Override
   public Region makeExists(Region f1, Region... f2) {
+
     BDD[] bddF2 = new BDD[f2.length];
     IntStream.range(0, f2.length).forEach(i -> bddF2[i] = unwrap(f2[i]));
     return wrap(bddCreator.makeExists(unwrap(f1), bddF2));
