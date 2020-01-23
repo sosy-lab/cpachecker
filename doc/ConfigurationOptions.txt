@@ -485,6 +485,9 @@ assumptions.removeNonExploredWithoutSuccessors = false
 # (see config/specification/ for examples)
 backwardSpecification = []
 
+# Count accesses for the BDD library. Counting works for concurrent accesses.
+bdd.countLibraryAccess = false
+
 # Size of the BDD cache in relation to the node table size (set to 0 to use
 # fixed BDD cache size).
 bdd.javabdd.cacheRatio = 0.1
@@ -499,7 +502,7 @@ bdd.javabdd.initTableRatio = 0.001
 # Initial size of the BDD node table, use 0 for size based on initTableRatio.
 bdd.javabdd.initTableSize = 0
 
-# measure the time spent in the BDD library. The behaviour in case of
+# Measure the time spent in the BDD library. The behaviour in case of
 # concurrent accesses is undefined!
 bdd.measureLibraryAccess = false
 
