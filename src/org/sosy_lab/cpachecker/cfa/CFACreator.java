@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -121,6 +122,8 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  */
 @Options
 public class CFACreator {
+
+  private static final String JAVA_MAIN_METHOD_CFA_SUFFIX = "_main_String[]";
 
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
   public static final String VALID_JAVA_FUNCTION_NAME_PATTERN = ".*"; //TODO
@@ -790,20 +793,23 @@ public class CFACreator {
 
   private FunctionEntryNode getJavaMainMethod(Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
-    Optional<FunctionEntryNode> mainFunctionOptional =
-        cfas.values().stream().filter(v -> v.toString().equals("N1")).findFirst();
+    Optional<Entry<String, FunctionEntryNode>> mainFunctionOptional =
+        cfas.entrySet().stream()
+            .filter(k -> k.getKey().endsWith(JAVA_MAIN_METHOD_CFA_SUFFIX))
+            .findFirst();
 
-    if (mainFunctionOptional.isPresent()) {
-      return mainFunctionOptional.get();
-    } else {
-      throw new InvalidConfigurationException(
-          "Method "
-              + mainFunctionName
-              + " not found.\n"
-              + "Please note that a method has to be given in the following notation:\n <ClassName>_"
-              + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_pack1.Car\n"
-              + "for the method drive(int speed, Car car) in the class Car.");
-    }
+    Entry<String, FunctionEntryNode> mainMethodEntry =
+        mainFunctionOptional.orElseThrow(
+            () ->
+                new InvalidConfigurationException(
+                    "Method "
+                        + mainFunctionName
+                        + " not found.\n"
+                        + "Please note that a method has to be given in the following notation:\n <ClassName>_"
+                        + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_pack1.Car\n"
+                        + "for the method drive(int speed, Car car) in the class Car."));
+
+    return mainMethodEntry.getValue();
   }
 
   private void checkIfValidFiles(List<String> sourceFiles) throws InvalidConfigurationException {
