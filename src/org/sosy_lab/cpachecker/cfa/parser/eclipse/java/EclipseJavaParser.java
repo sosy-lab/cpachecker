@@ -140,7 +140,7 @@ class EclipseJavaParser implements JavaParser {
    * @param javaPath String of paths to java files, separated by path separator
    * @return Immutable list of Paths of files in input string
    */
-  private ImmutableList<Path> convertToPathList(String javaPath) {
+  private ImmutableList<Path> convertFilePathToPathList(String javaPath) {
     ImmutableList.Builder<Path> result = ImmutableList.builder();
 
     for (String pathAsString : Splitter.on(File.pathSeparator).trimResults().omitEmptyStrings()
@@ -151,6 +151,18 @@ class EclipseJavaParser implements JavaParser {
       } else {
         result.add(path);
       }
+    }
+
+    return result.build();
+  }
+
+  private ImmutableList<Path> convertFolderPathToPathList(String javaPath) {
+    ImmutableList.Builder<Path> result = ImmutableList.builder();
+
+    for (String pathAsString : Splitter.on(File.pathSeparator).trimResults().omitEmptyStrings()
+        .split(javaPath)) {
+      Path path = Paths.get(pathAsString);
+      result.add(path);
     }
 
     return result.build();
@@ -226,7 +238,7 @@ class EclipseJavaParser implements JavaParser {
     }
 
     if (javaClasspath.isEmpty()) {
-      ImmutableList<Path> pathToProgram = convertToPathList(sourceFiles.get(0));
+      ImmutableList<Path> pathToProgram = convertFilePathToPathList(sourceFiles.get(0));
 
       if (pathToProgram.isEmpty()) {
         throw new InvalidConfigurationException("No valid Paths could be found.");
@@ -242,14 +254,14 @@ class EclipseJavaParser implements JavaParser {
 
       }
     } else {
-      javaClassPaths = convertToPathList(javaClasspath);
+      javaClassPaths = convertFolderPathToPathList(javaClasspath);
       entryPointVariables = splitPathToClassAndMainMethod(sourceFiles.get(0));
     }
 
     if (javaSourcepath.isEmpty()) {
       javaSourcePaths = javaClassPaths;
     } else {
-      javaSourcePaths = convertToPathList(javaSourcepath);
+      javaSourcePaths = convertFolderPathToPathList(javaSourcepath);
     }
 
     if (javaSourcePaths.isEmpty()) {
