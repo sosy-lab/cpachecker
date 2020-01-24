@@ -670,9 +670,8 @@ public class CFACreator {
 
     if (sourceFiles.size() == 1) {
       if (language == Language.JAVA) {
-        ((JavaParser) parser).setPathsAndEntryFunction(sourceFiles, mainFunctionName);
         parseResult =
-            parser.parseFile(((JavaParser) parser).getAbsolutePathToMainFile());
+            ((JavaParser) parser).parseFileWithEntryFunction(sourceFiles, mainFunctionName);
       } else {
         parseResult = parser.parseFile(sourceFiles.get(0));
       }
