@@ -122,8 +122,6 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 @Options
 public class CFACreator {
 
-  private static final String JAVA_MAIN_METHOD_CFA_SUFFIX = "_main_String[]";
-
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
   public static final String VALID_JAVA_FUNCTION_NAME_PATTERN = ".*"; //TODO
 
