@@ -671,7 +671,8 @@ public class CFACreator {
     if (sourceFiles.size() == 1) {
       if (language == Language.JAVA) {
         parseResult =
-            ((JavaParser) parser).parseFileWithEntryFunction(sourceFiles, mainFunctionName);
+            ((JavaParser) parser)
+                .parseProgramDenotationWithEntryFunction(sourceFiles, mainFunctionName);
       } else {
         parseResult = parser.parseFile(sourceFiles.get(0));
       }

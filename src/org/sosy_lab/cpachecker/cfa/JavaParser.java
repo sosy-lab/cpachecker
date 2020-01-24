@@ -29,10 +29,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 
 public interface JavaParser extends Parser {
-  String getMainMethodName();
-
-  String getMainClassRelativePath();
-
-  ParseResult parseFileWithEntryFunction(List<String> sourceFiles, String mainFunctionName)
+  ParseResult parseProgramDenotationWithEntryFunction(
+      List<String> sourceFiles,
+      String mainFunctionName)
       throws InvalidConfigurationException, JParserException, IOException;
 }
