@@ -791,15 +791,12 @@ public class CFACreator {
 
   private FunctionEntryNode getJavaMainMethod(Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
+    Optional<FunctionEntryNode> mainFunctionOptional =
+        cfas.values().stream().filter(v -> v.toString().equals("N1")).findFirst();
 
-    // try specified function
-    FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
-
-    if (mainFunction != null) {
-      return mainFunction;
-    }
-    if (!((JavaParser) parser).getMainMethodName().equals("main")) {
-      // function explicitly given by user, but not found
+    if (mainFunctionOptional.isPresent()) {
+      return mainFunctionOptional.get();
+    } else {
       throw new InvalidConfigurationException(
           "Method "
               + mainFunctionName
@@ -808,16 +805,6 @@ public class CFACreator {
               + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_pack1.Car\n"
               + "for the method drive(int speed, Car car) in the class Car.");
     }
-
-    String mainClassName = ((JavaParser) parser).getMainClassRelativePath();
-    mainFunction = cfas.get(mainClassName.replace("/", ".") + JAVA_MAIN_METHOD_CFA_SUFFIX);
-
-    if (mainFunction == null) {
-      throw new InvalidConfigurationException(
-          "No main method in given main class found, please specify one.");
-    }
-
-    return mainFunction;
   }
 
   private void checkIfValidFiles(List<String> sourceFiles) throws InvalidConfigurationException {
