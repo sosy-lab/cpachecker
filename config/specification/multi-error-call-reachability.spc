@@ -6,7 +6,7 @@ CONTROL AUTOMATON MultiErrors
 INITIAL STATE Init;
 
 STATE USEALL Init :
-  MATCH {__VERIFIER_error($?)} -> ERROR("$rawstatement called in line $line");
+  MATCH {__VERIFIER_error($?)} || MATCH {reach_error($?)} -> ERROR("$rawstatement called in line $line");
   MATCH {__assert_fail($?)} || MATCH {abort($?)} || MATCH {exit($?)} -> STOP;
   TRUE -> GOTO Init;
 

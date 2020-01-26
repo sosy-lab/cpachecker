@@ -9,7 +9,7 @@ STATE USEFIRST Init :
    // this transition matches if the label of the successor CFA location is
    // "__CPACHECKER_NON_TERMINATION"
    MATCH LABEL [__CPACHECKER_NON_TERMINATION] -> ERROR("non-termination label in $location");
-   MATCH {__VERIFIER_error($?)} || MATCH {__assert_fail($?)} -> STOP;
+   MATCH {__VERIFIER_error($?)} || MATCH {reach_error($?)} || MATCH {__assert_fail($?)} -> STOP;
 END AUTOMATON
 
 // functions such as exit() and abort() which do not return.
