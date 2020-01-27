@@ -710,15 +710,17 @@ public class CtoFormulaConverter {
     if (fromType.equals(toType)) {
       return formula;
     }
+    final CType cTypeNoPointer = handlePointerAndEnumAsInt(cType);
+
     if (fromType.isBitvectorType()) {
       if (toType.isBooleanType()) {
-        final CSimpleType sType = (CSimpleType) cType;
+        final CSimpleType sType = (CSimpleType) cTypeNoPointer;
         final boolean signed = machineModel.isSigned(sType);
         IntegerFormula iformula = efmgr.toIntegerFormula((BitvectorFormula) formula, signed);
         IntegerFormula zero = ifmgr.makeNumber(0);
         return bfmgr.not(ifmgr.equal(iformula, zero));
       } else if (toType.isIntegerType()) {
-        final CSimpleType sType = (CSimpleType) cType;
+        final CSimpleType sType = (CSimpleType) cTypeNoPointer;
         final boolean signed = machineModel.isSigned(sType);
         return efmgr.toIntegerFormula((BitvectorFormula) formula, signed);
       } else {
@@ -739,7 +741,7 @@ public class CtoFormulaConverter {
         IntegerFormula zero = ifmgr.makeNumber(0);
         return bfmgr.not(ifmgr.equal((IntegerFormula) formula, zero));
       } else if (toType.isFloatingPointType()) {
-        final CSimpleType sType = (CSimpleType) cType;
+        final CSimpleType sType = (CSimpleType) cTypeNoPointer;
         final boolean signed = machineModel.isSigned(sType);
         return fmgr.getFloatingPointFormulaManager()
             .castFrom(formula, signed, FormulaType.getSinglePrecisionFloatingPointType());
