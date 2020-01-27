@@ -185,19 +185,51 @@ public class ExpressionToFormulaVisitor
 
     final Formula ret;
 
+    // when using Variable Classification, we may have to cast to bitvectors for certain operands
+    // if both formulas are boolean formulas, we can avoid casts with certain operands
+    final FormulaType<?> calculationFormulaType =
+        determineCalculationFormulaType(f1, f2, op, calculationType);
+    // makeFormulaTypeCast returns formulas unchanged, if either of the them is already of the
+    // desired type
+    // Formula
+    final Formula f1Cast =
+        conv.makeFormulaTypeCast(
+            calculationFormulaType,
+            calculationType,
+            f1,
+            ssa,
+            constraints,
+            edge);
+    final Formula f2Cast =
+        conv.makeFormulaTypeCast(
+            calculationFormulaType,
+            calculationType,
+            f2,
+            ssa,
+            constraints,
+            edge);
+
 
     switch (op) {
     case PLUS:
       if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just an addition e.g. 6 + 7
-        ret = mgr.makePlus(f1, f2);
+          ret = mgr.makePlus(f1Cast, f2Cast);
       } else if (!(promT2 instanceof CPointerType)) {
         // operand1 is a pointer => we should multiply the second summand by the size of the pointer target
-        ret =  mgr.makePlus(f1, mgr.makeMultiply(f2,
+          ret =
+              mgr.makePlus(
+                  f1Cast,
+                  mgr.makeMultiply(
+                      f2Cast,
                                                              getPointerTargetSizeLiteral((CPointerType) promT1,
                                                              calculationType)));
       } else if (!(promT1 instanceof CPointerType)) {
         // operand2 is a pointer => we should multiply the first summand by the size of the pointer target
-        ret =  mgr.makePlus(f2, mgr.makeMultiply(f1,
+          ret =
+              mgr.makePlus(
+                  f2Cast,
+                  mgr.makeMultiply(
+                      f1Cast,
                                                              getPointerTargetSizeLiteral((CPointerType) promT2,
                                                              calculationType)));
       } else {
@@ -206,16 +238,22 @@ public class ExpressionToFormulaVisitor
       break;
     case MINUS:
       if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
-        ret =  mgr.makeMinus(f1, f2);
+          ret = mgr.makeMinus(f1Cast, f2Cast);
       } else if (!(promT2 instanceof CPointerType)) {
         // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer target
-        ret =  mgr.makeMinus(f1, mgr.makeMultiply(f2,
+          ret =
+              mgr.makeMinus(
+                  f1Cast,
+                  mgr.makeMultiply(
+                      f2Cast,
                                                               getPointerTargetSizeLiteral((CPointerType) promT1,
                                                                                             calculationType)));
       } else if (promT1 instanceof CPointerType) {
         // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
         if (promT1.equals(promT2)) {
-          ret = mgr.makeDivide(mgr.makeMinus(f1, f2),
+            ret =
+                mgr.makeDivide(
+                    mgr.makeMinus(f1Cast, f2Cast),
                                      getPointerTargetSizeLiteral((CPointerType) promT1, calculationType),
                                      true);
         } else {
@@ -228,45 +266,34 @@ public class ExpressionToFormulaVisitor
       }
       break;
     case MULTIPLY:
-      ret =  mgr.makeMultiply(f1, f2);
+        ret = mgr.makeMultiply(f1Cast, f2Cast);
       break;
     case DIVIDE:
-      ret = mgr.makeDivide(f1, f2, signed);
+        ret = mgr.makeDivide(f1Cast, f2Cast, signed);
       break;
     case MODULO:
-      ret = mgr.makeModulo(f1, f2, signed);
+        ret = mgr.makeModulo(f1, f2, signed);
 
-      addModuloConstraints(exp, f1, f2, signed, ret);
+        addModuloConstraints(exp, f1, f2, signed, ret);
 
       break;
     case BINARY_AND:
-        if (!(mgr.getFormulaType(f1).isIntegerType() || mgr.getFormulaType(f2).isIntegerType())) {
-          ret = mgr.makeAnd(f1, f2);
-        } else {
-          FormulaType<?> BitVType = conv.getFormulaTypeFromCType(calculationType);
-          // makeFormulaTypeCast returns formulas unchanged, if either
-          // of the them is already a Bitvector Formula
-          Formula f1BitV =
-              conv.makeFormulaTypeCast(BitVType, calculationType, f1, ssa, constraints, edge);
-          Formula f2BitV =
-              conv.makeFormulaTypeCast(BitVType, calculationType, f2, ssa, constraints, edge);
-          ret = mgr.makeAnd(f1BitV, f2BitV);
-        }
+        ret = mgr.makeAnd(f1Cast, f2Cast);
       break;
     case BINARY_OR:
-      ret =  mgr.makeOr(f1, f2);
+        ret = mgr.makeOr(f1Cast, f2Cast);
       break;
     case BINARY_XOR:
-      ret =  mgr.makeXor(f1, f2);
+        ret = mgr.makeXor(f1Cast, f2Cast);
       break;
     case SHIFT_LEFT:
 
       // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
-      ret =  mgr.makeShiftLeft(f1, f2);
+        ret = mgr.makeShiftLeft(f1Cast, f2Cast);
       break;
     case SHIFT_RIGHT:
       // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
-      ret =  mgr.makeShiftRight(f1, f2, signed);
+        ret = mgr.makeShiftRight(f1Cast, f2Cast, signed);
       break;
 
     case GREATER_THAN:
@@ -278,47 +305,22 @@ public class ExpressionToFormulaVisitor
       BooleanFormula result;
       switch (op) {
         case GREATER_THAN:
-          result= mgr.makeGreaterThan(f1, f2, signed);
+            result = mgr.makeGreaterThan(f1Cast, f2Cast, signed);
           break;
         case GREATER_EQUAL:
-          result= mgr.makeGreaterOrEqual(f1, f2, signed);
+            result = mgr.makeGreaterOrEqual(f1Cast, f2Cast, signed);
           break;
         case LESS_THAN:
-          result= mgr.makeLessThan(f1, f2, signed);
+            result = mgr.makeLessThan(f1Cast, f2Cast, signed);
           break;
         case LESS_EQUAL:
-          result= mgr.makeLessOrEqual(f1, f2, signed);
+            result = mgr.makeLessOrEqual(f1Cast, f2Cast, signed);
           break;
         case EQUALS:
-          result= handleEquals(exp, f1, f2);
+            result = handleEquals(exp, f1Cast, f2Cast);
           break;
         case NOT_EQUALS:
-            // If one of our formulas is a BooleanFormula,
-            // we have to cast the formula type first.
-            if (mgr.getFormulaType(f1).isBooleanType() && !mgr.getFormulaType(f2).isBooleanType()) {
-              final Formula f1cast =
-                  conv.makeFormulaTypeCast(
-                      mgr.getFormulaType(f2),
-                      calculationType,
-                      f1,
-                      ssa,
-                      constraints,
-                      edge);
-              result = conv.bfmgr.not(mgr.makeEqual(f1cast, f2));
-            } else if (!mgr.getFormulaType(f1).isBooleanType()
-                && mgr.getFormulaType(f2).isBooleanType()) {
-              final Formula f2cast =
-                  conv.makeFormulaTypeCast(
-                      mgr.getFormulaType(f1),
-                      calculationType,
-                      f2,
-                      ssa,
-                      constraints,
-                      edge);
-              result = conv.bfmgr.not(mgr.makeEqual(f1, f2cast));
-            } else {
-              result = conv.bfmgr.not(mgr.makeEqual(f1, f2));
-            }
+            result = conv.bfmgr.not(mgr.makeEqual(f1Cast, f2Cast));
           break;
         default:
           throw new AssertionError();
@@ -1267,5 +1269,41 @@ public class ExpressionToFormulaVisitor
     }
 
     return null;
+  }
+
+  private FormulaType<?> determineCalculationFormulaType(
+      Formula f1,
+      Formula f2,
+      BinaryOperator op,
+      CType calculationType) {
+    FormulaType<?> result;
+    if (!conv.options.useVariableClassification()) {
+      return conv.getFormulaTypeFromCType(calculationType);
+    }
+    if (mgr.getFormulaType(f1).isBooleanType() && mgr.getFormulaType(f2).isBooleanType()) {
+      result = FormulaType.BooleanType;
+    } else {
+      switch (op) {
+        case BINARY_AND:
+        case BINARY_OR:
+        case BINARY_XOR:
+        case SHIFT_LEFT:
+        case SHIFT_RIGHT:
+          result = conv.getFormulaTypeFromCType(calculationType);
+          break;
+        default:
+          if (mgr.getFormulaType(f1).equals(mgr.getFormulaType(f2))) {
+            result = mgr.getFormulaType(f1);
+          } else {
+            if (mgr.getFormulaType(f1).isIntegerType() || mgr.getFormulaType(f2).isIntegerType()) {
+              result = FormulaType.IntegerType;
+            } else {
+              result = conv.getFormulaTypeFromCType(calculationType);
+            }
+          }
+          break;
+      }
+    }
+    return result;
   }
 }
