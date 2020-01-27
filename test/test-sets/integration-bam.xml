@@ -50,14 +50,14 @@
   </tasks>
 
   <tasks name="predicate_tree_nested">
-    <include>../programs/benchmarks/recursive/*03*.c</include>
+    <include>../programs/benchmarks/recursive/*03*.yml</include>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_nested</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_cpachecker">
-    <include>../programs/benchmarks/recursive/*02*.c</include>
+    <include>../programs/benchmarks/recursive/*02*.yml</include>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_cpachecker</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>

@@ -13,7 +13,7 @@
   <tasks name="ControlFlowInteger">
       <include>../programs/benchmarks/ntdrivers-simplified/*.cil.yml</include>
       <include>../programs/benchmarks/ssh-simplified/*.cil.yml</include>
-      <include>../programs/benchmarks/locks/*.c</include>
+      <include>../programs/benchmarks/locks/*.yml</include>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
