@@ -174,8 +174,9 @@ public class CtoFormulaConverter {
 
   private static final CharMatcher ILLEGAL_VARNAME_CHARACTERS = CharMatcher.anyOf("|\\");
 
-  // special variable name used for casting boolean variables to integers
+  // special variable name used for casting boolean variables into different formula types
   private static final String INT_BOOL_TO_INT = "int_bool_to_int";
+  private static final String INT_BOOL_TO_BITVECTOR = "int_bool_to_bitvector";
 
   private final Map<String, Formula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
@@ -750,9 +751,16 @@ public class CtoFormulaConverter {
       }
     }
     if (fromType.isBooleanType()) {
-      Formula intFormula = intBoolToInt((BooleanFormula) formula, cType, ssa, constraints);
+      Formula intFormula = intBoolToInt((BooleanFormula) formula, cTypeNoPointer, ssa, constraints);
       if (toType.isIntegerType()) {
         return intFormula;
+      } else if (toType.isBitvectorType()) {
+        return intBoolToBitvector(
+            toType,
+            (BooleanFormula) formula,
+            cTypeNoPointer,
+            ssa,
+            constraints);
       } else {
         return makeFormulaTypeCast(toType, cType, intFormula, ssa, constraints, edge);
       }
@@ -762,7 +770,7 @@ public class CtoFormulaConverter {
 
   /**
    * Replaces a Boolean Formula with an Integer Formula. This resulting Formula contains a variable,
-   * that can either be 0, or everything, but 0.
+   * that can either be 0, or anything, but 0.
    *
    * @return IntegerFormula containing a placeholder variable.
    */
@@ -776,6 +784,30 @@ public class CtoFormulaConverter {
     constraints.addConstraint(constraint);
 
     return placeh;
+  }
+
+  /**
+   * Replaces a Boolean Formula with a Bitvector Formula. This resulting Formula contains a
+   * variable, that can either be 0, or anything, but 0.
+   *
+   * @return BitvectorFormula containing a placeholder variable.
+   */
+  private BitvectorFormula intBoolToBitvector(
+      FormulaType<?> bitvType,
+      BooleanFormula formula,
+      CType type,
+      SSAMapBuilder ssa,
+      Constraints constraints) {
+    assert (bitvType instanceof BitvectorType);
+    this.makeFreshIndex(INT_BOOL_TO_BITVECTOR, type, ssa);
+    Formula placeh = this.makeVariable(INT_BOOL_TO_BITVECTOR, type, ssa);
+    assert (placeh instanceof BitvectorFormula);
+    BitvectorFormula zero = efmgr.makeBitvector((BitvectorType) bitvType, 0);
+    BooleanFormula rhs = bfmgr.not(efmgr.equal((BitvectorFormula) placeh, zero));
+    BooleanFormula constraint = bfmgr.equivalence(formula, rhs);
+    constraints.addConstraint(constraint);
+
+    return (BitvectorFormula) placeh;
   }
 
   /** Replace the formula with a matching ITE-structure
