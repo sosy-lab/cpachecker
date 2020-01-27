@@ -368,6 +368,8 @@ public class CtoFormulaConverter {
       if (options.ignoreOverflowsInVarClass()) {
         return FormulaType.IntegerType;
       }
+    } else if (type instanceof CPointerType) {
+      return FormulaType.IntegerType;
     }
     return getFormulaTypeFromCType(type);
   }
