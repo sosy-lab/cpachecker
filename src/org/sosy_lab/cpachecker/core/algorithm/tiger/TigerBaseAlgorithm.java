@@ -84,7 +84,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     TIMEDOUT
   }
 
-  String originalMainFunction = null;
+  String originalMainFunction = "main";
   protected TigerAlgorithmConfiguration tigerConfig;
   protected InputOutputValues values;
   protected LogManager logger;
@@ -127,7 +127,6 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
       }
     }
 
-    assert originalMainFunction != null;
     config = pConfig;
 
     logger.logf(Level.INFO, "FQL query string: %s", tigerConfig.getFqlQuery());
