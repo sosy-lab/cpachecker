@@ -13,6 +13,6 @@ STATE USEFIRST Init :
   MATCH {abort($?)} || MATCH {exit($?)} || MATCH {__assert_fail($?)} -> STOP;
 
   // property MemCleanup depends on reachable heap-object at program exit
-  (MATCH EXIT || MATCH {__VERIFIER_error($?)} || MATCH {reach_error($?)}) && CHECK(SMGCPA, "has-heap-objects") -> ERROR("valid-memcleanup");
+  (MATCH EXIT || MATCH {__VERIFIER_error($?)} && CHECK(SMGCPA, "has-heap-objects") -> ERROR("valid-memcleanup");
 
 END AUTOMATON
