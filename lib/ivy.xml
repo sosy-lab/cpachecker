@@ -47,6 +47,7 @@
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
         <dependency org="net.sf.javabdd" name="javabdd" rev="1.0b2-sosy0" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.bitbucket.vahidi" name="jdd" rev="108" conf="runtime->master; contrib->sources"/>
 
         <!-- International Components for Unicode
              Needed by Eclipse CDT parser for error messages. -->
