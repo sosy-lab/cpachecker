@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -275,7 +276,7 @@ public class CustomInstructionApplications {
       try (Writer out =
           IO.openOutputFile(appliedCustomInstructionsDefinition, Charset.defaultCharset())) {
         for(CFANode node: cfa.getAllNodes()) {
-          if (node != ci.getStartNode() && pParser.isAppliedCI(ci, node)) {
+          if (!Objects.equals(node, ci.getStartNode()) && pParser.isAppliedCI(ci, node)) {
             shutdownNotifier.shutdownIfNecessary();
             out.append(node.getNodeNumber() + "\n");
           }

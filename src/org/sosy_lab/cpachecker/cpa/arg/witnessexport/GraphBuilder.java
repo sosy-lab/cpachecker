@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
@@ -153,7 +154,7 @@ enum GraphBuilder {
               AssumeEdge siblingEdge = CFAUtils.getComplimentaryAssumeEdge(assumeEdge);
               boolean addArtificialSinkEdge = true;
               for (ARGState sibling : s.getChildren()) {
-                if (sibling != child
+                if (!Objects.equals(sibling, child)
                     && siblingEdge.equals(s.getEdgeToChild(sibling))
                     && pIsRelevantEdge.test(s, sibling)) {
                   addArtificialSinkEdge = false;

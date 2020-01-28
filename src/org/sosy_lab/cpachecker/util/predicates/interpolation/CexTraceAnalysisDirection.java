@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Random;
 import java.util.Set;
@@ -460,7 +461,7 @@ enum CexTraceAnalysisDirection {
       argState = argState.getParents().iterator().next();
 
       // the function does not return to the wanted function we can skip the search here
-      if (argState == lastState.getParents().iterator().next()) {
+      if (Objects.equals(argState, lastState.getParents().iterator().next())) {
         return null;
       }
 

@@ -38,6 +38,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -505,7 +506,7 @@ public interface PointerTargetSetBuilder {
                 break;
               }
             }
-          } while (current != currentChain.get(currentChain.size() - 1));
+          } while (!Objects.equals(current, currentChain.get(currentChain.size() - 1)));
 
           boolean useful = false;
           for (int i = currentChain.size() - 1; i >= 0; i--) {

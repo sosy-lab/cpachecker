@@ -36,6 +36,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -156,12 +157,13 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
 
     // last iteration, most inner block for refinement
     // This heuristics works best on test_locks-examples, otherwise they have exponential blowup.
-    if (doPrecisionRefinementForMostInnerBlock && currentCutState == lastRelevantNode) {
+    if (doPrecisionRefinementForMostInnerBlock
+        && Objects.equals(currentCutState, lastRelevantNode)) {
       return true;
     }
 
     // this is the important case: lazy refinement expects a new precision at this place.
-    if (currentCutState == cutState) {
+    if (Objects.equals(currentCutState, cutState)) {
       return true;
     }
 
