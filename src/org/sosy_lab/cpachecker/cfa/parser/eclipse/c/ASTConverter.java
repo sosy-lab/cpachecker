@@ -536,8 +536,15 @@ class ASTConverter {
   }
 
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
-    CIdExpression tmp = createTemporaryVariable(e);
+    CIdExpression tmp = null;
+    IASTStatement[] statements = e.getCompoundStatement().getStatements();
+    
+    if(statements.length > 0 && statements[statements.length-1] instanceof IASTExpressionStatement) {
+      tmp = createTemporaryVariable(e);
+    }
+
     sideAssignmentStack.addConditionalExpression(e, tmp);
+    
     return tmp;
   }
 
