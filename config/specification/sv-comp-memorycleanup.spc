@@ -7,12 +7,15 @@ CONTROL AUTOMATON SMGCPAMEMTRACK
 
 INITIAL STATE Init;
 
-STATE USEFIRST Init :
+STATE USEFIRST Init:
+  // Property MemCleanup depends on reachable heap-object at program exit.
+  (MATCH EXIT || MATCH {__VERIFIER_error($?)} || MATCH {abort($?)} || MATCH {exit($?)} || MATCH {__assert_fail($?)})
+      && CHECK(SMGCPA, "has-heap-objects") -> ERROR("valid-memcleanup");
 
-  // taken from 'sv-comp-terminatingfunctions.spc' without stopping at '__VERIFIER_error()'
-  MATCH {abort($?)} || MATCH {exit($?)} || MATCH {__assert_fail($?)} -> STOP;
+  // taken from sv-comp-terminatingfunctions.spc
+  MATCH {__VERIFIER_error($?)} || MATCH {abort($?)} || MATCH {exit($?)} || MATCH {__assert_fail($?)} -> STOP;
 
-  // property MemCleanup depends on reachable heap-object at program exit
-  (MATCH EXIT || MATCH {__VERIFIER_error($?)}) && CHECK(SMGCPA, "has-heap-objects") -> ERROR("valid-memcleanup");
+  // If we find a leak before, we can immediately report a counterexample
+  CHECK(SMGCPA, "has-leaks") -> ERROR("valid-memcleanup");
 
 END AUTOMATON
