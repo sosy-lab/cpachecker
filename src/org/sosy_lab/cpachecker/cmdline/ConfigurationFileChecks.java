@@ -339,72 +339,48 @@ public class ConfigurationFileChecks {
   @BeforeClass
   public static void createDummyInputFiles() throws IOException {
     // Create files that some analyses expect as input files.
-    try (Reader r =
-            Files.newBufferedReader(Paths.get("test/config/automata/AssumptionAutomaton.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get("output/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
+    copyFile("test/config/automata/AssumptionAutomaton.spc", "output/AssumptionAutomaton.txt");
   }
 
   @Before
   public void createDummyInputAutomatonFiles() throws IOException {
     // Create files that some analyses expect as input files.
 
-    try (Reader r =
-            Files.newBufferedReader(Paths.get("config/specification/AssumptionGuidingAutomaton.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(tempFolder.newFolder("config").getAbsolutePath()+"/specification/AssumptionGuidingAutomaton.spc"), StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r =
-        Files.newBufferedReader(Paths.get("test/config/automata/AssumptionAutomaton.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(tempFolder.newFolder("output").getAbsolutePath()+"/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r =
-            Files.newBufferedReader(Paths.get("config/specification/modifications-present.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/modifications-present.spc"),
-                StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r =
-            Files.newBufferedReader(Paths.get("config/specification/sv-comp-reachability.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/sv-comp-reachability.spc"),
-                StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r = Files.newBufferedReader(Paths.get("config/specification/TargetState.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/TargetState.spc"),
-                StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
+    copyFile(
+        "config/specification/AssumptionGuidingAutomaton.spc",
+        tempFolder.newFolder("config").getAbsolutePath(),
+        "specification/AssumptionGuidingAutomaton.spc");
+    copyFile(
+        "test/config/automata/AssumptionAutomaton.spc",
+        tempFolder.newFolder("output").getAbsolutePath(),
+        "AssumptionAutomaton.txt");
+    copyFile(
+        "config/specification/modifications-present.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/modifications-present.spc");
+    copyFile(
+        "config/specification/sv-comp-reachability.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/sv-comp-reachability.spc");
+    copyFile(
+        "config/specification/TargetState.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/TargetState.spc");
+    copyFile(
+        "config/specification/test-comp-terminatingfunctions.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/test-comp-terminatingfunctions.spc");
+  }
 
-    try (Reader r =
-            Files.newBufferedReader(
-                Paths.get("config/specification/test-comp-terminatingfunctions.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/test-comp-terminatingfunctions.spc"),
-                StandardCharsets.UTF_8)) {
+  /**
+   * @param from name of the input file
+   * @param to name of the output file
+   * @param toMore optional further names for the output file, will be concatenated to the name of
+   *     the output file.
+   */
+  private static void copyFile(String from, String to, String... toMore) throws IOException {
+    try (Reader r = Files.newBufferedReader(Paths.get(from));
+        Writer w = IO.openOutputFile(Paths.get(to, toMore), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
   }
