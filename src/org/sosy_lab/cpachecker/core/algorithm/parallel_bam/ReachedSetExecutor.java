@@ -43,12 +43,9 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -106,7 +103,7 @@ class ReachedSetExecutor {
   private final AlgorithmFactory algorithmFactory;
   private final ShutdownNotifier shutdownNotifier;
   private final ParallelBAMStatistics stats;
-  private final AtomicReference<Throwable> error;
+  private final List<Throwable> errors;
   private final AtomicBoolean terminateAnalysis;
   private final LogManager logger;
 
@@ -144,7 +141,7 @@ class ReachedSetExecutor {
       AlgorithmFactory pAlgorithmFactory,
       ShutdownNotifier pShutdownNotifier,
       ParallelBAMStatistics pStats,
-      AtomicReference<Throwable> pError,
+      List<Throwable> pErrors,
       AtomicBoolean pTerminateAnalysis,
       LogManager pLogger) {
     bamcpa = pBamCpa;
@@ -156,7 +153,7 @@ class ReachedSetExecutor {
     algorithmFactory = pAlgorithmFactory;
     shutdownNotifier = pShutdownNotifier;
     stats = pStats;
-    error = pError;
+    errors = pErrors;
     terminateAnalysis = pTerminateAnalysis;
     logger = pLogger;
 
@@ -263,7 +260,7 @@ class ReachedSetExecutor {
     } catch (Throwable e) { // catch everything to avoid deadlocks after a problem.
       logger.logException(level, e, e.getClass().getName());
       terminateAnalysis.set(true);
-      error.set(e);
+      errors.add(e);
       pool.shutdownNow();
     } finally {
       stats.numActiveThreads.decrementAndGet();
@@ -517,7 +514,7 @@ class ReachedSetExecutor {
             algorithmFactory,
             shutdownNotifier,
             stats,
-            error,
+            errors,
             terminateAnalysis,
             logger);
 
@@ -573,15 +570,13 @@ class ReachedSetExecutor {
 
     @Override
     public Void apply(Throwable e) {
-      if (e instanceof RejectedExecutionException || e instanceof CompletionException) {
-        // pool will shutdown on forced termination after timeout and throw lots of them.
-        // we can ignore those exceptions.
-        logger.logException(level, e, e.getClass().getSimpleName());
-      } else {
-        logger.logException(Level.WARNING, e, e.getClass().getSimpleName());
-        error.compareAndSet(null, e);
-        rse.terminateAnalysis.set(true);
-      }
+      // if (e instanceof RejectedExecutionException || e instanceof CompletionException) {
+      // pool will shutdown on forced termination after timeout and throw lots of them.
+      // we could ignore those exceptions.
+      // }
+
+      errors.add(e);
+      rse.terminateAnalysis.set(true);
 
       return null;
     }

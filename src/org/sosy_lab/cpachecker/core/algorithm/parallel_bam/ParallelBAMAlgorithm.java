@@ -29,7 +29,10 @@ import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,10 +45,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAccumulator;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -67,6 +70,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.bam.BAMReachedSetValidator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CompoundException;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -130,7 +134,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     final int numberOfCores = getNumberOfCores();
     oneTimeLogger.logfOnce(Level.INFO, "creating pool for %d threads", numberOfCores);
     final ExecutorService pool = Executors.newFixedThreadPool(numberOfCores);
-    final AtomicReference<Throwable> error = new AtomicReference<>(null);
+    final List<Throwable> errors = Collections.synchronizedList(new ArrayList<>());
     final AtomicBoolean terminateAnalysis = new AtomicBoolean(false);
 
     {
@@ -150,7 +154,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
             algorithmFactory,
             shutdownNotifier,
             stats,
-            error,
+            errors,
             terminateAnalysis,
             logger);
     reachedSetMapping.put(mainReachedSet, rse); // backwards reference
@@ -160,24 +164,40 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
     boolean isSound = true;
     try {
-      // TODO set timelimit to global limit minus overhead?
+      // TODO Shutown hook seems to never be called
+      // ShutdownRequestListener hook = new ShutdownRequestListener() {
+      // @Override
+      // public void shutdownRequested(String pReason) {pool.shutdownNow();}};
+      // shutdownNotifier.register(hook);
       pool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 
     } finally {
-      if (!pool.isTerminated()) {
+      int maxAssassinations = 5;
+      for (int i = 0; i < maxAssassinations && !pool.isTerminated(); i++) {
         // in case of problems we must kill the thread pool,
         // otherwise we have a running daemon thread and CPAchecker does not terminate.
         try {
-          logger.log(Level.WARNING, "threadpool did not terminate, killing threadpool now.");
+          logger.logf(
+              Level.INFO,
+              "threadpool did not terminate, killing threadpool now (try %d of %d).",
+              i + 1,
+              maxAssassinations);
           logger.log(Level.ALL, "remaining dependencies:\n", rse.getDependenciesAsDot());
+          pool.shutdown();
+          pool.awaitTermination(100, TimeUnit.MILLISECONDS);
         } finally {
           pool.shutdownNow();
         }
         isSound = false;
       }
+      if (!pool.isTerminated()) {
+        logger.log(
+            Level.WARNING,
+            "threadpool is not yet dead, some thread is alive and we cannot interupt it.");
+      }
     }
 
-    collectExceptions(reachedSetMapping, error, mainReachedSet);
+    collectExceptions(reachedSetMapping, errors, mainReachedSet);
 
     //    assert targetStateFound
     //        || (dependencyGraph.dependsOn.isEmpty()
@@ -212,9 +232,9 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
    */
   private void collectExceptions(
       Map<ReachedSet, ReachedSetExecutor> pReachedSetMapping,
-      AtomicReference<Throwable> error,
+      List<Throwable> errors,
       final ReachedSet mainReachedSet)
-      throws CPAException {
+      throws CPAException, InterruptedException {
 
     final AtomicBoolean mainRScontainsTarget = new AtomicBoolean(false);
     final AtomicBoolean otherRScontainsTarget = new AtomicBoolean(false);
@@ -240,21 +260,33 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
                 }
 
               } catch (RejectedExecutionException | ExecutionException e) {
-                logger.logException(Level.SEVERE, e, e.getMessage());
-                error.compareAndSet(null, e);
+                errors.add(e);
               } catch (InterruptedException | TimeoutException e) {
-                error.compareAndSet(null, e);
+                errors.add(e);
               }
               logger.log(Level.ALL, "finishing", rse, job.isCompletedExceptionally());
             });
 
-    Throwable toThrow = error.get();
-    if (toThrow != null) {
-      // just re-throw plain errors, this results in better stack traces
-      if (toThrow instanceof RuntimeException || toThrow instanceof Error) {
-        throw new RuntimeException(toThrow.getMessage(), toThrow);
+    if (!errors.isEmpty()) {
+      logger.log(Level.ALL, "The following errors appeared in the analysis:", errors);
+      List<CPAException> cpaExceptions = new ArrayList<>();
+      for (Throwable error : errors) {
+        if (error instanceof Error) { // something serious
+          throw (Error) error;
+        } else if (error instanceof RuntimeException) { // something serious
+          throw (RuntimeException) error;
+        } else if (error instanceof InterruptedException) {
+          throw (InterruptedException) error;
+        } else if (error instanceof CPAException) {
+          cpaExceptions.add((CPAException) error);
+        } else {
+          throw new UnexpectedCheckedException("ParallelBAM", error);
+        }
+      }
+      if (cpaExceptions.size() == 1) {
+        throw cpaExceptions.get(0);
       } else {
-        throw new CPAException(toThrow.getMessage(), toThrow);
+        throw new CompoundException(cpaExceptions);
       }
     }
 
