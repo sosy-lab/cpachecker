@@ -313,15 +313,31 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     final CType elementType = typeHandler.getSimplifiedType(e);
     final CExpression subscript = e.getSubscriptExpression();
     final CType subscriptType = typeHandler.getSimplifiedType(subscript);
-    final Formula index = conv.makeCast(subscriptType,
-                                        CPointerType.POINTER_TO_VOID,
-                                        asValueFormula(subscript.accept(this), subscriptType),
-                                        constraints,
-                                        edge);
+    final Formula index =
+        conv.makeFormulaTypeCast(
+            typeHandler.getPointerType(),
+            CPointerType.POINTER_TO_VOID,
+            conv.makeCast(
+                subscriptType,
+                CPointerType.POINTER_TO_VOID,
+                asValueFormula(subscript.accept(this), subscriptType),
+                constraints,
+                edge),
+            ssa,
+            constraints,
+            edge);
 
     final Formula coeff =
         conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
-    final Formula baseAddress = base.asAliasedLocation().getAddress();
+    final Formula baseAddress =
+          conv.makeFormulaTypeCast(
+            typeHandler.getPointerType(),
+              elementType,
+              base.asAliasedLocation().getAddress(),
+              ssa,
+              constraints,
+              edge);
+
     final Formula address = conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, index));
     addEqualBaseAddressConstraint(baseAddress, address);
     return AliasedLocation.ofAddress(address);

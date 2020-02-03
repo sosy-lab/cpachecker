@@ -278,8 +278,8 @@ public interface PointerTargetSetBuilder {
 
       final FormulaType<?> pointerType = typeHandler.getPointerType();
       final Formula newBaseFormula =
-          formulaManager.makeVariableWithoutSSAIndex(
-              pointerType, PointerTargetSet.getBaseName(newBase));
+          formulaManager
+              .makeVariableWithoutSSAIndex(pointerType, PointerTargetSet.getBaseName(newBase));
 
       // Create constraints for the new base address and store them
       if (highestAllocatedAddresses.isEmpty()) {
@@ -334,8 +334,8 @@ public interface PointerTargetSetBuilder {
     }
 
     private BooleanFormula makeGreaterZero(Formula f) {
-      return formulaManager.makeGreaterThan(
-          f, formulaManager.makeNumber(typeHandler.getPointerType(), 0L), true);
+      return formulaManager
+          .makeGreaterThan(f, formulaManager.makeNumber(typeHandler.getPointerType(), 0L), true);
     }
 
     /**

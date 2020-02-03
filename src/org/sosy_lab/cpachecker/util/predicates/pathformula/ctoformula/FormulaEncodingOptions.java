@@ -116,12 +116,17 @@ public class FormulaEncodingOptions {
 
   @Option(
     secure = true,
-    description = "Use Variable Classification to simplify formulas when possible.")
+    description = "Use Variable Classification to simplify formulas, if possible.")
   private boolean useVariableClassification = true;
 
   @Option(
     secure = true,
-    description = "Ignore possible Overflows for Integer Variables classified as IntAdd. "
+    description = "Use the Integer formula type as default for pointers. This option is only enabled, when using variable classification as well.")
+  private boolean useIntegerAsPointerType = true;
+
+  @Option(
+    secure = true,
+    description = "Ignore possible Overflows for Integer variables classified as IntAdd. "
         + "This option is only relevant, if Variable Classification is used.")
   private boolean ignoreOverflowsInVarClass = true;
 
@@ -192,6 +197,10 @@ public class FormulaEncodingOptions {
 
   public boolean useVariableClassification() {
     return useVariableClassification;
+  }
+
+  public boolean useIntegerAsPointerType() {
+    return useIntegerAsPointerType;
   }
 
   public boolean ignoreOverflowsInVarClass() {

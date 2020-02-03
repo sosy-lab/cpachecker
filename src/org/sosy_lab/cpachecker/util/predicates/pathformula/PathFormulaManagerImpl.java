@@ -186,7 +186,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
+      CtoFormulaTypeHandler typeHandler =
+          new CtoFormulaTypeHandler(pLogger, pMachineModel, options);
       converter =
           new CtoFormulaConverter(
               options,

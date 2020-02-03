@@ -73,7 +73,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
   public TypeHandlerWithPointerAliasing(LogManager pLogger, MachineModel pMachineModel,
                                         FormulaEncodingWithPointerAliasingOptions pOptions) {
-    super(pLogger, pMachineModel);
+    super(pLogger, pMachineModel, pOptions);
 
     model = pMachineModel;
     options = pOptions;

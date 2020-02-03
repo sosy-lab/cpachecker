@@ -40,13 +40,20 @@ public class CtoFormulaTypeHandler {
 
   private final FormulaType<?> pointerType;
 
-  public CtoFormulaTypeHandler(LogManager pLogger, MachineModel pMachineModel) {
+  public CtoFormulaTypeHandler(
+      LogManager pLogger,
+      MachineModel pMachineModel,
+      FormulaEncodingOptions options) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
 
     final int pointerSize = machineModel.getSizeofPtr();
     final int bitsPerByte = machineModel.getSizeofCharInBits();
-    pointerType = FormulaType.getBitvectorTypeWithSize(pointerSize * bitsPerByte);
+    if (options.useVariableClassification() && options.useIntegerAsPointerType()) {
+      pointerType = FormulaType.IntegerType;
+    } else {
+      pointerType = FormulaType.getBitvectorTypeWithSize(pointerSize * bitsPerByte);
+    }
   }
 
   /**

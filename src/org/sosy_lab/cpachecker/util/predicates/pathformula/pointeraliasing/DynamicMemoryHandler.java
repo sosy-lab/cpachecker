@@ -311,7 +311,9 @@ class DynamicMemoryHandler {
       address = conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID);
       constraints.addConstraint(
           conv.fmgr.makeGreaterThan(
-              address, conv.fmgr.makeNumber(typeHandler.getPointerType(), 0L), true));
+              address,
+              conv.fmgr.makeNumber(typeHandler.getPointerType(), 0L),
+              true));
     }
 
     if (errorConditions.isEnabled()) {

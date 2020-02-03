@@ -369,7 +369,7 @@ public class CtoFormulaConverter {
         return FormulaType.IntegerType;
       }
     } else if (type instanceof CPointerType) {
-      return FormulaType.IntegerType;
+      return typeHandler.getPointerType();
     }
     return getFormulaTypeFromCType(type);
   }
