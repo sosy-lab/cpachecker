@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.parallel_bam;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
@@ -270,19 +271,21 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     if (!errors.isEmpty()) {
       logger.log(Level.ALL, "The following errors appeared in the analysis:", errors);
       List<CPAException> cpaExceptions = new ArrayList<>();
-      for (Throwable error : errors) {
-        if (error instanceof Error) { // something serious
-          throw (Error) error;
-        } else if (error instanceof RuntimeException) { // something serious
-          throw (RuntimeException) error;
-        } else if (error instanceof InterruptedException) {
-          throw (InterruptedException) error;
-        } else if (error instanceof CPAException) {
-          cpaExceptions.add((CPAException) error);
+      for (Throwable toThrow : errors) {
+        if (toThrow instanceof Error) { // something very serious
+          addSuppressedAndThrow((Error) toThrow, errors);
+        } else if (toThrow instanceof RuntimeException) { // something less serious
+          addSuppressedAndThrow((RuntimeException) toThrow, errors);
+        } else if (toThrow instanceof InterruptedException) {
+          addSuppressedAndThrow((InterruptedException) toThrow, errors);
+        } else if (toThrow instanceof CPAException) {
+          cpaExceptions.add((CPAException) toThrow);
         } else {
-          throw new UnexpectedCheckedException("ParallelBAM", error);
+          // here, we add one suppressed too much, but that should be irrelevant
+          addSuppressedAndThrow(new UnexpectedCheckedException("ParallelBAM", toThrow), errors);
         }
       }
+      // if there was no other type of exception, we can throw the CPAException directly.
       if (cpaExceptions.size() == 1) {
         throw cpaExceptions.get(0);
       } else {
@@ -297,6 +300,18 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
             + "), we exspect a target in the main-reached-set ("
             + mainRScontainsTarget.get()
             + ")");
+  }
+
+  /**
+   * This method adds all other exceptions as suppressed exceptions to the given throwable element
+   * and throws it.
+   */
+  private <T extends Throwable> void addSuppressedAndThrow(T toThrow, List<Throwable> errors)
+      throws T {
+    for (Throwable otherErrors : Iterables.filter(errors, e -> e != toThrow)) {
+      toThrow.addSuppressed(otherErrors);
+    }
+    throw toThrow;
   }
 
   @Override
