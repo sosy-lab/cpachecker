@@ -42,6 +42,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -134,7 +135,17 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
         new ConcurrentHashMap<>();
     final int numberOfCores = getNumberOfCores();
     oneTimeLogger.logfOnce(Level.INFO, "creating pool for %d threads", numberOfCores);
-    final ExecutorService pool = Executors.newFixedThreadPool(numberOfCores);
+
+    ThreadFactory threadFactory = new ThreadFactory() {
+      @Override
+      public Thread newThread(Runnable r) {
+        Thread t = new Thread(r);
+        t.setDaemon(true); // for killing hanging threads at program exit
+        t.setName("ParallelBAM thread");
+        return t;
+      }
+    };
+    final ExecutorService pool = Executors.newFixedThreadPool(numberOfCores, threadFactory);
     final List<Throwable> errors = Collections.synchronizedList(new ArrayList<>());
     final AtomicBoolean terminateAnalysis = new AtomicBoolean(false);
 
