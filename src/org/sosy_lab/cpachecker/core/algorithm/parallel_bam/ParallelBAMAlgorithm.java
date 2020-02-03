@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.parallel_bam;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
@@ -136,15 +137,11 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     final int numberOfCores = getNumberOfCores();
     oneTimeLogger.logfOnce(Level.INFO, "creating pool for %d threads", numberOfCores);
 
-    ThreadFactory threadFactory = new ThreadFactory() {
-      @Override
-      public Thread newThread(Runnable r) {
-        Thread t = new Thread(r);
-        t.setDaemon(true); // for killing hanging threads at program exit
-        t.setName("ParallelBAM thread");
-        return t;
-      }
-    };
+    ThreadFactory threadFactory =
+        new ThreadFactoryBuilder()
+            .setDaemon(true) // for killing hanging threads at program exit
+            .setNameFormat("ParallelBAM-thread-%d")
+            .build();
     final ExecutorService pool = Executors.newFixedThreadPool(numberOfCores, threadFactory);
     final List<Throwable> errors = Collections.synchronizedList(new ArrayList<>());
     final AtomicBoolean terminateAnalysis = new AtomicBoolean(false);
