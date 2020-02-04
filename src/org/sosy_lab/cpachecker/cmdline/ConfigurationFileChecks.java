@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.truth.StreamSubject.streams;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -55,6 +54,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -400,9 +400,9 @@ public class ConfigurationFileChecks {
     @SuppressWarnings("deprecation")
     final String spec = config.getProperty("specification");
     @SuppressWarnings("deprecation")
-    final String cpas = firstNonNull(config.getProperty("CompositeCPA.cpas"), "");
+    final String cpas = Objects.requireNonNullElse(config.getProperty("CompositeCPA.cpas"), "");
     @SuppressWarnings("deprecation")
-    final String cpaBelowArgCpa = firstNonNull(config.getProperty("ARGCPA.cpa"), "");
+    final String cpaBelowArgCpa = Objects.requireNonNullElse(config.getProperty("ARGCPA.cpa"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
     final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
@@ -631,6 +631,6 @@ public class ConfigurationFileChecks {
   private static boolean isOptionEnabled(Configuration config, String key) {
     @SuppressWarnings("deprecation")
     String value = config.getProperty(key);
-    return parseBoolean(firstNonNull(value, "false"));
+    return parseBoolean(Objects.requireNonNullElse(value, "false"));
   }
 }
