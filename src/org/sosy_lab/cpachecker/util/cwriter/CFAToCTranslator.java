@@ -359,8 +359,8 @@ public class CFAToCTranslator {
       case BlankEdge:
         {
           CFANode succ = pCFAEdge.getSuccessor();
-          if (succ instanceof CLabelNode) {
-            return getLabelCode(((CLabelNode) succ).getLabel());
+          if (succ instanceof CLabelNode && !discoveredElements.contains(succ)) {
+              return getLabelCode(((CLabelNode) succ).getLabel());
           } else {
             // nothing to do
             break;
