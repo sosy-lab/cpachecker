@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc.pdr;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterators;
 import java.util.Iterator;
@@ -56,18 +58,14 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
       int pLength) {
     blockedAbstractCti = Objects.requireNonNull(pAbstractBlockingClause);
     blockedConcreteCti = Objects.requireNonNull(pConcreteBlockingClause);
-    if (pFrameIndex < 0) {
-      throw new IllegalArgumentException("Frame index must not be negative, but is " + pFrameIndex);
-    }
+    checkArgument(pFrameIndex >= 0, "Frame index must not be negative, but is %s", pFrameIndex);
     frameIndex = pFrameIndex;
-    if (pNSpuriousTransitions < 0) {
-      throw new IllegalArgumentException(
-          "Number of spurious transitions must not be negative, but is " + pNSpuriousTransitions);
-    }
+    checkArgument(
+        pNSpuriousTransitions >= 0,
+        "Number of spurious transitions must not be negative, but is %s",
+        pNSpuriousTransitions);
     nSpuriousTransitions = pNSpuriousTransitions;
-    if (pLength < 1) {
-      throw new IllegalArgumentException("Length must be positive but is " + pLength);
-    }
+    checkArgument(pLength >= 1, "Length must be positive but is %s", pLength);
     length = pLength;
   }
 

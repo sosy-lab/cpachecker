@@ -883,9 +883,7 @@ public class CtoFormulaConverter {
   }
 
   private void checkSimpleCastArgument(CType pType) {
-    if (!isSimple(pType)) {
-      throw new IllegalArgumentException("Cannot make a simple cast from or to " + pType);
-    }
+    checkArgument(isSimple(pType), "Cannot make a simple cast from or to %s", pType);
   }
 
   private boolean isSimple(CType pType) {

@@ -183,12 +183,14 @@ public final class SMGListAbstractionTestHelpers {
     checkArgument(
         pAddresses != null && pAddresses.length >= 1,
         "The provided array must not be null or empty.");
-    if (pCircularity != SMGListCircularity.OPEN && pCircularity != SMGListCircularity.CIRCULAR) {
-      throw new IllegalArgumentException("Unsupported list circularity: " + pCircularity);
-    }
-    if (pLinkage != SMGListLinkage.SINGLE_LINKED && pLinkage != SMGListLinkage.DOUBLY_LINKED) {
-      throw new IllegalArgumentException("Unsupported list linkage: " + pLinkage);
-    }
+    checkArgument(
+        pCircularity == SMGListCircularity.OPEN || pCircularity == SMGListCircularity.CIRCULAR,
+        "Unsupported list circularity: %s",
+        pCircularity);
+    checkArgument(
+        pLinkage == SMGListLinkage.SINGLE_LINKED || pLinkage == SMGListLinkage.DOUBLY_LINKED,
+        "Unsupported list linkage: %s",
+        pLinkage);
 
     // to prevent ambiguity, existing links must be deleted before the new linking
     deleteLinksOfObjects(pSmg, pAddresses, pNfo, pPfo);

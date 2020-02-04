@@ -285,9 +285,10 @@ public class AutomaticCPAFactory implements CPAFactory {
 
     // verify types of declared exceptions
     String exception = Classes.verifyDeclaredExceptions(constructor, InvalidConfigurationException.class, CPAException.class);
-    if (exception != null) {
-      throw new IllegalArgumentException("Constructor of options holder class declares illegal checked exception: " + exception);
-    }
+    checkArgument(
+        exception == null,
+        "Constructor of options holder class declares illegal checked exception: %s",
+        exception);
 
     return new AutomaticCPAFactoryWithOptions<>(type, injects, optionsClass, constructor);
   }

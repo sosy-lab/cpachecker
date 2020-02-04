@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.primitives.Longs;
@@ -199,9 +200,7 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
       final String variableName = FormulaManagerView.parseName(pIdentifierInformation).getFirst();
       final int idStart = variableName.indexOf("#");
 
-      if (idStart < 0) {
-        throw new IllegalArgumentException("Invalid encoding: " + pIdentifierInformation);
-      }
+      checkArgument(idStart >= 0, "Invalid encoding: %s", pIdentifierInformation);
 
       final String memLocName = variableName.substring(0, idStart);
       final String identifierIdOnly = variableName.substring(idStart + 1);
