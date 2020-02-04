@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.parallel_bam;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -301,13 +303,11 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    Preconditions.checkState(
+    checkState(
         mainRScontainsTarget.get() == otherRScontainsTarget.get(),
-        "when a target is found in a sub-analysis ("
-            + otherRScontainsTarget.get()
-            + "), we exspect a target in the main-reached-set ("
-            + mainRScontainsTarget.get()
-            + ")");
+        "when a target is found in a sub-analysis (%s), we expect a target in the main-reached-set (%s)",
+        otherRScontainsTarget.get(),
+        mainRScontainsTarget.get());
   }
 
   /**

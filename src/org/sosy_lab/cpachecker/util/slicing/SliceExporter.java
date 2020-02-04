@@ -448,7 +448,10 @@ public class SliceExporter {
         newFunctions.put(functionName, newEntryNode);
 
         if (isMainFunction) {
-          checkState(newMainEntryNode == null, "Trying to set entry node of main function, but one already exists: " + newMainEntryNode);
+          checkState(
+              newMainEntryNode == null,
+              "Trying to set entry node of main function, but one already exists: %s",
+              newMainEntryNode);
           newMainEntryNode = newEntryNode;
         }
       }

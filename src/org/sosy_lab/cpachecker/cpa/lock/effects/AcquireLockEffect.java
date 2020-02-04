@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock.effects;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Preconditions;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
-
 
 public class AcquireLockEffect extends LockEffect {
 
@@ -88,7 +89,7 @@ public class AcquireLockEffect extends LockEffect {
     AcquireLockEffect result;
     if (AcquireLockEffectMap.containsKey(id)) {
       result = AcquireLockEffectMap.get(id);
-      Preconditions.checkArgument(result.maxRecursiveCounter == counter, "Recursive counter differs for " + id);
+      checkArgument(result.maxRecursiveCounter == counter, "Recursive counter differs for %s", id);
     } else {
       if (stop) {
         result = new StopAcquireLockEffect(id, counter);

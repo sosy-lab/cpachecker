@@ -614,8 +614,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
      * through each node that is in the returned collection
      */
     private Set<CFANode> getPostDominators(final CFANode pNode) {
-      checkState(
-          postDominatorMap.containsKey(pNode), "Node " + pNode + " not in post-dominator map");
+      checkState(postDominatorMap.containsKey(pNode), "Node %s not in post-dominator map", pNode);
       return postDominatorMap.get(pNode);
     }
 

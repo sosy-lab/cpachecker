@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import java.io.Serializable;
@@ -154,12 +154,14 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision, Seria
         continue;
       }
 
-      Preconditions.checkArgument(
-              currentPrecision instanceof AdjustablePrecision,
-              "Precision " + currentPrecision + "does not support adjusting precision");
-      Preconditions.checkArgument(
-              adjustedPrecision instanceof AdjustablePrecision,
-              "Precision " + adjustedPrecision + "does not support adjusting precision");
+      checkArgument(
+          currentPrecision instanceof AdjustablePrecision,
+          "Precision %s does not support adjusting precision",
+          currentPrecision);
+      checkArgument(
+          adjustedPrecision instanceof AdjustablePrecision,
+          "Precision %s does not support adjusting precision",
+          adjustedPrecision);
 
       Precision newPrecision =
               adjustFunction.apply(
