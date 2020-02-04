@@ -332,7 +332,7 @@ public class CFAToCTranslator {
       childElement = nextEdge.getSuccessorNode();
     }
     if (!discoveredElements.contains(childElement)) {
-      if (childElement instanceof CFATerminationNode) {
+      if (childElement instanceof CFATerminationNode || childElement.getNumLeavingEdges() == 0) {
         currentBlock.addStatement(createSimpleStatement(childElement, "abort();"));
       }
       // this element was not already processed; find children of it
