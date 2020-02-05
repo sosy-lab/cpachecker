@@ -406,7 +406,7 @@ public class ValueAnalysisRefiner
     shutdownNotifier.shutdownIfNecessary();
     ARGState newRefinementRoot = coverageTreeRoot;
     while (successorRelation.get(newRefinementRoot).size() == 1
-        && !newRefinementRoot.equals(pRefinementRoot)) {
+        && !pRefinementRoot.equals(newRefinementRoot)) {
       newRefinementRoot = Iterables.getOnlyElement(successorRelation.get(newRefinementRoot));
     }
 
