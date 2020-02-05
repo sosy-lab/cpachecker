@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -359,7 +360,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** the whole program will terminate after this edge */
   private boolean isEndOfMainFunction(CFAEdge edge) {
-    return cfa.getMainFunction().getExitNode() == edge.getSuccessor();
+    return Objects.equals(cfa.getMainFunction().getExitNode(), edge.getSuccessor());
   }
 
   private ThreadingState exitThreads(ThreadingState tmp) {

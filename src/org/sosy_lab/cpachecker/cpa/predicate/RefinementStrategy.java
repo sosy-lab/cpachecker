@@ -29,6 +29,7 @@ import com.google.errorprone.annotations.ForOverride;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -199,7 +200,7 @@ public abstract class RefinementStrategy {
     }
 
     numberOfAffectedStates.setNextValue(changedElements.size());
-    if (infeasiblePartOfARG == pTargetState) {
+    if (Objects.equals(infeasiblePartOfARG, pTargetState)) {
       pathLengthToInfeasibility++;
     }
 

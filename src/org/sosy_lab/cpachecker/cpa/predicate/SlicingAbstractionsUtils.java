@@ -514,7 +514,7 @@ public class SlicingAbstractionsUtils {
       List<ARGState> intermediateStateList = entry.getValue();
       copyEdge(intermediateStateList, originalState, endState, forkedState, endState, pReached);
       // if we have a self-loop, we have to make a self-loop from forkedState->forkedState:
-      if (endState == originalState) {
+      if (endState.equals(originalState)) {
         copyEdge(intermediateStateList, originalState, endState,forkedState,forkedState, pReached);
       }
     }
@@ -539,7 +539,7 @@ public class SlicingAbstractionsUtils {
       } else {
         newEndState.addParent(newStartState);
       }
-      if (newEndState == newStartState) {
+      if (newEndState.equals(newStartState)) {
         // self loop already exists, no need to copy something
       }
     }

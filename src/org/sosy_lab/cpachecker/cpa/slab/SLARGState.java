@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -94,7 +95,7 @@ public class SLARGState extends ARGState
       EdgeSet edgeToCopy = pState2.parentsToEdgeSets.get(argParent);
       assert edgeToCopy != null;
       EdgeSet newEdge = new EdgeSet(edgeToCopy);
-      if (argParent != pState2) {
+      if (!Objects.equals(argParent, pState2)) {
         this.addParent((SLARGState) argParent, newEdge);
       } else {
         this.addParent(this, newEdge);
@@ -104,7 +105,7 @@ public class SLARGState extends ARGState
       EdgeSet edgeToCopy = pState2.getEdgeSetToChild(argChild);
       assert edgeToCopy != null;
       EdgeSet newEdge = new EdgeSet(edgeToCopy);
-      if (argChild != pState2) {
+      if (!Objects.equals(argChild, pState2)) {
         /* replaced this line by the line below. should be fine. TODO: remove this note if it is fine
         this.addChild((SLARGState) argChild, newEdge);*/
         ((SLARGState) argChild).addParent(this, newEdge);
@@ -204,13 +205,13 @@ public class SLARGState extends ARGState
   public void removeFromARG() {
     assert !this.isDestroyed() : "Don't use destroyed ARGState " + this;
     for (ARGState argParent : new ArrayList<>(getParents())) { // prevent concurrent modification
-      if (argParent != this) {
+      if (!Objects.equals(argParent, this)) {
         SLARGState parent = (SLARGState) argParent;
         removeParent(parent);
       }
     }
     for (ARGState argChild : new ArrayList<>(getChildren())) { // prevent concurrent modification
-      if (argChild != this) {
+      if (!Objects.equals(argChild, this)) {
         SLARGState child = (SLARGState) argChild;
         child.removeParent(this);
       }
@@ -248,7 +249,7 @@ public class SLARGState extends ARGState
     assert !replacement.isDestroyed() : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
     assert !replacement.isCovered() : "Cannot replace with covered element " + replacement;
-    assert !(this == replacement) : "Don't replace ARGState " + this + " with itself";
+    assert !this.equals(replacement) : "Don't replace ARGState " + this + " with itself";
 
     // copy children
     for (ARGState child : new ArrayList<>(getChildren())) {

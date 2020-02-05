@@ -47,6 +47,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
@@ -505,7 +506,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
       // if the current state is not the root, it is a child of a branch , however, the path should not start with the
       // child, but with the branching node (children are stored on the stack because this needs less book-keeping)
-      if (current != root) {
+      if (!Objects.equals(current, root)) {
         errorPathBuilder.add(predecessorRelation.get(current), predecessorRelation.get(current).getEdgeToChild(current));
       }
 

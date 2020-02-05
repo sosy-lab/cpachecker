@@ -34,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -118,7 +119,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
         CFANode beforeFunctionCall = ((CFunctionReturnEdge) edge).getSummaryEdge().getPredecessor();
         while (cfaIterator.hasPrevious()) {
           tmp = cfaIterator.previous();
-          if (tmp.getFirst().getPredecessor() == beforeFunctionCall) {
+          if (Objects.equals(tmp.getFirst().getPredecessor(), beforeFunctionCall)) {
             edge = tmp.getFirst();
             if(cfaIterator.hasPrevious()) {
               state = cfaIterator.previous().getSecond();
