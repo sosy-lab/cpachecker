@@ -179,6 +179,10 @@ public class ARGToCTranslator {
     public CompoundStatement getSurroundingBlock() {
       return outerBlock;
     }
+
+    public boolean isEmpty() {
+      return statements.isEmpty();
+    }
   }
 
   static class SimpleStatement extends Statement {
