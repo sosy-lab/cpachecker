@@ -125,6 +125,17 @@ public class ARGToCTranslator {
       }
       return gotoLabel;
     }
+
+    /**
+     * Creates a String representation of this object.
+     * Created strings may get really big, so use with care.
+     */
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      translateToCode(sb, 0);
+      return sb.toString();
+    }
   }
 
   private static class InlinedFunction extends CompoundStatement {
