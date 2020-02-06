@@ -183,6 +183,10 @@ public class ARGToCTranslator {
     public boolean isEmpty() {
       return statements.isEmpty();
     }
+
+    public Statement getLast() {
+      return statements.get(statements.size() - 1);
+    }
   }
 
   static class SimpleStatement extends Statement {
