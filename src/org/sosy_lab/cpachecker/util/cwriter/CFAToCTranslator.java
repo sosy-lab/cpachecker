@@ -319,7 +319,7 @@ public class CFAToCTranslator {
     CFAEdge edge = nextEdge.getCfaEdge();
     CompoundStatement currentBlock = nextEdge.getCurrentBlock();
 
-    processEdge(edge, currentBlock);
+    translateEdge(edge, currentBlock);
 
     //    if (childElement.getParents().size() > 1) {
     //      mergeElements.add(childElement);
@@ -343,14 +343,14 @@ public class CFAToCTranslator {
     }
   }
 
-  private void processEdge(CFAEdge edge, CompoundStatement currentBlock) throws CPAException {
-    String statement = processSimpleEdge(edge);
+  private void translateEdge(CFAEdge edge, CompoundStatement currentBlock) throws CPAException {
+    String statement = translateSimpleEdge(edge);
     if (!statement.isEmpty()) {
       currentBlock.addStatement(createSimpleStatement(edge.getPredecessor(), statement));
     }
   }
 
-  private String processSimpleEdge(CFAEdge pCFAEdge) throws CPAException {
+  private String translateSimpleEdge(CFAEdge pCFAEdge) throws CPAException {
     if (pCFAEdge == null) {
       return "";
     }
