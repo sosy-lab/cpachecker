@@ -105,20 +105,6 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
     return true;
   }
 
-  public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other) {
-    if (other.getValue().isZero()) {
-      return
-          getOffset() + getSizeInBits() <= other.getOffset() + other.getSizeInBits()
-            && getOffset() >= other.getOffset()
-            && object == other.object;
-    } else {
-      return
-          getSizeInBits() == other.getSizeInBits()
-              && getOffset() == other.getOffset()
-              && object == other.object;
-    }
-  }
-
   @Override
   public int hashCode() {
     return 31 * super.hashCode() + sizeInBits.hashCode();
@@ -147,7 +133,6 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
     if (result != 0) {
       return result;
     }
-    // FIXME: require some comparison of types
     return sizeInBits.compareTo(o.sizeInBits);
   }
 }

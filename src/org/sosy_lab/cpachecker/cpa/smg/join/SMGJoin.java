@@ -43,9 +43,6 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
  * information.
  */
 public final class SMGJoin {
-  static public void performChecks(boolean pOn) {
-    SMGJoinSubSMGs.performChecks(pOn);
-  }
 
   private boolean defined = false;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;

@@ -643,7 +643,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         new SMGRegion(pListSeg.getSize(), "concrete sll segment ID " + SMGCPA.getNewValue(), 0);
     heap.addHeapObject(newConcreteRegion);
 
-    Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo());
+    Set<SMGEdgeHasValue> restriction = ImmutableSet.of(
+        new SMGEdgeHasValue(sizeOfVoidPointerInBits, pListSeg.getNfo(),
+            pListSeg, SMGZeroValue.INSTANCE));
 
     copyRestrictedSubSmgToObject(pListSeg, newConcreteRegion, restriction);
 
@@ -736,7 +738,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         new SMGRegion(pListSeg.getSize(), "concrete dll segment ID " + SMGCPA.getNewValue(), 0);
     heap.addHeapObject(newConcreteRegion);
 
-    Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
+    Set<SMGEdgeHasValue> restriction = ImmutableSet.of(
+        new SMGEdgeHasValue(sizeOfVoidPointerInBits, pListSeg.getNfo(),
+        pListSeg, SMGZeroValue.INSTANCE),
+        new SMGEdgeHasValue(sizeOfVoidPointerInBits, pListSeg.getPfo(),
+            pListSeg, SMGZeroValue.INSTANCE));
 
     copyRestrictedSubSmgToObject(pListSeg, newConcreteRegion, restriction);
 
@@ -769,6 +775,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         readValue(pListSeg, offsetPointingToRegion, sizeOfVoidPointerInBits).getObject();
     if (oldDllFieldsToOldRegion.size() != 0) {
       SMGEdgeHasValue oldDllFieldToOldRegion = Iterables.getOnlyElement(oldDllFieldsToOldRegion);
+
+      // Work around with nullified memory block
+      if (oldDllFieldToOldRegion.getValue().isZero()) {
+        oldDllFieldToOldRegion = new SMGEdgeHasValue(sizeOfVoidPointerInBits,
+            oldDllFieldToOldRegion.getOffset(), oldDllFieldToOldRegion.getObject(), oldDllFieldToOldRegion.getValue());
+      }
       heap.removeHasValueEdge(oldDllFieldToOldRegion);
     }
 
@@ -841,7 +853,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   private void copyRestrictedSubSmgToObject(SMGObject pRoot, SMGRegion pNewRegion,
-      Set<Long> pRestriction) {
+      Set<SMGEdgeHasValue> pRestrictions) {
 
     Set<SMGObject> toBeChecked = new HashSet<>();
     Map<SMGObject, SMGObject> newObjectMap = new HashMap<>();
@@ -850,7 +862,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     newObjectMap.put(pRoot, pNewRegion);
 
     for (SMGEdgeHasValue hve : heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pRoot))) {
-      if (!pRestriction.contains(hve.getOffset())) {
+      boolean restricted = false;
+      for (SMGEdgeHasValue restriction : pRestrictions) {
+        if (restriction.overlapsWith(hve)) {
+          restricted = true;
+        }
+      }
+      if (!restricted) {
 
         SMGValue subDlsValue = hve.getValue();
         SMGValue newVal = subDlsValue;
@@ -900,15 +918,36 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         heap.addHasValueEdge(
             new SMGEdgeHasValue(hve.getSizeInBits(), hve.getOffset(), pNewRegion, newVal));
       } else {
-        MachineModel model = heap.getMachineModel();
-        long sizeOfHveInBits = hve.getSizeInBits();
         /*If a restricted field is 0, and bigger than a pointer, add 0*/
-        if (sizeOfHveInBits > model.getSizeofPtrInBits() && hve.getValue().isZero()) {
-          long offset = hve.getOffset() + model.getSizeofPtrInBits();
-          long sizeInBits = sizeOfHveInBits - model.getSizeofPtrInBits();
-          SMGEdgeHasValue expandedZeroEdge =
-              new SMGEdgeHasValue(sizeInBits, offset, pNewRegion, SMGZeroValue.INSTANCE);
-          heap.addHasValueEdge(expandedZeroEdge);
+        if (hve.getValue().isZero()) {
+          Map<Long, Long> newEdges = new HashMap<>();
+          newEdges.put(hve.getOffset(), hve.getSizeInBits());
+          for (SMGEdgeHasValue restriction : pRestrictions) {
+            for (Entry<Long, Long> newEdge : newEdges.entrySet()) {
+              Map<Long, Long> recalcEdges = new HashMap<>();
+              Long offset = newEdge.getKey();
+              Long sizeInBits = newEdge.getValue();
+              if (restriction.overlapsWith(offset, sizeInBits)) {
+                if (offset < restriction.getOffset()) {
+                  recalcEdges.put(offset, restriction.getOffset() - offset);
+                }
+                long endOffset = offset + sizeInBits;
+                long restrictionEndOffset = restriction.getOffset() + restriction.getSizeInBits();
+                if (endOffset > restrictionEndOffset) {
+                  recalcEdges.put(restrictionEndOffset,
+                      endOffset - restrictionEndOffset);
+                }
+              } else {
+                recalcEdges.put(offset, sizeInBits);
+              }
+              newEdges = recalcEdges;
+            }
+          }
+          for (Entry<Long, Long> newEdge : newEdges.entrySet()) {
+            SMGEdgeHasValue expandedZeroEdge =
+                new SMGEdgeHasValue(newEdge.getValue(), newEdge.getKey(), pNewRegion, SMGZeroValue.INSTANCE);
+            heap.addHasValueEdge(expandedZeroEdge);
+          }
         }
       }
     }
