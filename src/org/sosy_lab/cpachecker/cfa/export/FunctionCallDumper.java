@@ -27,12 +27,14 @@ import static org.sosy_lab.cpachecker.cfa.export.DOTBuilder.escapeGraphvizLabel;
 import static org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner.SEPARATOR;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_START;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -100,13 +102,8 @@ public class FunctionCallDumper {
         final String caller = escape(escapedNames, callerFunctionName);
         final String callee = escape(escapedNames, calleeFunctionName);
         if (writtenNames.add(calleeFunctionName)) {
-          final String label = escapeGraphvizLabel(calleeFunctionName, " ");
-          // different format for call to external function
-          final String format =
-              functionNames.contains(calleeFunctionName) ? "" : "shape=\"box\", color=grey";
-          pAppender.append(String.format("%s [label=\"%s\", %s];%n", callee, label, format));
+          pAppender.append(formatFunctionNode(finder, functionNames, calleeFunctionName, callee));
         }
-
         pAppender.append(String.format("%s -> %s;%n", caller, callee));
       }
 
@@ -114,13 +111,8 @@ public class FunctionCallDumper {
         final String caller = escape(escapedNames, callerFunctionName);
         final String callee = escape(escapedNames, calleeFunctionName);
         if (writtenNames.add(calleeFunctionName)) {
-          final String label = escapeGraphvizLabel(calleeFunctionName, " ");
-          // different format for call to external function
-          final String format =
-              functionNames.contains(calleeFunctionName) ? "" : "shape=\"box\", color=grey";
-          pAppender.append(String.format("%s [label=\"%s\", %s];%n", callee, label, format));
+          pAppender.append(formatFunctionNode(finder, functionNames, calleeFunctionName, callee));
         }
-
         pAppender.append(
             String.format(
                 "%s -> %s [style=\"dashed\" label=\"%s\"];%n", caller, callee, THREAD_START));
@@ -128,6 +120,24 @@ public class FunctionCallDumper {
     }
 
     pAppender.append("}\n");
+  }
+
+  private static String formatFunctionNode(
+      final CFAFunctionCallFinder finder,
+      final Set<String> functionNames,
+      final String calleeFunctionName,
+      final String callee) {
+    String label = calleeFunctionName;
+    Collection<String> origNames = finder.originalNames.get(calleeFunctionName);
+    origNames.remove(calleeFunctionName);
+    if (!origNames.isEmpty()) {
+      label += "\\n(" + Joiner.on(", ").join(origNames) + ")";
+    }
+    // different format for call to external function
+    final String format =
+        functionNames.contains(calleeFunctionName) ? "" : "shape=\"box\", color=grey";
+    return String.format(
+        "%s [label=\"%s\", %s];%n", callee, escapeGraphvizLabel(label, " "), format);
   }
 
   /**
@@ -170,6 +180,11 @@ public class FunctionCallDumper {
     /** contains pairs of (functionname, calledFunction) */
     final Multimap<String, String> functionCalls = LinkedHashMultimap.create();
 
+    /** contains the original names for functions */
+    // TODO it would be nicer to avoid the intermediate step of collecting Strings
+    // completely and directly use functionDeclarations.
+    final Multimap<String, String> originalNames = LinkedHashMultimap.create();
+
     /** contains in which function we create a new thread starting with another function. */
     final Multimap<String, String> threadCreations = LinkedHashMultimap.create();
 
@@ -182,7 +197,6 @@ public class FunctionCallDumper {
     @Override
     public TraversalProcess visitEdge(final CFAEdge pEdge) {
       switch (pEdge.getEdgeType()) {
-
       case CallToReturnEdge: {
         // the normal case of functioncall, both functions have their complete CFA
         final FunctionSummaryEdge function = (FunctionSummaryEdge) pEdge;
@@ -192,9 +206,12 @@ public class FunctionCallDumper {
                     .filter(FunctionCallEdge.class)
                     .first();
             Preconditions.checkState(calledFunction.isPresent(), "internal function without body");
-            functionCalls.put(functionName, calledFunction.get().getSuccessor().getFunctionName());
-        break;
-      }
+            AFunctionDeclaration calledFunctionDecl =
+                calledFunction.get().getSuccessor().getFunctionDefinition();
+            functionCalls.put(functionName, calledFunctionDecl.getName());
+            originalNames.put(calledFunctionDecl.getName(), calledFunctionDecl.getOrigName());
+            break;
+          }
 
       case StatementEdge: {
         final AStatementEdge edge = (AStatementEdge) pEdge;
@@ -207,6 +224,7 @@ public class FunctionCallDumper {
             final String functionName = pEdge.getPredecessor().getFunctionName();
             final String calledFunction = declaration.getName();
             functionCalls.put(functionName, calledFunction);
+                originalNames.put(declaration.getName(), declaration.getOrigName());
 
                 // for threads, we also collect function called via pthread_create
                 AExpression functionNameExp = functionCallExpression.getFunctionNameExpression();
@@ -217,11 +235,15 @@ public class FunctionCallDumper {
                     && params.get(2) instanceof CUnaryExpression) {
                   CExpression expr2 = ((CUnaryExpression) params.get(2)).getOperand();
                   if (expr2 instanceof CIdExpression) {
-                    String calledThreadFunction = ((CIdExpression) expr2).getName();
+                    AFunctionDeclaration functionDecl =
+                        (AFunctionDeclaration) ((CIdExpression) expr2).getDeclaration();
+                    String calledThreadFunction = functionDecl.getName();
                     threadCreations.put(functionName, calledThreadFunction);
+                    originalNames.put(functionDecl.getName(), functionDecl.getOrigName());
                     for (String name : cfa.getAllFunctions().keySet()) {
                       if (name.startsWith(calledThreadFunction + SEPARATOR)) {
                         threadCreations.put(functionName, name);
+                        originalNames.put(name, calledThreadFunction);
                       }
                     }
                   }
