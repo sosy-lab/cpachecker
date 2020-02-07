@@ -221,6 +221,7 @@ public abstract class ConditionFolder {
     return pChild;
   }
 
+  @SuppressWarnings("checkstyle:PublicReferenceToPrivateType")
   protected void merge(
       final ARGState newState1, final ARGState newState2, final MergeUpdateFunction updateFun) {
 

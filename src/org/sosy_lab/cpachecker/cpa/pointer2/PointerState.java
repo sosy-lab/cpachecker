@@ -141,11 +141,12 @@ public class PointerState implements AbstractState {
    *
    * @param pSource the first identifier.
    * @param pTarget the second identifier.
-   * @return <code>true</code> if the first identifier definitely points to the
-   * second identifier, <code>false</code> if it definitely does not point to
-   * the second identifier and <code>null</code> if it might point to it.
+   * @return <code>true</code> if the first identifier definitely points to the second identifier,
+   *     <code>false</code> if it definitely does not point to the second identifier and <code>null
+   *     </code> if it might point to it.
    */
   @Nullable
+  @SuppressWarnings("checkstyle:ReturnNullInsteadOfBoolean")
   public Boolean pointsTo(MemoryLocation pSource, MemoryLocation pTarget) {
     LocationSet pointsToSet = getPointsToSet(pSource);
     if (pointsToSet.equals(LocationSetBot.INSTANCE)) {

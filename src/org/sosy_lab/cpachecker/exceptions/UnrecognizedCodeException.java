@@ -45,6 +45,7 @@ public class UnrecognizedCodeException extends CPATransferException {
   private static final CharMatcher SEMICOLON = CharMatcher.is(';');
 
   /** parent state can be filled in later to get additional info about the problematic part. */
+  @SuppressWarnings("checkstyle:MutableException")
   private @Nullable ARGState parentState = null;
 
   protected UnrecognizedCodeException(String msg1, @Nullable String msg2,

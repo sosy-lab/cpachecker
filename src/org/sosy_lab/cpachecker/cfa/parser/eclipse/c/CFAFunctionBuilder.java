@@ -1310,10 +1310,11 @@ class CFAFunctionBuilder extends ASTVisitor {
         // so the "else" branch won't be connected to the rest of the CFA
         return CIntegerLiteralExpression.ONE;
 
+      case NORMAL:
+        break;
+
       default:
         throw new AssertionError();
-
-    case NORMAL:
     }
 
     if (furtherThenComputation) {
