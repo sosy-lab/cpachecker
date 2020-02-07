@@ -1909,6 +1909,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return explicitValues.get(pKey);
   }
 
+  @Nullable
+  public SMGKnownSymbolicValue getSymbolicOfExplicit(SMGExplicitValue pExplicitValue) {
+    return explicitValues.inverse().get(pExplicitValue);
+  }
+
   enum Property {
     INVALID_READ,
     INVALID_WRITE,
