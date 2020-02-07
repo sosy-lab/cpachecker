@@ -176,7 +176,7 @@ public class SMGEdgeHasValueTest {
     allEdges = allEdges.addEdgeAndCopy(hv21at0);
     allEdges = allEdges.addEdgeAndCopy(hv22at4);
 
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter().filterWithoutSize();
 
     assertThat(filter.holdsFor(hv11at0)).isTrue();
     assertThat(filter.holdsFor(hv12at4)).isTrue();
@@ -217,7 +217,7 @@ public class SMGEdgeHasValueTest {
 
     SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
 
-    filter.filterAtOffset(0);
+    filter.filterAtOffset(0).filterWithoutSize();
 
     assertThat(filter.holdsFor(hv11at0)).isTrue();
     assertThat(filter.holdsFor(hv12at4)).isFalse();

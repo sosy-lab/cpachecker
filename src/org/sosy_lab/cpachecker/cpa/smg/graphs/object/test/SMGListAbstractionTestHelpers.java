@@ -28,13 +28,10 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGRuntimeCheck;
@@ -194,8 +191,7 @@ public final class SMGListAbstractionTestHelpers {
     // to prevent ambiguity, existing links must be deleted before the new linking
     deleteLinksOfObjects(pSmg, pAddresses, pNfo, pPfo);
 
-    CType ptrType = pSmg.getMachineModel().getPointerEquivalentSimpleType();
-    BigInteger ptrSize = pSmg.getMachineModel().getSizeofInBits(ptrType);
+    int ptrSize = pSmg.getMachineModel().getSizeofPtrInBits();
     final SMGValue firstAddress = pAddresses[0];
     if (!pSmg.isPointer(firstAddress)) {
       throw new IllegalArgumentException(
@@ -324,7 +320,10 @@ public final class SMGListAbstractionTestHelpers {
       SMGObject object = pSmg.getObjectPointedBy(address);
       for (int offset : new int[] {pNfo, pPfo}) {
         SMGHasValueEdges set =
-            pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
+            pSmg.getHVEdges(
+                SMGEdgeHasValueFilter.objectFilter(object)
+                    .filterAtOffset(offset)
+                    .filterBySize(pSmg.getMachineModel().getSizeofPtrInBits()));
         for (SMGEdgeHasValue hv : set) {
           pSmg.removeHasValueEdge(hv);
         }
@@ -403,7 +402,8 @@ public final class SMGListAbstractionTestHelpers {
             pSmg, pSublists.length, pNodeSize, pHfo, pNfo, pPfo, minLengths, level, pLinkage);
     addPointersToRegionsOnHeap(pSmg, regions, addresses, 0);
     addPointersToListsOnHeap(pSmg, sublists, subaddresses, pHfo, SMGTargetSpecifier.FIRST);
-    addFieldsToObjectsOnHeap(pSmg, regions, subaddresses, pDataSize, pDfo);
+    addFieldsToObjectsOnHeap(
+        pSmg, regions, subaddresses, pSmg.getMachineModel().getSizeofPtrInBits(), pDfo);
     SMGValue[] values = joinValuesPerList(pSublists);
     addFieldsToObjectsOnHeap(pSmg, sublists, values, pDataSize, pDfo);
     return linkObjectsOnHeap(pSmg, addresses, pHfo, pNfo, pPfo, pCircularity, pLinkage);
@@ -435,11 +435,10 @@ public final class SMGListAbstractionTestHelpers {
   }
 
   static SMGRegion addGlobalListPointerToSMG(CLangSMG pSmg, SMGValue pHeadAddress, String pLabel) {
-    SMGRegion globalVar = new SMGRegion(8 * pSmg.getMachineModel().getSizeofPtr(), pLabel);
-    CSimpleType ptrType = pSmg.getMachineModel().getPointerEquivalentSimpleType();
+    SMGRegion globalVar = new SMGRegion(pSmg.getMachineModel().getSizeofPtrInBits(), pLabel);
     SMGEdgeHasValue hv =
         new SMGEdgeHasValue(
-            pSmg.getMachineModel().getSizeofInBits(ptrType), 0, globalVar, pHeadAddress);
+            pSmg.getMachineModel().getSizeofPtrInBits(), 0, globalVar, pHeadAddress);
     pSmg.addGlobalObject(globalVar);
     pSmg.addHasValueEdge(hv);
     return globalVar;
@@ -472,7 +471,10 @@ public final class SMGListAbstractionTestHelpers {
     if (allValuesEqual) {
       SMGEdgeHasValue hv =
           Iterables.getOnlyElement(
-              pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pDfo)));
+              pSmg.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(pObject)
+                      .filterAtOffset(pDfo)
+                      .filterWithoutSize()));
       if (pValues.length > 0) {
         Truth.assertThat(hv.getValue()).isEqualTo(pValues[0]);
       }
@@ -487,7 +489,10 @@ public final class SMGListAbstractionTestHelpers {
     if (onlyNonEmptySublists && allValuesEqualInUnionOfSublists) {
       SMGEdgeHasValue hv =
           Iterables.getOnlyElement(
-              pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSubobject).filterAtOffset(pDfo)));
+              pSmg.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(pSubobject)
+                      .filterAtOffset(pDfo)
+                      .filterWithoutSize()));
       Truth.assertThat(hv.getValue()).isEqualTo(pSublists[0][0]);
     }
   }

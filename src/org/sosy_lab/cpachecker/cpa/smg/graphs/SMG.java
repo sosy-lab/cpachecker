@@ -201,22 +201,7 @@ public class SMG implements UnmodifiableSMG {
     removeObject(pObj);
     hv_edges = hv_edges.removeAllEdgesOfObjectAndCopy(pObj);
     pt_edges = pt_edges.removeAllEdgesOfObjectAndCopy(pObj);
-
-    // assert !isObjectReferencedAnywhere(pObj)
-    //     : String.format("removed object <%s> has reference in the SMG", pObj);
   }
-
-//  private boolean isObjectReferencedAnywhere(SMGObject pObj) {
-//    for (SMGEdgeHasValue edge : hv_edges.getHvEdges()) {
-//      if (edge.getValue() instanceof SMGKnownAddressValue) {
-//        SMGKnownAddressValue kav = (SMGKnownAddressValue) edge.getValue();
-//        if (kav.getObject() == pObj) {
-//          return true;
-//        }
-//      }
-//    }
-//    return false;
-//  }
 
   /**
    * Add pObj object to the SMG, with validity set to pValidity.
@@ -473,7 +458,9 @@ public class SMG implements UnmodifiableSMG {
 
     // first get all possible offsets with their size, sorted by starting point
     SMGEdgeHasValueFilter nullValueFilter =
-        SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(SMGZeroValue.INSTANCE);
+        SMGEdgeHasValueFilter.objectFilter(pObj)
+            .filterHavingValue(SMGZeroValue.INSTANCE)
+            .filterWithoutSize();
     TreeMap<Long, Integer> offsetToSize = new TreeMap<>();
     for (SMGEdgeHasValue edge : nullValueFilter.filter(hv_edges)) {
       long offset = edge.getOffset();

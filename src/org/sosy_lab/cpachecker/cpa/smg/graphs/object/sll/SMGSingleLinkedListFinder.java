@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -153,7 +153,9 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
       for (SMGEdgePointsTo edge : SMGUtils.getPointerToThisObject(pObject, pSmg)) {
         SMGHasValueEdges hves =
-            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(edge.getValue()));
+            pSmg.getHVEdges(
+                SMGEdgeHasValueFilter.valueFilter(edge.getValue())
+                    .filterBySize(pSmg.getMachineModel().getSizeofPtrInBits()));
         for (SMGEdgeHasValue hve : hves) {
           typeSizesOfThisObject.add(hve.getSizeInBits());
         }
@@ -211,10 +213,13 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         return;
       }
 
-      //TODO At the moment, we still demand that a value is found at prev or next.
+      // TODO At the moment, we still demand that a value is found at prev or next.
 
       SMGHasValueEdges nextObjectNextPointer =
-          pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo));
+          pSmg.getHVEdges(
+              SMGEdgeHasValueFilter.objectFilter(nextObject)
+                  .filterAtOffset(nfo)
+                  .filterBySize(pSmg.getMachineModel().getSizeofPtrInBits()));
 
       if (nextObjectNextPointer.size() != 1) {
         return;

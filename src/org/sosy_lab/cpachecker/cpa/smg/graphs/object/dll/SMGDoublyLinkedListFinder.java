@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -196,10 +196,13 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
           continue;
         }
 
-        //TODO At the moment, we still demand that a pointer is found at prev or next.
+        // TODO At the moment, we still demand that a pointer is found at prev or next.
 
         SMGHasValueEdges prevObjectprevPointer =
-            pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pfo));
+            pSmg.getHVEdges(
+                SMGEdgeHasValueFilter.objectFilter(pObject)
+                    .filterAtOffset(pfo)
+                    .filterBySize(pSmg.getMachineModel().getSizeofPtrInBits()));
 
         if (prevObjectprevPointer.size() != 1) {
           continue;
@@ -266,17 +269,25 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         return;
       }
 
-      //TODO At the moment, we still demand that a pointer is found at prev or next.
+      // TODO At the moment, we still demand that a pointer is found at prev or next.
 
       SMGHasValueEdges nextObjectNextField =
-          pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo));
+          pSmg.getHVEdges(
+              SMGEdgeHasValueFilter.objectFilter(nextObject)
+                  .filterAtOffset(nfo)
+                  .filterBySize(pSmg.getMachineModel().getSizeofPtrInBits()));
 
       if(nextObjectNextField.size() != 1) {
         return;
       }
 
       SMGEdgeHasValue nfoField = Iterables.getOnlyElement(nextObjectNextField);
-      SMGEdgeHasValue pfoField = Iterables.getOnlyElement(pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pfo)));
+      SMGEdgeHasValue pfoField =
+          Iterables.getOnlyElement(
+              pSmg.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(nextObject)
+                      .filterAtOffset(pfo)
+                      .filterBySize(pSmg.getMachineModel().getSizeofPtrInBits())));
 
       if (!pSmg.isPointer(nfoField.getValue())) {
         return;
@@ -335,7 +346,10 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
     SMGValue prevValue =
         Iterables.getOnlyElement(
-                pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pfo)))
+                pSmg.getHVEdges(
+                    SMGEdgeHasValueFilter.objectFilter(nextObject)
+                        .filterAtOffset(pfo)
+                        .filterWithoutSize()))
             .getValue();
 
     nonSharedValues1.remove(prevValue);

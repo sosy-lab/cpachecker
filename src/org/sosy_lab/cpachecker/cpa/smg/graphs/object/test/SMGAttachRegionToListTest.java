@@ -89,13 +89,6 @@ public class SMGAttachRegionToListTest {
   public void setUp() throws InvalidConfigurationException {
 
     smg = new CLangSMG(MACHINE_MODEL_FOR_TESTING);
-    state =
-        new SMGState(
-            LogManager.createTestLogManager(),
-            new SMGOptions(Configuration.defaultConfiguration()),
-            smg,
-            0,
-            HashBiMap.create());
 
     final int intSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofInt();
     final int ptrSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofPtr();
@@ -107,8 +100,6 @@ public class SMGAttachRegionToListTest {
     final int dataSize = intSize;
     nodeSize = dfo + dataSize;
     listKind = (linkage == SMGListLinkage.DOUBLY_LINKED) ? SMGObjectKind.DLL : SMGObjectKind.SLL;
-
-    smg = new CLangSMG(MACHINE_MODEL_FOR_TESTING);
 
     // create one region
     addressOfRegion =
@@ -137,6 +128,14 @@ public class SMGAttachRegionToListTest {
             dataSize,
             circularity,
             linkage)[0];
+
+    state =
+        new SMGState(
+            LogManager.createTestLogManager(),
+            new SMGOptions(Configuration.defaultConfiguration()),
+            smg,
+            0,
+            HashBiMap.create());
   }
 
   @Test

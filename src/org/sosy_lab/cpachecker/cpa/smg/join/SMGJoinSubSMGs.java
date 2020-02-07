@@ -104,7 +104,7 @@ final class SMGJoinSubSMGs {
     int prevLevel = pLevelMap.get(SMGJoinLevel.valueOf(pObj1.getLevel(), pObj2.getLevel()));
 
     for (SMGEdgeHasValue hvIn1 : inputSMG1.getHVEdges(filterOnSMG1)) {
-      filterOnSMG2.filterAtOffset(hvIn1.getOffset());
+      filterOnSMG2.filterAtOffset(hvIn1.getOffset()).filterWithoutSize();
       SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
 
       int value1Level = getValueLevel(pObj1, hvIn1.getValue(), inputSMG1);
