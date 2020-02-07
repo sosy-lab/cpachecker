@@ -601,20 +601,22 @@ class ASTConverter {
       }
 
       // workaround for strange CDT behaviour
-    } else if (type instanceof CProblemType){
-      if(e instanceof IASTConditionalExpression) {
+    } else if (type instanceof CProblemType) {
+      if (e instanceof IASTConditionalExpression) {
         return typeConverter.convert(
-          ((IASTConditionalExpression)e).getNegativeResultExpression() .getExpressionType());
+            ((IASTConditionalExpression) e).getNegativeResultExpression().getExpressionType());
       } else if (e instanceof IGNUASTCompoundStatementExpression) {
         // manually ceck whether type of compundStatementExpression is void
-        IGNUASTCompoundStatementExpression statementExpression = (IGNUASTCompoundStatementExpression)e;
+        IGNUASTCompoundStatementExpression statementExpression =
+            (IGNUASTCompoundStatementExpression) e;
         IASTStatement statements[] = statementExpression.getCompoundStatement().getStatements();
 
-        if(statements.length > 0) {
-          IASTStatement lastStatement = statements[statements.length-1];
-          
-          if(lastStatement instanceof IASTExpressionStatement) {
-            IASTExpression lastExpression = ((IASTExpressionStatement)lastStatement).getExpression();
+        if (statements.length > 0) {
+          IASTStatement lastStatement = statements[statements.length - 1];
+
+          if (lastStatement instanceof IASTExpressionStatement) {
+            IASTExpression lastExpression =
+                ((IASTExpressionStatement) lastStatement).getExpression();
             return convertType(lastExpression);
           } else {
             return CVoidType.create(false, false);

@@ -2024,13 +2024,14 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     FileLocation lastExpLocation = astCreator.getLocation(lastExp);
     prevNode = handleAllSideEffects(prevNode, lastExpLocation, lastExp.getRawSignature(), true);
-    
-    if(exp == null) {
-      if(tempVar != null)
+
+    if (exp == null) {
+      if (tempVar != null) {
         throw parseContext.parseError("invalid expression type", lastExp);
+      }
       return prevNode;
     }
-    
+
     CStatement stmt = null;
     if (tempVar != null) {
       stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide)exp);
