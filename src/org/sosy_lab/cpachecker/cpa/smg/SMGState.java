@@ -1824,6 +1824,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
 
     heap.replaceValue(pKnownVal1, pKnownVal2);
+    Preconditions.checkArgument(!pKnownVal2.isZero());
     SMGKnownExpValue expVal = explicitValues.remove(pKnownVal2);
     if (expVal != null) {
       explicitValues.put(pKnownVal1, expVal);
@@ -1913,14 +1914,15 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGKnownSymbolicValue symValue = explicitValues.inverse().get(pValue);
 
       if (!pKey.equals(symValue)) {
-        explicitValues.remove(symValue);
         if (symValue.isZero()) { // swap values, we prefer ZERO in the SMG.
           heap.replaceValue(symValue, pKey);
         } else {
+          Preconditions.checkArgument(!symValue.isZero());
+          explicitValues.remove(symValue);
           heap.replaceValue(pKey, symValue);
+          explicitValues.put(pKey, pValue);
+          return symValue;
         }
-        explicitValues.put(pKey, pValue);
-        return symValue;
       }
 
       return null;
@@ -1932,6 +1934,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   @Deprecated // unused
   public void clearExplicit(SMGKnownSymbolicValue pKey) {
+    Preconditions.checkArgument(!pKey.isZero());
     explicitValues.remove(pKey);
   }
 
