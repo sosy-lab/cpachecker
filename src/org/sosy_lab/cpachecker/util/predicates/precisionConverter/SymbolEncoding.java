@@ -237,8 +237,8 @@ public class SymbolEncoding {
 
     public List<T> getParameterTypes() { return parameterTypes; }
 
-    public void setSigness(boolean signed) {
-      this.signed = signed;
+    public void setSigness(boolean pSigned) {
+      this.signed = pSigned;
     }
 
     public boolean isSigned() {

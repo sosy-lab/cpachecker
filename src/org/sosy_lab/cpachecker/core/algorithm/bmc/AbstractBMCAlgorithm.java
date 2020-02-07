@@ -1242,8 +1242,8 @@ abstract class AbstractBMCAlgorithm
                 if (cpas.isEmpty()) {
                   latch.countDown();
                 } else {
-                  for (InvariantsCPA cpa : cpas) {
-                    if (cpa.isLikelyLongRunning()) {
+                  for (InvariantsCPA invariantCpa : cpas) {
+                    if (invariantCpa.isLikelyLongRunning()) {
                       latch.countDown();
                       break;
                     }
