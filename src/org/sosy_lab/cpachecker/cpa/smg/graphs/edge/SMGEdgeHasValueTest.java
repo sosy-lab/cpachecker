@@ -119,14 +119,14 @@ public class SMGEdgeHasValueTest {
     SMGEdgeHasValue obj2_at4 = new SMGEdgeHasValue(mockTypeSize, 32, object2, value);
     SMGEdgeHasValue obj2_12at0 = new SMGEdgeHasValue(mockTypeSize12b, 0, object2, value);
 
-    assertThat(obj1_at0.equals(obj1_at0)).isTrue();
-    assertThat(obj1_at0.equals(obj1_at2)).isFalse();
-    assertThat(obj1_at0.equals(obj1_at4)).isFalse();
-    assertThat(obj1_at0.equals(obj1_12at0)).isFalse();
-    assertThat(obj1_at0.equals(obj2_at0)).isFalse();
-    assertThat(obj1_at0.equals(obj2_at2)).isFalse();
-    assertThat(obj1_at0.equals(obj2_at4)).isFalse();
-    assertThat(obj1_at0.equals(obj2_12at0)).isFalse();
+    assertThat(obj1_at0.isCompatibleFieldOnSameObject(obj1_at0)).isTrue();
+    assertThat(obj1_at0.isCompatibleFieldOnSameObject(obj1_at2)).isFalse();
+    assertThat(obj1_at0.isCompatibleFieldOnSameObject(obj1_at4)).isFalse();
+    assertThat(obj1_at0.isCompatibleFieldOnSameObject(obj1_12at0)).isFalse();
+    assertThat(obj1_at0.isCompatibleFieldOnSameObject(obj2_at0)).isFalse();
+    assertThat(obj1_at0.isCompatibleFieldOnSameObject(obj2_at2)).isFalse();
+    assertThat(obj1_at0.isCompatibleFieldOnSameObject(obj2_at4)).isFalse();
+    assertThat(obj1_at0.isCompatibleFieldOnSameObject(obj2_12at0)).isFalse();
   }
 
   @Test(expected=IllegalArgumentException.class)
