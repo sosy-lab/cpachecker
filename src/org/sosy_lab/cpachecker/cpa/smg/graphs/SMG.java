@@ -570,6 +570,7 @@ public class SMG implements UnmodifiableSMG {
 
     neq = neq.replaceValueAndCopy(fresh, old);
     pathPredicate.replace(fresh, old);
+    errorPredicate.replace(fresh, old);
 
     removeValue(old);
 
