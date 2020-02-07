@@ -39,9 +39,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -136,7 +134,6 @@ public class CFAToCTranslator {
     // waitlist for the edges to be processed
     Deque<NodeAndBlock> waitlist = new ArrayDeque<>();
     Multimap<CFANode, NodeAndBlock> ingoingBlocks = HashMultimap.create();
-    Set<CFANode> unhandledSinceLastProgress = new HashSet<>();
 
     FunctionBody f = startFunction(pEntry);
     functions.add(f);
@@ -147,65 +144,86 @@ public class CFAToCTranslator {
     }
 
     while (!waitlist.isEmpty()) {
-      NodeAndBlock current = waitlist.poll();
+      NodeAndBlock current = getNextElement(waitlist);
       CFANode currentNode = current.getNode();
 
-      boolean skipElement;
-      if (!unhandledSinceLastProgress.contains(currentNode)) {
-        skipElement =
-            getPredecessorNodes(currentNode).stream()
-                .anyMatch(n -> !createdStatements.containsKey(n));
-      } else {
-        skipElement =
-            waitlist.stream().anyMatch(i -> !unhandledSinceLastProgress.contains(i.getNode()));
-      }
-
-      if (skipElement) {
-        pushToWaitlist(waitlist, current);
-        unhandledSinceLastProgress.add(currentNode);
-        continue;
-      }
-
       if (createdStatements.containsKey(currentNode)) {
-        Statement gotoStatement = createGoto(currentNode, currentNode);
-        current.getCurrentBlock().addStatement(gotoStatement);
+        // current node has already been handled, so just add a goto to it
+        current.getCurrentBlock().addStatement(createGoto(currentNode, currentNode));
 
       } else {
-        CompoundStatement currentBlock = current.getCurrentBlock();
-        if (CFAUtils.enteringEdges(currentNode).size() >= 2) {
-          Collection<NodeAndBlock> ingoing = ingoingBlocks.get(currentNode);
-          if (ingoing != null && ingoing.size() > 1) {
-            final CompoundStatement originalBlock = current.getCurrentBlock();
-            if (currentBlock.isEmpty()
-                && ingoing.stream()
-                    .anyMatch(
-                        n ->
-                            n.getCurrentBlock().equals(originalBlock.getSurroundingBlock())
-                                && n.getCurrentBlock().getLast().equals(originalBlock))) {
-              // the current block is the last statement of the outer block and empty.
-              // this only happens for empty else-statements.
-              currentBlock = originalBlock.getSurroundingBlock();
-            } else if (ingoing.stream()
-                    .map(n -> n.getCurrentBlock().getSurroundingBlock())
-                    .distinct()
-                    .count()
-                == 1) {
-              currentBlock =
-                  Iterables.getFirst(ingoing, null).getCurrentBlock().getSurroundingBlock();
-            }
-          }
+        final CompoundStatement originalBlock = current.getCurrentBlock();
+        final CompoundStatement currentBlock =
+            getBlockToContinueWith(currentNode, originalBlock, ingoingBlocks.get(currentNode));
+        // create new NodeAndBlock because the block may have changed from the start of the loop
+        if (currentBlock != originalBlock) {
+          current = new NodeAndBlock(currentNode, currentBlock);
         }
 
         Collection<NodeAndBlock> nextNodes = handleNode(currentNode, currentBlock);
         for (NodeAndBlock next : nextNodes) {
-          // create NodeAndBlock as new element ; block may have changed!
           CFANode nextNode = next.getNode();
-          ingoingBlocks.put(nextNode, new NodeAndBlock(currentNode, currentBlock));
+          ingoingBlocks.put(nextNode, current);
           pushToWaitlist(waitlist, next);
         }
       }
-      unhandledSinceLastProgress.clear();
     }
+  }
+
+  private CompoundStatement getBlockToContinueWith(
+      final CFANode pCurrentNode,
+      final CompoundStatement pCurrentBlock,
+      final Collection<NodeAndBlock> pEnteringBlocks) {
+
+    if (CFAUtils.enteringEdges(pCurrentNode).size() <= 1
+        || pEnteringBlocks == null
+        || pEnteringBlocks.size() <= 1) {
+      return pCurrentBlock;
+    }
+
+    // the current block is the last statement of the outer block and empty.
+    // this only happens for empty else-statements.
+    boolean isEmptyElseAtEndOfBlock =
+        pCurrentBlock.isEmpty()
+            && pEnteringBlocks.stream()
+                .anyMatch(n -> isLastStatementOfBlock(pCurrentBlock, n.getCurrentBlock()));
+    if (isEmptyElseAtEndOfBlock) {
+      // eliminate an empty, unneeded block. this would just be unnecessary nesting
+      return pCurrentBlock.getSurroundingBlock();
+
+    } else if (isSameOuterBlockForAll(pEnteringBlocks)) {
+      return Iterables.getFirst(pEnteringBlocks, null).getCurrentBlock().getSurroundingBlock();
+
+    } else {
+      return pCurrentBlock;
+    }
+  }
+
+  private boolean isSameOuterBlockForAll(Collection<NodeAndBlock> pBlocks) {
+    return pBlocks.stream().map(n -> n.getCurrentBlock().getSurroundingBlock()).distinct().count()
+        == 1;
+  }
+
+  private boolean isLastStatementOfBlock(CompoundStatement pStatement, CompoundStatement pBlock) {
+    return pBlock.equals(pStatement.getSurroundingBlock()) && pBlock.getLast().equals(pStatement);
+  }
+
+  private NodeAndBlock getNextElement(Deque<NodeAndBlock> pWaitlist) {
+
+    final NodeAndBlock lastElement = pWaitlist.peekLast();
+    boolean skipElement;
+    NodeAndBlock current;
+    do {
+      current = pWaitlist.poll();
+
+      CFANode currentNode = current.getNode();
+      skipElement =
+          current != lastElement
+              && getPredecessorNodes(currentNode).stream()
+                  .anyMatch(n -> !createdStatements.containsKey(n));
+    } while (skipElement);
+
+    return current;
   }
 
   private Statement createGoto(CFANode pCurrentNode, CFANode pTarget) {
@@ -256,7 +274,7 @@ public class CFAToCTranslator {
     FluentIterable<CFANode> predecessors =
         getRelevantEnteringEdges(pN).transform(e -> e.getPredecessor());
     if (pN.getEnteringSummaryEdge() != null) {
-      predecessors.append(pN.getEnteringSummaryEdge().getPredecessor());
+      predecessors = predecessors.append(pN.getEnteringSummaryEdge().getPredecessor());
     }
     return predecessors;
   }
@@ -367,9 +385,11 @@ public class CFAToCTranslator {
     return assumption.isSwapped() != assumption.getTruthAssumption();
   }
 
+  // 'ignored' is not used, but that for-each is necessary to iterate over iterable
+  @SuppressWarnings("unused")
   private boolean hasMoreThanOneElement(final FluentIterable<?> pIterable) {
     int count = 0;
-    for (Object o : pIterable) {
+    for (Object ignored : pIterable) {
       count++;
       if (count > 1) {
         return false;
