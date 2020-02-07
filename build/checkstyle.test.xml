@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.3//EN" "http://www.puppycrawl.com/dtds/configuration_1_3.dtd">
+<!DOCTYPE module PUBLIC "-//Checkstyle//DTD Check Configuration 1.3//EN" "https://checkstyle.org/dtds/configuration_1_3.dtd">
 
 <!--
     This configuration file was written by the eclipse-cs plugin configuration editor
@@ -17,6 +17,9 @@
       <property name="message" value="Avoid using corresponding octal or Unicode escape."/>
     </module>
     <module name="SuppressWarningsHolder"/>
+    <module name="AnnotationUseStyle">
+      <property name="trailingArrayComma" value="ignore"/>
+    </module>
     <module name="MissingOverride"/>
     <module name="PackageAnnotation"/>
     <module name="SuppressWarnings"/>
@@ -33,31 +36,47 @@
     </module>
     <module name="PackageName"/>
     <module name="ParameterName"/>
+    <module name="StaticVariableName"/>
     <module name="TypeName"/>
     <module name="IllegalImport"/>
     <module name="IllegalImport">
       <property name="illegalClasses" value=".*\.(Builder|of|copyOf)|org\.junit\.Assert(\.(?!assertThrows).*)?|com\.google\.common\.base\.Objects(\..*)?|javax\.annotation\.(Nonnull|Nullable|CheckReturnValue|concurrent\.GuardedBy|concurrent\.Immutable)|edu\.umd\.cs\.findbugs\.annotations\.(NonNull|Nullable)"/>
       <property name="regexp" value="true"/>
     </module>
-    <module name="RedundantImport"/>
-    <module name="UnusedImports">
-      <property name="processJavadoc" value="true"/>
+    <module name="ImportOrder">
+      <property name="option" value="top"/>
+      <property name="separated" value="true"/>
+      <property name="sortStaticImportsAlphabetically" value="true"/>
     </module>
+    <module name="RedundantImport"/>
+    <module name="UnusedImports"/>
     <module name="GenericWhitespace"/>
     <module name="EmptyForInitializerPad"/>
     <module name="EmptyForIteratorPad">
       <property name="option" value="space"/>
     </module>
-    <module name="MethodParamPad"/>
-    <module name="TypecastParenPad">
-      <property name="tokens" value="RPAREN,TYPECAST"/>
+    <module name="OperatorWrap">
+      <property name="tokens" value="BAND,BOR,BSR,BXOR,DIV,EQUAL,GE,GT,LAND,LE,LITERAL_INSTANCEOF,LOR,LT,MINUS,MOD,NOT_EQUAL,PLUS,QUESTION,SL,SR,STAR"/>
     </module>
+    <module name="MethodParamPad"/>
+    <module name="TypecastParenPad"/>
     <module name="NoWhitespaceBefore">
       <property name="allowLineBreaks" value="true"/>
       <property name="tokens" value="DOT"/>
     </module>
+    <module name="LeftCurly">
+      <property name="tokens" value="ANNOTATION_DEF,CLASS_DEF,CTOR_DEF,ENUM_CONSTANT_DEF,ENUM_DEF,INTERFACE_DEF,LAMBDA,LITERAL_CATCH,LITERAL_DO,LITERAL_ELSE,LITERAL_FINALLY,LITERAL_FOR,LITERAL_IF,LITERAL_SWITCH,LITERAL_SYNCHRONIZED,LITERAL_TRY,LITERAL_WHILE,METHOD_DEF,OBJBLOCK,STATIC_INIT"/>
+    </module>
+    <module name="LeftCurly">
+      <property name="option" value="nl"/>
+      <property name="tokens" value="LITERAL_CASE,LITERAL_DEFAULT"/>
+    </module>
     <module name="NeedBraces"/>
     <module name="RightCurly"/>
+    <module name="EmptyBlock">
+      <property name="option" value="text"/>
+      <property name="tokens" value="LITERAL_TRY,LITERAL_FINALLY,LITERAL_DO,LITERAL_IF,LITERAL_ELSE,LITERAL_FOR,INSTANCE_INIT,STATIC_INIT,LITERAL_SWITCH,LITERAL_SYNCHRONIZED"/>
+    </module>
     <module name="CovariantEquals"/>
     <module name="DefaultComesLast"/>
     <module name="EmptyStatement"/>
@@ -66,7 +85,7 @@
       <property name="reliefPattern" value="\$FALL-THROUGH\$"/>
     </module>
     <module name="IllegalInstantiation">
-      <property name="classes" value="Boolean,Character,Integer,Long,Double,Float,String,java.io.PrintStream,java.io.PrintWriter, java.util.Date, java.text.SimpleDateFormat"/>
+      <property name="classes" value="Boolean, Character, Integer, Long, Double, Float, String, java.io.PrintStream, java.io.PrintWriter, java.util.Date, java.text.SimpleDateFormat"/>
     </module>
     <module name="IllegalType">
       <property name="illegalClassNames" value="java.util.Date, java.util.GregorianCalendar, java.text.DateFormat, java.text.SimpleDateFormat, java.util.Hashtable, java.util.HashSet, java.util.HashMap, java.util.ArrayList, java.util.LinkedList, java.util.LinkedHashMap, java.util.LinkedHashSet, java.util.TreeSet, java.util.Stack, java.util.Vector, com.google.common.collect.ArrayListMultimap, com.google.common.collect.HashMultimap, com.google.common.collect.HashMultiset, com.google.common.collect.LinkedHashMultimap, com.google.common.collect.LinkedHashMultiset, com.google.common.collect.LinkedListMultimap, com.google.common.collect.TreeMultiset, javax.annotation.Nullable, javax.annotation.CheckReturnValue, javax.annotation.concurrent.GuardedBy, javax.annotation.concurrent.Immutable"/>
@@ -81,9 +100,12 @@
     <module name="OneStatementPerLine"/>
     <module name="InterfaceIsType"/>
     <module name="MutableException"/>
+    <module name="ArrayTypeStyle"/>
     <module name="UpperEll"/>
     <module name="OuterTypeFilename"/>
+    <module name="AvoidStarImport"/>
     <module name="com.github.sevntu.checkstyle.checks.coding.AvoidDefaultSerializableInInnerClassesCheck"/>
+    <module name="com.github.sevntu.checkstyle.checks.coding.AvoidNotShortCircuitOperatorsForBooleanCheck"/>
     <module name="com.github.sevntu.checkstyle.checks.coding.ForbidReturnInFinallyBlockCheck"/>
     <module name="com.github.sevntu.checkstyle.checks.coding.ReturnNullInsteadOfBooleanCheck"/>
     <module name="com.github.sevntu.checkstyle.checks.coding.ReturnBooleanFromTernaryCheck"/>
@@ -105,6 +127,10 @@
       <property name="proposeEntrySetUsage" value="true"/>
     </module>
     <module name="com.github.sevntu.checkstyle.checks.coding.UselessSingleCatchCheck"/>
+    <module name="com.github.sevntu.checkstyle.checks.coding.UselessSuperCtorCallCheck"/>
+    <module name="com.github.sevntu.checkstyle.checks.design.AvoidConditionInversionCheck"/>
+    <module name="com.github.sevntu.checkstyle.checks.design.PublicReferenceToPrivateTypeCheck"/>
+    <module name="JavadocParagraph"/>
   </module>
   <module name="FileTabCharacter">
     <property name="eachLine" value="true"/>

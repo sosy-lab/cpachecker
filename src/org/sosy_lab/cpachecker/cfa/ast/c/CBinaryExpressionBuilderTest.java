@@ -24,7 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.*;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MINUS;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MULTIPLY;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.PLUS;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;

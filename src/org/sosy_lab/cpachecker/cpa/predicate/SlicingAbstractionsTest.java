@@ -192,8 +192,9 @@ public class SlicingAbstractionsTest {
   @SuppressWarnings("unused")
   private static boolean filter(Object[] x) {
     String modeString = ((String) x[3]);
-    if (modeString
-        .matches(".*SlicingAbstractionsAbstractionRefiner.*unoptimized.*")) { return false; }
+    if (modeString.matches(".*SlicingAbstractionsAbstractionRefiner.*unoptimized.*")) {
+      return false;
+    }
     return true;
   }
 

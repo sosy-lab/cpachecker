@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /**
  * Unit tests for {@link org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier}.
  *
- * There exist four symbolic identifiers that are divided into two groups by their dependencies:
+ * <p>There exist four symbolic identifiers that are divided into two groups by their dependencies:
  * Constraints exist so that the first identifier is dependent on the second one and so that the
  * third is dependent on the fourth. No dependencies exist between these two groups.
  */
@@ -124,11 +124,7 @@ public class StateSimplifierTest {
   private boolean group2ConstraintsExist(
       ConstraintsState pNewState
   ) {
-
-    boolean allExist = pNewState.contains(group2Constraint1);
-    allExist &= pNewState.contains(group2Constraint2);
-
-    return allExist;
+    return pNewState.contains(group2Constraint1) && pNewState.contains(group2Constraint2);
   }
 
   @Test
