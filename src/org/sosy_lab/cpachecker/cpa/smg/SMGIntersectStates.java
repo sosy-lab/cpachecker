@@ -561,7 +561,6 @@ public final class SMGIntersectStates {
         UnmodifiableSMGState pSmg2,
         UnmodifiableSMGState pJoinResult,
         boolean pDefined) {
-      super();
       smg1 = pSmg1;
       smg2 = pSmg2;
       combinationResult = pJoinResult;

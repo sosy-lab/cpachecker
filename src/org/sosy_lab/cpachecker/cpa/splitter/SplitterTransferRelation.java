@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class SplitterTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(secure = true, name = "heuristic", description = "Which program split heuristic to use")
-  @ClassOption(packagePrefix = {"org.sosy_lab.cpachecker.cpa.splitter.heuristics"})
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.splitter.heuristics")
   private SplitHeuristic.Factory factory = (pConfig, pLogger, pMaxSplits) -> new SplitAtAssumes();
 
   private final SplitHeuristic split;

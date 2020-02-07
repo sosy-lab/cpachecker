@@ -272,7 +272,6 @@ public final class LockState extends AbstractLockState {
   // if we need restore state, we save it here
   // Used for function annotations like annotate.function_name.restore
   public LockState() {
-    super();
     locks = ImmutableMap.of();
   }
 

@@ -39,7 +39,6 @@ public class RecomputeBlockFormulaStrategy extends BlockFormulaStrategy {
   private final PathFormulaManager pfmgr;
 
   public RecomputeBlockFormulaStrategy(final PathFormulaManager pPathFormulaManager) {
-    super();
     pfmgr = pPathFormulaManager;
   }
 

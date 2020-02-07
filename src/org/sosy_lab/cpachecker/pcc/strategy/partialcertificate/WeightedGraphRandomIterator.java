@@ -41,7 +41,6 @@ public class WeightedGraphRandomIterator implements Iterator<WeightedNode> {
   private final List<Integer> permutation;
 
   public WeightedGraphRandomIterator(WeightedGraph wGraph) {
-    super();
     this.wGraph = wGraph;
     size=wGraph.getNumNodes();
     permutation=shuffledIndices(size);

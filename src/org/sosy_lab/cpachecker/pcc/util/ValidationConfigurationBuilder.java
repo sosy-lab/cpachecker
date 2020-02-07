@@ -112,16 +112,27 @@ public class ValidationConfigurationBuilder {
 
 
   private void clearProofCreationOptions(final ConfigurationBuilder pConfigBuilder) {
-    String[] options = { "pcc.proofgen.doPCC", "pcc.proofFile", "pcc.resultcheck.writeProof",
-        "pcc.sliceProof", "pcc.resultcheck.checkerConfig", "pcc.collectValueAnalysisStateInfo",
-        "pcc.partial.certificateType", "pcc.partitioning.useGraphSizeToComputePartitionNumber",
-        "pcc.partitioning.partitioningStrategy", "pcc.partitioning.multilevel.refinementHeuristic",
-        "pcc.partitioning.bestfirst.balancePrecision", "pcc.partitioning.bestfirst.chosenFunction",
-        "pcc.partitioning.fm.balanceCriterion", "pcc.partitioning.fm.initialPartitioningStrategy",
-        "pcc.partitioning.kwayfm.balancePrecision", "pcc.partitioning.kwayfm.globalHeuristic",
-        "pcc.partitioning.kwayfm.optimizationCriterion", "pcc.partitioning.maxNumElemsPerPartition",
-        "pcc.partitioning.multilevel.matchingGenerator",
-        "pcc.partitioning.multilevel.globalHeuristic"
+    String[] options = {
+      "pcc.proofgen.doPCC",
+      "pcc.proofFile",
+      "pcc.resultcheck.writeProof",
+      "pcc.sliceProof",
+      "pcc.resultcheck.checkerConfig",
+      "pcc.collectValueAnalysisStateInfo",
+      "pcc.partial.certificateType",
+      "pcc.partitioning.useGraphSizeToComputePartitionNumber",
+      "pcc.partitioning.partitioningStrategy",
+      "pcc.partitioning.multilevel.refinementHeuristic",
+      "pcc.partitioning.bestfirst.balancePrecision",
+      "pcc.partitioning.bestfirst.chosenFunction",
+      "pcc.partitioning.fm.balanceCriterion",
+      "pcc.partitioning.fm.initialPartitioningStrategy",
+      "pcc.partitioning.kwayfm.balancePrecision",
+      "pcc.partitioning.kwayfm.globalHeuristic",
+      "pcc.partitioning.kwayfm.optimizationCriterion",
+      "pcc.partitioning.maxNumElemsPerPartition",
+      "pcc.partitioning.multilevel.matchingGenerator",
+      "pcc.partitioning.multilevel.globalHeuristic"
     };
 
     for (String option : options) {

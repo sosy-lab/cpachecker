@@ -211,11 +211,11 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     if (statement instanceof JAssignment) {
       return handleAssignment((JAssignment) statement, cfaEdge);
 
-      // external function call - do nothing
     } else if (statement instanceof JMethodOrConstructorInvocation) {
+      // external function call - do nothing
 
-      // there is such a case
     } else if (statement instanceof JExpressionStatement) {
+      // there is such a case
 
     } else {
       throw new UnrecognizedCodeException("unknown statement", cfaEdge, statement);
@@ -318,9 +318,9 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
         } else {
           newState.forget(assignedVarName);
         }
-      }
-      // a[x] = b(); TODO: for now, nothing is done here, but cloning the current state
-      else if (op1 instanceof JArraySubscriptExpression) {
+
+      } else if (op1 instanceof JArraySubscriptExpression) {
+        // a[x] = b(); TODO: for now, nothing is done here, but cloning the current state
 
       } else {
         throw new UnrecognizedCodeException("on function return", fnkCall, op1);

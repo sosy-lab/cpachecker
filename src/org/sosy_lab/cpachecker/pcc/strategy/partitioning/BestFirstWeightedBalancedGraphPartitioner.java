@@ -111,7 +111,6 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
     }
 
     public NodePriority(WeightedNode pNode, int pPriority) {
-      super();
       node = pNode;
       priority = pPriority;
     }

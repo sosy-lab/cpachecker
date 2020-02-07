@@ -78,7 +78,6 @@ class AutomatonExpressionArguments {
       Map<String, AutomatonVariable> pAutomatonVariables,
       List<AbstractState> pAbstractStates, CFAEdge pCfaEdge,
       LogManager pLogger) {
-    super();
     if (pAutomatonVariables == null) {
       automatonVariables = ImmutableMap.of();
     } else {

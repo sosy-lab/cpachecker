@@ -345,7 +345,6 @@ public class SMGEdgeInterpolator {
 
     public SMGHeapAbstractionInterpoaltionResult(Set<SMGAbstractionBlock> pBlocks,
         boolean pChange) {
-      super();
       blocks = pBlocks;
       change = pChange;
     }

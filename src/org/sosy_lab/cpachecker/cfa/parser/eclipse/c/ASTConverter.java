@@ -538,7 +538,7 @@ class ASTConverter {
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
     CIdExpression tmp = createTemporaryVariable(e);
     sideAssignmentStack.addConditionalExpression(e, tmp);
-    
+
     return tmp;
   }
 

@@ -37,7 +37,6 @@ public abstract class RefinablePrecision extends VariableTrackingPrecision {
   private final VariableTrackingPrecision baseline;
 
   protected RefinablePrecision(VariableTrackingPrecision pBaseline) {
-    super();
     baseline = pBaseline;
   }
 
