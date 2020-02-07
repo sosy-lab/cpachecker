@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -151,7 +152,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
       Set<Long> typeSizesOfThisObject = new HashSet<>();
 
       for (SMGEdgePointsTo edge : SMGUtils.getPointerToThisObject(pObject, pSmg)) {
-        Set<SMGEdgeHasValue> hves =
+        SMGHasValueEdges hves =
             pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(edge.getValue()));
         for (SMGEdgeHasValue hve : hves) {
           typeSizesOfThisObject.add(hve.getSizeInBits());
@@ -212,7 +213,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
       //TODO At the moment, we still demand that a value is found at prev or next.
 
-      Set<SMGEdgeHasValue> nextObjectNextPointer =
+      SMGHasValueEdges nextObjectNextPointer =
           pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo));
 
       if (nextObjectNextPointer.size() != 1) {
@@ -301,7 +302,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         /* Nothing besides the one link from the prev object pointer may
          * point to the next object in a sll
          */
-        Set<SMGEdgeHasValue> prevs =
+        SMGHasValueEdges prevs =
             pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
         if (prevs.size() != 1) {

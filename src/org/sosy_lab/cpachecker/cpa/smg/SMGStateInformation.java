@@ -25,31 +25,32 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdgeSet;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 
 public class SMGStateInformation {
 
   private static final SMGStateInformation EMPTY = new SMGStateInformation();
 
-  private final ImmutableSet<SMGEdgeHasValue> hvEdges;
+  private final SMGHasValueEdges hvEdges;
   private final ImmutableSet<SMGEdgePointsTo> ptEdges;
   private final boolean valid;
   private final boolean external;
 
   private SMGStateInformation() {
-    hvEdges = ImmutableSet.of();
+    hvEdges = new SMGHasValueEdgeSet();
     ptEdges = ImmutableSet.of();
     valid = false;
     external = false;
   }
 
   private SMGStateInformation(
-      Set<SMGEdgeHasValue> pHves,
+      SMGHasValueEdges pHves,
       Set<SMGEdgePointsTo> pPtes,
       boolean pIsRegionValid,
       boolean pIsRegionExternallyAllocated) {
-    hvEdges = ImmutableSet.copyOf(pHves);
+    hvEdges = pHves;
     ptEdges = ImmutableSet.copyOf(pPtes);
     valid = pIsRegionValid;
     external = pIsRegionExternallyAllocated;
@@ -63,7 +64,7 @@ public class SMGStateInformation {
     return ptEdges;
   }
 
-  public ImmutableSet<SMGEdgeHasValue> getHvEdges() {
+  public SMGHasValueEdges getHvEdges() {
     return hvEdges;
   }
 
@@ -81,7 +82,7 @@ public class SMGStateInformation {
   }
 
   public static SMGStateInformation of(
-      Set<SMGEdgeHasValue> pHves,
+      SMGHasValueEdges pHves,
       Set<SMGEdgePointsTo> ptes,
       boolean pIsRegionValid,
       boolean pIsRegionExternallyAllocated) {

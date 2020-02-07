@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -246,7 +247,7 @@ final class SMGJoinTargetObjects {
     Set<SMGObject> toCheck = new HashSet<>();
 
     pMapping.removeValue(targetObject);
-    Set<SMGEdgeHasValue> hves =
+    SMGHasValueEdges hves =
         destSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(targetObject));
 
     destSMG.removeObjectAndEdges(targetObject);

@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.collect.ImmutableSet;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
-/** An immutable collection of has-value-edges. */
-public interface SMGHasValueEdges {
+/** An immutable collection of has-value-edges.
+ * Should keep invariant: All has-value-edges, corresponding to one object, shouldn't interleave.
+ * Also it is possible to provide implementation with sorting by objects and offsets */
+public interface SMGHasValueEdges extends Iterable<SMGEdgeHasValue> {
 
   // Modifying methods
 
@@ -42,8 +43,14 @@ public interface SMGHasValueEdges {
   // Querying methods
 
   /** get all outgoing edges of all {@link SMGObject}s. */
-  ImmutableSet<SMGEdgeHasValue> getHvEdges();
+  SMGHasValueEdges getHvEdges();
+
+  SMGHasValueEdges filter(SMGEdgeHasValueFilter pFilter);
 
   /** get all outgoing edges of an {@link SMGObject}, e.g., all values of this object. */
-  Set<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject);
+  SMGHasValueEdges getEdgesForObject(SMGObject pObject);
+
+  int size();
+
+  boolean contains(SMGEdgeHasValue pHv);
 }
