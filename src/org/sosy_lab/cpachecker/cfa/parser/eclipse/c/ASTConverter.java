@@ -609,7 +609,7 @@ class ASTConverter {
         // manually ceck whether type of compundStatementExpression is void
         IGNUASTCompoundStatementExpression statementExpression =
             (IGNUASTCompoundStatementExpression) e;
-        IASTStatement statements[] = statementExpression.getCompoundStatement().getStatements();
+        IASTStatement[] statements = statementExpression.getCompoundStatement().getStatements();
 
         if (statements.length > 0) {
           IASTStatement lastStatement = statements[statements.length - 1];

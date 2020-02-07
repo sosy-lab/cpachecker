@@ -327,7 +327,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     private final List<List<Integer>> changeableAdjacencyList;
     private final Set<Pair<Integer, Integer>> knownEdges;
 
-    public SuccessorEdgeConstructor(ARGState pNodes[], List<List<Integer>> pAdjacencyList) {
+    public SuccessorEdgeConstructor(ARGState[] pNodes, List<List<Integer>> pAdjacencyList) {
       super(false);
       nodeToIndex = new HashMap<>();
       for (int i = 0; i < pNodes.length; i++) {

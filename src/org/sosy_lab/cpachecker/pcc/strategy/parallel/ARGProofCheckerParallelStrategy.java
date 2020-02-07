@@ -103,8 +103,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     logger.log(Level.INFO, "Proof check algorithm started");
     try {
 
-      StateCheckingHelper helper[] = new StateCheckingHelper[numThreads - 1];
-      Thread helperThreads[] = new Thread[numThreads - 1];
+      StateCheckingHelper[] helper = new StateCheckingHelper[numThreads - 1];
+      Thread[] helperThreads = new Thread[numThreads - 1];
       CyclicBarrier barrier = new CyclicBarrier(numThreads);
       CommonResult result = new CommonResult(numThreads);
 
