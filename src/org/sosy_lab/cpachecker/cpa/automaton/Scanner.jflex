@@ -1,7 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java_cup.runtime.*;
-import java_cup.runtime.ComplexSymbolFactory.Location;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +11,9 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.logging.Level;
+import java_cup.runtime.ComplexSymbolFactory;
+import java_cup.runtime.ComplexSymbolFactory.Location;
+import java_cup.runtime.Symbol;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 
