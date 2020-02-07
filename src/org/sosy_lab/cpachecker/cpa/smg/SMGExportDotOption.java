@@ -57,7 +57,7 @@ public class SMGExportDotOption {
   }
 
   public boolean exportSMG(SMGExportLevel pLevel) {
-    return pLevel == exportSMG && exportSMGFilePattern != null;
+    return pLevel.compareTo(exportSMG) <= 0 && exportSMGFilePattern != null;
   }
 
   @Override
