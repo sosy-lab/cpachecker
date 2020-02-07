@@ -45,4 +45,9 @@ extends SMGAbstractListCandidateSequenceBlock<SMGSingleLinkedListShape> {
   public boolean equals(Object obj) {
     return obj instanceof SMGSingleLinkedListCandidateSequenceBlock && super.equals(obj);
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode(); // equals() in this class checks nothing more
+  }
 }

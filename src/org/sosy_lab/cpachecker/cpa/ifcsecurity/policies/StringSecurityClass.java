@@ -51,4 +51,12 @@ public class StringSecurityClass extends SecurityClasses{
   public int hashCode() {
     return this.sc.hashCode();
   }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (!(pObj instanceof StringSecurityClass)) {
+      return false;
+    }
+    return sc.equals(((StringSecurityClass) pObj).sc);
+  }
 }

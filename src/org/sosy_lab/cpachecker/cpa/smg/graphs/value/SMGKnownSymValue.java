@@ -66,6 +66,11 @@ public class SMGKnownSymValue extends SMGKnownValue implements SMGKnownSymbolicV
   }
 
   @Override
+  public int hashCode() {
+    return super.hashCode(); // equals() in this class checks nothing more
+  }
+
+  @Override
   public String asDotId() {
     return "Sym" + getValue();
   }
