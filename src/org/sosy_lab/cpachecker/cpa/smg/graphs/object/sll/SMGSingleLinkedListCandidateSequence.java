@@ -101,7 +101,7 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
 
       addPointsToEdges(pSMG, prevObject, newAbsObj, SMGTargetSpecifier.FIRST);
 
-      SMGEdgeHasValue nextObj2hve = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo)));
+      SMGEdgeHasValue nextObj2hve = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo).filterBySize(pSMG.getMachineModel().getSizeofPtrInBits())));
 
       for (SMGObject obj : join.getNonSharedObjectsFromSMG1()) {
         pSMG.removeHeapObjectAndEdges(obj);
