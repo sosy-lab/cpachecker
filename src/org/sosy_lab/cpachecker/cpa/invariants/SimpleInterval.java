@@ -444,7 +444,7 @@ public class SimpleInterval {
     return BigInteger.ONE;
   }
 
-  private static SimpleInterval INFINITE = new SimpleInterval(null, null);
+  private static final SimpleInterval INFINITE = new SimpleInterval(null, null);
 
   public static SimpleInterval infinite() {
     return INFINITE;

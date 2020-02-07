@@ -30,7 +30,7 @@ class RecursiveAnalysisFailedException extends CPATransferException {
 
   private static final long serialVersionUID = 3822584071233172171L;
 
-  private int depth;
+  private final int depth;
 
   public RecursiveAnalysisFailedException(CPAException e) {
     super(createMessage(e));

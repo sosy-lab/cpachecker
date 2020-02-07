@@ -31,11 +31,8 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity.policies;
  */
 public class StringSecurityClass extends SecurityClasses{
 
-  /**
-   * Internal Variable containing the String-Identifier of the Security class
-   */
-  private String sc;
-
+  /** Internal Variable containing the String-Identifier of the Security class */
+  private final String sc;
 
   /**
    * Constructor for the Security-Class

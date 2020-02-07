@@ -307,7 +307,7 @@ public final class FlowDependenceState implements AbstractState, AbstractWrapper
 
   public static class UnknownPointerDependence extends FlowDependence {
 
-    private static UnknownPointerDependence INSTANCE = new UnknownPointerDependence();
+    private static final UnknownPointerDependence INSTANCE = new UnknownPointerDependence();
 
     private UnknownPointerDependence() {
       // It shouldn't be possible to add states to an UnknownPointerDependence

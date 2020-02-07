@@ -88,9 +88,9 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix="cpa.arg.export.code")
 public class ARGToCTranslator {
-  private static String ASSERTFAIL = "__assert_fail";
-  private static String DEFAULTRETURN = "default return";
-  private static String TMPVARPREFIX = "__tmp_";
+  private static final String ASSERTFAIL = "__assert_fail";
+  private static final String DEFAULTRETURN = "default return";
+  private static final String TMPVARPREFIX = "__tmp_";
 
   private final static AbstractState BOTTOM = new AbstractState() {
   };
