@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionCallEdge;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -140,7 +141,7 @@ public class CFAToCTranslator {
     FunctionBody f = startFunction(pEntry);
     functions.add(f);
 
-    for (CFAEdge relevant : getRelevantEdges(pEntry)) {
+    for (CFAEdge relevant : getRelevantLeavingEdges(pEntry)) {
       CFANode succ = relevant.getSuccessor();
       pushToWaitlist(waitlist, new NodeAndBlock(succ, f.getFunctionBody()));
     }
@@ -149,17 +150,14 @@ public class CFAToCTranslator {
       NodeAndBlock current = waitlist.poll();
       CFANode currentNode = current.getNode();
 
-      boolean skipElement = false;
+      boolean skipElement;
       if (!unhandledSinceLastProgress.contains(currentNode)) {
-        for (CFAEdge e : CFAUtils.enteringEdges(currentNode)) {
-          if (!createdStatements.containsKey(e.getPredecessor())) {
-            skipElement = true;
-            break;
-          }
-        }
-      } else if (waitlist.stream()
-          .anyMatch(i -> !unhandledSinceLastProgress.contains(i.getNode()))) {
-        skipElement = true;
+        skipElement =
+            getPredecessorNodes(currentNode).stream()
+                .anyMatch(n -> !createdStatements.containsKey(n));
+      } else {
+        skipElement =
+            waitlist.stream().anyMatch(i -> !unhandledSinceLastProgress.contains(i.getNode()));
       }
 
       if (skipElement) {
@@ -254,23 +252,37 @@ public class CFAToCTranslator {
     }
   }
 
+  private FluentIterable<CFANode> getPredecessorNodes(CFANode pN) {
+    FluentIterable<CFANode> predecessors =
+        getRelevantEnteringEdges(pN).transform(e -> e.getPredecessor());
+    if (pN.getEnteringSummaryEdge() != null) {
+      predecessors.append(pN.getEnteringSummaryEdge().getPredecessor());
+    }
+    return predecessors;
+  }
+
   private FunctionBody startFunction(CFunctionEntryNode pFunctionStartNode) {
     String lFunctionHeader =
         pFunctionStartNode.getFunctionDefinition().toASTString(NAMES_QUALIFIED).replace(";", "");
     return new FunctionBody(lFunctionHeader, createCompoundStatement(pFunctionStartNode, null));
   }
 
-  private Collection<CFAEdge> getRelevantEdges(CFANode pNode) {
+  private FluentIterable<CFAEdge> getRelevantLeavingEdges(CFANode pNode) {
     return CFAUtils.leavingEdges(pNode)
         .filter(e -> !(e instanceof FunctionReturnEdge))
-        .filter(e -> !(e instanceof CFunctionSummaryStatementEdge))
-        .toList();
+        .filter(e -> !(e instanceof CFunctionSummaryStatementEdge));
+  }
+
+  private FluentIterable<CFAEdge> getRelevantEnteringEdges(CFANode pNode) {
+    return CFAUtils.enteringEdges(pNode)
+        .filter(e -> !(e instanceof FunctionReturnEdge))
+        .filter(e -> !(e instanceof CFunctionSummaryStatementEdge));
   }
 
   private ImmutableCollection<Pair<CFAEdge, CompoundStatement>> handlePotentialBranching(
       CFANode pNode, CompoundStatement pStartingBlock) {
 
-    Collection<CFAEdge> outgoingEdges = getRelevantEdges(pNode);
+    Collection<CFAEdge> outgoingEdges = getRelevantLeavingEdges(pNode).toList();
     if (outgoingEdges.size() == 1) {
       CFAEdge edgeToChild = Iterables.getOnlyElement(outgoingEdges);
 
@@ -355,8 +367,25 @@ public class CFAToCTranslator {
     return assumption.isSwapped() != assumption.getTruthAssumption();
   }
 
+  private boolean hasMoreThanOneElement(final FluentIterable<?> pIterable) {
+    int count = 0;
+    for (Object o : pIterable) {
+      count++;
+      if (count > 1) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private void pushToWaitlist(Deque<NodeAndBlock> pWaitlist, NodeAndBlock pNodeAndBlock) {
-    pWaitlist.offer(pNodeAndBlock);
+    if (hasMoreThanOneElement(getPredecessorNodes(pNodeAndBlock.getNode()))) {
+      assert getPredecessorNodes(pNodeAndBlock.getNode()).stream()
+          .allMatch(createdStatements::containsKey);
+      pWaitlist.push(pNodeAndBlock);
+    } else {
+      pWaitlist.offer(pNodeAndBlock);
+    }
   }
 
   private CompoundStatement addIfStatementToBlock(
