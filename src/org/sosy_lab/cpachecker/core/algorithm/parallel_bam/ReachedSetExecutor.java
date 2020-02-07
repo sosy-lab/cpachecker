@@ -175,6 +175,10 @@ class ReachedSetExecutor {
     return asRunnable(ImmutableSet.of());
   }
 
+  /**
+   * create a new execution step where some states are added to the waitlist before running the
+   * execution step.
+   */
   private Runnable asRunnable(Collection<AbstractState> pStatesToBeAdded) {
     // copy needed, because access to pStatesToBeAdded is done in the future
     ImmutableSet<AbstractState> copy = ImmutableSet.copyOf(pStatesToBeAdded);
@@ -206,12 +210,7 @@ class ReachedSetExecutor {
     execCounter++;
 
     try { // big try-block to catch all exceptions
-
-      if (shutdownNotifier.shouldShutdown()) {
-        terminateAnalysis.set(true);
-        pool.shutdownNow();
-        return;
-      }
+      shutdownNotifier.shutdownIfNecessary();
 
       logger.logf(
           level,
@@ -269,7 +268,8 @@ class ReachedSetExecutor {
   }
 
   private void checkForTargetState() {
-    boolean endsWithTargetState = endsWithTargetState();
+    boolean endsWithTargetState =
+        rs.getLastState() != null && AbstractStates.isTargetState(rs.getLastState());
 
     if (targetStateFound) {
       Preconditions.checkState(
@@ -312,10 +312,6 @@ class ReachedSetExecutor {
       rs.reAddToWaitlist(state);
       dependsOn.remove(state);
     }
-  }
-
-  private boolean endsWithTargetState() {
-    return rs.getLastState() != null && AbstractStates.isTargetState(rs.getLastState());
   }
 
   boolean isTargetStateFound() {
