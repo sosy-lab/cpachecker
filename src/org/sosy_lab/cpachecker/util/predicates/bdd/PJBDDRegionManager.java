@@ -88,8 +88,12 @@ public class PJBDDRegionManager implements RegionManager {
   public Region fromFormula(
       BooleanFormula pF, FormulaManagerView fmgr, Function<BooleanFormula, Region> atomToRegion) {
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
-    if (bfmgr.isFalse(pF)) return makeFalse();
-    if (bfmgr.isTrue(pF)) return makeTrue();
+    if (bfmgr.isFalse(pF)) {
+      return makeFalse();
+    }
+    if (bfmgr.isTrue(pF)) {
+      return makeTrue();
+    }
 
     try (FormulaToRegionConverter converter = new FormulaToRegionConverter(fmgr, atomToRegion)) {
       return wrap(bfmgr.visit(pF, converter));
@@ -232,7 +236,9 @@ public class PJBDDRegionManager implements RegionManager {
 
     @Override
     public BDD visitAnd(List<BooleanFormula> pList) {
-      if (pList.isEmpty()) return bddCreator.makeFalse();
+      if (pList.isEmpty()) {
+        return bddCreator.makeFalse();
+      }
 
       BDD result = bddCreator.makeTrue();
       for (BooleanFormula bFormula : pList) {
@@ -243,7 +249,9 @@ public class PJBDDRegionManager implements RegionManager {
 
     @Override
     public BDD visitOr(List<BooleanFormula> pList) {
-      if (pList.isEmpty()) return bddCreator.makeFalse();
+      if (pList.isEmpty()) {
+        return bddCreator.makeFalse();
+      }
 
       BDD result = bddCreator.makeFalse();
       for (BooleanFormula bFormula : pList) {
@@ -360,7 +368,9 @@ public class PJBDDRegionManager implements RegionManager {
 
         BDD result = bddCreator.makeTrue();
 
-        for (BDD bdd : clauses) result = bddCreator.makeOr(result, bdd);
+        for (BDD bdd : clauses) {
+          result = bddCreator.makeOr(result, bdd);
+        }
 
         cubes.clear();
 

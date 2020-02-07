@@ -33,6 +33,7 @@
       <property name="regexp" value="true"/>
     </module>
     <module name="RedundantImport"/>
+    <module name="NeedBraces"/>
     <module name="CovariantEquals"/>
     <module name="EmptyStatement"/>
     <module name="FallThrough">
