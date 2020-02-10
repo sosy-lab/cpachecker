@@ -39,140 +39,178 @@ import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.test.AbstractARGTranslationTest;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-@RunWith(Parameterized.class)
-public class ARGToCTranslatorTest extends AbstractARGTranslationTest {
+public class ARGToCTranslatorTest {
 
-  private final ARGToCTranslator translator;
-  private final Configuration config;
-  private final Configuration reConfig;
-  private final Path residualProgramPath;
-  private final boolean verdict;
-  private final Path program;
-  private final boolean hasGotoDecProblem;
-  private final String spec;
+  @RunWith(Parameterized.class)
+  public static class TranslationTest extends AbstractARGTranslationTest {
+    protected final Configuration reConfig;
+    private final Path residualProgramPath;
+    protected final boolean verdict;
+    private final Path program;
+    private final boolean hasGotoDecProblem;
+    protected String generationPropfile;
 
-  public ARGToCTranslatorTest(
-      @SuppressWarnings("unused") String pTestLabel,
-      String pProgram,
-      boolean pVerdict,
-      boolean pHasGotoDecProblem,
-      String pSpec,
-      boolean useOverflows)
-      throws InvalidConfigurationException, IOException {
-    filePrefix = "residual";
-    program = Paths.get(TEST_DIR_PATH, pProgram);
-    verdict = pVerdict;
-    hasGotoDecProblem = pHasGotoDecProblem;
-    spec = pSpec;
-    residualProgramPath =
-        TempFile.builder().prefix("residual").suffix(".c").create().toAbsolutePath();
-    String propfile = useOverflows ? "inline-overflow.properties" : "inline-errorlabel.properties";
-    ConfigurationBuilder configBuilder =
-        TestDataTools.configurationForTest()
-            .loadFromResource(ARGToCTranslatorTest.class, propfile)
-            .setOption("cpa.arg.export.code.handleTargetStates", "VERIFIERERROR")
-            .setOption("cpa.arg.export.code.header", "false");
-    if (spec != null) {
-      String specPath = Paths.get(TEST_DIR_PATH, spec).toString();
-      configBuilder.setOption("specification", specPath.toString());
+    public TranslationTest(
+        @SuppressWarnings("unused") String pTestLabel,
+        String pProgram,
+        boolean pVerdict,
+        boolean pHasGotoDecProblem)
+        throws InvalidConfigurationException, IOException {
+      filePrefix = "residual";
+      program = Paths.get(TEST_DIR_PATH, pProgram);
+      verdict = pVerdict;
+      hasGotoDecProblem = pHasGotoDecProblem;
+      residualProgramPath =
+          TempFile.builder().prefix("residual").suffix(".c").create().toAbsolutePath();
+      generationPropfile = "inline-errorlabel.properties";
+      reConfig =
+          TestDataTools.configurationForTest()
+              .loadFromResource(ARGToCTranslatorTest.class, "predicateAnalysis.properties")
+              .build();
     }
-    config = configBuilder.build();
 
-    reConfig =
-        TestDataTools.configurationForTest()
-            .loadFromResource(ARGToCTranslatorTest.class, "predicateAnalysis.properties")
-            .build();
-    translator = new ARGToCTranslator(logger, config, MachineModel.LINUX32);
+    protected ConfigurationBuilder getGenerationConfig(String propfile)
+        throws InvalidConfigurationException {
+      return TestDataTools.configurationForTest()
+          .loadFromResource(ARGToCTranslatorTest.class, propfile)
+          .setOption("cpa.arg.export.code.handleTargetStates", "VERIFIERERROR")
+          .setOption("cpa.arg.export.code.header", "false");
+    }
+
+    protected ARGToCTranslator getTranslator() throws InvalidConfigurationException {
+      final Configuration generationConfig = getGenerationConfig(generationPropfile).build();
+      return new ARGToCTranslator(logger, generationConfig, MachineModel.LINUX32);
+    }
+
+    @Test
+    public void testVerdictsStaySame() throws Exception {
+      createAndWriteARGProgram(program, residualProgramPath, hasGotoDecProblem);
+
+      // test whether C program still gives correct verdict:
+      check(reConfig, residualProgramPath, verdict);
+    }
+
+    @Test
+    public void testProgramsParsable() throws Exception {
+      createAndWriteARGProgram(program, residualProgramPath, hasGotoDecProblem);
+
+      checkProgramValid(residualProgramPath);
+    }
+
+    @Test
+    public void testProgramsCompilable() throws Exception {
+      createAndWriteARGProgram(program, residualProgramPath, hasGotoDecProblem);
+
+      checkProgramValid(residualProgramPath);
+    }
+
+    private void createAndWriteARGProgram(
+        final Path pOriginalProgram, final Path pTargetPath, final boolean pHasGotoDecProblem)
+        throws Exception {
+      ARGToCTranslator translator = getTranslator();
+      Configuration config = getGenerationConfig(generationPropfile).build();
+
+      // generate ARG for C program
+      ARGState root = run(config, pOriginalProgram);
+
+      // translate write ARG to new C program
+      String res = translator.translateARG(root, pHasGotoDecProblem);
+      Files.write(pTargetPath, res.getBytes("utf-8"));
+    }
+
+    @Parameters(name = "{0}")
+    public static Collection<Object[]> data() {
+      ImmutableList.Builder<Object[]> b = ImmutableList.builder();
+
+      // test whether writing essentially the same program will yield the same verdict
+      b.add(simpleTask("main.c", true));
+      b.add(simpleTask("main2.c", false));
+      b.add(simpleTask("functionreturn.c", false));
+      b.add(simpleTask("gotos.c", false));
+
+      // test program generation with hasGotoDecProblem enabled.
+      // I do not know good cases for when to use this flag => TODO: add better tests
+      b.add(simpleTestWithGotoDecProblem("main.c", true));
+      b.add(simpleTestWithGotoDecProblem("main2.c", false));
+      b.add(simpleTestWithGotoDecProblem("functionreturn.c", false));
+
+      return b.build();
+    }
+
+    private static Object[] simpleTask(String program, boolean verdict) {
+      String label = String.format("SimpleTest(%s is %s)", program, Boolean.toString(verdict));
+      return new Object[] {label, program, verdict, false};
+    }
+
+    private static Object[] simpleTestWithGotoDecProblem(String program, boolean verdict) {
+      String label =
+          String.format(
+              "SimpleTestWithGotoDecProblem(%s is %s)", program, Boolean.toString(verdict));
+      return new Object[] {label, program, verdict, true};
+    }
   }
 
-  @Parameters(name = "{0}")
-  public static Collection<Object[]> data() {
-    ImmutableList.Builder<Object[]> b = ImmutableList.builder();
+  @RunWith(Parameterized.class)
+  public static class SpecificationCombinationTest extends TranslationTest {
+    private final String spec;
 
-    // test whether writing essentially the same program will yield the same verdict
-    b.add(simpleTask("main.c", true));
-    b.add(simpleTask("main2.c", false));
-    b.add(simpleTask("functionreturn.c", false));
+    public SpecificationCombinationTest(
+        @SuppressWarnings("unused") String pTestLabel,
+        String pProgram,
+        boolean pVerdict,
+        boolean pHasGotoDecProblem,
+        String pSpec,
+        boolean useOverflows)
+        throws InvalidConfigurationException, IOException {
+      super(pTestLabel, pProgram, pVerdict, pHasGotoDecProblem);
 
-    // test program generation with hasGotoDecProblem enabled.
-    // I do not know good cases for when to use this flag => TODO: add better tests
-    b.add(simpleTestWithGotoDecProblem("main.c", true));
-    b.add(simpleTestWithGotoDecProblem("main2.c", false));
-    b.add(simpleTestWithGotoDecProblem("functionreturn.c", false));
+      spec = pSpec;
+      generationPropfile =
+          useOverflows ? "inline-overflow.properties" : "inline-errorlabel.properties";
+    }
 
-    // Test whether two or more outgoing edges are handled properly, i.e., whether the verdicts of
-    // the original program+spec is the same as the verdict for the generated program with default
-    // reachability spec:
-    b.add(specCausedMultiBranchingTest("main.c", false, "main_additional_spec.spc"));
-    b.add(specCausedMultiBranchingTest("simple.c", false, "simple_additional_spec.spc"));
-    b.add(specCausedMultiBranchingTest("simple.c", true, "simple_additional_spec2.spc"));
-    b.add(specCausedMultiBranchingTest("simple2.c", false, "simple2_additional_spec.spc"));
+    @Override
+    protected ConfigurationBuilder getGenerationConfig(String propfile)
+        throws InvalidConfigurationException {
+      ConfigurationBuilder config = super.getGenerationConfig(propfile);
+      if (spec != null) {
+        String specPath = Paths.get(TEST_DIR_PATH, spec).toString();
+        config.setOption("specification", specPath);
+      }
+      return config;
+    }
 
-    // Test whether we can encode overflows correctly:
-    b.add(overflowToCTest("simple.c", false));
+    @Parameters(name = "{0}")
+    public static Collection<Object[]> data() {
+      ImmutableList.Builder<Object[]> b = ImmutableList.builder();
 
-    return b.build();
+      // Test whether two or more outgoing edges are handled properly, i.e., whether the verdicts of
+      // the original program+spec is the same as the verdict for the generated program with default
+      // reachability spec:
+      b.add(specCausedMultiBranchingTest("main.c", false, "main_additional_spec.spc"));
+      b.add(specCausedMultiBranchingTest("simple.c", false, "simple_additional_spec.spc"));
+      b.add(specCausedMultiBranchingTest("simple.c", true, "simple_additional_spec2.spc"));
+      b.add(specCausedMultiBranchingTest("simple2.c", false, "simple2_additional_spec.spc"));
+
+      // Test whether we can encode overflows correctly:
+      b.add(overflowToCTest("simple.c", false));
+
+      // b.addAll(conditionAutomataTests());
+
+      return b.build();
+    }
+
+    private static Object[] specCausedMultiBranchingTest(
+        String program, boolean verdict, String spec) {
+      String label =
+          String.format("specCausedMultiBranchingTest(%s with %s is %s)", program, spec, verdict);
+      return new Object[] {label, program, verdict, false, spec, false};
+    }
+
+    private static Object[] overflowToCTest(String program, boolean verdict) {
+      String label = String.format("overflowToCTest(%s is %s)", program, verdict);
+      return new Object[] {label, program, verdict, true, null, true};
+    }
   }
 
-  private static Object[] simpleTask(String program, boolean verdict) {
-    String label = String.format("SimpleTest(%s is %s)", program, Boolean.toString(verdict));
-    return new Object[] {label, program, verdict, false, null, false};
-  }
-
-  private static Object[] simpleTestWithGotoDecProblem(String program, boolean verdict) {
-    String label =
-        String.format("SimpleTestWithGotoDecProblem(%s is %s)", program, Boolean.toString(verdict));
-    return new Object[] {label, program, verdict, true, null, false};
-  }
-
-  private static Object[] specCausedMultiBranchingTest(
-      String program, boolean verdict, String spec) {
-    String label =
-        String.format(
-            "specCausedMultiBranchingTest(%s with %s is %s)",
-            program, spec, Boolean.toString(verdict));
-    return new Object[] {label, program, verdict, false, spec, false};
-  }
-
-  private static Object[] overflowToCTest(String program, boolean verdict) {
-    String label = String.format("overflowToCTest(%s is %s)", program, Boolean.toString(verdict));
-    return new Object[] {label, program, verdict, true, null, true};
-  }
-
-  @Test
-  public void testVerdictsStaySame() throws Exception {
-    createAndWriteARGProgram(program, config, residualProgramPath, hasGotoDecProblem);
-
-    // test whether C program still gives correct verdict:
-    check(reConfig, residualProgramPath, verdict);
-  }
-
-  @Test
-  public void testProgramsParsable() throws Exception {
-    createAndWriteARGProgram(program, config, residualProgramPath, hasGotoDecProblem);
-
-    checkProgramValid(residualProgramPath);
-  }
-
-  @Test
-  public void testProgramsCompilable() throws Exception {
-    createAndWriteARGProgram(program, config, residualProgramPath, hasGotoDecProblem);
-
-    checkProgramValid(residualProgramPath);
-  }
-
-  private void createAndWriteARGProgram(
-      final Path pOriginalProgram,
-      final Configuration pCreationConfig,
-      final Path pTargetPath,
-      final boolean pHasGotoDecProblem)
-      throws Exception {
-
-    // generate ARG for C program
-    ARGState root = run(pCreationConfig, pOriginalProgram);
-
-    // translate write ARG to new C program
-    String res = translator.translateARG(root, pHasGotoDecProblem);
-    Files.write(pTargetPath, res.getBytes("utf-8"));
-  }
 }
