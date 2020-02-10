@@ -101,7 +101,7 @@ public class ARGToCTranslatorTest {
     public void testProgramsCompilable() throws Exception {
       createAndWriteARGProgram(program, residualProgramPath, hasGotoDecProblem);
 
-      checkProgramValid(residualProgramPath);
+      checkProgramCompilable(residualProgramPath);
     }
 
     private void createAndWriteARGProgram(
