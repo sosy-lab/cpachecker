@@ -153,13 +153,4 @@ public class ARGToCTranslatorTest extends AbstractARGTranslationTest {
     check(reConfig, residualProgramPath, verdict);
   }
 
-  private static void check(Configuration config, Path program, boolean verdict) throws Exception {
-    TestResults results = run0(config, program);
-    if (verdict) {
-      results.assertIsSafe();
-    } else {
-      results.assertIsUnsafe();
-    }
-  }
-
 }
