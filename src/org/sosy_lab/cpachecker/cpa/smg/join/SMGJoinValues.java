@@ -960,7 +960,10 @@ final class SMGJoinValues {
     SMGValue nextPointer;
 
     SMGHasValueEdges hvesNp =
-        newInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(nf));
+        newInputSMG1.getHVEdges(
+            SMGEdgeHasValueFilter.objectFilter(pTarget)
+                .filterAtOffset(nf)
+                .filterBySize(newDestSMG.getSizeofPtrInBits()));
 
     if(hvesNp.size() == 0) {
       // Edge lost due to join fields, should be zero
@@ -1153,14 +1156,12 @@ final class SMGJoinValues {
 
   private long getSize(SMGObject pTarget, long pNf, UnmodifiableSMG pInputSMG1) {
     SMGHasValueEdges oldNfEdge =
-        pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf));
+        pInputSMG1.getHVEdges(
+            SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf).filterWithoutSize());
 
     if (oldNfEdge.size() == 0) {
       return new SMGEdgeHasValue(
-              pInputSMG1.getMachineModel().getSizeofPtrInBits(),
-              pNf,
-              pTarget,
-              SMGZeroValue.INSTANCE)
+              pInputSMG1.getSizeofPtrInBits(), pNf, pTarget, SMGZeroValue.INSTANCE)
           .getSizeInBits();
     } else {
       return Iterables.getOnlyElement(oldNfEdge).getSizeInBits();
@@ -1226,7 +1227,10 @@ final class SMGJoinValues {
     }
 
     SMGHasValueEdges npHves =
-        newInputSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(nf));
+        newInputSMG2.getHVEdges(
+            SMGEdgeHasValueFilter.objectFilter(pTarget)
+                .filterAtOffset(nf)
+                .filterBySize(newInputSMG2.getSizeofPtrInBits()));
 
     SMGValue nextPointer;
 
@@ -1589,7 +1593,13 @@ final class SMGJoinValues {
         }
       }
 
-      if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(newObj).filterAtOffset(hve.getOffset())).size() == 0) {
+      if (pDestSMG
+              .getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(newObj)
+                      .filterAtOffset(hve.getOffset())
+                      .filterWithoutSize())
+              .size()
+          == 0) {
         if (!pDestSMG.getValues().contains(newVal)) {
           pDestSMG.addValue(newVal);
         }
