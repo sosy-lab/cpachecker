@@ -195,8 +195,6 @@ public class ARGToCTranslatorTest {
       // Test whether we can encode overflows correctly:
       b.add(overflowToCTest("simple.c", false));
 
-      // b.addAll(conditionAutomataTests());
-
       return b.build();
     }
 
