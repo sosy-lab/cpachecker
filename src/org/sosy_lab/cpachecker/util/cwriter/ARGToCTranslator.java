@@ -227,6 +227,25 @@ public class ARGToCTranslator {
     }
   }
 
+  static class Label extends Statement {
+
+    private final String name;
+
+    public Label(String pLabelName) {
+      name = pLabelName;
+    }
+
+    @Override
+    public String getLabel() {
+      return name;
+    }
+
+    @Override
+    void translateToCode0(StringBuilder buffer, int indent) {
+      buffer.append(name).append(":;");
+    }
+  }
+
   private static class ARGEdge {
     private final ARGState parent;
     private final ARGState child;

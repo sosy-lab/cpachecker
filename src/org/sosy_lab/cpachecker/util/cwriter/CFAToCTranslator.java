@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.CompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.FunctionBody;
+import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.Label;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.SimpleStatement;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.Statement;
 
@@ -170,6 +171,12 @@ public class CFAToCTranslator {
     }
   }
 
+  private Statement createLabel(CLabelNode pNode) {
+    Statement s = new Label(pNode.getLabel());
+    createdStatements.put(pNode, s);
+    return s;
+  }
+
   private CompoundStatement getBlockToContinueWith(
       final CFANode pCurrentNode,
       final CompoundStatement pCurrentBlock,
@@ -238,6 +245,10 @@ public class CFAToCTranslator {
     if (pNode instanceof CFATerminationNode || pNode.getNumLeavingEdges() == 0) {
       pBlock.addStatement(createSimpleStatement(pNode, "abort();"));
       return ImmutableList.of();
+    }
+
+    if (pNode instanceof CLabelNode) {
+      pBlock.addStatement(createLabel((CLabelNode) pNode));
     }
 
     Collection<Pair<CFAEdge, CompoundStatement>> outgoingEdges =
@@ -416,10 +427,6 @@ public class CFAToCTranslator {
     return newBlock;
   }
 
-  private String getLabelCode(final String pLabelName) {
-    return pLabelName + ":; ";
-  }
-
   private String translateSimpleEdge(CFAEdge pCFAEdge) throws CPAException {
     if (pCFAEdge == null) {
       return "";
@@ -427,16 +434,6 @@ public class CFAToCTranslator {
 
     switch (pCFAEdge.getEdgeType()) {
       case BlankEdge:
-        {
-          CFANode succ = pCFAEdge.getSuccessor();
-          if (succ instanceof CLabelNode) {
-              return getLabelCode(((CLabelNode) succ).getLabel());
-          } else {
-            // nothing to do
-            break;
-          }
-        }
-
       case AssumeEdge:
         {
           // nothing to do
