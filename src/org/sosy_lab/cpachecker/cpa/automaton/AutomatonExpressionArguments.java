@@ -238,6 +238,15 @@ class AutomatonExpressionArguments {
             pNode.getFileLocation(),
             CNumericTypes.INT,
             BigInteger.valueOf(automatonVariable.getValue()));
+      } else if (idName.equals("false")) {
+        // this branch is a compromise between human-readable automata
+        // and assumptions that are valid C expressions:
+        // In automata, we use assumption 'false', which is no valid expression
+        // in the C standard. so we replace 'false' with '0' to get a valid C expression
+        // with the intended semantics.
+        // This may lead to problems if people use a variable with name 'false' and a non-zero
+        // value in their code.
+        return CIntegerLiteralExpression.ZERO;
       } else {
         return getTransitionVariable(idName);
       }
