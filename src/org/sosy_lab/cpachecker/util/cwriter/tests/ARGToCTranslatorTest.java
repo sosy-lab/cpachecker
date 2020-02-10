@@ -213,4 +213,75 @@ public class ARGToCTranslatorTest {
     }
   }
 
+  @RunWith(Parameterized.class)
+  public static class AssumptionAutomataCombinationTest extends TranslationTest {
+
+    private static final String CONFIG_FILE = "assumption-guiding.properties";
+
+    private final Path conditionAutomaton;
+
+    public AssumptionAutomataCombinationTest(
+        String pTestLabel, String pProgram, boolean pVerdict, String pConditionAutomaton)
+        throws InvalidConfigurationException, IOException {
+      super(pTestLabel, pProgram, pVerdict, false);
+
+      conditionAutomaton = Paths.get(TEST_DIR_PATH, pConditionAutomaton);
+      generationPropfile = CONFIG_FILE;
+    }
+
+    @Override
+    protected ConfigurationBuilder getGenerationConfig(String propfile)
+        throws InvalidConfigurationException {
+      ConfigurationBuilder config = super.getGenerationConfig(propfile);
+      config.setOption(
+          "AssumptionAutomaton.cpa.automaton.inputFile", conditionAutomaton.toString());
+
+      return config;
+    }
+
+    @Parameters(name = "{0}")
+    public static Collection<Object[]> data() {
+      ImmutableList.Builder<Object[]> b = ImmutableList.builder();
+
+      b.add(generationTest("main.c", "AssumptionAutomaton.True.txt"));
+      b.add(generationTest("main.c", "AssumptionAutomaton.False.txt"));
+
+      b.add(
+          generationWithChangedVerdictTest(
+              "multipleErrors.c", true, "multipleErrors.AssumptionAutomaton.noErrorReachable.txt"));
+      b.add(
+          generationWithChangedVerdictTest(
+              "multipleErrors.c",
+              true,
+              "multipleErrors.AssumptionAutomaton.safeBranchReachable.txt"));
+      b.add(
+          generationWithChangedVerdictTest(
+              "multipleErrors.c",
+              false,
+              "multipleErrors.AssumptionAutomaton.unsafeBranchReachable.txt"));
+
+      // Tests for multiple branching through condition automaton
+      b.add(generationTest("main.c", "main_additional_spec.AssumptionAutomaton.txt"));
+      b.add(generationTest("simple.c", "simple_additional_spec.AssumptionAutomaton.txt"));
+      b.add(generationTest("simple2.c", "simple2_additional_spec.AssumptionAutomaton.txt"));
+
+      return b.build();
+    }
+
+    private static Object[] generationTest(String program, String conditionAutomaton) {
+      String label = String.format("generationTest(%s with %s)", program, conditionAutomaton);
+
+      return new Object[] {label, program, true, conditionAutomaton};
+    }
+
+    private static Object[] generationWithChangedVerdictTest(
+        String program, boolean verdict, String conditionAutomaton) {
+      String label =
+          String.format(
+              "generationWithChangedVerdictTest(%s with %s is %s)",
+              program, conditionAutomaton, verdict);
+
+      return new Object[] {label, program, verdict, conditionAutomaton};
+    }
+  }
 }
