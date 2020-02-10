@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.test.AbstractARGTranslationTest;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
 
 @RunWith(Parameterized.class)
 public class ARGToCTranslatorTest extends AbstractARGTranslationTest {
@@ -141,16 +140,39 @@ public class ARGToCTranslatorTest extends AbstractARGTranslationTest {
   }
 
   @Test
-  public void test() throws Exception {
-
-    // generate C program:
-    ARGState root = run(config, program);
-
-    String res = translator.translateARG(root, hasGotoDecProblem);
-    Files.write(residualProgramPath, res.getBytes("utf-8"));
+  public void testVerdictsStaySame() throws Exception {
+    createAndWriteARGProgram(program, config, residualProgramPath, hasGotoDecProblem);
 
     // test whether C program still gives correct verdict:
     check(reConfig, residualProgramPath, verdict);
   }
 
+  @Test
+  public void testProgramsParsable() throws Exception {
+    createAndWriteARGProgram(program, config, residualProgramPath, hasGotoDecProblem);
+
+    checkProgramValid(residualProgramPath);
+  }
+
+  @Test
+  public void testProgramsCompilable() throws Exception {
+    createAndWriteARGProgram(program, config, residualProgramPath, hasGotoDecProblem);
+
+    checkProgramValid(residualProgramPath);
+  }
+
+  private void createAndWriteARGProgram(
+      final Path pOriginalProgram,
+      final Configuration pCreationConfig,
+      final Path pTargetPath,
+      final boolean pHasGotoDecProblem)
+      throws Exception {
+
+    // generate ARG for C program
+    ARGState root = run(pCreationConfig, pOriginalProgram);
+
+    // translate write ARG to new C program
+    String res = translator.translateARG(root, pHasGotoDecProblem);
+    Files.write(pTargetPath, res.getBytes("utf-8"));
+  }
 }
