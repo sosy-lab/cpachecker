@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -39,7 +40,15 @@ import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.test.AbstractARGTranslationTest;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-public class ARGToCTranslatorTest {
+/**
+ * Unit tests for {@link ARGToCTranslator}. Because <code>ARGToCTranslator</code> can be used in
+ * different settings. this class does not contain any tests itself. Instead, it contains one inner
+ * static class for each setting that contains tests for that setting.
+ */
+@RunWith(Enclosed.class)
+public final class ARGToCTranslatorTest {
+
+  private ARGToCTranslatorTest() {}
 
   @RunWith(Parameterized.class)
   public static class TranslationTest extends AbstractARGTranslationTest {
