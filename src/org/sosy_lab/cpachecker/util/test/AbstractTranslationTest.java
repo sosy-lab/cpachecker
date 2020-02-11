@@ -47,11 +47,11 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * This abstract class serves as a base for writing tests that check various approaches for
- * translating ARGs into other formats such as automata or C programs
+ * translating ARGs, CFAs, etc. into other formats such as automata or C programs
  */
 @Ignore("prevent this abstract class being executed as testcase by ant")
 @RunWith(Parameterized.class)
-public abstract class AbstractARGTranslationTest {
+public abstract class AbstractTranslationTest {
   public static final String TEST_DIR_PATH = "test/programs/programtranslation/";
 
   /** Compiler executable to use in tests. */
@@ -62,7 +62,7 @@ public abstract class AbstractARGTranslationTest {
   protected String filePrefix = "tmp";
   protected final LogManager logger;
 
-  public AbstractARGTranslationTest() {
+  public AbstractTranslationTest() {
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
     stringLogHandler.setLevel(Level.ALL);
     stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());

@@ -37,7 +37,7 @@ import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
-import org.sosy_lab.cpachecker.util.test.AbstractARGTranslationTest;
+import org.sosy_lab.cpachecker.util.test.AbstractTranslationTest;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /**
@@ -51,7 +51,7 @@ public final class ARGToCTranslatorTest {
   private ARGToCTranslatorTest() {}
 
   @RunWith(Parameterized.class)
-  public static class TranslationTest extends AbstractARGTranslationTest {
+  public static class TranslationTest extends AbstractTranslationTest {
     protected final Configuration reConfig;
     private final Path residualProgramPath;
     protected final boolean verdict;
