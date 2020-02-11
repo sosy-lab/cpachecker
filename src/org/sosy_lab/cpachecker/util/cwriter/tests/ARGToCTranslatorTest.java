@@ -25,7 +25,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
-import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,8 +36,8 @@ import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
-import org.sosy_lab.cpachecker.util.test.AbstractTranslationTest;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.ToCTranslationTest;
 
 /**
  * Unit tests for {@link ARGToCTranslator}. Because <code>ARGToCTranslator</code> can be used in
@@ -51,10 +50,7 @@ public final class ARGToCTranslatorTest {
   private ARGToCTranslatorTest() {}
 
   @RunWith(Parameterized.class)
-  public static class TranslationTest extends AbstractTranslationTest {
-    protected final Configuration reConfig;
-    private final Path residualProgramPath;
-    protected final boolean verdict;
+  public static class TranslationTest extends ToCTranslationTest {
     private final Path program;
     private final boolean hasGotoDecProblem;
     protected String generationPropfile;
@@ -65,17 +61,21 @@ public final class ARGToCTranslatorTest {
         boolean pVerdict,
         boolean pHasGotoDecProblem)
         throws InvalidConfigurationException, IOException {
+      super(
+          /* pTargetProgram = */ TempFile.builder()
+              .prefix("residual")
+              .suffix(".c")
+              .create()
+              .toAbsolutePath(),
+          /* pVerdict = */ pVerdict,
+          /* pCheckerConfig = */ TestDataTools.configurationForTest()
+              .loadFromResource(ARGToCTranslatorTest.class, "predicateAnalysis.properties")
+              .build());
+
       filePrefix = "residual";
       program = Paths.get(TEST_DIR_PATH, pProgram);
-      verdict = pVerdict;
       hasGotoDecProblem = pHasGotoDecProblem;
-      residualProgramPath =
-          TempFile.builder().prefix("residual").suffix(".c").create().toAbsolutePath();
       generationPropfile = "inline-errorlabel.properties";
-      reConfig =
-          TestDataTools.configurationForTest()
-              .loadFromResource(ARGToCTranslatorTest.class, "predicateAnalysis.properties")
-              .build();
     }
 
     protected ConfigurationBuilder getGenerationConfig(String propfile)
@@ -91,39 +91,16 @@ public final class ARGToCTranslatorTest {
       return new ARGToCTranslator(logger, generationConfig, MachineModel.LINUX32);
     }
 
-    @Test
-    public void testVerdictsStaySame() throws Exception {
-      createAndWriteARGProgram(program, residualProgramPath, hasGotoDecProblem);
-
-      // test whether C program still gives correct verdict:
-      check(reConfig, residualProgramPath, verdict);
-    }
-
-    @Test
-    public void testProgramsParsable() throws Exception {
-      createAndWriteARGProgram(program, residualProgramPath, hasGotoDecProblem);
-
-      checkProgramValid(residualProgramPath);
-    }
-
-    @Test
-    public void testProgramsCompilable() throws Exception {
-      createAndWriteARGProgram(program, residualProgramPath, hasGotoDecProblem);
-
-      checkProgramCompilable(residualProgramPath);
-    }
-
-    private void createAndWriteARGProgram(
-        final Path pOriginalProgram, final Path pTargetPath, final boolean pHasGotoDecProblem)
-        throws Exception {
+    @Override
+    protected void createProgram(final Path pTargetPath) throws Exception {
       ARGToCTranslator translator = getTranslator();
       Configuration config = getGenerationConfig(generationPropfile).build();
 
       // generate ARG for C program
-      ARGState root = run(config, pOriginalProgram);
+      ARGState root = run(config, program);
 
       // translate write ARG to new C program
-      String res = translator.translateARG(root, pHasGotoDecProblem);
+      String res = translator.translateARG(root, hasGotoDecProblem);
       Files.write(pTargetPath, res.getBytes("utf-8"));
     }
 
