@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -101,6 +102,17 @@ public class CFAToCTranslator {
   private final ListMultimap<CFANode, Statement> createdStatements = ArrayListMultimap.create();
   private Collection<FunctionBody> functions;
 
+  /**
+   * Translates the given {@link CFA} into a C program. The given C program is semantically
+   * equivalent to the CFA. It is <b>not</b> guaranteed that a CFA created from the resulting C
+   * program will be equal to the given CFA.
+   *
+   * @param pCfa the CFA to translate
+   * @return C representation of the given CFA
+   * @throws CPAException if the given CFA is not complete (e.g., if it contains {@link CProblemType
+   *     CProblemTypes})
+   * @throws InvalidConfigurationException if the given CFA is not a CFA for a C program
+   */
   public String translateCfa(CFA pCfa) throws CPAException, InvalidConfigurationException {
     functions = new ArrayList<>(pCfa.getNumberOfFunctions());
 
