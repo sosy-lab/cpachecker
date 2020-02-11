@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /**
  * Unit tests for {@link ARGToCTranslator}. Because <code>ARGToCTranslator</code> can be used in
- * different settings. this class does not contain any tests itself. Instead, it contains one inner
+ * different settings, this class does not contain any tests itself. Instead, it contains one inner
  * static class for each setting that contains tests for that setting.
  */
 @RunWith(Enclosed.class)
