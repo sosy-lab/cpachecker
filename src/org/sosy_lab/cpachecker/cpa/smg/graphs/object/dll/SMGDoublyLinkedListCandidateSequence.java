@@ -140,15 +140,11 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
       // Don't forget object corresponding to AddressValue
       if (nfoHve.getValue() instanceof SMGAddressValue) {
         SMGAddressValue addressValue = (SMGAddressValue) nfoHve.getValue();
-        if (!addressValue.isZero()) {
-          pSMG.addObject(addressValue.getObject());
-        }
+        pSMG.addObject(addressValue.getObject());
       }
       if (pfoHve.getValue() instanceof SMGAddressValue) {
         SMGAddressValue addressValue = (SMGAddressValue) pfoHve.getValue();
-        if (!addressValue.isZero()) {
-          pSMG.addObject(addressValue.getObject());
-        }
+        pSMG.addObject(addressValue.getObject());
       }
 
       pSMG.addHasValueEdge(nfoHve);
