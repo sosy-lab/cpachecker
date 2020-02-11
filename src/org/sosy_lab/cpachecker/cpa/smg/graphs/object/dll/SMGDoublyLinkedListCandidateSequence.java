@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractListCandidateSequence;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
@@ -137,16 +136,6 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
               prevObj1hve.getOffset(),
               newAbsObj,
               prevObj1hve.getValue());
-      // Don't forget object corresponding to AddressValue
-      if (nfoHve.getValue() instanceof SMGAddressValue) {
-        SMGAddressValue addressValue = (SMGAddressValue) nfoHve.getValue();
-        pSMG.addObject(addressValue.getObject());
-      }
-      if (pfoHve.getValue() instanceof SMGAddressValue) {
-        SMGAddressValue addressValue = (SMGAddressValue) pfoHve.getValue();
-        pSMG.addObject(addressValue.getObject());
-      }
-
       pSMG.addHasValueEdge(nfoHve);
       pSMG.addHasValueEdge(pfoHve);
 
