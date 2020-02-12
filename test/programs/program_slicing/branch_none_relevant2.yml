@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+input_files: 'branch_none_relevant2.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp
+    expected_verdict: false
