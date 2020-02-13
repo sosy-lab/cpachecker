@@ -62,10 +62,12 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -335,10 +337,37 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     return true;
   }
 
+  /**
+   * For all declaration edges an entry (MemoryLocation -> CDeclarationEdge) is put into the map.
+   * <br>
+   * E.g. for a variable i: (memory location of i -> edge where i is declared). <br>
+   * E.g. for a function f: (memory location of f -> edge where f is declared).
+   */
+  private static Map<MemoryLocation, CFAEdge> createLocationToDeclarationMap(CFA pCfa) {
+
+    Map<MemoryLocation, CFAEdge> locToDec = new HashMap<>();
+
+    Set<CFANode> allNodes = CFATraversal.dfs().collectNodesReachableFrom(pCfa.getMainFunction());
+    for (CFANode node : allNodes) {
+      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+        if (edge instanceof CDeclarationEdge) {
+
+          CDeclaration dec = ((CDeclarationEdge) edge).getDeclaration();
+          MemoryLocation loc = MemoryLocation.valueOf(dec.getQualifiedName());
+          locToDec.put(loc, edge);
+        }
+      }
+    }
+
+    return locToDec;
+  }
+
   private void addFlowDependences()
       throws InvalidConfigurationException, InterruptedException, CPAException {
     FlowDependences flowDependences =
         FlowDependences.create(cfa, varClassification, config, logger, shutdownNotifier);
+    Map<MemoryLocation, CFAEdge> locToDec = createLocationToDeclarationMap(cfa);
+
     for (Cell<CFAEdge, Optional<MemoryLocation>, FlowDependence> c : flowDependences.cellSet()) {
       CFAEdge edgeDepending = checkNotNull(c.getRowKey());
       Optional<MemoryLocation> specificDefAtEdge = checkNotNull(c.getColumnKey());
@@ -359,6 +388,13 @@ public class DependenceGraphBuilder implements StatisticsProvider {
           DGNode dependency = getDGNode(useAndDef.getValue(), Optional.of(useAndDef.getKey()));
           addDependence(dependency, nodeDepending, DependenceType.FLOW);
           flowDepCount++;
+
+          CFAEdge declaration = locToDec.get(useAndDef.getKey());
+          if (declaration != null) {
+            DGNode declarationDependency = getDGNode(declaration, Optional.of(useAndDef.getKey()));
+            addDependence(declarationDependency, nodeDepending, DependenceType.FLOW);
+            flowDepCount++;
+          }
         }
       }
       flowDependenceNumber.setNextValue(flowDepCount);
