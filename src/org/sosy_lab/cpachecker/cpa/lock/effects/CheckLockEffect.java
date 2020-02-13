@@ -27,8 +27,7 @@ import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
-
-public class CheckLockEffect extends LockEffect {
+public final class CheckLockEffect extends LockEffect {
 
   //Temporary usage until we will exactly know the parameters
   private final static CheckLockEffect instance = new CheckLockEffect();

@@ -63,11 +63,8 @@ import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.CBMCExecutor;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 
-/**
- * Counterexample checker that creates a C program for the counterexample
- * and calls CBMC on it.
- */
-@Options()
+/** Counterexample checker that creates a C program for the counterexample and calls CBMC on it. */
+@Options
 public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final LogManager logger;

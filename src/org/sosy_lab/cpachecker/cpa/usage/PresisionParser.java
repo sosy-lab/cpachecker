@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableMap;
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -76,6 +76,13 @@ public class PresisionParser {
           node = idToNodeMap.get(Integer.parseInt(nodeId));
           info = new HashMap<>();
         } else if (!line.isEmpty()) {
+          if (info == null) {
+            logger.log(
+                Level.WARNING,
+                "Cannot parse precision file %s, node id needs to appear first.",
+                file);
+            return ImmutableMap.of();
+          }
           // it's information about local statistics
           List<String> localSet = Splitter.on(";").splitToList(line);
 
@@ -88,12 +95,11 @@ public class PresisionParser {
         }
       }
       putIntoMap(localStatistics, node, info);
-    } catch (FileNotFoundException e) {
-      logger.log(Level.WARNING, "Cannot open file " + file);
+      return ImmutableMap.copyOf(localStatistics);
     } catch (IOException e) {
-      logger.log(Level.SEVERE, "Exception during precision parsing: " + e.getMessage());
+      logger.logUserException(Level.WARNING, e, "Cannot parse precision file");
+      return ImmutableMap.of();
     }
-    return localStatistics;
   }
 
   private GeneralIdentifier parseId(List<String> splittedLine) {

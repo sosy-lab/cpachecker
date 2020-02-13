@@ -659,9 +659,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
 
       state = state.makeAssignment(assignedVarName, right);
 
-
-    // g(b), do nothing
     } else if (exprOnSummary instanceof CFunctionCallStatement) {
+      // g(b), do nothing
 
     } else {
       throw new UnrecognizedCodeException("on function return", cfaEdge, exprOnSummary);

@@ -167,7 +167,7 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
   }
 
   private Object writeReplace() {
-    if (this == TOP) {
+    if (this.equals(TOP)) {
       return proxy;
     } else {
       return this;

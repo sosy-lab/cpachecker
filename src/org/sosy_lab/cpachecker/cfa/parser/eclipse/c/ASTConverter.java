@@ -538,6 +538,7 @@ class ASTConverter {
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
     CIdExpression tmp = createTemporaryVariable(e);
     sideAssignmentStack.addConditionalExpression(e, tmp);
+
     return tmp;
   }
 
@@ -600,9 +601,28 @@ class ASTConverter {
       }
 
       // workaround for strange CDT behaviour
-    } else if (type instanceof CProblemType && e instanceof IASTConditionalExpression) {
-      return typeConverter.convert(
-          ((IASTConditionalExpression)e).getNegativeResultExpression() .getExpressionType());
+    } else if (type instanceof CProblemType) {
+      if (e instanceof IASTConditionalExpression) {
+        return typeConverter.convert(
+            ((IASTConditionalExpression) e).getNegativeResultExpression().getExpressionType());
+      } else if (e instanceof IGNUASTCompoundStatementExpression) {
+        // manually ceck whether type of compundStatementExpression is void
+        IGNUASTCompoundStatementExpression statementExpression =
+            (IGNUASTCompoundStatementExpression) e;
+        IASTStatement[] statements = statementExpression.getCompoundStatement().getStatements();
+
+        if (statements.length > 0) {
+          IASTStatement lastStatement = statements[statements.length - 1];
+
+          if (lastStatement instanceof IASTExpressionStatement) {
+            IASTExpression lastExpression =
+                ((IASTExpressionStatement) lastStatement).getExpression();
+            return convertType(lastExpression);
+          } else {
+            return CVoidType.create(false, false);
+          }
+        }
+      }
     }
     return type;
   }

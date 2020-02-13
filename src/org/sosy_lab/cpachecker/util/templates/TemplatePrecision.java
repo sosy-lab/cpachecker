@@ -363,7 +363,7 @@ public class TemplatePrecision implements Precision {
                     .noneMatch(l2 -> l2 != l && existsAndMoreThanOne.test(l2.divide(l))));
   }
 
-  private static Equivalence<CIdExpression> BASIC_TYPE_EQUIVALENCE =
+  private static final Equivalence<CIdExpression> BASIC_TYPE_EQUIVALENCE =
       Equivalence.equals().onResultOf(x -> ((CSimpleType) x.getDeclaration().getType()).getType());
 
   /** Check whether all variables inside a expression have the same type. */

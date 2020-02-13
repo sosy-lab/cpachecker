@@ -449,7 +449,10 @@ public class SliceExporter {
         newFunctions.put(functionName, newEntryNode);
 
         if (isMainFunction) {
-          checkState(newMainEntryNode == null, "Trying to set entry node of main function, but one already exists: " + newMainEntryNode);
+          checkState(
+              newMainEntryNode == null,
+              "Trying to set entry node of main function, but one already exists: %s",
+              newMainEntryNode);
           newMainEntryNode = newEntryNode;
         }
       }
@@ -473,7 +476,7 @@ public class SliceExporter {
    */
   public void execute(Slice pSlice) {
     exportCount++;
-    if (exportCriteria) {
+    if (exportCriteria && exportCriteriaFile != null) {
       Concurrency.newThread(
               "Slice-criteria-Exporter",
               () -> {
@@ -501,7 +504,7 @@ public class SliceExporter {
           .start();
     }
 
-    if (exportToC) {
+    if (exportToC && exportToCFile != null) {
       Concurrency.newThread(
               "Slice-Exporter",
               () -> {

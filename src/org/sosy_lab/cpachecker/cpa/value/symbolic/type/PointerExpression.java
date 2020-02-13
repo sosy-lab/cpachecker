@@ -29,9 +29,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /**
  * {@link SymbolicExpression} that represents a pointer expression.
  *
- * <p>This can be a classic pointer expression like <code>*p</code> in C or a reference as in Java.</p>
+ * <p>This can be a classic pointer expression like <code>*p</code> in C or a reference as in Java.
  */
-public class PointerExpression extends UnarySymbolicExpression {
+public final class PointerExpression extends UnarySymbolicExpression {
 
   private static final long serialVersionUID = -7348176261979912313L;
 

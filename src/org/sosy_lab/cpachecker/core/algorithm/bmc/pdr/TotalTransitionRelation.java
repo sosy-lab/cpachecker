@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc.pdr;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Function;
@@ -192,9 +193,7 @@ public class TotalTransitionRelation {
         if (value instanceof Number) {
           PartialTransitionRelation result =
               totalTransitionRelation.get(((Number) value).intValue());
-          if (result == null) {
-            throw new IllegalArgumentException("Unknown location: " + value);
-          }
+          checkArgument(result != null, "Unknown location: %s", value);
           return result;
         }
       }
@@ -241,9 +240,7 @@ public class TotalTransitionRelation {
 
   static String getVariableName(FormulaManagerView pFmgr, Formula pVariable) {
     Set<String> variableNames = pFmgr.extractVariableNames(pVariable);
-    if (variableNames.size() != 1) {
-      throw new IllegalArgumentException("Not a variable: " + pVariable);
-    }
+    checkArgument(variableNames.size() == 1, "Not a variable: %s", pVariable);
     return variableNames.iterator().next();
   }
 }

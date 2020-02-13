@@ -156,7 +156,7 @@ public final class NondeterministicFiniteAutomaton<T> {
         return false;
       }
 
-      if (!(pOther instanceof NondeterministicFiniteAutomaton)) {
+      if (!(pOther instanceof NondeterministicFiniteAutomaton.Edge)) {
         return false;
       }
 

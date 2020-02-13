@@ -25,16 +25,12 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -43,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGTest;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
@@ -51,9 +48,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGDoublyLinkedListFinderTest {
 
-  private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
-  private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation
-      .DUMMY, functionType, "main", ImmutableList.of());
   private CSimpleType intType = CNumericTypes.SIGNED_INT;
   private final MachineModel MM = MachineModel.LINUX32;
   private CType pointerType = new CPointerType(false, false, intType);
@@ -70,7 +64,7 @@ public class SMGDoublyLinkedListFinderTest {
   @Test
   public void simpleFindAbstractionCandidateTest() throws SMGInconsistentException {
 
-    smg1.addStackFrame(functionDeclaration3);
+    smg1.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
 
     for (int i = 0; i < 15; i++) {
       SMGCPA.getNewValue();

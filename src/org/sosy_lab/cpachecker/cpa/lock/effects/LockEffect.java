@@ -30,7 +30,7 @@ public abstract class LockEffect implements AbstractLockEffect {
 
   protected final LockIdentifier target;
 
-  protected LockEffect(LockIdentifier id) {
+  LockEffect(LockIdentifier id) {
     target = id;
   }
 
@@ -48,12 +48,13 @@ public abstract class LockEffect implements AbstractLockEffect {
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return Objects.hash(target, getAction());
   }
 
   @Override
-  public boolean equals(Object obj) {
+  @SuppressWarnings("EqualsGetClass") // on purpose, case-class structure with single equals()
+  public final boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }

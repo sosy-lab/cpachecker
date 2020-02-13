@@ -37,13 +37,17 @@ public abstract class AbstractBinaryFormula<ConstantType> extends AbstractFormul
     // isCommutative is TRUE for "=", "+", "*" and FALSE for "-", "/", "<".
     private final boolean isCommutative;
 
-    /**
-     * Creates a new formula with two operands.
-     *
-     * @param pOperand1 the first operand.
-     * @param pOperand2 the second operand.
-     */
-    protected AbstractBinaryFormula(String pOperator, boolean pIsCommutative, NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
+  /**
+   * Creates a new formula with two operands.
+   *
+   * @param pOperand1 the first operand.
+   * @param pOperand2 the second operand.
+   */
+  AbstractBinaryFormula(
+      String pOperator,
+      boolean pIsCommutative,
+      NumeralFormula<ConstantType> pOperand1,
+      NumeralFormula<ConstantType> pOperand2) {
     super(pOperand1.getTypeInfo());
       Preconditions.checkNotNull(pOperator);
     Preconditions.checkArgument(pOperand1.getTypeInfo().equals(pOperand2.getTypeInfo()));
@@ -61,8 +65,9 @@ public abstract class AbstractBinaryFormula<ConstantType> extends AbstractFormul
      return this.operand2;
    }
 
-   @Override
-   public boolean equals(Object o) {
+  @Override
+  @SuppressWarnings("EqualsGetClass") // on purpose, case-class structure with single equals()
+  public final boolean equals(Object o) {
      if (o == null) {
        return false;
      }
@@ -88,8 +93,8 @@ public abstract class AbstractBinaryFormula<ConstantType> extends AbstractFormul
      return false;
    }
 
-   @Override
-   public int hashCode() {
+  @Override
+  public final int hashCode() {
     return 31 * operator.hashCode()
         + getOperand1().hashCode() * getOperand2().hashCode()
         + 43 * getTypeInfo().hashCode();

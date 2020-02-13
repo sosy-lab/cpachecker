@@ -49,7 +49,6 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
   @VisibleForTesting
   public SMGSingleLinkedListFinder() {
-    super();
   }
 
   public SMGSingleLinkedListFinder(int pSeqLengthEqualityThreshold,

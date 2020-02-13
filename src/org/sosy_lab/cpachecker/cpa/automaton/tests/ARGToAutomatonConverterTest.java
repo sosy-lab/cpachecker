@@ -44,13 +44,13 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.util.test.AbstractARGTranslationTest;
+import org.sosy_lab.cpachecker.util.test.AbstractTranslationTest;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
 @RunWith(Parameterized.class)
-public class ARGToAutomatonConverterTest extends AbstractARGTranslationTest {
+public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
 
   public static final String AUTOMATA_FILE_TEMPLATE = "ARG.%06d.spc";
 

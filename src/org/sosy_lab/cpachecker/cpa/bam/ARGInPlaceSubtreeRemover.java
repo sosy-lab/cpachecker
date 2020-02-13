@@ -36,6 +36,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -157,7 +158,7 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
             p.getSecond());
       }
 
-      if (firstState == relevantCallStates.get(0).getARGState()
+      if (Objects.equals(firstState, relevantCallStates.get(0).getARGState())
           && AbstractStates.isTargetState(lastState)) {
         // old code:
         // the main-reachedset contains only the root, exit-states and targets.
@@ -177,7 +178,7 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
       final ARGState lastRelevantNode, final ARGState target, final ARGState stateToRemove) {
     return doPrecisionRefinementForAllStates
         // special option (mostly for testing)
-        || (stateToRemove == lastRelevantNode)
+        || Objects.equals(stateToRemove, lastRelevantNode)
         // last iteration, most inner block for refinement
         || (data.hasInitialState(stateToRemove)
             && !target.getParents().isEmpty()
@@ -308,7 +309,7 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
       assert needsNewPrecisionEntries.size() == foundInnerUnpreciseEntries.size();
       assert needsNewPrecisionEntries.size() == rootStates.size();
 
-      if (bamState == pElement) {
+      if (bamState.equals(pElement)) {
         cutStateFound = true;
       }
 
@@ -367,7 +368,7 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
 
     // now only the initial elements should be on the stacks
     assert !Iterables.getOnlyElement(needsNewPrecisionEntries);
-    assert rootStates.getLast() == pPath.getFirstState();
+    assert Objects.equals(rootStates.getLast(), pPath.getFirstState());
   }
 
   /**

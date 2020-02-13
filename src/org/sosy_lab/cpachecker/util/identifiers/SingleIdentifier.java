@@ -27,6 +27,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 
+@SuppressWarnings("EqualsGetClass") // should be refactored
 public abstract class SingleIdentifier implements AbstractIdentifier {
 
   protected String name;

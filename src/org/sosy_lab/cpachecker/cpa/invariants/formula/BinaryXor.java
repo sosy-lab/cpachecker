@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 /**
- * Instances of this class represent the binary exclusive or operation over
- * invariants formulae.
+ * Instances of this class represent the binary exclusive or operation over invariants formulae.
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class BinaryXor<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
+public final class BinaryXor<ConstantType> extends AbstractBinaryFormula<ConstantType>
+    implements NumeralFormula<ConstantType> {
 
   private BinaryXor(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     super("^", true, pOperand1, pOperand2);

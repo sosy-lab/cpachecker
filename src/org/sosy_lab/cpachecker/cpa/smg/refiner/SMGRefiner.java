@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -319,7 +320,7 @@ public class SMGRefiner implements Refiner {
       throws CPAException, InterruptedException {
 
     // if the first state of the error path is the root, the interpolant cannot be to weak
-    if (errorPath.getFirstState() == root) {
+    if (Objects.equals(errorPath.getFirstState(), root)) {
       return false;
     }
 

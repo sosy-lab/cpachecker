@@ -438,7 +438,7 @@ public final class Solver implements AutoCloseable {
       stored = new HashMap<>(stored);
     }
 
-    ProverOptions opts[];
+    ProverOptions[] opts;
     if (cacheUnsatCores) {
       opts = new ProverOptions[]{GENERATE_UNSAT_CORE};
     } else {

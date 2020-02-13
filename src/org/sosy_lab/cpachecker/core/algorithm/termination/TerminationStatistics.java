@@ -68,6 +68,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -478,7 +479,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     Function<? super ARGState, ExpressionTree<Object>> provideQuasiInvariant =
         (ARGState argState) -> {
-          if (argState == loopStartInCEX) {
+          if (Objects.equals(argState, loopStartInCEX)) {
             return quasiInvariant;
           }
           return ExpressionTrees.getTrue();
@@ -496,7 +497,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               newRoot,
               relevantStates,
               BiPredicates.bothSatisfy(relevantStates),
-              state -> state == loopStartInCEX,
+              state -> Objects.equals(state, loopStartInCEX),
               provideQuasiInvariant);
         }
       } else {
@@ -512,7 +513,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                         newRoot,
                         relevantStates,
                         BiPredicates.bothSatisfy(relevantStates),
-                        state -> state == loopStartInCEX,
+                state -> Objects.equals(state, loopStartInCEX),
                         provideQuasiInvariant));
       }
     } catch (IOException e) {
@@ -536,7 +537,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         continue;
       }
 
-      if (state == loopStart) {
+      if (Objects.equals(state, loopStart)) {
         newLoopStart.addParent(parent);
         newStates.add(newLoopStart);
         break;
@@ -612,8 +613,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               newContext = Pair.of(leaveFun.getSuccessor(), context.getSecond());
 
               if (leaveFun instanceof FunctionReturnEdge) {
-                if (context.getSecond().getCallNode()
-                    != ((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor()) {
+                if (!context.getSecond().getCallNode()
+                    .equals(((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor())) {
                   continue; // false context
                 }
                 newContext =
@@ -630,7 +631,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                             leaveFun.getPredecessor()));
               }
 
-              if (leaveFun.getSuccessor() != locContinueLoop) {
+              if (!Objects.equals(leaveFun.getSuccessor(), locContinueLoop)) {
                 succFun = contextToARGState.get(newContext);
               } else {
                 succFun = nodeToARGState.get(locContinueLoop);
@@ -638,7 +639,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               }
               if (succFun == null) {
                 succFun = new ARGState(locFac.getState(leaveFun.getSuccessor()), null);
-                if (leaveFun.getSuccessor() != locContinueLoop) {
+                if (!Objects.equals(leaveFun.getSuccessor(), locContinueLoop)) {
                   contextToARGState.put(newContext, succFun);
                   waitlistFun.push(newContext);
                 } else {

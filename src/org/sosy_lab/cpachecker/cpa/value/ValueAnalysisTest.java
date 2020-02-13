@@ -24,12 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.collect.ImmutableMap;
-
+import java.util.Map;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
-
-import java.util.Map;
 
 public class ValueAnalysisTest {
   // Specification Tests

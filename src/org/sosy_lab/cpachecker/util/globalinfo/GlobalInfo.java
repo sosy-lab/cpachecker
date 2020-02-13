@@ -81,13 +81,13 @@ public class GlobalInfo {
     return Optional.ofNullable(cpa);
   }
 
-  public synchronized void setUpInfoFromCPA(ConfigurableProgramAnalysis cpa) {
-    this.cpa = cpa;
+  public synchronized void setUpInfoFromCPA(ConfigurableProgramAnalysis pCpa) {
+    this.cpa = pCpa;
     absManager = null;
     apronManager = null;
     apronLogger = null;
-    if (cpa != null) {
-      for (ConfigurableProgramAnalysis c : CPAs.asIterable(cpa)) {
+    if (pCpa != null) {
+      for (ConfigurableProgramAnalysis c : CPAs.asIterable(pCpa)) {
         if (c instanceof ControlAutomatonCPA) {
           ((ControlAutomatonCPA) c).registerInAutomatonInfo(automatonInfo);
         } else if (c instanceof ApronCPA) {

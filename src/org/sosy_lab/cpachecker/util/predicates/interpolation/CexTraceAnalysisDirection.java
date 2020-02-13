@@ -39,9 +39,11 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Random;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -402,10 +404,11 @@ enum CexTraceAnalysisDirection {
 
     AbstractState lastState = pAbstractionStates.get(loopLevelsToStatesMap.size()-1);
     AbstractState actState = pAbstractionStates.get(loopLevelsToStatesMap.size());
-    CFANode actCFANode = AbstractStates.extractLocation(actState);
+    @Nullable CFANode actCFANode = AbstractStates.extractLocation(actState);
 
     Iterator<CFANode> it = actLevelStack.descendingIterator();
     while (it.hasNext()) {
+      checkNotNull(actCFANode, "node may be null and code needs to be fixed");
       CFANode lastLoopNode = it.next();
 
       // check if the functions match, if yes we can simply check if the node
@@ -458,7 +461,7 @@ enum CexTraceAnalysisDirection {
       argState = argState.getParents().iterator().next();
 
       // the function does not return to the wanted function we can skip the search here
-      if (argState == lastState.getParents().iterator().next()) {
+      if (Objects.equals(argState, lastState.getParents().iterator().next())) {
         return null;
       }
 

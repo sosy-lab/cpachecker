@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -599,7 +600,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     //assert from(result).allMatch(state -> state.getParents().size() <= 1)
     //    : "PredicateCPARefiner expects abstraction states to have only one parent, but at least one state has more.";
 
-    assert pPath.getLastState() == result.get(result.size()-1);
+    assert Objects.equals(pPath.getLastState(), result.get(result.size() - 1));
     return result;
   }
 

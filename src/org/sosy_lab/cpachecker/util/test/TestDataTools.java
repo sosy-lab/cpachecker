@@ -147,9 +147,9 @@ public class TestDataTools {
         PathFormula old = mapping.get(toNode);
 
         PathFormula n;
-        if (ignoreDeclarations &&
-            e instanceof CDeclarationEdge &&
-            ((CDeclarationEdge) e).getDeclaration() instanceof CVariableDeclaration) {
+        if (ignoreDeclarations
+            && e instanceof CDeclarationEdge
+            && ((CDeclarationEdge) e).getDeclaration() instanceof CVariableDeclaration) {
 
           // Skip variable declaration edges.
           n = path;

@@ -30,7 +30,7 @@ public final class BooleanConstant implements LtlFormula {
   public static final BooleanConstant FALSE = new BooleanConstant(false);
   public static final BooleanConstant TRUE = new BooleanConstant(true);
 
-  public final boolean value;
+  private final boolean value;
 
   public static BooleanConstant of(boolean pValue) {
     return pValue ? TRUE : FALSE;

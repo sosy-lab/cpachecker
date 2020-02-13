@@ -24,12 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 /**
- * Instances of this class are invariants formulae representing division
- * operations over other invariants formulae.
+ * Instances of this class are invariants formulae representing division operations over other
+ * invariants formulae.
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class Divide<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
+public final class Divide<ConstantType> extends AbstractBinaryFormula<ConstantType>
+    implements NumeralFormula<ConstantType> {
 
   /**
    * Creates a new fraction invariants formula for the given numerator and

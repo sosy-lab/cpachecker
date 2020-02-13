@@ -28,6 +28,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
@@ -145,7 +146,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
     Set<ARGState> scheduledForDeletion = new HashSet<>();
 
     for (ARGState sibling : Iterables.getOnlyElement(element.getParents()).getChildren()) {
-      if (sibling != element && !pReachedSet.contains(sibling)) {
+      if (!Objects.equals(sibling, element) && !pReachedSet.contains(sibling)) {
         scheduledForDeletion.add(sibling);
       }
     }

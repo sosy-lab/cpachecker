@@ -214,7 +214,6 @@ public final class DeadLockState extends AbstractLockState {
   // Used for function annotations like annotate.function_name.restore
   @SuppressWarnings("JdkObsolete") // TODO consider replacing this with ArrayList or ArrayDeque
   public DeadLockState() {
-    super();
     lockList = new LinkedList<>();
   }
 

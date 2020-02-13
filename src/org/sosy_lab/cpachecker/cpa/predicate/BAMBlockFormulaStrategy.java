@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -116,8 +117,10 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
           assert callStacks.containsKey(parentElement);
           final ARGState callState = callStacks.get(parentElement);
 
-          assert extractLocation(callState).getLeavingSummaryEdge().getSuccessor()
-                  == extractLocation(currentState)
+          assert Objects.equals(
+              extractLocation(callState).getLeavingSummaryEdge().getSuccessor(),
+              extractLocation(
+                  currentState))
               : "callstack does not match entry of current function-exit.";
           assert callState != null || currentState.getChildren().isEmpty()
               : "returning from empty callstack is only possible at program-exit";

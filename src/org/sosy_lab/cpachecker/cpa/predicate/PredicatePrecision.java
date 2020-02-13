@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
@@ -68,10 +69,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
 
     LocationInstance(CFANode pLocation, int pInstance) {
       location = checkNotNull(pLocation);
-      if (pInstance < 0) {
-        throw new IllegalArgumentException(
-            "Invalid LocationInstance with negative count " + pInstance);
-      }
+      checkArgument(pInstance >= 0, "Invalid LocationInstance with negative count %s", pInstance);
       instance = pInstance;
     }
 

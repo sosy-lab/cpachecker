@@ -88,9 +88,9 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix="cpa.arg.export.code")
 public class ARGToCTranslator {
-  private static String ASSERTFAIL = "__assert_fail";
-  private static String DEFAULTRETURN = "default return";
-  private static String TMPVARPREFIX = "__tmp_";
+  private static final String ASSERTFAIL = "__assert_fail";
+  private static final String DEFAULTRETURN = "default return";
+  private static final String TMPVARPREFIX = "__tmp_";
 
   private final static AbstractState BOTTOM = new AbstractState() {
   };
@@ -124,6 +124,17 @@ public class ARGToCTranslator {
         isGotoTarget = true;
       }
       return gotoLabel;
+    }
+
+    /**
+     * Creates a String representation of this object.
+     * Created strings may get really big, so use with care.
+     */
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      translateToCode(sb, 0);
+      return sb.toString();
     }
   }
 
@@ -168,6 +179,14 @@ public class ARGToCTranslator {
     public CompoundStatement getSurroundingBlock() {
       return outerBlock;
     }
+
+    public boolean isEmpty() {
+      return statements.isEmpty();
+    }
+
+    public Statement getLast() {
+      return statements.get(statements.size() - 1);
+    }
   }
 
   static class SimpleStatement extends Statement {
@@ -205,6 +224,25 @@ public class ARGToCTranslator {
       buffer.append("\n");
 
       functionBody.translateToCode(buffer, indent);
+    }
+  }
+
+  static class Label extends Statement {
+
+    private final String name;
+
+    public Label(String pLabelName) {
+      name = pLabelName;
+    }
+
+    @Override
+    public String getLabel() {
+      return name;
+    }
+
+    @Override
+    void translateToCode0(StringBuilder buffer, int indent) {
+      buffer.append(name).append(":;");
     }
   }
 

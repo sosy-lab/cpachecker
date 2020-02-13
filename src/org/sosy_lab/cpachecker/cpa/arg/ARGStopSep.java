@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -136,7 +137,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     if (!pReachedState.mayCover()) {
       return false;
     }
-    if (pElement == pReachedState) {
+    if (Objects.equals(pElement, pReachedState)) {
       return false;
     }
     if (pElement.isOlderThan(pReachedState)) {

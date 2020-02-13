@@ -233,7 +233,7 @@ public class CandidateInvariantCombination {
         // 1) We know all elements are of the desired type SingleLocationConjunction, and
         // 2) the set is immutable, so it will stay that way.
         // Thus, we don't need to create another copy.
-        @SuppressWarnings({"unchecked"})
+        @SuppressWarnings("unchecked")
         SingleLocationFormulaInvariant result =
             singleLocationConjunction((Iterable<SingleLocationFormulaInvariant>) operands);
         return result;

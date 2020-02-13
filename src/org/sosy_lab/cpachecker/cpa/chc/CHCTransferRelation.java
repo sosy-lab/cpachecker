@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.chc;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -111,7 +111,7 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
       CHCState current, int nodeId, List<Constraint> cns) {
     CHCState newState;
     if (cns.size() > 1) {
-      List<CHCState> newStates = new ArrayList<>(2);
+      ImmutableList.Builder<CHCState> newStates = ImmutableList.builderWithExpectedSize(2);
       for (Constraint cn : cns) {
         newState = new CHCState(current);
         newState.setNodeNumber(nodeId);
@@ -120,11 +120,7 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
           newStates.add(newState);
         }
       }
-      if (newStates.isEmpty()) {
-        return ImmutableSet.of();
-      } else {
-        return newStates;
-      }
+      return newStates.build();
     } else {
       newState = new CHCState(current);
       newState.setNodeNumber(nodeId);

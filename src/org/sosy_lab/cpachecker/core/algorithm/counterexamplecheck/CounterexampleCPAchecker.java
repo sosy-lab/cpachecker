@@ -116,6 +116,13 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
   )
   private boolean provideCEXInfoFromCEXCheck = false;
 
+  @Option(
+      secure = true,
+      name = "forceCEXChange",
+      description =
+          "counterexample check should fully replace existing counterexamples with own ones, if available")
+  private boolean replaceCexWithCexFromCheck = false;
+
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
 
   private WitnessExporter witnessExporter;
@@ -216,19 +223,18 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       CPAs.closeCpaIfPossible(lCpas, lLogger);
       CPAs.closeIfPossible(lAlgorithm, lLogger);
 
-      if (provideCEXInfoFromCEXCheck) {
+      if (provideCEXInfoFromCEXCheck || replaceCexWithCexFromCheck) {
         AbstractState target = from(lReached).firstMatch(IS_TARGET_STATE).orNull();
         if (target instanceof ARGState) {
           ARGState argTarget = (ARGState) target;
-          if (argTarget.getCounterexampleInformation().isPresent()) {
-            CounterexampleInfo cexInfo = argTarget.getCounterexampleInformation().orElseThrow();
-            if (!cexInfo.isSpurious() && cexInfo.isPreciseCounterExample()) {
-              pErrorState.replaceCounterexampleInformation(
-                  CounterexampleInfo.feasiblePrecise(
-                      pErrorState.getCounterexampleInformation().isPresent()
-                          ? pErrorState.getCounterexampleInformation().orElseThrow().getTargetPath()
-                          : ARGUtils.getOnePathTo(pErrorState),
-                      cexInfo.getCFAPathWithAssignments()));
+          Optional<CounterexampleInfo> counterexampleFromCheck =
+              argTarget.getCounterexampleInformation();
+          if (counterexampleFromCheck.isPresent()) {
+            if (replaceCexWithCexFromCheck) {
+              replaceCounterexampleInformation(pErrorState, counterexampleFromCheck.orElseThrow());
+
+            } else if (provideCEXInfoFromCEXCheck) {
+              improveCounterexampleInformation(pErrorState, counterexampleFromCheck.orElseThrow());
               assert (pErrorPathStates.containsAll(
                   pErrorState
                       .getCounterexampleInformation()
@@ -253,4 +259,29 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     }
   }
 
+  private void replaceCounterexampleInformation(
+      final ARGState pStateForCounterexample, final CounterexampleInfo pNewInfo) {
+    Optional<CounterexampleInfo> counterexampleFromArg =
+        pStateForCounterexample.getCounterexampleInformation();
+    if (counterexampleFromArg.isPresent()) {
+      pStateForCounterexample.replaceCounterexampleInformation(pNewInfo);
+    } else {
+      pStateForCounterexample.addCounterexampleInformation(pNewInfo);
+    }
+  }
+
+  private void improveCounterexampleInformation(
+      final ARGState pStateWithCounterexample, final CounterexampleInfo pNewInfo) {
+    if (!pNewInfo.isSpurious() && pNewInfo.isPreciseCounterExample()) {
+      pStateWithCounterexample.replaceCounterexampleInformation(
+          CounterexampleInfo.feasiblePrecise(
+              pStateWithCounterexample.getCounterexampleInformation().isPresent()
+                  ? pStateWithCounterexample
+                      .getCounterexampleInformation()
+                      .orElseThrow()
+                      .getTargetPath()
+                  : ARGUtils.getOnePathTo(pStateWithCounterexample),
+              pNewInfo.getCFAPathWithAssignments()));
+    }
+  }
 }

@@ -119,7 +119,9 @@ public class SlicingPrecision implements WrapperPrecision  {
   }
 
   @Override
-  public boolean equals(Object pO) {
+  // refactoring would be better, but currently safe for the existing subclass
+  @SuppressWarnings("EqualsGetClass")
+  public final boolean equals(Object pO) {
     if (this == pO) {
       return true;
     }
@@ -132,7 +134,7 @@ public class SlicingPrecision implements WrapperPrecision  {
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return Objects.hash(wrappedPrec, relevantEdges);
   }
 

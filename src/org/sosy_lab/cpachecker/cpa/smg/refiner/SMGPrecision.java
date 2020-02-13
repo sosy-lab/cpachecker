@@ -278,7 +278,6 @@ public abstract class SMGPrecision implements Precision {
 
     public SMGPrecisionAbstractionOptions(boolean pHeapAbstraction, boolean pFieldAbstraction,
         boolean pStackAbstraction) {
-      super();
       heapAbstraction = pHeapAbstraction;
       fieldAbstraction = pFieldAbstraction;
       stackAbstraction = pStackAbstraction;

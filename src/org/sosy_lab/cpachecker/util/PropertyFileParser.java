@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.BufferedReader;
@@ -75,10 +76,10 @@ public class PropertyFileParser {
               + CFACreator.VALID_C_FUNCTION_NAME_PATTERN
               + ")\\(\\)\\), FQL\\((.+)\\) \\)");
 
-  private static Map<String, ? extends Property> AVAILABLE_VERIFICATION_PROPERTIES =
+  private static final ImmutableMap<String, ? extends Property> AVAILABLE_VERIFICATION_PROPERTIES =
       Maps.uniqueIndex(EnumSet.allOf(CommonPropertyType.class), Property::toString);
 
-  private static Map<String, ? extends Property> AVAILABLE_COVERAGE_PROPERTIES =
+  private static final ImmutableMap<String, ? extends Property> AVAILABLE_COVERAGE_PROPERTIES =
       Maps.uniqueIndex(EnumSet.allOf(CommonCoverageType.class), Property::toString);
 
   public PropertyFileParser(final Path pPropertyFile) {

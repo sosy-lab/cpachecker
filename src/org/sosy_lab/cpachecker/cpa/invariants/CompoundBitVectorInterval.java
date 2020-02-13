@@ -70,7 +70,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   private CompoundBitVectorInterval(BitVectorInterval pInterval) {
     this.info = pInterval.getTypeInfo();
-    this.intervals = new BitVectorInterval[] { pInterval };
+    this.intervals = new BitVectorInterval[] {pInterval};
   }
 
   /**

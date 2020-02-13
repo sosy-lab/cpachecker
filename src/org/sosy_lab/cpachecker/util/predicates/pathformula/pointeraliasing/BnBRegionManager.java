@@ -47,8 +47,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
   private static final String GLOBAL = "global";
   private static final String SEPARATOR = ":";
 
-
-  private static class GlobalBnBRegion implements MemoryRegion {
+  private static final class GlobalBnBRegion implements MemoryRegion {
     @Override
     public String toString() {
       return "GlobalBnBRegion [type=" + type + "]";
@@ -95,7 +94,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
 
   }
 
-  private static class FieldBnBRegion implements MemoryRegion {
+  private static final class FieldBnBRegion implements MemoryRegion {
 
     private final CType fieldOwnerType;
     private final CType fieldType;

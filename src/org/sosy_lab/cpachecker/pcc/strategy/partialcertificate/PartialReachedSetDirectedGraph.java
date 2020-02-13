@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -326,7 +327,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     private final List<List<Integer>> changeableAdjacencyList;
     private final Set<Pair<Integer, Integer>> knownEdges;
 
-    public SuccessorEdgeConstructor(ARGState pNodes[], List<List<Integer>> pAdjacencyList) {
+    public SuccessorEdgeConstructor(ARGState[] pNodes, List<List<Integer>> pAdjacencyList) {
       super(false);
       nodeToIndex = new HashMap<>();
       for (int i = 0; i < pNodes.length; i++) {
@@ -357,7 +358,8 @@ public class PartialReachedSetDirectedGraph implements Statistics {
 
     @Override
     public boolean stopPathDiscovery(ARGState pNode) {
-      return pNode != predecessor && (nodeToIndex.containsKey(pNode) || pNode.isCovered());
+      return !Objects.equals(pNode, predecessor)
+          && (nodeToIndex.containsKey(pNode) || pNode.isCovered());
     }
 
   }

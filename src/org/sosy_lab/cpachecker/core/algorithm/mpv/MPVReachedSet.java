@@ -19,8 +19,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpv;
 
-import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.PrintStream;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.AbstractSingleProperty;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;

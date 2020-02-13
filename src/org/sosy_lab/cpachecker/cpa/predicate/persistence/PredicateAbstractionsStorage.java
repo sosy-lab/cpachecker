@@ -87,11 +87,7 @@ public class PredicateAbstractionsStorage {
       return Integer.toString(getId());
     }
 
-    @Override
-    public int hashCode() {
-      // TODO
-      return super.hashCode();
-    }
+    // TODO: equals() and hashCode()?
   }
 
   private static final Pattern NODE_DECLARATION_PATTERN = Pattern.compile("^[0-9]+[ ]*\\(([0-9]+[,]*)*\\)[ ]*(@[0-9]+)$");

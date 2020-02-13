@@ -25,19 +25,15 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 
 import com.google.common.io.CharSource;
 import com.google.common.collect.ImmutableList;
-
 import java.io.Reader;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
-
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Scanner;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
-
-import javax.annotation.Nullable;
-
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;

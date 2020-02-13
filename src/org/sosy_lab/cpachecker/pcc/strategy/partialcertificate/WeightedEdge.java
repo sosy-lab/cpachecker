@@ -51,7 +51,6 @@ public class WeightedEdge {
   }
 
   public WeightedEdge(WeightedNode pStartNode, WeightedNode pEndNode, int pWeight) {
-    super();
     startNode = pStartNode;
     endNode = pEndNode;
     weight = pWeight;
