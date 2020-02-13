@@ -57,22 +57,14 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   private final Boolean ismerged;
   private final boolean toMerge=false;
   private final int count2;
-  private Object secondparent;
-  private Object firstparent;
+  private Collection<ARGState> childrenTomerge2;
+  private Collection<ARGState> childrenTomerge1;
   private ImmutableList<AbstractState> states;
   private final ARGState argstate;
-  private AbstractState first;
-  private int id;
-  private AbstractState second;
-  private Object firstParent;
-  private Object firstChildren;
-  private ArrayList ancestors = new ArrayList<ARGState>();
   private myARGState myARGTransferRelation;
   private myARGState myARG1;
   private myARGState myARG2;
   private myARGState myARGmerged;
-  //private boolean merged = false;
-  //private boolean toMerge = false;
   private static int count;
 
   public CollectorState(AbstractState pWrappedState,
@@ -91,9 +83,11 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
     }
     if (pMyARG1 != null) {
       this.myARG1 = pMyARG1;
+      childrenTomerge1 = this.myARG1.getChildrenOfToMerge();
     }
     if (pMyARG2 != null) {
       this.myARG2 = pMyARG2;
+      childrenTomerge2 = this.myARG2.getChildrenOfToMerge();
     }
     if (pMyARGmerged != null) {
       this.myARGmerged = pMyARGmerged;
@@ -133,7 +127,7 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
     sb.append(List_wrappedParent);
     sb.append (" StateID: " + currentARGid);
 
-      sb.append("\n Current myARGID:  ");
+      sb.append("\n Current myARGID Infos:  ");
       if (myARGmerged != null){
         sb.append("\n" + myARGmerged.toDOTLabel());
       }
@@ -141,12 +135,20 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
       if (myARG1 != null){
       sb.append("\n" + myARG1.toDOTLabel());
       }
+    sb.append("\n" + "childrenOfMergePartner 1:  ");
+    if (myARG1 != null){
+      sb.append("\n" + childrenTomerge1);
+    }
       sb.append("\n" + "myARG 2:  ");
       if (myARG2 != null){
         sb.append("\n" + myARG2.toDOTLabel());
+        sb.append("\n" + "childrenOfMergePartner 2:  ");
+        if (myARG2 != null){
+          sb.append("\n" + childrenTomerge2);
+        }
       }
       if (myARGTransferRelation != null){
-        sb.append("\n" +"MyARGTransfer:");
+        sb.append("\n" +"MyARGTransferRelation:");
         sb.append("\n" + myARGTransferRelation.toDOTLabel());}
 
     sb.append ("\n");
@@ -189,6 +191,8 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   }
   public int getStateId() { return currentARGid; }
   public int getCount(){return count;}
+  public Collection<ARGState> getChildrenTomerge1(){return childrenTomerge1;}
+  public Collection<ARGState> getChildrenTomerge2(){return childrenTomerge2;}
 
   /**
    * Get the child elements of this state.
@@ -197,7 +201,9 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   public Collection<ARGState> getChildren() {
     return Collections.unmodifiableCollection(wrappedChildren);
   }
-
+  public Collection<ARGState> getParents() {
+    return Collections.unmodifiableCollection(wrappedParent);
+  }
   public ImmutableList<AbstractState> getStorage() { return states; }
 
 
@@ -207,6 +213,33 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   public ImmutableList getAncestor(){return List_wrappedParent; }
   public boolean ismerged() {
     return ismerged;
+  }
+
+
+  @Override
+  public final boolean equals(Object pObj) {
+
+    ARGState theArg = this.getARGState();
+    int intID1 = theArg.getStateId();
+    CollectorState obj = (CollectorState) pObj;
+    int intID2 = obj.getStateId();
+    ARGState objARG = obj.getARGState();
+
+    //if (intID1 == intID2) { //compare ARGIDs
+    //compare ARGStates
+      if (theArg == objARG) {
+    return true;
+    }
+    else{
+      return false;
+    }
+  }
+
+  @Override
+  public final int hashCode() {
+    // Object.hashCode() is consistent with our compareTo()
+    // because stateId is a unique identifier.
+    return super.hashCode();
   }
 
 }

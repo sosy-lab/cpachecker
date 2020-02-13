@@ -57,11 +57,9 @@ import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 @Options
 public class CollectorCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {
 
-
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(CollectorCPA.class);
   }
-
 
   private final MergeOperator merge;
   private final LogManager logger;
@@ -83,13 +81,11 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
     this.logger = clogger;
     this.shutdownNotifier = pShutdownNotifier;
 
-
       statistics = new CollectorStatistics(this, config, logger);
       writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
 
 
     if ( cpa instanceof ARGCPA) {
-
       ARGMergeJoin wrappedMergeOperator = (ARGMergeJoin) cpa.getMergeOperator();
       merge = new CollectorMergeJoin(wrappedMergeOperator, cpa.getAbstractDomain(), config, logger);
       stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
@@ -126,7 +122,6 @@ public void collectStatistics(Collection<Statistics> pStatsCollection) {
   pStatsCollection.add(stats);
   pStatsCollection.add(statistics);
   writer.collectStatistics(pStatsCollection);
-
 }
 
 

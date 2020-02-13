@@ -48,6 +48,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import javax.print.DocFlavor.STRING;
 import org.sosy_lab.common.JSON;
@@ -106,7 +107,8 @@ public class CollectorStatistics implements Statistics {
   private ARGState newarg3;
   private final Map<Integer, Object> argNodes;
   private final Multimap<Integer, Object> argEdges;
-  private final Map<Integer, Object> cNodes;
+  //private final Map<Integer, Object> cNodes;
+  private final LinkedHashMap<Integer, Object> cNodes= new LinkedHashMap<>();;
   private final Multimap<Integer, Object> cEdges;
   private LinkedHashMap<String,Integer> linkedIndex = new LinkedHashMap<>();
   private final Multimap<Integer, Object> cNodesMulti;
@@ -115,8 +117,6 @@ public class CollectorStatistics implements Statistics {
   private LinkedHashMap<Map<Integer, Object>,Multimap<Integer, Object>> linkedNodesAndEdges = new LinkedHashMap<>();
   private LinkedHashMap<Map<Integer, Object>,Multimap<Integer, Object>> collectorlinkedNodesAndEdges = new LinkedHashMap<>();
   private LinkedHashMap<Multimap<Integer, Object>,Multimap<Integer, Object>> multicollectorlinkedNodesAndEdges = new LinkedHashMap<>();
-  private int countDeletedMergePartner;
-  private int removed;
   private Collection<CollectorState> reachedcollectionCollector = new ArrayList<CollectorState>();
   private int cARGID2;
   private int cARGID1;
@@ -133,7 +133,7 @@ public class CollectorStatistics implements Statistics {
 
     argNodes = new HashMap<>();
     argEdges = ArrayListMultimap.create();
-    cNodes = new HashMap<>();
+    //cNodes = new HashMap<>();
     cEdges = ArrayListMultimap.create();
     cNodesMulti = ArrayListMultimap.create();
     cStates = ArrayListMultimap.create();
@@ -156,8 +156,8 @@ public class CollectorStatistics implements Statistics {
     }
 
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
-    writer.put("sonja result", result);
-    writer.put("Sonja reached", reached.toString()) ;
+    writer.put("Verification result", result);
+    writer.put("Reached States", reached.toString()) ;
     }
 
 
@@ -252,7 +252,10 @@ public class CollectorStatistics implements Statistics {
 
   private void makeLinkedCollectorData(){
 
-    ImmutableMap<Integer, Object> immutableMapNodesC = ImmutableMap.<Integer, Object>builder().putAll(cNodes)
+    //sort Nodes by key(myID)
+    Map<Integer, Object> sortedcNodes = new TreeMap<Integer, Object>(cNodes);
+
+    ImmutableMap<Integer, Object> immutableMapNodesC = ImmutableMap.<Integer, Object>builder().putAll(sortedcNodes)
         .build();
 
     ImmutableMultimap<Integer, Object> immutableMapEdgesC = ImmutableMultimap.<Integer, Object>builder().putAll(cEdges)
@@ -271,8 +274,6 @@ public class CollectorStatistics implements Statistics {
             JSON.writeJSONString(key.values(), writer);
             writer.write(",\n\"edges\":");
             JSON.writeJSONString(value.values(), writer);
-            writer.write(",\n\"other\":");
-            JSON.writeJSONString(count, writer);
             writer.write("\n");
           writer.write("}\n");
         } catch (IOException e) {
@@ -292,6 +293,7 @@ public class CollectorStatistics implements Statistics {
       if (merged){
         String type = "toMerge";
         String typeM = "merged";
+        String typeC = "mergeChild";
 
         int ID = ((CollectorState) entry).getStateId();
 
@@ -314,21 +316,31 @@ public class CollectorStatistics implements Statistics {
 
         if(!destroyed1){
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myID1, createNEWNode(ID1, myID1, myID1, node, entryARG1, type, notDestroyed));
+            cNodes.put(myID1, createNEWNode(ID1, myID1, ID1, node, entryARG1, type, notDestroyed));
           }
 
           Collection<ARGState> children = entryARG1.getChildren();
           for (ARGState child : children) {
             int childID = child.getStateId();
-            //logger.log(Level.INFO, "node1 notdest: " + ID1 + " myID:" + myID1 + " childID" + childID);
             Map<String, Object> edgeValue = createStandardEdge(
                 ID1, childID, entryARG.getEdgesToChild(child), myID1, type);
             cEdges.put(myID1, edgeValue);
           }
         }else{
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myID1, createNEWNode(ID1, myID1, myID3, node, entryARG1, type, destroyed));
+            cNodes.put(myID1, createNEWNode(ID1, myID1, ID3, node, entryARG1, type, destroyed));
           }
+
+          Collection<ARGState> children = ((CollectorState) entry).getChildrenTomerge1();
+          for (ARGState child : children){
+            int childID = child.getStateId();
+            //logger.log(Level.INFO, "node1: " + ID1 + " myID:" + myID1 + " childID" + childID);
+            Map<String, Object> edgeValue1 = createChildEdge(
+                ID1, childID, typeC, myID1, destroyed);
+            cEdges.put(myID1, edgeValue1);
+          }
+
+
           ImmutableList<ARGState> parents1 = myA1.getParentslist();
           if(parents1 != null) {
             for (ARGState parent : parents1) {
@@ -343,7 +355,7 @@ public class CollectorStatistics implements Statistics {
 
         if(!destroyed2){
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myID2, createNEWNode(ID2, myID2, myID2, node, entryARG2, type, notDestroyed));
+            cNodes.put(myID2, createNEWNode(ID2, myID2, ID2, node, entryARG2, type, notDestroyed));
           }
           Collection<ARGState> children = entryARG2.getChildren();
           for (ARGState child : children) {
@@ -355,8 +367,18 @@ public class CollectorStatistics implements Statistics {
           }
         }else {
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myID2, createNEWNode(ID2, myID2, myID3, node, entryARG2, type, destroyed));
+            cNodes.put(myID2, createNEWNode(ID2, myID2, ID3, node, entryARG2, type, destroyed));
           }
+
+          Collection<ARGState> children = ((CollectorState) entry).getChildrenTomerge2();
+          for (ARGState child : children){
+            int childID = child.getStateId();
+            //logger.log(Level.INFO, "node2: " + ID2 + " myID:" + myID2 + " childID" + childID);
+            Map<String, Object> edgeValue2 = createChildEdge(
+                ID2, childID, typeC, myID2, destroyed);
+            cEdges.put(myID1, edgeValue2);
+          }
+
           ImmutableList<ARGState> parents2 = myA2.getParentslist();
           if (parents2 != null) {
             for (ARGState parent : parents2) {
@@ -370,7 +392,7 @@ public class CollectorStatistics implements Statistics {
         }
 
         for (CFANode node : AbstractStates.extractLocations(entry)) {
-          cNodes.put(myID3, createNEWNode(ID3, myID3, myID3 ,node, entryARG, typeM,notDestroyed));
+          cNodes.put(myID3, createNEWNode(ID3, myID3, ID3 ,node, entryARG, typeM,notDestroyed));
         }
        Collection<ARGState> children = entryARG.getChildren();
         for (ARGState child : children) {
@@ -389,7 +411,7 @@ public class CollectorStatistics implements Statistics {
           String type = determineType((CollectorState) entry);
           ARGState entryARG = ((CollectorState) entry).getARGState();
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myIDtr, createNEWNode(ID, myIDtr, myIDtr,node, entryARG, type, notDestroyed));
+            cNodes.put(myIDtr, createNEWNode(ID, myIDtr, IDtr,node, entryARG, type, notDestroyed));
           }
          Collection<ARGState> children = entryARG.getChildren();
           for (ARGState child : children) {
@@ -424,6 +446,7 @@ public class CollectorStatistics implements Statistics {
       }
     }
     //logger.log(Level.INFO, "cnodes:\n" + cNodes.size());
+    //logger.log(Level.INFO, "cnodes:\n" + cNodes);
     //logger.log(Level.INFO, "cedges:\n" + cEdges.size());
     makeLinkedCollectorData();
     makeHTMLFile();
@@ -438,15 +461,14 @@ public class CollectorStatistics implements Statistics {
         : "";
     Map<String, Object> argNode = new HashMap<>();
     argNode.put("destroyed", destroyed);
-    if(!(interval <= parentStateId2)){
+    if(!(interval <= parentStateId)){
       argNode.put("intervalStop", interval);
     }
     else{
       argNode.put("intervalStop", "");
     }
-    argNode.put("intervalStart", parentStateId2);
-    argNode.put("index", parentStateId);
-    argNode.put("myID", parentStateId2);
+    argNode.put("intervalStart", parentStateId);
+    argNode.put("index", parentStateId);//ARGState-ID
     argNode.put("func", node.getFunctionName());
     argNode.put(
         "label",
@@ -469,10 +491,9 @@ public class CollectorStatistics implements Statistics {
     Map<String, Object> argNode = new HashMap<>();
 
     argNode.put("destroyed", destroyed);
-      argNode.put("intervalStop", "");
-    argNode.put("intervalStart", -1);
+    argNode.put("intervalStop", "");
+    argNode.put("intervalStart", parentStateId);
     argNode.put("index", parentStateId);
-    argNode.put("myID", -1);
     argNode.put("func", node.getFunctionName());
     argNode.put(
         "label",
@@ -509,7 +530,6 @@ public class CollectorStatistics implements Statistics {
   private Map<String, Object> createExtraEdge(int parentStateId, int childStateId, String type, int myID, String destroyed){
     Map<String, Object> argEdge = new HashMap<>();
 
-    argEdge.put("myID", myID);
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
     argEdge.put("mergetype",type);
@@ -521,12 +541,24 @@ public class CollectorStatistics implements Statistics {
     argEdge.put("label", edgeLabel.toString());
     return argEdge;
   }
+  private Map<String, Object> createChildEdge(int parentStateId, int childStateId, String type, int myID, String destroyed){
+    Map<String, Object> argEdge = new HashMap<>();
 
+    argEdge.put("source", parentStateId);
+    argEdge.put("target", childStateId);
+    argEdge.put("mergetype",type);
+    argEdge.put("destroyed",destroyed);
+    StringBuilder edgeLabel = new StringBuilder();
+
+    edgeLabel.append("Child merge edge");
+    argEdge.put("type", "dummy type");
+    argEdge.put("label", edgeLabel.toString());
+    return argEdge;
+  }
   private Map<String, Object> createStandardEdge(
       int parentStateId, int childStateId, List<CFAEdge> edges, int myID, String mergetype) {
     Map<String, Object> argEdge = new HashMap<>();
     argEdge.put("mergetype", mergetype);
-    argEdge.put("myID", myID);
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
     StringBuilder edgeLabel = new StringBuilder();

@@ -29,50 +29,62 @@ h1, input {font-size:18px; font-family: sans-serif; color:darkblue;}
 
 h3, input {font-size:24px; font-family: sans-serif; color:darkblue;}
 
-.node text { font: 12px sans-serif; }
-
-g.merged > rect {
-
-}
-g.toMerge > rect {
-
-}
-g.highlight > rect {
-    fill: plum
-}
-
-g.currentMerge > rect {
-    fill: #00ffd0;
-}
 text {
     font-weight: 300;
     font-family: sans-serif;
     font-size: 12px;
 }
-.node rect {
-    stroke: #999;
-    fill: #fff;
-    stroke-width: 1.5px;
-}
-.edgePath path {
-    stroke: #333;
-    stroke-width: 1.5px;
-}
-
-.wannahide {
-    visibility: hidden;
-}
-.hiddenmerge {
-    visibility: hidden;
-}
-
-.contentshow {
-    visibility: visible;
-}
-.contentshow:hover{
+.node text:hover{
     fill: darkmagenta;
     opacity: 1;
 }
+
+.node text {
+    visibility: hidden;
+}
+.node rect {
+    visibility: hidden;
+}
+.edgePath {
+    visibility: hidden;
+}
+.edgeLabel {
+    visibility: hidden;
+}
+.edgeLabel text {
+    visibility: hidden;
+}
+.edgePath text {
+    visibility: hidden;
+}
+.contentshow {
+    visibility: visible;
+}
+.contentshow text {
+    font-weight: 300;
+    font-family: sans-serif;
+    font-size: 12px;
+    fill:black;
+    visibility: visible;
+}
+.contentshow.node rect{
+    stroke: #999;
+    fill: white;
+    stroke-width: 1.5px;
+    visibility: visible;
+}
+.contentshow.edgePath path {
+    stroke: #333;
+    stroke-width: 1.5px;
+    visibility: visible;
+}
+.contentshow.mergedColored > rect {
+    fill: #00ffd0;
+}
+.contentshow.toMerge > rect {
+    fill: plum;
+}
+
 .button {
     width: 140px;
     height: 45px;

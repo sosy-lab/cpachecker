@@ -45,7 +45,6 @@ public class myARGState implements Graphable {
   private final int currentID;
   private final AbstractState wrappedelement;
   private final Collection<ARGState> currentChildren;
-  private final Iterable<Integer> childrenToGive;
   private final boolean toMergeID;
   private final Collection<ARGState> parents;
   private ImmutableList<ARGState> childrenlist;
@@ -77,7 +76,6 @@ public class myARGState implements Graphable {
     wrappedelement = element.getWrappedState();
     currentID = element.getStateId();
     currentChildren = element.getChildren();
-    childrenToGive =stateIdsOf(currentChildren);
     parents = element.getParents();
     if (cChildren != null) {
       childrenlist = ImmutableList.copyOf(cChildren);
@@ -87,7 +85,7 @@ public class myARGState implements Graphable {
       parentslist = ImmutableList.copyOf(cParents);
     }
     if (pParentElement != null) {
-      addParent(pParentElement);
+      //addParent(pParentElement);
       parentelement = pParentElement;
       parentwrapped = parentelement.getWrappedState();
     }
@@ -110,7 +108,7 @@ public class myARGState implements Graphable {
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("myARG State (myId: ");
+    sb.append("myARG State: (myId: ");
     sb.append(stateId);
     sb.append(", myCount: ");
     sb.append(mycount2);
@@ -118,10 +116,10 @@ public class myARGState implements Graphable {
     sb.append(currentID);
     sb.append(", toMerge: ");
     sb.append(toMergeID);
-      if (myparents != null){
+     /** if (myparents != null){
         sb.append(", myParents: ");
       sb.append(stateIdsOf(myparents));
-      }
+      }**/
     if (parentslist != null){
       sb.append(", myParentslist: ");
       sb.append(stateIdsOf(parentslist));
@@ -130,9 +128,9 @@ public class myARGState implements Graphable {
       sb.append(", myChildrenlist: ");
       sb.append(stateIdsOf(childrenlist));
     }
-      sb.append(", myChildren: ");
+     /** sb.append(", myChildren: ");
       sb.append(stateIdsOf(currentChildren));
-      sb.append(") ");
+      sb.append(") ");**/
     //sb.append(element);
     sb.append(wrappedelement);
     return sb.toString();
@@ -149,8 +147,10 @@ public class myARGState implements Graphable {
   public Collection<ARGState> getChildren() {
     return Collections.unmodifiableCollection(currentChildren);
   }
+  public Collection<ARGState> getChildrenOfToMerge() {
+    return Collections.unmodifiableCollection(childrenlist);
+  }
 
-  public Iterable<Integer> getMyChildren() {return childrenToGive; }
   public Iterable<Integer> getMyParents() {return parentsToGive; }
   public ARGState getARGState() {
     return element;

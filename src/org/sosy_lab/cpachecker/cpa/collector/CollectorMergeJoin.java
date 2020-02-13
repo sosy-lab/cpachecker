@@ -59,7 +59,7 @@ public class CollectorMergeJoin implements MergeOperator {
   private boolean isMerged = false;
   private boolean toMerge;
   private myARGState myARGmerged;
-  Collection<ARGState> childrenOfParent = new ArrayList<ARGState>();
+  private CollectorState mergedElementabs;
 
 
   public CollectorMergeJoin(MergeOperator pWrappedMerge, AbstractDomain pWrappedDomain,
@@ -69,7 +69,6 @@ public class CollectorMergeJoin implements MergeOperator {
     wrappedMergeCol = pWrappedMerge;
     config.inject(this);
     logger = mjLogger;
-
   }
 
   @Override
@@ -91,27 +90,25 @@ public class CollectorMergeJoin implements MergeOperator {
     Collection<ARGState> wrappedChildren2 = wrappedState2.getChildren();
     children1.addAll(wrappedChildren1);
     children2.addAll(wrappedChildren2);
+
     toMerge = true;
 
     if (parents2.size() >= 1 && parents1.size() >=1) {
       Object firstparent = parents2.get(0);
       Object firstparent1 = parents1.get(0);
       ARGState f = (ARGState) firstparent;
-      ////do i need them???////////////////////////////////////
-      childrenOfParent = ((ARGState) firstparent).getChildren();
-      logger.log(Level.INFO, "children of parent:\n" + childrenOfParent);
-      ///////////////////////////////////////////////////////////
+
       ARGState f1 = (ARGState) firstparent1;
-      myARG1 = new myARGState(wrappedState1,f1,parents1, children1,toMerge,logger);
+      myARG1 = new myARGState(wrappedState1,f1,parents1, wrappedChildren1,toMerge,logger);
       parents1.clear();
-      myARG2 = new myARGState(wrappedState2,f,parents2, children2,toMerge, logger);
+      myARG2 = new myARGState(wrappedState2,f,parents2, wrappedChildren2,toMerge, logger);
       parents2.clear();
     } else {
-      myARG2 = new myARGState(wrappedState2,null,null,children2,toMerge,logger);
-      myARG1 = new myARGState(wrappedState1,null,null,children1,toMerge,logger);
+      myARG2 = new myARGState(wrappedState2,null,null,wrappedChildren2,toMerge,logger);
+      myARG1 = new myARGState(wrappedState1,null,null,wrappedChildren1,toMerge,logger);
     }
 
-    /////////////if i do need children of parent of mergepartner thats where they are still alive but get destroyed after next step
+    //children of parent of mergepartner are still alive but get destroyed after next step
     ARGState mergedElement = (ARGState) wrappedMergeCol.merge(wrappedState1,wrappedState2,
         pPrecision);
 
@@ -120,13 +117,23 @@ public class CollectorMergeJoin implements MergeOperator {
     Collection<ARGState> wrappedParentMerged = mergedElement.getParents();
     parentsM.addAll(wrappedParentMerged);
 
-    myARGmerged = new myARGState(mergedElement,null,parentsM,null,false,logger);
 
-    AbstractState merged = mergedElement;
+    if(!mergedElement.equals(wrappedState2)){
+      myARGmerged = new myARGState(mergedElement,null,parentsM,null,false,logger);
 
-    CollectorState mergedElementcollector = new CollectorState
-        (merged,null, null, isMerged, myARG1, myARG2,myARGmerged,logger);
-    AbstractState mergedElementabs = mergedElementcollector;
+      AbstractState merged = mergedElement;
+      CollectorState mergedElementcollector = new CollectorState
+          (merged,null, null, isMerged, myARG1, myARG2,myARGmerged,logger);
+      mergedElementabs = mergedElementcollector;
+    }
+    if(!mergedElement.equals(wrappedState1)){
+      myARGmerged = new myARGState(mergedElement,null,parentsM,null,false,logger);
+
+      AbstractState merged = mergedElement;
+      CollectorState mergedElementcollector = new CollectorState
+          (merged,null, null, isMerged, myARG1, myARG2,myARGmerged,logger);
+      mergedElementabs = mergedElementcollector;
+    }
 
     return mergedElementabs;
   }

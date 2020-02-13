@@ -26,7 +26,7 @@
 var data = {}; //ARG_JSON_INPUT
 
 var myVar = myData0;
-
+var myVarNodes = myVar["nodes"];
 var maxStep = myVar["nodes"].length-1;
 var step = 0;
 var startIndex = step;
@@ -51,23 +51,9 @@ function slide(){
         document.getElementById("demo").innerHTML = curVal ;
         document.getElementById("myRange").value = curVal ;
 
-        $("g.node").addClass("wannahide");
-        $("g.edgePath").addClass("wannahide");
-        $("g.edgeLabel").addClass("wannahide");
-        $("g.edgeLabel.label").addClass("wannahide");
-        $("g.node").removeClass("contentshow");
-        $("g.edgePath").removeClass("contentshow");
-        $("g.edgeLabel").removeClass("contentshow");
-        $("g.edgeLabel.label").removeClass("contentshow");
-        $("#node" + nodeIndexStart).removeClass("wannahide");
-        $("#node" + nodeIndexStart).addClass("contentshow");
-        $("g.label[id*=label]" ).removeClass("contentshow");
 
         for(i=0;i<=(curVal);i++){
             shownode3(i);
-            if(curVal > maxStep){
-                shownode();
-            }
         }
         step=curVal;
     }
@@ -78,15 +64,8 @@ function start(){
     var nodeIndexStart = myVar["nodes"][startIndex].index;
 
     $(document).ready(function(){
-        $("g.node").addClass("wannahide");
-        $("g.edgePath").addClass("wannahide");
-        $("g.edgeLabel").addClass("wannahide");
+        shownode3(nodeIndexStart);
     })
-    $(document).ready(function(){
-        $("#node" + nodeIndexStart).removeClass("wannahide");
-        $("#node" + nodeIndexStart).addClass("contentshow");
-    })
-
     updateGraph();
     dagreGraphBuild(myVar);
 }
@@ -109,147 +88,122 @@ function shownode(){
         document.getElementById("myRange").value = step ;
     })
 }
-
 function removenode(){
-
     var nodeIndexStart = myVar["nodes"][startIndex].index;
     if(step <= 0){
         step = 0;}
     else{ $("#step").html(step--);}
     $(document).ready(function(){
-        $("g.node").removeClass("contentshow");
-        $("g.node").addClass("wannahide");
-        $(".stayalive").removeClass("highlight");
-        $("#node" + nodeIndexStart).removeClass("wannahide");
         $("#node" + nodeIndexStart).addClass("contentshow");
-        $("g.edgePath").addClass("wannahide");
-        $("g.edgeLabel").addClass("wannahide");
-        $("g.edgeLabel.label").addClass("wannahide");
-        $("g.edgePath").removeClass("contentshow");
-        $("g.edgeLabel").removeClass("contentshow");
-        $("g.edgeLabel.label").removeClass("contentshow");
-        $("g.label[id*=label]" ).removeClass("contentshow");
-        $("#shownode").one("click",shownode3(step))
+        $("#shownode").one("click",shownode3(step));
         document.getElementById("demo").innerHTML = step ;
         document.getElementById("myRange").value = step ;
     })
+}
+
+function getDataByNodeIndex(index) {
+    return myVarNodes.filter(
+        function(myVarNodes) {
+            return myVarNodes.index == index
+        }
+    );
 }
 
 function shownode3(step) {
     var step = step;
     var start = -1;
 
+    $("g.node").removeClass("contentshow");
+    $("g.edgePath").removeClass("contentshow");
+    $("g.edgePath").removeClass("sourceAlive");
+    $("g.edgePath").removeClass("targetAlive");
+    $("g.label").removeClass("contentshow");
+    $("g.label").removeClass("sourceAlive");
+    $("g.label").removeClass("targetAlive");
+    $("g.edgeLabel").removeClass("contentshow");
+
     if(step <= maxStep){
         for (count = 0; count <= step; count++) {
-            var nodeIndexCount = myVar["nodes"][count].index;
-            var intervalStart = myVar["nodes"][count].intervalStart;
-            var intervalStop = myVar["nodes"][count].intervalStop;
-            var nodeType = myVar["nodes"][count].type;
 
-            if (!intervalStop) {
-                //do nothing
+            var nodeDataIndex = getDataByNodeIndex(count);
+            var nodeIndexCount = nodeDataIndex[0].index;
+            //var nodeIndexCount = count;
+            var intervalStart = nodeDataIndex[0].intervalStart;
+            var intervalStop = nodeDataIndex[0].intervalStop;
+            var source= "source"+ (nodeIndexCount-1).toString();
+            var source2= "source"+ (nodeIndexCount).toString();
+            var target= "target"+ nodeIndexCount.toString();
+            var source3= "source"+ (nodeIndexCount)+"target";
+
+            if(intervalStop){
+                stop = intervalStop;
+                $("#node" + nodeIndexCount).addClass("stop" + intervalStop);
             }
-            else if (intervalStop > start) {
-                if (nodeType == "toMerge") {
-                    $("#node" + nodeIndexCount).addClass("wannahide");
-                    $("#node" + nodeIndexCount).addClass("bullshitsoon");
-                }
+            else {
+                stop = maxStep+1;
+                $("#node" + nodeIndexCount).addClass("stop" + stop);
             }
 
-            if (intervalStart > start) {
-                if (nodeType == "none") {
-                    $("#node" + nodeIndexCount).removeClass("wannahide");
-                    $("#node" + nodeIndexCount).addClass("contentshow");
-                    var edgeID = "edge" + nodeIndexCount.toString()+"marker";
-                    var labelID = "label" + nodeIndexCount.toString()+"marker";
-                    $("g.edgePath[id*=" + edgeID + "]" ).removeClass("wannahide");
-                    $("g.edgePath[id*=" + edgeID + "]" ).addClass("contentshow");
-                    $("g.label[id*=" + labelID + "]" ).removeClass("wannahide");
-                    $("g.label[id*=" + labelID + "]" ).addClass("contentshow");
-                    if ($("g.node").hasClass("bullshitsoon")) {
-                        $(".bullshitsoon").removeClass("highlight");
-                        $(".bullshitsoon").removeClass("contentshow");
-                        $(".bullshitsoon").addClass("wannahide");
-                        $(".bullshitsoon").removeClass("stayalive");
-                        $(".bullshitsoon").removeClass("bullshitsoon");
-                        $(".stayalive").removeClass("highlight");
-                        $(".currentMerge").removeClass("currentMerge");
-                        $("g.edgePath[id$=destroyed]" ).removeClass("contentshow");
-                        $("g.edgePath[id$=destroyed]" ).addClass("wannahide");
-                        $("g.label[id$=destroyed]" ).removeClass("contentshow");
-                        $("g.label[id$=destroyed]" ).addClass("wannahide");
-                    }
+            if (intervalStart > start){
+
+                $("#node" + nodeIndexCount).addClass("contentshow");
+                if ($("#node" + nodeIndexCount).hasClass("merged")){
+                    $("#node" + nodeIndexCount).addClass("mergedColored");
+                }
+
+                if ($("g.edgePath").hasClass(source2)) {
+                    $("." + source2 + "").addClass("sourceAlive");
+                    $("." + source2 + "").addClass("stop" + stop);
+                    $("g.label[id^="+source3+"]").addClass("sourceAlive");
+                    $("g.label[id^="+source3+"]").addClass("stop" + stop);
+
 
                 }
-                else if (nodeType == "toMerge") {
-                    $("#node" + nodeIndexCount).addClass("highlight");
-                    $("#node" + nodeIndexCount).addClass("contentshow");
-                    $("#node" + nodeIndexCount).addClass("stayalive");
-                    $("#node" + nodeIndexCount).removeClass("wannahide");
-                    $(".currentMerge").removeClass("currentMerge");
-                    var edgeID = "edge" + nodeIndexCount.toString()+"marker";
-                    var labelID = "label" + nodeIndexCount.toString()+"marker";
-                    $("g.edgePath[id*=" + edgeID + "]" ).removeClass("wannahide");
-                    $("g.edgePath[id*=" + edgeID + "]" ).addClass("contentshow");
-                    $("g.label[id*=" + labelID + "]" ).removeClass("wannahide");
-                    $("g.label[id*=" + labelID + "]" ).addClass("contentshow");
+                if ($("g.edgePath").hasClass(target)) {
+                    $("." + target + "").addClass("targetAlive");
+                    $("." + target + "").addClass("stop" + stop);
+                    $("g.label[id$="+target+"]").addClass("targetAlive");
+                    $("g.label[id$="+target+"]").addClass("stop" + stop);
 
                 }
-                else if (nodeType == "merged") {
-                    $("#node" + nodeIndexCount).addClass("currentMerge");
-                    $("#node" + nodeIndexCount).addClass("contentshow");
-                    $("#node" + nodeIndexCount).addClass("stayalive");
-                    $("#node" + nodeIndexCount).removeClass("wannahide");
-                    $(".currentMerge").removeClass("highlight");
-                    var edgeID = "edge" + nodeIndexCount.toString()+"marker";
-                    var labelID = "label" + nodeIndexCount.toString()+"marker";
-                    $("g.edgePath[id*=" + edgeID + "]" ).removeClass("wannahide");
-                    $("g.edgePath[id*=" + edgeID + "]" ).addClass("contentshow");
-                    $("g.label[id*=" + labelID + "]" ).removeClass("wannahide");
-                    $("g.label[id*=" + labelID + "]" ).addClass("contentshow");
 
+
+                $(".targetAlive.sourceAlive" ).addClass("contentshow");
+
+
+                $(".stop" + nodeIndexCount ).removeClass("contentshow");
+                $(".stop" + nodeIndexCount ).removeClass("targetAlive");
+                $(".stop" + nodeIndexCount ).removeClass("sourceAlive");
+
+                if ($("#node" + nodeIndexCount).hasClass("none")) {
+                    $(".mergedColored" ).removeClass("mergedColored");
                 }
-                start = intervalStart;
+                if ($("#node" + nodeIndexCount).hasClass("toMerge")) {
+                    $(".mergedColored" ).removeClass("mergedColored");
+                }
             }
         }
     }
-    else{
-        lastshow();
-    }
-}
-
-function lastshow() {
-    if ($("g.node").hasClass("bullshitsoon")) {
-        $(".bullshitsoon").removeClass("highlight");
-        $(".bullshitsoon").removeClass("contentshow");
-        $(".bullshitsoon").addClass("wannahide");
-        $(".bullshitsoon").removeClass("stayalive");
-        $(".bullshitsoon").removeClass("bullshitsoon");
-        $(".stayalive").removeClass("highlight");
-        $(".currentMerge").removeClass("currentMerge");
-        $("g.edgePath[id$=destroyed]" ).removeClass("contentshow");
-        $("g.edgePath[id$=destroyed]" ).addClass("wannahide");
-        $("g.label[id$=destroyed]" ).removeClass("contentshow");
-        $("g.label[id$=destroyed]" ).addClass("wannahide");
+    else {
+        shownode3(maxStep);
+        if ($("#node" + maxStep).hasClass("mergedColored")) {
+            $("#node" + maxStep).removeClass("mergedColored");
+        }
     }
 }
 
 function buttonFinalGraph(){
     $(document).ready(function(){
-
-        $("g.toMerge").addClass("highlight");
-        $("g.merged").addClass("currentMerge");
-        $("g.node").removeClass("wannahide");
         $("g.node").addClass("contentshow");
-        $("g.edgePath").removeClass("wannahide");
         $("g.edgePath").addClass("contentshow");
-        $("g.edgeLabel").removeClass("wannahide");
         $("g.edgeLabel").addClass("contentshow");
+        $(".merged").addClass("mergedColored");
+
     })
-    document.getElementById("myRange").max = maxStep;
-    document.getElementById("myRange").value = maxStep;
-    document.getElementById("demo").innerHTML = maxStep;
-    step=maxStep;
+    document.getElementById("myRange").max = maxStep+1;
+    document.getElementById("myRange").value = maxStep+1;
+    document.getElementById("demo").innerHTML = maxStep+1;
+    step=maxStep+1;
 }
 
 function buttonFinalGraph2(){
@@ -257,13 +211,13 @@ function buttonFinalGraph2(){
         var i;
         for(i =0; i <= maxStep; i++ ) {
             shownode3(i);
-            lastshow();
         }
+        $(".merged").removeClass("mergedColored");
     })
-    document.getElementById("myRange").max = maxStep;
-    document.getElementById("myRange").value = maxStep;
-    document.getElementById("demo").innerHTML = maxStep;
-    step=maxStep;
+    document.getElementById("myRange").max = maxStep+1;
+    document.getElementById("myRange").value = maxStep+1;
+    document.getElementById("demo").innerHTML = maxStep+1;
+    step=maxStep+1;
 }
 
 
@@ -271,7 +225,6 @@ function dagreGraphBuild(json) {
 
     var data = json;
     var maxIndex = d3.max(data["nodes"], function(d) { return d.index; });
-    console.log("Maxindex" + maxIndex);
 
     // Create the input graph
     var g = new dagreD3.graphlib.Graph()
@@ -283,7 +236,7 @@ function dagreGraphBuild(json) {
 // Set up nodes
     data["nodes"].forEach(function (v) {
         g.setNode(v["index"], {label: v["label"], class: v["type"], id : "node" + v["index"]});
-    });
+        });
 
     g.nodes().forEach(function (v) {
         var node = g.node(v);
@@ -293,13 +246,12 @@ function dagreGraphBuild(json) {
     if(g.nodes(maxIndex)) {
         var node = g.node(maxIndex);
         node.style = "stroke: #1366eb; stroke-width: 10";
-        //node.class = "wannahide"
     }
 
 // Set up edges
     data["edges"].forEach(function (v) {
-        g.setEdge(v["source"], v["target"], {label: v["label"],
-            id:"edge"+ v["target"] +"marker"+ v["destroyed"] , labelId: "label"+ v["target"]+"marker"+ v["destroyed"]})
+        g.setEdge(v["source"], v["target"], {label: v["label"] , class: "source" + v["source"]+ " "+ "target" + v["target"],
+            id:"source"+ v["source"] + "target" + v["target"], labelId: "source"+ v["source"]+"target"+ v["target"]})
     });
 
 // Create the renderer

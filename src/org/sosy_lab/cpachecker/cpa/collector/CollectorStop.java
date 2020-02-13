@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.collector;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGStopSep;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CollectorStop implements StopOperator {
@@ -40,36 +42,31 @@ public class CollectorStop implements StopOperator {
   private final StopOperator delegateStop;
   private final LogManager logger;
 
+
   public CollectorStop(final StopOperator pDelegateStop, LogManager pLogger) {
     delegateStop = pDelegateStop;
     logger = pLogger;
   }
 
   @Override
-  public boolean stop(
+ public boolean stop(
       AbstractState state, Collection<AbstractState> reached, Precision precision)
       throws CPAException, InterruptedException {
 
     assert state instanceof CollectorState;
 
-    ARGState wrappedState = (ARGState) ((CollectorState)state).getWrappedState();
-    //logger.log(Level.INFO, "sonja StopwrappedState:\n" + wrappedState);
+      ARGState wrappedState = (ARGState) ((CollectorState)state).getWrappedState();
 
-
-    //logger.log(Level.INFO, "sonja Stop REACHED:\n" + reached);
-
-    Collection<? extends AbstractState> stopcollection;
+      Collection<? extends AbstractState> stopcollection;
       stopcollection = reached;
 
       Collection<AbstractState> wrappedstop = new ArrayList<>();
-      for (AbstractState absElement : stopcollection) {
-        ARGState stopElem = new ARGState(absElement, null) {
-        };
-        wrappedstop.add(stopElem);
-      }
 
-    //logger.log(Level.INFO, "sonja Stop REACHEDstoparg:\n" + wrappedstop);
-
+   for (AbstractState absElement : stopcollection) {
+      CollectorState c = (CollectorState) absElement;
+      ARGState stopElem = c.getARGState();
+      wrappedstop.add(stopElem);
+    }
     boolean stop = delegateStop.stop(wrappedState, wrappedstop, precision);
 
     return stop;
