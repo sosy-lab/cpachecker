@@ -2035,7 +2035,17 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CStatement stmt = null;
     if (tempVar != null) {
-      stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide)exp);
+      if (exp instanceof CAssignment) {
+        CFANode lastNode = newCFANode();
+        CFAEdge edge =
+            new CStatementEdge(
+                exp.toASTString(), (CStatement) exp, lastExpLocation, prevNode, lastNode);
+        addToCFA(edge);
+        prevNode = lastNode;
+        stmt = createStatement(lastExpLocation, tempVar, ((CAssignment) exp).getLeftHandSide());
+      } else {
+        stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide) exp);
+      }
     } else if (exp instanceof CStatement) {
       stmt = (CStatement)exp;
     } else if (!(exp instanceof CRightHandSide)) {
