@@ -347,15 +347,13 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
     Map<MemoryLocation, CFAEdge> locToDec = new HashMap<>();
 
-    Set<CFANode> allNodes = CFATraversal.dfs().collectNodesReachableFrom(pCfa.getMainFunction());
-    for (CFANode node : allNodes) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        if (edge instanceof CDeclarationEdge) {
-
-          CDeclaration dec = ((CDeclarationEdge) edge).getDeclaration();
-          MemoryLocation loc = MemoryLocation.valueOf(dec.getQualifiedName());
-          locToDec.put(loc, edge);
-        }
+    EdgeCollectingCFAVisitor edgeVisitor = new EdgeCollectingCFAVisitor();
+    CFATraversal.dfs().traverse(pCfa.getMainFunction(), edgeVisitor);
+    for (CFAEdge edge : edgeVisitor.getVisitedEdges()) {
+      if (edge instanceof CDeclarationEdge) {
+        CDeclaration dec = ((CDeclarationEdge) edge).getDeclaration();
+        MemoryLocation loc = MemoryLocation.valueOf(dec.getQualifiedName());
+        locToDec.put(loc, edge);
       }
     }
 
