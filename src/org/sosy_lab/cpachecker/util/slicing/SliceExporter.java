@@ -130,6 +130,16 @@ public class SliceExporter {
     return false;
   }
 
+  private boolean isRelevantFunctionDeclarationEdge(Set<String> pRelevantFunctions, CFAEdge pEdge) {
+
+    if (pEdge instanceof CDeclarationEdge) {
+      String name = ((CDeclarationEdge) pEdge).getDeclaration().getQualifiedName();
+      return pRelevantFunctions.contains(name);
+    }
+
+    return false;
+  }
+
   /**
    * Returns true if the node hast at least one leaving edge and only leaving edges that are assume
    * edges and not contained in pRelevantEdges.
@@ -332,12 +342,14 @@ public class SliceExporter {
    *
    * @param pEntryNode the entry node for the function.
    * @param pRelevantEdges the relevant edges for the program slice.
+   * @param pRelevantFunctions the relevant functions for the program slice.
    * @param pNewNodes the mapping of function names to function nodes (multimap).
    * @return the function entry node of the created function.
    */
   private FunctionEntryNode createRelevantFunction(
       CFunctionEntryNode pEntryNode,
       Set<CFAEdge> pRelevantEdges,
+      Set<String> pRelevantFunctions,
       Multimap<String, CFANode> pNewNodes) {
 
     Map<Integer, CFANode> nodeMap =
@@ -370,7 +382,7 @@ public class SliceExporter {
       if (pRelevantEdges.contains(edge)
           || edge.getEdgeType() == CFAEdgeType.BlankEdge
           || edge.getEdgeType() == CFAEdgeType.AssumeEdge
-          || edge.getEdgeType() == CFAEdgeType.DeclarationEdge
+          || isRelevantFunctionDeclarationEdge(pRelevantFunctions, edge)
           || edge instanceof CFunctionSummaryStatementEdge) {
 
         newEdge = cloneEdge(edge, newPred, newSucc);
@@ -433,19 +445,27 @@ public class SliceExporter {
     NavigableMap<String, FunctionEntryNode> newFunctions = new TreeMap<>();
     SortedSetMultimap<String, CFANode> newNodes = TreeMultimap.create();
     FunctionEntryNode newMainEntryNode = null;
+    Set<String> relevantFunctions = new HashSet<>();
+
+    // collect relevant function names
+    for (String functionName : originalCfa.getAllFunctionNames()) {
+      FunctionEntryNode entryNode = originalCfa.getFunctionHead(functionName);
+      Collection<CFANode> functionNodes =
+          CFATraversal.dfs().collectNodesReachableFromTo(entryNode, entryNode.getExitNode());
+      if (containsRelevantEdge(functionNodes, relevantEdges)) {
+        relevantFunctions.add(functionName);
+      }
+    }
 
     for (String functionName : originalCfa.getAllFunctionNames()) {
       final boolean isMainFunction =
           functionName.equals(originalCfa.getMainFunction().getFunctionName());
-
       FunctionEntryNode entryNode = originalCfa.getFunctionHead(functionName);
 
-      Collection<CFANode> functionNodes =
-          CFATraversal.dfs().collectNodesReachableFromTo(entryNode, entryNode.getExitNode());
-
-      if (isMainFunction || containsRelevantEdge(functionNodes, relevantEdges)) {
+      if (isMainFunction || relevantFunctions.contains(functionName)) {
         final FunctionEntryNode newEntryNode =
-            createRelevantFunction((CFunctionEntryNode) entryNode, relevantEdges, newNodes);
+            createRelevantFunction(
+                (CFunctionEntryNode) entryNode, relevantEdges, relevantFunctions, newNodes);
         newFunctions.put(functionName, newEntryNode);
 
         if (isMainFunction) {
