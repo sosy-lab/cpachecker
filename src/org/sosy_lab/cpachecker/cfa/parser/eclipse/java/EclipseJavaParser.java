@@ -223,16 +223,6 @@ class EclipseJavaParser implements JavaParser {
     return result;
   }
 
-  @Override
-  public String getMainMethodName() {
-    return mainMethodName;
-  }
-
-  @Override
-  public String getMainClassRelativePath() {
-    return mainClassRelativePath;
-  }
-
   private String getMainClassAbsolutePath() {
     return mainClassAbsolutePath;
   }
