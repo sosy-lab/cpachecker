@@ -41,7 +41,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -671,9 +670,9 @@ public class CFACreator {
 
     if (sourceFiles.size() == 1) {
       if (language == Language.JAVA) {
+        ((JavaParser) parser).setPathsAndEntryFunction(sourceFiles, mainFunctionName);
         parseResult =
-            ((JavaParser) parser)
-                .parseProgramDenotationWithEntryFunction(sourceFiles, mainFunctionName);
+            parser.parseFile(((JavaParser) parser).getAbsolutePathToMainFile());
       } else {
         parseResult = parser.parseFile(sourceFiles.get(0));
       }
@@ -793,23 +792,33 @@ public class CFACreator {
 
   private FunctionEntryNode getJavaMainMethod(Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
-    Optional<Entry<String, FunctionEntryNode>> mainFunctionOptional =
-        cfas.entrySet().stream()
-            .filter(k -> k.getKey().endsWith(JAVA_MAIN_METHOD_CFA_SUFFIX))
-            .findFirst();
 
-    Entry<String, FunctionEntryNode> mainMethodEntry =
-        mainFunctionOptional.orElseThrow(
-            () ->
-                new InvalidConfigurationException(
-                    "Method "
-                        + mainFunctionName
-                        + " not found.\n"
-                        + "Please note that a method has to be given in the following notation:\n <ClassName>_"
-                        + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_pack1.Car\n"
-                        + "for the method drive(int speed, Car car) in the class Car."));
+    // try specified function
+    FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
 
-    return mainMethodEntry.getValue();
+    if (mainFunction != null) {
+      return mainFunction;
+    }
+    if (!((JavaParser) parser).getMainMethodName().equals("main")) {
+      // function explicitly given by user, but not found
+      throw new InvalidConfigurationException(
+          "Method "
+              + mainFunctionName
+              + " not found.\n"
+              + "Please note that a method has to be given in the following notation:\n <ClassName>_"
+              + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_pack1.Car\n"
+              + "for the method drive(int speed, Car car) in the class Car.");
+    }
+
+    String mainClassName = ((JavaParser) parser).getMainClassRelativePath();
+    mainFunction = cfas.get(mainClassName.replace("/", ".") + JAVA_MAIN_METHOD_CFA_SUFFIX);
+
+    if (mainFunction == null) {
+      throw new InvalidConfigurationException(
+          "No main method in given main class found, please specify one.");
+    }
+
+    return mainFunction;
   }
 
   private void checkIfValidFiles(List<String> sourceFiles) throws InvalidConfigurationException {

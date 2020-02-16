@@ -123,7 +123,12 @@ class EclipseJavaParser implements JavaParser {
 
   private static final boolean IGNORE_METHOD_BODY = true;
   private static final boolean PARSE_METHOD_BODY = false;
+  private static final String DEFAULT_ENTRY_METHOD = "main";
   static final String JAVA_SOURCE_FILE_EXTENSION = ".java";
+
+  private String mainMethodName;
+  private String mainClassRelativePath;
+  private String mainClassAbsolutePath;
 
   public EclipseJavaParser(LogManager pLogger, Configuration config)
       throws InvalidConfigurationException {
@@ -133,6 +138,54 @@ class EclipseJavaParser implements JavaParser {
     logger = pLogger;
   }
 
+  @Override
+  public void setPathsAndEntryFunction(List<String> sourceFiles, String entryFunction)
+      throws InvalidConfigurationException, JParserException {
+    if (sourceFiles.isEmpty()) {
+      throw new InvalidConfigurationException("Programs parameter can't be empty.");
+    }
+
+    if (!javaSourcepath.isEmpty() && javaClasspath.isEmpty()) {
+      javaClasspath = javaSourcepath;
+    }
+
+    if (javaClasspath.isEmpty()) {
+      ImmutableList<Path> pathToProgram = convertToPathList(sourceFiles.get(0));
+
+      if (pathToProgram.isEmpty()) {
+        throw new InvalidConfigurationException("No valid Paths could be found.");
+      }
+
+      if (sourceFiles.get(0).endsWith(".java")) {
+        javaClassPaths = ImmutableList.of(pathToProgram.get(0).getParent());
+        setEntryPointVariables(pathToProgram.get(0).getFileName().toString());
+      } else {
+        javaClassPaths = ImmutableList.of(pathToProgram.get(0));
+        setEntryPointVariables(entryFunction);
+      }
+    } else {
+      javaClassPaths = convertToPathList(javaClasspath);
+      setEntryPointVariables(sourceFiles.get(0));
+    }
+
+    if (javaSourcepath.isEmpty()) {
+      javaSourcePaths = javaClassPaths;
+    } else {
+      javaSourcePaths = convertToPathList(javaSourcepath);
+    }
+
+    if (javaSourcePaths.isEmpty()) {
+      throw new InvalidConfigurationException("No valid Paths could be found.");
+    }
+  }
+
+  private void setEntryPointVariables(String entryFunctionPath) throws JParserException {
+    String[] entryPointPathAndMethod = splitPathToClassAndMainMethod(entryFunctionPath);
+    mainClassAbsolutePath = entryPointPathAndMethod[0];
+    mainClassRelativePath = entryPointPathAndMethod[1];
+    mainMethodName = entryPointPathAndMethod[2];
+  }
+
   /**
    * Converts a string with a path or multiple paths to files separated by a path separator to an
    * immutable list of Paths. Path separator in Linux is ':'
@@ -140,7 +193,7 @@ class EclipseJavaParser implements JavaParser {
    * @param javaPath String of paths to java files, separated by path separator
    * @return Immutable list of Paths of files in input string
    */
-  private ImmutableList<Path> convertFilePathToPathList(String javaPath) {
+  private ImmutableList<Path> convertToPathList(String javaPath) {
     ImmutableList.Builder<Path> result = ImmutableList.builder();
 
     for (String pathAsString : Splitter.on(File.pathSeparator).trimResults().omitEmptyStrings()
@@ -151,18 +204,6 @@ class EclipseJavaParser implements JavaParser {
       } else {
         result.add(path);
       }
-    }
-
-    return result.build();
-  }
-
-  private ImmutableList<Path> convertFolderPathToPathList(String javaPath) {
-    ImmutableList.Builder<Path> result = ImmutableList.builder();
-
-    for (String pathAsString : Splitter.on(File.pathSeparator).trimResults().omitEmptyStrings()
-        .split(javaPath)) {
-      Path path = Paths.get(pathAsString);
-      result.add(path);
     }
 
     return result.build();
@@ -182,26 +223,23 @@ class EclipseJavaParser implements JavaParser {
     return result;
   }
 
-  /**
-   * Parse program denotation and entryfunction.
-   *
-   * @param sourceFiles   Contains either class paths or a file name
-   * @param entryFunction Name of the entry function
-   * @return the CFA
-   * @throws InvalidConfigurationException when parameters are malformed
-   * @throws JParserException              General problems like if the file in parameters can't be found
-   * @throws IOException                   General IO problems like file can't be read
-   */
   @Override
-  public ParseResult parseProgramDenotationWithEntryFunction(
-      List<String> sourceFiles, String entryFunction)
-      throws InvalidConfigurationException, JParserException, IOException {
-    String mainClassAbsolutePath = setPathsAndGetEntryFunction(sourceFiles, entryFunction);
-    return parseFile(getAbsolutePathToMainFile(mainClassAbsolutePath));
+  public String getMainMethodName() {
+    return mainMethodName;
   }
 
-  private String getAbsolutePathToMainFile(String mainClassAbsolutePath) {
-    return mainClassAbsolutePath + JAVA_SOURCE_FILE_EXTENSION;
+  @Override
+  public String getMainClassRelativePath() {
+    return mainClassRelativePath;
+  }
+
+  private String getMainClassAbsolutePath() {
+    return mainClassAbsolutePath;
+  }
+
+  @Override
+  public String getAbsolutePathToMainFile() {
+    return getMainClassAbsolutePath() + JAVA_SOURCE_FILE_EXTENSION;
   }
 
   /**
@@ -224,60 +262,16 @@ class EclipseJavaParser implements JavaParser {
     return mainClassFile;
   }
 
-  private String setPathsAndGetEntryFunction(List<String> sourceFiles, String entryFunction)
-      throws InvalidConfigurationException, JParserException {
-
-    String entryPointVariables;
-
-    if (sourceFiles.isEmpty()) {
-      throw new InvalidConfigurationException("Programs parameter can't be empty.");
-    }
-
-    if (!javaSourcepath.isEmpty() && javaClasspath.isEmpty()) {
-      javaClasspath = javaSourcepath;
-    }
-
-    if (javaClasspath.isEmpty()) {
-      ImmutableList<Path> pathToProgram = convertFilePathToPathList(sourceFiles.get(0));
-
-      if (pathToProgram.isEmpty()) {
-        throw new InvalidConfigurationException("No valid Paths could be found.");
-      }
-
-      if (sourceFiles.get(0).endsWith(".java")) {
-        javaClassPaths = ImmutableList.of(pathToProgram.get(0).getParent());
-        entryPointVariables =
-            splitPathToClassAndMainMethod(pathToProgram.get(0).getFileName().toString());
-      } else {
-        javaClassPaths = ImmutableList.of(pathToProgram.get(0));
-        entryPointVariables = splitPathToClassAndMainMethod(entryFunction);
-
-      }
-    } else {
-      javaClassPaths = convertFolderPathToPathList(javaClasspath);
-      entryPointVariables = splitPathToClassAndMainMethod(sourceFiles.get(0));
-    }
-
-    if (javaSourcepath.isEmpty()) {
-      javaSourcePaths = javaClassPaths;
-    } else {
-      javaSourcePaths = convertFolderPathToPathList(javaSourcepath);
-    }
-
-    if (javaSourcePaths.isEmpty()) {
-      throw new InvalidConfigurationException("No valid Paths could be found.");
-    }
-
-    return entryPointVariables;
-  }
-
   /**
-   * Returns path to main class of program. JavaClassPaths must be set for this method!
+   * Splits the path to an entry point into path to class and entry method. If the entry point
+   * method is not given, method will return default entry method. JavaClassPaths has to be set for
+   * this method to work!
    *
    * @param mainFunctionPath path to entry method
-   * @return String of absolute path to entry class
+   * @return Array with first element being absolute path to class, second element relative path and
+   * third element entry method
    */
-  private String splitPathToClassAndMainMethod(String mainFunctionPath) throws JParserException {
+  private String[] splitPathToClassAndMainMethod(String mainFunctionPath) throws JParserException {
     if (mainFunctionPath.endsWith(JAVA_SOURCE_FILE_EXTENSION)) {
       mainFunctionPath =
           mainFunctionPath.substring(
@@ -289,7 +283,9 @@ class EclipseJavaParser implements JavaParser {
       // In case only file without method name is given
       Path path = javaClassPath.resolve(Paths.get(mainFunctionPath + JAVA_SOURCE_FILE_EXTENSION));
       if (Files.exists(path)) {
-        return javaClassPath.resolve(Paths.get(mainFunctionPath)).toString();
+        String absolutePathEntryClass =
+            javaClassPath.resolve(Paths.get(mainFunctionPath)).toString();
+        return new String[]{absolutePathEntryClass, mainFunctionPath, DEFAULT_ENTRY_METHOD};
       }
       // In case file and method name is given
       int indexOfLastSlash = mainFunctionPath.lastIndexOf('/');
@@ -305,7 +301,11 @@ class EclipseJavaParser implements JavaParser {
                   .resolve(Paths.get(mainFunctionPath.substring(0, indexOfLastSlash)))
                   .toString();
         }
-        return absolutePathEntryClass;
+        return new String[]{
+            absolutePathEntryClass,
+            mainFunctionPath.substring(0, indexOfLastSlash),
+            mainFunctionPath.substring(indexOfLastSlash + 1)
+        };
       }
     }
     throw new JParserException("Could not find entry point");
