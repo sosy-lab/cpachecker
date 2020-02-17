@@ -582,6 +582,10 @@ blockreducer.reductionThreshold = 100
 # parts of the state space (this is similar to CBMC's unwinding assertions).
 bmc.boundingAssertions = true
 
+# If BMC did not find a bug, check which parts of the boundary actually
+# reachableand prevent them from being unrolled any further.
+bmc.boundingAssertionsSlicing = false
+
 # Check reachability of target states after analysis (classical BMC). The
 # alternative is to check the reachability as soon as the target states are
 # discovered, which is done if cpa.predicate.targetStateSatCheck=true.
