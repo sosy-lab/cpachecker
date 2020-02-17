@@ -795,7 +795,8 @@ public class CFACreator {
     String classPath = sourceFiles.get(0).replace("\\/", ".");
     // Try classPath given in sourceFiles and plain method name in mainFunctionName
     Optional<String> mainMethodKey =
-        cfas.keySet().stream().filter(k -> k.contains(classPath + "_" + mainFunctionName))
+        cfas.keySet().stream()
+            .filter(k -> k.contains(classPath + "_" + mainFunctionName))
             .findFirst();
 
     // Try classPath given in sourceFiles and relative Path with main function name in
@@ -821,18 +822,16 @@ public class CFACreator {
               .findFirst();
     }
 
-    if (mainMethodKey.isEmpty()) {
-      // function explicitly given by user, but not found
-      throw new InvalidConfigurationException(
-          "Method "
-              + mainFunctionName
-              + " not found.\n"
-              + "Please note that a method has to be given in the following notation:\n <ClassName>_"
-              + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_pack1.Car\n"
-              + "for the method drive(int speed, Car car) in the class Car.");
-    }
-
-    return cfas.get(mainMethodKey.get());
+    return cfas.get(
+        mainMethodKey.orElseThrow(
+            () ->
+                new InvalidConfigurationException(
+                    "Method "
+                        + mainFunctionName
+                        + " not found.\n"
+                        + "Please note that a method has to be given in the following notation:\n <ClassName>_"
+                        + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_pack1.Car\n"
+                        + "for the method drive(int speed, Car car) in the class Car.")));
   }
 
   private void checkIfValidFiles(List<String> sourceFiles) throws InvalidConfigurationException {
