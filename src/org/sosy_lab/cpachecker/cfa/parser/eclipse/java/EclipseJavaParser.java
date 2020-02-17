@@ -201,13 +201,13 @@ class EclipseJavaParser implements JavaParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> programAndEntryFunction)
+  public ParseResult parseFile(String sourceFiles, String mainFunctionName)
       throws ParserException, IOException, InvalidConfigurationException {
     if (javaClasspath.isEmpty()) {
-      setMissingClassPath(programAndEntryFunction.get(0));
-      return parseFile(programAndEntryFunction.get(1));
+      setMissingClassPath(sourceFiles);
+      return parseFile(mainFunctionName);
     } else {
-      return parseFile(programAndEntryFunction.get(0));
+      return parseFile(sourceFiles);
     }
 
   }

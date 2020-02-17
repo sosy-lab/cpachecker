@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
@@ -670,7 +669,7 @@ public class CFACreator {
     if (sourceFiles.size() == 1) {
       if (language == Language.JAVA) {
         parseResult =
-            ((JavaParser) parser).parseFile(ImmutableList.of(sourceFiles.get(0), mainFunctionName));
+            ((JavaParser) parser).parseFile(sourceFiles.get(0), mainFunctionName);
       } else {
         parseResult = parser.parseFile(sourceFiles.get(0));
       }
