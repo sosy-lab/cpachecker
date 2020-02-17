@@ -790,7 +790,7 @@ public class CFACreator {
 
   private FunctionEntryNode getJavaMainMethod(
       List<String> sourceFiles, Map<String, FunctionEntryNode> cfas)
-      throws InvalidConfigurationException, JParserException {
+      throws InvalidConfigurationException {
 
     String classPath = sourceFiles.get(0).replace("\\/", ".");
     // Try classPath given in sourceFiles and plain method name in mainFunctionName
