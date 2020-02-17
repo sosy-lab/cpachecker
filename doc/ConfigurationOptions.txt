@@ -1677,6 +1677,10 @@ cpa.loopbound.maxLoopIterations = 0
 # adjuster.
 cpa.loopbound.maxLoopIterationsUpperBound = 0
 
+# Only checks for errror after loops were unrolled at least this amount of
+# times.
+cpa.loopbound.startAtBound = 0
+
 # enable stack-based tracking of loops
 cpa.loopbound.trackStack = false
 

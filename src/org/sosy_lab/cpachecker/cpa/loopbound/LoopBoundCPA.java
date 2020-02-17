@@ -73,7 +73,7 @@ public class LoopBoundCPA extends AbstractCPA
   private final LoopBoundPrecisionAdjustment precisionAdjustment;
 
   LoopBoundCPA(Configuration pConfig, CFA pCFA, LogManager pLogger) throws InvalidConfigurationException, CPAException {
-    super("sep", "sep", new LoopBoundTransferRelation(pCFA));
+    super("sep", "sep", new LoopBoundTransferRelation(pConfig, pCFA));
     pConfig.inject(this);
     loopStructure = pCFA.getLoopStructure().orElseThrow();
     precisionAdjustment = new LoopBoundPrecisionAdjustment(pConfig, pLogger);
