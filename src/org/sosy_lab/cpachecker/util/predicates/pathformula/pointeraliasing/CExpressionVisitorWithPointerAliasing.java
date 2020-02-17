@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -76,6 +77,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 /**
  * A visitor the handle C expressions with the support for pointer aliasing.
@@ -155,7 +157,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                           final Constraints constraints,
                                           final ErrorConditions errorConditions,
                                           final PointerTargetSetBuilder pts,
-                                          final MemoryRegionManager regionMgr) {
+      final MemoryRegionManager regionMgr,
+      final Optional<FormulaType<?>> litFormType) {
 
     delegate =
         new ExpressionToFormulaVisitor(
@@ -164,7 +167,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             cfaEdge,
             function,
             ssa,
-            constraints) {
+            constraints,
+            litFormType) {
           @Override
           protected Formula toFormula(CExpression e) throws UnrecognizedCodeException {
             // recursive application of pointer-aliasing.

@@ -1803,7 +1803,14 @@ public class CtoFormulaConverter {
       CFAEdge pEdge, String pFunction,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) {
-    return new ExpressionToFormulaVisitor(this, fmgr, pEdge, pFunction, ssa, constraints);
+    return new ExpressionToFormulaVisitor(
+        this,
+        fmgr,
+        pEdge,
+        pFunction,
+        ssa,
+        constraints,
+        Optional.empty());
   }
 
   /**

@@ -704,7 +704,17 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       Constraints pConstraints,
       ErrorConditions pErrorConditions) {
 
-    CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(this, pEdge, pFunction, pSsa, pConstraints, pErrorConditions, pPts, regionMgr);
+    CExpressionVisitorWithPointerAliasing rhsVisitor =
+        new CExpressionVisitorWithPointerAliasing(
+            this,
+            pEdge,
+            pFunction,
+            pSsa,
+            pConstraints,
+            pErrorConditions,
+            pPts,
+            regionMgr,
+            Optional.empty());
     return rhsVisitor.asFormulaVisitor();
   }
 
@@ -1027,7 +1037,17 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
     final CType expressionType = typeHandler.getSimplifiedType(e);
-    CExpressionVisitorWithPointerAliasing ev = new CExpressionVisitorWithPointerAliasing(this, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+    CExpressionVisitorWithPointerAliasing ev =
+        new CExpressionVisitorWithPointerAliasing(
+            this,
+            edge,
+            function,
+            ssa,
+            constraints,
+            errorConditions,
+            pts,
+            regionMgr,
+            Optional.empty());
     BooleanFormula result = toBooleanFormula(ev.asValueFormula(e.accept(ev), expressionType));
 
     if (options.deferUntypedAllocations()) {

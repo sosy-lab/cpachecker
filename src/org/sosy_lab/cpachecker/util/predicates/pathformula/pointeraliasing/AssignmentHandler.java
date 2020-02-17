@@ -276,7 +276,15 @@ class AssignmentHandler {
 
   private CExpressionVisitorWithPointerAliasing newExpressionVisitor() {
     return new CExpressionVisitorWithPointerAliasing(
-        conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+        conv,
+        edge,
+        function,
+        ssa,
+        constraints,
+        errorConditions,
+        pts,
+        regionMgr,
+        Optional.empty());
   }
 
   BooleanFormula handleAssignment(

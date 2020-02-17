@@ -30,6 +30,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -85,13 +86,16 @@ public class ExpressionToFormulaVisitor
   protected final FormulaManagerView mgr;
   protected final SSAMapBuilder ssa;
 
+  private final Optional<FormulaType<?>> literalFormulaType;
+
   public ExpressionToFormulaVisitor(
       CtoFormulaConverter pCtoFormulaConverter,
       FormulaManagerView pFmgr,
       CFAEdge pEdge,
       String pFunction,
       SSAMapBuilder pSsa,
-      Constraints pConstraints) {
+      Constraints pConstraints,
+      Optional<FormulaType<?>> litFormType) {
 
     conv = pCtoFormulaConverter;
     edge = pEdge;
@@ -99,6 +103,7 @@ public class ExpressionToFormulaVisitor
     ssa = pSsa;
     constraints = pConstraints;
     mgr = pFmgr;
+    literalFormulaType = litFormType;
   }
 
   @Override
@@ -151,8 +156,28 @@ public class ExpressionToFormulaVisitor
     final CType returnType = exp.getExpressionType();
     final CType calculationType = exp.getCalculationType();
 
-    final Formula f1 = processOperand(exp.getOperand1(), calculationType, returnType);
-    final Formula f2 = processOperand(exp.getOperand2(), calculationType, returnType);
+    final ExpressionToFormulaVisitor newVisitor;
+    FormulaType<?> litFormType = determineLiteralFormulaType(exp, returnType);
+    if (literalFormulaType.isEmpty()) {
+      if (litFormType == null) {
+        newVisitor = this;
+      } else {
+        newVisitor =
+            new ExpressionToFormulaVisitor(
+                conv,
+                mgr,
+                edge,
+                function,
+                ssa,
+                constraints,
+                Optional.of(litFormType));
+      }
+    } else {
+      newVisitor = this;
+    }
+
+    final Formula f1 = newVisitor.processOperand(exp.getOperand1(), calculationType, returnType);
+    final Formula f2 = newVisitor.processOperand(exp.getOperand2(), calculationType, returnType);
 
     return handleBinaryExpression(exp, f1, f2);
   }
@@ -503,8 +528,9 @@ public class ExpressionToFormulaVisitor
   @Override
   public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCodeException {
     FormulaType<?> t;
-    if (conv.options.useVariableClassification()) {
-      t = FormulaType.IntegerType;
+
+    if (literalFormulaType.isPresent()) {
+      t = literalFormulaType.get();
     } else {
       t = conv.getFormulaTypeFromCType(iExp.getExpressionType());
     }
@@ -1269,6 +1295,32 @@ public class ExpressionToFormulaVisitor
     }
 
     return null;
+  }
+
+  private FormulaType<?> determineLiteralFormulaType(CBinaryExpression exp, CType returnType)
+      throws UnrecognizedCodeException {
+    if (!conv.options.useVariableClassification()) {
+      return null;
+    }
+    CExpression op1 = exp.getOperand1();
+    CExpression op2 = exp.getOperand2();
+    if (op1 instanceof CIntegerLiteralExpression) {
+      if (op2 instanceof CIntegerLiteralExpression) {
+        return FormulaType.IntegerType;
+      } else {
+        op2 = conv.makeCastFromArrayToPointerIfNecessary(op2, returnType);
+        Formula f = toFormula(op2);
+        return mgr.getFormulaType(f);
+      }
+    } else {
+      if (op2 instanceof CIntegerLiteralExpression) {
+        op1 = conv.makeCastFromArrayToPointerIfNecessary(op1, returnType);
+        Formula f = toFormula(op1);
+        return mgr.getFormulaType(f);
+      } else {
+        return null;
+      }
+    }
   }
 
   private FormulaType<?> determineCalculationFormulaType(
