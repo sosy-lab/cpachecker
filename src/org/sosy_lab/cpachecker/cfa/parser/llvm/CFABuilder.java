@@ -1703,8 +1703,9 @@ public class CFABuilder {
     /* if this is and expression starting with &,
      * just remove the & */
     if (expr instanceof CUnaryExpression
-        && ((CUnaryExpression) expr).getOperator() == UnaryOperator.AMPER)
-        return ((CUnaryExpression) expr).getOperand();
+        && ((CUnaryExpression) expr).getOperator() == UnaryOperator.AMPER) {
+      return ((CUnaryExpression) expr).getOperand();
+    }
 
     return new CPointerExpression(fileLocation, derefType, expr);
   }

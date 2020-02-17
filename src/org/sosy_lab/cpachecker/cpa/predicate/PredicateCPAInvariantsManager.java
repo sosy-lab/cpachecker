@@ -52,6 +52,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -352,13 +353,15 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     List<BooleanFormula> foundInvariants = new ArrayList<>();
     try {
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
-      ResourceLimitChecker limits = null;
+      final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
         limits =
             new ResourceLimitChecker(
                 invariantShutdown, Collections.singletonList(l));
         limits.start();
+      } else {
+        limits = null;
       }
 
       logger.log(Level.INFO, "Starting path invariant generation");
@@ -378,7 +381,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         logger.log(Level.INFO, "All invariants were TRUE, ignoring result.");
       }
 
-      if (!timeForInvariantGeneration.isEmpty()) {
+      if (limits != null) {
         limits.cancel();
       }
 
@@ -448,13 +451,15 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
     try {
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
-      ResourceLimitChecker limits = null;
+      final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
         limits =
             new ResourceLimitChecker(
                 invariantShutdown, Collections.singletonList(l));
         limits.start();
+      } else {
+        limits = null;
       }
 
       for (InvariantGenerationStrategy generation : generationStrategy) {
@@ -520,7 +525,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         }
       }
 
-      if (!timeForInvariantGeneration.isEmpty()) {
+      if (limits != null) {
         limits.cancel();
       }
 
@@ -750,7 +755,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       List<Pair<BooleanFormula, CFANode>> invariants = new ArrayList<>();
       for (ARGState s : abstractionStatesTrace) {
         // the last one will always be false, we don't need it here
-        if (s != abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)) {
+        if (!Objects.equals(s, abstractionStatesTrace.get(abstractionStatesTrace.size() - 1))) {
           CFANode location = extractLocation(s);
           Optional<CallstackStateEqualsWrapper> callstack = extractOptionalCallstackWraper(s);
           PredicateAbstractState pas = PredicateAbstractState.getPredicateState(s);

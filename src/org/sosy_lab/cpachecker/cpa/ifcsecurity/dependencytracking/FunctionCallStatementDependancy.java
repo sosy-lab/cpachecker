@@ -43,7 +43,6 @@ public class FunctionCallStatementDependancy extends VariableDependancy
      * Construct a new Visitor
      */
     public FunctionCallStatementDependancy() {
-      super();
     }
 
     /**

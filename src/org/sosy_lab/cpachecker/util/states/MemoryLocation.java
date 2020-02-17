@@ -176,7 +176,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
    * @return the offset of a reference.
    */
   public long getOffset() {
-    checkState(offset != null, "memory location '" + this + "' has no offset");
+    checkState(offset != null, "memory location '%s' has no offset", this);
     return offset;
   }
 

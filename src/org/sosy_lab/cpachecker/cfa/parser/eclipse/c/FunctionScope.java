@@ -123,9 +123,10 @@ class FunctionScope extends AbstractScope {
     String functionName = pFuncDef.getName();
     checkArgument(
         globalFunctions.containsKey(functionName) || localFunctions.containsKey(functionName),
-        String.format(
-            "function '%s' not available in global scope (%s) or local scope (%s)",
-            functionName, globalFunctions.keySet(), localFunctions.keySet()));
+        "function '%s' not available in global scope (%s) or local scope (%s)",
+        functionName,
+        globalFunctions.keySet(),
+        localFunctions.keySet());
 
     if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
       returnVariable = Optional.absent();

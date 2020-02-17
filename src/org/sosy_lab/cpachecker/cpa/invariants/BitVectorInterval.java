@@ -575,9 +575,9 @@ public class BitVectorInterval implements BitVectorType {
       upper = a.upperBound.max(b.upperBound);
     }
 
-    if (lower == a.lowerBound && upper == a.upperBound) {
+    if (Objects.equals(lower, a.lowerBound) && Objects.equals(upper, a.upperBound)) {
       return a;
-    } else if (lower == b.lowerBound && upper == b.upperBound) {
+    } else if (Objects.equals(lower, b.lowerBound) && Objects.equals(upper, b.upperBound)) {
       return b;
     } else {
       return new BitVectorInterval(a.info, lower, upper);

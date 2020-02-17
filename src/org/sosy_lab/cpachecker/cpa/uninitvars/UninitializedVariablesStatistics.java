@@ -43,7 +43,6 @@ public class UninitializedVariablesStatistics implements Statistics {
   private boolean printWarnings;
 
   public UninitializedVariablesStatistics(String printWarnings) {
-    super();
     this.printWarnings = Boolean.parseBoolean(printWarnings);
   }
 

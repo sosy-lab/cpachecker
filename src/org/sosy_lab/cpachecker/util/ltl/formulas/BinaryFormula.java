@@ -29,34 +29,42 @@ import java.util.Objects;
 
 public abstract class BinaryFormula implements LtlFormula {
 
-  public final LtlFormula left;
-  public final LtlFormula right;
+  private final LtlFormula left;
+  private final LtlFormula right;
 
   BinaryFormula(LtlFormula pLeft, LtlFormula pRight) {
     this.left = requireNonNull(pLeft);
     this.right = requireNonNull(pRight);
   }
 
+  public LtlFormula getLeft() {
+    return left;
+  }
+
+  public LtlFormula getRight() {
+    return right;
+  }
+
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return Objects.hash(left, right, getSymbol());
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public final boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
     if (obj == null) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof BinaryFormula)) {
       return false;
     }
     BinaryFormula other = (BinaryFormula) obj;
-    return Objects.equals(left, other.left)
-        && Objects.equals(right, other.right)
-        && Objects.equals(getSymbol(), other.getSymbol());
+    return getSymbol().equals(other.getSymbol())
+        && left.equals(other.left)
+        && right.equals(other.right);
   }
 
   public abstract String getSymbol();

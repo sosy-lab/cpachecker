@@ -1,0 +1,33 @@
+OBSERVER AUTOMATON AssumptionAutomaton
+
+INITIAL STATE ARG0;
+
+STATE __TRUE :
+    TRUE -> GOTO __TRUE;
+
+STATE __FALSE :
+    TRUE -> GOTO __FALSE;
+
+STATE USEFIRST ARG0 :
+    MATCH "int sum = 0;" -> GOTO ARG1;
+    TRUE -> GOTO ARG0;
+
+STATE USEFIRST ARG1 :
+    MATCH "int prod = 1;" -> GOTO ARG3;
+    TRUE -> GOTO ARG1;
+
+STATE USEFIRST ARG3 :
+    MATCH "int i = 1;" -> GOTO ARG4;
+    TRUE -> GOTO ARG3;
+
+STATE USEFIRST ARG4 :
+    MATCH "[sum >= 0]" -> GOTO ARG5;
+    MATCH "[!(sum >= 0)]" -> GOTO __TRUE;
+    TRUE -> GOTO ARG4;
+
+STATE USEFIRST ARG5 :
+    MATCH "[prod < 10]" -> GOTO __TRUE;
+    MATCH "[!(prod < 10)]" -> GOTO __TRUE;
+    TRUE -> GOTO ARG5;
+
+END AUTOMATON

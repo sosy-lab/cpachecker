@@ -32,6 +32,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.common.Appender;
@@ -143,7 +144,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
         from(path)
             .filter(
                 e ->
-                e.getSuccessor() == usage.getCFANode()
+                Objects.equals(e.getSuccessor(), usage.getCFANode())
                         && e.toString().contains(pId.getName()))
             .last();
 

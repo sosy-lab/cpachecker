@@ -28,6 +28,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.LinkedListMultimap;
@@ -46,6 +47,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
@@ -315,17 +317,17 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   }
 
   /**
-   * This method obtains the refinement roots, i.e., for each disjunct path from target states
-   * to the root, it collects the highest state that has a non-trivial interpolant associated.
-   * With non-lazy abstraction, the root of the interpolation tree is used as refinement root.
+   * This method obtains the refinement roots, i.e., for each disjunct path from target states to
+   * the root, it collects the highest state that has a non-trivial interpolant associated. With
+   * non-lazy abstraction, the root of the interpolation tree is used as refinement root.
    *
    * @param pStrategy whether to perform lazy abstraction or not
    * @return the set of refinement roots
    */
-  public Collection<ARGState> obtainRefinementRoots(GenericRefiner.RestartStrategy pStrategy) {
+  public ImmutableSet<ARGState> obtainRefinementRoots(GenericRefiner.RestartStrategy pStrategy) {
     if (pStrategy == GenericRefiner.RestartStrategy.ROOT) {
       assert successorRelation.get(root).size() == 1 : "ARG root has more than one successor";
-      return ImmutableList.of(successorRelation.get(root).iterator().next());
+      return ImmutableSet.of(successorRelation.get(root).iterator().next());
     }
 
     ARGState commonRoot = null;
@@ -347,7 +349,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
         if (pStrategy == GenericRefiner.RestartStrategy.COMMON && refinementRoots.size() > 2) {
           assert commonRoot != null: "common root not yet set";
-          return ImmutableList.of(commonRoot);
+          return ImmutableSet.of(commonRoot);
         }
         continue;
       }
@@ -355,7 +357,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
       todo.addAll(successorRelation.get(currentState));
     }
 
-    return refinementRoots;
+    return ImmutableSet.copyOf(refinementRoots);
   }
 
   /**
@@ -504,7 +506,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
       // if the current state is not the root, it is a child of a branch , however, the path should not start with the
       // child, but with the branching node (children are stored on the stack because this needs less book-keeping)
-      if (current != root) {
+      if (!Objects.equals(current, root)) {
         errorPathBuilder.add(predecessorRelation.get(current), predecessorRelation.get(current).getEdgeToChild(current));
       }
 

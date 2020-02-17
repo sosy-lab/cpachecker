@@ -29,6 +29,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
@@ -36,6 +38,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -54,6 +57,7 @@ import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -66,9 +70,16 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -115,6 +126,13 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
         "counterexample information should provide more precise information from counterexample check, if available"
   )
   private boolean provideCEXInfoFromCEXCheck = false;
+
+  @Option(
+      secure = true,
+      name = "forceCEXChange",
+      description =
+          "counterexample check should fully replace existing counterexamples with own ones, if available")
+  private boolean replaceCexWithCexFromCheck = false;
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
 
@@ -216,19 +234,18 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       CPAs.closeCpaIfPossible(lCpas, lLogger);
       CPAs.closeIfPossible(lAlgorithm, lLogger);
 
-      if (provideCEXInfoFromCEXCheck) {
+      if (provideCEXInfoFromCEXCheck || replaceCexWithCexFromCheck) {
         AbstractState target = from(lReached).firstMatch(IS_TARGET_STATE).orNull();
         if (target instanceof ARGState) {
           ARGState argTarget = (ARGState) target;
-          if (argTarget.getCounterexampleInformation().isPresent()) {
-            CounterexampleInfo cexInfo = argTarget.getCounterexampleInformation().orElseThrow();
-            if (!cexInfo.isSpurious() && cexInfo.isPreciseCounterExample()) {
-              pErrorState.replaceCounterexampleInformation(
-                  CounterexampleInfo.feasiblePrecise(
-                      pErrorState.getCounterexampleInformation().isPresent()
-                          ? pErrorState.getCounterexampleInformation().orElseThrow().getTargetPath()
-                          : ARGUtils.getOnePathTo(pErrorState),
-                      cexInfo.getCFAPathWithAssignments()));
+          Optional<CounterexampleInfo> counterexampleFromCheck =
+              argTarget.getCounterexampleInformation();
+          if (counterexampleFromCheck.isPresent()) {
+            if (replaceCexWithCexFromCheck) {
+              replaceCounterexampleInformation(pErrorState, counterexampleFromCheck.orElseThrow());
+
+            } else if (provideCEXInfoFromCEXCheck) {
+              improveCounterexampleInformation(pErrorState, counterexampleFromCheck.orElseThrow());
               assert (pErrorPathStates.containsAll(
                   pErrorState
                       .getCounterexampleInformation()
@@ -253,4 +270,106 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     }
   }
 
+  private void replaceCounterexampleInformation(
+      final ARGState pStateForCounterexample, final CounterexampleInfo pNewInfo) {
+
+    final CounterexampleInfo newInfo;
+    if (pNewInfo.isPreciseCounterExample()) {
+      // target path is only valid in temporary, local ARG computed by counterexample-check.
+      // To make this counterexample usable in other parts of CPAchecker, create a new, exchangeable
+      // ARGpath
+      ARGPath strippedDownPath = getExchangeableTargetPath(pNewInfo.getTargetPath());
+      assert strippedDownPath.getLastState().isTarget()
+          : "Last state of exchangeable target path is no target: "
+              + strippedDownPath.getLastState();
+      newInfo =
+          CounterexampleInfo.feasiblePrecise(
+              strippedDownPath, pNewInfo.getCFAPathWithAssignments());
+    } else {
+      newInfo = pNewInfo;
+    }
+    Optional<CounterexampleInfo> counterexampleFromArg =
+        pStateForCounterexample.getCounterexampleInformation();
+    if (counterexampleFromArg.isPresent()) {
+      pStateForCounterexample.replaceCounterexampleInformation(newInfo);
+    } else {
+      pStateForCounterexample.addCounterexampleInformation(newInfo);
+    }
+  }
+
+  /**
+   * Returns an exchangeable version of the given {@link ARGPath}. This exchangeable version will be
+   * independent of the ARG and the components it was computed with, but will also miss information
+   * in the ARGStates.
+   *
+   * @param pTargetPath the path to translate into an exchangable version
+   * @return exchangable version of the given path
+   */
+  private ARGPath getExchangeableTargetPath(ARGPath pTargetPath) {
+    ARGPathBuilder pathBuilder = ARGPath.builder();
+
+    PathIterator it = pTargetPath.fullPathIterator();
+    // use variable to store previous state instead of PathIterator#getPreviousState
+    // so that we don't have to handle the special case that the current state is the first state
+    // (PathIterator#getPreviousState would fail then)
+    ARGState previousState = null;
+    do {
+      it.advance();
+
+      final ARGState currentState = it.getPreviousAbstractState();
+      final CFAEdge edgeLeavingCurrentState = it.getIncomingEdge();
+
+      assert !(previousState == null) || currentState.getParents().isEmpty()
+          : "Iterator didn't start at first state, but at " + currentState;
+      final ARGState currentDummy = getStateWithIndependentInformation(currentState, previousState);
+
+      pathBuilder.add(currentDummy, edgeLeavingCurrentState);
+
+      if (!it.hasNext()) {
+        return pathBuilder.build(it.getAbstractState());
+      }
+      previousState = currentDummy;
+    } while (it.hasNext());
+    throw new AssertionError("This location shouldn't be reachable");
+  }
+
+  /**
+   * Returns an exchangeable version of the given {@link ARGState}. This exchangeable version will
+   * be independent of the ARG and the components it was computed with, but will also miss
+   * information.
+   *
+   * <p>At the moment, the created exchangeable version only contains the {@link LocationState} and
+   * all {@link AutomatonState AutomatonStates} of the given ARGState.
+   *
+   * @param pOriginal state to translate into exchangeable version
+   * @param pParent new parent of the created, exchangeable version. This should also be an
+   *     exchangeable ARGState that was returned by this method, or <code>null</code>
+   * @return an exchangeable version of the given ARGState
+   */
+  private ARGState getStateWithIndependentInformation(
+      final ARGState pOriginal, final @Nullable ARGState pParent) {
+    final LocationState currentLocation =
+        AbstractStates.extractStateByType(pOriginal, LocationState.class);
+    final FluentIterable<? extends AbstractState> automatonStates =
+        AbstractStates.asIterable(pOriginal).filter(AutomatonState.class);
+    final List<AbstractState> allWrappedStates =
+        ImmutableList.<AbstractState>builder().add(currentLocation).addAll(automatonStates).build();
+    final CompositeState composition = new CompositeState(allWrappedStates);
+    return new ARGState(composition, pParent);
+  }
+
+  private void improveCounterexampleInformation(
+      final ARGState pStateWithCounterexample, final CounterexampleInfo pNewInfo) {
+    if (!pNewInfo.isSpurious() && pNewInfo.isPreciseCounterExample()) {
+      pStateWithCounterexample.replaceCounterexampleInformation(
+          CounterexampleInfo.feasiblePrecise(
+              pStateWithCounterexample.getCounterexampleInformation().isPresent()
+                  ? pStateWithCounterexample
+                      .getCounterexampleInformation()
+                      .orElseThrow()
+                      .getTargetPath()
+                  : ARGUtils.getOnePathTo(pStateWithCounterexample),
+              pNewInfo.getCFAPathWithAssignments()));
+    }
+  }
 }

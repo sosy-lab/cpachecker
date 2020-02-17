@@ -1310,10 +1310,11 @@ class CFAFunctionBuilder extends ASTVisitor {
         // so the "else" branch won't be connected to the rest of the CFA
         return CIntegerLiteralExpression.ONE;
 
+      case NORMAL:
+        break;
+
       default:
         throw new AssertionError();
-
-    case NORMAL:
     }
 
     if (furtherThenComputation) {
@@ -2024,9 +2025,27 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     FileLocation lastExpLocation = astCreator.getLocation(lastExp);
     prevNode = handleAllSideEffects(prevNode, lastExpLocation, lastExp.getRawSignature(), true);
+
+    if (exp == null) {
+      if (tempVar != null) {
+        throw parseContext.parseError("invalid expression type", lastExp);
+      }
+      return prevNode;
+    }
+
     CStatement stmt = null;
     if (tempVar != null) {
-      stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide)exp);
+      if (exp instanceof CAssignment) {
+        CFANode lastNode = newCFANode();
+        CFAEdge edge =
+            new CStatementEdge(
+                exp.toASTString(), (CStatement) exp, lastExpLocation, prevNode, lastNode);
+        addToCFA(edge);
+        prevNode = lastNode;
+        stmt = createStatement(lastExpLocation, tempVar, ((CAssignment) exp).getLeftHandSide());
+      } else {
+        stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide) exp);
+      }
     } else if (exp instanceof CStatement) {
       stmt = (CStatement)exp;
     } else if (!(exp instanceof CRightHandSide)) {

@@ -96,6 +96,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -141,6 +142,13 @@ abstract class AbstractBMCAlgorithm
       + "the bounding did actually remove parts of the state space "
       + "(this is similar to CBMC's unwinding assertions).")
   private boolean boundingAssertions = true;
+
+  @Option(
+      secure = true,
+      description =
+          "If BMC did not find a bug, check which parts of the boundary actually reachable"
+              + "and prevent them from being unrolled any further.")
+  private boolean boundingAssertionsSlicing = false;
 
   @Option(secure=true, description="try using induction to verify programs with loops")
   private boolean induction = false;
@@ -771,17 +779,39 @@ abstract class AbstractBMCAlgorithm
         .filter(Predicates.not(IS_SLICED_STATE));
 
     if (boundingAssertions) {
-      // create formula for unwinding assertions
-      BooleanFormula assertions = BMCHelper.createFormulaFor(stopStates, bfmgr);
-
       logger.log(Level.INFO, "Starting assertions check...");
+      boolean sound = true;
 
-      stats.assertionsCheck.start();
-      prover.push(assertions);
-      boolean sound = prover.isUnsat();
-      prover.pop();
-      stats.assertionsCheck.stop();
-
+      if (!boundingAssertionsSlicing) {
+        // create one formula for unwinding assertions
+        BooleanFormula assertions = BMCHelper.createFormulaFor(stopStates, bfmgr);
+        stats.assertionsCheck.start();
+        prover.push(assertions);
+        sound = prover.isUnsat();
+        prover.pop();
+        stats.assertionsCheck.stop();
+      } else {
+        List<AbstractState> toRemove = new ArrayList<>();
+        for (AbstractState s : stopStates) {
+          // create individual formula for unwinding assertions
+          BooleanFormula assertions = BMCHelper.createFormulaFor(ImmutableList.of(s), bfmgr);
+          stats.assertionsCheck.start();
+          prover.push(assertions);
+          boolean result = prover.isUnsat();
+          prover.pop();
+          stats.assertionsCheck.stop();
+          sound &= result;
+          if (result) {
+            toRemove.add(s);
+          }
+        }
+        for (AbstractState s : toRemove) {
+          pReachedSet.remove(s);
+          if (s instanceof ARGState) {
+            ((ARGState) s).removeFromARG();
+          }
+        }
+      }
       logger.log(Level.FINER, "Soundness after assertion checks:", sound);
       return sound;
 
@@ -1242,8 +1272,8 @@ abstract class AbstractBMCAlgorithm
                 if (cpas.isEmpty()) {
                   latch.countDown();
                 } else {
-                  for (InvariantsCPA cpa : cpas) {
-                    if (cpa.isLikelyLongRunning()) {
+                  for (InvariantsCPA invariantCpa : cpas) {
+                    if (invariantCpa.isLikelyLongRunning()) {
                       latch.countDown();
                       break;
                     }

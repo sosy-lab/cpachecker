@@ -56,10 +56,7 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
     checkArgument(
         !Iterables.isEmpty(pBadStateBlockingClauses),
         "Bad-state blocking invariants should be present if (and only if) induction failed.");
-    if (pK < 0) {
-      throw new IllegalArgumentException(
-          "k must not be negative for failed induction results, but is " + pK);
-    }
+    checkArgument(pK >= 0, "k must not be negative for failed induction results, but is %s", pK);
     invariantAbstraction = null;
     badStateBlockingClauses = ImmutableSet.copyOf(pBadStateBlockingClauses);
     k = pK;

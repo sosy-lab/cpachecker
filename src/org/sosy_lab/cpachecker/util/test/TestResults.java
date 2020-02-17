@@ -33,7 +33,6 @@ public class TestResults {
   private CPAcheckerResult checkerResult;
 
   public TestResults(String pLog, CPAcheckerResult pCheckerResult) {
-    super();
     log = pLog;
     checkerResult = pCheckerResult;
   }

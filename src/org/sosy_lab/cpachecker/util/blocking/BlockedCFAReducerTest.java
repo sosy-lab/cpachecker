@@ -330,8 +330,7 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n8, n9);
     funct.addEdge(n9, exitNode);
 
-    do  {
-    } while (reducer.applySequenceRule(funct));
+    while (reducer.applySequenceRule(funct)) {}
 
     assertThat(funct.getNumOfActiveNodes()).isEqualTo(3);
     assertThat(funct.getNumEnteringEdges(n4)).isEqualTo(2);
@@ -471,8 +470,7 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n4, n5);
     funct.addEdge(n5, exitNode);
 
-    do  {
-    } while (reducer.applyChoiceRule(funct));
+    while (reducer.applyChoiceRule(funct)) {}
 
     assertThat(funct.getNumOfActiveNodes()).isEqualTo(6);
   }
@@ -492,8 +490,7 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n2, n3);
     funct.addEdge(n3, exitNode);
 
-    do  {
-    } while (reducer.applyChoiceRule(funct));
+    while (reducer.applyChoiceRule(funct)) {}
 
     assertThat(funct.getNumOfActiveNodes()).isEqualTo(4);
   }

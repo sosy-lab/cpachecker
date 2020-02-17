@@ -23,9 +23,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
-import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -69,25 +66,25 @@ public class ClassVariables {
   }
 
   public ImmutableSet<CVariableDeclaration> getGlobalDeclarations() {
-    return ImmutableSet.copyOf(visitor.globalDeclarations);
+    return visitor.globalDeclarations.build();
   }
 
   public ImmutableSetMultimap<String, CVariableDeclaration> getLocalDeclarations() {
-    return ImmutableSetMultimap.copyOf(visitor.localDeclarations);
+    return visitor.localDeclarations.build();
   }
 
   private static final class DeclarationCollectionCFAVisitor extends DefaultCFAVisitor {
 
-    private final Set<CVariableDeclaration> globalDeclarations = Sets.newLinkedHashSet();
+    private final ImmutableSet.Builder<CVariableDeclaration> globalDeclarations =
+        ImmutableSet.builder();
 
-    private final Multimap<String, CVariableDeclaration> localDeclarations =
-        MultimapBuilder.hashKeys().linkedHashSetValues().build();
+    private final ImmutableSetMultimap.Builder<String, CVariableDeclaration> localDeclarations =
+        ImmutableSetMultimap.builder();
 
     private DeclarationCollectionCFAVisitor() {}
 
     @Override
     public TraversalProcess visitNode(CFANode pNode) {
-
       if (pNode instanceof CFunctionEntryNode) {
         String functionName = pNode.getFunctionName();
         List<CParameterDeclaration> parameters =
@@ -95,7 +92,7 @@ public class ClassVariables {
         parameters
             .stream()
             .map(CParameterDeclaration::asVariableDeclaration)
-            .forEach(localDeclarations.get(functionName)::add);
+            .forEach(decl -> localDeclarations.put(functionName, decl));
       }
       return TraversalProcess.CONTINUE;
     }

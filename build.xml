@@ -24,14 +24,10 @@
     <!-- The following error-prone checks are disabled:
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
          ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
-         EqualsGetClass: TODO enable this and fix alarms?
-         MixedMutabilityReturnType: too many warnings, need to fix them first
          -->
     <property name="errorprone.options" value="
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
-        -Xep:EqualsGetClass:OFF
-        -Xep:MixedMutabilityReturnType:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>

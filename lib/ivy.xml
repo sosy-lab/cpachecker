@@ -43,10 +43,11 @@
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.3.1-15-gdb8139f" conf="runtime->runtime; contrib->sources"/>
         <!-- ParallelJBDD
             Parallel java BDD library for predicate abstraction. -->
-        <dependency org="org.sosy_lab" name="pjbdd" rev="1.0.2-2-g5934b86" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="pjbdd" rev="1.0.2-9-g284be91" conf="runtime->runtime; contrib->sources"/>
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
         <dependency org="net.sf.javabdd" name="javabdd" rev="1.0b2-sosy0" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.bitbucket.vahidi" name="jdd" rev="108" conf="runtime->master; contrib->sources"/>
 
         <!-- International Components for Unicode
              Needed by Eclipse CDT parser for error messages. -->
@@ -110,7 +111,7 @@
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
-        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.11" conf="build->default"/>
+        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.14" conf="build->default"/>
 
         <!-- google-java-format
              A source-code formatter for Java -->
@@ -123,8 +124,8 @@
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- Checkstyle -->
-        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.37.0" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.28" conf="checkstyle->default"/>
+        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.37.1" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.29" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>

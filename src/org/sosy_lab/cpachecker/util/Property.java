@@ -26,6 +26,8 @@ public interface Property {
 
     REACHABILITY("G ! call(__VERIFIER_error())"),
 
+    REACHABILITY_ERROR("G ! call(reach_error())"),
+
     VALID_FREE("G valid-free"),
 
     VALID_DEREF("G valid-deref"),

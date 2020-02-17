@@ -82,7 +82,7 @@ public class DependencyTrackerState
     for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (pOther.dependencies.containsKey(var)) {
-        if (!this.dependencies.get(var).containsAll(pOther.dependencies.get(var))) {
+        if (!entry.getValue().containsAll(pOther.dependencies.get(var))) {
           return false;
         }
       } else {
@@ -92,7 +92,7 @@ public class DependencyTrackerState
     for (Entry<Variable, SortedSet<Variable>> entry : pOther.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (this.dependencies.containsKey(var)) {
-        if (!pOther.dependencies.get(var).containsAll(this.dependencies.get(var))) {
+        if (!entry.getValue().containsAll(this.dependencies.get(var))) {
           return false;
         }
       } else {
@@ -135,7 +135,7 @@ public class DependencyTrackerState
     for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (pOther.dependencies.containsKey(var)) {
-        if (!this.dependencies.get(var).containsAll(pOther.dependencies.get(var))) {
+        if (!entry.getValue().containsAll(pOther.dependencies.get(var))) {
           return false;
         }
       } else {

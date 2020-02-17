@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -595,32 +596,32 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     for (int i = 0; i< abstractionStatesTrace.size()-1; i++) {
       ARGState currentState = abstractionStatesTrace.get(i);
       ARGState nextState = abstractionStatesTrace.get(i+1);
-      if (currentState == parent) {
+      if (currentState.equals(parent)) {
         ARGState s = forkedStateMap.get(nextState);
-        if (s == child && pChangedElements.contains(nextState)) {
+        if (Objects.equals(s, child) && pChangedElements.contains(nextState)) {
           return true;
         }
       }
     }
 
     // root state needs special treatment:
-    if (parent == rootState) {
+    if (Objects.equals(parent, rootState)) {
       ARGState firstAfterRoot = abstractionStatesTrace.get(0);
       ARGState s = forkedStateMap.get(firstAfterRoot);
-      if (s == child &&  pChangedElements.contains(firstAfterRoot)) {
+      if (Objects.equals(s, child) && pChangedElements.contains(firstAfterRoot)) {
         return true;
       }
     }
 
     // beginning of infeasible part at end of trace needs special treatment:
-    if (infeasiblePartOfART == child) {
+    if (Objects.equals(infeasiblePartOfART, child)) {
       int i = abstractionStatesTrace.indexOf(infeasiblePartOfART);
       if (i>0) {
-        if (abstractionStatesTrace.get(i-1) == parent) {
+        if (Objects.equals(abstractionStatesTrace.get(i - 1), parent)) {
           return true;
         }
       } else {
-        if (parent == rootState) {
+        if (Objects.equals(parent, rootState)) {
           return true;
         }
       }

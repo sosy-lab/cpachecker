@@ -98,13 +98,13 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    */
   public BDDTransferRelation(
       NamedRegionManager manager,
-      BitvectorManager bvmgr,
+      BitvectorManager pBvmgr,
       PredicateManager pPredmgr,
       CFA cfa,
       int pBitsize,
       BitvectorComputer pBvComputer) {
     this.rmgr = manager;
-    this.bvmgr = bvmgr;
+    this.bvmgr = pBvmgr;
     this.predmgr = pPredmgr;
     bitsize = pBitsize;
     assert cfa.getVarClassification().isPresent();
@@ -303,11 +303,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
       // initializer on RIGHT SIDE available, make region for it
       if (init != null) {
-        final Partition partition1 = partition;
-        final CExpression exp = init;
         final Region[] rhs =
             bvComputer.evaluateVectorExpression(
-                partition1, exp, vdecl.getType(), cfaEdge.getSuccessor(), precision);
+                partition, init, vdecl.getType(), cfaEdge.getSuccessor(), precision);
         newState = newState.addAssignment(var, rhs);
       }
 
@@ -478,11 +476,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       throws UnsupportedCodeException {
 
     Partition partition = varClass.getPartitionForEdge(cfaEdge);
-    final Partition partition1 = partition;
-    final CExpression exp = expression;
     final Region[] operand =
         bvComputer.evaluateVectorExpression(
-            partition1, exp, CNumericTypes.INT, cfaEdge.getSuccessor(), precision);
+            partition, expression, CNumericTypes.INT, cfaEdge.getSuccessor(), precision);
     if (operand == null) {
       return state;
     } // assumption cannot be evaluated

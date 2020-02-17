@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
@@ -337,7 +339,10 @@ public class UsageContainer {
 
   public void setAsRefined(SingleIdentifier id, RefinementResult result) {
     Preconditions.checkArgument(result.isTrue(), "Result is not true, can not set the set as refined");
-    Preconditions.checkArgument(detector.isUnsafe(getUsages(id)), "Refinement is successful, but the unsafe is absent for identifier " + id);
+    checkArgument(
+        detector.isUnsafe(getUsages(id)),
+        "Refinement is successful, but the unsafe is absent for identifier %s",
+        id);
 
     setAsRefined(id, result.getTrueRace().getFirst(), result.getTrueRace().getSecond());
   }

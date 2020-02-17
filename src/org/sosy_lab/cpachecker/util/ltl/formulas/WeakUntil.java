@@ -63,7 +63,7 @@ public final class WeakUntil extends BinaryFormula {
 
   @Override
   public StrongRelease not() {
-    return new StrongRelease(left.not(), right.not());
+    return new StrongRelease(getLeft().not(), getRight().not());
   }
 
   @Override

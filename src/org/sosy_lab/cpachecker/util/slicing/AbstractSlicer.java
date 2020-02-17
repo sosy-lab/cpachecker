@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util.slicing;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -43,12 +45,19 @@ public abstract class AbstractSlicer implements Slicer {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final SlicingCriteriaExtractor extractor;
+  private final SliceExporter sliceExporter;
 
   protected AbstractSlicer(
-      SlicingCriteriaExtractor pExtractor, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
+      SlicingCriteriaExtractor pExtractor,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      Configuration pConfig)
+      throws InvalidConfigurationException {
     extractor = pExtractor;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+
+    sliceExporter = new SliceExporter(pConfig, pLogger);
   }
 
   @Override
@@ -59,4 +68,21 @@ public abstract class AbstractSlicer implements Slicer {
 
     return getSlice(pCfa, slicingCriteria);
   }
+
+  @Override
+  public Slice getSlice(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
+      throws InterruptedException {
+    final Slice slice = getSlice0(pCfa, pSlicingCriteria);
+    sliceExporter.execute(slice);
+    return slice;
+  }
+
+  /**
+   * Returns the {@link Slice} in the given CFA that is relevant for the given slicing criteria.
+   * This method should not be called from outside because it only implements the slicing logic but
+   * no utilities surrounding this. Instead, {@link #getSlice(CFA, Collection)} should be called to
+   * create program slices.
+   */
+  protected abstract Slice getSlice0(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
+      throws InterruptedException;
 }

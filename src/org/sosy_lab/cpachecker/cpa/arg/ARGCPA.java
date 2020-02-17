@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.getOutgoingEdges;
 
 import com.google.common.base.Preconditions;
@@ -167,9 +168,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   @Override
   public Reducer getReducer() throws InvalidConfigurationException {
     ConfigurableProgramAnalysis cpa = getWrappedCpa();
-    Preconditions.checkState(
+    checkState(
         cpa instanceof ConfigurableProgramAnalysisWithBAM,
-        "wrapped CPA does not support BAM: " + cpa.getClass().getCanonicalName());
+        "wrapped CPA does not support BAM: %s",
+        cpa.getClass().getCanonicalName());
     return new ARGReducer(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
   }
 

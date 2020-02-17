@@ -50,14 +50,14 @@
   </tasks>
 
   <tasks name="predicate_tree_nested">
-    <include>../programs/benchmarks/recursive/*03*.c</include>
+    <include>../programs/benchmarks/recursive/*03*.yml</include>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_nested</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_cpachecker">
-    <include>../programs/benchmarks/recursive/*02*.c</include>
+    <include>../programs/benchmarks/recursive/*02*.yml</include>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_cpachecker</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
@@ -151,6 +151,7 @@
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--*</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--net--wireless--mwifiex--mwifiex_pcie.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--power--max8903_charger.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout/OOM -->
   </tasks>
 
 </benchmark>

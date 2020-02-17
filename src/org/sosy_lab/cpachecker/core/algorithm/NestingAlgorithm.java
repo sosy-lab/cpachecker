@@ -19,7 +19,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Splitter;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -189,7 +190,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     Map<String, String> mp = new LinkedHashMap<>();
     for (String option : Splitter.on("\n").omitEmptyStrings().split(config.asPropertiesString())) {
       List<String> split = Splitter.on(" = ").splitToList(option);
-      Preconditions.checkArgument(split.size() == 2, option);
+      checkArgument(split.size() == 2, "unexpected option format: %s", option);
       mp.put(split.get(0), split.get(1));
     }
     return mp;

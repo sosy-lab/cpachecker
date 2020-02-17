@@ -54,6 +54,11 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
   }
 
   @Override
+  public int hashCode() {
+    return super.hashCode(); // equals() in this class checks nothing more
+  }
+
+  @Override
   public SMGExplicitValue negate() {
     return valueOf(getValue().negate());
   }
