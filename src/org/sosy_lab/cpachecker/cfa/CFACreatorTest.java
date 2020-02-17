@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.TreeMap;
 import org.junit.Before;
@@ -53,9 +54,13 @@ public class CFACreatorTest {
   @Mock
   CFACreator cfaCreator;
 
+  private TreeMap<String, FunctionEntryNode> cfa;
+
   @Before
   public void init() throws InvalidConfigurationException {
     MockitoAnnotations.initMocks(this);
+    cfa = buildExampleCfa();
+
     when(cfaCreator.getJavaMainMethod(anyList(), anyString(), anyMap())).thenCallRealMethod();
   }
 
@@ -67,13 +72,7 @@ public class CFACreatorTest {
 
     FunctionEntryNode result =
         cfaCreator.getJavaMainMethod(
-            new ArrayList<>() {
-              {
-                add(sourceFile);
-              }
-            },
-            mainFunction,
-            buildExampleCfa());
+            new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa);
 
     assertEquals(N1, result);
   }
@@ -87,13 +86,7 @@ public class CFACreatorTest {
         InvalidConfigurationException.class,
         () ->
             cfaCreator.getJavaMainMethod(
-                new ArrayList<>() {
-                  {
-                    add(sourceFile);
-                  }
-                },
-                mainFunction,
-                buildExampleCfa()));
+                new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa));
   }
 
   @Test
@@ -104,28 +97,20 @@ public class CFACreatorTest {
 
     FunctionEntryNode result =
         cfaCreator.getJavaMainMethod(
-            new ArrayList<>() {
-              {
-                add(sourceFile);
-              }
-            },
-            mainFunction,
-            buildExampleCfa());
+            new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa);
 
     assertEquals(N1, result);
   }
 
   private TreeMap<String, FunctionEntryNode> buildExampleCfa() {
-    TreeMap<String, FunctionEntryNode> map =
-        new TreeMap<>() {
-          {
-            put("pack5.CallTests_true_assert_main_String[]", N1);
-            put("pack5.CallTests_true_assert_main2_String[]", N2);
-            put("pack5.CallTests_true_assert_CallTests_true_assert", N3);
-            put("pack5.CallTests_true_assert_CallTests_true_assert_int", N4);
-          }
-        };
 
-    return map;
+    return new TreeMap<>() {
+      {
+        put("pack5.CallTests_true_assert_main_String[]", N1);
+        put("pack5.CallTests_true_assert_main2_String[]", N2);
+        put("pack5.CallTests_true_assert_CallTests_true_assert", N3);
+        put("pack5.CallTests_true_assert_CallTests_true_assert_int", N4);
+      }
+    };
   }
 }
