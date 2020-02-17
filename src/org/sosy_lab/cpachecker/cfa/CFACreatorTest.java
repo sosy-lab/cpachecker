@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static org.junit.Assert.assertEquals;
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.TreeMap;
 import org.junit.Before;
@@ -74,7 +75,7 @@ public class CFACreatorTest {
         cfaCreator.getJavaMainMethod(
             new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa);
 
-    assertEquals(N1, result);
+    assertThat(result).isEqualTo(N1);
   }
 
   @Test
@@ -99,18 +100,16 @@ public class CFACreatorTest {
         cfaCreator.getJavaMainMethod(
             new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa);
 
-    assertEquals(N1, result);
+    assertThat(result).isEqualTo(N1);
   }
 
   private TreeMap<String, FunctionEntryNode> buildExampleCfa() {
 
-    return new TreeMap<>() {
-      {
-        put("pack5.CallTests_true_assert_main_String[]", N1);
-        put("pack5.CallTests_true_assert_main2_String[]", N2);
-        put("pack5.CallTests_true_assert_CallTests_true_assert", N3);
-        put("pack5.CallTests_true_assert_CallTests_true_assert_int", N4);
-      }
-    };
+    return new TreeMap<>(
+        ImmutableMap.of(
+            "pack5.CallTests_true_assert_main_String[]", N1,
+            "pack5.CallTests_true_assert_main2_String[]", N2,
+            "pack5.CallTests_true_assert_CallTests_true_assert", N3,
+            "pack5.CallTests_true_assert_CallTests_true_assert_int", N4));
   }
 }
