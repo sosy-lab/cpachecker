@@ -258,7 +258,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
         if (stemSynState.isPresent()) {
           CFANode stemEndLoc = AbstractStates.extractLocation(stemSynState.get());
-          CFANode afterInvCheck = new CFANode(stemEndLoc.getFunctionName());
+          CFANode afterInvCheck = new CFANode(stemEndLoc.getFunction());
 
           // extract quasi invariant which describes recurrent set, use true as default
           ExpressionTree<AExpression> quasiInvariant = ExpressionTrees.getTrue();
@@ -292,7 +292,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                   "!( " + invCheck.getRawStatement() + " )",
                   FileLocation.DUMMY,
                   stemEndLoc,
-                  new CFANode(stemEndLoc.getFunctionName()),
+                  new CFANode(stemEndLoc.getFunction()),
                   invCheck.getExpression(),
                   false);
 

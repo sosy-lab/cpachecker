@@ -396,7 +396,7 @@ public class AutomatonTransferRelation implements TransferRelation {
             new BlankEdge(
                 firstEdgeOfThread.getRawStatement(),
                 pthreadCreateEdge.getFileLocation(),
-                new CFANode(pthreadCreateEdge.getPredecessor().getFunctionName()),
+                new CFANode(pthreadCreateEdge.getPredecessor().getFunction()),
                 firstEdgeOfThread.getSuccessor(),
                 "Function start dummy edge");
         Collection<AutomatonState> newStates =

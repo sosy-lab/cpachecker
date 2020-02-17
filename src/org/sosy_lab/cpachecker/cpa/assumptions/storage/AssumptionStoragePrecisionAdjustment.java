@@ -26,10 +26,14 @@ package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -74,7 +78,13 @@ public class AssumptionStoragePrecisionAdjustment implements PrecisionAdjustment
         return successor.getEnteringEdge(0);
       }
     } else {
-      successor = new CFANode("__CPAchecker_dummy");
+      successor =
+          new CFANode(
+              new CFunctionDeclaration(
+                  FileLocation.DUMMY,
+                  CFunctionType.NO_ARGS_VOID_FUNCTION,
+                  "__CPAchecker_dummy",
+                  ImmutableList.of()));
     }
     CFANode predecessor = successor; // TODO wtf?
     return new DummyCFAEdge(predecessor, successor);

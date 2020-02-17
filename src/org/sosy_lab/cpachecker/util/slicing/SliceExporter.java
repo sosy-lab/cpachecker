@@ -54,6 +54,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -159,7 +160,7 @@ public class SliceExporter {
       return newNode;
     }
 
-    String functionName = pNode.getFunctionName();
+    AFunctionDeclaration functionName = pNode.getFunction();
 
     if (pNode instanceof CLabelNode) {
 
@@ -220,7 +221,7 @@ public class SliceExporter {
     CFunctionSummaryEdge summaryEdge = pEdge.getSummaryEdge();
     CFunctionEntryNode entryNode = pEdge.getSuccessor();
 
-    FunctionExitNode newExitNode = new FunctionExitNode(entryNode.getFunctionName());
+    FunctionExitNode newExitNode = new FunctionExitNode(entryNode.getFunction());
 
     CFunctionEntryNode newEntryNode =
         new CFunctionEntryNode(

@@ -52,12 +52,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -324,9 +326,11 @@ public class CustomInstructionApplications {
           new CExpressionAssignmentStatement(FileLocation.DUMMY, r, new CBinaryExpressionBuilder(MachineModel.LINUX64,
               logger).buildBinaryExpression(x, y, binaryOperatorForSimpleCustomInstruction));
       // create edge
-      CFANode start, end;
-      start = new CFANode("ci");
-      end = new CFANode("ci");
+      CFunctionDeclaration ciDef =
+          new CFunctionDeclaration(
+              FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION, "ci", ImmutableList.of());
+      CFANode start = new CFANode(ciDef);
+      CFANode end = new CFANode(ciDef);
       CFAEdge ciEdge = new CStatementEdge("r=x" + binaryOperatorForSimpleCustomInstruction + "y;", stmt, FileLocation.DUMMY, start, end);
       start.addLeavingEdge(ciEdge);
       end.addEnteringEdge(ciEdge);
