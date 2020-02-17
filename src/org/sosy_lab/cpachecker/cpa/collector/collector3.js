@@ -65,14 +65,14 @@ function start(){
 
     $(document).ready(function(){
         shownode3(nodeIndexStart);
-    })
+    });
     updateGraph();
     dagreGraphBuild(myVar);
 }
 
 function reset(){
     $(document).ready(function(){
-    })
+    });
     window.location.href = window.location;
     start();
 }
@@ -199,7 +199,7 @@ function buttonFinalGraph(){
         $("g.edgeLabel").addClass("contentshow");
         $(".merged").addClass("mergedColored");
 
-    })
+    });
     document.getElementById("myRange").max = maxStep+1;
     document.getElementById("myRange").value = maxStep+1;
     document.getElementById("demo").innerHTML = maxStep+1;
@@ -213,7 +213,7 @@ function buttonFinalGraph2(){
             shownode3(i);
         }
         $(".merged").removeClass("mergedColored");
-    })
+    });
     document.getElementById("myRange").max = maxStep+1;
     document.getElementById("myRange").value = maxStep+1;
     document.getElementById("demo").innerHTML = maxStep+1;
@@ -350,4 +350,4 @@ window.onclick = function(event) {
             }
         }
     }
-}
+};

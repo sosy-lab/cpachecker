@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.collector;
 
 
 import java.util.Collection;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -66,8 +65,6 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
   private final ARGStatistics stats;
   private final CollectorStatistics statistics;
   private final StateToFormulaWriter writer;
-  private final ShutdownNotifier shutdownNotifier;
-  private StopOperator stopOperator;
 
   private CollectorCPA(
       ConfigurableProgramAnalysis cpa,
@@ -79,10 +76,9 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
       throws InvalidConfigurationException {
     super(cpa);
     this.logger = clogger;
-    this.shutdownNotifier = pShutdownNotifier;
 
-      statistics = new CollectorStatistics(this, config, logger);
-      writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
+    statistics = new CollectorStatistics(this, config, logger);
+      writer = new StateToFormulaWriter(config, logger, pShutdownNotifier, cfa);
 
 
     if ( cpa instanceof ARGCPA) {
@@ -112,8 +108,7 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
 
     AbstractState initialState = super.getInitialState(pNode, pPartition);
-    CollectorState is = new CollectorState(initialState, null, null,false,null,null,null,logger);
-    return is;
+    return new CollectorState(initialState, null, null,false,null,null,null,logger);
   }
 
 
@@ -136,7 +131,7 @@ public void collectStatistics(Collection<Statistics> pStatsCollection) {
 
   @Override
   public StopOperator getStopOperator() {
-    stopOperator = super.getStopOperator();
+    StopOperator stopOperator = super.getStopOperator();
     if (!(stopOperator instanceof ARGStopSep)){
       throw new AssertionError("StopOperator not ARG!");
     }

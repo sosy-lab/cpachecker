@@ -28,10 +28,8 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableList;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
@@ -42,20 +40,12 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 
 public class CollectorState extends AbstractSingleWrapperState implements Graphable, Serializable {
-  private final LogManager logger;
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
-  private final int stateId;
   private final Collection<ARGState> wrappedParent;
-  private final Collection<ARGState> wrappedChildren;
   private final int currentARGid;
-  private final Iterable<Integer> StateID_wrappedParent;
-  private final Iterable<Integer> StateID_wrappedChildren;
-  private final ImmutableList List_wrappedParent;
-  private final ImmutableList List_wrappedChildren;
-  private final AbstractState current;
-  private final AbstractState wrappedWrapped;
+  private final ImmutableList<Integer> List_wrappedParent;
+  private final ImmutableList<Integer> List_wrappedChildren;
   private final Boolean ismerged;
-  private final boolean toMerge=false;
   private final int count2;
   private Collection<ARGState> childrenTomerge2;
   private Collection<ARGState> childrenTomerge1;
@@ -76,7 +66,6 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
                         @Nullable myARGState pMyARGmerged,
                         LogManager cLogger) {
     super(pWrappedState);
-    logger = cLogger;
     ismerged = merged;
     if (myARGtransfer != null) {
       this.myARGTransferRelation = myARGtransfer;
@@ -100,15 +89,13 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
     ARGState wrapped = (ARGState) pWrappedState;
     argstate = wrapped;
     wrappedParent = wrapped.getParents();
-    StateID_wrappedParent = stateIdsOf(wrappedParent);
-    wrappedChildren = wrapped.getChildren();
-    StateID_wrappedChildren = stateIdsOf(wrappedChildren);
-    current =  getWrappedState();
-    List_wrappedParent = ImmutableList.copyOf(StateID_wrappedParent);
-    List_wrappedChildren = ImmutableList.copyOf(StateID_wrappedChildren);
+    Iterable<Integer> stateID_wrappedParent = stateIdsOf(wrappedParent);
+    Collection<ARGState> wrappedChildren = wrapped.getChildren();
+    Iterable<Integer> stateID_wrappedChildren = stateIdsOf(wrappedChildren);
+    List_wrappedParent = ImmutableList.copyOf(stateID_wrappedParent);
+    List_wrappedChildren = ImmutableList.copyOf(stateID_wrappedChildren);
     currentARGid = ((ARGState) pWrappedState).getStateId();
-    stateId = idGenerator.getFreshId();
-    wrappedWrapped = argstate.getWrappedState();
+    int stateId = idGenerator.getFreshId();
     count2= this.getCount();
     count ++;
 
@@ -119,37 +106,38 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("\nCollectorCount:  ");
-    sb.append(count2 + "\n");
+    sb.append(count2).append("\n");
     sb.append("Current:  ");
     sb.append("Sucessors: ");
     sb.append(List_wrappedChildren);
     sb.append(" Ancestors: ");
     sb.append(List_wrappedParent);
-    sb.append (" StateID: " + currentARGid);
+    sb.append(" StateID: ").append(currentARGid);
 
       sb.append("\n Current myARGID Infos:  ");
       if (myARGmerged != null){
-        sb.append("\n" + myARGmerged.toDOTLabel());
+        sb.append("\n" + "merged myARG:  ");
+        sb.append("\n").append(myARGmerged.toDOTLabel());
       }
-      sb.append("\n" + "myARG 1:  ");
       if (myARG1 != null){
-      sb.append("\n" + myARG1.toDOTLabel());
+        sb.append("\n" + "myARG 1:  ");
+        sb.append("\n").append(myARG1.toDOTLabel());
+        sb.append("\n" + "childrenOfMergePartner 1:  ");
+        if (myARG1 != null){
+          sb.append("\n").append(childrenTomerge1);
+        }
       }
-    sb.append("\n" + "childrenOfMergePartner 1:  ");
-    if (myARG1 != null){
-      sb.append("\n" + childrenTomerge1);
-    }
-      sb.append("\n" + "myARG 2:  ");
       if (myARG2 != null){
-        sb.append("\n" + myARG2.toDOTLabel());
+        sb.append("\n" + "myARG 2:  ");
+        sb.append("\n").append(myARG2.toDOTLabel());
         sb.append("\n" + "childrenOfMergePartner 2:  ");
         if (myARG2 != null){
-          sb.append("\n" + childrenTomerge2);
+          sb.append("\n").append(childrenTomerge2);
         }
       }
       if (myARGTransferRelation != null){
         sb.append("\n" +"MyARGTransferRelation:");
-        sb.append("\n" + myARGTransferRelation.toDOTLabel());}
+        sb.append("\n").append(myARGTransferRelation.toDOTLabel());}
 
     sb.append ("\n");
     return sb.toString();
@@ -157,9 +145,6 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
 
   private Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
     return from(elements).transform(ARGState::getStateId);
-  }
-  private Iterable<Boolean> destroyedID(Iterable<ARGState> elements) {
-    return from(elements).transform(ARGState::isDestroyed);
   }
 
   @Override
@@ -171,15 +156,9 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   }
 
   @Override
-  public boolean shouldBeHighlighted() {
-    return false;
-  }
-  public ARGState getARGState() {
-    return argstate ;
-  }
-  public myARGState getMyARGTransferRelation() {
-    return myARGTransferRelation;
-  }
+  public boolean shouldBeHighlighted() {return false;}
+  public ARGState getARGState() {return argstate;}
+  public myARGState getMyARGTransferRelation() {return myARGTransferRelation; }
   public myARGState getmyARG1() {
     return myARG1;
   }
@@ -193,24 +172,8 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   public int getCount(){return count;}
   public Collection<ARGState> getChildrenTomerge1(){return childrenTomerge1;}
   public Collection<ARGState> getChildrenTomerge2(){return childrenTomerge2;}
-
-  /**
-   * Get the child elements of this state.
-   * @return An unmodifiable collection of ARGStates without duplicates.
-   */
-  public Collection<ARGState> getChildren() {
-    return Collections.unmodifiableCollection(wrappedChildren);
-  }
-  public Collection<ARGState> getParents() {
-    return Collections.unmodifiableCollection(wrappedParent);
-  }
-  public ImmutableList<AbstractState> getStorage() { return states; }
-
-
-  public AbstractState getWrappedWrappedState() {
-    return wrappedWrapped;
-  }
-  public ImmutableList getAncestor(){return List_wrappedParent; }
+  public Collection<ARGState> getParents() {return Collections.unmodifiableCollection(wrappedParent);}
+  public ImmutableList<AbstractState> getStorage() {return states;}
   public boolean ismerged() {
     return ismerged;
   }

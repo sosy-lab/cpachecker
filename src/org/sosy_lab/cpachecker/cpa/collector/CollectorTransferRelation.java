@@ -23,53 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.collector;
 
-import static java.util.logging.Level.WARNING;
-
-import com.google.common.base.Charsets;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Multimap;
-import com.google.common.io.Resources;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.logging.Level;
-import org.eclipse.cdt.core.index.IPDOMASTProcessor.Abstract;
-import org.sosy_lab.common.io.IO;
+import java.util.Objects;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class CollectorTransferRelation implements TransferRelation {
 
   private final TransferRelation transferRelation;
   private final LogManager logger;
-  private myARGState mytransferARG;
-  private CollectorState successorElem;
-  private boolean toMerge;
-  private ArrayList parents = new ArrayList<ARGState>();
+  private final ArrayList<ARGState> parents = new ArrayList<>();
 
 
   public CollectorTransferRelation(TransferRelation tr, LogManager trLogger) {
@@ -85,34 +55,30 @@ public class CollectorTransferRelation implements TransferRelation {
 
   assert pElement instanceof CollectorState;
 
-    toMerge = false;
-    AbstractState state = pElement;
-    ARGState wrappedState = (ARGState) ((CollectorState) state).getWrappedState();
+    ARGState wrappedState = (ARGState) ((CollectorState) pElement).getWrappedState();
 
     Collection<? extends AbstractState> successors;
-    try {
-      assert transferRelation instanceof ARGTransferRelation : "Transfer relation no ARG transfer"
-          + " relation, but " + transferRelation.getClass().getSimpleName();
+    assert transferRelation instanceof ARGTransferRelation : "Transfer relation no ARG transfer"
+        + " relation, but " + transferRelation.getClass().getSimpleName();
 
-      successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision);
+    successors = transferRelation.getAbstractSuccessors(Objects.requireNonNull(wrappedState), pPrecision);
 
 
-      Collection<AbstractState> wrappedSuccessors = new ArrayList<>();
-      for (AbstractState absElement : successors) {
-        ARGState succARG = (ARGState) absElement;
-        Collection<ARGState> wrappedParent = succARG.getParents();
-        parents.addAll(wrappedParent);
-        mytransferARG = new myARGState(succARG,wrappedState,parents, null,toMerge, logger);
-        successorElem = new CollectorState(absElement, null, mytransferARG, false,null,null,null,logger);
-        wrappedSuccessors.add(successorElem);
-        parents.clear();
-      }
-
-      return wrappedSuccessors;
-
-    } catch (UnsupportedCodeException e) {
-      throw e;
+    Collection<AbstractState> wrappedSuccessors = new ArrayList<>();
+    for (AbstractState absElement : successors) {
+      ARGState succARG = (ARGState) absElement;
+      Collection<ARGState> wrappedParent = succARG.getParents();
+      parents.addAll(wrappedParent);
+      myARGState mytransferARG =
+          new myARGState(succARG, wrappedState, parents, null, false, logger);
+      CollectorState successorElem =
+          new CollectorState(absElement, null, mytransferARG, false, null, null, null, logger);
+      wrappedSuccessors.add(successorElem);
+      parents.clear();
     }
+
+    return wrappedSuccessors;
+
   }
 
   // same as in ARGTransferRelation

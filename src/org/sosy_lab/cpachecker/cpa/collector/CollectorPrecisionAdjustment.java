@@ -23,36 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.collector;
 
-import static com.google.common.base.Preconditions.checkState;
-import static java.util.logging.Level.WARNING;
-
-import com.google.common.base.Charsets;
 import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.logging.Level;
-import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.cpa.slicing.SlicingPrecision;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CollectorPrecisionAdjustment implements PrecisionAdjustment{
@@ -80,10 +62,9 @@ public class CollectorPrecisionAdjustment implements PrecisionAdjustment{
 
     assert pState instanceof CollectorState;
     //logger.log(Level.INFO, "sonja PrecisionAdjustment:\n" + pState);
-    AbstractState wrappedState = pState;
-    ARGState wrappedState2 = (ARGState) ((CollectorState) wrappedState).getWrappedState();
+    ARGState wrappedState2 = (ARGState) ((CollectorState) pState).getWrappedState();
     Optional<PrecisionAdjustmentResult> delegateResult =
-        delegate.prec(wrappedState2, pPrecision, pStates, pStateProjection, pFullState);
+        delegate.prec(Objects.requireNonNull(wrappedState2), pPrecision, pStates, pStateProjection, pFullState);
 
     if (delegateResult.isPresent()) {
       PrecisionAdjustmentResult unwrappedResult = delegateResult.get();

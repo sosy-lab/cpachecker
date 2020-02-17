@@ -23,29 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.collector;
 
-import static com.google.common.base.Preconditions.checkState;
-
-import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.logging.Level;
+import java.util.Objects;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGStopSep;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CollectorStop implements StopOperator {
 
   private final StopOperator delegateStop;
-  private final LogManager logger;
 
 
   public CollectorStop(final StopOperator pDelegateStop, LogManager pLogger) {
     delegateStop = pDelegateStop;
-    logger = pLogger;
   }
 
   @Override
@@ -67,8 +61,7 @@ public class CollectorStop implements StopOperator {
       ARGState stopElem = c.getARGState();
       wrappedstop.add(stopElem);
     }
-    boolean stop = delegateStop.stop(wrappedState, wrappedstop, precision);
 
-    return stop;
+    return delegateStop.stop(Objects.requireNonNull(wrappedState), wrappedstop, precision);
   }
 }
