@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.io.MoreFiles;
@@ -460,7 +461,7 @@ public class CFACreator {
         case JAVA:
           Preconditions.checkArgument(
               sourceFiles.size() == 1, "Multiple input files not supported by 'getJavaMainMethod'");
-          mainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
+          mainFunction = getJavaMainMethod(sourceFiles, mainFunctionName, c.getFunctions());
           break;
         case C:
           mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
@@ -787,26 +788,27 @@ public class CFACreator {
     return false;
   }
 
-  private FunctionEntryNode getJavaMainMethod(
-      List<String> sourceFiles, Map<String, FunctionEntryNode> cfas)
+  @VisibleForTesting
+  FunctionEntryNode getJavaMainMethod(
+      List<String> sourceFiles, String mainFunction, Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
 
-    String classPath = sourceFiles.get(0).replace("\\/", ".");
     // Try classPath given in sourceFiles and plain method name in mainFunctionName
+    String classPath = sourceFiles.get(0).replace("\\/", ".");
     Optional<String> mainMethodKey =
         cfas.keySet().stream()
-            .filter(k -> k.contains(classPath + "_" + mainFunctionName))
+            .filter(k -> k.contains(classPath + "_" + mainFunction))
             .findFirst();
 
     // Try classPath given in sourceFiles and relative Path with main function name in
     // mainFunctionName
     if (mainMethodKey.isEmpty()) {
-      int indexOfLastSlash = mainFunctionName.lastIndexOf('.');
+      int indexOfLastSlash = mainFunction.lastIndexOf('.');
       if (indexOfLastSlash >= 0) {
         String classPathWithMainMethod =
-            mainFunctionName.substring(0, indexOfLastSlash)
+            mainFunction.substring(0, indexOfLastSlash)
                 + "_"
-                + mainFunctionName.substring(indexOfLastSlash + 1);
+                + mainFunction.substring(indexOfLastSlash + 1);
         mainMethodKey =
             cfas.keySet().stream().filter(k -> k.contains(classPathWithMainMethod)).findFirst();
       }
@@ -817,7 +819,7 @@ public class CFACreator {
     if (mainMethodKey.isEmpty()) {
       mainMethodKey =
           cfas.keySet().stream()
-              .filter(k -> k.contains(mainFunctionName + "_" + "main"))
+              .filter(k -> k.contains(mainFunction + "_" + "main"))
               .findFirst();
     }
 
@@ -826,7 +828,7 @@ public class CFACreator {
             () ->
                 new InvalidConfigurationException(
                     "Method "
-                        + mainFunctionName
+                        + mainFunction
                         + " not found.\n"
                         + "Please note that a method has to be given in the following notation:\n <ClassName>_"
                         + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_pack1.Car\n"
