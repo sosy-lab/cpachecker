@@ -300,13 +300,13 @@ class FunctionCloner implements CFAVisitor {
     // clone correct type of node
     final CFANode newNode;
     if (node instanceof CLabelNode) {
-      newNode = new CLabelNode(newFunctionName, ((CLabelNode) node).getLabel());
+      newNode = new CLabelNode(cloneAst(node.getFunction()), ((CLabelNode) node).getLabel());
 
     } else if (node instanceof CFATerminationNode) {
-      newNode = new CFATerminationNode(newFunctionName);
+      newNode = new CFATerminationNode(cloneAst(node.getFunction()));
 
     } else if (node instanceof FunctionExitNode) {
-      newNode = new FunctionExitNode(newFunctionName);
+      newNode = new FunctionExitNode(cloneAst(node.getFunction()));
 
     } else if (node instanceof CFunctionEntryNode) {
       final CFunctionEntryNode n = (CFunctionEntryNode) node;
@@ -331,7 +331,7 @@ class FunctionCloner implements CFAVisitor {
 
     } else {
       assert node.getClass() == CFANode.class : "unhandled subclass for CFANode: " + node.getClass();
-      newNode = new CFANode(newFunctionName);
+      newNode = new CFANode(cloneAst(node.getFunction()));
     }
 
     // copy information from original node
@@ -423,7 +423,8 @@ class FunctionCloner implements CFAVisitor {
         for (CParameterDeclaration param : decl.getParameters()) {
           l.add(cloneAst(param));
         }
-        return new CFunctionDeclaration(loc, cloneType(decl.getType()), changeName(decl.getName()), l);
+        return new CFunctionDeclaration(
+            loc, cloneType(decl.getType()), changeName(decl.getName()), decl.getOrigName(), l);
 
       } else if (ast instanceof CComplexTypeDeclaration) {
         CComplexTypeDeclaration decl = (CComplexTypeDeclaration) ast;

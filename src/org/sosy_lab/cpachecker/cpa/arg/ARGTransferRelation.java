@@ -25,9 +25,8 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.Collection;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -70,13 +69,13 @@ public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
       return ImmutableSet.of();
     }
 
-    Collection<ARGState> wrappedSuccessors = new ArrayList<>();
+    ImmutableList.Builder<ARGState> wrappedSuccessors = ImmutableList.builder();
     for (AbstractState absElement : successors) {
       ARGState successorElem = new ARGState(absElement, element);
       wrappedSuccessors.add(successorElem);
     }
 
-    return wrappedSuccessors;
+    return wrappedSuccessors.build();
   }
 
   @Override

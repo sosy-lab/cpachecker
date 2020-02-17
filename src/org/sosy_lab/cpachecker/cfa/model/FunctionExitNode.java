@@ -23,16 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 
 public class FunctionExitNode extends CFANode {
 
   private static final long serialVersionUID = -7883542777389959334L;
   private FunctionEntryNode entryNode;
 
-  public FunctionExitNode(String pFunctionName) {
-    super(pFunctionName);
+  public FunctionExitNode(AFunctionDeclaration pFunction) {
+    super(pFunction);
   }
 
   public void setEntryNode(FunctionEntryNode pEntryNode) {

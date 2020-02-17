@@ -94,6 +94,44 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
     private Map<String, AbstractStatValue> reachedSetStatistics = new HashMap<>();
 
+    private void stopAllTimers() {
+      totalTimer.stopIfRunning();
+      chooseTimer.stopIfRunning();
+      precisionTimer.stopIfRunning();
+      transferTimer.stopIfRunning();
+      mergeTimer.stopIfRunning();
+      stopTimer.stopIfRunning();
+      addTimer.stopIfRunning();
+      forcedCoveringTimer.stopIfRunning();
+    }
+
+    private void updateReachedSetStatistics(Map<String, AbstractStatValue> newStatistics) {
+      for (Entry<String, AbstractStatValue> e : newStatistics.entrySet()) {
+        String key = e.getKey();
+        AbstractStatValue val = e.getValue();
+        if (!reachedSetStatistics.containsKey(key)) {
+          reachedSetStatistics.put(key, val);
+        } else {
+          AbstractStatValue newVal = reachedSetStatistics.get(key);
+
+          if (val == newVal) {
+            // ignore, otherwise counters would double
+          } else if (newVal instanceof StatCounter) {
+            assert val instanceof StatCounter;
+            ((StatCounter) newVal).mergeWith((StatCounter) val);
+          } else if (newVal instanceof StatInt) {
+            assert val instanceof StatInt;
+            ((StatInt) newVal).add((StatInt) val);
+          } else if (newVal instanceof StatHist) {
+            assert val instanceof StatHist;
+            ((StatHist) newVal).mergeWith((StatHist) val);
+          } else {
+            throw new AssertionError("Can't handle " + val.getClass().getSimpleName());
+          }
+        }
+      }
+    }
+
     @Override
     public String getName() {
       return "CPA algorithm";
@@ -221,39 +259,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     try {
       return run0(reachedSet);
     } finally {
-      stats.totalTimer.stopIfRunning();
-      stats.chooseTimer.stopIfRunning();
-      stats.precisionTimer.stopIfRunning();
-      stats.transferTimer.stopIfRunning();
-      stats.mergeTimer.stopIfRunning();
-      stats.stopTimer.stopIfRunning();
-      stats.addTimer.stopIfRunning();
-      stats.forcedCoveringTimer.stopIfRunning();
-
-      for (Entry<String, ? extends AbstractStatValue> e : reachedSet.getStatistics().entrySet()) {
-          String key = e.getKey();
-          AbstractStatValue val = e.getValue();
-          if (!stats.reachedSetStatistics.containsKey(key)) {
-            stats.reachedSetStatistics.put(key, val);
-          } else {
-            AbstractStatValue newVal = stats.reachedSetStatistics.get(key);
-
-            if (val == newVal) {
-              // ignore, otherwise counters would double
-            } else if (newVal instanceof StatCounter) {
-              assert val instanceof StatCounter;
-              ((StatCounter) newVal).mergeWith((StatCounter) val);
-            } else if (newVal instanceof StatInt) {
-              assert val instanceof StatInt;
-              ((StatInt) newVal).add((StatInt) val);
-            } else if (newVal instanceof StatHist) {
-              assert val instanceof StatHist;
-              ((StatHist) newVal).mergeWith((StatHist) val);
-            } else {
-              throw new AssertionError("Can't handle " + val.getClass().getSimpleName());
-            }
-        }
-      }
+      stats.stopAllTimers();
+      stats.updateReachedSetStatistics(reachedSet.getStatistics());
     }
   }
 

@@ -57,10 +57,11 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  *
  * <p>For a given slicing criterion CFA edge g and a dependence graph, the slice consists of all CFA
  * edges reachable in the dependence graph through backwards-traversal from g.
+ *
+ * @see SlicerFactory
  */
-@Options(prefix = "programSlice")
+@Options(prefix = "slicing")
 public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
-
 
   @Option(secure = true, name = "preserveTargetPaths",
       description = "Whether to create slices that are behaviorally equivalent not only to "
@@ -74,22 +75,26 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   private StatInt sliceCount = new StatInt(StatKind.SUM, "Number of slicing procedures");
   private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
 
-  public StaticSlicer(
+  StaticSlicer(
+      SlicingCriteriaExtractor pExtractor,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfig,
-      DependenceGraph pDependenceGraph,
       CFA pCfa)
       throws InvalidConfigurationException {
-    super(pLogger, pShutdownNotifier, pConfig, pCfa);
+    super(pExtractor, pLogger, pShutdownNotifier, pConfig);
 
     pConfig.inject(this);
 
-    depGraph = pDependenceGraph;
+    depGraph =
+        pCfa.getDependenceGraph()
+            .orElseThrow(
+                () -> new InvalidConfigurationException("Dependence graph required, but missing"));
+
   }
 
   @Override
-  public Set<CFAEdge> getRelevantEdges(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
+  public Slice getSlice0(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
       throws InterruptedException {
     candidateSliceCount.setNextValue(pSlicingCriteria.size());
     int realSlices = 0;
@@ -133,12 +138,13 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         }
       }
 
+      final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria);
+      slicingTime.stop();
+      return slice;
 
     } finally {
       sliceCount.setNextValue(realSlices);
     }
-    slicingTime.stop();
-    return relevantEdges;
   }
 
   @Override

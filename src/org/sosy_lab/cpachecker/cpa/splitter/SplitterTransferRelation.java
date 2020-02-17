@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.splitter;
 
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -47,7 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class SplitterTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(secure = true, name = "heuristic", description = "Which program split heuristic to use")
-  @ClassOption(packagePrefix = {"org.sosy_lab.cpachecker.cpa.splitter.heuristics"})
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.splitter.heuristics")
   private SplitHeuristic.Factory factory = (pConfig, pLogger, pMaxSplits) -> new SplitAtAssumes();
 
   private final SplitHeuristic split;
@@ -87,7 +86,8 @@ public class SplitterTransferRelation extends SingleEdgeTransferRelation {
       int numParts = split.divideIntoHowManyParts(pCfaEdge);
       if (numParts > 1) {
         int start, end;
-        Collection<SplitInfoState> successors = new ArrayList<>(numParts);
+        ImmutableList.Builder<SplitInfoState> successors =
+            ImmutableList.builderWithExpectedSize(numParts);
         SplitInfoState successor;
         if (pCfaEdge instanceof AssumeEdge) {
           AssumeEdge assume = (AssumeEdge) pCfaEdge;
@@ -110,13 +110,14 @@ public class SplitterTransferRelation extends SingleEdgeTransferRelation {
           }
         }
 
-        if (!successors.isEmpty()) {
+        ImmutableList<SplitInfoState> result = successors.build();
+        if (!result.isEmpty()) {
           logger.log(Level.FINE, "Divided split indices.");
-          return successors;
+          return result;
         }
       }
     }
 
-    return Collections.singleton(splitState);
+    return ImmutableList.of(splitState);
   }
 }

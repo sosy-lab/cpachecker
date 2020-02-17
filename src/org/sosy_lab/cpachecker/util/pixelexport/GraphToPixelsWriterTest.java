@@ -88,7 +88,7 @@ public class GraphToPixelsWriterTest extends GraphToPixelsWriter<DummyNode> {
   public void getStructureTest2() {
     DummyNode root = new DummyNode();
     root.addChild(root);
-    DummyNode nodes[] = new DummyNode[6];
+    DummyNode[] nodes = new DummyNode[6];
     for (int i = 0; i < 6; i++) {
       nodes[i] = new DummyNode();
     }
@@ -108,7 +108,7 @@ public class GraphToPixelsWriterTest extends GraphToPixelsWriter<DummyNode> {
     int nLevels = Iterators.size(result.iterator());
     assertThat(nLevels).isEqualTo(4);
 
-    int expectedNodesPerLayer[] = {1, 2, 1, 3};
+    int[] expectedNodesPerLayer = {1, 2, 1, 3};
     Iterator<GraphLevel> actualLevels = result.iterator();
     for (int i = 0; i < expectedNodesPerLayer.length; i++) {
       assertThat(actualLevels.next().getWidth()).isEqualTo(expectedNodesPerLayer[i]);

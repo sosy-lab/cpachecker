@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.DOUBLE;
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.FLOAT;
+import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.FLOAT128;
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.INT;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -484,6 +485,13 @@ public class CBinaryExpressionBuilder {
 
     if (t1.getType() == FLOAT) { return t1; }
     if (t2.getType() == FLOAT) { return t2; }
+
+    if (t1.getType() == FLOAT128) {
+      return t1;
+    }
+    if (t2.getType() == FLOAT128) {
+      return t2;
+    }
 
     /* Otherwise, the integer promotions are performed on both operands. */
 

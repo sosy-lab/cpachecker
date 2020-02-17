@@ -332,6 +332,8 @@ public class CtoFormulaConverter {
           return FormulaType.getSinglePrecisionFloatingPointType();
         case DOUBLE:
           return FormulaType.getDoublePrecisionFloatingPointType();
+        case FLOAT128:
+          return FormulaType.getFloatingPointType(15, 112);
         default:
           break;
       }
@@ -1010,9 +1012,9 @@ public class CtoFormulaConverter {
       if (pToCType.getCanonicalType().equals(CNumericTypes.BOOL)
           || (pToCType instanceof CBitFieldType
               && ((CBitFieldType) pToCType).getType().equals(CNumericTypes.BOOL))) {
-        Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0l);
-        Formula zeroToSize = efmgr.makeBitvector(toSize, 0l);
-        Formula oneToSize = efmgr.makeBitvector(toSize, 1l);
+        Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0L);
+        Formula zeroToSize = efmgr.makeBitvector(toSize, 0L);
+        Formula oneToSize = efmgr.makeBitvector(toSize, 1L);
         ret = bfmgr.ifThenElse(fmgr.makeEqual(zeroFromSize, pFormula), zeroToSize, oneToSize);
       } else {
         if (fromSize > toSize) {
@@ -1050,9 +1052,7 @@ public class CtoFormulaConverter {
   }
 
   private void checkSimpleCastArgument(CType pType) {
-    if (!isSimple(pType)) {
-      throw new IllegalArgumentException("Cannot make a simple cast from or to " + pType);
-    }
+    checkArgument(isSimple(pType), "Cannot make a simple cast from or to %s", pType);
   }
 
   private boolean isSimple(CType pType) {

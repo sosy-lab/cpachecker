@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * {@link BinarySymbolicExpression} representing addition.
- */
-public class AdditionExpression extends BinarySymbolicExpression {
+/** {@link BinarySymbolicExpression} representing addition. */
+public final class AdditionExpression extends BinarySymbolicExpression {
 
   private static final long serialVersionUID = 7356078098388713345L;
 

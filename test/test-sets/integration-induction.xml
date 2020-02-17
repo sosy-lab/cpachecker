@@ -29,6 +29,7 @@
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/forester-heap/**</exclude> <!-- only timeouts -->
+    <exclude>../programs/benchmarks/list-ext2-properties/simple_search_value-2.yml</exclude> <!-- flapping timeout -->
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
@@ -36,6 +37,7 @@
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/loops-crafted-1/**</exclude> <!-- only timeouts -->
+    <exclude>../programs/benchmarks/loop-new/gauss_sum.i.*-reducer.yml</exclude> <!-- flapping timeouts -->
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>

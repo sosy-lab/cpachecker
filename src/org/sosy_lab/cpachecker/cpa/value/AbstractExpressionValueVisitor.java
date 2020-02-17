@@ -2446,6 +2446,7 @@ public abstract class AbstractExpressionValueVisitor
 
       case FLOAT:
       case DOUBLE:
+      case FLOAT128:
         {
           // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
           // TODO: check for overflow(source larger than the highest number we can store in target
@@ -2466,7 +2467,9 @@ public abstract class AbstractExpressionValueVisitor
             // 64 bit means Java double
             result = new NumericValue(numericValue.doubleValue());
 
-          } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
+        } else if (size == machineModel.getSizeofFloat128() * 8) {
+          result = new NumericValue(numericValue.bigDecimalValue());
+        } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
 
             if (numericValue.bigDecimalValue().doubleValue() == numericValue.doubleValue()) {
               result = new NumericValue(numericValue.doubleValue());

@@ -28,6 +28,7 @@ import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+@SuppressWarnings("EqualsGetClass") // should be refactored
 public class LocalVariableIdentifier extends VariableIdentifier {
   protected @NonNull String function; // function, where this variable was declared
 

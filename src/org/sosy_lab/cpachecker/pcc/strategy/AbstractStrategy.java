@@ -206,10 +206,10 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     checkArgument(index >= 0, "Not a valid index. Indices must be at least zero.");
     InputStream fis = Files.newInputStream(proofFile);
     ZipInputStream zis = new ZipInputStream(fis);
-    ZipEntry entry = null;
-    for (int i = 0; i <= 1 + index; i++) {
-      entry = zis.getNextEntry();
+    for (int i = 0; i <= index; i++) { // skip index+1 entries
+      zis.getNextEntry();
     }
+    ZipEntry entry = zis.getNextEntry();
 
     assert entry.getName().equals("ADDITIONAL_PROOFINFO_ZIPENTRY_NAME " + index);
     return Triple.of(fis, zis, new ObjectInputStream(zis));

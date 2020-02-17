@@ -217,6 +217,8 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   @Override
+  // refactoring would be better, but currently safe for the existing set of subclasses
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;
@@ -293,12 +295,13 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   /**
-   * The UnknownState represents one of the States following a normal State of the Automaton.
-   * Which State is the correct following state could not be determined so far.
-   * This Class is used if during a "getAbstractSuccessor" call the abstract successor could not be determined.
-   * During the subsequent "strengthen" call enough information should be available to determine a normal AutomatonState as following State.
+   * The UnknownState represents one of the States following a normal State of the Automaton. Which
+   * State is the correct following state could not be determined so far. This Class is used if
+   * during a "getAbstractSuccessor" call the abstract successor could not be determined. During the
+   * subsequent "strengthen" call enough information should be available to determine a normal
+   * AutomatonState as following State.
    */
-  static class AutomatonUnknownState extends AutomatonState {
+  static final class AutomatonUnknownState extends AutomatonState {
     private static final long serialVersionUID = -2010032222354565037L;
     private final AutomatonState previousState;
 

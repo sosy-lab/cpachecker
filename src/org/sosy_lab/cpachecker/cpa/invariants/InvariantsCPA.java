@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,7 +48,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
-import javax.annotation.concurrent.GuardedBy;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -200,7 +200,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   private final ConditionAdjuster conditionAdjuster;
 
   @GuardedBy("itself")
-  private final Set<MemoryLocation> interestingVariables = new LinkedHashSet<>();
+  private final Set<MemoryLocation> currentInterestingVariables = new LinkedHashSet<>();
 
   private final MergeOperator mergeOperator;
   private final AbstractDomain abstractDomain;
@@ -322,8 +322,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     Set<CFAEdge> relevantEdges = new LinkedHashSet<>();
     Set<NumeralFormula<CompoundInterval>> interestingPredicates = new LinkedHashSet<>();
     Set<MemoryLocation> interestingVariables;
-    synchronized (this.interestingVariables) {
-      interestingVariables = new LinkedHashSet<>(this.interestingVariables);
+    synchronized (this.currentInterestingVariables) {
+      interestingVariables = new LinkedHashSet<>(this.currentInterestingVariables);
     }
 
     if (interestingVariableLimit > 0 && !determineTargetLocations) {
@@ -448,8 +448,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   }
 
   public void addInterestingVariables(Iterable<MemoryLocation> pInterestingVariables) {
-    synchronized (this.interestingVariables) {
-      Iterables.addAll(this.interestingVariables, pInterestingVariables);
+    synchronized (this.currentInterestingVariables) {
+      Iterables.addAll(this.currentInterestingVariables, pInterestingVariables);
     }
   }
 

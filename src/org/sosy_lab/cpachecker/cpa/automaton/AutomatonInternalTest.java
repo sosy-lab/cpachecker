@@ -202,9 +202,9 @@ public class AutomatonInternalTest {
     final String pattern = "$20 = $5($1, $?);";
     final String source = "var1 = function(var2, egal);";
 
-    assert_().about(astMatcher).that(pattern).matches(source).andVariable(20).isEqualTo("var1");
-    assert_().about(astMatcher).that(pattern).matches(source).andVariable(1).isEqualTo("var2");
-    assert_().about(astMatcher).that(pattern).matches(source).andVariable(5).isEqualTo("function");
+    assert_().about(ASTMatcherSubject::new).that(pattern).matches(source).andVariable(20).isEqualTo("var1");
+    assert_().about(ASTMatcherSubject::new).that(pattern).matches(source).andVariable(1).isEqualTo("var2");
+    assert_().about(ASTMatcherSubject::new).that(pattern).matches(source).andVariable(5).isEqualTo("function");
   }
 
   @Test
@@ -285,78 +285,70 @@ public class AutomatonInternalTest {
 
   @Test
   public void testASTcomparison() throws InterruptedException {
-    assert_().about(astMatcher).that("x= $?;").matches("x=5;");
-    assert_().about(astMatcher).that("x= 10;").doesNotMatch("x=5;");
-    assert_().about(astMatcher).that("$? =10;").doesNotMatch("x=5;");
-    assert_().about(astMatcher).that("$?=$?;").matches("x  = 5;");
+    assert_().about(ASTMatcherSubject::new).that("x= $?;").matches("x=5;");
+    assert_().about(ASTMatcherSubject::new).that("x= 10;").doesNotMatch("x=5;");
+    assert_().about(ASTMatcherSubject::new).that("$? =10;").doesNotMatch("x=5;");
+    assert_().about(ASTMatcherSubject::new).that("$?=$?;").matches("x  = 5;");
 
-    assert_().about(astMatcher).that("b    = 5;").doesNotMatch("a = 5;");
+    assert_().about(ASTMatcherSubject::new).that("b    = 5;").doesNotMatch("a = 5;");
 
-    assert_().about(astMatcher).that("init($?);").matches("init(a);");
-    assert_().about(astMatcher).that("init($?);").matches("init();");
-    assert_().about(astMatcher).that("init($1);").doesNotMatch("init();");
+    assert_().about(ASTMatcherSubject::new).that("init($?);").matches("init(a);");
+    assert_().about(ASTMatcherSubject::new).that("init($?);").matches("init();");
+    assert_().about(ASTMatcherSubject::new).that("init($1);").doesNotMatch("init();");
 
-    assert_().about(astMatcher).that("init($?, b);").matches("init(a, b);");
-    assert_().about(astMatcher).that("init($?, c);").doesNotMatch("init(a, b);");
+    assert_().about(ASTMatcherSubject::new).that("init($?, b);").matches("init(a, b);");
+    assert_().about(ASTMatcherSubject::new).that("init($?, c);").doesNotMatch("init(a, b);");
 
-    assert_().about(astMatcher).that("x=$?").matches("x = 5;");
-    assert_().about(astMatcher).that("x=$?;").matches("x = 5");
+    assert_().about(ASTMatcherSubject::new).that("x=$?").matches("x = 5;");
+    assert_().about(ASTMatcherSubject::new).that("x=$?;").matches("x = 5");
 
-    assert_().about(astMatcher).that("f($?);").matches("f();");
-    assert_().about(astMatcher).that("f($?);").matches("f(x);");
-    assert_().about(astMatcher).that("f($?);").matches("f(x, y);");
+    assert_().about(ASTMatcherSubject::new).that("f($?);").matches("f();");
+    assert_().about(ASTMatcherSubject::new).that("f($?);").matches("f(x);");
+    assert_().about(ASTMatcherSubject::new).that("f($?);").matches("f(x, y);");
 
     // Too-large number in a joker makes it be ignored.
-    assert_().about(astMatcher).that("$12345678901;").doesNotMatch("x");
+    assert_().about(ASTMatcherSubject::new).that("$12345678901;").doesNotMatch("x");
   }
 
   @Test
-  public void testAstMatcherFunctionParameters() throws InterruptedException {
-    assert_().about(astMatcher).that("f();").matches("f();");
-    assert_().about(astMatcher).that("f();").doesNotMatch("f(x);");
-    assert_().about(astMatcher).that("f();").doesNotMatch("f(x, y);");
+  public void testAstMatcherParameters() throws InterruptedException {
+    assert_().about(ASTMatcherSubject::new).that("f();").matches("f();");
+    assert_().about(ASTMatcherSubject::new).that("f();").doesNotMatch("f(x);");
+    assert_().about(ASTMatcherSubject::new).that("f();").doesNotMatch("f(x, y);");
 
-    assert_().about(astMatcher).that("f($1);").doesNotMatch("f();");
-    assert_().about(astMatcher).that("f($1);").matches("f(x);").andVariable(1).isEqualTo("x");
-    assert_().about(astMatcher).that("f($1);").doesNotMatch("f(x, y);");
+    assert_().about(ASTMatcherSubject::new).that("f($1);").doesNotMatch("f();");
+    assert_().about(ASTMatcherSubject::new).that("f($1);").matches("f(x);").andVariable(1).isEqualTo("x");
+    assert_().about(ASTMatcherSubject::new).that("f($1);").doesNotMatch("f(x, y);");
 
-    assert_().about(astMatcher).that("f($?);").matches("f();");
-    assert_().about(astMatcher).that("f($?);").matches("f(x);");
-    assert_().about(astMatcher).that("f($?);").matches("f(x, y);");
+    assert_().about(ASTMatcherSubject::new).that("f($?);").matches("f();");
+    assert_().about(ASTMatcherSubject::new).that("f($?);").matches("f(x);");
+    assert_().about(ASTMatcherSubject::new).that("f($?);").matches("f(x, y);");
 
-    assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x);");
-    assert_().about(astMatcher).that("f(x, $?);").matches("f(x, y);");
-    assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x, y, z);");
+    assert_().about(ASTMatcherSubject::new).that("f(x, $?);").doesNotMatch("f(x);");
+    assert_().about(ASTMatcherSubject::new).that("f(x, $?);").matches("f(x, y);");
+    assert_().about(ASTMatcherSubject::new).that("f(x, $?);").doesNotMatch("f(x, y, z);");
   }
 
   @Test
   public void testAstMatcherFunctionCall() throws InterruptedException {
-    assert_().about(astMatcher).that("$?();").matches("f();");
-    assert_().about(astMatcher).that("$?();").doesNotMatch("x = f();");
-    assert_().about(astMatcher).that("$1();").matches("f();").andVariable(1).isEqualTo("f");
+    assert_().about(ASTMatcherSubject::new).that("$?();").matches("f();");
+    assert_().about(ASTMatcherSubject::new).that("$?();").doesNotMatch("x = f();");
+    assert_().about(ASTMatcherSubject::new).that("$1();").matches("f();").andVariable(1).isEqualTo("f");
 
-    assert_().about(astMatcher).that("x = $?();").doesNotMatch("f();");
-    assert_().about(astMatcher).that("x = $?();").matches("x = f();");
-    assert_().about(astMatcher).that("x = $1();").matches("x = f();").andVariable(1).isEqualTo("f");
+    assert_().about(ASTMatcherSubject::new).that("x = $?();").doesNotMatch("f();");
+    assert_().about(ASTMatcherSubject::new).that("x = $?();").matches("x = f();");
+    assert_().about(ASTMatcherSubject::new).that("x = $1();").matches("x = f();").andVariable(1).isEqualTo("f");
 
-    assert_().about(astMatcher).that("$?($?);").matches("f();");
-    assert_().about(astMatcher).that("$?($?);").matches("f(y);");
-    assert_().about(astMatcher).that("$?($?);").matches("f(y, z);");
-    assert_().about(astMatcher).that("$?($?);").doesNotMatch("x = f();");
+    assert_().about(ASTMatcherSubject::new).that("$?($?);").matches("f();");
+    assert_().about(ASTMatcherSubject::new).that("$?($?);").matches("f(y);");
+    assert_().about(ASTMatcherSubject::new).that("$?($?);").matches("f(y, z);");
+    assert_().about(ASTMatcherSubject::new).that("$?($?);").doesNotMatch("x = f();");
 
-    assert_().about(astMatcher).that("$? = $1($?);").matches("x = f();");
-    assert_().about(astMatcher).that("$? = $1($?);").matches("x = f(y);");
-    assert_().about(astMatcher).that("$? = $1($?);").matches("x = f(y, z);");
-    assert_().about(astMatcher).that("$? = $1($?);").doesNotMatch("f();");
+    assert_().about(ASTMatcherSubject::new).that("$? = $1($?);").matches("x = f();");
+    assert_().about(ASTMatcherSubject::new).that("$? = $1($?);").matches("x = f(y);");
+    assert_().about(ASTMatcherSubject::new).that("$? = $1($?);").matches("x = f(y, z);");
+    assert_().about(ASTMatcherSubject::new).that("$? = $1($?);").doesNotMatch("f();");
   }
-
-  private final Subject.Factory<ASTMatcherSubject, String> astMatcher =
-      new Subject.Factory<>() {
-        @Override
-        public ASTMatcherSubject createSubject(FailureMetadata pMd, String pThat) {
-          return new ASTMatcherSubject(pMd, pThat);
-        }
-      };
 
   /**
    * {@link Subject} subclass for testing ASTMatchers with Truth (allows to use

@@ -86,7 +86,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
 
     private final String varId;
 
-    private static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
+    private static final Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
 
     public VarAccess(String pId) {
       if (pId.startsWith("$$")) {

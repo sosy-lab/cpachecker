@@ -49,7 +49,7 @@
             <compilerarg value="-Xlint:-fallthrough"/> <!-- checked by error-prone, too, and javac does not recognized $FALL-THROUGH$ -->
             <compilerarg value="-Xlint:-processing"/>
             <compilerarg value="-Xlint:-options"/> <!-- suppress warning about bootclasspath on newer JDK -->
-            <compilerarg value="-Werror"/>
+            <compilerarg value="-Werror" unless:set="compile.warn"/>
             <compilerarg value="-XDcompilePolicy=simple"/> <!-- necessary for error-prone -->
             <compilerarg value="-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode ${errorprone.options}" unless:set="errorprone.disable"/>
             <compilerarg value="-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED" unless:set="errorprone.disable"/>

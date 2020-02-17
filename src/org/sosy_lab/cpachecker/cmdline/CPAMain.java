@@ -553,6 +553,7 @@ public class CPAMain {
       ImmutableMap.<Property, String>builder()
           .put(CommonPropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
           .put(CommonPropertyType.REACHABILITY, "sv-comp-reachability")
+          .put(CommonPropertyType.REACHABILITY_ERROR, "sv-comp-reachability")
           .put(CommonPropertyType.VALID_FREE, "sv-comp-memorysafety")
           .put(CommonPropertyType.VALID_DEREF, "sv-comp-memorysafety")
           .put(CommonPropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")

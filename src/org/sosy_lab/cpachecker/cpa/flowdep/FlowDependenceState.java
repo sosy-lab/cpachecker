@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  *
  * <p>All objects of this class are immutable.
  */
-public class FlowDependenceState implements AbstractState, AbstractWrapperState, Graphable {
+public final class FlowDependenceState implements AbstractState, AbstractWrapperState, Graphable {
 
   /**
    * Data-flow dependencies. Represented by a table with entries of the form (g, m, D). {@link
@@ -307,7 +307,7 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
 
   public static class UnknownPointerDependence extends FlowDependence {
 
-    private static UnknownPointerDependence INSTANCE = new UnknownPointerDependence();
+    private static final UnknownPointerDependence INSTANCE = new UnknownPointerDependence();
 
     private UnknownPointerDependence() {
       // It shouldn't be possible to add states to an UnknownPointerDependence

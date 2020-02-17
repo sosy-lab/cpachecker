@@ -37,7 +37,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -47,25 +46,22 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder.ReverseARGPathBuilder
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * ARGPath contains a non-empty path through the ARG
- * consisting of both a sequence of states
- * and the edges between them.
- * Very often, the first state is the root state of the ARG,
- * and the last state is a target state, though this is not guaranteed.
+ * ARGPath contains a non-empty path through the ARG consisting of both a sequence of states and the
+ * edges between them. Very often, the first state is the root state of the ARG, and the last state
+ * is a target state, though this is not guaranteed.
  *
- * The number of states is always one larger than the number of edges.
+ * <p>The number of states is always one larger than the number of edges.
  *
- * States on this path cannot be null.
- * Edges can be null,
- * if there is no corresponding CFAEdge between two consecutive abstract states.
+ * <p>States on this path cannot be null. Edges can be null, if there is no corresponding CFAEdge
+ * between two consecutive abstract states.
  *
- * The recommended way to iterate through an ARGPath if you need both states and edges
- * is to use {@link #pathIterator()}.
+ * <p>The recommended way to iterate through an ARGPath if you need both states and edges is to use
+ * {@link #pathIterator()}.
  *
- * The usual way to get an ARGPath instance is from methods in {@link ARGUtils}
- * such as {@link ARGUtils#getOnePathTo(ARGState)} and {@link ARGUtils#getRandomPath(ARGState)}.
+ * <p>The usual way to get an ARGPath instance is from methods in {@link ARGUtils} such as {@link
+ * ARGUtils#getOnePathTo(ARGState)} and {@link ARGUtils#getRandomPath(ARGState)}.
  */
-@Immutable
+@javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public class ARGPath extends AbstractAppender {
 
   private final ImmutableList<ARGState> states;
@@ -142,7 +138,7 @@ public class ARGPath extends AbstractAppender {
    */
   @ForOverride
   protected List<CFAEdge> buildFullPath() {
-    List<CFAEdge> newFullPath = new ArrayList<>();
+    ImmutableList.Builder<CFAEdge> newFullPath = ImmutableList.builder();
     PathIterator it = pathIterator();
 
     while (it.hasNext()) {
@@ -167,7 +163,7 @@ public class ARGPath extends AbstractAppender {
       }
     }
 
-    return newFullPath;
+    return newFullPath.build();
   }
 
   public ImmutableSet<ARGState> getStateSet() {

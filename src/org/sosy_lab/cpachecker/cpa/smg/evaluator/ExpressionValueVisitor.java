@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import static java.util.Collections.singletonList;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -242,7 +243,7 @@ class ExpressionValueVisitor
 
     case MINUS:
 
-      List<SMGValueAndState> result = new ArrayList<>(2);
+        ImmutableList.Builder<SMGValueAndState> result = ImmutableList.builderWithExpectedSize(2);
 
         List<? extends SMGValueAndState> valueAndStates = unaryOperand.accept(this);
 
@@ -255,7 +256,7 @@ class ExpressionValueVisitor
         result.add(SMGValueAndState.of(valueAndState.getSmgState(), val));
       }
 
-        return result;
+        return result.build();
 
     case SIZEOF:
         int size =
@@ -422,7 +423,7 @@ class ExpressionValueVisitor
           List<? extends SMGValueAndState> assumptionValueAndStates =
               v.evaluateBinaryAssumption(newState, binaryOperator, lVal, rVal);
 
-        List<SMGValueAndState> result = new ArrayList<>(2);
+        ImmutableList.Builder<SMGValueAndState> result = ImmutableList.builderWithExpectedSize(2);
 
           for (SMGValueAndState assumptionValueAndState : assumptionValueAndStates) {
           newState = assumptionValueAndState.getSmgState();
@@ -437,7 +438,7 @@ class ExpressionValueVisitor
           }
         }
 
-          return result;
+        return result.build();
       }
 
       default:

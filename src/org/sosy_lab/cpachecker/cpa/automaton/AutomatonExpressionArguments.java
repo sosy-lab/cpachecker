@@ -67,17 +67,17 @@ class AutomatonExpressionArguments {
    */
   private String transitionLogMessages = "";
 
-  // the pattern \$\$\d+ matches Expressions like $$x $$y23rinnksd $$AutomatonVar (all terminated by a non-word-character)
-  static Pattern AUTOMATON_VARS_PATTERN = Pattern.compile("\\$\\$[a-zA-Z]\\w*");
+  // the pattern \$\$\d+ matches Expressions like $$x $$y23rinnksd $$AutomatonVar (all terminated by
+  // a non-word-character)
+  static final Pattern AUTOMATON_VARS_PATTERN = Pattern.compile("\\$\\$[a-zA-Z]\\w*");
   // the pattern \$\d+ matches Expressions like $1 $2 $3 $201
   // If this pattern is changed the pattern in AutomatonASTcomparison should be changed too!
-  static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
+  static final Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
 
   AutomatonExpressionArguments(AutomatonState pState,
       Map<String, AutomatonVariable> pAutomatonVariables,
       List<AbstractState> pAbstractStates, CFAEdge pCfaEdge,
       LogManager pLogger) {
-    super();
     if (pAutomatonVariables == null) {
       automatonVariables = ImmutableMap.of();
     } else {
@@ -238,6 +238,15 @@ class AutomatonExpressionArguments {
             pNode.getFileLocation(),
             CNumericTypes.INT,
             BigInteger.valueOf(automatonVariable.getValue()));
+      } else if (idName.equals("false")) {
+        // this branch is a compromise between human-readable automata
+        // and assumptions that are valid C expressions:
+        // In automata, we use assumption 'false', which is no valid expression
+        // in the C standard. so we replace 'false' with '0' to get a valid C expression
+        // with the intended semantics.
+        // This may lead to problems if people use a variable with name 'false' and a non-zero
+        // value in their code.
+        return CIntegerLiteralExpression.ZERO;
       } else {
         return getTransitionVariable(idName);
       }

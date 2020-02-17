@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain;
 
-import org.sosy_lab.common.ShutdownManager;
-import org.sosy_lab.common.ShutdownNotifier;
-
 import de.uni_freiburg.informatik.ultimate.core.model.services.IProgressAwareTimer;
 import de.uni_freiburg.informatik.ultimate.core.model.services.IProgressMonitorService;
+import java.util.concurrent.CountDownLatch;
+import org.sosy_lab.common.ShutdownManager;
+import org.sosy_lab.common.ShutdownNotifier;
 
 public class LassoRankerProgressMonitorService implements IProgressMonitorService {
 
@@ -43,27 +43,59 @@ public class LassoRankerProgressMonitorService implements IProgressMonitorServic
   }
 
   @Override
+  public boolean continueProcessingRoot() {
+    return !shutdownManager.getNotifier().shouldShutdown();
+  }
+
+  @Override
   public IProgressAwareTimer getChildTimer(long pTimeout) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(
+        getClass() + "::getChildTimer(long) is not implemented");
   }
 
   @Override
   public IProgressAwareTimer getChildTimer(double pPercentage) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(
+        getClass() + "::getChildTimer(double) is not implemented");
   }
 
   @Override
   public void setSubtask(String pTask) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(getClass() + "::setSubtask is not implemented");
   }
 
   @Override
   public void setDeadline(long pDate) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(getClass() + "::setDeadline is not implemented");
   }
 
   @Override
-  public void cancelToolchain() {
-    throw new UnsupportedOperationException();
+  public IProgressAwareTimer getTimer(long pTimeout) {
+    throw new UnsupportedOperationException(getClass() + "::getTimer is not implemented");
+  }
+
+  @Override
+  public IProgressAwareTimer getParent() {
+    throw new UnsupportedOperationException(getClass() + "::getParent is not implemented");
+  }
+
+  @Override
+  public long getDeadline() {
+    throw new UnsupportedOperationException(getClass() + "::getDeadline is not implemented");
+  }
+
+  @Override
+  public CountDownLatch cancelToolchain() {
+    throw new UnsupportedOperationException(getClass() + "::cancelToolchain is not implemented");
+  }
+
+  @Override
+  public void addChildTimer(IProgressAwareTimer pTimer) {
+    throw new UnsupportedOperationException(getClass() + "::addChildTimer is not implemented");
+  }
+
+  @Override
+  public IProgressAwareTimer removeChildTimer() {
+    throw new UnsupportedOperationException(getClass() + "::removeChildTimer is not implemented");
   }
 }

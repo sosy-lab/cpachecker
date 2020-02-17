@@ -206,8 +206,8 @@ public class ThreadCreateTransformer {
 
           CFANode pPredecessor = edge.getPredecessor();
           CFANode pSuccessor = edge.getSuccessor();
-          CFANode firstNode = new CFANode(pPredecessor.getFunctionName());
-          CFANode secondNode = new CFANode(pPredecessor.getFunctionName());
+          CFANode firstNode = new CFANode(pPredecessor.getFunction());
+          CFANode secondNode = new CFANode(pPredecessor.getFunction());
           ((MutableCFA) cfa).addNode(firstNode);
           ((MutableCFA) cfa).addNode(secondNode);
 

@@ -1,0 +1,8 @@
+format_version: '1.0'
+
+# old file name: functions_true-unreach-label.c
+input_files: 'functions.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp
+    expected_verdict: true

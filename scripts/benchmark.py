@@ -147,6 +147,12 @@ class Benchmark(benchexec.benchexec.BenchExec):
             action="store_true",
             help="Packs all result files on the worker into a zip file before file transfer (add this flag if a large number of result files is generated).",
         )
+        vcloud_args.add_argument(
+            "--cgroupAccess",
+            dest="cgroupAccess",
+            action="store_true",
+            help="Allows the usage of cgroups inside the execution environment. This is useful e.g. if a tool wants to make use of resource limits for subprocesses it spawns.",
+        )
 
         return parser
 

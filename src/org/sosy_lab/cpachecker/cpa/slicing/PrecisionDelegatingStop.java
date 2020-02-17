@@ -51,8 +51,11 @@ public class PrecisionDelegatingStop
       final Collection<AbstractState> pReached,
       final Precision pPrecision
   ) throws CPAException, InterruptedException {
-    checkState(pPrecision instanceof SlicingPrecision, "Precision not of type " +
-        SlicingPrecision.class.getSimpleName() + ", but " + pPrecision.getClass().getSimpleName());
+    checkState(
+        pPrecision instanceof SlicingPrecision,
+        "Precision not of type %s, but %s",
+        SlicingPrecision.class.getSimpleName(),
+        pPrecision.getClass().getSimpleName());
 
     Precision wrappedPrecision = ((SlicingPrecision) pPrecision).getWrappedPrec();
     return delegateStop.stop(pState, pReached, wrappedPrecision);

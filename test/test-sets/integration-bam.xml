@@ -50,14 +50,14 @@
   </tasks>
 
   <tasks name="predicate_tree_nested">
-    <include>../programs/benchmarks/recursive/*03*.c</include>
+    <include>../programs/benchmarks/recursive/*03*.yml</include>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_nested</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_cpachecker">
-    <include>../programs/benchmarks/recursive/*02*.c</include>
+    <include>../programs/benchmarks/recursive/*02*.yml</include>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_cpachecker</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
@@ -128,6 +128,9 @@
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*lcr-var*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.5.2.ufo.UNBOUNDED.pals.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.3.4.ufo.BOUNDED-6.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.4.3.ufo.BOUNDED-8.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-pthread/*</exclude>
     <exclude>../programs/benchmarks/systemc/token_ring.*</exclude>
     <exclude>../programs/benchmarks/systemc/toy1.cil.c</exclude>
@@ -147,6 +150,8 @@
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--*</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--*</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--net--wireless--mwifiex--mwifiex_pcie.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--power--max8903_charger.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout/OOM -->
   </tasks>
 
 </benchmark>

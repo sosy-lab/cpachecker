@@ -81,7 +81,7 @@ public class SSCPath extends ARGPath {
     CFAEdge previous = it.next();
     while (it.hasNext()) {
       CFAEdge current = it.next();
-      if (previous.getSuccessor() != current.getPredecessor()) {
+      if (!Objects.equals(previous.getSuccessor(), current.getPredecessor())) {
         return false;
       }
       previous = current;
@@ -136,14 +136,14 @@ public class SSCPath extends ARGPath {
       CFAEdge nextEdge = parentLoc.getLeavingEdge(0);
       CFANode nextLoc = nextEdge.getSuccessor();
       newFullPath.add(nextEdge);
-      if (nextLoc == childLoc) {
+      if (Objects.equals(nextLoc, childLoc)) {
         return; // child found -> finished
       }
       parentLoc = nextLoc;
     }
     // handle last edge of chain, we need to handle multiple successor nodes here.
     for (CFAEdge leavingEdge : CFAUtils.leavingEdges(parentLoc)) {
-      if (leavingEdge.getSuccessor() == childLoc) {
+      if (Objects.equals(leavingEdge.getSuccessor(), childLoc)) {
         newFullPath.add(leavingEdge);
         return; // child found -> finished
       }

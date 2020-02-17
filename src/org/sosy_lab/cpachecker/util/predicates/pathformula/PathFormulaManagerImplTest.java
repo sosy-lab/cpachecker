@@ -140,13 +140,20 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
     String fName = "main";
     NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
-
-    FunctionEntryNode entryNode = dummyFunction(fName);
+    CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
+    CFunctionDeclaration fdef =
+        new CFunctionDeclaration(FileLocation.DUMMY, functionType, fName, ImmutableList.of());
+    FunctionEntryNode entryNode =
+        new CFunctionEntryNode(
+            FileLocation.DUMMY,
+            fdef,
+            new FunctionExitNode(fdef),
+            com.google.common.base.Optional.absent());
 
     // Edge 1: "x' = x + 1".
     // Edge 2: "x <= 10"
-    CFANode a = new CFANode(fName);
-    CFANode b = new CFANode(fName);
+    CFANode a = new CFANode(fdef);
+    CFANode b = new CFANode(fdef);
 
     CFAEdge init = new BlankEdge("", FileLocation.DUMMY, entryNode, a, "init");
     entryNode.addLeavingEdge(init);
@@ -244,19 +251,6 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     return new CIntegerLiteralExpression(
         FileLocation.DUMMY, CNumericTypes.INT, constant
     );
-  }
-
-  private FunctionEntryNode dummyFunction(String name) {
-    CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
-
-    FunctionEntryNode main =
-        new CFunctionEntryNode(
-            FileLocation.DUMMY,
-            new CFunctionDeclaration(FileLocation.DUMMY, functionType, name, ImmutableList.of()),
-            new FunctionExitNode(name),
-            com.google.common.base.Optional.absent());
-
-    return main;
   }
 
   @Test

@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -107,7 +108,8 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
     }
 
     public StatisticsState mergedState(StatisticsState state1, StatisticsState state2) {
-      assert state1.getLocationNode() == state2.getLocationNode() : "Locations have to match!";
+      assert Objects
+          .equals(state1.getLocationNode(), state2.getLocationNode()) : "Locations have to match!";
       return
           new StatisticsState(
               state1.data.mergeState(state2.data),

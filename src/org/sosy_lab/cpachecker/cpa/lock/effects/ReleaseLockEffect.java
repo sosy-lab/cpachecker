@@ -27,8 +27,7 @@ import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
-
-public class ReleaseLockEffect extends LockEffect {
+public final class ReleaseLockEffect extends LockEffect {
 
   private final static ReleaseLockEffect instance = new ReleaseLockEffect();
 

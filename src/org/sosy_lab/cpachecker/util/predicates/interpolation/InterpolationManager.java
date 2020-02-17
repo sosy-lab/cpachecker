@@ -1083,8 +1083,9 @@ public final class InterpolationManager {
     }
   }
 
-  private <T> List<BooleanFormula> createDSAInterpolants(List<Triple<BooleanFormula, AbstractState,
-      T>> formulasWithStatesAndGroupdIds)
+  @SuppressWarnings("MixedMutabilityReturnType")
+  private <T> List<BooleanFormula> createDSAInterpolants(
+      List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
       throws InvalidConfigurationException, SolverException, InterruptedException {
     List<BooleanFormula> myInterpolants;
     dsaAnalysisTimer.start();

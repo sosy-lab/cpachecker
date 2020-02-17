@@ -215,7 +215,32 @@ public class LlvmTypeConverter {
   }
 
   private CType getIntegerType(final int pIntegerWidth, final boolean isUnsigned) {
-    return new CBitFieldType(isUnsigned ? CNumericTypes.UNSIGNED_INT : CNumericTypes.INT, pIntegerWidth);
+    final int sizeOfChar = machineModel.getSizeofCharInBits();
+    if (machineModel.getSizeofInt() * sizeOfChar == pIntegerWidth) {
+      if (isUnsigned) {
+        return CNumericTypes.UNSIGNED_INT;
+      } else {
+        return CNumericTypes.SIGNED_INT;
+      }
+
+    } else if (machineModel.getSizeofLongInt() * sizeOfChar == pIntegerWidth) {
+      if (isUnsigned) {
+        return CNumericTypes.UNSIGNED_LONG_INT;
+      } else {
+        return CNumericTypes.SIGNED_LONG_INT;
+      }
+
+    } else if (machineModel.getSizeofLongLongInt() * sizeOfChar == pIntegerWidth) {
+      if (isUnsigned) {
+        return CNumericTypes.UNSIGNED_LONG_LONG_INT;
+      } else {
+        return CNumericTypes.SIGNED_LONG_LONG_INT;
+      }
+
+    } else {
+      return new CBitFieldType(
+          isUnsigned ? CNumericTypes.UNSIGNED_INT : CNumericTypes.SIGNED_INT, pIntegerWidth);
+    }
   }
 
   private CType getFloatType(final TypeKind pType, final boolean isUnsigned) {

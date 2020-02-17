@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Interpolant for refinement of symbolic value analysis. */
-public class SymbolicInterpolant
+public final class SymbolicInterpolant
     implements Interpolant<ForgettingCompositeState, SymbolicInterpolant> {
 
   static final SymbolicInterpolant TRUE = new SymbolicInterpolant();

@@ -895,8 +895,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       state = state.makeAssignment(assignedVarName, right);
 
 
-    // g(b), do nothing
     } else if (exprOnSummary instanceof CFunctionCallStatement) {
+      // g(b), do nothing
 
     } else {
       throw new UnrecognizedCodeException("on function return", cfaEdge, exprOnSummary);
@@ -1232,12 +1232,21 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
               //because we change the sides of the operands, we have to change the
               //operator, too
               switch (binOp) {
-              case GREATER_EQUAL: binOp = BinaryOperator.LESS_EQUAL; break;
-              case GREATER_THAN: binOp = BinaryOperator.LESS_THAN; break;
-              case LESS_EQUAL: binOp = BinaryOperator.GREATER_EQUAL; break;
-              case LESS_THAN: binOp = BinaryOperator.GREATER_THAN; break;
-              default: break;
-              }
+                    case GREATER_EQUAL:
+                      binOp = BinaryOperator.LESS_EQUAL;
+                      break;
+                    case GREATER_THAN:
+                      binOp = BinaryOperator.LESS_THAN;
+                      break;
+                    case LESS_EQUAL:
+                      binOp = BinaryOperator.GREATER_EQUAL;
+                      break;
+                    case LESS_THAN:
+                      binOp = BinaryOperator.GREATER_THAN;
+                      break;
+                    default:
+                      break;
+                  }
 
             } else {
                   rightVisitorState =

@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CBMCExecutor;
 
-@Options()
+@Options
 public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Path fileName;

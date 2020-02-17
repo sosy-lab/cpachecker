@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.statistics;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -54,13 +53,14 @@ public class StatisticsTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableSet.of();
     }
 
-    List<StatisticsState> allSuccessors = new ArrayList<>(node.getNumLeavingEdges());
+    ImmutableList.Builder<StatisticsState> allSuccessors =
+        ImmutableList.builderWithExpectedSize(node.getNumLeavingEdges());
 
     for (CFAEdge successor : CFAUtils.leavingEdges(node)) {
       allSuccessors.add(state.nextState(successor));
     }
 
-    return allSuccessors;
+    return allSuccessors.build();
 
   }
 }

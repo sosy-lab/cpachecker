@@ -8,6 +8,7 @@
 
 FROM registry.gitlab.com/sosy-lab/software/java-project-template/test:jdk-13
 RUN apt-get update && apt-get install -y \
+  gcc \
   graphviz \
   libgmp10 \
   libgomp1 \

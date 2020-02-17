@@ -38,17 +38,14 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGTest;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -75,9 +72,6 @@ public class SMGStateTest {
   private static final int mockSize16b = 16;
   private static final int mockSize8b = 8;
 
-  private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
-  private final CFunctionDeclaration functionDeclaration3 =
-      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.of());
   private CSimpleType unspecifiedType = new CSimpleType(false, false, CBasicType.UNSPECIFIED, false, false, true, false, false, false, false);
   private CType pointerType = new CPointerType(false, false, unspecifiedType);
   private static final MachineModel MM = MachineModel.LINUX32;
@@ -88,7 +82,7 @@ public class SMGStateTest {
 
     CLangSMG smg1 = new CLangSMG(MM);
 
-    smg1.addStackFrame(functionDeclaration3);
+    smg1.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
 
     for (int i = 0; i < 20; i++) {
       SMGCPA.getNewValue();
@@ -276,7 +270,7 @@ public class SMGStateTest {
     SMGState smg1State = new SMGState(logger, new SMGOptions(
         Configuration.defaultConfiguration()), heap, 0, HashBiMap.create());
 
-    smg1State.addStackFrame(functionDeclaration3);
+    smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, value5);
 
@@ -339,7 +333,7 @@ public class SMGStateTest {
     SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
     SMGState smg1State = new SMGState(logger, options, heap, 0, HashBiMap.create());
 
-    smg1State.addStackFrame(functionDeclaration3);
+    smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");
     smg1State.writeValue(head, hfo, ptrSize, value6);
     smg1State.performConsistencyCheck(SMGRuntimeCheck.FORCED);
@@ -414,7 +408,7 @@ public class SMGStateTest {
     SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
     SMGState smg1State = new SMGState(logger, options, heap, 0, HashBiMap.create());
 
-    smg1State.addStackFrame(functionDeclaration3);
+    smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");
     smg1State.writeValue(head, 0, ptrSize, value6);
     smg1State.performConsistencyCheck(SMGRuntimeCheck.FORCED);
@@ -493,7 +487,7 @@ public class SMGStateTest {
     SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
     SMGState smgState = new SMGState(logger, options, heap, 0, HashBiMap.create());
 
-    smgState.addStackFrame(functionDeclaration3);
+    smgState.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smgState.addGlobalVariable(ptrSizeInBits, "head");
     smgState.writeValue(head, 0, ptrSizeInBits, value6);
     smgState.performConsistencyCheck(SMGRuntimeCheck.FORCED);

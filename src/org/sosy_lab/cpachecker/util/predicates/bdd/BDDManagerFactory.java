@@ -28,8 +28,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.CountingRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SynchronizedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.TimedRegionManager;
 
 /**
  * Factory for creating a RegionManager for one of the available BDD packages
@@ -59,6 +61,19 @@ public class BDDManagerFactory {
   @Option(secure = true, description = "sequentialize all accesses to the BDD library.")
   private boolean synchronizeLibraryAccess = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Measure the time spent in the BDD library. "
+              + "The behaviour in case of concurrent accesses is undefined!")
+  private boolean measureLibraryAccess = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Count accesses for the BDD library. " + "Counting works for concurrent accesses.")
+  private boolean countLibraryAccess = false;
+
   private final Configuration config;
   private final LogManager logger;
 
@@ -77,6 +92,12 @@ public class BDDManagerFactory {
       rmgr = new PJBDDRegionManager(config);
     } else {
       rmgr = new JavaBDDRegionManager(bddPackage, config, logger);
+    }
+    if (measureLibraryAccess) {
+      rmgr = new TimedRegionManager(rmgr);
+    }
+    if (countLibraryAccess) {
+      rmgr = new CountingRegionManager(rmgr);
     }
     if (synchronizeLibraryAccess) {
       rmgr = new SynchronizedRegionManager(rmgr);

@@ -258,7 +258,7 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
 
       final CFANode lastEntryNode = callstack.getLast();
       if ((node instanceof FunctionExitNode
-              && ((FunctionExitNode) node).getEntryNode() == lastEntryNode)
+          && ((FunctionExitNode) node).getEntryNode().equals(lastEntryNode))
         //|| (node.getEnteringSummaryEdge() != null
         // && node.getEnteringSummaryEdge().getPredecessor().getLeavingEdge(0).getSuccessor() == lastEntryNode)
               ) {

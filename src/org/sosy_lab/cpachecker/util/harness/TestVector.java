@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.harness;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -111,9 +113,7 @@ class TestVector {
   public InitializerTestValue getInputValue(AVariableDeclaration pDeclaration) {
     ComparableVariableDeclaration variable = new ComparableVariableDeclaration(pDeclaration);
     InitializerTestValue currentValue = inputVariableValues.get(variable);
-    if (currentValue == null) {
-      throw new IllegalArgumentException("Unknown variable: " + pDeclaration);
-    }
+    checkArgument(currentValue != null, "Unknown variable: %s", pDeclaration);
     return currentValue;
   }
 

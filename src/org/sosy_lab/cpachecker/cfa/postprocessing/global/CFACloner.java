@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 @Options(prefix = "cfa.cfaCloner")
 public class CFACloner {
 
-  private final static String SEPARATOR = "__cloned_function__";
+  public static final String SEPARATOR = "__cloned_function__";
 
   private final CFA cfa;
 

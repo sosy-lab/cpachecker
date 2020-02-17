@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
  * Intermediate class in ABE, which simply represents the formula between two
  * blocks.
  */
-public class ABEIntermediateState<A extends ABEAbstractedState<A>> implements ABEState<A> {
+public final class ABEIntermediateState<A extends ABEAbstractedState<A>> implements ABEState<A> {
 
   private final PathFormula pathFormula;
   private final ABEAbstractedState<A> startingAbstraction;

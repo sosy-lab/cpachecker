@@ -56,10 +56,10 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * Class that provides means to extract target states and paths to these from an
- * {@link ARGReachedSet}.
+ * Class that provides means to extract target states and paths to these from an {@link
+ * ARGReachedSet}.
  */
-@Options()
+@Options
 public class PathExtractor implements Statistics {
 
   @Option(secure = true,

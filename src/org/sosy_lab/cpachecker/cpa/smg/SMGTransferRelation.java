@@ -301,7 +301,8 @@ public class SMGTransferRelation
       LValueAssignmentVisitor visitor =
           expressionEvaluator.getLValueAssignmentVisitor(functionReturnEdge, newState);
       List<SMGAddressAndState> addressAndValues = lValue.accept(visitor);
-      List<SMGState> result = new ArrayList<>(addressAndValues.size());
+      ImmutableList.Builder<SMGState> result =
+          ImmutableList.builderWithExpectedSize(addressAndValues.size());
 
       for (SMGAddressAndState addressAndValue : addressAndValues) {
         SMGAddress address = addressAndValue.getObject();
@@ -328,7 +329,7 @@ public class SMGTransferRelation
         }
       }
 
-      return result;
+      return result.build();
     } else {
       newState.dropStackFrame();
       return ImmutableList.of(newState);
@@ -705,12 +706,12 @@ public class SMGTransferRelation
         }
       }
 
-      List<SMGState> result = new ArrayList<>();
+      ImmutableList.Builder<SMGState> result = ImmutableList.builder();
       for (SMGState newState : states) {
         result.addAll(
             handleFunctionCallWithoutBody(newState, pCfaEdge, cFCExpression, calledFunctionName));
       }
-      return result;
+      return result.build();
     } else {
       return ImmutableList.of(state);
     }

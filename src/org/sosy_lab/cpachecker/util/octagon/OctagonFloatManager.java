@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.octagon;
 
-import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
-
-import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_get_bounds;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_num_clear_n;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_num_get_float;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_num_infty;
 
 import com.google.common.collect.BiMap;
+import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class OctagonFloatManager extends OctagonManager {

@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
-
 /**
  * An interface which is provided by a configurable program analysis using
  * {@link ConfigurableProgramAnalysisWithBAM} which allows it to use BAM
@@ -51,19 +50,19 @@ public interface Reducer {
       throws InterruptedException;
 
   /**
-   * Perform the opposite of the reduction: return an under-approximation of
-   * the state {@code reducedState} which includes constraints from
-   * {@code rootState}, where all of the added constraints are irrelevant to
-   * {@code reducedContext}.
+   * Perform the opposite of the reduction: return an under-approximation of the state {@code
+   * reducedState} which includes constraints from {@code rootState}, where all of the added
+   * constraints are irrelevant to {@code reducedContext}.
    *
-   * @param rootState State which was not reduced, and contains the global
-   *                  information, some of which was reduced before due to
-   *                  its irrelevancy to the block {@code reducedContext}.
-   * @param reducedContext Block with respect to which the reduction was
-   *                       performed.
+   * @param rootState State which was not reduced, and contains the global information, some of
+   *     which was reduced before due to its irrelevancy to the block {@code reducedContext}.
+   * @param reducedContext Block with respect to which the reduction was performed.
    * @param reducedState Input state to be expanded.
+   * @return the expanded state or <code>Null</code> if the state becomes unsatisfiable during
+   *     expansion
    */
-  AbstractState getVariableExpandedState(AbstractState rootState, Block reducedContext, AbstractState reducedState)
+  AbstractState getVariableExpandedState(
+      AbstractState rootState, Block reducedContext, AbstractState reducedState)
       throws InterruptedException;
 
   Precision getVariableReducedPrecision(Precision precision, Block context);

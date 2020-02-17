@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.abe;
 import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -198,7 +199,7 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
 
     ABEIntermediateState<A> iState1 = state1.asIntermediate();
     ABEIntermediateState<A> iState2 = state2.asIntermediate();
-    Preconditions.checkState(iState1.getNode() == iState2.getNode());
+    Preconditions.checkState(Objects.equals(iState1.getNode(), iState2.getNode()));
 
     if (!iState1.getBackpointerState().equals(iState2.getBackpointerState())) {
 

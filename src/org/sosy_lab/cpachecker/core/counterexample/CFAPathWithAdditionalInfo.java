@@ -28,7 +28,6 @@ import com.google.common.collect.ForwardingList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -128,7 +127,7 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
   }
 
   public Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfoMapping(ARGPath pPath) {
-    Map<ARGState, CFAEdgeWithAdditionalInfo> result = new HashMap<>();
+    ImmutableMap.Builder<ARGState, CFAEdgeWithAdditionalInfo> result = ImmutableMap.builder();
 
     PathIterator pathIterator = pPath.fullPathIterator();
     int multiEdgeOffset = 0;
@@ -155,6 +154,6 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
     }
     // last state is ignored
 
-    return result;
+    return result.build();
   }
 }

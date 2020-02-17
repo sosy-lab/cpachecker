@@ -25,42 +25,35 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import javax.annotation.concurrent.Immutable;
-
+import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 import de.uni_freiburg.informatik.ultimate.logic.Theory;
-import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
 
-@Immutable
+@SuppressWarnings("serial")
+@javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public class RankVar implements IProgramVar {
 
-  private final Theory THEROY = new Theory(Logics.ALL);
+  private static final Theory THEORY = new Theory(Logics.ALL);
 
-  private final String idenifier;
+  private final String identifier;
   private final boolean isGlobal;
   private final Term term;
 
   public RankVar(String pIdenifier, boolean pIsGlobal, Term pTerm) {
-    idenifier = checkNotNull(pIdenifier);
+    identifier = checkNotNull(pIdenifier);
     isGlobal = pIsGlobal;
     term = checkNotNull(pTerm);
   }
 
-  public Term getDefinition() {
+  @Override
+  public Term getTerm() {
     return term;
   }
 
   @Override
-  public String getIdentifier() {
-    return getGloballyUniqueId();
-  }
-
-  @Override
-  @Nullable
   public String getProcedure() {
     throw new UnsupportedOperationException();
   }
@@ -77,7 +70,7 @@ public class RankVar implements IProgramVar {
 
   @Override
   public TermVariable getTermVariable() {
-    return THEROY.createTermVariable(idenifier, term.getSort());
+    return THEORY.createTermVariable(identifier, term.getSort());
   }
 
   @Override
@@ -92,7 +85,7 @@ public class RankVar implements IProgramVar {
 
   @Override
   public String getGloballyUniqueId() {
-    return idenifier;
+    return identifier;
   }
 
   @Override

@@ -420,17 +420,18 @@ public class ARGUtils {
     return new ARGPath(states);
   }
 
-  private static final Predicate<CFANode> IS_RELEVANT_LOCATION =
-      pInput ->
-          pInput.isLoopStart()
-              || pInput instanceof FunctionEntryNode
-              || pInput instanceof FunctionExitNode;
+  private static final boolean isRelevantLocation(CFANode pInput) {
+    return pInput.isLoopStart()
+        || pInput instanceof FunctionEntryNode
+        || pInput instanceof FunctionExitNode;
+  }
 
-  private static final Predicate<Iterable<CFANode>> CONTAINS_RELEVANT_LOCATION =
-      nodes -> Iterables.any(nodes, IS_RELEVANT_LOCATION);
+  private static final boolean containsRelevantLocation(Iterable<CFANode> nodes) {
+    return Iterables.any(nodes, ARGUtils::isRelevantLocation);
+  }
 
   private static final Predicate<AbstractState> AT_RELEVANT_LOCATION =
-      Predicates.compose(CONTAINS_RELEVANT_LOCATION, AbstractStates::extractLocations);
+      Predicates.compose(ARGUtils::containsRelevantLocation, AbstractStates::extractLocations);
 
   @SuppressWarnings("unchecked")
   public static final Predicate<ARGState> RELEVANT_STATE =

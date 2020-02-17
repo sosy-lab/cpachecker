@@ -163,10 +163,7 @@ class WitnessFactory implements EdgeAppender {
   private static final Pattern CLONED_FUNCTION_NAME_PATTERN =
       Pattern.compile("(.+)(__cloned_function__\\d+)");
 
-  private static final Function<ARGState, ARGState> COVERED_TO_COVERING = new Function<>() {
-
-    @Override
-    public ARGState apply(ARGState pChild) {
+  private static final ARGState getCoveringState(ARGState pChild) {
       ARGState child = pChild;
       // The child might be covered by another state
       // --> switch to the covering state
@@ -175,9 +172,7 @@ class WitnessFactory implements EdgeAppender {
         assert !child.isCovered();
       }
       return child;
-    }
-
-  };
+  }
 
   static final Function<CFAEdgeWithAssumptions, CFAEdgeWithAssumptions> ASSUMPTION_FILTER =
       new Function<>() {
@@ -386,7 +381,7 @@ class WitnessFactory implements EdgeAppender {
           if (exportInvariant) {
             invariantExportStates.add(to);
           }
-          if (exportInvariant || isEdgeIrrelevant.apply(edge)) {
+          if (exportInvariant || isEdgeIrrelevant(edge)) {
             invariant =
                 simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
           }
@@ -1093,7 +1088,7 @@ class WitnessFactory implements EdgeAppender {
             FluentIterable<ARGState> children =
                 FluentIterable.of(parent)
                     .transformAndConcat(pSuccessorFunction)
-                    .transform(COVERED_TO_COVERING)
+                    .transform(WitnessFactory::getCoveringState)
                     .filter(parent.getChildren()::contains);
 
             // Only the children on the path become parents themselves
@@ -1224,7 +1219,7 @@ class WitnessFactory implements EdgeAppender {
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is irrelevant, remove it
-      if (leavingEdges.get(edge.getSource()).contains(edge) && isEdgeIrrelevant.apply(edge)) {
+      if (leavingEdges.get(edge.getSource()).contains(edge) && isEdgeIrrelevant(edge)) {
         Iterables.addAll(waitlist, mergeNodes(edge));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
@@ -1291,7 +1286,7 @@ class WitnessFactory implements EdgeAppender {
             // ignore the edge itself, as well as already handled edges.
             if (edge != otherEdge && !toRemove.contains(otherEdge)) {
               // remove edges with either identical labels or irrelevant edge-transition
-              if (edge.getLabel().equals(otherEdge.getLabel()) || isEdgeIrrelevant.apply(edge)) {
+              if (edge.getLabel().equals(otherEdge.getLabel()) || isEdgeIrrelevant(edge)) {
                 toRemove.add(edge);
                 break;
               }
@@ -1418,11 +1413,7 @@ class WitnessFactory implements EdgeAppender {
    * this predicate marks intermediate nodes that do not contain relevant information and can
    * therefore be shortcut.
    */
-  private final Predicate<String> isIrrelevantNode =
-      new Predicate<>() {
-
-        @Override
-        public boolean apply(String pNode) {
+  private final boolean isIrrelevantNode(String pNode) {
           if (!ExpressionTrees.getTrue().equals(getStateInvariant(pNode))) {
             return false;
           }
@@ -1438,19 +1429,14 @@ class WitnessFactory implements EdgeAppender {
             }
           }
           return true;
-        }
-      };
+  }
 
   /**
    * this predicate marks intermediate edges that do not contain relevant information and can
    * therefore be shortcut.
    */
-  private final Predicate<Edge> isEdgeIrrelevant =
-      new Predicate<>() {
-
-        @Override
-        public boolean apply(final Edge pEdge) {
-          if (isIrrelevantNode.apply(pEdge.getTarget())) {
+  private final boolean isEdgeIrrelevant(Edge pEdge) {
+    if (isIrrelevantNode(pEdge.getTarget())) {
             return true;
           }
 
@@ -1509,15 +1495,14 @@ class WitnessFactory implements EdgeAppender {
           }
 
           return false;
-        }
-      };
+  }
 
   /**
    * Merge two consecutive nodes into one new node, if the edge between the nodes is irrelevant. The
    * merge also merges the information of the nodes, e.g. disjuncts their invariants.
    */
   private Iterable<Edge> mergeNodes(final Edge pEdge) {
-    Preconditions.checkArgument(isEdgeIrrelevant.apply(pEdge));
+    Preconditions.checkArgument(isEdgeIrrelevant(pEdge));
 
     // Always merge into the predecessor, unless the successor is the sink
     boolean intoPredecessor =
