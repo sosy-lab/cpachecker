@@ -1385,6 +1385,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       throws SMGInconsistentException {
     // Not necessary if merge_SEP and stop_SEP is used.
 
+    if (options.getJoinOnBlockEnd() && !reachedState.isBlockEnded()) {
+      return reachedState;
+    }
+
     SMGJoin join = new SMGJoin(this.heap, reachedState.getHeap(), this, reachedState);
 
     if (!(join.getStatus() == SMGJoinStatus.INCOMPARABLE && join.isDefined())) {
@@ -1393,18 +1397,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     CLangSMG destHeap = join.getJointSMG();
 
-    // join explicit values
-    Map<SMGKnownSymbolicValue, SMGKnownExpValue> mergedExplicitValues = new HashMap<>();
-    for (Entry<SMGKnownSymbolicValue, SMGKnownExpValue> entry : explicitValues.entrySet()) {
-      if (destHeap.getValues().contains(entry.getKey())) {
-        mergedExplicitValues.put(entry.getKey(), entry.getValue());
-      }
-    }
-    for (Entry<SMGKnownSymbolicValue, SMGKnownExpValue> entry : reachedState.getExplicitValues()) {
-      mergedExplicitValues.put(entry.getKey(), entry.getValue());
-    }
-
-    return new SMGState(logger, options, destHeap, predecessorId, mergedExplicitValues);
+    return new SMGState(logger, options, destHeap, predecessorId, join.getMergedExplicitValues());
   }
 
   /**

@@ -211,6 +211,13 @@ public class SMGOptions {
           "Handle external variables with incomplete type (extern int array[]) as external allocation")
   private boolean handleIncompleteExternalVariableAsExternalAllocation = false;
 
+  @Option(
+      secure = true,
+      name = "joinOnBlockEnd",
+      description =
+          "Perform merge SMGStates by SMGJoin on ends of code block. Works with 'merge=JOIN'")
+  private boolean joinOnBlockEnd = true;
+
   public enum SMGExportLevel {
     NEVER,
     LEAF,
@@ -328,5 +335,9 @@ public class SMGOptions {
 
   public boolean isHandleUnknownDereferenceAsSafe() {
     return handleUnknownDereferenceAsSafe;
+  }
+
+  public boolean getJoinOnBlockEnd() {
+    return joinOnBlockEnd;
   }
 }
