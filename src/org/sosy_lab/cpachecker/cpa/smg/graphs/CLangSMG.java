@@ -378,7 +378,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
       MemoryLocation memloc = resolveMemLoc(hvedge);
       SMGHasValueEdges edge = getHVEdgeFromMemoryLocation(memloc);
 
-      if (edge.size() != 0) {
+      if (!edge.isEmpty()) {
         result.put(memloc, edge.iterator().next().getValue());
       }
     }
@@ -542,7 +542,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
       SMGHasValueEdges hves =
           getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
-      if (hves.size() == 0) {
+      if (hves.isEmpty()) {
         return Optional.empty();
       }
 

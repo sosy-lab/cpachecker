@@ -121,7 +121,7 @@ public class SMGSingleLinkedListFinderTest {
               .filterBySize(smg.getSizeofPtrInBits());
       SMGHasValueEdges connections = smg.getHVEdges(filter);
       connection = null;
-      if (connections.size() != 0) {
+      if (!connections.isEmpty()) {
         connection = Iterables.getOnlyElement(connections);
         lastFromHead = smg.getPointer(connection.getValue()).getObject();
       }
