@@ -279,6 +279,26 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     return filteredMap.values();
   }
 
+  @Override
+  public SMGHasValueEdgeSet addEdgesForObject(SMGHasValueEdges pEdgesSet) {
+    if (!(pEdgesSet instanceof SMGHasValueEdgeSet)) {
+      throw new IllegalArgumentException("Can't use different SMGHasValueEdges implementations");
+    }
+    SMGHasValueEdgeSet edgesSet = (SMGHasValueEdgeSet)pEdgesSet;
+    NavigableSet<Entry<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>>> entries =
+        edgesSet.map.entrySet();
+    assert entries.size() == 1;
+
+    Entry<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> entry = entries.first();
+
+    assert !map.containsKey(entry.getKey());
+    PersistentSortedMap<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> newMap =
+        map.putAndCopy(entry.getKey(), entry.getValue());
+    PersistentSortedMap<SMGObject, Integer> newSizesMap =
+        sizesMap.putAndCopy(entry.getKey(), edgesSet.size);
+    return new SMGHasValueEdgeSet(newMap, newSizesMap, size + edgesSet.size);
+  }
+
 
   @Override
   public int hashCode() {
