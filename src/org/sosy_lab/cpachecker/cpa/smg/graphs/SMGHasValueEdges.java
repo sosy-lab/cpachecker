@@ -57,4 +57,6 @@ public interface SMGHasValueEdges extends Iterable<SMGEdgeHasValue> {
   Iterable<SMGEdgeHasValue> getOverlapping(SMGEdgeHasValue pNew_edge);
 
   SMGHasValueEdges addEdgesForObject(SMGHasValueEdges pEdgesSet);
+
+  boolean isEmpty();
 }

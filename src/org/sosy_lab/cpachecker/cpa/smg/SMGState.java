@@ -779,7 +779,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
                 .filterWithoutSize());
     SMGSymbolicValue oldPointerToRegion =
         readValue(pListSeg, offsetPointingToRegion, sizeOfVoidPointerInBits).getObject();
-    if (oldDllFieldsToOldRegion.size() != 0) {
+    if (!oldDllFieldsToOldRegion.isEmpty()) {
       SMGEdgeHasValue oldDllFieldToOldRegion = Iterables.getOnlyElement(oldDllFieldsToOldRegion);
 
       // Work around with nullified memory block
@@ -828,7 +828,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGHasValueEdges fieldsContainingOldPointerToDll =
         heap.getHVEdges(SMGEdgeHasValueFilter.valueFilter(oldPointerToDll));
 
-    if (fieldsContainingOldPointerToDll.size() == 0) {
+    if (fieldsContainingOldPointerToDll.isEmpty()) {
       sizeOfPointerToDll = sizeOfVoidPointerInBits;
     } else {
       sizeOfPointerToDll = fieldsContainingOldPointerToDll.iterator().next().getSizeInBits();
@@ -1534,6 +1534,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGRegion new_object = new SMGRegion(size, label);
     SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
     heap.addHeapObject(new_object);
+    heap.setValidity(new_object, true);
     heap.addValue(new_value);
     SMGEdgePointsTo pointsTo = new SMGEdgePointsTo(new_value, new_object, offset);
     heap.addPointsToEdge(pointsTo);

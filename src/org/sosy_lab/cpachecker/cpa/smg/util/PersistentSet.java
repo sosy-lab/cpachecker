@@ -107,7 +107,12 @@ public class PersistentSet<K extends Comparable<? super K>> implements Set<K> {
 
   @Override
   public boolean containsAll(Collection<?> c) {
-    throw new UnsupportedOperationException();
+    for (Object el: c) {
+      if (!contains(el)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
