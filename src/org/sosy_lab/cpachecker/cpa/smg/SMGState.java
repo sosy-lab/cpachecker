@@ -1952,6 +1952,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   @Nullable
   public SMGKnownSymbolicValue getSymbolicOfExplicit(SMGExplicitValue pExplicitValue) {
+    if (pExplicitValue.isZero()) {
+      return SMGZeroValue.INSTANCE;
+    }
     return explicitValues.inverse().get(pExplicitValue);
   }
 
