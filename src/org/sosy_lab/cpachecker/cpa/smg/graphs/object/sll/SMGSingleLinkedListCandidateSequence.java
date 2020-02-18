@@ -114,15 +114,15 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
                       .filterBySize(pSMG.getSizeofPtrInBits())));
 
       for (SMGObject obj : join.getNonSharedObjectsFromSMG1()) {
-        pSMG.removeHeapObjectAndEdges(obj);
+        pSMG.markHeapObjectDeletedAndRemoveEdges(obj);
       }
 
       for (SMGObject obj : join.getNonSharedObjectsFromSMG2()) {
-        pSMG.removeHeapObjectAndEdges(obj);
+        pSMG.markHeapObjectDeletedAndRemoveEdges(obj);
       }
 
-      pSMG.removeHeapObjectAndEdges(nextObject);
-      pSMG.removeHeapObjectAndEdges(prevObject);
+      pSMG.markHeapObjectDeletedAndRemoveEdges(nextObject);
+      pSMG.markHeapObjectDeletedAndRemoveEdges(prevObject);
       prevObject = newAbsObj;
 
       SMGEdgeHasValue nfoHve =

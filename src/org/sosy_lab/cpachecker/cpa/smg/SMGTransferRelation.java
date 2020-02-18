@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -119,7 +118,6 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -161,20 +159,8 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> postProcessing(Collection<SMGState> pSuccessors, CFAEdge edge) {
     plotWhenConfigured(pSuccessors, edge.getDescription(), SMGExportLevel.INTERESTING);
-    List<SMGState> successors = new ArrayList<>();
-    for (SMGState s : pSuccessors) {
-      for (CSimpleDeclaration variable : edge.getSuccessor().getOutOfScopeVariables()) {
-        s.forgetStackVariable(MemoryLocation.valueOf(variable.getQualifiedName()));
-      }
-      successors.add(checkAndSetErrorRelation(s));
-    }
-    logger.log(
-        Level.ALL,
-        "state with id",
-        state.getId(),
-        "has successors with ids",
-        Collections2.transform(successors, UnmodifiableSMGState::getId));
-    return successors;
+    pSuccessors = Collections2.transform(pSuccessors, this::checkAndSetErrorRelation);
+    return pSuccessors;
   }
 
   private void plotWhenConfigured(
