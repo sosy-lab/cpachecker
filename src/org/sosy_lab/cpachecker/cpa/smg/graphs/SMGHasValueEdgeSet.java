@@ -196,7 +196,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
             if (filterSize >= 0 && newSize > filterSize) {
               newSize = filterSize;
             }
-            if (newSize > 0) {
+            if (newSize > 0 || (newSize == 0 && candidate.getSizeInBits() == 0)) {
               candidate = new SMGEdgeHasValue(newSize, filterOffset, candidate.getObject(), candidate.getValue());
             } else {
               continue;
