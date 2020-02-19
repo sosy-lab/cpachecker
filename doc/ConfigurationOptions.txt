@@ -320,6 +320,10 @@ analysis.replacedFunctionsWithParameters = {"pthread_create"}
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
+# run analysis each time with slightly mutated cfa, until cfa cannot be
+# mutated
+analysis.runMutations = false
+
 # Use heuristics to select the analysis
 analysis.selectAnalysisHeuristically = false
 
