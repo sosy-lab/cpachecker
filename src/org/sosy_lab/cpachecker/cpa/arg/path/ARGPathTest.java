@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg.path;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static org.sosy_lab.cpachecker.cfa.model.CFANode.newDummyCFANode;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
@@ -62,7 +63,9 @@ public class ARGPathTest {
   @Before
   public void setup() {
     // setup for the builder tests
-    edge = new BlankEdge("", FileLocation.DUMMY, new CFANode("test"), new CFANode("test"), "test");
+    edge =
+        new BlankEdge(
+            "", FileLocation.DUMMY, newDummyCFANode("test"), newDummyCFANode("test"), "test");
     edge.getSuccessor().addEnteringEdge(edge);
     edge.getPredecessor().addLeavingEdge(edge);
     LocationState tmp = Mockito.mock(LocationState.class);
@@ -74,10 +77,10 @@ public class ARGPathTest {
 
     // Build a cfa-path, this is simply a chain of 10 edges
     edges = new ArrayList<>();
-    CFANode firstNode = new CFANode("test");
+    CFANode firstNode = newDummyCFANode("test");
 
     for (int i = 0; i < 10 ; i++) {
-      CFANode secondNode = new CFANode("test");
+      CFANode secondNode = newDummyCFANode("test");
       CFAEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY, firstNode, secondNode, "test");
       edges.add(dummyEdge);
       firstNode.addLeavingEdge(dummyEdge);

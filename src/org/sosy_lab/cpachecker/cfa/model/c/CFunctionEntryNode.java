@@ -24,14 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.model.c;
 
 import com.google.common.base.Optional;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-
-import java.util.List;
 
 public class CFunctionEntryNode extends FunctionEntryNode {
 
@@ -44,7 +43,6 @@ public class CFunctionEntryNode extends FunctionEntryNode {
 
     super(
         pFileLocation,
-        pFunctionDefinition.getName(),
         pExitNode,
         pFunctionDefinition,
         pReturnVariable);

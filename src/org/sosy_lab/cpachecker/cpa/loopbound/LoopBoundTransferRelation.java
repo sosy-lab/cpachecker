@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterators;
@@ -160,7 +161,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException, InterruptedException {
     if (((LoopBoundState) state).getDeepestIteration() < startAtBound
         && Iterators.any(otherStates.iterator(), AbstractStates.IS_TARGET_STATE)) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     } else {
       return Collections.singleton(state);
     }
