@@ -509,7 +509,7 @@ public class CPAchecker {
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     for (int mutationRound = 0; true; mutationRound++) {
-      System.out.println("Mutation round " + mutationRound);
+      logger.logf(Level.INFO, "Mutation round %d", mutationRound);
       currentException = null;
       try {
         stats = new MainCPAStatistics(config, logger, shutdownNotifier);
@@ -650,10 +650,10 @@ public class CPAchecker {
       if (originalResult == null) {
         originalResult = currentResult;
         originalException = currentException;
-        System.out.println("original result:");
-        System.out.println(originalResult.getResultString());
-        System.out.println("original exception: ");
-        System.out.println(originalException);
+        logger.logf(Level.INFO, "original result: %s", originalResult.getResultString());
+        if (originalException != null) {
+          logger.logf(Level.INFO, "original exception: %s", originalException);
+        }
 
       } else if (originalResult.getResult() != currentResult.getResult()
           || !originalResult.getResultString().equals(currentResult.getResultString())
@@ -662,23 +662,24 @@ public class CPAchecker {
           || (originalException != null
               && currentException != null
               && !originalException.getMessage().equals(currentException.getMessage()))) {
-        System.out.println(currentResult.getResultString());
-        if (currentException != null) {
-          System.out.println(currentException);
-        }
 
-        System.out.println("result changed, mutation rollback");
+        logger.log(Level.INFO, "Result changed, mutation rollback.");
+        logger.log(Level.INFO, currentResult.getResultString());
+        if (currentException != null) {
+          logger.log(Level.INFO, currentException);
+        }
         ((CFAMutator) cfaCreator).rollback();
 
       } else {
-        System.out.println("result unchanged");
-        System.out.println(currentResult.getResultString());
+        logger.log(Level.INFO, "Result did not change.");
+        logger.log(Level.FINE, currentResult.getResultString());
         if (currentException != null) {
-          System.out.println(currentException);
+          logger.log(Level.FINE, currentException);
         }
       }
       resultList.add(currentResult);
     }
+    logger.log(Level.INFO, "Mutations ended.");
     return resultList;
   }
 

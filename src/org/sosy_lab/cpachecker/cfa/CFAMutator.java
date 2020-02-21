@@ -19,14 +19,15 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
+import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
-import java.util.NavigableMap;
 import java.util.Set;
-import java.util.TreeMap;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,7 +48,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 
 @Options
 public class CFAMutator extends CFACreator {
@@ -58,11 +62,14 @@ public class CFAMutator extends CFACreator {
   }
 
   private ParseResult parseResult = null;
+  private Set<CFANode> originalNodes = null;
+  private Set<CFAEdge> originalEdges = null;
+
   private MutationType lastMutation = null;
   private CFAEdge lastRemovedEdge = null;
   private Set<CFAEdge> restoredEdges = new HashSet<>();
-  private boolean canMutate = true;
-  private CFA prevCFA = null;
+  private CFA lastCFA = null;
+  private boolean doLastRun = false;
 
   public CFAMutator(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -70,74 +77,118 @@ public class CFAMutator extends CFACreator {
     // TODO Auto-generated constructor stub
   }
 
+  private void removeEdge(CFAEdge pEdge) {
+    logger.logf(Level.FINER, "removing edge %s", pEdge);
+    CFACreationUtils.removeEdgeFromNodes(pEdge);
+    originalEdges.remove(pEdge);
+  }
+
+  private void addEdge(CFAEdge pEdge) {
+    logger.logf(Level.FINER, "adding edge %s", pEdge);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(pEdge);
+    originalEdges.add(pEdge);
+  }
+
+  private void removeNode(SortedSetMultimap<String, CFANode> nodes, CFANode n) {
+    logger.logf(Level.FINER, "removing node %s", n);
+    nodes.remove(n.getFunctionName(), n);
+    originalNodes.remove(n);
+  }
+
+  private void addNode(SortedSetMultimap<String, CFANode> nodes, CFANode removedNode) {
+    logger.logf(Level.FINER, "adding node %s", removedNode);
+    nodes.put(removedNode.getFunctionName(), removedNode);
+    originalNodes.add(removedNode);
+  }
+
+  // kind of main function
+
   @Override
   protected ParseResult parseToCFAs(final List<String> sourceFiles)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
-    if (parseResult == null) {
+
+    if (parseResult == null) { // do zero-th run, init
+
       parseResult = super.parseToCFAs(sourceFiles);
-      return parseResult;
-    } else {
-      parseResult = removeAnEdge(parseResult);
-      if (parseResult == null) {
-        exportCFAAsync(prevCFA);
+      originalNodes = new HashSet<>(parseResult.getCFANodes().values());
+
+      final EdgeCollectingCFAVisitor visitor = new EdgeCollectingCFAVisitor();
+      for (final FunctionEntryNode entryNode : parseResult.getFunctions().values()) {
+        CFATraversal.dfs().traverseOnce(entryNode, visitor);
       }
+
+      originalEdges = Sets.newIdentityHashSet();
+      originalEdges.addAll(visitor.getVisitedEdges());
       return parseResult;
+
+    } else if (!doLastRun) { // do non-last run
+      clearParseResultAfterPostprocessings();
+
+      if (!mutate()) {
+        doLastRun = true;
+      }
+      // need to return after possible rollback
+      return parseResult;
+
+    } else { // do last run
+      exportCFAAsync(lastCFA);
+      return null;
     }
   }
 
-  private ParseResult returnEdge(ParseResult pParseResult) {
-    System.out.println("returning edge " + lastRemovedEdge);
-    // TODO undo mutation: insert node, reconnect edges, insert lastRemovedEdge
-    SortedSetMultimap<String, CFANode> nodes = TreeMultimap.create(pParseResult.getCFANodes());
 
-    CFANode removedNode = lastRemovedEdge.getPredecessor();
-    nodes.put(removedNode.getFunctionName(), removedNode);
+  private void clearParseResultAfterPostprocessings() {
+    final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
+    final NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
+    final CFATraversal.CompositeCFAVisitor visitor =
+        new CompositeCFAVisitor(edgeCollector, nodeCollector);
 
-    CFANode successor = lastRemovedEdge.getSuccessor();
-    assert successor.getNumEnteringEdges() > 0;
-    CFAEdge insertedEdge = successor.getEnteringEdge(0);
+    for (final FunctionEntryNode entryNode : parseResult.getFunctions().values()) {
+      CFATraversal.dfs().traverse(entryNode, visitor);
+    }
 
-    CFACreationUtils.removeEdgeFromNodes(insertedEdge);
-    CFAEdge firstEdge = dupEdge(insertedEdge, null, removedNode);
+    Set<CFAEdge> tmpSet = new IdentityHashSet<>();
+    tmpSet.addAll(edgeCollector.getVisitedEdges());
+    final Set<CFAEdge> edgesToRemove =
+        Sets.difference(tmpSet, originalEdges);
+    final Set<CFAEdge> edgesToAdd = Sets.difference(originalEdges, tmpSet);
+    final Set<CFANode> nodesToRemove =
+        Sets.difference(new HashSet<>(nodeCollector.getVisitedNodes()), originalNodes);
 
-    CFACreationUtils.addEdgeToCFA(firstEdge, logger);
-    CFACreationUtils.addEdgeToCFA(lastRemovedEdge, logger);
-
-    restoredEdges.add(lastRemovedEdge);
-
-    return new ParseResult(
-        pParseResult.getFunctions(),
-        nodes,
-        pParseResult.getGlobalDeclarations(),
-        pParseResult.getFileNames());
+    // finally remove nodes and edges added as global decl. and interprocedural
+    SortedSetMultimap<String, CFANode> nodes = parseResult.getCFANodes();
+    for (CFANode n : nodesToRemove) {
+      logger.logf(
+          Level.FINEST,
+          "clearing: removing node %s (was present: %s)",
+          n,
+          nodes.remove(n.getFunctionName(), n));
+    }
+    for (CFAEdge e : edgesToRemove) {
+      logger.logf(Level.FINEST, "clearing: removing edge %s", e);
+      CFACreationUtils.removeEdgeFromNodes(e);
+    }
+    for (CFAEdge e : edgesToAdd) {
+      logger.logf(Level.FINEST, "clearing: returning edge %s", e);
+      CFACreationUtils.addEdgeUnconditionallyToCFA(e);
+    }
   }
 
-  private ParseResult removeAnEdge(ParseResult pParseResult) {
-    SortedSetMultimap<String, CFANode> nodes = TreeMultimap.create(pParseResult.getCFANodes());
+  // try to do simple mutation:
+  // remove an edge, or blank one if it's between two assume edges' successors
+  private ParseResult removeAnEdge(ParseResult pParseResult1) {
+    SortedSetMultimap<String, CFANode> nodes = TreeMultimap.create(pParseResult1.getCFANodes());
 
-    canMutate = false;
+    boolean canMutate = false;
 
-    for (CFANode node : pParseResult.getCFANodes().values()) {
-      for (CFAEdge edge : CFAUtils.allEnteringEdges(node)) {
-        if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge
-            || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-          CFACreationUtils.removeEdgeFromNodes(edge);
-        }
-      }
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge
-            || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-          CFACreationUtils.removeEdgeFromNodes(edge);
-        }
-      }
-
+    for (CFANode node : pParseResult1.getCFANodes().values()) {
       if (node.getNumLeavingEdges() != 1 || node.getNumEnteringEdges() != 1) {
         continue;
       }
 
       CFAEdge leavingEdge = node.getLeavingEdge(0);
       if (restoredEdges.contains(leavingEdge)) {
-        System.out.println("skipping restored edge " + leavingEdge + " after node " + node);
+        logger.logf(Level.FINEST, "skipping restored edge %s after node %s", leavingEdge, node);
         continue;
       }
 
@@ -145,7 +196,7 @@ public class CFAMutator extends CFACreator {
       CFAEdge enteringEdge = node.getEnteringEdge(0);
       CFANode predecessor = enteringEdge.getPredecessor();
 
-      // TODO can't duplicate such edges
+      // TODO can't duplicate or remove such edges
       if (enteringEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
           || enteringEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
           || enteringEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
@@ -166,25 +217,86 @@ public class CFAMutator extends CFACreator {
 
       if (predecessor.hasEdgeTo(successor)) {
         if (leavingEdge.getEdgeType() == CFAEdgeType.BlankEdge) {
-          // restoredEdges.add(leavingEdge);
+          // stickAssumeEdgesIntoOne(predecessor, successor); TODO
           continue;
-          // stickAssumeEdgesIntoOne(predecessor, successor);
         } else {
           blankifyEdge(leavingEdge);
         }
       } else {
-        removeNodeAndLeavingEdge(node);
-        nodes.remove(node.getFunctionName(), node);
-        System.out.println(nodes);
+        removeLeavingEdgeAndConnectEnteringEdgeAround(node);
+        removeNode(nodes, node);
       }
       canMutate = true;
       break;
     }
 
     if (!canMutate) {
-      System.out.println("no edge was removed");
+      logger.log(Level.INFO, "no edge was removed or blanked");
       return null;
     }
+    return new ParseResult(
+        pParseResult1.getFunctions(),
+        nodes,
+        pParseResult1.getGlobalDeclarations(),
+        pParseResult1.getFileNames());
+  }
+
+  private boolean mutate() {
+    ParseResult r = removeAnEdge(parseResult);
+    if (r == null) {
+      return false;
+    } else {
+      parseResult = r;
+      return true;
+    }
+  }
+
+  // undo last mutation
+  public void rollback() {
+    clearParseResultAfterPostprocessings();
+    if (lastMutation == MutationType.NodeAndEdgeRemoval) {
+      parseResult = returnEdge(parseResult);
+    } else {
+      parseResult = refillEdge(parseResult);
+    }
+  }
+
+  // remove the node with its only leaving and entering edges
+  // and insert new edge similar to entering edge.
+  private void removeLeavingEdgeAndConnectEnteringEdgeAround(CFANode pNode) {
+    lastMutation = MutationType.NodeAndEdgeRemoval;
+    lastRemovedEdge = pNode.getLeavingEdge(0);
+    logger.logf(Level.INFO, "removing %s with edge %s", pNode, lastRemovedEdge);
+
+    CFANode successor = lastRemovedEdge.getSuccessor();
+    CFAEdge enteringEdge = pNode.getEnteringEdge(0);
+
+    CFAEdge newEdge = dupEdge(enteringEdge, null, successor);
+    removeEdge(enteringEdge);
+    addEdge(newEdge);
+    removeEdge(lastRemovedEdge);
+  }
+
+  // undo removing a node with leaving edge
+  private ParseResult returnEdge(ParseResult pParseResult) {
+    logger.logf(Level.FINE, "returning edge %s", lastRemovedEdge);
+    // undo mutation: insert node, reconnect edges, insert lastRemovedEdge
+    SortedSetMultimap<String, CFANode> nodes = TreeMultimap.create(pParseResult.getCFANodes());
+
+    CFANode removedNode = lastRemovedEdge.getPredecessor();
+    addNode(nodes, removedNode);
+
+    CFANode successor = lastRemovedEdge.getSuccessor();
+    assert successor.getNumEnteringEdges() > 0;
+    CFAEdge insertedEdge = successor.getEnteringEdge(0);
+
+    removeEdge(insertedEdge);
+    CFAEdge firstEdge = dupEdge(insertedEdge, null, removedNode);
+
+    addEdge(firstEdge);
+    addEdge(lastRemovedEdge);
+    restoredEdges.add(lastRemovedEdge);
+
     return new ParseResult(
         pParseResult.getFunctions(),
         nodes,
@@ -192,46 +304,37 @@ public class CFAMutator extends CFACreator {
         pParseResult.getFileNames());
   }
 
-  private void stickAssumeEdgesIntoOne(CFANode pPredecessor, CFANode pSuccessor) {
-    lastMutation = MutationType.EdgeSticking;
-    CFAEdge left = pPredecessor.getLeavingEdge(0);
-    CFAEdge right = pPredecessor.getLeavingEdge(1);
-
-    if (left.getSuccessor() == pSuccessor) {
-      lastRemovedEdge = right;
-    } else {
-      lastRemovedEdge = left;
-    }
-    // TODO
-  }
-
-  private void removeNodeAndLeavingEdge(CFANode pNode) {
-    lastMutation = MutationType.NodeAndEdgeRemoval;
-    lastRemovedEdge = pNode.getLeavingEdge(0);
-    System.out.println("removing " + pNode + " with edge " + lastRemovedEdge);
-
-    CFANode successor = lastRemovedEdge.getSuccessor();
-    CFAEdge enteringEdge = pNode.getEnteringEdge(0);
-
-    CFAEdge newEdge = dupEdge(enteringEdge, null, successor);
-    CFACreationUtils.removeEdgeFromNodes(enteringEdge);
-    CFACreationUtils.addEdgeToCFA(newEdge, logger);
-
-    CFACreationUtils.removeEdgeFromNodes(lastRemovedEdge);
-  }
-
+  // replace the edge with blank edge
   private void blankifyEdge(CFAEdge pEdge) {
     lastMutation = MutationType.EdgeBlanking;
     lastRemovedEdge = pEdge;
-    System.out.println("blanking edge " + pEdge);
+    logger.logf(Level.INFO, "blanking edge %s", pEdge);
 
     CFAEdge newEdge =
         new BlankEdge(
-            "", FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getSuccessor(), "blank edge");
-    CFACreationUtils.removeEdgeFromNodes(pEdge);
-    CFACreationUtils.addEdgeToCFA(newEdge, logger);
+            "",
+            FileLocation.DUMMY,
+            pEdge.getPredecessor(),
+            pEdge.getSuccessor(),
+            "CFAMutator blanked this edge");
+
+    removeEdge(pEdge);
+    addEdge(newEdge);
   }
 
+  // undo blanking an edge
+  private ParseResult refillEdge(ParseResult pParseResult) {
+    logger.logf(Level.FINE, "refilling edge %s", lastRemovedEdge);
+    CFAEdge blank = lastRemovedEdge.getPredecessor().getLeavingEdge(0);
+    restoredEdges.add(lastRemovedEdge);
+
+    removeEdge(blank);
+    addEdge(lastRemovedEdge);
+
+    return pParseResult;
+  }
+
+  // return an edge with same "contents" but from pPredNode to pSuccNode
   private CFAEdge dupEdge(CFAEdge pEdge, CFANode pPredNode, CFANode pSuccNode) {
     if (pPredNode == null) {
       pPredNode = pEdge.getPredecessor();
@@ -357,56 +460,42 @@ public class CFAMutator extends CFACreator {
         throw new UnsupportedOperationException("Unknown Type of edge: " + pEdge.getEdgeType());
     }
 
-    System.out.println("duplicated edge " + pEdge + " as " + newEdge);
+    logger.logf(Level.FINER, "duplicated edge " + pEdge + " as " + newEdge);
 
     return newEdge;
   }
 
-  private ParseResult removeFunction(ParseResult pParseResult) {
-    NavigableMap<String, FunctionEntryNode> func = new TreeMap<>(pParseResult.getFunctions());
-    System.out.println("removing " + func.firstEntry().getKey());
-    func.remove(func.firstEntry().getKey());
-    ParseResult ans =
-        new ParseResult(
-            func,
-            pParseResult.getCFANodes(),
-            pParseResult.getGlobalDeclarations(),
-            pParseResult.getFileNames());
-    return ans;
-  }
-
   @Override
   protected void exportCFAAsync(final CFA cfa) {
-    if (cfa != null) {
-      System.out.println("Count of CFA nodes: " + cfa.getAllNodes().size());
-    } else {
-      System.out.println("Null cfa, canMutate = " + canMutate);
-    }
-    System.out.println("CANMUTATE IS " + canMutate);
-    if (!canMutate) {
+    logger.logf(Level.FINE, "Count of CFA nodes: %d", cfa.getAllNodes().size());
+
+    if (doLastRun) {
       super.exportCFAAsync(cfa);
     } else {
-      System.out.println("got nonnull cfa: " + (cfa != null));
-      prevCFA = cfa;
+      lastCFA = cfa;
     }
   }
 
-  public void rollback() {
-    if (lastMutation == MutationType.NodeAndEdgeRemoval) {
-      parseResult = returnEdge(parseResult);
-    } else {
-      parseResult = refillEdge(parseResult);
-    }
-  }
+  //  private void stickAssumeEdgesIntoOne(CFANode pPredecessor, CFANode pSuccessor) {
+  //    lastMutation = MutationType.EdgeSticking;
+  //    CFAEdge left = pPredecessor.getLeavingEdge(0);
+  //    CFAEdge right = pPredecessor.getLeavingEdge(1);
+  //
+  //    if (left.getSuccessor() == pSuccessor) {
+  //      lastRemovedEdge = right;
+  //    } else {
+  //      lastRemovedEdge = left;
+  //    }
+  //    // TODO
+  //  }
 
-  private ParseResult refillEdge(ParseResult pParseResult) {
-    System.out.println("refilling edge " + lastRemovedEdge);
-    CFAEdge blank = lastRemovedEdge.getPredecessor().getLeavingEdge(0);
-    restoredEdges.add(lastRemovedEdge);
-
-    CFACreationUtils.removeEdgeFromNodes(blank);
-    CFACreationUtils.addEdgeToCFA(lastRemovedEdge, logger);
-
-    return pParseResult;
-  }
+  // private ParseResult removeFunction(ParseResult pParseResult) {
+  // NavigableMap<String, FunctionEntryNode> func = new TreeMap<>(pParseResult.getFunctions());
+  // logger.logf(Level.FINE, "removing " + func.firstEntry().getKey());
+  // func.remove(func.firstEntry().getKey());
+  // ParseResult ans =        new ParseResult(
+  //
+  // func,pParseResult.getCFANodes(),pParseResult.getGlobalDeclarations(),pParseResult.getFileNames());
+  // return ans;
+  // }
 }
