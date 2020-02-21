@@ -116,22 +116,6 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     return pNewSmgState.getHeap().isPointer(symVal);
   }
 
-  private boolean isUnequal(
-      UnmodifiableSMGState pNewState,
-      SMGSymbolicValue pValue1,
-      SMGSymbolicValue pValue2,
-      boolean isPointerOp1,
-      boolean isPointerOp2) {
-
-    if (isPointerOp1 && isPointerOp2) {
-      return !pValue1.equals(pValue2);
-    } else if ((isPointerOp1 && pValue2.isZero()) || (isPointerOp2 && pValue1.isZero())) {
-      return !pValue1.equals(pValue2);
-    } else {
-      return pNewState.isInNeq(pValue1, pValue2);
-    }
-  }
-
   /** returns the comparison of two pointers, i.e. "p1 op p2". */
   private boolean comparePointer(
       SMGKnownAddressValue pV1, SMGKnownAddressValue pV2, BinaryOperator pOp) {
@@ -168,7 +152,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     boolean isPointerOp2 = pV2 instanceof SMGKnownAddressValue;
 
     boolean areEqual = pV1.equals(pV2);
-    boolean areNonEqual = isUnequal(pNewState, pV1, pV2, isPointerOp1, isPointerOp2);
+    boolean areNonEqual = pNewState.areNonEqual(pV1, pV2);
 
     boolean isTrue = false;
     boolean isFalse = false;
