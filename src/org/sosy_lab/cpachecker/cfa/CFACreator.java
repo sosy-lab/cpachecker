@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static java.util.stream.Collectors.toUnmodifiableSet;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -45,7 +47,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
+import javax.annotation.Nonnull;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -67,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.export.CFAToPixelsWriter;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
@@ -286,8 +291,8 @@ public class CFACreator {
   )
   private boolean addLabels = false;
 
-  @Option(secure=true,
-      description="Programming language of the input program. If not given explicitly, "
+  @Option(secure = true,
+      description = "Programming language of the input program. If not given explicitly, "
           + "auto-detection will occur")
   // keep option name in sync with {@link CPAMain#language}, value might differ
   private Language language = Language.C;
@@ -295,6 +300,10 @@ public class CFACreator {
   private final LogManager logger;
   private final Parser parser;
   private final ShutdownNotifier shutdownNotifier;
+  private final String exampleJavaMethodName =
+      "Please note that a method has to be given in the following notation:\n <ClassName>_"
+          + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_Car\n"
+          + "for the method drive(int speed, Car car) in the class Car.";
 
   private static class CFACreatorStatistics implements Statistics {
 
@@ -792,12 +801,14 @@ public class CFACreator {
   FunctionEntryNode getJavaMainMethod(
       List<String> sourceFiles, String mainFunction, Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
+    Optional<FunctionEntryNode> mainMethodKey;
 
-    // Try classPath given in sourceFiles and plain method name in mainFunctionName
+    // Try classPath given in sourceFiles and plain method name in mainFunction
     String classPath = sourceFiles.get(0).replace("\\/", ".");
-    Optional<String> mainMethodKey =
-        cfas.keySet().stream()
-            .filter(k -> k.contains(classPath + "_" + mainFunction))
+
+    mainMethodKey =
+        getKeysStartingWithStringAndThrowExceptionOnMultipleMatches(cfas, classPath, mainFunction)
+            .stream()
             .findFirst();
 
     // Try classPath given in sourceFiles and relative Path with main function name in
@@ -805,34 +816,110 @@ public class CFACreator {
     if (mainMethodKey.isEmpty()) {
       int indexOfLastSlash = mainFunction.lastIndexOf('.');
       if (indexOfLastSlash >= 0) {
-        String classPathWithMainMethod =
-            mainFunction.substring(0, indexOfLastSlash)
-                + "_"
-                + mainFunction.substring(indexOfLastSlash + 1);
+        // String needs to be final for use in streams
+        classPath = mainFunction.substring(0, indexOfLastSlash);
+
+        String mainFunctionExtracted = mainFunction.substring(indexOfLastSlash + 1);
         mainMethodKey =
-            cfas.keySet().stream().filter(k -> k.contains(classPathWithMainMethod)).findFirst();
+            getKeysStartingWithStringAndThrowExceptionOnMultipleMatches(
+                cfas, classPath, mainFunctionExtracted)
+                .stream()
+                .findFirst();
       }
     }
 
     // Try classPath given in sourceFiles and relative Path without main function name in
     // mainFunctionName
     if (mainMethodKey.isEmpty()) {
+      classPath = mainFunction;
       mainMethodKey =
-          cfas.keySet().stream()
-              .filter(k -> k.contains(mainFunction + "_" + "main"))
+          getKeysStartingWithStringAndThrowExceptionOnMultipleMatches(cfas, classPath, "main")
+              .stream()
               .findFirst();
     }
 
-    return cfas.get(
-        mainMethodKey.orElseThrow(
-            () ->
-                new InvalidConfigurationException(
-                    "Method "
-                        + mainFunction
-                        + " not found.\n"
-                        + "Please note that a method has to be given in the following notation:\n <ClassName>_"
-                        + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_pack1.Car\n"
-                        + "for the method drive(int speed, Car car) in the class Car.")));
+    return mainMethodKey.orElseThrow(
+        () ->
+            new InvalidConfigurationException(
+                "Method " + mainFunction + " not found.\n" + exampleJavaMethodName));
+  }
+
+  @Nonnull
+  private Set<FunctionEntryNode> getKeysStartingWithStringAndThrowExceptionOnMultipleMatches(
+      Map<String, FunctionEntryNode> cfas, final String classPath, final String mainMethodName)
+      throws InvalidConfigurationException {
+
+    // Check on null for tests because CFACreator is mocked
+    if (mainFunctionName == null) {
+      mainFunctionName = "Main function";
+    }
+
+    Set<FunctionEntryNode> nodesWithCorrectClassPath =
+        cfas.values().stream()
+            .filter(
+                v ->
+                    ((JMethodDeclaration) v.getFunctionDefinition())
+                        .getDeclaringClass()
+                        .getName()
+                        .equals(classPath))
+            .collect(Collectors.toUnmodifiableSet());
+
+    // Try method name has parameters declared
+    String fullName = classPath + "_" + mainMethodName;
+    Set<FunctionEntryNode> mainMethodKeys =
+        nodesWithCorrectClassPath.stream()
+            .filter(v -> v.getFunctionDefinition().getName().equals(fullName))
+            .collect(toUnmodifiableSet());
+
+    // Try method name has no parameters declared
+    if (mainMethodKeys.isEmpty()) {
+
+      Set<FunctionEntryNode> methodsWithSameName =
+          nodesWithCorrectClassPath.stream()
+              .filter(
+                  v ->
+                      ((JMethodDeclaration) v.getFunctionDefinition())
+                          .getSimpleName()
+                          .equals(mainMethodName))
+              .collect(toUnmodifiableSet());
+      if (methodsWithSameName.size() > 1) {
+        StringBuilder foundMethods = new StringBuilder();
+        for (FunctionEntryNode method : methodsWithSameName) {
+          foundMethods.append((method.getFunctionDefinition().getName())).append("\n");
+        }
+        if (logger != null) {
+          logger.log(
+              Level.WARNING,
+              "Multiple methods with same name but different parameters found. Make sure you picked the right one.\n"
+                  + "Methods found"
+                  + foundMethods
+                  + "\n"
+                  + exampleJavaMethodName);
+        }
+      }
+
+      mainMethodKeys =
+          nodesWithCorrectClassPath.stream()
+              .filter(
+                  v ->
+                      ((JMethodDeclaration) v.getFunctionDefinition())
+                          .getSimpleName()
+                          .equals(mainMethodName))
+              .collect(toUnmodifiableSet());
+    }
+
+    if (mainMethodKeys.size() >= 2) {
+      StringBuilder exceptionMessage = new StringBuilder();
+      mainMethodKeys.forEach((k) -> exceptionMessage.append(k).append("\n"));
+
+      throw new InvalidConfigurationException(
+          "Two or more matching functions for \""
+              + mainFunctionName
+              + "\" found:\n"
+              + exceptionMessage.toString()
+              + exampleJavaMethodName);
+    }
+    return mainMethodKeys;
   }
 
   private void checkIfValidFiles(List<String> sourceFiles) throws InvalidConfigurationException {
