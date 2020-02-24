@@ -28,10 +28,10 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.TreeMap;
 import org.junit.Before;
@@ -39,8 +39,13 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
 public class CFACreatorTest {
   @Mock
@@ -51,6 +56,8 @@ public class CFACreatorTest {
   JMethodEntryNode N3;
   @Mock
   JMethodEntryNode N4;
+  @Mock
+  JMethodEntryNode N5;
 
   @Mock
   CFACreator cfaCreator;
@@ -60,7 +67,22 @@ public class CFACreatorTest {
   @Before
   public void init() throws InvalidConfigurationException {
     MockitoAnnotations.initMocks(this);
-    cfa = buildExampleCfa();
+    JMethodDeclaration functionDefinition1 =
+        createFunctionDefinition("pack5.CallTests_true_assert", "main", "String[]");
+    when(N1.getFunctionDefinition()).thenReturn(functionDefinition1);
+    JMethodDeclaration functionDefinition2 =
+        createFunctionDefinition("pack5.CallTests_true_assert", "main2", "String[]");
+    when(N2.getFunctionDefinition()).thenReturn(functionDefinition2);
+    JMethodDeclaration functionDefinition3 =
+        createFunctionDefinition("pack5.CallTests_true_assert", "callTests_true_assert", "");
+    when(N3.getFunctionDefinition()).thenReturn(functionDefinition3);
+    JMethodDeclaration functionDefinition4 =
+        createFunctionDefinition("pack5.CallTests_true_assert", "callTests_true_assert", "int");
+    when(N4.getFunctionDefinition()).thenReturn(functionDefinition4);
+    JMethodDeclaration functionDefinition5 =
+        createFunctionDefinition("pack5.CallTests_true_assert", "callTests_true_assert", "int_int");
+    when(N5.getFunctionDefinition()).thenReturn(functionDefinition5);
+    cfa = buildExampleCfa(N1, N2, N3, N4, N5);
 
     when(cfaCreator.getJavaMainMethod(anyList(), anyString(), anyMap())).thenCallRealMethod();
   }
@@ -82,12 +104,13 @@ public class CFACreatorTest {
   public void
   testGetJavaMainMethodForSameNameMethodsWithDifferentParametersThrowsExceptionIfParametersNotDefined() {
     String sourceFile = "pack5.CallTests_true_assert";
-    String mainFunction = "CallTests_true_assert";
-    assertThrows(
-        InvalidConfigurationException.class,
-        () ->
-            cfaCreator.getJavaMainMethod(
-                new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa));
+    String mainFunction = "callTests_true_assert";
+    Throwable e =
+        assertThrows(
+            InvalidConfigurationException.class,
+            () ->
+                cfaCreator.getJavaMainMethod(
+                    new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa));
   }
 
   @Test
@@ -103,13 +126,47 @@ public class CFACreatorTest {
     assertThat(result).isEqualTo(N1);
   }
 
-  private TreeMap<String, FunctionEntryNode> buildExampleCfa() {
+  private JMethodDeclaration createFunctionDefinition(
+      String classPath, String methodName, String parametersSubString) {
+    String name = classPath + "_" + methodName;
+    if (!parametersSubString.isEmpty()) {
+      name = name + "_" + parametersSubString;
+    }
 
-    return new TreeMap<>(
-        ImmutableMap.of(
-            "pack5.CallTests_true_assert_main_String[]", N1,
-            "pack5.CallTests_true_assert_main2_String[]", N2,
-            "pack5.CallTests_true_assert_CallTests_true_assert", N3,
-            "pack5.CallTests_true_assert_CallTests_true_assert_int", N4));
+    return new JConstructorDeclaration(
+        FileLocation.DUMMY,
+        null,
+        name,
+        methodName,
+        new ArrayList<>(),
+        VisibilityModifier.PUBLIC,
+        false,
+        createDeclaringClassMock(classPath));
+  }
+
+  private JClassType createDeclaringClassMock(String classPath) {
+    String simpleClassName;
+    int indexOfLastDot = classPath.lastIndexOf(".");
+    if (indexOfLastDot >= 0) {
+      simpleClassName = classPath.substring(indexOfLastDot);
+    } else {
+      simpleClassName = classPath;
+    }
+
+    JClassType declaringClass = mock(JClassType.class);
+    when(declaringClass.getName()).thenReturn(classPath);
+    when(declaringClass.getSimpleName()).thenReturn(simpleClassName);
+    return declaringClass;
+  }
+
+  private TreeMap<String, FunctionEntryNode> buildExampleCfa(JMethodEntryNode... nodeArray) {
+
+    TreeMap<String, FunctionEntryNode> result = new TreeMap<>();
+
+    for (JMethodEntryNode node : nodeArray) {
+      result.put(node.getFunctionDefinition().getName(), node);
+    }
+
+    return result;
   }
 }
