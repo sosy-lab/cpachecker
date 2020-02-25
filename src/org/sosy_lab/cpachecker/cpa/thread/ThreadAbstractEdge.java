@@ -57,4 +57,9 @@ public class ThreadAbstractEdge implements AbstractEdge {
     return Objects.equals(action, other.action);
   }
 
+  @Override
+  public String toString() {
+    return action.toString();
+  }
+
 }

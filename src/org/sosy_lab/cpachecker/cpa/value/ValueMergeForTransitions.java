@@ -39,12 +39,10 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ValueMergeForTransitions implements MergeOperator {
 
-  private final boolean abstractionMerge;
-  private final boolean joinOnlyEqualMems;
+  private final boolean joinStates;
 
-  ValueMergeForTransitions() {
-    abstractionMerge = true;
-    joinOnlyEqualMems = false;
+  ValueMergeForTransitions(boolean pFlag) {
+    joinStates = pFlag;
   }
 
   @Override
@@ -54,7 +52,13 @@ public class ValueMergeForTransitions implements MergeOperator {
     assert pState1.getClass() == pState2.getClass();
 
     if (pState1.getClass() == ValueAnalysisState.class) {
-      return pState2;
+      if (!joinStates) {
+        return pState2;
+      } else {
+        ValueAnalysisState state1 = (ValueAnalysisState) pState1;
+        ValueAnalysisState state2 = (ValueAnalysisState) pState2;
+        return state1.join(state2);
+      }
     } else if (pState1.getClass() == ValueAnalysisStateWithEdge.class) {
       ValueAnalysisStateWithEdge state1 = (ValueAnalysisStateWithEdge) pState1;
       ValueAnalysisStateWithEdge state2 = (ValueAnalysisStateWithEdge) pState2;
@@ -62,23 +66,16 @@ public class ValueMergeForTransitions implements MergeOperator {
       AbstractEdge edge2 = state2.getAbstractEdge();
 
       if (edge1 == EmptyEdge.getInstance() || edge2 == EmptyEdge.getInstance()) {
-        return pState2;
+        return joinStatesWithEdge(state1, state2, edge2);
       } else if (edge1 instanceof WrapperCFAEdge || edge2 instanceof WrapperCFAEdge) {
-        return pState2;
+        if (!edge1.equals(edge2)) {
+          return pState2;
+        } else {
+          return joinStatesWithEdge(state1, state2, edge2);
+        }
       } else {
         ValueAbstractEdge vEdge1 = (ValueAbstractEdge) edge1;
         ValueAbstractEdge vEdge2 = (ValueAbstractEdge) edge2;
-
-        ValueAnalysisState base;
-        if (abstractionMerge) {
-          if (!state1.hasEqualStates(state2)) {
-            return pState2;
-          } else {
-            base = state2;
-          }
-        } else {
-          base = state1.join(state2);
-        }
 
         ValueAnalysisInformation diff1 = vEdge1.getDifference();
         ValueAnalysisInformation diff2 = vEdge2.getDifference();
@@ -91,21 +88,13 @@ public class ValueMergeForTransitions implements MergeOperator {
 
         for (MemoryLocation mem : jointMems) {
           if (values1.containsKey(mem) && !values2.containsKey(mem)) {
-            if (joinOnlyEqualMems) {
-              return pState2;
-            } else {
-              Type newType = values1.get(mem).getType();
-              newValues =
+            Type newType = values1.get(mem).getType();
+            newValues =
                   newValues.putAndCopy(mem, new ValueAndType(UnknownValue.getInstance(), newType));
-            }
           } else if (values2.containsKey(mem) && !values1.containsKey(mem)) {
-            if (joinOnlyEqualMems) {
-              return pState2;
-            } else {
-              Type newType = values2.get(mem).getType();
-              newValues =
+            Type newType = values2.get(mem).getType();
+            newValues =
                   newValues.putAndCopy(mem, new ValueAndType(UnknownValue.getInstance(), newType));
-            }
           } else if (values1.containsKey(mem) && values2.containsKey(mem)) {
             ValueAndType newType = join(values1.get(mem), values2.get(mem));
             newValues =
@@ -116,16 +105,10 @@ public class ValueMergeForTransitions implements MergeOperator {
           }
         }
 
-        ValueAnalysisStateWithEdge newState =
-            new ValueAnalysisStateWithEdge(
-                base,
-                new ValueAbstractEdge(new ValueAnalysisInformation(newValues)));
-
-        if (newState.equals(pState2)) {
-          return pState2;
-        } else {
-          return newState;
-        }
+        return joinStatesWithEdge(
+            state1,
+            state2,
+            new ValueAbstractEdge(new ValueAnalysisInformation(newValues)));
       }
 
     } else {
@@ -161,5 +144,25 @@ public class ValueMergeForTransitions implements MergeOperator {
     }
 
     return new ValueAndType(newValue, newType);
+  }
+
+  private ValueAnalysisStateWithEdge joinStatesWithEdge(
+      ValueAnalysisStateWithEdge state1,
+      ValueAnalysisStateWithEdge state2,
+      AbstractEdge edge) {
+    ValueAnalysisState base;
+
+    if (!joinStates) {
+      base = state2;
+    } else {
+      base = state1.join(state2);
+    }
+    ValueAnalysisStateWithEdge newState = new ValueAnalysisStateWithEdge(base, edge);
+
+    if (newState.equals(state2)) {
+      return state2;
+    } else {
+      return newState;
+    }
   }
 }

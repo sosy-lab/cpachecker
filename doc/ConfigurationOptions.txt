@@ -2734,8 +2734,9 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
-# Simple thread analysis from theory paper
-cpa.thread.simpleMode = false
+# Use specific mode for thread analysis
+cpa.thread.mode = BASE
+  enum:     [SIMPLE, ENVIRONMENT, BASE]
 
 # The case when the same thread is created several times we do not support.We
 # may skip or fail in this case.
@@ -2956,7 +2957,7 @@ cpa.value.interpolation.manageCallstack = true
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
-  allowed values: [SEP, JOIN, TRANSITIONS]
+  allowed values: [SEP, JOIN, TRANSITIONSJOIN, TRANSITIONSSEP]
 
 # Assume that variables used only in a boolean context are either zero or
 # one.

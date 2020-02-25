@@ -90,7 +90,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     secure = true,
     name = "merge",
     toUppercase = true,
-    values = {"SEP", "JOIN", "TRANSITIONS"},
+    values = {"SEP", "JOIN", "TRANSITIONSJOIN", "TRANSITIONSSEP"},
       description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
@@ -240,8 +240,10 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    if (mergeType.equals("TRANSITIONS")) {
-      return new ValueMergeForTransitions();
+    if (mergeType.equals("TRANSITIONSJOIN")) {
+      return new ValueMergeForTransitions(true);
+    } else if (mergeType.equals("TRANSITIONSSEP")) {
+      return new ValueMergeForTransitions(false);
     } else {
       return buildMergeOperator(mergeType);
     }
