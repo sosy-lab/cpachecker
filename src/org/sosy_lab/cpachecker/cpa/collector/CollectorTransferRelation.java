@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.collector;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
@@ -55,7 +56,12 @@ public class CollectorTransferRelation implements TransferRelation {
 
   assert pElement instanceof CollectorState;
 
-    ARGState wrappedState = (ARGState) ((CollectorState) pElement).getWrappedState();
+  CollectorState state = (CollectorState) pElement;
+  if (state.isStopped()){
+    return new ArrayList<>();
+  }
+
+  ARGState wrappedState = (ARGState) ((CollectorState) pElement).getWrappedState();
 
     Collection<? extends AbstractState> successors;
     assert transferRelation instanceof ARGTransferRelation : "Transfer relation no ARG transfer"

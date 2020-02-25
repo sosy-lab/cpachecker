@@ -27,6 +27,9 @@ var data = {}; //ARG_JSON_INPUT
 
 var myVar = myData0;
 var myVarNodes = myVar["nodes"];
+//sort nodes by index
+myVar["nodes"].sort(function (a, b) { return parseInt(a.index)-parseInt(b.index) })
+var maxIndex = d3.max(myVar["nodes"], function(d){return d.index});
 var maxStep = myVar["nodes"].length-1;
 var step = 0;
 var startIndex = step;
@@ -39,7 +42,7 @@ window.addEventListener('load',slide,false);
 
 function slide(){
     slider = document.getElementById("myRange");
-    document.getElementById("myRange").max = maxStep+1;
+    document.getElementById("myRange").max = maxStep;
     var output = document.getElementById("demo");
     output.innerHTML = slider.value;
 
@@ -108,6 +111,9 @@ function getDataByNodeIndex(index) {
         }
     );
 }
+function getDataByNodeArray(pos) {
+    return myVarNodes[pos];
+}
 
 function shownode3(step) {
     var step = step;
@@ -125,23 +131,38 @@ function shownode3(step) {
     if(step <= maxStep){
         for (count = 0; count <= step; count++) {
 
-            var nodeDataIndex = getDataByNodeIndex(count);
-            var nodeIndexCount = nodeDataIndex[0].index;
+            //var nodeDataIndex = getDataByNodeIndex(count);
+            //var nodeIndexCount = nodeDataIndex[0].index;
+            var nodeDataIndex = getDataByNodeArray(count);
+            var nodeIndexCount = nodeDataIndex.index;
+            var intervalStart = nodeDataIndex.intervalStart;
+            var intervalStop = nodeDataIndex.intervalStop;
             //var nodeIndexCount = count;
-            var intervalStart = nodeDataIndex[0].intervalStart;
-            var intervalStop = nodeDataIndex[0].intervalStop;
+            //var intervalStart = nodeDataIndex[0].intervalStart;
+            //var intervalStop = nodeDataIndex[0].intervalStop;
             var source= "source"+ (nodeIndexCount-1).toString();
             var source2= "source"+ (nodeIndexCount).toString();
             var target= "target"+ nodeIndexCount.toString();
             var source3= "source"+ (nodeIndexCount)+"target";
+
+
+            console.log("start"+start);
+            console.log("step"+step);
+            console.log("nodeindexcount"+nodeIndexCount);
+            console.log("intervalstart"+intervalStart);
+            console.log("intervalstop"+intervalStop);
+            console.log("maxstep"+ maxStep);
+            console.log("maxIndex"+ maxIndex);
 
             if(intervalStop){
                 stop = intervalStop;
                 $("#node" + nodeIndexCount).addClass("stop" + intervalStop);
             }
             else {
-                stop = maxStep+1;
-                $("#node" + nodeIndexCount).addClass("stop" + stop);
+                stop = maxIndex+1;
+                //stop = maxStep+100;//to be solved!!!!!!!!
+                //$("#node" + nodeIndexCount).addClass("stop" + stop);
+                //$("#node" + nodeIndexCount).addClass("NeverStop");
             }
 
             if (intervalStart > start){
@@ -200,10 +221,10 @@ function buttonFinalGraph(){
         $(".merged").addClass("mergedColored");
 
     });
-    document.getElementById("myRange").max = maxStep+1;
-    document.getElementById("myRange").value = maxStep+1;
-    document.getElementById("demo").innerHTML = maxStep+1;
-    step=maxStep+1;
+    document.getElementById("myRange").max = maxStep;
+    document.getElementById("myRange").value = maxStep;
+    document.getElementById("demo").innerHTML = maxStep;
+    step=maxStep;
 }
 
 function buttonFinalGraph2(){
@@ -214,10 +235,10 @@ function buttonFinalGraph2(){
         }
         $(".merged").removeClass("mergedColored");
     });
-    document.getElementById("myRange").max = maxStep+1;
-    document.getElementById("myRange").value = maxStep+1;
-    document.getElementById("demo").innerHTML = maxStep+1;
-    step=maxStep+1;
+    document.getElementById("myRange").max = maxStep;
+    document.getElementById("myRange").value = maxStep;
+    document.getElementById("demo").innerHTML = maxStep;
+    step=maxStep;
 }
 
 
@@ -231,6 +252,9 @@ function dagreGraphBuild(json) {
         .setGraph({})
         .setDefaultEdgeLabel(function () {
             return {};
+        })
+        .setDefaultNodeLabel(function () {
+            return {label: "missing node"};
         });
 
 // Set up nodes

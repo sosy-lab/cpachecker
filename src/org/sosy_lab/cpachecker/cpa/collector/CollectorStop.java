@@ -49,6 +49,7 @@ public class CollectorStop implements StopOperator {
 
     assert state instanceof CollectorState;
 
+    CollectorState stateC = (CollectorState) state;
       ARGState wrappedState = (ARGState) ((CollectorState)state).getWrappedState();
 
       Collection<? extends AbstractState> stopcollection;
@@ -62,6 +63,11 @@ public class CollectorStop implements StopOperator {
       wrappedstop.add(stopElem);
     }
 
-    return delegateStop.stop(Objects.requireNonNull(wrappedState), wrappedstop, precision);
+    //return delegateStop.stop(Objects.requireNonNull(wrappedState), wrappedstop, precision);
+    boolean isStopped = delegateStop.stop(Objects.requireNonNull(wrappedState), wrappedstop, precision);
+   if (isStopped){
+     stateC.setStopped();
+   }
+   return isStopped && wrappedState.isDestroyed();
   }
 }

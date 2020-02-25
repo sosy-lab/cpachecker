@@ -56,6 +56,15 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   private myARGState myARG2;
   private myARGState myARGmerged;
   private static int count;
+  private boolean isStopped = false;
+
+  public boolean isStopped() {
+    return isStopped;
+  }
+
+  public void setStopped() {
+    isStopped = true;
+  }
 
   public CollectorState(AbstractState pWrappedState,
                         @Nullable Collection<AbstractState> pCollectorState,
