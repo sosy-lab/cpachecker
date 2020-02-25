@@ -131,4 +131,8 @@ public class ThreadTMState extends ThreadState {
         && Objects.equals(removedSet, pOther.removedSet)
         && Objects.equals(threadSet, pOther.threadSet);
   }
+
+  String getCurrent() {
+    return current;
+  }
 }

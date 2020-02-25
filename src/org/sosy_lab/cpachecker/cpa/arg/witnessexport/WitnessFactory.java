@@ -508,7 +508,7 @@ class WitnessFactory implements EdgeAppender {
       } else if (AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
         functionName = succ.getFunctionName();
       }
-      if (functionName != null) {
+      if (functionName != null && !isSpecialThreadCreate(pEdge)) {
         result = result.putAndCopy(KeyDef.FUNCTIONENTRY, getOriginalFunctionName(functionName));
       }
     }
@@ -980,6 +980,8 @@ class WitnessFactory implements EdgeAppender {
       if (!extraTransition.getMapping().isEmpty()) {
         result.add(extraTransition);
       }
+    } else {
+      result.add(pResult);
     }
 
     return result;

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.thread;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -250,8 +251,12 @@ public class ThreadTransferRelation implements TransferRelation {
         newSet.put(threadName, status);
         newOrder.add(label);
       } else if (action == ThreadAction.JOIN) {
+        if (stateWithEdge.getCurrent().equals(threadName)) {
+          // Means someone wants to join current thread. Stops the branch, as the case is impossible
+          return ImmutableList.of();
+        }
         newSet.remove(threadName);
-        newOrder.remove(label);
+        removeAnyLabel(newOrder, label);
       } else {
         throw new UnsupportedOperationException("Unsupported action " + action);
       }
@@ -259,6 +264,15 @@ public class ThreadTransferRelation implements TransferRelation {
     } else {
       // To reset the edge
       return Collections.singleton(stateWithEdge.copyWith(tSet, order));
+    }
+  }
+
+  private void removeAnyLabel(List<ThreadLabel> pOrder, ThreadLabel pLabel) {
+    for (ThreadLabel l : pOrder) {
+      if (l.getVarName().equals(pLabel.getVarName())) {
+        pOrder.remove(l);
+        return;
+      }
     }
   }
 }
