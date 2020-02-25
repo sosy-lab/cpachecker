@@ -111,6 +111,7 @@ function getDataByNodeIndex(index) {
         }
     );
 }
+
 function getDataByNodeArray(pos) {
     return myVarNodes[pos];
 }
@@ -144,8 +145,10 @@ function shownode3(step) {
             var source2= "source"+ (nodeIndexCount).toString();
             var target= "target"+ nodeIndexCount.toString();
             var source3= "source"+ (nodeIndexCount)+"target";
+            var analysisStop = nodeDataIndex.analysisStop;
 
 
+            console.log("analysis"+analysisStop);
             console.log("start"+start);
             console.log("step"+step);
             console.log("nodeindexcount"+nodeIndexCount);
@@ -153,6 +156,12 @@ function shownode3(step) {
             console.log("intervalstop"+intervalStop);
             console.log("maxstep"+ maxStep);
             console.log("maxIndex"+ maxIndex);
+
+            if(analysisStop){
+                $("#node" + nodeIndexCount).addClass("analysisStop" );
+            } else {
+                //do nothing
+            }
 
             if(intervalStop){
                 stop = intervalStop;

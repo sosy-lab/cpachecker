@@ -48,6 +48,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.logging.Level;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -246,6 +247,7 @@ public class CollectorStatistics implements Statistics {
 
     for (AbstractState entry : reached.asCollection()) {
       boolean merged = ((CollectorState) entry).ismerged();
+      boolean stopped = ((CollectorState) entry).isStopped();
 
       if (merged){
         String type = "toMerge";
@@ -273,7 +275,7 @@ public class CollectorStatistics implements Statistics {
 
         if(!destroyed1){
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myID1, createNEWNode(ID1, ID1, node, entryARG1, type, notDestroyed));
+            cNodes.put(myID1, createNEWNode(ID1, ID1, node, entryARG1, type, notDestroyed, stopped));
           }
 
           Collection<ARGState> children = entryARG1.getChildren();
@@ -285,7 +287,7 @@ public class CollectorStatistics implements Statistics {
           }
         }else{
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myID1, createNEWNode(ID1, ID3, node, entryARG1, type, destroyed));
+            cNodes.put(myID1, createNEWNode(ID1, ID3, node, entryARG1, type, destroyed, stopped));
           }
 
           Collection<ARGState> children = ((CollectorState) entry).getChildrenTomerge1();
@@ -307,7 +309,7 @@ public class CollectorStatistics implements Statistics {
 
         if(!destroyed2){
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myID2, createNEWNode(ID2, ID2, node, entryARG2, type, notDestroyed));
+            cNodes.put(myID2, createNEWNode(ID2, ID2, node, entryARG2, type, notDestroyed, stopped));
           }
           Collection<ARGState> children = entryARG2.getChildren();
           for (ARGState child : children) {
@@ -318,7 +320,7 @@ public class CollectorStatistics implements Statistics {
           }
         }else {
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myID2, createNEWNode(ID2, ID3, node, entryARG2, type, destroyed));
+            cNodes.put(myID2, createNEWNode(ID2, ID3, node, entryARG2, type, destroyed, stopped));
           }
 
           Collection<ARGState> children = ((CollectorState) entry).getChildrenTomerge2();
@@ -339,7 +341,7 @@ public class CollectorStatistics implements Statistics {
         }
 
         for (CFANode node : AbstractStates.extractLocations(entry)) {
-          cNodes.put(myID3, createNEWNode(ID3, ID3 ,node, entryARG, typeM,notDestroyed));
+          cNodes.put(myID3, createNEWNode(ID3, ID3 ,node, entryARG, typeM,notDestroyed, stopped));
         }
        Collection<ARGState> children = entryARG.getChildren();
         for (ARGState child : children) {
@@ -358,7 +360,7 @@ public class CollectorStatistics implements Statistics {
           String type = determineType((CollectorState) entry);
           ARGState entryARG = ((CollectorState) entry).getARGState();
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myIDtr, createNEWNode(ID, IDtr,node, entryARG, type, notDestroyed));
+            cNodes.put(myIDtr, createNEWNode(ID, IDtr,node, entryARG, type, notDestroyed, stopped));
           }
          Collection<ARGState> children = entryARG.getChildren();
           for (ARGState child : children) {
@@ -379,7 +381,7 @@ public class CollectorStatistics implements Statistics {
             }
           }
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(-1, createFirstNode(ID, node, entryARG, type, destroyedType));
+            cNodes.put(-1, createFirstNode(ID, node, entryARG, type, destroyedType, false));
           }
           Collection<ARGState> children = entryARG.getChildren();
           for (ARGState child : children) {
@@ -414,7 +416,8 @@ public class CollectorStatistics implements Statistics {
       CFANode node,
       ARGState argState,
       String type,
-      String destroyed) {
+      String destroyed,
+      boolean stopped) {
     String dotLabel =
         argState.toDOTLabel().length() > 2
         ? argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2)
@@ -428,6 +431,7 @@ public class CollectorStatistics implements Statistics {
       argNode.put("intervalStop", "");
     }
     argNode.put("intervalStart", parentStateId);
+    argNode.put("analysisStop", stopped);
     argNode.put("index", parentStateId);//ARGState-ID
     argNode.put("func", node.getFunctionName());
     argNode.put(
@@ -443,7 +447,7 @@ public class CollectorStatistics implements Statistics {
     argNode.put("type", type);
     return argNode;
   }
-  private Map<String, Object> createFirstNode(int parentStateId, CFANode node, ARGState argState, String type, String destroyed) {
+  private Map<String, Object> createFirstNode(int parentStateId, CFANode node, ARGState argState, String type, String destroyed, boolean stopped) {
     String dotLabel =
         argState.toDOTLabel().length() > 2
         ? argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2)
@@ -451,6 +455,7 @@ public class CollectorStatistics implements Statistics {
     Map<String, Object> argNode = new HashMap<>();
 
     argNode.put("destroyed", destroyed);
+    argNode.put("analysisStop", stopped);
     argNode.put("intervalStop", "");
     argNode.put("intervalStart", parentStateId);
     argNode.put("index", parentStateId);
