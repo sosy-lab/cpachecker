@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 /**
@@ -59,6 +60,7 @@ public class SMG implements UnmodifiableSMG {
 
   private PersistentSet<SMGObject> externalObjectAllocation;
   private NeqRelation neq = new NeqRelation();
+  private PersistentMultimap<SMGObject, SMGObject> possibleEquals;
 
   private final PredRelation pathPredicate = new PredRelation();
   private PredRelation errorPredicate = new PredRelation();
@@ -84,6 +86,7 @@ public class SMG implements UnmodifiableSMG {
     validObjects = PersistentSet.of();
     externalObjectAllocation = PersistentSet.of();
     machine_model = pMachineModel;
+    possibleEquals = PersistentMultimap.of();
 
     initializeNullObject();
     initializeNullAddress();
@@ -107,6 +110,7 @@ public class SMG implements UnmodifiableSMG {
     externalObjectAllocation = pHeap.externalObjectAllocation;
     objects = pHeap.objects;
     values = pHeap.values;
+    possibleEquals = pHeap.possibleEquals;
   }
 
   @Override
@@ -186,6 +190,10 @@ public class SMG implements UnmodifiableSMG {
     objects = objects.removeAndCopy(pObj);
     validObjects = validObjects.removeAndCopy(pObj);
     externalObjectAllocation = externalObjectAllocation.removeAndCopy(pObj);
+    for (SMGObject object : possibleEquals.get(pObj)) {
+      possibleEquals = possibleEquals.removeAndCopy(object, pObj);
+    }
+    possibleEquals = possibleEquals.removeAndCopy(pObj);
   }
 
   /**
@@ -622,5 +630,16 @@ public class SMG implements UnmodifiableSMG {
 
   private void initializeNullObject() {
     objects = objects.addAndCopy(SMGNullObject.INSTANCE);
+  }
+
+  public void addPossibleEqualObjects(SMGObject pObject1, SMGObject pObject2) {
+    assert !SMGNullObject.INSTANCE.equals(pObject1);
+    assert !SMGNullObject.INSTANCE.equals(pObject2);
+    possibleEquals = possibleEquals.putAndCopy(pObject1, pObject2);
+    possibleEquals = possibleEquals.putAndCopy(pObject2, pObject1);
+  }
+
+  public boolean arePossibleEquals(SMGObject pObject1, SMGObject pObject2) {
+    return possibleEquals.contains(pObject1, pObject2);
   }
 }
