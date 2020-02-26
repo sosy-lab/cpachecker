@@ -891,10 +891,6 @@ public class CFACreator {
     assert firstEdge.getEdgeType() == CFAEdgeType.BlankEdge;
     final CFANode secondNode = firstEdge.getSuccessor();
 
-    if (firstEdge.getDescription().equals("INIT GLOBAL VARS")) {
-      return;
-    }
-
     CFACreationUtils.removeEdgeFromNodes(firstEdge);
 
     // now the first node is not connected to the second node,

@@ -39,14 +39,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
@@ -89,20 +87,19 @@ public class CFAMutator extends CFACreator {
     originalEdges.add(pEdge);
   }
 
-  private void removeNode(SortedSetMultimap<String, CFANode> nodes, CFANode n) {
-    logger.logf(Level.FINER, "removing node %s", n);
-    nodes.remove(n.getFunctionName(), n);
-    originalNodes.remove(n);
+  private void removeNode(SortedSetMultimap<String, CFANode> nodes, CFANode pNode) {
+    logger.logf(Level.FINER, "removing node %s", pNode);
+    nodes.remove(pNode.getFunctionName(), pNode);
+    originalNodes.remove(pNode);
   }
 
-  private void addNode(SortedSetMultimap<String, CFANode> nodes, CFANode removedNode) {
-    logger.logf(Level.FINER, "adding node %s", removedNode);
-    nodes.put(removedNode.getFunctionName(), removedNode);
-    originalNodes.add(removedNode);
+  private void addNode(SortedSetMultimap<String, CFANode> nodes, CFANode pNode) {
+    logger.logf(Level.FINER, "adding node %s", pNode);
+    nodes.put(pNode.getFunctionName(), pNode);
+    originalNodes.add(pNode);
   }
 
   // kind of main function
-
   @Override
   protected ParseResult parseToCFAs(final List<String> sourceFiles)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
@@ -136,7 +133,6 @@ public class CFAMutator extends CFACreator {
     }
   }
 
-
   private void clearParseResultAfterPostprocessings() {
     final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
     final NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
@@ -154,6 +150,8 @@ public class CFAMutator extends CFACreator {
     final Set<CFAEdge> edgesToAdd = Sets.difference(originalEdges, tmpSet);
     final Set<CFANode> nodesToRemove =
         Sets.difference(new HashSet<>(nodeCollector.getVisitedNodes()), originalNodes);
+    final Set<CFANode> nodesToAdd =
+        Sets.difference(originalNodes, new HashSet<>(nodeCollector.getVisitedNodes()));
 
     // finally remove nodes and edges added as global decl. and interprocedural
     SortedSetMultimap<String, CFANode> nodes = parseResult.getCFANodes();
@@ -163,6 +161,14 @@ public class CFAMutator extends CFACreator {
           "clearing: removing node %s (was present: %s)",
           n,
           nodes.remove(n.getFunctionName(), n));
+    }
+    for (CFANode n : nodesToAdd) {
+      logger.logf(
+          Level.FINEST,
+          "clearing: returning node %s:%s (inserted: %s)",
+          n.getFunctionName(),
+          n,
+          nodes.put(n.getFunctionName(), n));
     }
     for (CFAEdge e : edgesToRemove) {
       logger.logf(Level.FINEST, "clearing: removing edge %s", e);
@@ -208,12 +214,9 @@ public class CFAMutator extends CFACreator {
         continue;
       }
 
-      if (!predecessor.getFunctionName().equals(node.getFunctionName())
-          || !successor.getFunctionName().equals(node.getFunctionName())) {
-        System.out.println(
-            enteringEdge + ", type " + enteringEdge.getEdgeType() + " and " + leavingEdge);
-        continue;
-      }
+      assert predecessor.getFunctionName().equals(node.getFunctionName())
+              && successor.getFunctionName().equals(node.getFunctionName())
+          : "Nodes from different functions were not expected.";
 
       if (predecessor.hasEdgeTo(successor)) {
         if (leavingEdge.getEdgeType() == CFAEdgeType.BlankEdge) {
@@ -335,17 +338,17 @@ public class CFAMutator extends CFACreator {
   }
 
   // return an edge with same "contents" but from pPredNode to pSuccNode
-  private CFAEdge dupEdge(CFAEdge pEdge, CFANode pPredNode, CFANode pSuccNode) {
-    if (pPredNode == null) {
-      pPredNode = pEdge.getPredecessor();
+  private CFAEdge dupEdge(CFAEdge pEdge, CFANode pPredecessor, CFANode pSuccessor) {
+    if (pPredecessor == null) {
+      pPredecessor = pEdge.getPredecessor();
     }
-    if (pSuccNode == null) {
-      pSuccNode = pEdge.getSuccessor();
+    if (pSuccessor == null) {
+      pSuccessor = pEdge.getSuccessor();
     }
 
-    assert pPredNode.getFunctionName().equals(pSuccNode.getFunctionName());
+    assert pPredecessor.getFunctionName().equals(pSuccessor.getFunctionName());
 
-    CFAEdge newEdge = new DummyCFAEdge(pPredNode, pSuccNode);
+    CFAEdge newEdge = new DummyCFAEdge(pPredecessor, pSuccessor);
 
     switch (pEdge.getEdgeType()) {
       case AssumeEdge:
@@ -355,15 +358,24 @@ public class CFAMutator extends CFACreator {
               new CAssumeEdge(
                   cAssumeEdge.getRawStatement(),
                   cAssumeEdge.getFileLocation(),
-                  cAssumeEdge.getPredecessor(),
-                  pSuccNode,
+                  pPredecessor,
+                  pSuccessor,
                   cAssumeEdge.getExpression(),
                   cAssumeEdge.getTruthAssumption(),
                   cAssumeEdge.isSwapped(),
                   cAssumeEdge.isArtificialIntermediate());
+        } else if (pEdge instanceof JAssumeEdge) {
+          JAssumeEdge jAssumeEdge = (JAssumeEdge) pEdge;
+          newEdge =
+              new JAssumeEdge(
+                  jAssumeEdge.getRawStatement(),
+                  jAssumeEdge.getFileLocation(),
+                  pPredecessor,
+                  pSuccessor,
+                  jAssumeEdge.getExpression(),
+                  jAssumeEdge.getTruthAssumption());
         } else {
-          // TODO JAssumeEdge
-          throw new UnsupportedOperationException("JAssumeEdge");
+          throw new UnsupportedOperationException("Unexpected edge class " + pEdge.getClass());
         }
         break;
       case BlankEdge:
@@ -372,8 +384,8 @@ public class CFAMutator extends CFACreator {
             new BlankEdge(
                 blankEdge.getRawStatement(),
                 blankEdge.getFileLocation(),
-                blankEdge.getPredecessor(),
-                pSuccNode,
+                pPredecessor,
+                pSuccessor,
                 blankEdge.getDescription());
         break;
       case DeclarationEdge:
@@ -383,60 +395,20 @@ public class CFAMutator extends CFACreator {
               new CDeclarationEdge(
                   cDeclarationEdge.getRawStatement(),
                   cDeclarationEdge.getFileLocation(),
-                  cDeclarationEdge.getPredecessor(),
-                  pSuccNode,
+                  pPredecessor,
+                  pSuccessor,
                   cDeclarationEdge.getDeclaration());
-        } else {
-          // TODO JDeclarationEdge
-          throw new UnsupportedOperationException("JDeclarationEdge");
-        }
-        break;
-      case FunctionCallEdge:
-        if (pEdge instanceof CFunctionCallEdge) {
-          CFunctionCallEdge cFunctionCallEdge = (CFunctionCallEdge) pEdge;
+        } else if (pEdge instanceof JDeclarationEdge) {
+          JDeclarationEdge jDeclarationEdge = (JDeclarationEdge) pEdge;
           newEdge =
-              new CFunctionCallEdge(
-                  cFunctionCallEdge.getRawStatement(),
-                  cFunctionCallEdge.getFileLocation(),
-                  cFunctionCallEdge.getPredecessor(),
-                  (CFunctionEntryNode) pSuccNode, // TODO?
-                  cFunctionCallEdge.getRawAST().get(),
-                  cFunctionCallEdge.getSummaryEdge());
+              new JDeclarationEdge(
+                  jDeclarationEdge.getRawStatement(),
+                  jDeclarationEdge.getFileLocation(),
+                  pPredecessor,
+                  pSuccessor,
+                  jDeclarationEdge.getDeclaration());
         } else {
-          // TODO JMethodCallEdge
-          throw new UnsupportedOperationException("JMethodCallEdge");
-        }
-        break;
-      case FunctionReturnEdge:
-        if (pEdge instanceof CFunctionReturnEdge) {
-          CFunctionReturnEdge cFunctionReturnEdge = (CFunctionReturnEdge) pEdge;
-          newEdge =
-              new CFunctionReturnEdge(
-                  cFunctionReturnEdge.getFileLocation(),
-                  cFunctionReturnEdge.getPredecessor(),
-                  pSuccNode,
-                  cFunctionReturnEdge.getSummaryEdge());
-        } else {
-          // TODO JMethodReturnEdge
-          throw new UnsupportedOperationException("JMethodReturnEdge");
-        }
-        break;
-      case ReturnStatementEdge:
-        if (pEdge instanceof CReturnStatementEdge) {
-          CReturnStatementEdge cRerurnStatementEdge = (CReturnStatementEdge) pEdge;
-          System.out.println("reconnecting edge " + pEdge + " to " + pSuccNode);
-          System.out.flush();
-
-          newEdge =
-              new CReturnStatementEdge(
-                  cRerurnStatementEdge.getRawStatement(),
-                  cRerurnStatementEdge.getRawAST().get(),
-                  cRerurnStatementEdge.getFileLocation(),
-                  cRerurnStatementEdge.getPredecessor(),
-                  (FunctionExitNode) pSuccNode); // TODO?
-        } else {
-          // TODO JReturnStatementEdge
-          throw new UnsupportedOperationException("JReturnStatementEdge");
+          throw new UnsupportedOperationException("Unexpected edge class " + pEdge.getClass());
         }
         break;
       case StatementEdge:
@@ -447,20 +419,31 @@ public class CFAMutator extends CFACreator {
                   cStatementEdge.getRawStatement(),
                   cStatementEdge.getStatement(),
                   cStatementEdge.getFileLocation(),
-                  cStatementEdge.getPredecessor(),
-                  pSuccNode);
+                  pPredecessor,
+                  pSuccessor);
+        } else if (pEdge instanceof JStatementEdge) {
+          JStatementEdge jStatementEdge = (JStatementEdge) pEdge;
+          newEdge =
+              new JStatementEdge(
+                  jStatementEdge.getRawStatement(),
+                  jStatementEdge.getStatement(),
+                  jStatementEdge.getFileLocation(),
+                  pPredecessor,
+                  pSuccessor);
         } else {
-          // TODO JStatementEdge
-          throw new UnsupportedOperationException("JStatementEdge");
+          throw new UnsupportedOperationException("Unexpected edge class " + pEdge.getClass());
         }
         break;
+      case FunctionCallEdge:
+      case FunctionReturnEdge:
+      case ReturnStatementEdge:
       case CallToReturnEdge:
-        throw new UnsupportedOperationException("SummaryEdge");
       default:
-        throw new UnsupportedOperationException("Unknown Type of edge: " + pEdge.getEdgeType());
+        throw new UnsupportedOperationException(
+            "Unsupported type of edge " + pEdge.getEdgeType() + " at edge " + pEdge);
     }
 
-    logger.logf(Level.FINER, "duplicated edge " + pEdge + " as " + newEdge);
+    logger.logf(Level.FINER, "duplicated edge %s as %s", pEdge, newEdge);
 
     return newEdge;
   }
