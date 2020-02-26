@@ -23,15 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.thread;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.thread.ThreadTransferRelation.isThreadCreateFunction;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -59,15 +55,17 @@ public class ThreadState
   // The removedSet is useless now, but it will be used in future in more complicated cases
   // Do not remove it now
   protected final ImmutableMap<ThreadLabel, ThreadStatus> removedSet;
-  private final List<ThreadLabel> order;
+  protected final String currentThread;
+
+  protected final static String mainThread = "main";
 
   public ThreadState(
+      String pCurrent,
       Map<String, ThreadStatus> Tset,
-      ImmutableMap<ThreadLabel, ThreadStatus> Rset,
-      List<ThreadLabel> pOrder) {
+      ImmutableMap<ThreadLabel, ThreadStatus> Rset) {
     threadSet = Tset;
     removedSet = Rset;
-    order = ImmutableList.copyOf(pOrder);
+    currentThread = pCurrent;
   }
 
   @Override
@@ -151,30 +149,20 @@ public class ThreadState
 
   @Override
   public ThreadState prepareToStore() {
-    return new ThreadState(this.threadSet, ImmutableMap.of(), ImmutableList.of());
+    return new ThreadState(currentThread, this.threadSet, ImmutableMap.of());
   }
 
   public static ThreadState emptyState() {
-    return new ThreadState(ImmutableMap.of(), ImmutableMap.of(), ImmutableList.of());
+    return new ThreadState(mainThread, ImmutableMap.of(), ImmutableMap.of());
   }
 
   @Override
   public String toString() {
-    // Info method, in difficult cases may be wrong
-    Optional<ThreadLabel> createdThread = getMainThread();
-
-
-    if (createdThread.isPresent()) {
-      return createdThread.get().getName();
-    } else {
-      return "main";
-    }
+    return getCurrentThread() + ":" + getThreadSet();
   }
 
-  protected Optional<ThreadLabel> getMainThread() {
-    return from(order)
-        .filter(l -> threadSet.getOrDefault(l.getVarName(), null) == ThreadStatus.CREATED_THREAD)
-        .last();
+  protected String getCurrentThread() {
+    return currentThread;
   }
 
   @Override
@@ -209,10 +197,6 @@ public class ThreadState
     return removedSet;
   }
 
-  List<ThreadLabel> getOrder() {
-    return order;
-  }
-
   int getThreadSize() {
     // Only for statistics
     return threadSet.size();
@@ -223,8 +207,8 @@ public class ThreadState
     return this.toString();
   }
 
-  public ThreadState copyWith(Map<String, ThreadStatus> tSet, List<ThreadLabel> pOrder) {
-    return new ThreadState(tSet, this.removedSet, pOrder);
+  public ThreadState copyWith(String pCurrent, Map<String, ThreadStatus> tSet) {
+    return new ThreadState(pCurrent, tSet, this.removedSet);
   }
 
   @Override

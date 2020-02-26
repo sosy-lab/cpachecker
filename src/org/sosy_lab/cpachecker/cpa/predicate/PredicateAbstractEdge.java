@@ -98,4 +98,9 @@ public class PredicateAbstractEdge implements AbstractEdge {
     return havocEdge;
   }
 
+  @Override
+  public String toString() {
+    return formula.toString();
+  }
+
 }

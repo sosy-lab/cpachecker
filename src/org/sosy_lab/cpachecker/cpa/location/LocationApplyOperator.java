@@ -221,6 +221,7 @@ public class LocationApplyOperator implements ApplyOperator {
       CFAEdge edge = node.getLeavingEdge(i);
       if (!isRedundantEdge(edge)) {
         result = true;
+        break;
       }
     }
     cachedNodes.put(node, result);

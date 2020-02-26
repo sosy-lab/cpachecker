@@ -20,7 +20,6 @@
 package org.sosy_lab.cpachecker.cpa.thread;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
@@ -31,11 +30,11 @@ public class ThreadTMStateWithEdge extends ThreadTMState implements AbstractStat
   private final ThreadAbstractEdge edge;
 
   ThreadTMStateWithEdge(
+      String pCurrent,
       Map<String, ThreadStatus> Tset,
       ImmutableMap<ThreadLabel, ThreadStatus> Rset,
-      List<ThreadLabel> pOrder,
       ThreadAbstractEdge pEdge) {
-    super(Tset, Rset, pOrder);
+    super(pCurrent, Tset, Rset);
     edge = pEdge;
   }
 

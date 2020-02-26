@@ -23,15 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.thread;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -165,7 +160,6 @@ public class ThreadTransferRelation implements TransferRelation {
         tCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
 
     Map<String, ThreadStatus> tSet = state.getThreadSet();
-    List<ThreadLabel> order = state.getOrder();
     ThreadStatus status = pParentThread;
     if (tSet.containsKey(pVarName)) {
       if (supportSelfCreation) {
@@ -178,40 +172,33 @@ public class ThreadTransferRelation implements TransferRelation {
     }
 
     if (!tSet.isEmpty()) {
-      ThreadLabel last = order.get(order.size() - 1);
-      if (tSet.get(last.getVarName()) == ThreadStatus.SELF_PARALLEL_THREAD) {
+      if (tSet.get(state.getCurrentThread()) == ThreadStatus.SELF_PARALLEL_THREAD) {
         // Can add only the same status
         status = ThreadStatus.SELF_PARALLEL_THREAD;
       }
     }
-    ThreadLabel label = new ThreadLabel(pFunctionName, pVarName);
     Map<String, ThreadStatus> newSet = new TreeMap<>(tSet);
-    List<ThreadLabel> newOrder = new ArrayList<>(order);
     newSet.put(pVarName, status);
-    newOrder.add(label);
-    return state.copyWith(newSet, newOrder);
+    String current;
+    if (pParentThread == ThreadStatus.PARENT_THREAD) {
+      current = state.getCurrentThread();
+    } else {
+      current = pVarName;
+    }
+    return state.copyWith(current, newSet);
   }
 
   public ThreadState joinThread(ThreadState state, CThreadJoinStatement jCall) {
     // If we found several labels for different functions
     // it means, that there are several thread created for one thread variable.
     // Not a good situation, but it is not forbidden, so join the last assigned thread
-    List<ThreadLabel> order = state.getOrder();
     Map<String, ThreadStatus> tSet = state.getThreadSet();
 
-    Optional<ThreadLabel> result =
-        from(order).filter(l -> l.getVarName().equals(jCall.getVariableName())).last();
-    // Do not self-join
-    if (result.isPresent()) {
-      ThreadLabel toRemove = result.get();
-      String var = toRemove.getVarName();
-      if (tSet.containsKey(var) && tSet.get(var) != ThreadStatus.CREATED_THREAD) {
-        Map<String, ThreadStatus> newSet = new TreeMap<>(tSet);
-        List<ThreadLabel> newOrder = new ArrayList<>(order);
-        newSet.remove(var);
-        newOrder.remove(toRemove);
-        return state.copyWith(newSet, newOrder);
-      }
+    String var = jCall.getVariableName();
+    if (tSet.containsKey(var) && tSet.get(var) != ThreadStatus.CREATED_THREAD) {
+      Map<String, ThreadStatus> newSet = new TreeMap<>(tSet);
+      newSet.remove(var);
+      return state.copyWith(state.getCurrentThread(), newSet);
     }
     return state;
   }
@@ -236,7 +223,6 @@ public class ThreadTransferRelation implements TransferRelation {
     ThreadTMStateWithEdge stateWithEdge = (ThreadTMStateWithEdge) pState;
     ThreadAbstractEdge edge = stateWithEdge.getAbstractEdge();
     Map<String, ThreadStatus> tSet = stateWithEdge.getThreadSet();
-    List<ThreadLabel> order = stateWithEdge.getOrder();
 
     if (edge != null) {
       ThreadAction action = edge.getAction().getFirst();
@@ -244,35 +230,30 @@ public class ThreadTransferRelation implements TransferRelation {
 
       // TMP implementation
       ThreadStatus status = ThreadStatus.CREATED_THREAD;
-      ThreadLabel label = new ThreadLabel("", threadName);
       Map<String, ThreadStatus> newSet = new TreeMap<>(tSet);
-      List<ThreadLabel> newOrder = new ArrayList<>(order);
       if (action == ThreadAction.CREATE) {
+        if (tSet.containsKey(threadName)) {
+          // Means, we have already apply the create thread
+          return Collections
+              .singleton(stateWithEdge.copyWith(stateWithEdge.getCurrentThread(), tSet));
+        }
         newSet.put(threadName, status);
-        newOrder.add(label);
       } else if (action == ThreadAction.JOIN) {
-        if (stateWithEdge.getCurrent().equals(threadName)) {
-          // Means someone wants to join current thread. Stops the branch, as the case is impossible
+        if (stateWithEdge.getCurrentThread().equals(threadName)) {
+          // Means someone wants to join current thread. Stops the branch, as the case is
+          // impossible
           return ImmutableList.of();
         }
         newSet.remove(threadName);
-        removeAnyLabel(newOrder, label);
       } else {
         throw new UnsupportedOperationException("Unsupported action " + action);
       }
-      return Collections.singleton(stateWithEdge.copyWith(newSet, newOrder));
-    } else {
-      // To reset the edge
-      return Collections.singleton(stateWithEdge.copyWith(tSet, order));
+      // Save the current, do not recompute it!
+      return Collections
+          .singleton(stateWithEdge.copyWith(stateWithEdge.getCurrentThread(), newSet));
     }
-  }
 
-  private void removeAnyLabel(List<ThreadLabel> pOrder, ThreadLabel pLabel) {
-    for (ThreadLabel l : pOrder) {
-      if (l.getVarName().equals(pLabel.getVarName())) {
-        pOrder.remove(l);
-        return;
-      }
-    }
+    // To reset the edge
+    return Collections.singleton(stateWithEdge.copyWith(stateWithEdge.getCurrentThread(), tSet));
   }
 }

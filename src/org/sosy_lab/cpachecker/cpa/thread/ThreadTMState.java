@@ -20,50 +20,19 @@
 package org.sosy_lab.cpachecker.cpa.thread;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
 public class ThreadTMState extends ThreadState {
 
-  private final String current;
-
-  private ThreadTMState( String pCurrent,
-      Map<String, ThreadStatus> Tset,
-      ImmutableMap<ThreadLabel, ThreadStatus> Rset,
-      List<ThreadLabel> pOrder) {
-
-    super(Tset, Rset, pOrder);
-    current = pCurrent;
-  }
-
   public ThreadTMState(
+      String pCurrent,
       Map<String, ThreadStatus> Tset,
-      ImmutableMap<ThreadLabel, ThreadStatus> Rset,
-      List<ThreadLabel> pOrder) {
+      ImmutableMap<ThreadLabel, ThreadStatus> Rset) {
 
-    super(Tset, Rset, pOrder);
-    assert (Tset.size() == pOrder.size());
-    if (pOrder.size() > 0) {
-      String tmp = null;
-      for (int i = pOrder.size() - 1; i >= 0; i--) {
-        ThreadLabel l = pOrder.get(i);
-        if (Tset.get(l.getVarName()) == ThreadStatus.CREATED_THREAD) {
-          tmp = l.getVarName();
-          break;
-        }
-      }
-      if (tmp != null) {
-        current = tmp;
-      } else {
-        current = "";
-      }
-    } else {
-      current = "";
-    }
+    super(pCurrent, Tset, Rset);
   }
 
   @Override
@@ -71,12 +40,13 @@ public class ThreadTMState extends ThreadState {
     Preconditions.checkArgument(state instanceof ThreadTMState);
     ThreadTMState other = (ThreadTMState) state;
 
-    if (this.current.equals(other.current)) {
-      return threadSet.get(current) == ThreadStatus.SELF_PARALLEL_THREAD;
+    if (this.currentThread.equals(other.currentThread)) {
+      return threadSet.get(currentThread) == ThreadStatus.SELF_PARALLEL_THREAD;
     }
     // Does not matter which set to iterate, anyway we need an intersection
-    if ((this.threadSet.containsKey(other.current) || other.current.equals(""))
-        && (other.threadSet.containsKey(this.current) || this.current.equals(""))) {
+    if ((this.threadSet.containsKey(other.currentThread) || other.currentThread.equals(mainThread))
+        && (other.threadSet.containsKey(this.currentThread)
+            || this.currentThread.equals(mainThread))) {
       return true;
     } else {
       return false;
@@ -92,7 +62,7 @@ public class ThreadTMState extends ThreadState {
       return false;
     }
     ThreadTMState other = (ThreadTMState) obj;
-    return Objects.equals(current, other.current);
+    return Objects.equals(currentThread, other.currentThread);
   }
 
   @Override
@@ -103,36 +73,32 @@ public class ThreadTMState extends ThreadState {
     if (result != 0) {
       return result;
     }
-    result = this.current.compareTo(other.current);
+    result = this.currentThread.compareTo(other.currentThread);
     return result;
   }
 
   public ThreadTMStateWithEdge copyWithEdge(ThreadAbstractEdge pEdge) {
-    return new ThreadTMStateWithEdge(threadSet, removedSet, getOrder(), pEdge);
+    return new ThreadTMStateWithEdge(currentThread, threadSet, removedSet, pEdge);
   }
 
   public static ThreadState emptyState() {
-    return new ThreadTMState(ImmutableMap.of(), ImmutableMap.of(), ImmutableList.of());
+    return new ThreadTMState(mainThread, ImmutableMap.of(), ImmutableMap.of());
   }
 
   @Override
-  public ThreadState copyWith(Map<String, ThreadStatus> tSet, List<ThreadLabel> pOrder) {
-    return new ThreadTMState(tSet, this.removedSet, pOrder);
+  public ThreadState copyWith(String pCurrent, Map<String, ThreadStatus> tSet) {
+    return new ThreadTMState(pCurrent, tSet, this.removedSet);
   }
 
   @Override
   public ThreadState prepareToStore() {
-    return new ThreadTMState(this.current, this.threadSet, ImmutableMap.of(), ImmutableList.of());
+    return new ThreadTMState(this.currentThread, this.threadSet, ImmutableMap.of());
   }
 
   @Override
   public boolean isLessOrEqual(ThreadState pOther) {
-    return Objects.equals(current, ((ThreadTMState) pOther).current)
+    return Objects.equals(currentThread, ((ThreadTMState) pOther).currentThread)
         && Objects.equals(removedSet, pOther.removedSet)
         && Objects.equals(threadSet, pOther.threadSet);
-  }
-
-  String getCurrent() {
-    return current;
   }
 }
