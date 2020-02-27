@@ -88,7 +88,7 @@ public class ThreadModularTransferRelation implements TransferRelation {
     boolean isProjection = ((AbstractStateWithEdge) pState).isProjection();
     // do not need stop and merge as they has been already performed on projections
 
-    if (isProjection || (relevanceOptimization && isRelevant(pState))) {
+    if (isProjection || !relevanceOptimization || isRelevant(pState)) {
 
       stats.allApplyActions.start();
       Collection<AbstractState> toApply =
@@ -98,7 +98,7 @@ public class ThreadModularTransferRelation implements TransferRelation {
         AbstractState appliedState = null;
         Precision appliedPrecision = null;
         if (isProjection) {
-          if (relevanceOptimization && isRelevant(oldState)) {
+          if (!relevanceOptimization || isRelevant(oldState)) {
             stats.innerApply.start();
             appliedState = applyOperator.apply(oldState, pState);
             stats.applyCounter.inc();
