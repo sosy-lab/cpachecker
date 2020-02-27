@@ -242,7 +242,8 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
               argTarget.getCounterexampleInformation();
           if (counterexampleFromCheck.isPresent()) {
             if (replaceCexWithCexFromCheck) {
-              replaceCounterexampleInformation(pErrorState, counterexampleFromCheck.orElseThrow());
+              replaceCounterexampleInformation(
+                  pRootState, pErrorState, counterexampleFromCheck.orElseThrow());
 
             } else if (provideCEXInfoFromCEXCheck) {
               improveCounterexampleInformation(pErrorState, counterexampleFromCheck.orElseThrow());
@@ -270,8 +271,51 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     }
   }
 
+  /**
+   * Reconstructs the {@link ARGPath} in the original ARG using the edges from the specified
+   * ARG-path. The {@link ARGState}s in the resulting path are from the original ARG, the states
+   * from the specified path may be from a different ARG. The edges in the specified and the
+   * resulting path are the same.
+   *
+   * @param pRoot the root of the original ARG.
+   * @param pPath the {@link ARGPath} (from a different ARG).
+   * @return the {@link ARGPath} in the original ARG.
+   */
+  private ARGPath reconstructArgPath(final ARGState pRoot, final ARGPath pPath) {
+
+    ARGPathBuilder pathBuilder = ARGPath.builder();
+    PathIterator iterator = pPath.fullPathIterator();
+    ARGState argCurrent = pRoot;
+
+    while (iterator.hasNext()) {
+      CFAEdge pathEdge = iterator.getOutgoingEdge();
+      pathBuilder.add(argCurrent, pathEdge);
+
+      // find next original ARG-state for outgoing path-edge
+      boolean found = false;
+      for (ARGState argChild : argCurrent.getChildren()) {
+        CFAEdge argEdge = argCurrent.getEdgeToChild(argChild);
+        if (pathEdge.equals(argEdge)) {
+          argCurrent = argChild;
+          found = true;
+          break;
+        }
+      }
+      assert found : "Next ARG-state not found for edge: " + pathEdge;
+
+      iterator.advance();
+    }
+
+    assert argCurrent.isTarget()
+        : "Last state of counterexample-path is not a target state: " + argCurrent;
+
+    return pathBuilder.build(argCurrent);
+  }
+
   private void replaceCounterexampleInformation(
-      final ARGState pStateForCounterexample, final CounterexampleInfo pNewInfo) {
+      final ARGState pRootState,
+      final ARGState pStateForCounterexample,
+      final CounterexampleInfo pNewInfo) {
 
     final CounterexampleInfo newInfo;
     if (pNewInfo.isPreciseCounterExample()) {
@@ -282,9 +326,10 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       assert strippedDownPath.getLastState().isTarget()
           : "Last state of exchangeable target path is no target: "
               + strippedDownPath.getLastState();
+      ARGPath reconstructedPath = reconstructArgPath(pRootState, strippedDownPath);
       newInfo =
           CounterexampleInfo.feasiblePrecise(
-              strippedDownPath, pNewInfo.getCFAPathWithAssignments());
+              reconstructedPath, pNewInfo.getCFAPathWithAssignments());
     } else {
       newInfo = pNewInfo;
     }
