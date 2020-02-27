@@ -298,7 +298,7 @@ public class CFACreator {
   private final Parser parser;
   private final ShutdownNotifier shutdownNotifier;
 
-  private static class CFACreatorStatistics implements Statistics {
+  protected static class CFACreatorStatistics implements Statistics {
 
     private final Timer parserInstantiationTime = new Timer();
     private final Timer totalTime = new Timer();
@@ -310,7 +310,7 @@ public class CFACreator {
     private final List<Statistics> statisticsCollection;
     private final LogManager logger;
 
-    private CFACreatorStatistics(LogManager pLogger) {
+    protected CFACreatorStatistics(LogManager pLogger) {
       logger = pLogger;
       statisticsCollection = new ArrayList<>();
     }
@@ -346,7 +346,7 @@ public class CFACreator {
     }
   }
 
-  private final CFACreatorStatistics stats;
+  protected CFACreatorStatistics stats;
   private final Configuration config;
 
   public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
@@ -357,7 +357,7 @@ public class CFACreator {
     this.config = config;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
-    this.stats = new CFACreatorStatistics(logger);
+    this.stats = createStatistics(logger);
 
     stats.parserInstantiationTime.start();
 
@@ -1092,5 +1092,9 @@ v.addInitializer(initializer);
 
   public CFACreatorStatistics getStatistics() {
     return stats;
+  }
+
+  protected CFACreatorStatistics createStatistics(LogManager pLogger) {
+    return new CFACreatorStatistics(pLogger);
   }
 }

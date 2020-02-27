@@ -168,7 +168,8 @@ public class CFunctionPointerResolver implements StatisticsProvider {
     }
   }
 
-  private final CFunctionPointerResolverStatistics stats = new CFunctionPointerResolverStatistics();
+  private static final CFunctionPointerResolverStatistics stats =
+      new CFunctionPointerResolverStatistics();
 
   private final TargetFunctionsProvider targetFunctionsProvider;
   private final TargetFunctionsProvider targetParameterFunctionsProvider;
@@ -428,6 +429,8 @@ public class CFunctionPointerResolver implements StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+    if (!pStatsCollection.contains(stats)) {
+      pStatsCollection.add(stats);
+    }
   }
 }

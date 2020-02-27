@@ -495,20 +495,20 @@ public class CPAchecker {
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
     List<CPAcheckerResult> resultList = new ArrayList<>();
-    MainCPAStatistics stats = null;
-    Algorithm algorithm = null;
-    ReachedSet reached = null;
-    CFA cfa = null;
-    Result result = Result.NOT_YET_STARTED;
-    String violatedPropertyDescription = "";
-    Specification specification = null;
     CPAcheckerResult currentResult = null, originalResult = null;
     Exception originalException = null, currentException = null;
 
-    final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
-    shutdownNotifier.register(interruptThreadOnShutdown);
-
     for (int mutationRound = 0; true; mutationRound++) {
+      MainCPAStatistics stats = null;
+      Algorithm algorithm = null;
+      ReachedSet reached = null;
+      CFA cfa = null;
+      Result result = Result.NOT_YET_STARTED;
+      String violatedPropertyDescription = "";
+      Specification specification = null;
+      final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
+      shutdownNotifier.register(interruptThreadOnShutdown);
+
       logger.logf(Level.INFO, "Mutation round %d", mutationRound);
       currentException = null;
       try {

@@ -24,13 +24,16 @@ import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -45,18 +48,62 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options
 public class CFAMutator extends CFACreator {
+  @Option(
+      secure = true,
+      name = "analysis.runMutationsCount",
+      description =
+          "if analysis.runMutations is true and this option is not 0, this option limits count of runs")
+  private int runMutationsCount = 0;
+
   private enum MutationType {
     NodeAndEdgeRemoval,
     EdgeBlanking,
     EdgeSticking
+  }
+
+  private static class CFAMutatorStatistics extends CFACreatorStatistics {
+    private final StatTimer mutationTimer = new StatTimer("Time for mutations");
+    private final StatTimer clearingTimer = new StatTimer("Time for clearing postprocessings");
+    private final StatCounter mutationsAttempted = new StatCounter("Mutations attempted");
+    private final StatCounter mutationsDone = new StatCounter("Mutations done");
+    private final StatCounter rollbacksDone = new StatCounter("Rollbacks done");
+    private final StatCounter possibleMutations = new StatCounter("Possible mutations");
+
+    private CFAMutatorStatistics(LogManager pLogger) {
+      super(pLogger);
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
+      super.printStatistics(out, pResult, pReached);
+      StatisticsWriter.writingStatisticsTo(out)
+          .beginLevel()
+          .put(mutationTimer)
+          .put(clearingTimer)
+          .put(mutationsAttempted)
+          .put(mutationsDone)
+          .put(rollbacksDone)
+          .put("Mutations remained", possibleMutations.getValue() - mutationsAttempted.getValue())
+          .endLevel();
+    }
+
+    @Override
+    public @Nullable String getName() {
+      return "CFA mutation";
+    }
   }
 
   private ParseResult parseResult = null;
@@ -68,6 +115,8 @@ public class CFAMutator extends CFACreator {
   private Set<CFAEdge> restoredEdges = new HashSet<>();
   private CFA lastCFA = null;
   private boolean doLastRun = false;
+
+  private boolean wasRollback = false;
 
   public CFAMutator(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -116,14 +165,27 @@ public class CFAMutator extends CFACreator {
 
       originalEdges = Sets.newIdentityHashSet();
       originalEdges.addAll(visitor.getVisitedEdges());
+
+      countPossibleMutations();
       return parseResult;
 
     } else if (!doLastRun) { // do non-last run
-      clearParseResultAfterPostprocessings();
+      if (wasRollback) {
+        ((CFAMutatorStatistics) stats).rollbacksDone.inc();
+        wasRollback = false;
+      } else {
+        clearParseResultAfterPostprocessings();
+        ((CFAMutatorStatistics) stats).mutationsDone.inc();
+      }
 
-      if (!mutate()) {
+      ((CFAMutatorStatistics) stats).mutationTimer.start();
+      if (!mutate()
+          || ((CFAMutatorStatistics) stats).mutationsAttempted.getValue()
+              == runMutationsCount - 2) {
         doLastRun = true;
       }
+      ((CFAMutatorStatistics) stats).mutationTimer.stop();
+
       // need to return after possible rollback
       return parseResult;
 
@@ -133,7 +195,42 @@ public class CFAMutator extends CFACreator {
     }
   }
 
+  private void countPossibleMutations() {
+    ((CFAMutatorStatistics) stats).possibleMutations.inc();
+
+    for (CFANode node : parseResult.getCFANodes().values()) {
+      if (node.getNumLeavingEdges() == 1 && node.getNumEnteringEdges() == 1) {
+
+        CFAEdge leavingEdge = node.getLeavingEdge(0);
+        CFANode successor = leavingEdge.getSuccessor();
+        CFAEdge enteringEdge = node.getEnteringEdge(0);
+        CFANode predecessor = enteringEdge.getPredecessor();
+
+        // TODO can't duplicate or remove such edges
+        if (enteringEdge.getEdgeType() != CFAEdgeType.ReturnStatementEdge
+            && enteringEdge.getEdgeType() != CFAEdgeType.FunctionCallEdge
+            && enteringEdge.getEdgeType() != CFAEdgeType.FunctionReturnEdge
+            && enteringEdge.getEdgeType() != CFAEdgeType.CallToReturnEdge
+            && leavingEdge.getEdgeType() != CFAEdgeType.ReturnStatementEdge
+            && leavingEdge.getEdgeType() != CFAEdgeType.FunctionCallEdge
+            && leavingEdge.getEdgeType() != CFAEdgeType.FunctionReturnEdge
+            && leavingEdge.getEdgeType() != CFAEdgeType.CallToReturnEdge) {
+
+          assert predecessor.getFunctionName().equals(node.getFunctionName())
+                  && successor.getFunctionName().equals(node.getFunctionName())
+              : "Nodes from different functions were not expected.";
+
+          if (!predecessor.hasEdgeTo(successor)
+              || leavingEdge.getEdgeType() != CFAEdgeType.BlankEdge) {
+            ((CFAMutatorStatistics) stats).possibleMutations.inc();
+          }
+        }
+      }
+    }
+  }
+
   private void clearParseResultAfterPostprocessings() {
+    ((CFAMutatorStatistics) stats).clearingTimer.start();
     final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
     final NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
     final CFATraversal.CompositeCFAVisitor visitor =
@@ -178,6 +275,7 @@ public class CFAMutator extends CFACreator {
       logger.logf(Level.FINEST, "clearing: returning edge %s", e);
       CFACreationUtils.addEdgeUnconditionallyToCFA(e);
     }
+    ((CFAMutatorStatistics) stats).clearingTimer.stop();
   }
 
   // try to do simple mutation:
@@ -249,6 +347,7 @@ public class CFAMutator extends CFACreator {
     if (r == null) {
       return false;
     } else {
+      ((CFAMutatorStatistics) stats).mutationsAttempted.inc();
       parseResult = r;
       return true;
     }
@@ -256,6 +355,7 @@ public class CFAMutator extends CFACreator {
 
   // undo last mutation
   public void rollback() {
+    wasRollback = true;
     clearParseResultAfterPostprocessings();
     if (lastMutation == MutationType.NodeAndEdgeRemoval) {
       parseResult = returnEdge(parseResult);
@@ -450,6 +550,10 @@ public class CFAMutator extends CFACreator {
 
   @Override
   protected void exportCFAAsync(final CFA cfa) {
+    if (cfa == null) {
+      return;
+    }
+
     logger.logf(Level.FINE, "Count of CFA nodes: %d", cfa.getAllNodes().size());
 
     if (doLastRun) {
@@ -457,6 +561,11 @@ public class CFAMutator extends CFACreator {
     } else {
       lastCFA = cfa;
     }
+  }
+
+  @Override
+  protected CFAMutatorStatistics createStatistics(LogManager pLogger) {
+    return new CFAMutatorStatistics(pLogger);
   }
 
   //  private void stickAssumeEdgesIntoOne(CFANode pPredecessor, CFANode pSuccessor) {

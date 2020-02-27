@@ -145,7 +145,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   private Optional<Set<String>> addressedVariables = Optional.absent();
 
   private final LogManager logger;
-  private final VariableClassificationStatistics stats = new VariableClassificationStatistics();
+  private static final VariableClassificationStatistics stats =
+      new VariableClassificationStatistics();
 
   public static class VariableClassificationStatistics implements Statistics {
 
@@ -182,7 +183,9 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+    if (!pStatsCollection.contains(stats)) {
+      pStatsCollection.add(stats);
+    }
   }
 
   /** This function does the whole work:
