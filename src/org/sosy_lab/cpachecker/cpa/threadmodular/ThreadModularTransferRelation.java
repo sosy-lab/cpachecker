@@ -27,6 +27,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
@@ -43,7 +47,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+@Options(prefix = "cpa.threadmodular")
 public class ThreadModularTransferRelation implements TransferRelation {
+
+  @Option(secure = true, description = "apply projections only if the state is relevant")
+  private boolean relevanceOptimization = true;
 
   private final TransferRelation wrappedTransfer;
   private final ThreadModularStatistics stats;
@@ -54,8 +62,11 @@ public class ThreadModularTransferRelation implements TransferRelation {
       TransferRelation pTransferRelation,
       ThreadModularStatistics pStats,
       ShutdownNotifier pShutdownNotifier,
-      ApplyOperator pApplyOperator) {
+      ApplyOperator pApplyOperator,
+      Configuration pConfig)
+      throws InvalidConfigurationException {
 
+    pConfig.inject(this);
     wrappedTransfer = pTransferRelation;
     stats = pStats;
     shutdownNotifier = pShutdownNotifier;
@@ -77,7 +88,7 @@ public class ThreadModularTransferRelation implements TransferRelation {
     boolean isProjection = ((AbstractStateWithEdge) pState).isProjection();
     // do not need stop and merge as they has been already performed on projections
 
-    if (isProjection || isRelevant(pState)) {
+    if (isProjection || (relevanceOptimization && isRelevant(pState))) {
 
       stats.allApplyActions.start();
       Collection<AbstractState> toApply =
@@ -87,7 +98,7 @@ public class ThreadModularTransferRelation implements TransferRelation {
         AbstractState appliedState = null;
         Precision appliedPrecision = null;
         if (isProjection) {
-          if (isRelevant(oldState)) {
+          if (relevanceOptimization && isRelevant(oldState)) {
             stats.innerApply.start();
             appliedState = applyOperator.apply(oldState, pState);
             stats.applyCounter.inc();

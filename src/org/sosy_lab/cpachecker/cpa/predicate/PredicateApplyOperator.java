@@ -377,6 +377,9 @@ public class PredicateApplyOperator implements ApplyOperator {
   @Option(secure = true, description = "reset shared variables values")
   private boolean havocAbstraction2 = false;
 
+  @Option(secure = true, description = "apply only if state is not true (relevant)")
+  private boolean applyOptimization = true;
+
   private final Solver solver;
   private final BooleanFormulaManager mngr;
   private final FormulaManagerView fmngr;
@@ -409,7 +412,7 @@ public class PredicateApplyOperator implements ApplyOperator {
       PredicateProjectedState state2 = (PredicateProjectedState) pState2;
 
       AbstractEdge edge;
-      if (mngr.isTrue(state1.getAbstractionFormula().asFormula())) {
+      if (applyOptimization && mngr.isTrue(state1.getAbstractionFormula().asFormula())) {
         // Any effect does nothing with true formula
         edge = EmptyEdge.getInstance();
       } else if (compatible(state1, state2)) {
