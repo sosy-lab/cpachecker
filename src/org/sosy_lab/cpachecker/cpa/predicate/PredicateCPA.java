@@ -27,10 +27,12 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -45,8 +47,10 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -78,7 +82,8 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 @Options(prefix = "cpa.predicate")
 public class PredicateCPA
-    implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable {
+    implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable,
+    ConfigurableProgramAnalysisTM {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
@@ -102,6 +107,9 @@ public class PredicateCPA
       description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
   private String stopType = "SEP";
 
+  @Option(secure = true, description = "use a precise path formula manager together with imprecise")
+  private boolean useImpreciseFormulaManager = false;
+
   @Option(secure=true, description="Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
 
@@ -117,7 +125,8 @@ public class PredicateCPA
   protected final ShutdownNotifier shutdownNotifier;
 
   private final PredicatePrecision initialPrecision;
-  private final PathFormulaManager pathFormulaManager;
+  private final PathFormulaManager preciseFormulaManager;
+  private final PathFormulaManager impreciseFormulaManager;
   private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
@@ -130,6 +139,7 @@ public class PredicateCPA
   private final PredicateProvider predicateProvider;
   private final FormulaManagerView formulaManager;
   private final PredicateCpaOptions options;
+  private final PredicatePrecisionAdjustment prec;
 
   // path formulas for PCC
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulaePcc = new HashMap<>();
@@ -142,7 +152,7 @@ public class PredicateCPA
       ShutdownNotifier pShutdownNotifier,
       Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     config.inject(this, PredicateCPA.class);
 
     this.config = config;
@@ -162,11 +172,18 @@ public class PredicateCPA
     formulaManager = solver.getFormulaManager();
     String libraries = solver.getVersion();
 
-    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, direction);
-    if (useCache) {
-      pfMgr = new CachingPathFormulaManager(pfMgr);
+    preciseFormulaManager = createPathFormulaManager(config);
+
+    if (useImpreciseFormulaManager) {
+      ConfigurationBuilder configBuilder = Configuration.builder();
+      configBuilder = configBuilder.copyFrom(config);
+      configBuilder.setOption("cpa.predicate.useHavocAbstraction", "true");
+      Configuration newConfig = configBuilder.build();
+
+      impreciseFormulaManager = createPathFormulaManager(newConfig);
+    } else {
+      impreciseFormulaManager = null;
     }
-    pathFormulaManager = pfMgr;
 
     RegionManager regionManager;
     if (abstractionType.equals("FORMULA") || blk.alwaysReturnsFalse()) {
@@ -188,7 +205,7 @@ public class PredicateCPA
     predicateManager =
         new PredicateAbstractionManager(
             abstractionManager,
-            pathFormulaManager,
+            preciseFormulaManager,
             solver,
             config,
             logger,
@@ -208,7 +225,7 @@ public class PredicateCPA
             formulaManager,
             specification,
             shutdownNotifier,
-            pathFormulaManager,
+            preciseFormulaManager,
             predicateManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
@@ -222,17 +239,31 @@ public class PredicateCPA
             logger,
             pCfa,
             solver,
-            pathFormulaManager,
+            preciseFormulaManager,
             blk,
             regionManager,
             abstractionManager,
             predicateManager,
             statistics);
+    prec =
+        new PredicatePrecisionAdjustment(
+            logger,
+            formulaManager,
+            preciseFormulaManager,
+            blk,
+            predicateManager,
+            invariantsManager,
+            predicateProvider,
+            statistics);
   }
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return new PredicateAbstractDomain(predicateManager, symbolicCoverageCheck, statistics);
+    return new PredicateAbstractDomain(
+        predicateManager,
+        symbolicCoverageCheck,
+        statistics,
+        solver.getFormulaManager().getBooleanFormulaManager());
   }
 
   @Override
@@ -241,7 +272,8 @@ public class PredicateCPA
         logger,
         direction,
         formulaManager,
-        pathFormulaManager,
+        preciseFormulaManager,
+        impreciseFormulaManager,
         blk,
         predicateManager,
         statistics,
@@ -254,7 +286,13 @@ public class PredicateCPA
       case "SEP":
         return MergeSepOperator.getInstance();
       case "ABE":
-        return new PredicateMergeOperator(logger, pathFormulaManager, statistics);
+        return new PredicateMergeOperator(
+            logger,
+            solver.getFormulaManager().getBooleanFormulaManager(),
+            preciseFormulaManager,
+            statistics,
+            options.abstractionLattice(),
+            options.joinEffectsIntoUndefs());
       default:
         throw new InternalError("Update list of allowed merge operators");
     }
@@ -264,9 +302,10 @@ public class PredicateCPA
   public StopOperator getStopOperator() {
     switch (stopType) {
       case "SEP":
-        return new PredicateStopOperator(getAbstractDomain());
+        return new PredicateStopOperator(
+            getAbstractDomain());
       case "SEPPCC":
-        return new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
+        return new PredicatePCCStopOperator(preciseFormulaManager, predicateManager);
       default:
         throw new InternalError("Update list of allowed stop operators");
     }
@@ -277,7 +316,11 @@ public class PredicateCPA
   }
 
   public PathFormulaManager getPathFormulaManager() {
-    return pathFormulaManager;
+    return preciseFormulaManager;
+  }
+
+  public PathFormulaManager getImprecisePathFormulaManager() {
+    return impreciseFormulaManager;
   }
 
   public Solver getSolver() {
@@ -299,7 +342,7 @@ public class PredicateCPA
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
     return PredicateAbstractState.mkAbstractionState(
-        pathFormulaManager.makeEmptyPathFormula(),
+        preciseFormulaManager.makeEmptyPathFormula(),
         predicateManager.makeTrueAbstractionFormula(null),
         PathCopyingPersistentTreeMap.of());
   }
@@ -311,15 +354,7 @@ public class PredicateCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new PredicatePrecisionAdjustment(
-        logger,
-        formulaManager,
-        pathFormulaManager,
-        blk,
-        predicateManager,
-        invariantsManager,
-        predicateProvider,
-        statistics);
+    return prec;
   }
 
   @Override
@@ -355,7 +390,7 @@ public class PredicateCPA
       try {
         return predicateManager.checkCoverage(
             e1.getAbstractionFormula(),
-            pathFormulaManager.makeEmptyPathFormula(e1.getPathFormula()),
+            preciseFormulaManager.makeEmptyPathFormula(e1.getPathFormula()),
             e2.getAbstractionFormula()
         );
       } catch (SolverException e) {
@@ -380,5 +415,30 @@ public class PredicateCPA
 
   public void changeExplicitAbstractionNodes(final ImmutableSet<CFANode> explicitlyAbstractAt) {
     blk.setExplicitAbstractionNodes(explicitlyAbstractAt);
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() {
+    return new PredicateApplyOperator(solver, formulaManager, preciseFormulaManager, config);
+  }
+
+  public PathFormulaManager createPathFormulaManager(Configuration pConfig)
+      throws InvalidConfigurationException {
+    PathFormulaManager pMgr =
+        new PathFormulaManagerImpl(
+            formulaManager,
+            pConfig,
+            logger,
+            shutdownNotifier,
+            cfa,
+            direction);
+    if (useCache) {
+      pMgr = new CachingPathFormulaManager(pMgr);
+    }
+    return pMgr;
+  }
+
+  public void setPrecisionAdjustmentExternalCheck(Predicate<AbstractState> pPredicate) {
+    prec.setExternalAbstractionCheck(pPredicate);
   }
 }

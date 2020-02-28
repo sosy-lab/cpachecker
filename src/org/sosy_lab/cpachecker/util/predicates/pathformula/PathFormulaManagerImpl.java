@@ -33,6 +33,8 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -293,6 +295,22 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       throws CPATransferException, InterruptedException {
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
     return makeAnd(pOldFormula, pEdge, errorConditions);
+  }
+
+  @Override
+  public PathFormula resetSharedVariables(PathFormula pPathFormula) {
+    SSAMap oldSSA = pPathFormula.getSsa();
+    PointerTargetSet oldPts = pPathFormula.getPointerTargetSet();
+    SSAMapBuilder ssaBuilder = oldSSA.builder();
+
+    for (String var : oldSSA.allVariables()) {
+      if (var.contains("::")) {
+        // local variable
+      } else {
+        converter.makeFreshIndex(var, oldSSA.getType(var), ssaBuilder);
+      }
+    }
+    return makeNewPathFormula(pPathFormula, ssaBuilder.build(), oldPts);
   }
 
   @Override

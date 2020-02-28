@@ -213,4 +213,6 @@ public interface PathFormulaManager {
   PointerTargetSet
       mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSSA)
           throws InterruptedException;
+
+  PathFormula resetSharedVariables(PathFormula pPathFormula);
 }

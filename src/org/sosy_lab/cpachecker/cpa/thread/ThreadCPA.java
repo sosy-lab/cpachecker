@@ -36,7 +36,9 @@ import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -47,10 +49,12 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
 @Options(prefix = "cpa.thread")
 public class ThreadCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider,
+    ConfigurableProgramAnalysisTM {
 
   public enum ThreadMode {
     SIMPLE,
+    ENVIRONMENT,
     BASE;
   }
 
@@ -69,6 +73,7 @@ public class ThreadCPA extends AbstractCPA
         "sep",
         DelegateAbstractDomain.<ThreadState>getInstance(),
         new ThreadTransferRelation(pConfig));
+    pConfig.inject(this);
     reducer = new ThreadReducer();
   }
 
@@ -83,6 +88,8 @@ public class ThreadCPA extends AbstractCPA
     switch (mode) {
       case SIMPLE:
         return SimpleThreadState.emptyState();
+      case ENVIRONMENT:
+        return ThreadTMState.emptyState();
       case BASE:
         return ThreadState.emptyState();
       default:
@@ -103,5 +110,15 @@ public class ThreadCPA extends AbstractCPA
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(((ThreadTransferRelation) getTransferRelation()).getStatistics());
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() {
+    switch (mode) {
+      case ENVIRONMENT:
+        return new ThreadTMApplyOperator();
+      default:
+        return new ThreadApplyOperator();
+    }
   }
 }

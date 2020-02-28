@@ -38,8 +38,6 @@ public abstract class SMGListCandidate<S> {
     shape = pShape;
   }
 
-  public abstract boolean hasRecursiveFields();
-
   public SMGObject getStartObject() {
     return startObject;
   }

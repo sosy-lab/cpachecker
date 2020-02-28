@@ -101,6 +101,8 @@ public class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefineme
   private StatTimer argUpdate = new StatTimer(StatKind.SUM, "ARG update");
 
   protected ListMultimap<CFANode, AbstractionPredicate> newPredicates;
+  private List<CFANode> uniqueNodes;
+
   private ARGReachedSet reached;
   private ARGState refinementRoot;
 
@@ -132,6 +134,7 @@ public class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefineme
     // thus a Multimap based on a LinkedHashMap
     // (we iterate over the keys)
     newPredicates = MultimapBuilder.linkedHashKeys().arrayListValues().build();
+    uniqueNodes = new ArrayList<>();
   }
 
   @Override
@@ -165,6 +168,7 @@ public class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefineme
     reached = null;
     refinementRoot = null;
     newPredicates = null;
+    uniqueNodes = null;
   }
 
   @Override
@@ -173,6 +177,7 @@ public class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefineme
     reached = null;
     refinementRoot = null;
     newPredicates = null;
+    uniqueNodes = null;
   }
 
   protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot)
@@ -242,7 +247,12 @@ public class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefineme
     checkArgument(!bfmgr.isTrue(pInterpolant));
 
     predicateCreation.start();
-    newPredicates.putAll(extractLocation(pState), convertInterpolant(pInterpolant));
+    CFANode node = extractLocation(pState);
+    Collection<AbstractionPredicate> predicates = convertInterpolant(pInterpolant);
+    if (!newPredicates.values().containsAll(predicates)) {
+      uniqueNodes.add(node);
+    }
+    newPredicates.putAll(node, predicates);
     predicateCreation.stop();
 
     return false;
@@ -351,5 +361,20 @@ public class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefineme
         }
       }
     }
+  }
+
+  @Override
+  public Collection<CFANode> getAllAffectedNodes() {
+    return newPredicates.keySet();
+  }
+
+  @Override
+  public Collection<CFANode> getNodesWithUniquePredicates() {
+    return uniqueNodes;
+  }
+
+  @Override
+  public int getSizeOfPrecision() {
+    return newPredicates.entries().size();
   }
 }

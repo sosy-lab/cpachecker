@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+
 /**
  * This class extracts invariants from the correctness witness automaton. Calling {@link
  * WitnessInvariantsExtractor#analyzeWitness()} analyzes the witness first by conducting a
@@ -96,8 +97,8 @@ public class WitnessInvariantsExtractor {
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier,
       Path pPathToWitnessFile)
-      throws InvalidConfigurationException, CPAException {
-    this.config = generateLocalConfiguration(pConfig);
+      throws InvalidConfigurationException, CPAException, InterruptedException {
+    this.config = pConfig;
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
@@ -125,7 +126,7 @@ public class WitnessInvariantsExtractor {
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, CPAException {
-    this.config = generateLocalConfiguration(pConfig);
+    this.config = pConfig;
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
@@ -144,9 +145,7 @@ public class WitnessInvariantsExtractor {
             "analysis.programNames",
             "cpa.callstack.skipRecursion",
             "cpa.callstack.skipVoidRecursion",
-            "cpa.callstack.skipFunctionPointerRecursion",
-            "witness.strictChecking",
-            "witness.checkProgramHash");
+            "cpa.callstack.skipFunctionPointerRecursion");
     for (String copyOption : copyOptions) {
       configBuilder.copyOptionFromIfPresent(pConfig, copyOption);
     }
@@ -154,9 +153,14 @@ public class WitnessInvariantsExtractor {
   }
 
   private Specification buildSpecification(Specification pSpecification, Path pathToWitnessFile)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     return Specification.fromFiles(
-        pSpecification.getProperties(), ImmutableList.of(pathToWitnessFile), cfa, config, logger);
+        pSpecification.getProperties(),
+        ImmutableList.of(pathToWitnessFile),
+        cfa,
+        config,
+        logger,
+        shutdownNotifier);
   }
 
   private Specification buildSpecification(Automaton pAutomaton) {
@@ -166,12 +170,13 @@ public class WitnessInvariantsExtractor {
   }
 
   private void analyzeWitness() throws InvalidConfigurationException, CPAException {
-    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
+    Configuration localConfig = generateLocalConfiguration(config);
+    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(localConfig, logger);
     reachedSet = reachedSetFactory.create();
-    CPABuilder builder = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
+    CPABuilder builder = new CPABuilder(localConfig, logger, shutdownNotifier, reachedSetFactory);
     ConfigurableProgramAnalysis cpa =
         builder.buildCPAs(cfa, automatonAsSpec, new AggregatedReachedSets());
-    CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
+    CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, logger, localConfig, shutdownNotifier);
     CFANode rootNode = cfa.getMainFunction();
     StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
     try {

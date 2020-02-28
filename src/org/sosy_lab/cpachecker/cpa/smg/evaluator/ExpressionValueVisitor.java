@@ -91,7 +91,7 @@ class ExpressionValueVisitor
 
   @Override
   protected List<? extends SMGValueAndState> visitDefault(CExpression pExp) {
-    return singletonList(SMGValueAndState.of(getInitialSmgState()));
+    return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
   }
 
   @Override
@@ -106,7 +106,7 @@ class ExpressionValueVisitor
       SMGState newState = addressAndState.getSmgState();
 
       if (address.isUnknown()) {
-        result.add(SMGValueAndState.of(newState));
+        result.add(SMGValueAndState.withUnknownValue(newState));
         continue;
       }
 
@@ -159,7 +159,7 @@ class ExpressionValueVisitor
 
 
       if (addressOfField.isUnknown()) {
-        result.add(SMGValueAndState.of(newState));
+        result.add(SMGValueAndState.withUnknownValue(newState));
         continue;
       }
 
@@ -224,7 +224,7 @@ class ExpressionValueVisitor
       }
     }
 
-    return singletonList(SMGValueAndState.of(getInitialSmgState()));
+    return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
   }
 
   @Override
@@ -269,7 +269,7 @@ class ExpressionValueVisitor
     case TILDE:
 
     default:
-        return singletonList(SMGValueAndState.of(getInitialSmgState()));
+        return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
     }
   }
 
@@ -305,7 +305,7 @@ class ExpressionValueVisitor
                 : SMGUnknownValue.INSTANCE;
         return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
     default:
-        return singletonList(SMGValueAndState.of(getInitialSmgState()));
+        return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
         // TODO Investigate the other Operators.
     }
   }
@@ -337,7 +337,7 @@ class ExpressionValueVisitor
 
         if (rVal.equals(SMGUnknownValue.INSTANCE)
             || lVal.equals(SMGUnknownValue.INSTANCE)) {
-          result.add(SMGValueAndState.of(newState));
+          result.add(SMGValueAndState.withUnknownValue(newState));
           continue;
         }
 
@@ -356,7 +356,7 @@ class ExpressionValueVisitor
       throws SMGInconsistentException {
 
     if (lVal.equals(SMGUnknownValue.INSTANCE) || rVal.equals(SMGUnknownValue.INSTANCE)) {
-      return singletonList(SMGValueAndState.of(newState));
+      return singletonList(SMGValueAndState.withUnknownValue(newState));
     }
 
     switch (binaryOperator) {
@@ -392,7 +392,7 @@ class ExpressionValueVisitor
           case DIVIDE:
               // TODO maybe we should signal a division by zero error?
               if (rVal.equals(SMGZeroValue.INSTANCE)) {
-                return singletonList(SMGValueAndState.of(newState));
+                return singletonList(SMGValueAndState.withUnknownValue(newState));
             }
 
               isZero = lVal.equals(SMGZeroValue.INSTANCE);
@@ -433,7 +433,7 @@ class ExpressionValueVisitor
                   SMGValueAndState.of(newState, SMGZeroValue.INSTANCE);
             result.add(resultValueAndState);
           } else {
-            result.add(SMGValueAndState.of(newState));
+            result.add(SMGValueAndState.withUnknownValue(newState));
           }
         }
 
@@ -441,7 +441,7 @@ class ExpressionValueVisitor
       }
 
       default:
-        return singletonList(SMGValueAndState.of(getInitialSmgState()));
+        return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
     }
   }
 
@@ -521,7 +521,7 @@ class ExpressionValueVisitor
   @Override
   public List<? extends SMGValueAndState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
-    return singletonList(SMGValueAndState.of(getInitialSmgState()));
+    return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
   }
 
   SMGState getInitialSmgState() {

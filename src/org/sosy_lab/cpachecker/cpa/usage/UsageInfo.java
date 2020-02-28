@@ -272,11 +272,12 @@ public class UsageInfo implements Comparable<UsageInfo> {
   }
 
   public UsagePoint createUsagePoint() {
-    return new UsagePoint(getCompatibleNodes(), core.accessType);
+    List<CompatibleNode> nodes = getCompatibleNodes();
+
+    return new UsagePoint(nodes, core.accessType);
   }
 
   List<CompatibleNode> getCompatibleNodes() {
-    return
-        transformedImmutableListCopy(compatibleStates, CompatibleState::getCompatibleNode);
+    return transformedImmutableListCopy(compatibleStates, CompatibleState::getCompatibleNode);
   }
 }

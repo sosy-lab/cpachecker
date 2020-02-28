@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 # Script taken from https://github.com/google/google-java-format
 # Changed to use jar file as command.
 
@@ -32,11 +32,11 @@ Example usage for git/svn users:
 import argparse
 import difflib
 import glob
+import io
 import os
 import re
 import string
 import subprocess
-import StringIO
 import sys
 
 CMD = ['java',
@@ -97,9 +97,9 @@ def main():
           ['-lines', str(start_line) + ':' + str(end_line)])
 
   # Reformat files containing changes in place.
-  for filename, lines in lines_by_file.iteritems():
+  for filename, lines in lines_by_file.items():
     if args.i and args.verbose:
-      print 'Formatting', filename
+      print('Formatting', filename)
     command = list(CMD)
     if args.i:
       command.append('-i')
@@ -114,7 +114,7 @@ def main():
     if not args.i:
       with open(filename) as f:
         code = f.readlines()
-      formatted_code = StringIO.StringIO(stdout).readlines()
+      formatted_code = io.StringIO(stdout).readlines()
       diff = difflib.unified_diff(code, formatted_code,
                                   filename, filename,
                                   '(before formatting)', '(after formatting)')

@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -31,6 +33,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import jhoafparser.ast.AtomLabel;
 import jhoafparser.ast.BooleanExpression;
@@ -40,6 +43,7 @@ import jhoafparser.storage.StoredEdgeWithLabel;
 import jhoafparser.storage.StoredHeader;
 import jhoafparser.storage.StoredHeader.NameAndExtra;
 import jhoafparser.storage.StoredState;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -53,6 +57,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CPAQuery;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchCFAEdgeRegEx;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 
@@ -63,18 +69,28 @@ public class BuechiConverterUtils {
    * into an {@link Automaton}.
    *
    * @param pStoredAutomaton the storedAutomaton created by parsing an input in HOA-format.
+   * @param pEntryFunction the name of the entry function of the c program.
    * @return an automaton from the automaton-framework in CPAchecker
    * @throws LtlParseException if the transformation fails either due to some false values in {@code
    *     pStoredAutomaton} or because of an erroneous config.
    */
   public static Automaton convertFromHOAFormat(
       StoredAutomaton pStoredAutomaton,
+      String pEntryFunction,
       Configuration pConfig,
       LogManager pLogger,
       MachineModel pMachineModel,
-      Scope pScope)
-      throws LtlParseException {
-    return new HoaToAutomatonTransformer(pStoredAutomaton, pConfig, pLogger, pMachineModel, pScope)
+      Scope pScope,
+      ShutdownNotifier pShutdownNotifier)
+      throws LtlParseException, InterruptedException {
+    return new HoaToAutomatonTransformer(
+            pStoredAutomaton,
+            pEntryFunction,
+            pConfig,
+            pLogger,
+            pMachineModel,
+            pScope,
+            pShutdownNotifier)
         .doConvert();
   }
 
@@ -82,17 +98,16 @@ public class BuechiConverterUtils {
    * Produces an {@link Automaton} from a {@link StoredAutomaton} (an automaton in HOA-format)
    * without requiring a logger, machine-model and scope.
    *
-   * <p>
-   * This method can be used for testing the transformation outside of CPAchecker.
+   * <p>This method can be used for testing the transformation outside of CPAchecker.
    */
   public static Automaton convertFromHOAFormat(StoredAutomaton pStoredAutomaton)
-      throws LtlParseException {
+      throws LtlParseException, InterruptedException {
     return new HoaToAutomatonTransformer(pStoredAutomaton).doConvert();
   }
 
   private static class HoaToAutomatonTransformer {
 
-    private static final String BUECHI_AUTOMATON = "Buechi_Automaton";
+    private static final String AUTOMATON_NAME = "Buechi_Automaton";
     private static final String FALSE = "0";
     private static final String TRUE = "1";
 
@@ -102,37 +117,50 @@ public class BuechiConverterUtils {
     private final CParser parser;
 
     private final StoredAutomaton storedAutomaton;
+    private final Optional<String> entryFunctionOpt;
+    private final ShutdownNotifier shutdownNotifier;
 
     private HoaToAutomatonTransformer(StoredAutomaton pStoredAutomaton) {
       storedAutomaton = checkNotNull(pStoredAutomaton);
 
       logger = LogManager.createNullLogManager();
       machineModel = MachineModel.LINUX64;
+      shutdownNotifier = ShutdownNotifier.createDummy();
       scope = CProgramScope.empty();
-      parser = CParser.Factory.getParser(logger, CParser.Factory.getDefaultOptions(), machineModel);
+      parser =
+          CParser.Factory.getParser(
+              logger, CParser.Factory.getDefaultOptions(), machineModel, shutdownNotifier);
+      entryFunctionOpt = Optional.empty();
     }
 
     private HoaToAutomatonTransformer(
         StoredAutomaton pStoredAutomaton,
+        String pEntryFunction,
         Configuration pConfig,
         LogManager pLogger,
         MachineModel pMachineModel,
-        Scope pScope)
+        Scope pScope,
+        ShutdownNotifier pShutdownNotifier)
         throws LtlParseException {
       storedAutomaton = checkNotNull(pStoredAutomaton);
+      checkArgument(!isNullOrEmpty(pEntryFunction));
+      entryFunctionOpt = Optional.of(pEntryFunction);
+
+      logger = checkNotNull(pLogger);
+      machineModel = checkNotNull(pMachineModel);
+      scope = checkNotNull(pScope);
+      shutdownNotifier = checkNotNull(pShutdownNotifier);
 
       try {
-        logger = checkNotNull(pLogger);
-        machineModel = checkNotNull(pMachineModel);
-        scope = checkNotNull(pScope);
         parser =
-            CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(pConfig), machineModel);
+            CParser.Factory.getParser(
+                pLogger, CParser.Factory.getOptions(pConfig), machineModel, shutdownNotifier);
       } catch (InvalidConfigurationException e) {
         throw new LtlParseException(e.getMessage(), e);
       }
     }
 
-    private Automaton doConvert() throws LtlParseException {
+    private Automaton doConvert() throws LtlParseException, InterruptedException {
 
       StoredHeader storedHeader = storedAutomaton.getStoredHeader();
 
@@ -167,9 +195,9 @@ public class BuechiConverterUtils {
       if (!storedHeader.getProperties().stream().allMatch(x -> requiredProperties.contains(x))) {
         throw new LtlParseException(
             String.format(
-                "The storedAutomaton-param may only contain %s as properties, but instead the following were found: %s",
-                requiredProperties,
-                storedHeader.getProperties()));
+                "The storedAutomaton-param may only contain %s as properties, but instead "
+                    + "the following were found: %s",
+                requiredProperties, storedHeader.getProperties()));
       }
 
       List<Integer> initStateList = Iterables.getOnlyElement(storedHeader.getStartStates());
@@ -186,8 +214,22 @@ public class BuechiConverterUtils {
       }
 
       try {
+        ImmutableList.Builder<AutomatonInternalState> stateListBuilder =
+            new ImmutableList.Builder<>();
 
-        List<AutomatonInternalState> stateList = new ArrayList<>();
+        StoredState initBuchiState =
+            storedAutomaton.getStoredState(Iterables.getOnlyElement(initStateList).intValue());
+        String initBuechiStateName = getStateName(initBuchiState);
+
+        String initStateName = null;
+        if (entryFunctionOpt.isPresent()) {
+          initStateName = "[pre-state] global-init";
+          addPreBuchiStates(
+              stateListBuilder, entryFunctionOpt.get(), initStateName, initBuechiStateName);
+        } else {
+          initStateName = initBuechiStateName;
+        }
+
         for (int i = 0; i < storedAutomaton.getNumberOfStates(); i++) {
           StoredState storedState = storedAutomaton.getStoredState(i);
           List<AutomatonTransition> transitionList = new ArrayList<>();
@@ -206,27 +248,19 @@ public class BuechiConverterUtils {
             if (!isTargetState) {
               throw new LtlParseException(
                   String.format(
-                      "Automaton state has an acceptance signature, but the value is different to the exptected value (expected: 0, actual: %d",
+                      "Automaton state has an acceptance signature, but the value "
+                          + "is different to the exptected value (expected: 0, actual: %d",
                       accSig));
             }
           }
 
-          stateList.add(
+          stateListBuilder.add(
               new AutomatonInternalState(
-                  getStateName(storedState),
-                  transitionList,
-                  isTargetState,
-                  true,
-                  false));
+                  getStateName(storedState), transitionList, isTargetState, true, false));
         }
 
-        StoredState initState =
-            storedAutomaton.getStoredState(Iterables.getOnlyElement(initStateList).intValue());
         return new Automaton(
-            BUECHI_AUTOMATON,
-            ImmutableMap.of(),
-            stateList,
-            getStateName(initState));
+            AUTOMATON_NAME, ImmutableMap.of(), stateListBuilder.build(), initStateName);
 
       } catch (InvalidAutomatonException e) {
         throw new RuntimeException(
@@ -237,13 +271,65 @@ public class BuechiConverterUtils {
       }
     }
 
+    /**
+     * Creates pre-states for the Büchi-automaton such that the actual first state of the
+     * Büchi-automaton is entered when the function call of the main-method has been made.
+     *
+     * <p>This differs from the automaton specified in config/specification/MainEntry.spc insofar,
+     * as the accepting state in that automaton is an error state (and thus a sink-state), which is
+     * however not desired here. The other difference is that - technically speaking - this
+     * automaton goes into the accepting state only after the edge 'Function start dummy edge' was
+     * passed.
+     */
+    private void addPreBuchiStates(
+        ImmutableList.Builder<AutomatonInternalState> pStateListBuilder,
+        String pEntryFunctionName,
+        String pInitStateName,
+        String pInitBuechiStateName) {
+
+      final String initStateName = pInitStateName;
+      final String mainEntryStateName = "[pre-state] main-entry";
+
+      MatchCFAEdgeRegEx matchCFAEdgeRegEx =
+          new AutomatonBoolExpr.MatchCFAEdgeRegEx(
+              ".*\\s+" + pEntryFunctionName + "\\s*\\(.*\\)\\s*;?.*");
+
+      AutomatonTransition initToMainEntry =
+          new AutomatonTransition.Builder(matchCFAEdgeRegEx, mainEntryStateName).build();
+
+      CPAQuery query =
+          new AutomatonBoolExpr.CPAQuery("location", "mainEntry==" + pEntryFunctionName);
+      AutomatonTransition mainEntryToInitBuechiState =
+          new AutomatonTransition.Builder(query, pInitBuechiStateName).build();
+
+      AutomatonInternalState initState =
+          new AutomatonInternalState(
+              initStateName,
+              ImmutableList.of(
+                  initToMainEntry, createTransition(ImmutableList.of(), initStateName)),
+              false,
+              false);
+
+      AutomatonInternalState mainEntryState =
+          new AutomatonInternalState(
+              mainEntryStateName,
+              ImmutableList.of(
+                  mainEntryToInitBuechiState,
+                  createTransition(ImmutableList.of(), mainEntryStateName)),
+              false,
+              false);
+
+      pStateListBuilder.add(initState);
+      pStateListBuilder.add(mainEntryState);
+    }
+
     private String getStateName(StoredState pState) {
       return pState.getInfo() != null ? pState.getInfo() : String.valueOf(pState.getStateId());
     }
 
-    private List<AutomatonTransition>
-        getTransitions(BooleanExpression<AtomLabel> pLabelExpr, String pSuccessorName)
-            throws LtlParseException, UnrecognizedCodeException {
+    private List<AutomatonTransition> getTransitions(
+        BooleanExpression<AtomLabel> pLabelExpr, String pSuccessorName)
+        throws LtlParseException, UnrecognizedCodeException, InterruptedException {
       ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
 
       switch (pLabelExpr.getType()) {
@@ -252,18 +338,16 @@ public class BuechiConverterUtils {
           transitions.addAll(getTransitions(pLabelExpr.getRight(), pSuccessorName));
           break;
         default:
-          ImmutableList.Builder<AExpression> expressions = ImmutableList.builder();
-          expressions.addAll(getExpressions(pLabelExpr));
-          transitions.add(createTransition(expressions.build(), pSuccessorName));
+          transitions.add(createTransition(getExpressions(pLabelExpr), pSuccessorName));
           break;
       }
 
       return transitions.build();
     }
 
-    private List<CExpression> getExpressions(BooleanExpression<AtomLabel> pLabelExpr)
-        throws LtlParseException, UnrecognizedCodeException {
-      ImmutableList.Builder<CExpression> expBuilder = ImmutableList.builder();
+    private List<AExpression> getExpressions(BooleanExpression<AtomLabel> pLabelExpr)
+        throws LtlParseException, UnrecognizedCodeException, InterruptedException {
+      ImmutableList.Builder<AExpression> expBuilder = ImmutableList.builder();
 
       Type type = pLabelExpr.getType();
       switch (type) {
@@ -284,7 +368,8 @@ public class BuechiConverterUtils {
           break;
         case EXP_NOT:
           CBinaryExpressionBuilder b = new CBinaryExpressionBuilder(machineModel, logger);
-          CExpression exp = Iterables.getOnlyElement(getExpressions(pLabelExpr.getLeft()));
+          CExpression exp =
+              (CExpression) Iterables.getOnlyElement(getExpressions(pLabelExpr.getLeft()));
           expBuilder.add(b.negateExpressionAndSimplify(exp));
           break;
         default:
@@ -294,7 +379,7 @@ public class BuechiConverterUtils {
       return expBuilder.build();
     }
 
-    private CExpression assume(String pExpression) throws LtlParseException {
+    private CExpression assume(String pExpression) throws LtlParseException, InterruptedException {
       CAstNode sourceAST;
       try {
         sourceAST = CParserUtils.parseSingleStatement(pExpression, parser, scope);

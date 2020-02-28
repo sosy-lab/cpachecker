@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -203,5 +204,10 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   @Override
   public ImmutableMap<String, ? extends AbstractStatValue> getStatistics() {
     return delegate.getStatistics();
+  }
+
+  @Override
+  public void finalize(ConfigurableProgramAnalysis pCpa) {
+    delegate.finalize(pCpa);
   }
 }

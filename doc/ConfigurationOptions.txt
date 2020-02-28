@@ -95,7 +95,7 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, CVC4]
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
@@ -295,6 +295,9 @@ analysis.programNames = []
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
 
+# use thread-modular wrapper to support thread-modular approach
+analysis.reachedSet.useThreadModularWrapper = false
+
 # track more statistics about the reachedset
 analysis.reachedSet.withStatistics = false
 
@@ -344,7 +347,7 @@ analysis.traversal.entryResourceLimit = 100000
 
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
-  enum:     [DFS, BFS, RAND, RANDOM_PATH]
+  enum:     [DFS, BFS, RAND, RANDOM_PATH, ROUND_ROBIN]
 
 # Exponent of random function.This value influences the probability
 # distribution over the waitlist elementswhen choosing the next element.Has
@@ -400,6 +403,10 @@ analysis.traversal.useReverseLoopstack = false
 # reverse postorder id. The secondary strategy is selected with
 # 'analysis.traversal.order'.
 analysis.traversal.useReversePostorder = false
+
+# use thread-modular ordering: thread transitions first, then environment
+# transitions
+analysis.traversal.useThreadModularOrdering = false
 
 # perform a weighted random selection based on the branching depth
 analysis.traversal.weightedBranches = false
@@ -495,8 +502,43 @@ bdd.javabdd.initTableSize = 0
 # - buddy:  Buddy (native library required)
 # - cal:    CAL (native library required)
 # - jdd:    JDD
+# - pjbdd:  A java native parallel bdd framework
 bdd.package = "JAVA"
-  allowed values: [JAVA, SYLVAN, CUDD, MICRO, BUDDY, CAL, JDD]
+  allowed values: [JAVA, SYLVAN, CUDD, MICRO, BUDDY, CAL, JDD, PJBDD]
+
+# size of the BDD cache.
+bdd.pjbdd.cacheSize = 10000
+
+# Which parallel bdd creator should be used? PJBDD only!
+# - serial-int: uses serial int-based algorithms with concurrent access
+# - serial: uses serial algorithms with concurrent access
+# - comp-fut: uses CompletableFuture based concurrent algorithms
+# - fork-join:  uses ForkJoin based concurrent algorithms
+bdd.pjbdd.creator = "FORK-JOIN"
+  allowed values: [COMP-FUT, FORK-JOIN, SERIAL, SERIAL-INT]
+
+# increase factor for resizing tables
+bdd.pjbdd.increaseFactor = 1
+
+# unique table's concurrency factor
+bdd.pjbdd.tableParallelism = 1000
+
+# initial size of the BDD node table.
+bdd.pjbdd.tableSize = 50000
+
+# Which uniquetable implementation should be used?
+# - array:  a concurrent resizing array
+# - map:    a concurrent hash map
+# - bucket: a concurrent hash bucket
+bdd.pjbdd.tableType = "ARRAY"
+  allowed values: [ARRAY, MAP, BUCKET]
+
+# Number of worker threads, Runtime.getRuntime().availableProcessors()
+# default
+bdd.pjbdd.threads = Runtime.getRuntime().availableProcessors()
+
+# initial variable count
+bdd.pjbdd.varCount = 10
 
 # Granularity of the Sylvan BDD operations cache (recommended values 4-8).
 bdd.sylvan.cacheGranularity = 4
@@ -705,7 +747,7 @@ cfa.simplifyConstExpressions = true
 cfa.simplifyPointerExpressions = false
 
 # A name of thread_create function
-cfa.threads.threadCreate = "pthread_create"
+cfa.threads.threadCreate = {"pthread_create"}
 
 # A name of thread_join function
 cfa.threads.threadJoin = "pthread_join"
@@ -1411,6 +1453,9 @@ cpa.constraints.satCheckStrategy = AT_ASSUME
 # Try model of predecessor constraints state before running SMT solver
 cpa.constraints.useLastModel = true
 
+# Keep infeasible dummy states that allow for better debugging
+cpa.dca.refiner.keepInfeasibleStates = false
+
 # Set number of refinements for the trace abstraction algorithm
 cpa.dca.refiner.maxRefinementIterations = 0
 
@@ -1418,7 +1463,7 @@ cpa.dca.refiner.maxRefinementIterations = 0
 cpa.dca.refiner.skipAnalysis = false
 
 # Abort the refinement of finite prefixes for the purpose of better debugging
-cpa.dca.refiner.skipFiniteRefinement = false
+cpa.dca.refiner.skipRefinement = false
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
@@ -1547,6 +1592,9 @@ cpa.local.conservativefunctions = {}
 # variables, which are always local
 cpa.local.localvariables = {}
 
+# Use special states with edges
+cpa.location.enableStatesWithEdges = false
+
 # With this option enabled, function calls that occur in the CFA are
 # followed. By disabling this option one can traverse a function without
 # following function calls (in this case FunctionSummaryEdges are used)
@@ -1558,6 +1606,9 @@ cpa.lock.analysisMode = RACE
 
 #  annotated functions, which are known to works right
 cpa.lock.annotate = no default value
+
+# Consider or not lock guards
+cpa.lock.considerLockGuards = true
 
 # contains all lock names
 cpa.lock.lockinfo = {}
@@ -1771,6 +1822,9 @@ cpa.predicate.abstraction.simplify = false
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]
 
+# Merge only effects with equal abstractions.
+cpa.predicate.abstractionLattice = false
+
 # Export one abstraction formula for each abstraction state into a file?
 cpa.predicate.abstractions.export = true
 
@@ -1783,6 +1837,9 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
+# Apply only relevant effects.
+cpa.predicate.applyRelevantEffects = false
+
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
 
@@ -1791,6 +1848,9 @@ cpa.predicate.bam.useAbstractionReduction = true
 
 # Enable/disable precision reduction at the BAM block entry
 cpa.predicate.bam.usePrecisionReduction = true
+
+# The bitsize is used to encode integers as bitvectors.
+cpa.predicate.bitsize = 32
 
 # force abstractions at each branch node after assume edges, regardless of
 # threshold
@@ -1856,6 +1916,13 @@ cpa.predicate.blk.useCache = true
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
 
+# Load the theory for bitvector and floating point encoding during startup.
+# Only disable this option if an SMT solver does not support a certain theory
+# and you know that the following analysis does not require a certain theory.
+# The enabled option helps with nice user messages if a certain theory cannot
+# be loaded.
+cpa.predicate.createFormulaEncodingEagerly = true
+
 # The default size in bytes for memory allocations when the value cannot be
 # determined.
 cpa.predicate.defaultAllocationSize = 4
@@ -1871,6 +1938,9 @@ cpa.predicate.deferUntypedAllocations = true
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
 
+# do not consider abstraction from inference objects
+cpa.predicate.emptyAbstraction = false
+
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
@@ -1884,6 +1954,12 @@ cpa.predicate.encodeBitvectorAs = BITVECTOR
 # theory is used to approximate floats. This can be used for solvers that do
 # not support floating-point arithmetic, or for increased performance.
 cpa.predicate.encodeFloatAs = FLOAT
+  enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
+
+# Theory to use as backend for integers. If different from INTEGER, the
+# specified theory is used to approximate integers. This can be used for
+# solvers that do not support integers, or for increased performance.
+cpa.predicate.encodeIntegerAs = INTEGER
   enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Replace possible overflows with an ITE-structure, which returns either the
@@ -1914,6 +1990,9 @@ cpa.predicate.handlePointerAliasing = true
 # of the char array with the contents of the string literal instead of just
 # assigning a fresh non-det address to it
 cpa.predicate.handleStringLiteralInitializers = false
+
+# reset shared variables values
+cpa.predicate.havocAbstraction2 = false
 
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
 # replaced with Integer or Rational.
@@ -1991,6 +2070,9 @@ cpa.predicate.invariants.useGlobalInvariants = true
 # analysis, however, the found invariants may also be better for loops as
 # interpolation.)
 cpa.predicate.invariants.useStrongInvariantsOnly = true
+
+# Join effects into undefs or just combine assignments.
+cpa.predicate.joinEffectsIntoUndefs = true
 
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
@@ -2344,6 +2426,9 @@ cpa.predicate.useConstraintOptimization = true
 # of shared variables.
 cpa.predicate.useHavocAbstraction = false
 
+# use a precise path formula manager together with imprecise
+cpa.predicate.useImpreciseFormulaManager = false
+
 # Use regions for pointer analysis. So called Burstall&Bornat (BnB) memory
 # regions will be used for pointer analysis. BnB regions are based not only
 # on type, but also on structure field names. If the field is not accessed by
@@ -2364,6 +2449,9 @@ cpa.predicate.useParameterVariablesForGlobals = false
 # Use quantifiers when encoding heap accesses. This requires an SMT solver
 # that is capable of quantifiers (e.g. Z3 or PRINCESS).
 cpa.predicate.useQuantifiersOnArrays = false
+
+# Use undefined assignments (havoc abstraction)
+cpa.predicate.useUndefFunctions = true
 
 # Do not follow states which can not syntactically lead to a target location
 cpa.property_reachability.noFollowBackwardsUnreachable = true
@@ -2646,8 +2734,9 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
-# Simple thread analysis from theory paper
-cpa.thread.simpleMode = false
+# Use specific mode for thread analysis
+cpa.thread.mode = BASE
+  enum:     [SIMPLE, ENVIRONMENT, BASE]
 
 # The case when the same thread is created several times we do not support.We
 # may skip or fail in this case.
@@ -2656,6 +2745,9 @@ cpa.thread.skipTheSameThread = false
 # The case when the same thread is created several times we do not support.We
 # may try to support it with self-parallelizm.
 cpa.thread.supportSelfCreation = false
+
+# Use special case with environment actions
+cpa.thread.withEnvironmentActions = false
 
 # allow assignments of a new thread to the same left-hand-side as an existing
 # thread.
@@ -2681,6 +2773,11 @@ cpa.threading.useClonedFunctions = true
 # local access locks are used to avoid expensive interleaving, if a thread
 # only reads and writes its own variables.
 cpa.threading.useLocalAccessLocks = true
+
+# Instead of updating precision and arg we say that the refinement was not
+# successful after N times of refining. A real error state is not necessary
+# to be found. Use 0 for unlimited refinements (default).
+cpa.threadmodular.refinement.stopAfterNRefinements = 0
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
@@ -2752,6 +2849,9 @@ cpa.usage.refinement.iterationLimit = Integer.MAX_VALUE
 # The way how to identify two paths as equal
 cpa.usage.refinement.pathEquality = CFANodeId
   enum:     [ARGStateId, CFANodeId]
+
+# Refine any inconsistency of lock states or just incompatible pairs
+cpa.usage.refinement.refineOnlyIncompatiblePairs = false
 
 # The order of refinement blocks
 cpa.usage.refinement.refinementChain = no default value
@@ -2857,7 +2957,7 @@ cpa.value.interpolation.manageCallstack = true
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
-  allowed values: [SEP, JOIN]
+  allowed values: [SEP, JOIN, TRANSITIONSJOIN, TRANSITIONSSEP]
 
 # Assume that variables used only in a boolean context are either zero or
 # one.
@@ -2987,6 +3087,9 @@ custominstructions.binaryOperatorForSimpleCustomInstruction = PLUS
              GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR,
              EQUALS, NOT_EQUALS]
 
+# Name of function containing the custom instruction definition
+custominstructions.ciFun = no default value
+
 # Signature for custom instruction, describes names and order of input and
 # output variables of a custom instruction
 custominstructions.ciSignature = "ci_spec.txt"
@@ -3006,7 +3109,7 @@ custominstructions.enableRequirementsSlicing = false
 # Specifies the mode how custom instruction applications in program are
 # identified.
 custominstructions.mode = OPERATOR
-  enum:     [MANUAL, OPERATOR]
+  enum:     [MANUAL, OPERATOR, AUTOMATIC]
 
 # Try to remove requirements that are covered by another requirment and are,
 # thus, irrelevant for custom instruction behavior
@@ -3098,6 +3201,11 @@ heuristicSelection.recursionConfig = no default value
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
+
+# If adaptTimeLimits is set and all configurations support progress reports,
+# in each cycle the time limits per configuration are newly calculated based
+# on the progress
+interleavedAlgorithm.adaptTimeLimits = false
 
 # where to store initial condition, when generated
 interleavedAlgorithm.condition.file = "AssumptionAutomaton.txt"
@@ -3351,7 +3459,7 @@ parser.usePreprocessor = false
 
 # Specifies the mode how HW requirements are detected in the proof.
 pcc.HWrequirements.extraction.mode = OPERATOR
-  enum:     [MANUAL, OPERATOR]
+  enum:     [MANUAL, OPERATOR, AUTOMATIC]
 
 # Enable if used property checker implements satisfiesProperty(AbstractState)
 # and checked property is violated for a set iff an element in this set
@@ -3727,14 +3835,18 @@ solver.cacheUnsatCores = true
 # improve sat-checks with additional constraints for UFs
 solver.checkUFs = false
 
+# whether CPAchecker's logger should be used as logger for the solver,
+# otherwise nothing is logged from the solver.
+solver.enableLoggingInSolver = false
+
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, CVC4]
 
 # Which SMT solver to use.
 solver.solver = MATHSAT5
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, CVC4]
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
@@ -3953,6 +4065,13 @@ witness.matchOffset = true
 # Match the line numbers within the origin (mapping done by preprocessor line
 # markers).
 witness.matchOriginLine = true
+
+# This option can be used to ensure that no correctness witnesses are
+# checked.
+witness.noCorrectnessValidation = false
+
+# This option can be used to ensure that no violation witnesses are checked.
+witness.noViolationValidation = false
 
 # remove assumptions from transitions in the ISA where they are not strictly
 # neccessary.This option is intended to be used with an ISA (c.f. option

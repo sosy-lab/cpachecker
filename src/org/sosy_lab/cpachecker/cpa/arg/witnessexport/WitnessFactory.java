@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cpa.thread.ThreadTransferRelation.isThreadCreateFunction;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
@@ -68,7 +69,6 @@ import java.util.NavigableSet;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.BiPredicate;
@@ -79,17 +79,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -105,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -117,11 +117,10 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.ThreadIdProvider;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
-import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
@@ -305,6 +304,7 @@ class WitnessFactory implements EdgeAppender {
 
   private final Map<Edge, CFANode> loopHeadEnteringEdges = new HashMap<>();
   private final Map<String, Collection<ARGState>> stateToARGStates = new HashMap<>();
+  private final Multimap<Edge, CFAEdge> edgeToCFAEdges = LinkedHashMultimap.create();
 
   private final String defaultSourcefileName;
   private final WitnessType graphType;
@@ -337,6 +337,15 @@ class WitnessFactory implements EdgeAppender {
     defaultSourcefileName = pDefaultSourceFileName;
     graphType = pGraphType;
     invariantProvider = pInvariantProvider;
+  }
+
+  public static boolean isSpecialThreadCreate(CFAEdge pEdge) {
+    // special case of thread creation edges, which is used in thread modular analysis
+    if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+      CFunctionCall fCall = ((CFunctionCallEdge) pEdge).getSummaryEdge().getExpression();
+      return isThreadCreateFunction(fCall);
+    }
+    return false;
   }
 
   @Override
@@ -396,6 +405,7 @@ class WitnessFactory implements EdgeAppender {
       }
 
       putEdge(edge);
+      edgeToCFAEdges.put(edge, pEdge);
       from = to;
       ++i;
     }
@@ -498,7 +508,7 @@ class WitnessFactory implements EdgeAppender {
       } else if (AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
         functionName = succ.getFunctionName();
       }
-      if (functionName != null) {
+      if (functionName != null && !isSpecialThreadCreate(pEdge)) {
         result = result.putAndCopy(KeyDef.FUNCTIONENTRY, getOriginalFunctionName(functionName));
       }
     }
@@ -913,18 +923,13 @@ class WitnessFactory implements EdgeAppender {
    */
   private TransitionCondition exportThreadId(
       TransitionCondition pResult, final CFAEdge pEdge, ARGState pState) {
-    ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
+    ThreadIdProvider threadingState = extractStateByType(pState, ThreadIdProvider.class);
     if (threadingState != null) {
-      for (String threadId : threadingState.getThreadIds()) {
-        if (threadingState.getThreadLocation(threadId).getLocationNode().equals(pEdge.getPredecessor())) {
-          if (witnessOptions.exportThreadName()) {
-            pResult = pResult.putAndCopy(KeyDef.THREADNAME, threadId);
-          }
-          pResult =
-              pResult.putAndCopy(KeyDef.THREADID, Integer.toString(getUniqueThreadNum(threadId)));
-          break;
-        }
+      String threadId = threadingState.getThreadIdForEdge(pEdge);
+      if (witnessOptions.exportThreadName()) {
+        pResult = pResult.putAndCopy(KeyDef.THREADNAME, threadId);
       }
+      pResult = pResult.putAndCopy(KeyDef.THREADID, Integer.toString(getUniqueThreadNum(threadId)));
     }
     return pResult;
   }
@@ -937,78 +942,66 @@ class WitnessFactory implements EdgeAppender {
       boolean pIsDefaultCase,
       CFAEdgeWithAdditionalInfo pAdditionalInfo) {
 
-    ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
+    ThreadIdProvider threadingState = extractStateByType(pState, ThreadIdProvider.class);
 
     if (threadingState == null) {
       // no data available
       return Collections.singletonList(pResult);
     }
 
-    // handle direct creation or destruction of threads
-    Optional<String> threadInitialFunctionName = Optional.empty();
-    OptionalInt spawnedThreadId = OptionalInt.empty();
+    ARGState child = getChildState(pState, pEdge);
+    ThreadIdProvider succThreadingState = extractStateByType(child, ThreadIdProvider.class);
+    Optional<Pair<String, String>> optionalResult =
+        threadingState.getSpawnedThreadIdByEdge(pEdge, succThreadingState);
 
-    if (pEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      AStatement statement = ((AStatementEdge) pEdge).getStatement();
-      if (statement instanceof AFunctionCall) {
-        AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression) functionNameExp).getName();
-          switch (functionName) {
-            case ThreadingTransferRelation.THREAD_START:
-              {
-                com.google.common.base.Optional<ARGState> possibleChild =
-                    from(pState.getChildren()).firstMatch(c -> pEdge == pState.getEdgeToChild(c));
-                if (!possibleChild.isPresent()) {
-                  // this can happen e.g. if the ARG was not discovered completely.
-                  return Collections.singletonList(pResult);
-                }
-                ARGState child = possibleChild.get();
-                // search the new created thread-id
-                ThreadingState succThreadingState = extractStateByType(child, ThreadingState.class);
-                for (String threadId : succThreadingState.getThreadIds()) {
-                  if (!threadingState.getThreadIds().contains(threadId)) {
-                    // we found the new created thread-id. we assume there is only 'one' match
-                    spawnedThreadId = OptionalInt.of(getUniqueThreadNum(threadId));
-                    pResult =
-                        pResult.putAndCopy(
-                            KeyDef.CREATETHREAD, Integer.toString(spawnedThreadId.getAsInt()));
-                    String calledFunctionName =
-                        succThreadingState
-                            .getThreadLocation(threadId)
-                            .getLocationNode()
-                            .getFunctionName();
-                    threadInitialFunctionName = Optional.of(calledFunctionName);
-                  }
-                }
-                break;
-              }
-            default:
-              // nothing to do
-          }
-        }
-      }
-    }
+    // handle direct creation or destruction of threadsList<TransitionCondition> result =
+    // Lists.newArrayList();
 
-    List<TransitionCondition> result = Lists.newArrayList(pResult);
+    List<TransitionCondition> result = Lists.newArrayList();
+    if (optionalResult.isPresent()) {
+      Pair<String, String> idAndName = optionalResult.get();
+      String createdThreadId = Integer.toString(getUniqueThreadNum(idAndName.getFirst()));
+      pResult = pResult.putAndCopy(KeyDef.CREATETHREAD, createdThreadId);
+      result.add(pResult);
+      Optional<String> threadInitialFunctionName = Optional.of(idAndName.getSecond());
 
-    // enter function of newly created thread
-    if (threadInitialFunctionName.isPresent()) {
+      // if (isSpecialThreadCreate(pEdge)) {
       TransitionCondition extraTransition =
-          getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, threadInitialFunctionName, pAdditionalInfo);
-      if (spawnedThreadId.isPresent()) {
-        extraTransition =
-            extraTransition.putAndCopy(
-                KeyDef.THREADID, Integer.toString(spawnedThreadId.getAsInt()));
-      }
+          getSourceCodeGuards(
+              pEdge,
+              pGoesToSink,
+              pIsDefaultCase,
+              threadInitialFunctionName,
+              pAdditionalInfo);
+      extraTransition = extraTransition.putAndCopy(KeyDef.THREADID, createdThreadId);
+      extraTransition =
+          extraTransition.putAndCopy(KeyDef.FUNCTIONENTRY, threadInitialFunctionName.get());
 
       if (!extraTransition.getMapping().isEmpty()) {
         result.add(extraTransition);
       }
+    } else {
+      result.add(pResult);
     }
 
     return result;
+  }
+
+  private ARGState getChildState(ARGState pState, CFAEdge pEdge) {
+    com.google.common.base.Optional<ARGState> result =
+        from(pState.getChildren()).firstMatch(c -> pEdge == pState.getEdgeToChild(c));
+    if (result.isPresent()) {
+      return result.get();
+    } else {
+      // environment step
+      for (ARGState child : pState.getChildren()) {
+        CFAEdge newEdge = pState.getEdgeToChild(child);
+        if (newEdge == null) {
+          return child;
+        }
+      }
+      return null;
+    }
   }
 
   private int getUniqueThreadNum(String threadId) {
@@ -1162,6 +1155,7 @@ class WitnessFactory implements EdgeAppender {
     stateScopes.clear();
     invariantExportStates.clear();
     stateToARGStates.clear();
+    edgeToCFAEdges.clear();
 
     BiPredicate<ARGState, ARGState> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
@@ -1222,6 +1216,11 @@ class WitnessFactory implements EdgeAppender {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is irrelevant, remove it
       if (leavingEdges.get(edge.getSource()).contains(edge) && isEdgeIrrelevant.apply(edge)) {
+        if (edge.getTarget().equals(SINK_NODE_ID)
+            && leavingEdges.get(edge.getSource()).size() > 1) {
+          // we can not easily merge sink with other node, which has other edges
+          continue;
+        }
         Iterables.addAll(waitlist, mergeNodes(edge));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
@@ -1246,7 +1245,8 @@ class WitnessFactory implements EdgeAppender {
         stateQuasiInvariants,
         stateScopes,
         invariantExportStates,
-        stateToARGStates);
+        stateToARGStates,
+        edgeToCFAEdges);
   }
 
   /**
@@ -1355,6 +1355,10 @@ class WitnessFactory implements EdgeAppender {
 
               // Add the merged edge to the graph
               putEdge(merged.get());
+              edgeToCFAEdges.putAll(merged.get(), edgeToCFAEdges.get(edge));
+              edgeToCFAEdges.putAll(merged.get(), edgeToCFAEdges.get(other));
+              edgeToCFAEdges.removeAll(edge);
+              edgeToCFAEdges.removeAll(other);
 
               // Add the merged edge to the set of siblings to consider it for further merges
               edgeToSinkIterator.add(merged.get());
@@ -1559,6 +1563,8 @@ class WitnessFactory implements EdgeAppender {
         label = label.putAllAndCopy(leavingEdge.getLabel());
         Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.getTarget(), label);
         putEdge(replacementEdge);
+        edgeToCFAEdges.putAll(replacementEdge, edgeToCFAEdges.get(leavingEdge));
+        edgeToCFAEdges.removeAll(leavingEdge);
         replacementEdges.add(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
         if (loopHead != null) {
@@ -1570,6 +1576,7 @@ class WitnessFactory implements EdgeAppender {
     // Remove the old edges from their successors
     for (Edge leavingEdge : leavingEdgesToMove) {
       boolean removed = removeEdge(leavingEdge);
+      edgeToCFAEdges.removeAll(leavingEdge);
       assert removed;
     }
 
@@ -1594,8 +1601,10 @@ class WitnessFactory implements EdgeAppender {
     // Remove the old edges from their predecessors
     for (Edge enteringEdge : enteringEdgesToMove) {
       boolean removed = removeEdge(enteringEdge);
+      edgeToCFAEdges.removeAll(enteringEdge);
       assert removed : "could not remove edge: " + enteringEdge;
     }
+    edgeToCFAEdges.removeAll(pEdge);
 
     return replacementEdges;
   }

@@ -76,7 +76,11 @@ public class SMGJoinSubSMGsForAbstractionTest {
 
     SMGSingleLinkedListCandidate candidate =
         new SMGSingleLinkedListCandidate(
-            firstObject, OFFSET, 0, CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
+            firstObject,
+            OFFSET,
+            0,
+            smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID).longValueExact(),
+            MachineModel.LINUX32);
 
     long nfo = candidate.getShape().getNfo();
     SMGEdgeHasValue nextEdge =

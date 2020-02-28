@@ -301,7 +301,7 @@ public class LockRefiner
 
   private List<CFAEdge> filterEdges(ExtendedARGPath pPath) {
     return from(pPath.getInnerEdges())
-        .filter(e -> !(e instanceof CDeclarationEdge || e instanceof BlankEdge))
+        .filter(e -> !(e instanceof CDeclarationEdge || e instanceof BlankEdge || e == null))
         .toList();
   }
 

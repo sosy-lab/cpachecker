@@ -70,6 +70,10 @@ public class LlvmTypeConverter {
   }
 
   public CType getCType(final TypeRef pLlvmType) {
+      return getCType(pLlvmType, /* isUnsigned = */ false);
+  }
+
+  public CType getCType(final TypeRef pLlvmType, final boolean isUnsigned) {
     final boolean isConst = false;
     final boolean isVolatile = false;
     TypeKind typeKind = pLlvmType.getTypeKind();
@@ -83,10 +87,10 @@ public class LlvmTypeConverter {
       case X86_FP80:
       case FP128:
       case PPC_FP128:
-        return getFloatType(typeKind);
+        return getFloatType(typeKind, isUnsigned);
       case Integer:
         int integerWidth = pLlvmType.getIntTypeWidth();
-        return getIntegerType(integerWidth);
+        return getIntegerType(integerWidth, isUnsigned);
 
       case Function:
         return getFunctionType(pLlvmType);
@@ -102,13 +106,13 @@ public class LlvmTypeConverter {
                 BigInteger.valueOf(pLlvmType.getArrayLength()));
 
         return new CArrayType(
-            isConst, isVolatile, getCType(pLlvmType.getElementType()), arrayLength);
+            isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned), arrayLength);
 
       case Pointer:
         if (pLlvmType.getPointerAddressSpace() != 0) {
           logger.log(Level.WARNING, "Pointer address space not considered.");
         }
-        return new CPointerType(isConst, isVolatile, getCType(pLlvmType.getElementType()));
+        return new CPointerType(isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned));
 
       case Vector:
         CIntegerLiteralExpression vectorLength =
@@ -118,7 +122,7 @@ public class LlvmTypeConverter {
                 BigInteger.valueOf(pLlvmType.getVectorSize()));
 
         return new CArrayType(
-            isConst, isVolatile, getCType(pLlvmType.getElementType()), vectorLength);
+            isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned), vectorLength);
       case Label:
       case Metadata:
       case X86_MMX:
@@ -210,26 +214,26 @@ public class LlvmTypeConverter {
     return new CFunctionType(returnType, parameterTypes, takesVarArgs);
   }
 
-  private CType getIntegerType(final int pIntegerWidth) {
-    return new CBitFieldType(CNumericTypes.INT, pIntegerWidth);
+  private CType getIntegerType(final int pIntegerWidth, final boolean isUnsigned) {
+    return new CBitFieldType(isUnsigned ? CNumericTypes.UNSIGNED_INT : CNumericTypes.INT, pIntegerWidth);
   }
 
-  private CType getFloatType(final TypeKind pType) {
+  private CType getFloatType(final TypeKind pType, final boolean isUnsigned) {
 
     switch (pType) {
       case Half:
         // FIXME: This is actually wrong, but at the time of this writing
         // we have no way of defining a float of 16bit width
-        return getSimplestCType(CBasicType.FLOAT);
+        return getSimplestCType(CBasicType.FLOAT, isUnsigned);
 
       case Float:
-        return getSimplestCType(CBasicType.FLOAT);
+        return getSimplestCType(CBasicType.FLOAT, isUnsigned);
 
       case Double:
         if (machineModel.getSizeofDouble() * 8 == 64) {
-          return getSimplestCType(CBasicType.DOUBLE);
+          return getSimplestCType(CBasicType.DOUBLE, isUnsigned);
         } else if (machineModel.getSizeofLongDouble() * 8 == 64) {
-          return getSimplestCType(CBasicType.DOUBLE, true);
+          return getSimplestCType(CBasicType.DOUBLE, isUnsigned, /* pIsLong = */ true);
 
         } else {
           throw new AssertionError(
@@ -243,7 +247,7 @@ public class LlvmTypeConverter {
               "Machine model " + machineModel.name() + " can't handle 128bit float");
 
         } else {
-          return getSimplestCType(CBasicType.DOUBLE, true);
+          return getSimplestCType(CBasicType.DOUBLE, isUnsigned, /* pIsLong = */ true);
         }
 
       case X86_FP80:
@@ -254,16 +258,16 @@ public class LlvmTypeConverter {
     }
   }
 
-  private CType getSimplestCType(final CBasicType pBasicType) {
-    return getSimplestCType(pBasicType, false);
+  private CType getSimplestCType(final CBasicType pBasicType, final boolean isUnsigned) {
+    return getSimplestCType(pBasicType, isUnsigned, /* pIsLong = */ false);
   }
 
-  private CType getSimplestCType(final CBasicType pBasicType, boolean pIsLong) {
+  private CType getSimplestCType(final CBasicType pBasicType, final boolean isUnsigned,
+                                 boolean pIsLong) {
     final boolean isConst = false;
     final boolean isVolatile = false;
     final boolean isShort = false;
     final boolean isSigned = false;
-    final boolean isUnsigned = false;
     final boolean isComplex = false;
     final boolean isImaginary = false;
     final boolean isLongLong = false;

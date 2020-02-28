@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.PdrAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
@@ -324,7 +324,7 @@ public class CoreComponentsFactory {
 
   public Algorithm createAlgorithm(
       final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification pSpecification)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating algorithms");
 
     if (disableAnalysis) {
@@ -474,7 +474,8 @@ public class CoreComponentsFactory {
       }
 
       if (collectAssumptions) {
-        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger, cfa);
+        algorithm =
+            new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger, cfa, shutdownNotifier);
       }
 
       if (useAdjustableConditions) {
@@ -513,16 +514,17 @@ public class CoreComponentsFactory {
       }
 
       if (useTerminationAlgorithm) {
-        algorithm = new TerminationAlgorithm(
-            config,
-            logger,
-            shutdownNotifier,
-            cfa,
-            reachedSetFactory,
-            aggregatedReachedSetManager,
-            specification,
-            algorithm,
-            cpa);
+        algorithm =
+            new TerminationAlgorithm(
+                config,
+                logger,
+                shutdownNotifier,
+                cfa,
+                reachedSetFactory,
+                aggregatedReachedSetManager,
+                specification,
+                algorithm,
+                cpa);
       }
 
       if (cpa instanceof ARGCPA && forceCexStore) {
@@ -561,7 +563,7 @@ public class CoreComponentsFactory {
   }
 
   public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification pSpecification)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating CPAs");
 
     if (useInterleavedAlgorithm
@@ -589,7 +591,7 @@ public class CoreComponentsFactory {
   }
 
   private Specification loadTerminationSpecification(CFA cfa, Specification originalSpecification)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     Preconditions.checkState(useTerminationAlgorithm);
     boolean atMostWitness = true;
 
@@ -605,7 +607,7 @@ public class CoreComponentsFactory {
     }
     Specification terminationSpecification =
         TerminationAlgorithm.loadTerminationSpecification(
-            originalSpecification.getProperties(), witness, cfa, config, logger);
+            originalSpecification.getProperties(), witness, cfa, config, logger, shutdownNotifier);
 
     if (!atMostWitness && !originalSpecification.equals(terminationSpecification)) {
       throw new InvalidConfigurationException(

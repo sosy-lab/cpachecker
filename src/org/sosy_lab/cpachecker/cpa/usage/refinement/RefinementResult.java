@@ -60,6 +60,7 @@ public class RefinementResult {
 
   public void addInfo(Class<? extends RefinementInterface> caller, Object info) {
     //Now used only for transferring precision
+    assert !auxiliaryInfo.containsKey(caller);
     auxiliaryInfo.put(caller, info);
   }
 

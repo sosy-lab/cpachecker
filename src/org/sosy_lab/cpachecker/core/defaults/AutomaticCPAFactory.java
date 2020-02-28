@@ -165,7 +165,12 @@ public class AutomaticCPAFactory implements CPAFactory {
     }
 
     // verify types of declared exceptions
-    String exception = Classes.verifyDeclaredExceptions(cons, InvalidConfigurationException.class, CPAException.class);
+    String exception =
+        Classes.verifyDeclaredExceptions(
+            cons,
+            InvalidConfigurationException.class,
+            CPAException.class,
+            InterruptedException.class);
     if (exception != null) {
       throw new UnsupportedOperationException("Cannot automatically create CPAs if the constructor declares the unsupported checked exception " + exception);
     }

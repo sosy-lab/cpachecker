@@ -200,6 +200,7 @@ public class BAMSubgraphIterator implements PathIterator {
       if (data.getNonReducedInitialStates(parentInARG).size() > 1) {
         assert parentInARG.getParents().isEmpty();
         assert AbstractStates.extractLocation(parentInARG) instanceof FunctionEntryNode;
+        assert AbstractStates.extractLocation(parentInARG) instanceof FunctionEntryNode;
 
         //Now we should check, that there is no corresponding exit state in the path
         //only in this case this is a real fork

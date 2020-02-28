@@ -38,6 +38,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.ConcurrentHashMultiset;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
@@ -45,6 +46,7 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.GeometricN
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.InfiniteFixpointRepetition;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
+import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Rational;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
@@ -101,6 +103,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -577,7 +580,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         if (nonterminatingLoop.getLoopNodes().contains(leave.getSuccessor())) {
           succ = nodeToARGState.get(leave.getSuccessor());
           if (succ == null) {
-            succ = new ARGState(locFac.getState(leave.getSuccessor()), null);
+            succ =
+                new ARGState(Iterables.getOnlyElement(locFac.getState(leave.getSuccessor())), null);
             nodeToARGState.put(leave.getSuccessor(), succ);
             waitlist.push(leave.getSuccessor());
           }
@@ -596,7 +600,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
           waitlistFun = new ArrayDeque<>();
           waitlistFun.push(context);
 
-          succFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
+          succFun =
+              new ARGState(Iterables.getOnlyElement(locFac.getState(leave.getSuccessor())), null);
           contextToARGState.put(context, succFun);
 
           succFun.addParent(pred);
@@ -635,7 +640,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                 assert (newContext.getSecond() == null);
               }
               if (succFun == null) {
-                succFun = new ARGState(locFac.getState(leaveFun.getSuccessor()), null);
+                succFun =
+                    new ARGState(
+                        Iterables.getOnlyElement(locFac.getState(leaveFun.getSuccessor())),
+                        null);
                 if (leaveFun.getSuccessor() != locContinueLoop) {
                   contextToARGState.put(newContext, succFun);
                   waitlistFun.push(newContext);
@@ -676,6 +684,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       CLiteralExpression litexpr;
 
       for (Entry<IProgramVar, Rational> entry : arg.getStateHonda().entrySet()) {
+        RankVar rankVar = (RankVar) entry.getKey();
+        if (rankVar.getDefinition() instanceof ApplicationTerm
+            && ((ApplicationTerm) rankVar.getDefinition()).getParameters().length != 0) {
+          // ignore UFs
+          continue;
+        }
+
         varName = toOrigName(entry.getKey().getTermVariable());
         litexpr = literalExpressionFrom(entry.getValue());
         result = And.of(result, LeafExpression.of(buildEquals(varName, litexpr)));

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
 <!--
   Example file that demonstrates the use of CPAchecker.
   This file can and should be used as a base for building own benchmark definitions.
@@ -10,15 +10,15 @@
 
   <!-- Global sourcefiles are used in every run definition. -->
   <tasks name="locks">
-    <include>../../test/programs/benchmarks/locks/*_5_*.c</include>
+    <include>../../test/programs/benchmarks/locks/*_5_*.yml</include>
 
     <!-- Next line shows the use of a variable,
     in this case it has no effect, because of the path '../' after it. -->
-    <include>../../test/programs/${benchmark_name}/../benchmarks/locks/*_6_*.c</include>
+    <include>../../test/programs/${benchmark_name}/../benchmarks/locks/*_6_*.yml</include>
 
     <!-- Files can be "included" and "excluded". -->
-    <include>../../test/programs/benchmarks/locks/*_1*_*.c</include>
-    <exclude>../../test/programs/benchmarks/locks/*_13_*.c</exclude>
+    <include>../../test/programs/benchmarks/locks/*_1*_*.yml</include>
+    <exclude>../../test/programs/benchmarks/locks/*_13_*.yml</exclude>
 
     <!-- Multiple sourcefiles can be used as input for the tool, just append some files. All matching files will be appended. -->
     <append>../../${inputfile_path}/${inputfile_name}__second_file.c.does_not_exist</append>
@@ -43,8 +43,10 @@
   <propertyfile>${inputfile_path}/ALL.prp</propertyfile>
 
 
-  <!-- For final benchmarks for performance measurement, disable assertions. -->
-  <!-- <option name="-disable-java-assertions"/> -->
+  <!-- For final benchmarks for performance measurement,
+       enable benchmark mode (better performance due to disabled assertions).
+  -->
+  <!-- <option name="-benchmark"/> -->
 
   <!--
     Do not use the shortcut configurations such as -predicateAnalysis
@@ -79,5 +81,22 @@
     <column title="total" numberOfDigits="1">time for CPAchecker</column>
     <column title="reached">reached set</column>
   </columns>
+  -->
+
+  <!--
+    There are two more top-level tags that are used only when the VerifierCloud is used:
+
+    <requiredfiles> can be used to specify additional files that are needed
+    for executing the benchmark. The tag may contain a path to a file or directory
+    that is transmitted to the worker. Wildcards, environment variables etc. are resolved.
+    The tag may appear several times, and can be placed inside the <benchmark>,
+    <rundefinition>, and <tasks> tags.
+
+    <require> can be used to select a specific set of worker machines. The attributes
+    "cpuModel" (giving a string that needs to be contained in the worker's CPU name),
+    "cpuCores" (giving the minimal number of CPU cores), and
+    "memory" (giving the minimal amount of memory in MB) can be specified (all optional).
+    The tag may appear several times, but each attribute may appear at most once
+    (so you can specify all attributes in a single tag or spread over several occurrences).
   -->
 </benchmark>

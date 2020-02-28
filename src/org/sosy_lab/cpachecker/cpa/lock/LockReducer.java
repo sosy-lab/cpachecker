@@ -199,21 +199,19 @@ public class LockReducer implements Reducer, StatisticsProvider {
   }
 
   private Pair<Set<LockIdentifier>, Set<LockIdentifier>>
-      getLockSetsFor(AbstractLockState rootState, Block pContext) {
+      getLockSetsFor(AbstractLockState rootState, @SuppressWarnings("unused") Block pContext) {
     Set<LockIdentifier> locksToProcess = ImmutableSet.of();
     Set<LockIdentifier> uselessLocks = ImmutableSet.of();
 
-    if (reduceUselessLocks) {
-      uselessLocks =
-          Sets.filter(
-              rootState.getLocks(),
-              l -> !pContext.getCapturedLocks().contains(l)
-                  && !notReducedLocks.get(pContext.getCallNode()).contains(l));
-    }
+    /*
+     * if (reduceUselessLocks) { uselessLocks = Sets.filter( rootState.getLocks(), l ->
+     * !pContext.getCapturedLocks().contains(l) &&
+     * !notReducedLocks.get(pContext.getCallNode()).contains(l)); }
+     */
     switch (reduceLockCounters) {
       case BLOCK:
         locksToProcess = Sets.difference(rootState.getLocks(), uselessLocks);
-        locksToProcess = Sets.difference(locksToProcess, pContext.getCapturedLocks());
+        // locksToProcess = Sets.difference(locksToProcess, pContext.getCapturedLocks());
         break;
       case ALL:
         locksToProcess = Sets.difference(rootState.getLocks(), uselessLocks);

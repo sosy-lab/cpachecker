@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -135,8 +136,10 @@ public class Parsers {
   }
 
   public static CParser getCParser(
-
-      LogManager logger, EclipseCParserOptions options, MachineModel machine) {
+      LogManager logger,
+      EclipseCParserOptions options,
+      MachineModel machine,
+      ShutdownNotifier shutdownNotifier) {
 
     try {
       Constructor<? extends CParser> parserConstructor = loadedCParser.get();
@@ -148,12 +151,15 @@ public class Parsers {
         Class<? extends CParser> parserClass = (Class<? extends CParser>) classLoader.loadClass(C_PARSER_CLASS);
         parserConstructor =
             parserClass.getConstructor(
-                LogManager.class, EclipseCParserOptions.class, MachineModel.class);
+                LogManager.class,
+                EclipseCParserOptions.class,
+                MachineModel.class,
+                ShutdownNotifier.class);
         parserConstructor.setAccessible(true);
         loadedCParser = new WeakReference<>(parserConstructor);
       }
 
-      return parserConstructor.newInstance(logger, options, machine);
+      return parserConstructor.newInstance(logger, options, machine, shutdownNotifier);
     } catch (ReflectiveOperationException e) {
       throw new Classes.UnexpectedCheckedException("Failed to create Eclipse CDT parser", e);
     }

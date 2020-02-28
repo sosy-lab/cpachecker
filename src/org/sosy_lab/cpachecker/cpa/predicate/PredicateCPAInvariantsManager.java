@@ -713,7 +713,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               logger,
               cfa.getMachineModel(),
               scope,
-              cfa.getLanguage());
+              cfa.getLanguage(),
+              shutdownNotifier);
 
       InvariantGenerator invGen =
           CPAInvariantGenerator.create(

@@ -50,6 +50,15 @@ class PredicateCpaOptions {
       description = "do not include assumptions of states into path formula during strengthening")
   private boolean ignoreStateAssumptions = false;
 
+  @Option(secure = true, description = "Apply only relevant effects.")
+  private boolean applyRelevantEffects = false;
+
+  @Option(secure = true, description = "Merge only effects with equal abstractions.")
+  private boolean abstractionLattice = false;
+
+  @Option(secure = true, description = "Join effects into undefs or just combine assignments.")
+  private boolean joinEffectsIntoUndefs = true;
+
   @Option(secure = true, description = "Use formula reporting states for strengthening.")
   private boolean strengthenWithFormulaReportingStates = false;
 
@@ -80,6 +89,18 @@ class PredicateCpaOptions {
 
   boolean strengthenWithFormulaReportingStates() {
     return strengthenWithFormulaReportingStates;
+  }
+
+  boolean applyRelevantEffects() {
+    return applyRelevantEffects;
+  }
+
+  boolean abstractionLattice() {
+    return abstractionLattice;
+  }
+
+  boolean joinEffectsIntoUndefs() {
+    return joinEffectsIntoUndefs;
   }
 
   public boolean assumptionStrengtheningSatCheck() {

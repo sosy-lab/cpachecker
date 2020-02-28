@@ -80,7 +80,7 @@
     <exclude>../programs/benchmarks/systemc/token_ring.04_true-unreach-call_false-termination.cil.c</exclude> <!-- flapping timeout / wrong result -->
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>

@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -99,7 +100,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     Value val = rVal.accept(v);
 
     if (val.isUnknown()) {
-      return SMGExplicitValueAndState.of(v.getState());
+      return SMGExplicitValueAndState.of(v.getState(), SMGUnknownValue.INSTANCE);
     }
 
     return SMGExplicitValueAndState.of(v.getState(),
@@ -122,7 +123,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     if (pOffset.isUnknown() || pObject == null) {
       SMGState errState =
           pSmgState.withInvalidRead().withErrorDescription("Can't evaluate offset or object");
-      return SMGValueAndState.of(errState);
+      return SMGValueAndState.withUnknownValue(errState);
     }
 
     long fieldOffset = pOffset.getAsLong();
@@ -157,7 +158,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
         description = "NULL pointer dereference on read";
       }
       errState = errState.withErrorDescription(description);
-      return SMGValueAndState.of(errState);
+      return SMGValueAndState.withUnknownValue(errState);
     }
 
     return pSmgState.forceReadValue(pObject, fieldOffset, pType);
@@ -228,7 +229,13 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
                 knownValue, SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit);
       }
     }
-    return pState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue).getState();
+    return pState
+        .writeValue(
+            pMemoryOfField,
+            pFieldOffset,
+            machineModel.getSizeofInBits(pRValueType).longValueExact(),
+            pValue)
+        .getState();
   }
 
   public SMGState assignFieldToState(

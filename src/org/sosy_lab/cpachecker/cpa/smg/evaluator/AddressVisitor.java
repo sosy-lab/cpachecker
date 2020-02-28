@@ -72,11 +72,11 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
 
   @Override
   protected List<SMGAddressAndState> visitDefault(CExpression pExp) {
-    return Collections.singletonList(SMGAddressAndState.of(getInitialSmgState()));
+    return Collections.singletonList(SMGAddressAndState.withUnknownAddress(getInitialSmgState()));
   }
 
   List<SMGAddressAndState> visitDefault(@SuppressWarnings("unused") CRightHandSide rhs) {
-    return Collections.singletonList(SMGAddressAndState.of(getInitialSmgState()));
+    return Collections.singletonList(SMGAddressAndState.withUnknownAddress(getInitialSmgState()));
   }
 
   @Override

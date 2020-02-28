@@ -117,6 +117,7 @@ public class CPABuilder {
       factory.set(cfa, CFA.class);
       factory.set(pAggregatedReachedSets, AggregatedReachedSets.class);
       factory.set(automaton, Automaton.class);
+      factory.setShutdownNotifier(shutdownNotifier);
 
       cpas.add(factory.createInstance());
     }

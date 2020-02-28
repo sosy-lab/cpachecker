@@ -40,10 +40,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.TrivialApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -61,7 +64,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class CompositeCPA implements StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class CompositeCPA implements StatisticsProvider, WrapperCPA,
+    ConfigurableProgramAnalysisWithBAM, ProofChecker, ConfigurableProgramAnalysisTM {
 
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
@@ -326,10 +330,13 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
 
   @Override
   public void setPartitioning(BlockPartitioning partitioning) {
-    cpas.forEach(e -> {
-      assert e instanceof ConfigurableProgramAnalysisWithBAM;
-      ((ConfigurableProgramAnalysisWithBAM) e).setPartitioning(partitioning);
-    });
+    cpas.forEach(
+        cpa -> {
+          Preconditions.checkState(
+              cpa instanceof ConfigurableProgramAnalysisWithBAM,
+              "wrapped CPA does not support BAM: " + cpa.getClass().getCanonicalName());
+          ((ConfigurableProgramAnalysisWithBAM) cpa).setPartitioning(partitioning);
+        });
   }
 
   @Override
@@ -353,5 +360,18 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
     }
 
     return true;
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() {
+    ImmutableList.Builder<ApplyOperator> wrappedOperators = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      if (cpa instanceof ConfigurableProgramAnalysisTM) {
+        wrappedOperators.add(((ConfigurableProgramAnalysisTM) cpa).getApplyOperator());
+      } else {
+        wrappedOperators.add(TrivialApplyOperator.getInstance());
+      }
+    }
+    return new CompositeApplyOperator(wrappedOperators.build());
   }
 }

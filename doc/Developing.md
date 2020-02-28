@@ -74,7 +74,7 @@ Develop CPAchecker from within Eclipse
    Create new project from [SVN repository](https://svn.sosy-lab.org/software/cpachecker/trunk)
    (or use GIT as described above).
 
-4. Copy the file `.factorypath.template` to `.factorypath`,
+4. Creat a copy of the file `.factorypath.template` and name it `.factorypath`,
    and (if necessary) adjust the path to the CPAchecker directory within it.
 
 5. If Eclipse complains about a missing JDK

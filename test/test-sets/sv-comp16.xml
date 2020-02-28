@@ -20,7 +20,7 @@
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="BitVectorsOverflows">
-    <includesfile>../programs/benchmarks/Overflows-BitVectors.set</includesfile>
+    <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     <option name="-64"/>
   </tasks>
@@ -72,13 +72,13 @@
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDriversLinux64">
-    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
     <option name="-64"/>
   </tasks>
   <tasks name="BusyBox">
-    <includesfile>../programs/benchmarks/Systems_BusyBox_MemSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-MemSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>

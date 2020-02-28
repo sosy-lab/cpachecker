@@ -134,7 +134,7 @@
 
     <available file=".factorypath" property="factorypath.present"/>
     <target name="-warn-factorypath" unless="factorypath.present">
-        <echo level="warning">If you use Eclipse, please copy .factorypath.template to .factorypath and (if necessary) adjust the path to your CPAchecker directory in it.</echo>
+        <echo level="warning">If you use Eclipse, please create a copy of .factorypath.template and name it .factorypath, (if necessary) adjust the path to your CPAchecker directory in it.</echo>
         <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 

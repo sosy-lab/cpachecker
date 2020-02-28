@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -57,7 +58,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
@@ -143,6 +148,27 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
     CFANode node = extractLocation(pElement);
     results = new ArrayList<>(node.getNumLeavingEdges());
 
+    AbstractStateWithLocations locState =
+        extractStateByType(pElement, AbstractStateWithLocations.class);
+
+    if (locState instanceof AbstractStateWithEdge) {
+      AbstractEdge edge = ((AbstractStateWithEdge) locState).getAbstractEdge();
+      if (edge instanceof WrapperCFAEdge) {
+        results.addAll(
+            getAbstractSuccessorsForEdge(
+                pElement,
+                pPrecision,
+                ((WrapperCFAEdge) edge).getCFAEdge()));
+      } else {
+        results.addAll(getAbstractSuccessorForAbstractEdge(pElement, pPrecision));
+      }
+    } else {
+      for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
+        CFAEdge edge = node.getLeavingEdge(edgeIdx);
+        results.addAll(getAbstractSuccessorsForEdge(pElement, pPrecision, edge));
+      }
+    }
+
     for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
       CFAEdge edge = node.getLeavingEdge(edgeIdx);
       results.addAll(getAbstractSuccessorsForEdge(pElement, pPrecision, edge));
@@ -150,6 +176,25 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
 
     statistics.transferRelationTimer.stop();
     return results;
+  }
+
+  private Collection<? extends AbstractState>
+      getAbstractSuccessorForAbstractEdge(AbstractState pElement, Precision pPrecision)
+          throws CPATransferException, InterruptedException {
+
+    UsageState oldState = (UsageState) pElement;
+    AbstractState oldWrappedState = oldState.getWrappedState();
+    statistics.innerAnalysisTimer.start();
+    Collection<? extends AbstractState> newWrappedStates =
+        transferRelation.getAbstractSuccessors(oldWrappedState, pPrecision);
+    statistics.innerAnalysisTimer.stop();
+
+    Collection<AbstractState> result = new ArrayList<>();
+    for (AbstractState newWrappedState : newWrappedStates) {
+      UsageState newState = oldState.copy(newWrappedState);
+      result.add(newState);
+    }
+    return result;
   }
 
   @Override

@@ -309,11 +309,14 @@ public class PathPairIterator extends
   }
 
   private void handleAffectedStates(List<ARGState> affectedStates) {
-    if (affectedStates == null || affectedStates.isEmpty()) {
-      return;
-    }
+    // ARGState nextStart;
+    // if (affectedStates != null) {
     List<Integer> changedStateNumbers = transformedImmutableListCopy(affectedStates, idExtractor);
-    assert !changedStateNumbers.isEmpty();
     refinedStates.add(changedStateNumbers);
+
+    /*
+     * nextStart = affectedStates.get(affectedStates.size() - 1); } else { nextStart =
+     * path.getFirstState().getChildren().iterator().next(); }
+     */
   }
 }

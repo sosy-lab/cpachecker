@@ -130,8 +130,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       if (mergeTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for merge operator:        " + mergeTimer);
       }
-      out.println("  Time for stop operator:         " + stopTimer);
-      out.println("  Time for adding to reached set: " + addTimer);
+      out.println("  Time for stop operator:           " + stopTimer);
+      out.println("  Time for adding to reached set:   " + addTimer);
 
     }
   }
@@ -307,7 +307,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
    * @return true if analysis should terminate, false if analysis should continue with next state
    */
   private boolean handleState(
-      final AbstractState state, final Precision precision, final ReachedSet reachedSet)
+      final AbstractState state,
+      Precision precision,
+      final ReachedSet reachedSet)
       throws CPAException, InterruptedException {
     logger.log(Level.ALL, "Current state is", state, "with precision", precision);
 
@@ -328,7 +330,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     stats.transferTimer.start();
     Collection<? extends AbstractState> successors;
     try {
-      successors = transferRelation.getAbstractSuccessors(state, precision);
+      successors = transferRelation.getAbstractSuccessors(state, reachedSet, precision);
     } finally {
       stats.transferTimer.stop();
     }
@@ -431,6 +433,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             // because ARGCPA doesn't like states in toRemove to be in the reachedSet.
             reachedSet.removeAll(toRemove);
             reachedSet.addAll(toAdd);
+
           }
 
           if (mergeOperator instanceof ARGMergeJoinCPAEnabledAnalysis) {

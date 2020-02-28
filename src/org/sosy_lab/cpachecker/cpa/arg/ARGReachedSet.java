@@ -56,8 +56,8 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.Precisions;
 
 /**
  * This class is a modifiable live view of a reached set, which shows the ARG
@@ -339,6 +339,7 @@ public class ARGReachedSet {
     for (ARGState ae : toUnreach) {
       newToUnreach.addAll(ae.getCoveredByThis());
     }
+
     // we remove the covered states completely,
     // maybe we re-explore them later and find coverage again.
     // caution: siblings of the covered state might be re-explored, too,
@@ -412,6 +413,9 @@ public class ARGReachedSet {
     for (ARGState ae : elements) {
       for (ARGState parent : ae.getParents()) {
         if (!elements.contains(parent)) {
+          if (parent.getAppliedFrom() != null) {
+            parent = parent.getAppliedFrom().getFirst();
+          }
           toWaitlist.add(parent);
         }
       }

@@ -150,7 +150,6 @@ final class SMGJoinSubSMGs {
         } else {
           newHV =
               new SMGEdgeHasValue(
-                  hvIn1.getType(),
                   hvIn1.getSizeInBits(),
                   hvIn1.getOffset(),
                   pNewObject,

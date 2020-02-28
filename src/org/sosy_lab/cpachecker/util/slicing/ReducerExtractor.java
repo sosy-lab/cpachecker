@@ -65,11 +65,13 @@ public class ReducerExtractor extends AllTargetsExtractor {
       final CFA pCfa,
       final Specification pError,
       final ShutdownNotifier shutdownNotifier,
-      LogManager logger) {
+      LogManager logger)
+      throws InterruptedException {
     Specification compositeSpec;
     try {
       Specification conditionSpec =
-          Specification.fromFiles(ImmutableSet.of(), conditionFiles, pCfa, config, logger);
+          Specification.fromFiles(
+              ImmutableSet.of(), conditionFiles, pCfa, config, logger, shutdownNotifier);
       compositeSpec = Specification.combine(conditionSpec, pError);
     } catch (InvalidConfigurationException e) {
       logger.logException(

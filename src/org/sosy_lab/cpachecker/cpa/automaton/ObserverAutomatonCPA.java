@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -33,9 +34,14 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 
 public class ObserverAutomatonCPA extends ControlAutomatonCPA {
 
-  private ObserverAutomatonCPA(@OptionalAnnotation Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA cfa)
+  private ObserverAutomatonCPA(
+      @OptionalAnnotation Automaton pAutomaton,
+      Configuration pConfig,
+      LogManager pLogger,
+      CFA cfa,
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    super(pAutomaton, pConfig, pLogger, cfa);
+    super(pAutomaton, pConfig, pLogger, cfa, pShutdownNotifier);
     super.getAutomaton().assertObserverAutomaton();
   }
 

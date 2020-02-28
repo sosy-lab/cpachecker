@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -102,7 +103,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
   private final LogManager logger;
 
   private UsageContainer container = null;
-  private List<Pair<UsageInfo, UsageInfo>> stableUnsafes = null;
+  private List<Pair<UsageInfo, UsageInfo>> stableUnsafes = ImmutableList.of();
 
   public UsageReachedSet(
       WaitlistFactory waitlistFactory, Configuration pConfig, LogManager pLogger) {
@@ -272,13 +273,13 @@ public class UsageReachedSet extends PartitionedReachedSet {
             addingToContainerTimer.stop();
 
             expandedUsages.clear();
-            for (ARGState child : argState.getChildren()) {
+            for (ARGState child : argState.getSuccessors()) {
               if (!processedIds.contains(getId(child))) {
                 stateWaitlist.add(child);
               }
             }
           } else {
-            stateWaitlist.addAll(argState.getChildren());
+            stateWaitlist.addAll(argState.getSuccessors());
             if (argState.isCovered()) {
               stateWaitlist.add(argState.getCoveringState());
             }

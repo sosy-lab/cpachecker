@@ -133,7 +133,7 @@ public class ARGPathRestorator implements PathRestorator {
           }
         }
       }
-  }
+    }
     return false;
   }
 
@@ -142,24 +142,24 @@ public class ARGPathRestorator implements PathRestorator {
     return new DummyPathIterator(pTarget);
   }
 
-class DummyPathIterator implements PathIterator {
-  final ARGState target;
-  boolean computeOnePath;
+  class DummyPathIterator implements PathIterator {
+    final ARGState target;
+    boolean computeOnePath;
 
-  DummyPathIterator(ARGState pTarget) {
-    target = pTarget;
-    computeOnePath = false;
-  }
-
-  @Override
-  public ARGPath nextPath(Set<List<Integer>> pRefinedStatesIds) {
-    if (computeOnePath) {
-      return null;
-    } else {
-      computeOnePath = true;
-      return ARGPathRestorator.this.computePath(target, pRefinedStatesIds);
+    DummyPathIterator(ARGState pTarget) {
+      target = pTarget;
+      computeOnePath = false;
     }
-  }
 
-}
+    @Override
+    public ARGPath nextPath(Set<List<Integer>> pRefinedStatesIds) {
+      if (computeOnePath) {
+        return null;
+      } else {
+        computeOnePath = true;
+        return ARGPathRestorator.this.computePath(target, pRefinedStatesIds);
+      }
+    }
+
+  }
 }

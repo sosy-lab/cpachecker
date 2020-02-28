@@ -23,15 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGObjectTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
+@Immutable
 public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
   public SMGRegion(int pSize, String pLabel) {
     super(pSize, pLabel, SMGObjectKind.REG);
+  }
+
+  public SMGRegion(int pSize) {
+    super(pSize, "ID" + SMGCPA.getNewValue(), SMGObjectKind.REG);
   }
 
   public SMGRegion(SMGRegion pOther) {

@@ -128,11 +128,10 @@ public class UsageCPAStatistics implements Statistics {
         .put(innerStopTimer)
         .endLevel();
 
-    ReachedSet reachedSet;
-    if (reached instanceof ForwardingReachedSet) {
-      reachedSet = ((ForwardingReachedSet) reached).getDelegate();
-    } else {
-      reachedSet = (ReachedSet) reached;
+    ReachedSet reachedSet = (ReachedSet) reached;
+    while (reachedSet instanceof ForwardingReachedSet) {
+      // Twice Forwarding -> ThreadModular -> Usage
+      reachedSet = ((ForwardingReachedSet) reachedSet).getDelegate();
     }
     UsageReachedSet uReached = (UsageReachedSet) reachedSet;
 

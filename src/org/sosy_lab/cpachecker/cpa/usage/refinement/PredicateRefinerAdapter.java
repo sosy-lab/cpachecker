@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -56,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefinerFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.RecomputeBlockFormulaStrategy;
+import org.sosy_lab.cpachecker.cpa.predicate.ThreadModularCPARefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -78,16 +80,16 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   // Number of refined and repeated paths are calculated in generic refiner
   private StatCounter numberOfBAMupdates = new StatCounter("Number of BAM updates");
 
-  public PredicateRefinerAdapter(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> wrapper,
+  public static PredicateRefinerAdapter createPlainRefiner(
+      ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> wrapper,
       ConfigurableProgramAnalysis pCpa,
       LogManager pLogger)
       throws InvalidConfigurationException {
-    super(wrapper);
 
     if (!(pCpa instanceof WrapperCPA)) {
-      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
+      throw new InvalidConfigurationException(
+          BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
-    logger = pLogger;
 
     @SuppressWarnings("resource")
     BAMPredicateCPA bamPredicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
@@ -98,32 +100,146 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     assert predicateCpa != null;
 
     BlockFormulaStrategy blockFormulaStrategy;
+    Function<ARGState, ARGState> transformer;
+
+    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
 
     if (withBAM) {
-      strategy =
-          new UsageStatisticsRefinementStrategy(
-              bamPredicateCpa.getConfiguration(),
-              logger,
-              bamPredicateCpa.getSolver(),
-              bamPredicateCpa.getPredicateManager(),
-              s -> ((BackwardARGState) s).getARGState());
+      transformer = s -> ((BackwardARGState) s).getARGState();
+      blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr);
+    } else {
+      transformer = s -> s;
+      // Anyway we need to recompute the formulas to avoid problems with the last nonabstraction
+      // state
+      blockFormulaStrategy = new RecomputeBlockFormulaStrategy(pfmgr);
+    }
+
+    UsageStatisticsRefinementStrategy pStrategy =
+        new UsageStatisticsRefinementStrategy(
+            predicateCpa.getConfiguration(),
+            pLogger,
+            predicateCpa.getSolver(),
+            predicateCpa.getPredicateManager(),
+            transformer);
+
+    ARGBasedRefiner pRefiner =
+        new PredicateCPARefinerFactory(pCpa).setBlockFormulaStrategy(blockFormulaStrategy)
+            .create(pStrategy);
+
+    return new PredicateRefinerAdapter(wrapper, pLogger, pStrategy, pRefiner);
+  }
+
+  public static PredicateRefinerAdapter createThreadModularRefiner(
+      ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> wrapper,
+      ConfigurableProgramAnalysis pCpa,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
+
+    if (!(pCpa instanceof WrapperCPA)) {
+      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
+    }
+
+    @SuppressWarnings("resource")
+    BAMPredicateCPA bamPredicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
+    PredicateCPA predicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(PredicateCPA.class);
+
+    boolean withBAM = bamPredicateCpa != null;
+    predicateCpa = withBAM ? bamPredicateCpa : predicateCpa;
+    assert predicateCpa != null;
+
+    BlockFormulaStrategy blockFormulaStrategy;
+    Function<ARGState, ARGState> transformer;
+
+    if (withBAM) {
+      transformer = s -> ((BackwardARGState) s).getARGState();
       PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
       blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr);
     } else {
-      strategy =
-          new UsageStatisticsRefinementStrategy(
-              predicateCpa.getConfiguration(),
-              logger,
-              predicateCpa.getSolver(),
-              predicateCpa.getPredicateManager(),
-              s -> s);
+      transformer = s -> s;
       PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
       blockFormulaStrategy = new RecomputeBlockFormulaStrategy(pfmgr);
     }
 
-    refiner = new PredicateCPARefinerFactory(pCpa)
+    UsageStatisticsRefinementStrategy pStrategy =
+        new UsageStatisticsRefinementStrategy(
+            predicateCpa.getConfiguration(),
+            pLogger,
+            predicateCpa.getSolver(),
+            predicateCpa.getPredicateManager(),
+            transformer);
+
+    ARGBasedRefiner delegate =
+        new PredicateCPARefinerFactory(pCpa)
         .setBlockFormulaStrategy(blockFormulaStrategy)
-            .create(strategy);
+            .create(pStrategy);
+
+    ARGBasedRefiner pRefiner =
+        new ThreadModularCPARefiner(pLogger, pStrategy, predicateCpa.getConfiguration(), delegate);
+
+    return new PredicateRefinerAdapter(wrapper, pLogger, pStrategy, pRefiner);
+  }
+
+  public static PredicateRefinerAdapter createImpreciseRefiner(
+      ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> wrapper,
+      ConfigurableProgramAnalysis pCpa,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
+
+    if (!(pCpa instanceof WrapperCPA)) {
+      throw new InvalidConfigurationException(
+          BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
+    }
+
+    @SuppressWarnings("resource")
+    BAMPredicateCPA bamPredicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
+    PredicateCPA predicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(PredicateCPA.class);
+
+    boolean withBAM = bamPredicateCpa != null;
+    predicateCpa = withBAM ? bamPredicateCpa : predicateCpa;
+    assert predicateCpa != null;
+
+    BlockFormulaStrategy blockFormulaStrategy;
+    Function<ARGState, ARGState> transformer;
+
+    ConfigurationBuilder configBuilder = Configuration.builder();
+    configBuilder = configBuilder.copyFrom(predicateCpa.getConfiguration());
+    configBuilder.setOption("cpa.predicate.useHavocAbstraction", "true");
+    Configuration newConfig = configBuilder.build();
+
+    PathFormulaManager pfmgr = predicateCpa.createPathFormulaManager(newConfig);
+
+    if (withBAM) {
+      transformer = s -> ((BackwardARGState) s).getARGState();
+      blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr);
+    } else {
+      transformer = s -> s;
+      blockFormulaStrategy = new RecomputeBlockFormulaStrategy(pfmgr);
+    }
+
+    UsageStatisticsRefinementStrategy pStrategy =
+        new UsageStatisticsRefinementStrategy(
+            predicateCpa.getConfiguration(),
+            pLogger,
+            predicateCpa.getSolver(),
+            predicateCpa.getPredicateManager(),
+            transformer);
+
+    ARGBasedRefiner delegate =
+        new PredicateCPARefinerFactory(pCpa).setBlockFormulaStrategy(blockFormulaStrategy)
+            .create(pStrategy);
+
+    return new PredicateRefinerAdapter(wrapper, pLogger, pStrategy, delegate);
+  }
+
+  public PredicateRefinerAdapter(
+      ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> wrapper,
+      LogManager pLogger,
+      UsageStatisticsRefinementStrategy pStrategy,
+      ARGBasedRefiner pRefiner) {
+    super(wrapper);
+    logger = pLogger;
+    strategy = pStrategy;
+    refiner = pRefiner;
   }
 
   @Override
@@ -268,6 +384,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
         newResult.add(pPath.getLastState());
         return newResult;
       }
+
       return result;
     }
 
