@@ -30,7 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.NonNull;
+import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
@@ -38,7 +38,7 @@ public class ARGPathRestorator implements PathRestorator {
 
   private final Function<ARGState, Integer> getStateId;
 
-  public ARGPathRestorator(@NonNull Function<ARGState, Integer> idExtractor) {
+  public ARGPathRestorator(@Nonnull Function<ARGState, Integer> idExtractor) {
     getStateId = idExtractor;
   }
 

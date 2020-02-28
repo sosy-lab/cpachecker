@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -46,15 +48,20 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
@@ -79,6 +86,8 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   private PathTemplate errorPathFile = PathTemplate.ofFormatString("witness.%s.graphml");
 
   private static final String WARNING_MESSAGE = "Access was not found";
+
+  String defaultSourcefileName;
 
   private static class ThreadIterator implements Iterator<Integer> {
     private Set<Integer> usedThreadIds;
@@ -162,7 +171,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     CFAEdge secondEdge = secondIterator.next();
     int forkThread = 0;
 
-    String defaultSourcefileName =
+    defaultSourcefileName =
         firstEdge.getFileLocation().getFileName();
 
     String status;
@@ -271,6 +280,10 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
   private Element printEdge(GraphMlBuilder builder, CFAEdge edge) {
 
+    if (handleAsEpsilonEdge0(edge)) {
+      return null;
+    }
+
     if (isThreadCreateFunction(edge)) {
       CFunctionSummaryEdge sEdge = ((CFunctionCallEdge) edge).getSummaryEdge();
       Element result = printEdge(builder, sEdge);
@@ -293,9 +306,15 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private void dumpCommonInfoForEdge(GraphMlBuilder builder, Element result, CFAEdge pEdge) {
-    if (pEdge.getSuccessor() instanceof FunctionEntryNode) {
-      FunctionEntryNode in = (FunctionEntryNode) pEdge.getSuccessor();
-      builder.addDataElementChild(result, KeyDef.FUNCTIONENTRY, in.getFunctionName());
+    CFANode succ = pEdge.getSuccessor();
+    String functionName = null;
+    if (succ instanceof FunctionEntryNode) {
+      functionName = ((FunctionEntryNode) succ).getFunctionDefinition().getOrigName();
+    } else if (AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
+      functionName = succ.getFunctionName();
+    }
+    if (functionName != null) {
+      builder.addDataElementChild(result, KeyDef.FUNCTIONENTRY, functionName);
     }
     if (pEdge.getSuccessor() instanceof FunctionExitNode) {
       FunctionExitNode out = (FunctionExitNode) pEdge.getSuccessor();
@@ -308,12 +327,38 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       builder.addDataElementChild(result, KeyDef.CONTROLCASE, assumeCase.toString());
     }
 
-    FileLocation location = pEdge.getFileLocation();
-    assert (location != null) : "should be filtered";
-    builder.addDataElementChild(result, KeyDef.ORIGINFILE, location.getFileName());
-    builder.addDataElementChild(
-        result, KeyDef.STARTLINE, Integer.toString(location.getStartingLineInOrigin()));
-    builder.addDataElementChild(result, KeyDef.OFFSET, Integer.toString(location.getNodeOffset()));
+    final Set<FileLocation> locations =
+        AutomatonGraphmlCommon.getFileLocationsFromCfaEdge0(pEdge, cfa.getMainFunction());
+    final Comparator<FileLocation> nodeOffsetComparator =
+        Comparator.comparingInt(FileLocation::getNodeOffset);
+    final FileLocation min =
+        locations.isEmpty() ? null : Collections.min(locations, nodeOffsetComparator);
+    final FileLocation max =
+        locations.isEmpty() ? null : Collections.max(locations, nodeOffsetComparator);
+
+    if (min != null) {
+      builder.addDataElementChild(result, KeyDef.ORIGINFILE, min.getFileName());
+      builder.addDataElementChild(
+          result,
+          KeyDef.STARTLINE,
+          Integer.toString(min.getStartingLineInOrigin()));
+    }
+    if (max != null) {
+      builder.addDataElementChild(
+          result,
+          KeyDef.ENDLINE,
+          Integer.toString(max.getEndingLineInOrigin()));
+    }
+
+    if (min != null && min.isOffsetRelatedToOrigin()) {
+      builder.addDataElementChild(result, KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
+    }
+    if (max != null && max.isOffsetRelatedToOrigin()) {
+          builder.addDataElementChild(
+              result,
+              KeyDef.ENDOFFSET,
+              Integer.toString(max.getNodeOffset() + max.getNodeLength() - 1));
+    }
 
     if (!pEdge.getRawStatement().trim().isEmpty()) {
       builder.addDataElementChild(result, KeyDef.SOURCECODE, pEdge.getRawStatement());
@@ -357,11 +402,38 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
   @Override
   protected String createUniqueName(SingleIdentifier id) {
-    String declaration = id.getType().toASTString(id.toString());
+    CType type = id.getType();
+    String declaration;
+    if (type instanceof CCompositeType) {
+      // It includes declarations of all fields
+      declaration = ((CCompositeType) type).getQualifiedName() + " " + id.toString();
+    } else {
+      declaration = id.getType().toASTString(id.toString());
+    }
     if (id instanceof LocalVariableIdentifier) {
       // To avoid matching the same variables from different functions
       declaration = ((LocalVariableIdentifier) id).getFunction() + "::" + declaration;
     }
     return declaration;
+  }
+
+  private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
+    if (edge instanceof BlankEdge) {
+      if (AutomatonGraphmlCommon.isMainFunctionEntry(edge)) {
+        return false;
+      }
+      if (edge.getSuccessor() instanceof FunctionExitNode) {
+        return AutomatonGraphmlCommon
+            .isEmptyStub(((FunctionExitNode) edge.getSuccessor()).getEntryNode());
+      }
+      if (AutomatonGraphmlCommon.treatAsTrivialAssume(edge)) {
+        return false;
+      }
+      if (AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
+        return false;
+      }
+      return true;
+    }
+    return false;
   }
 }

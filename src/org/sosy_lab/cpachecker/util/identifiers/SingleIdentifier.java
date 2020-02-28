@@ -29,9 +29,9 @@ import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 
 public abstract class SingleIdentifier implements AbstractIdentifier {
 
-  protected String name;
-  protected CType type;
-  protected int dereference;
+  protected final String name;
+  protected final CType type;
+  protected final int dereference;
 
   public SingleIdentifier(String nm, CType tp, int deref) {
     name = nm;

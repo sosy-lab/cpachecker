@@ -262,6 +262,12 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
               AbstractLockEffect e =
                   CheckLockEffect.createEffectForId(level, cfaEdge.getTruthAssumption(), id);
               return Collections.singletonList(e);
+            } else if (binExpression.getOperator() == BinaryOperator.NOT_EQUALS) {
+              LockIdentifier id = lockDescription.getVariableEffectDescription().get(varName);
+              int level = ((CIntegerLiteralExpression) val).getValue().intValue();
+              AbstractLockEffect e =
+                  CheckLockEffect.createEffectForId(level, !cfaEdge.getTruthAssumption(), id);
+              return Collections.singletonList(e);
             } else {
               logger.log(
                   Level.WARNING,

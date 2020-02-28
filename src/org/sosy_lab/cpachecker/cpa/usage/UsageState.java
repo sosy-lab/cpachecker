@@ -82,8 +82,16 @@ public class UsageState extends AbstractSingleWrapperState
       int d2 = id2.getDereference();
       AbstractIdentifier newId2 = id2.cloneWithDereference(d2 - d1);
       ImmutableMap.Builder<AbstractIdentifier, AbstractIdentifier> builder = ImmutableMap.builder();
-      builder.putAll(variableBindingRelation);
-      builder.put(newId1, newId2);
+
+      for (Entry<AbstractIdentifier, AbstractIdentifier> entry : variableBindingRelation.entrySet()) {
+        AbstractIdentifier key = entry.getKey();
+        if (key.equals(newId1)) {
+          // Can not remove from builder, so have to go through a map manually
+          builder.put(newId1, newId2);
+        } else {
+          builder.put(entry);
+        }
+      }
       result.variableBindingRelation = builder.build();
 
       return result;

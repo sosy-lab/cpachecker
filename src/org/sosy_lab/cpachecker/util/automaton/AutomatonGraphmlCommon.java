@@ -1106,7 +1106,7 @@ public class AutomatonGraphmlCommon {
     return false;
   }
 
-  private static boolean isEmptyStub(FunctionEntryNode pEntryNode) {
+  public static boolean isEmptyStub(FunctionEntryNode pEntryNode) {
     Iterator<CFAEdge> startEdges = CFAUtils.leavingEdges(pEntryNode).iterator();
     if (!startEdges.hasNext()) {
       return false;
@@ -1136,7 +1136,7 @@ public class AutomatonGraphmlCommon {
             .anyMatch(e -> e.getDescription().equals("while"));
   }
 
-  private static boolean treatAsTrivialAssume(CFAEdge pEdge) {
+  public static boolean treatAsTrivialAssume(CFAEdge pEdge) {
     CFANode pred = pEdge.getPredecessor();
     if (pred.getNumLeavingEdges() != 1) {
       return false;

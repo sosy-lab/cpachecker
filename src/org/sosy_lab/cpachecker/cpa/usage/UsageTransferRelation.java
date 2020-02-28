@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
 
 @Options(prefix = "cpa.usage")
 public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation {
@@ -100,6 +101,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
   private final CallstackTransferRelation callstackTransfer;
 
   private final Map<String, BinderFunctionInfo> binderFunctionInfo;
+  private final IdentifierCreator creator;
 
   private final LogManager logger;
 
@@ -107,7 +109,8 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       TransferRelation pWrappedTransfer,
       Configuration config,
       LogManager pLogger,
-      UsageCPAStatistics s)
+      UsageCPAStatistics s,
+      IdentifierCreator c)
       throws InvalidConfigurationException {
     super(pWrappedTransfer);
     config.inject(this, UsageTransferRelation.class);
@@ -131,6 +134,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
 
     // BindedFunctions should not be analysed
     skippedfunctions = new TreeSet<>(Sets.union(skippedfunctions, binderFunctions));
+    creator = c;
   }
 
   @Override
@@ -329,8 +333,9 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
         // For example, sdlGetFirst also deletes element.
         // So, if we can't link (no left side), we skip it
         AbstractIdentifier idIn, idFrom;
-        idIn = bInfo.constructFirstIdentifier(left, params, getCurrentFunction(newState));
-        idFrom = bInfo.constructSecondIdentifier(left, params, getCurrentFunction(newState));
+        idIn = bInfo.constructFirstIdentifier(left, params, getCurrentFunction(newState), creator);
+        idFrom =
+            bInfo.constructSecondIdentifier(left, params, getCurrentFunction(newState), creator);
         if (idIn == null || idFrom == null) {
           return Optional.empty();
         }

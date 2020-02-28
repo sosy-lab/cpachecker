@@ -156,7 +156,8 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr);
     } else {
       transformer = s -> s;
-      blockFormulaStrategy = new BlockFormulaStrategy();
+      PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
+      blockFormulaStrategy = new RecomputeBlockFormulaStrategy(pfmgr);
     }
 
     UsageStatisticsRefinementStrategy pStrategy =

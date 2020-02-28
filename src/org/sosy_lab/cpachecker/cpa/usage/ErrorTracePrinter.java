@@ -51,6 +51,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -58,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
@@ -160,12 +164,13 @@ public abstract class ErrorTracePrinter {
     config = c;
     lockTransfer = lT;
     config.inject(this, ErrorTracePrinter.class);
+
+    final FunctionEntryNode main = pCfa.getMainFunction();
+
     FILTER_EMPTY_FILE_LOCATIONS =
         Predicates.and(
             e -> e != null,
-            e ->
-                (e.getFileLocation() != null
-                    && !e.getFileLocation().getFileName().equals("<none>")));
+            e -> !AutomatonGraphmlCommon.getFileLocationsFromCfaEdge0(e, main).isEmpty());
 
     if (filterMissedFiles) {
       FILTER_EMPTY_FILE_LOCATIONS =
@@ -173,13 +178,20 @@ public abstract class ErrorTracePrinter {
               FILTER_EMPTY_FILE_LOCATIONS,
               e -> Files.exists(Paths.get(e.getFileLocation().getFileName())));
     }
+
     subgraphComputer = t;
     cfa = pCfa;
     printedTraces = new HashMap<>();
   }
 
   protected String createUniqueName(SingleIdentifier id) {
-    return id.getType().toASTString("_" + id.toString()).replace(" ", "_");
+    CType type = id.getType();
+    if (type instanceof CCompositeType) {
+      // It includes declarations of all fields
+      return (((CCompositeType) type).getQualifiedName() + "_" + id.toString()).replace(" ", "_");
+    } else {
+      return id.getType().toASTString("_" + id.toString()).replace(" ", "_");
+    }
   }
 
   public void printErrorTraces(UsageReachedSet uReached) {
@@ -187,6 +199,15 @@ public abstract class ErrorTracePrinter {
 
     logger.log(Level.FINEST, "Processing unsafe identifiers");
     List<Pair<UsageInfo, UsageInfo>> unsafes = uReached.getUnsafes();
+
+    if (unsafes == null) {
+      // Means that there are no stable unsafes, nothing to print, but warn
+      logger.log(
+          Level.WARNING,
+          "Can not find information about unsafes, it does not mean that the program is safe");
+      return;
+    }
+
     container = uReached.getUsageContainer();
 
     init();
@@ -269,7 +290,10 @@ public abstract class ErrorTracePrinter {
         .put(skippedUnsafes)
         .put(emptyLockSetUnsafes);
 
-    container.printUsagesStatistics(out);
+    if (container != null) {
+      // Timeout
+      container.printUsagesStatistics(out);
+    }
   }
 
   protected String getNoteFor(CFAEdge pEdge) {

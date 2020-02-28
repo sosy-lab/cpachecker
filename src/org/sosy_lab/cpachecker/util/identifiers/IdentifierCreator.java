@@ -40,21 +40,29 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentifier, NoException> {
   protected int dereference;
   protected String function;
 
+  public IdentifierCreator() {
+  }
+
   public IdentifierCreator(String func) {
+    this();
+    setCurrentFunction(func);
+  }
+
+  public void setCurrentFunction(String func) {
     function = func;
   }
 
-  public static AbstractIdentifier createIdentifier(
-      CSimpleDeclaration decl, String function, int dereference) {
+  public AbstractIdentifier createIdentifier(CSimpleDeclaration decl, int pDereference) {
     Preconditions.checkNotNull(decl);
+    dereference = pDereference;
     String name = decl.getName();
     CType type = decl.getType();
 
@@ -74,6 +82,15 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
       // Composite type
       return null;
     }
+  }
+
+  public AbstractIdentifier
+      createIdentifier(CExpression expression, int pDereference, String function) {
+    Preconditions.checkNotNull(expression);
+    setCurrentFunction(function);
+
+    dereference = pDereference;
+    return expression.accept(this);
   }
 
   public AbstractIdentifier createIdentifier(CExpression expression, int pDereference) {
@@ -130,7 +147,7 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
       return new LocalVariableIdentifier(
           expression.getName(), expression.getExpressionType(), function, dereference);
     } else {
-      return createIdentifier(decl, function, dereference);
+      return createIdentifier(decl, dereference);
     }
   }
 

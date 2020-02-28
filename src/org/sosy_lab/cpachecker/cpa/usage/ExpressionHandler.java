@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.FunctionIdentifier;
-import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
+import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
 import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
 
@@ -51,12 +51,18 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoExcepti
   private final String fName;
   private Access accessMode;
   private VariableSkipper varSkipper;
+  private final IdentifierCreator idCreator;
 
-  public ExpressionHandler(Access mode, String functionName, VariableSkipper pSkipper) {
+  public ExpressionHandler(
+      Access mode,
+      String functionName,
+      VariableSkipper pSkipper,
+      IdentifierCreator pIdCreator) {
     result = new ArrayList<>();
     accessMode = mode;
     fName = functionName;
     varSkipper = pSkipper;
+    idCreator = pIdCreator;
   }
 
   @Override
@@ -126,7 +132,7 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoExcepti
   }
 
   private void addExpression(CExpression e) {
-    AbstractIdentifier id = Identifiers.createIdentifier(e, fName);
+    AbstractIdentifier id = idCreator.createIdentifier(e, 0);
     if (isRelevantForAnalysis(id)) {
       result.add(Pair.of(id, accessMode));
     }

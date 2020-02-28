@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
 import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
 
 /** Information about special functions like sdlFirst() and sdlNext(); */
@@ -106,20 +107,27 @@ public class BinderFunctionInfo {
   }
 
   public AbstractIdentifier constructFirstIdentifier(
-      final CExpression left, final List<CExpression> params, String currentFunction) {
-    return constructIdentifier(linkInfo.getFirst(), left, params, currentFunction);
+      final CExpression left,
+      final List<CExpression> params,
+      String currentFunction,
+      IdentifierCreator creator) {
+    return constructIdentifier(linkInfo.getFirst(), left, params, currentFunction, creator);
   }
 
   public AbstractIdentifier constructSecondIdentifier(
-      final CExpression left, final List<CExpression> params, String currentFunction) {
-    return constructIdentifier(linkInfo.getSecond(), left, params, currentFunction);
+      final CExpression left,
+      final List<CExpression> params,
+      String currentFunction,
+      IdentifierCreator creator) {
+    return constructIdentifier(linkInfo.getSecond(), left, params, currentFunction, creator);
   }
 
   private AbstractIdentifier constructIdentifier(
       final LinkerInfo info,
       final CExpression left,
       final List<CExpression> params,
-      String currentFunction) {
+      String currentFunction,
+      IdentifierCreator creator) {
 
     CExpression expr;
 
@@ -133,7 +141,7 @@ public class BinderFunctionInfo {
        */
       return null;
     }
-    return Identifiers.createIdentifier(expr, info.dereference, currentFunction);
+    return creator.createIdentifier(expr, info.dereference, currentFunction);
   }
 
   public AbstractIdentifier createParamenterIdentifier(

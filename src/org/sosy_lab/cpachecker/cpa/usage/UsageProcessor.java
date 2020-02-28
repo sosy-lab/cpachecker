@@ -61,11 +61,14 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
+import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class UsageProcessor {
+
   private final Map<String, BinderFunctionInfo> binderFunctionInfo;
 
   private final LogManager logger;
@@ -79,6 +82,8 @@ public class UsageProcessor {
   private Collection<CFANode> uselessNodes;
   private Collection<SingleIdentifier> redundantIds;
 
+  private final IdentifierCreator creator;
+
   StatTimer totalTimer = new StatTimer("Total time for usage processing");
   StatTimer localTimer = new StatTimer("Time for sharedness check");
   StatTimer usagePreparationTimer = new StatTimer("Time for usage preparation");
@@ -89,7 +94,8 @@ public class UsageProcessor {
       Configuration config,
       LogManager pLogger,
       Map<CFANode, Map<GeneralIdentifier, DataType>> pPrecision,
-      Map<String, BinderFunctionInfo> pBinderFunctionInfo)
+      Map<String, BinderFunctionInfo> pBinderFunctionInfo,
+      IdentifierCreator pCreator)
       throws InvalidConfigurationException {
     logger = pLogger;
     binderFunctionInfo = pBinderFunctionInfo;
@@ -98,6 +104,7 @@ public class UsageProcessor {
     precision = pPrecision;
     uselessNodes = new IdentityHashSet<>();
     usages = new IdentityHashMap<>();
+    creator = pCreator;
   }
 
   public void updateRedundantUnsafes(Set<SingleIdentifier> set) {
@@ -331,8 +338,9 @@ public class UsageProcessor {
       AbstractState pChild,
       final CExpression expression,
       final Access access) {
+    String fName = getCurrentFunction(pChild);
     ExpressionHandler handler =
-        new ExpressionHandler(access, getCurrentFunction(pChild), varSkipper);
+        new ExpressionHandler(access, fName, varSkipper, getIdentifierCreator(fName));
     expression.accept(handler);
 
     return handler.getProcessedExpressions();
@@ -343,6 +351,10 @@ public class UsageProcessor {
       CFANode pNode,
       AbstractState pChild,
       Access pAccess) {
+
+    if (pId instanceof LocalVariableIdentifier && !pId.isDereferenced()) {
+      return;
+    }
 
     usageCreationTimer.start();
     UsageInfo usage = UsageInfo.createUsageInfo(pAccess, pChild, pId);
@@ -412,5 +424,10 @@ public class UsageProcessor {
         .endLevel()
         .put("Number of useless nodes", uselessNodes.size())
         .put("Number of cached edges", usages.size());
+  }
+
+  private IdentifierCreator getIdentifierCreator(String functionName) {
+    creator.setCurrentFunction(functionName);
+    return creator;
   }
 }

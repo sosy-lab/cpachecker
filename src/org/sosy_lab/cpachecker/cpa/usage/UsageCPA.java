@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -62,6 +63,9 @@ import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
+import org.sosy_lab.cpachecker.util.identifiers.RegionBasedIdentifierCreator;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 @Options
 public class UsageCPA extends AbstractSingleWrapperCPA
@@ -79,10 +83,17 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   private final LogManager logger;
   private final Map<CFANode, Map<GeneralIdentifier, DataType>> localMap;
   private final UsageProcessor usageProcessor;
+  private final IdentifierCreator creator;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(UsageCPA.class);
   }
+
+  @Option(
+    description = "use sound regions as identifiers",
+    name = "usage.useSoundRegions",
+    secure = true)
+  private boolean useSoundRegions = false;
 
   @Option(description = "A path to precision", name = "precision.path", secure = true)
   @FileOption(Type.OUTPUT_FILE)
@@ -112,8 +123,19 @@ public class UsageCPA extends AbstractSingleWrapperCPA
     this.precisionAdjustment =
         new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment(), statistics);
     logger = pLogger;
+    Optional<VariableClassification> varClassification = pCfa.getVarClassification();
+    if (useSoundRegions) {
+      creator = new RegionBasedIdentifierCreator(varClassification);
+    } else {
+      creator = new IdentifierCreator();
+    }
     this.transferRelation =
-        new UsageTransferRelation(pCpa.getTransferRelation(), pConfig, pLogger, statistics);
+        new UsageTransferRelation(
+            pCpa.getTransferRelation(),
+            pConfig,
+            pLogger,
+            statistics,
+            creator);
 
     PresisionParser parser = new PresisionParser(cfa, logger);
     localMap = parser.parse(outputFileName);
@@ -122,7 +144,9 @@ public class UsageCPA extends AbstractSingleWrapperCPA
             pConfig,
             logger,
             localMap,
-            transferRelation.getBinderFunctionInfo());
+            transferRelation.getBinderFunctionInfo(),
+            creator);
+
     shutdownNotifier = pShutdownNotifier;
   }
 
