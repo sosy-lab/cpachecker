@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -274,8 +275,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
   /**
    * Reconstructs the {@link ARGPath} in the original ARG using the edges from the specified
    * ARG-path. The {@link ARGState}s in the resulting path are from the original ARG, the states
-   * from the specified path may be from a different ARG. The edges in the specified and the
-   * resulting path are the same.
+   * from the specified path may be from a different ARG.
    *
    * @param pRoot the root of the original ARG.
    * @param pPath the {@link ARGPath} (from a different ARG).
@@ -283,33 +283,39 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
    */
   private ARGPath reconstructArgPath(final ARGState pRoot, final ARGPath pPath) {
 
-    ARGPathBuilder pathBuilder = ARGPath.builder();
-    PathIterator iterator = pPath.fullPathIterator();
+    List<CFAEdge> pathEdges = pPath.getFullPath();
+    List<ARGState> argStates = new ArrayList<>();
     ARGState argCurrent = pRoot;
+    int pathIndex = 0;
 
-    while (iterator.hasNext()) {
-      CFAEdge pathEdge = iterator.getOutgoingEdge();
-      pathBuilder.add(argCurrent, pathEdge);
+    while (pathIndex < pathEdges.size()) {
+      CFAEdge pathEdge = pathEdges.get(pathIndex);
 
-      // find next original ARG-state for outgoing path-edge
       boolean found = false;
       for (ARGState argChild : argCurrent.getChildren()) {
-        CFAEdge argEdge = argCurrent.getEdgeToChild(argChild);
-        if (pathEdge.equals(argEdge)) {
+        List<CFAEdge> argEdges = argCurrent.getEdgesToChild(argChild);
+        List<CFAEdge> subPathEdges =
+            pathEdges.subList(pathIndex, Math.min(pathEdges.size(), pathIndex + argEdges.size()));
+
+        if (!argEdges.isEmpty() && argEdges.equals(subPathEdges)) {
+          argStates.add(argCurrent);
           argCurrent = argChild;
+          pathIndex += argEdges.size();
+
           found = true;
           break;
         }
       }
-      assert found : "Next ARG-state not found for edge: " + pathEdge;
 
-      iterator.advance();
+      assert found : "Next ARG-state not found for edge: " + pathEdge;
     }
+
+    argStates.add(argCurrent);
 
     assert argCurrent.isTarget()
         : "Last state of counterexample-path is not a target state: " + argCurrent;
 
-    return pathBuilder.build(argCurrent);
+    return new ARGPath(argStates);
   }
 
   private void replaceCounterexampleInformation(
