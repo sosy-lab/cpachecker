@@ -273,13 +273,13 @@ public class UsageReachedSet extends PartitionedReachedSet {
             addingToContainerTimer.stop();
 
             expandedUsages.clear();
-            for (ARGState child : argState.getChildren()) {
+            for (ARGState child : argState.getSuccessors()) {
               if (!processedIds.contains(getId(child))) {
                 stateWaitlist.add(child);
               }
             }
           } else {
-            stateWaitlist.addAll(argState.getChildren());
+            stateWaitlist.addAll(argState.getSuccessors());
             if (argState.isCovered()) {
               stateWaitlist.add(argState.getCoveringState());
             }

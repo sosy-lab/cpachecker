@@ -108,6 +108,7 @@ public class UsageProcessor {
 
     totalTimer.start();
     result = new ArrayList<>();
+    boolean resultComputed = false;
 
     ARGState argState = (ARGState) pState;
     CFANode node = AbstractStates.extractLocation(argState);
@@ -120,7 +121,10 @@ public class UsageProcessor {
     for (ARGState child : argState.getChildren()) {
       CFANode childNode = AbstractStates.extractLocation(child);
 
-      try {
+      if (node.hasEdgeTo(childNode)) {
+        // Need the flag to avoid missed cases with applied edges: it may be traversed first,
+        // so put to useless nodes ONLY if there is a normal CFA edge.
+        resultComputed = true;
         CFAEdge edge = node.getEdgeTo(childNode);
         Collection<Pair<AbstractIdentifier, Access>> ids;
 
@@ -149,14 +153,14 @@ public class UsageProcessor {
         }
         usagePreparationTimer.stop();
 
-      } catch (IllegalArgumentException e) {
+      } else {
         // No edge, for example, due to BAM
         // Note, function call edge was already handled, we do not miss it
         continue;
       }
     }
 
-    if (result.isEmpty()) {
+    if (resultComputed && result.isEmpty()) {
       uselessNodes.add(node);
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge e = node.getLeavingEdge(i);
