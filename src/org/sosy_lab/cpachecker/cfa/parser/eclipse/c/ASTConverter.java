@@ -187,6 +187,7 @@ class ASTConverter {
 
   // Calls to this functions are handled by this class and replaced with regular C code.
   private static final String FUNC_CONSTANT = "__builtin_constant_p";
+  private static final String FUNC_OFFSETOF = "__builtin_offsetof";
   private static final String FUNC_EXPECT = "__builtin_expect";
   private static final String FUNC_TYPES_COMPATIBLE = "__builtin_types_compatible_p";
 
@@ -1053,6 +1054,15 @@ class ASTConverter {
           return CIntegerLiteralExpression.ZERO;
         }
       }
+      if (((CIdExpression) functionName).getName().equals(FUNC_OFFSETOF) && params.size() == 1) {
+        CFieldReference exp = (CFieldReference) params.get(0);
+        BigInteger offset = handleBuiltinOffsetOfFunction(exp);
+        int byteInBit = 8;
+        return CIntegerLiteralExpression
+            .createDummyLiteral(offset.longValue() / byteInBit, CNumericTypes.INT);
+
+      }
+
       CSimpleDeclaration d = ((CIdExpression)functionName).getDeclaration();
       if (d instanceof CFunctionDeclaration) {
         // it may also be a variable declaration, when a function pointer is called
@@ -1117,6 +1127,36 @@ class ASTConverter {
     }
 
     return new CFunctionCallExpression(loc, returnType, functionName, params, declaration);
+  }
+
+  private BigInteger handleBuiltinOffsetOfFunction(CFieldReference exp) {
+    List<CFieldReference> fields = new ArrayList<>();
+    fields.add(exp);
+    while (exp.getFieldOwner() instanceof CFieldReference) {
+      CFieldReference tmp = (CFieldReference) exp.getFieldOwner();
+      exp = tmp;
+      fields.add(exp);
+    }
+
+    CIdExpression owner = (CIdExpression) exp.getFieldOwner();
+    CElaboratedType structType = (CElaboratedType) owner.getExpressionType();
+
+    BigInteger sumOffset = BigInteger.ZERO;
+    Collections.reverse(fields);
+
+    for (CFieldReference field : fields) {
+      BigInteger offset =
+          machinemodel
+              .getFieldOffsetInBits(
+                  (CCompositeType) structType.getRealType(),
+                  field.getFieldName());
+      sumOffset = sumOffset.add(offset);
+      if (field.getExpressionType() instanceof CElaboratedType) {
+        structType = (CElaboratedType) field.getExpressionType();
+      }
+    }
+
+    return sumOffset;
   }
 
   private boolean areCompatibleTypes(CType a, CType b) {

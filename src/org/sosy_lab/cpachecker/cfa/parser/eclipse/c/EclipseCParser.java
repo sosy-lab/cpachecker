@@ -512,7 +512,7 @@ class EclipseCParser implements CParser {
       macrosBuilder.put("__builtin_constant_p", "__builtin_constant_p");
       macrosBuilder.put("__builtin_types_compatible_p(t1,t2)", "__builtin_types_compatible_p(({t1 arg1; arg1;}), ({t2 arg2; arg2;}))");
       macrosBuilder.put("__offsetof__", "__offsetof__");
-
+      macrosBuilder.put("__builtin_offsetof(t,f)", "__builtin_offsetof(((t){}).f)");
       macrosBuilder.put("__func__", "\"__func__\"");
       macrosBuilder.put("__FUNCTION__", "\"__FUNCTION__\"");
       macrosBuilder.put("__PRETTY_FUNCTION__", "\"__PRETTY_FUNCTION__\"");
