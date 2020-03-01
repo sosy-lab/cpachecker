@@ -438,6 +438,54 @@ public class CFACreator {
     }
   }
 
+  /**
+   * Parse some files and create a CFA, including all post-processing etc.
+   *
+   * @param sourceFiles The files to parse.
+   * @return A representation of the CFA.
+   * @throws InvalidConfigurationException If the main function that was specified in the
+   *                                       configuration is not found.
+   * @throws IOException                   If an I/O error occurs.
+   * @throws ParserException               If the parser or the CFA builder cannot handle the C code.
+   */
+  public CFA parseFileAndCreateCFA(List<String> sourceFiles)
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+
+    Preconditions.checkArgument(
+        !sourceFiles.isEmpty(), "At least one source file must be provided!");
+
+    stats.totalTime.start();
+    try {
+      // FIRST, parse file(s) and create CFAs for each function
+      logger.log(Level.FINE, "Starting parsing of file(s)");
+
+      final ParseResult c = parseToCFAs(sourceFiles);
+
+      logger.log(Level.FINE, "Parser Finished");
+
+      FunctionEntryNode mainFunction;
+
+      switch (language) {
+        case JAVA:
+          Preconditions.checkArgument(
+              sourceFiles.size() == 1, "Multiple input files not supported by 'getJavaMainMethod'");
+          mainFunction = getJavaMainMethod(sourceFiles, mainFunctionName, c.getFunctions());
+          checkForAmbiguousMethod(mainFunction, mainFunctionName, c.getFunctions());
+          break;
+        case C:
+          mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
+          break;
+        default:
+          throw new AssertionError();
+      }
+
+      return createCFA(c, mainFunction);
+
+    } finally {
+      stats.totalTime.stop();
+    }
+  }
+
   @VisibleForTesting
   static FunctionEntryNode getJavaMainMethod(
       List<String> sourceFiles, String mainFunction, Map<String, FunctionEntryNode> cfas)
@@ -842,54 +890,6 @@ public class CFACreator {
                     .getName()
                     .equals(classPath))
         .collect(Collectors.toUnmodifiableSet());
-  }
-
-  /**
-   * Parse some files and create a CFA, including all post-processing etc.
-   *
-   * @param sourceFiles The files to parse.
-   * @return A representation of the CFA.
-   * @throws InvalidConfigurationException If the main function that was specified in the
-   *                                       configuration is not found.
-   * @throws IOException                   If an I/O error occurs.
-   * @throws ParserException               If the parser or the CFA builder cannot handle the C code.
-   */
-  public CFA parseFileAndCreateCFA(List<String> sourceFiles)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
-
-    Preconditions.checkArgument(
-        !sourceFiles.isEmpty(), "At least one source file must be provided!");
-
-    stats.totalTime.start();
-    try {
-      // FIRST, parse file(s) and create CFAs for each function
-      logger.log(Level.FINE, "Starting parsing of file(s)");
-
-      final ParseResult c = parseToCFAs(sourceFiles);
-
-      logger.log(Level.FINE, "Parser Finished");
-
-      FunctionEntryNode mainFunction;
-
-      switch (language) {
-        case JAVA:
-          Preconditions.checkArgument(
-              sourceFiles.size() == 1, "Multiple input files not supported by 'getJavaMainMethod'");
-          mainFunction = getJavaMainMethod(sourceFiles, mainFunctionName, c.getFunctions());
-          checkForAmbiguousMethod(mainFunction, mainFunctionName, c.getFunctions());
-          break;
-        case C:
-          mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
-          break;
-        default:
-          throw new AssertionError();
-      }
-
-      return createCFA(c, mainFunction);
-
-    } finally {
-      stats.totalTime.stop();
-    }
   }
 
   @VisibleForTesting
