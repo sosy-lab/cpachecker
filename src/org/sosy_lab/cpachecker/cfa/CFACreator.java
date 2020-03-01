@@ -49,7 +49,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
-import javax.annotation.Nonnull;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -806,25 +805,17 @@ public class CFACreator {
     // Try classPath given in sourceFiles and plain method name in mainFunction
     String classPath = sourceFiles.get(0).replace("\\/", ".");
 
-    mainMethodKey =
-        getKeysStartingWithStringAndThrowExceptionOnMultipleMatches(cfas, classPath, mainFunction)
-            .stream()
-            .findFirst();
+    mainMethodKey = findJavaFunctionInCfa(cfas, classPath, mainFunction).stream().findFirst();
 
     // Try classPath given in sourceFiles and relative Path with main function name in
     // mainFunctionName
     if (mainMethodKey.isEmpty()) {
       int indexOfLastSlash = mainFunction.lastIndexOf('.');
       if (indexOfLastSlash >= 0) {
-        // String needs to be final for use in streams
         classPath = mainFunction.substring(0, indexOfLastSlash);
-
         String mainFunctionExtracted = mainFunction.substring(indexOfLastSlash + 1);
         mainMethodKey =
-            getKeysStartingWithStringAndThrowExceptionOnMultipleMatches(
-                cfas, classPath, mainFunctionExtracted)
-                .stream()
-                .findFirst();
+            findJavaFunctionInCfa(cfas, classPath, mainFunctionExtracted).stream().findFirst();
       }
     }
 
@@ -832,10 +823,7 @@ public class CFACreator {
     // mainFunctionName
     if (mainMethodKey.isEmpty()) {
       classPath = mainFunction;
-      mainMethodKey =
-          getKeysStartingWithStringAndThrowExceptionOnMultipleMatches(cfas, classPath, "main")
-              .stream()
-              .findFirst();
+      mainMethodKey = findJavaFunctionInCfa(cfas, classPath, "main").stream().findFirst();
     }
 
     return mainMethodKey.orElseThrow(
@@ -844,12 +832,11 @@ public class CFACreator {
                 "Method " + mainFunction + " not found.\n" + exampleJavaMethodName));
   }
 
-  @Nonnull
-  private Set<FunctionEntryNode> getKeysStartingWithStringAndThrowExceptionOnMultipleMatches(
+  private Set<FunctionEntryNode> findJavaFunctionInCfa(
       Map<String, FunctionEntryNode> cfas, final String classPath, final String mainMethodName)
       throws InvalidConfigurationException {
 
-    // Check on null for tests because CFACreator is mocked
+    // Check on null because CFACreator is mocked in unit tests
     if (mainFunctionName == null) {
       mainFunctionName = "Main function";
     }
