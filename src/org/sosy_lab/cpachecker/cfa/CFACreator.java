@@ -864,7 +864,7 @@ public class CFACreator {
                         .equals(classPath))
             .collect(Collectors.toUnmodifiableSet());
 
-    // Try method name has parameters declared
+    // Try method name has parameters declared (No parameter is also a declared parameter)
     String fullName = classPath + "_" + mainMethodName;
     Set<FunctionEntryNode> mainMethodKeys =
         nodesWithCorrectClassPath.stream()
@@ -873,30 +873,6 @@ public class CFACreator {
 
     // Try method name has no parameters declared
     if (mainMethodKeys.isEmpty()) {
-
-      Set<FunctionEntryNode> methodsWithSameName =
-          nodesWithCorrectClassPath.stream()
-              .filter(
-                  v ->
-                      ((JMethodDeclaration) v.getFunctionDefinition())
-                          .getSimpleName()
-                          .equals(mainMethodName))
-              .collect(toUnmodifiableSet());
-      if (methodsWithSameName.size() > 1) {
-        StringBuilder foundMethods = new StringBuilder();
-        for (FunctionEntryNode method : methodsWithSameName) {
-          foundMethods.append((method.getFunctionDefinition().getName())).append("\n");
-        }
-        if (logger != null) {
-          logger.log(
-              Level.WARNING,
-              "Multiple methods with same name but different parameters found. Make sure you picked the right one.\n"
-                  + "Methods found"
-                  + foundMethods
-                  + "\n"
-                  + exampleJavaMethodName);
-        }
-      }
 
       mainMethodKeys =
           nodesWithCorrectClassPath.stream()
@@ -919,7 +895,47 @@ public class CFACreator {
               + exceptionMessage.toString()
               + exampleJavaMethodName);
     }
+
+    if (mainMethodKeys.size() == 1
+        && !mainMethodKeys.stream()
+        .findFirst()
+        .get()
+        .getFunctionDefinition()
+        .getName()
+        .equals(mainMethodName)) {
+      checkForAmbiguousMethod(mainMethodName, nodesWithCorrectClassPath);
+    }
+
     return mainMethodKeys;
+  }
+
+  private void checkForAmbiguousMethod(
+      String mainMethodName,
+      Set<FunctionEntryNode> pNodesWithCorrectClassPath) {
+    Set<FunctionEntryNode> methodsWithSameName =
+        pNodesWithCorrectClassPath.stream()
+            .filter(
+                v ->
+                    ((JMethodDeclaration) v.getFunctionDefinition())
+                        .getSimpleName()
+                        .equals(mainMethodName))
+            .collect(toUnmodifiableSet());
+
+    if (methodsWithSameName.size() > 1) {
+      StringBuilder foundMethods = new StringBuilder();
+      for (FunctionEntryNode method : methodsWithSameName) {
+        foundMethods.append((method.getFunctionDefinition().getName())).append("\n");
+      }
+      if (logger != null) {
+        logger.log(
+            Level.WARNING,
+            "Multiple methods with same name but different parameters found. Make sure you picked the right one.\n"
+                + "Methods found"
+                + foundMethods
+                + "\n"
+                + exampleJavaMethodName);
+      }
+    }
   }
 
   private void checkIfValidFiles(List<String> sourceFiles) throws InvalidConfigurationException {
