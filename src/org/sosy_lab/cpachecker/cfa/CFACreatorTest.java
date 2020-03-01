@@ -26,8 +26,11 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -103,6 +106,7 @@ public class CFACreatorTest {
             new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa);
 
     assertThat(result).isEqualTo(N1);
+    verify(cfaCreator, times(1)).checkForAmbiguousMethod(anyString(), anySet());
   }
 
   @Test
@@ -115,17 +119,21 @@ public class CFACreatorTest {
         cfaCreator.getJavaMainMethod(
             new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa))
         .isEqualTo(N3);
+    verify(cfaCreator, times(1)).checkForAmbiguousMethod(anyString(), anySet());
+
     mainFunction = "callTests_true_assert_int";
     assertThat(
         cfaCreator.getJavaMainMethod(
             new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa))
         .isEqualTo(N4);
+    verify(cfaCreator, times(2)).checkForAmbiguousMethod(anyString(), anySet());
 
     mainFunction = "callTests_true_assert_int_int";
     assertThat(
         cfaCreator.getJavaMainMethod(
             new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa))
         .isEqualTo(N5);
+    verify(cfaCreator, times(3)).checkForAmbiguousMethod(anyString(), anySet());
   }
 
   @Test
@@ -139,6 +147,7 @@ public class CFACreatorTest {
             new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa);
 
     assertThat(result).isEqualTo(N1);
+    verify(cfaCreator, times(1)).checkForAmbiguousMethod(anyString(), anySet());
   }
 
   private JMethodDeclaration createFunctionDefinition(

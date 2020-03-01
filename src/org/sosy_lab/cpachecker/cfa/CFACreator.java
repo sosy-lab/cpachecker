@@ -909,7 +909,8 @@ public class CFACreator {
     return mainMethodKeys;
   }
 
-  private void checkForAmbiguousMethod(
+  @VisibleForTesting
+  void checkForAmbiguousMethod(
       String mainMethodName,
       Set<FunctionEntryNode> pNodesWithCorrectClassPath) {
     Set<FunctionEntryNode> methodsWithSameName =
