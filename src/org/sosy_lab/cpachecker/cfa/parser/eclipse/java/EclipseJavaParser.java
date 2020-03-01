@@ -221,7 +221,7 @@ class EclipseJavaParser implements JavaParser {
   @Override
   public ParseResult parseFile(String mainClassFileName) throws JParserException, IOException {
     String mainClassAbsolutePath = getMainClassAbsolutePath(mainClassFileName) + ".java";
-    Scope scope = prepareScope(mainClassAbsolutePath);
+    Scope scope = prepareScope(mainClassFileName);
     ParseResult result = buildCFA(parse(getPathToFile(mainClassAbsolutePath)), scope);
     exportTypeHierarchy(scope);
     return result;
