@@ -24,21 +24,16 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.TreeMap;
+import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -57,9 +52,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public class CFACreatorTest {
 
   @Mock
-  CFACreator cfaCreator;
-
-  @Mock
   JMethodEntryNode N1;
   @Mock
   JMethodEntryNode N2;
@@ -70,10 +62,10 @@ public class CFACreatorTest {
   @Mock
   JMethodEntryNode N5;
 
-  private TreeMap<String, FunctionEntryNode> cfa;
+  private Map<String, FunctionEntryNode> cfa;
 
   @Before
-  public void init() throws InvalidConfigurationException {
+  public void init() {
 
     MockitoAnnotations.initMocks(this);
     JMethodDeclaration functionDefinition1 =
@@ -92,8 +84,6 @@ public class CFACreatorTest {
         createFunctionDefinition("pack5.CallTests_true_assert", "callTests_true_assert", "int_int");
     when(N5.getFunctionDefinition()).thenReturn(functionDefinition5);
     cfa = buildExampleCfa(N1, N2, N3, N4, N5);
-
-    when(cfaCreator.getJavaMainMethod(anyList(), anyString(), anyMap())).thenCallRealMethod();
   }
 
   @Test
@@ -102,11 +92,10 @@ public class CFACreatorTest {
     String sourceFile = "test/programs/java/CallTests";
     String mainFunction = "pack5.CallTests_true_assert.main_String[]";
     FunctionEntryNode result =
-        cfaCreator.getJavaMainMethod(
+        CFACreator.getJavaMainMethod(
             new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa);
 
     assertThat(result).isEqualTo(N1);
-    verify(cfaCreator, times(1)).checkForAmbiguousMethod(anyString(), anySet());
   }
 
   @Test
@@ -116,24 +105,21 @@ public class CFACreatorTest {
     String mainFunction = "callTests_true_assert";
 
     assertThat(
-        cfaCreator.getJavaMainMethod(
+        CFACreator.getJavaMainMethod(
             new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa))
         .isEqualTo(N3);
-    verify(cfaCreator, times(1)).checkForAmbiguousMethod(anyString(), anySet());
 
     mainFunction = "callTests_true_assert_int";
     assertThat(
-        cfaCreator.getJavaMainMethod(
+        CFACreator.getJavaMainMethod(
             new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa))
         .isEqualTo(N4);
-    verify(cfaCreator, times(2)).checkForAmbiguousMethod(anyString(), anySet());
 
     mainFunction = "callTests_true_assert_int_int";
     assertThat(
-        cfaCreator.getJavaMainMethod(
+        CFACreator.getJavaMainMethod(
             new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa))
         .isEqualTo(N5);
-    verify(cfaCreator, times(3)).checkForAmbiguousMethod(anyString(), anySet());
   }
 
   @Test
@@ -143,11 +129,10 @@ public class CFACreatorTest {
     String mainFunction = "main";
 
     FunctionEntryNode result =
-        cfaCreator.getJavaMainMethod(
+        CFACreator.getJavaMainMethod(
             new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa);
 
     assertThat(result).isEqualTo(N1);
-    verify(cfaCreator, times(1)).checkForAmbiguousMethod(anyString(), anySet());
   }
 
   private JMethodDeclaration createFunctionDefinition(
@@ -195,14 +180,14 @@ public class CFACreatorTest {
     return declaringClass;
   }
 
-  private TreeMap<String, FunctionEntryNode> buildExampleCfa(JMethodEntryNode... nodeArray) {
+  private ImmutableMap<String, FunctionEntryNode> buildExampleCfa(JMethodEntryNode... nodeArray) {
 
-    TreeMap<String, FunctionEntryNode> result = new TreeMap<>();
+    ImmutableMap.Builder<String, FunctionEntryNode> result = ImmutableMap.builder();
 
     for (JMethodEntryNode node : nodeArray) {
       result.put(node.getFunctionDefinition().getName(), node);
     }
 
-    return result;
+    return result.build();
   }
 }
