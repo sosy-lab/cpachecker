@@ -913,14 +913,14 @@ public class CFACreator {
                           + ((JMethodDeclaration) v.getFunctionDefinition())
                           .getSimpleName())
                           .equals(mainMethodName)
-                          || (((JMethodDeclaration) v.getFunctionDefinition()).getSimpleName())
+                          || ((JMethodDeclaration) v.getFunctionDefinition()).getSimpleName()
                           .equals(mainMethodName))
               .collect(toUnmodifiableSet());
 
       if (methodsWithSameName.size() > 1) {
         StringBuilder foundMethods = new StringBuilder();
         for (FunctionEntryNode method : methodsWithSameName) {
-          foundMethods.append((method.getFunctionDefinition().getName())).append("\n");
+          foundMethods.append(method.getFunctionDefinition().getName()).append("\n");
         }
         if (logger != null) {
           logger.log(
