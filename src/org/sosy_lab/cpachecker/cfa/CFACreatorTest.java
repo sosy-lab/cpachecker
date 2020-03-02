@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.junit.Before;
@@ -139,10 +138,10 @@ public class CFACreatorTest {
       String classPath, String methodName, String parametersSubString) {
     String name = classPath + "_" + methodName;
     List<String> parameters;
-    if (!parametersSubString.equals("")) {
+    if (!parametersSubString.isEmpty()) {
       parameters = Arrays.asList(parametersSubString.split("_"));
     } else {
-      parameters = Collections.emptyList();
+      parameters = ImmutableList.of();
     }
     List<JParameterDeclaration> jParameterDeclarations = new ArrayList<>(parameters.size());
     for (String parameter : parameters) {

@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static java.util.stream.Collectors.toUnmodifiableSet;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
@@ -47,7 +46,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -845,7 +843,7 @@ public class CFACreator {
     Set<FunctionEntryNode> mainMethodValues =
         nodesWithCorrectClassPath.stream()
             .filter(v -> v.getFunctionDefinition().getName().equals(fullName))
-            .collect(toUnmodifiableSet());
+            .collect(ImmutableSet.toImmutableSet());
 
     // Try method name has no parameters declared
     if (mainMethodValues.isEmpty()) {
@@ -857,7 +855,7 @@ public class CFACreator {
                       ((JMethodDeclaration) v.getFunctionDefinition())
                           .getSimpleName()
                           .equals(mainMethodName))
-              .collect(toUnmodifiableSet());
+              .collect(ImmutableSet.toImmutableSet());
     }
 
     if (mainMethodValues.size() >= 2) {
@@ -889,7 +887,7 @@ public class CFACreator {
                     .getDeclaringClass()
                     .getName()
                     .equals(classPath))
-        .collect(Collectors.toUnmodifiableSet());
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   @VisibleForTesting
@@ -915,7 +913,7 @@ public class CFACreator {
                           .equals(mainMethodName)
                           || ((JMethodDeclaration) v.getFunctionDefinition()).getSimpleName()
                           .equals(mainMethodName))
-              .collect(toUnmodifiableSet());
+              .collect(ImmutableSet.toImmutableSet());
 
       if (methodsWithSameName.size() > 1) {
         StringBuilder foundMethods = new StringBuilder();
