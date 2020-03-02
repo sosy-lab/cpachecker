@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -197,6 +198,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       controlDependenceTimer.start();
       try {
         addControlDependences();
+        // addControlDependencesNew();
       } finally {
         controlDependenceTimer.stop();
       }
@@ -227,6 +229,52 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         isolatedNodes.inc();
       }
     }
+  }
+
+  private void addControlDependencesNew() {
+
+    int controlDepCount = 0;
+    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+
+      Dominance dominance = new Dominance();
+      Dominance.Result<CFANode> result =
+          dominance.doms(
+              entryNode.getExitNode(),
+              node -> {
+                // TODO
+                return (node instanceof FunctionEntryNode
+                    ? new ArrayList<>()
+                    : CFAUtils.predecessorsOf(node));
+              },
+              node -> {
+                // TODO
+                return (node instanceof FunctionExitNode
+                    ? new ArrayList<>()
+                    : CFAUtils.successorsOf(node));
+              });
+
+      List<Set<Integer>> frontiers = dominance.frontiers(result);
+
+      for (int i = 0; i < frontiers.size(); i++) {
+        CFANode dependedNode = result.getNode(i);
+
+        for (int id : frontiers.get(i)) {
+          CFANode branchNode = result.getNode(id);
+
+          // TODO: depend only on necessary assume edges
+          for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
+            for (CFAEdge dependendEdge : CFAUtils.allLeavingEdges(dependedNode)) {
+              addDependence(
+                  getDGNode(assumeEdge, Optional.empty()),
+                  getDGNode(dependendEdge, Optional.empty()),
+                  DependenceType.CONTROL);
+              controlDepCount++;
+            }
+          }
+        }
+      }
+    }
+    controlDependenceNumber.setNextValue(controlDepCount);
   }
 
   /**
