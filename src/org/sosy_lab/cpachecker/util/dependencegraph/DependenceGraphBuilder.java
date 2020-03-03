@@ -252,7 +252,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                 return () ->
                     Iterators.filter(
                         CFAUtils.allPredecessorsOf(node).iterator(),
-                        (next -> !(next instanceof FunctionExitNode)));
+                        next -> !(next instanceof FunctionExitNode));
               },
               node -> {
                 if (node instanceof FunctionExitNode) {
@@ -262,7 +262,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                 return () ->
                     Iterators.filter(
                         CFAUtils.allSuccessorsOf(node).iterator(),
-                        (next -> !(next instanceof FunctionEntryNode)));
+                        next -> !(next instanceof FunctionEntryNode));
               });
 
       DomFrontiers<CFANode> frontiers = dom.createDomFrontiers(domTree);
