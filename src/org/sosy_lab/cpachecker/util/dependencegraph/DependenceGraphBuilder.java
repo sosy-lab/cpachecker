@@ -30,6 +30,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ForwardingTable;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.io.IOException;
@@ -41,6 +42,7 @@ import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -97,6 +99,8 @@ import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.EdgeNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.UnknownPointerNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceType;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.NodeMap;
+import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomFrontiers;
+import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -197,8 +201,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     if (considerControlDeps) {
       controlDependenceTimer.start();
       try {
-        addControlDependences();
-        // addControlDependencesNew();
+        // addControlDependences();
+        addControlDependencesNew();
       } finally {
         controlDependenceTimer.stop();
       }
@@ -236,31 +240,35 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     int controlDepCount = 0;
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      Dominance dominance = new Dominance();
-      Dominance.Result<CFANode> result =
-          dominance.doms(
+      Dominance dom = new Dominance();
+      DomTree<CFANode> domTree =
+          dom.createDomTree(
               entryNode.getExitNode(),
               node -> {
-                // TODO
-                return (node instanceof FunctionEntryNode
-                    ? new ArrayList<>()
-                    : CFAUtils.predecessorsOf(node));
+                if (node instanceof FunctionEntryNode) {
+                  return Collections::emptyIterator;
+                }
+
+                return () ->
+                    Iterators.filter(
+                        CFAUtils.allPredecessorsOf(node).iterator(),
+                        (next -> !(next instanceof FunctionExitNode)));
               },
               node -> {
-                // TODO
-                return (node instanceof FunctionExitNode
-                    ? new ArrayList<>()
-                    : CFAUtils.successorsOf(node));
+                if (node instanceof FunctionExitNode) {
+                  return Collections::emptyIterator;
+                }
+
+                return () ->
+                    Iterators.filter(
+                        CFAUtils.allSuccessorsOf(node).iterator(),
+                        (next -> !(next instanceof FunctionEntryNode)));
               });
 
-      List<Set<Integer>> frontiers = dominance.frontiers(result);
+      DomFrontiers<CFANode> frontiers = dom.createDomFrontiers(domTree);
 
-      for (int i = 0; i < frontiers.size(); i++) {
-        CFANode dependedNode = result.getNode(i);
-
-        for (int id : frontiers.get(i)) {
-          CFANode branchNode = result.getNode(id);
-
+      for (CFANode dependedNode : frontiers.getNodes()) {
+        for (CFANode branchNode : frontiers.getFrontier(dependedNode)) {
           // TODO: depend only on necessary assume edges
           for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
             for (CFAEdge dependendEdge : CFAUtils.allLeavingEdges(dependedNode)) {
@@ -273,13 +281,15 @@ public class DependenceGraphBuilder implements StatisticsProvider {
           }
         }
       }
+
+      controlDependenceNumber.setNextValue(controlDepCount);
     }
-    controlDependenceNumber.setNextValue(controlDepCount);
+
+    addFunctionCallControlDependences();
   }
 
-  /**
-   * Adds control dependencies to dependence graph.
-   */
+  /** Adds control dependencies to dependence graph. */
+  @SuppressWarnings("unused")
   private void addControlDependences()
       throws InterruptedException, InvalidConfigurationException, CPAException {
     PostDominators postDoms = PostDominators.create(cfa, logger, shutdownNotifier);
@@ -345,6 +355,10 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       }
     }
 
+    addFunctionCallControlDependences();
+  }
+
+  private void addFunctionCallControlDependences() {
     Collection<FunctionEntryNode> functionEntries = cfa.getAllFunctionHeads();
     CFATraversal traversalInsideFunction = CFATraversal.dfs().ignoreFunctionCalls();
     for (FunctionEntryNode fctEntry : functionEntries) {

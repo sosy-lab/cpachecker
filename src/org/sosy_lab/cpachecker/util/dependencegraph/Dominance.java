@@ -2,11 +2,14 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -15,19 +18,19 @@ public class Dominance {
   public static final int UNDEFINED = -1;
 
   private <T> Map<T, Integer> createReversePostOrder(
-      T start, final Function<? super T, ? extends Iterable<? extends T>> succSupplier) {
+      T pStartNode, Function<? super T, ? extends Iterable<? extends T>> pSuccFunc) {
 
     Map<T, Integer> visited = new HashMap<>();
     Deque<T> stack = new ArrayDeque<>();
     int counter = 0;
 
-    stack.push(start);
+    stack.push(pStartNode);
 
     while (!stack.isEmpty()) {
 
       T current = stack.pop();
 
-      for (T next : succSupplier.apply(current)) {
+      for (T next : pSuccFunc.apply(current)) {
         if (!visited.containsKey(next)) {
           stack.push(next);
           visited.put(next, UNDEFINED);
@@ -46,62 +49,72 @@ public class Dominance {
     return visited;
   }
 
-  public <T> Result<T> doms(
-      T start,
-      Function<? super T, ? extends Iterable<? extends T>> succSupplier,
-      Function<? super T, ? extends Iterable<? extends T>> predSupplier) {
+  private <T> DomInput createDomInput(
+      Map<T, Integer> pIds,
+      T[] pNodes,
+      Function<? super T, ? extends Iterable<? extends T>> pPredFunc) {
 
-    Map<T, Integer> visited = createReversePostOrder(start, succSupplier);
-    Node[] nodes = new Node[visited.size()];
+    List<int[]> predsList = new ArrayList<>(Collections.nCopies(pIds.size(), new int[0]));
 
-    @SuppressWarnings("unchecked")
-    T[] ordered = (T[]) new Object[visited.size()];
-
-    List<Integer> predecessors = new ArrayList<>();
-    for (Map.Entry<T, Integer> entry : visited.entrySet()) {
-
+    List<Integer> preds = new ArrayList<>();
+    for (Map.Entry<T, Integer> entry : pIds.entrySet()) {
       int id = entry.getValue();
-      for (final T next : predSupplier.apply(entry.getKey())) {
-        Integer value = visited.get(next);
-        assert value != null : "Unknown node (missing order-ID): " + next;
-        predecessors.add(value);
+
+      for (T next : pPredFunc.apply(entry.getKey())) {
+        Integer predId = pIds.get(next);
+        assert predId != null : "Unknown node (missing order-ID): " + next;
+        preds.add(predId);
       }
 
-      nodes[id] = new Node(predecessors);
-      ordered[id] = entry.getKey();
-
-      predecessors.clear();
+      predsList.set(id, preds.stream().mapToInt(i -> i).toArray());
+      pNodes[id] = entry.getKey();
+      preds.clear();
     }
 
-    int[] doms = calculate(nodes);
-
-    return new Result<>(visited, ordered, nodes, doms);
+    return new DomInput(predsList);
   }
 
-  private int[] calculate(final Node[] pNodes) {
+  public <T> DomTree<T> createDomTree(
+      T pStartNode,
+      Function<? super T, ? extends Iterable<? extends T>> pSuccFunc,
+      Function<? super T, ? extends Iterable<? extends T>> pPredFunc) {
 
-    final int start = pNodes.length - 1; // start node is node with the highest number
-    int[] doms = new int[pNodes.length]; // doms[x] == immediate dominator of x
+    Objects.requireNonNull(pStartNode, "start-node");
+    Objects.requireNonNull(pSuccFunc, "successor-function");
+    Objects.requireNonNull(pPredFunc, "predecessor-function");
+
+    Map<T, Integer> ids = createReversePostOrder(pStartNode, pSuccFunc);
+
+    @SuppressWarnings("unchecked")
+    T[] nodes = (T[]) new Object[ids.size()];
+
+    DomInput input = createDomInput(ids, nodes, pPredFunc);
+
+    int[] doms = calculateDoms(input);
+
+    return new DomTree<>(input, ids, nodes, doms);
+  }
+
+  private int[] calculateDoms(final DomInput pInput) {
+
+    final int start = pInput.getLength() - 1; // start node is node with the highest number
+    int[] doms = new int[pInput.getLength()]; // doms[x] == immediate dominator of x
     boolean changed = true;
 
-    // set all immediate dominators as undefined
-    for (int i = 0; i < pNodes.length; i++) {
-      doms[i] = UNDEFINED;
-    }
-
+    Arrays.fill(doms, UNDEFINED); // no immediate dominator is known
     doms[start] = start; // start node is (only) dominated by itself
 
     while (changed) {
       changed = false;
 
       // all nodes in reverse postorder (except start)
-      for (int number = 0; number < start; number++) {
-        final Node node = pNodes[number];
+      for (int id = 0; id < start; id++) {
+        final int[] preds = pInput.getPredecessors(id);
         int idom = UNDEFINED; // immediate dominator for node
 
         // all predecessors of node (any order)
-        for (int i = 0; i < node.getSize(); i++) {
-          final int pred = node.getPredecessor(i);
+        for (int index = 0; index < preds.length; index++) {
+          final int pred = preds[index];
 
           // does predecessor have an immediate dominator?
           if (doms[pred] != UNDEFINED) {
@@ -117,8 +130,8 @@ public class Dominance {
         }
 
         // update immediate dominator for node?
-        if (doms[number] != idom) {
-          doms[number] = idom;
+        if (doms[id] != idom) {
+          doms[id] = idom;
           changed = true;
         }
       }
@@ -127,10 +140,10 @@ public class Dominance {
     return doms;
   }
 
-  private int intersect(final int[] pDoms, final int pN1, final int pN2) {
+  private int intersect(final int[] pDoms, final int pId1, final int pId2) {
 
-    int f1 = pN1;
-    int f2 = pN2;
+    int f1 = pId1;
+    int f2 = pId2;
 
     while (f1 != f2) {
       while (f1 < f2) {
@@ -144,83 +157,187 @@ public class Dominance {
     return f1;
   }
 
-  public <T> List<Set<Integer>> frontiers(final Result<T> result) {
+  public <T> DomFrontiers<T> createDomFrontiers(DomTree<T> pDomTree) {
 
-    List<Set<Integer>> frontiers = new ArrayList<>(result.getSize());
-    for (int i = 0; i < result.getSize(); i++) {
-      frontiers.add(new HashSet<>());
+    Objects.requireNonNull(pDomTree, "dom-tree");
+
+    DomFrontiers.Frontier[] frontiers = calculateFrontiers(pDomTree.getInput(), pDomTree.getDoms());
+
+    return new DomFrontiers<>(pDomTree.getIds(), pDomTree.getNodes(), frontiers);
+  }
+
+  private DomFrontiers.Frontier[] calculateFrontiers(final DomInput pInput, final int[] pDoms) {
+
+    DomFrontiers.Frontier[] frontiers = new DomFrontiers.Frontier[pInput.getLength()];
+    for (int id = 0; id < frontiers.length; id++) {
+      frontiers[id] = new DomFrontiers.Frontier();
     }
 
-    for (int i = 0; i < result.getSize(); i++) {
-      final Node node = result.nodes[i];
+    for (int id = 0; id < pInput.getLength(); id++) {
+      final int[] preds = pInput.getPredecessors(id);
 
-      if (node.getSize() >= 2) {
-        for (int j = 0; j < node.getSize(); j++) {
-          int runner = node.getPredecessor(j);
+      if (preds.length > 1) {
+        for (int index = 0; index < preds.length; index++) {
+          int runner = preds[index];
 
-          while (runner != UNDEFINED && runner != result.doms[i]) {
-            frontiers.get(runner).add(i);
-            runner = result.doms[runner];
+          while (runner != UNDEFINED && runner != pDoms[id]) {
+            frontiers[runner].putInt(id);
+            runner = pDoms[runner];
           }
         }
       }
     }
-
+    
     return frontiers;
   }
 
-  private static final class Node {
+  private static final class DomInput {
 
-    private final int[] predecessors;
+    private final List<int[]> data;
 
-    public Node(List<Integer> predecessors) {
-
-      int[] array = new int[predecessors.size()];
-      for (int index = 0; index < array.length; index++) {
-        array[index] = predecessors.get(index);
-      }
-
-      this.predecessors = array;
+    private DomInput(List<int[]> pData) {
+      data = pData;
     }
 
-    public int getSize() {
-      return predecessors.length;
+    private int getLength() {
+      return data.size();
     }
 
-    public int getPredecessor(final int index) {
-      return predecessors[index];
+    private int[] getPredecessors(int pId) {
+      return data.get(pId);
     }
   }
 
-  public static final class Result<T> {
+  public static final class DomTree<T> {
 
-    private final Map<T, Integer> mapping;
-    private final T[] ordered;
-
-    private final Node[] nodes;
+    private final DomInput input;
+    private final Map<T, Integer> ids;
+    private final T[] nodes;
     private final int[] doms;
 
-    private Result(Map<T, Integer> mapping, T[] ordered, Node[] nodes, int[] doms) {
-      this.mapping = mapping;
-      this.ordered = ordered;
-      this.nodes = nodes;
-      this.doms = doms;
+    private DomTree(DomInput pInput, Map<T, Integer> pIds, T[] pNodes, int[] pDoms) {
+      input = pInput;
+      ids = pIds;
+      nodes = pNodes;
+      doms = pDoms;
+    }
+
+    private DomInput getInput() {
+      return input;
+    }
+
+    private Map<T, Integer> getIds() {
+      return ids;
+    }
+
+    private T[] getNodes() {
+      return nodes;
+    }
+
+    private int[] getDoms() {
+      return doms;
     }
 
     public int getSize() {
-      return ordered.length;
+      return doms.length;
     }
 
-    public int getNumber(T node) {
-      return mapping.get(node);
+    public int getId(T pNode) {
+      return ids.get(pNode);
     }
 
-    public T getNode(int number) {
-      return ordered[number];
+    public T getNode(int pId) {
+      return nodes[pId];
     }
 
-    public int getDom(int number) {
-      return doms[number];
+    public int getParent(int pId) {
+      return doms[pId];
+    }
+
+    public boolean hasParent(int pId) {
+      return doms[pId] != UNDEFINED && doms[pId] != pId;
+    }
+
+    @Override
+    public String toString() {
+
+      StringBuilder sb = new StringBuilder();
+      sb.append('[');
+
+      for (int id = 0; id < doms.length; id++) {
+
+        sb.append(getNode(id));
+
+        if (hasParent(id)) {
+          sb.append(" --> ");
+          sb.append(getNode(getParent(id)));
+        }
+
+        if (id != doms.length - 1) {
+          sb.append(", ");
+        }
+      }
+
+      sb.append(']');
+
+      return sb.toString();
+    }
+  }
+
+  public static final class DomFrontiers<T> {
+
+    private final Map<T, Integer> ids;
+    private final T[] nodes;
+    private final Frontier[] frontiers;
+
+    private DomFrontiers(Map<T, Integer> pIds, T[] pNodes, Frontier[] pFrontiers) {
+      ids = pIds;
+      nodes = pNodes;
+      frontiers = pFrontiers;
+    }
+
+    public List<T> getNodes() {
+      return Collections.unmodifiableList(Arrays.asList(nodes));
+    }
+
+    public Set<T> getFrontier(int pId) {
+
+      Frontier frontier = frontiers[pId];
+      Set<T> nodeSet = new HashSet<>();
+
+      for (int id : frontier.set) {
+        nodeSet.add(nodes[id]);
+      }
+
+      return Collections.unmodifiableSet(nodeSet);
+    }
+
+    public Set<T> getFrontier(T pNode) {
+      return getFrontier(ids.get(pNode));
+    }
+
+    @Override
+    public String toString() {
+      return Arrays.toString(frontiers);
+    }
+
+    // TODO: better set for primitive ints
+    private static final class Frontier {
+
+      private Set<Integer> set;
+
+      private Frontier() {
+        set = new HashSet<>();
+      }
+
+      private void putInt(int pId) {
+        set.add(pId);
+      }
+
+      @Override
+      public String toString() {
+        return set.toString();
+      }
     }
   }
 }
