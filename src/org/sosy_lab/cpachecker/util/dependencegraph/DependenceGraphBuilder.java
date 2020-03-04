@@ -266,26 +266,53 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               });
 
       DomFrontiers<CFANode> frontiers = dom.createDomFrontiers(domTree);
+      Set<CFAEdge> dependentEdges = new HashSet<>();
 
       for (CFANode dependedNode : frontiers.getNodes()) {
         for (CFANode branchNode : frontiers.getFrontier(dependedNode)) {
-          // TODO: depend only on necessary assume edges
+          // TODO: depend only on necessary leaving-edges of branching-node
           for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
-            for (CFAEdge dependendEdge : CFAUtils.allLeavingEdges(dependedNode)) {
+            for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependedNode)) {
               addDependence(
                   getDGNode(assumeEdge, Optional.empty()),
-                  getDGNode(dependendEdge, Optional.empty()),
+                  getDGNode(dependentEdge, Optional.empty()),
                   DependenceType.CONTROL);
+              dependentEdges.add(dependentEdge);
               controlDepCount++;
             }
           }
         }
       }
 
+      controlDepCount += addFunctionCallControlDependencesNew(entryNode, dependentEdges);
+
       controlDependenceNumber.setNextValue(controlDepCount);
     }
+  }
 
-    addFunctionCallControlDependences();
+  private int addFunctionCallControlDependencesNew(
+      FunctionEntryNode pEntryNode, Set<CFAEdge> pDependentEdges) {
+    Collection<DGNode> functionCalls =
+        CFAUtils.enteringEdges(pEntryNode).transform(x -> getDGNode(x, Optional.empty())).toList();
+    assert CFAUtils.enteringEdges(pEntryNode).allMatch(x -> x instanceof CFunctionCallEdge);
+    int depCount = 0;
+    Set<CFANode> functionNodes =
+        CFATraversal.dfs().ignoreFunctionCalls().collectNodesReachableFrom(pEntryNode);
+    for (CFANode n : functionNodes) {
+      for (CFAEdge e : CFAUtils.leavingEdges(n)) {
+        Collection<DGNode> candidates = getDGNodes(e);
+        for (DGNode dgN : candidates) {
+          if (!pDependentEdges.contains(dgN.getCfaEdge())) {
+            for (DGNode nodeDependentOn : functionCalls) {
+              addDependence(nodeDependentOn, dgN, DependenceType.CONTROL);
+              depCount++;
+            }
+          }
+        }
+      }
+    }
+
+    return depCount;
   }
 
   /** Adds control dependencies to dependence graph. */
