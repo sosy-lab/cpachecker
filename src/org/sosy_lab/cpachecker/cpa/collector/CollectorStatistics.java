@@ -96,6 +96,7 @@ public class CollectorStatistics implements Statistics {
   private final LinkedHashMap<Map<Integer, Object>,Multimap<Integer, Object>> collectorlinkedNodesAndEdges = new LinkedHashMap<>();
 
 
+
   public CollectorStatistics(CollectorCPA ccpa, Configuration config,LogManager pLogger) throws InvalidConfigurationException {
     this.logger=pLogger;
 
@@ -241,6 +242,7 @@ public class CollectorStatistics implements Statistics {
     }
   }
 
+
   private void build(UnmodifiableReachedSet reached){
     String destroyed = "destroyed";
     String notDestroyed = "";
@@ -248,6 +250,7 @@ public class CollectorStatistics implements Statistics {
     for (AbstractState entry : reached.asCollection()) {
       boolean merged = ((CollectorState) entry).ismerged();
       boolean stopped = ((CollectorState) entry).isStopped();
+      //logger.log(Level.INFO, "stopped:\n" + stopped + "\n" + entry);
 
       if (merged){
         String type = "toMerge";
@@ -578,3 +581,4 @@ public class CollectorStatistics implements Statistics {
         .replaceAll(" ;", ";");
   }
 }
+
