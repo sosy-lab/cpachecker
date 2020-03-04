@@ -41,10 +41,8 @@ public class Dominance {
       counter++;
     }
 
-    for (Map.Entry<T, Integer> entry : visited.entrySet()) {
-      int id = Math.abs(entry.getValue() - counter + 1);
-      entry.setValue(id);
-    }
+    final int offset = (counter - 1);
+    visited.replaceAll((node, value) -> Math.abs(value - offset));
 
     return visited;
   }
