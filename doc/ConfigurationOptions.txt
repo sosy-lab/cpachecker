@@ -324,6 +324,10 @@ analysis.restartAfterUnknown = false
 # mutated
 analysis.runMutations = false
 
+# if analysis.runMutations is true and this option is not 0, this option
+# limits count of runs
+analysis.runMutationsCount = 0
+
 # Use heuristics to select the analysis
 analysis.selectAnalysisHeuristically = false
 

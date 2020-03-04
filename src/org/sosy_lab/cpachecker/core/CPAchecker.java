@@ -345,8 +345,7 @@ public class CPAchecker {
     checkArgument(!programDenotation.isEmpty());
 
     if (runMutations) {
-      List<CPAcheckerResult> r = runWithMutations(programDenotation, properties);
-      return r.get(r.size() - 1);
+      return runWithMutations(programDenotation, properties);
     }
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
@@ -488,7 +487,7 @@ public class CPAchecker {
     return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
   }
 
-  public List<CPAcheckerResult> runWithMutations(
+  public CPAcheckerResult runWithMutations(
       List<String> programDenotation, Set<SpecificationProperty> properties) {
     checkArgument(!programDenotation.isEmpty());
 
@@ -677,10 +676,9 @@ public class CPAchecker {
           logger.log(Level.FINE, currentException);
         }
       }
-      resultList.add(currentResult);
     }
     logger.log(Level.INFO, "Mutations ended.");
-    return resultList;
+    return currentResult;
   }
 
   private Path checkIfOneValidFile(List<String> fileDenotation)

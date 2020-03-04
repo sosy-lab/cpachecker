@@ -21,7 +21,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -36,12 +35,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -55,6 +54,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -68,11 +68,15 @@ public class CFAMutator extends CFACreator {
           "if analysis.runMutations is true and this option is not 0, this option limits count of runs")
   private int runMutationsCount = 0;
 
-  private enum MutationType {
-    NodeAndEdgeRemoval,
-    EdgeBlanking,
-    EdgeSticking
-  }
+  private ParseResult parseResult = null;
+  private Set<CFANode> originalNodes = null;
+  private Set<CFAEdge> originalEdges = null;
+
+  private Set<CFAEdge> deletedEdges = new HashSet<>();
+  private Set<CFAEdge> lastEdgesOfDeletedChains = new HashSet<>();
+  private CFA lastCFA = null;
+  private boolean doLastRun = false;
+  private boolean wasRollback = false;
 
   private static class CFAMutatorStatistics extends CFACreatorStatistics {
     private final StatTimer mutationTimer = new StatTimer("Time for mutations");
@@ -80,7 +84,7 @@ public class CFAMutator extends CFACreator {
     private final StatCounter mutationsAttempted = new StatCounter("Mutations attempted");
     private final StatCounter mutationsDone = new StatCounter("Mutations done");
     private final StatCounter rollbacksDone = new StatCounter("Rollbacks done");
-    private final StatCounter possibleMutations = new StatCounter("Possible mutations");
+    private long possibleMutations;
 
     private CFAMutatorStatistics(LogManager pLogger) {
       super(pLogger);
@@ -96,7 +100,7 @@ public class CFAMutator extends CFACreator {
           .put(mutationsAttempted)
           .put(mutationsDone)
           .put(rollbacksDone)
-          .put("Mutations remained", possibleMutations.getValue() - mutationsAttempted.getValue())
+          .put("Mutations remained", possibleMutations - mutationsAttempted.getValue())
           .endLevel();
     }
 
@@ -106,22 +110,40 @@ public class CFAMutator extends CFACreator {
     }
   }
 
-  private ParseResult parseResult = null;
-  private Set<CFANode> originalNodes = null;
-  private Set<CFAEdge> originalEdges = null;
-
-  private MutationType lastMutation = null;
-  private CFAEdge lastRemovedEdge = null;
-  private Set<CFAEdge> restoredEdges = new HashSet<>();
-  private CFA lastCFA = null;
-  private boolean doLastRun = false;
-
-  private boolean wasRollback = false;
-
   public CFAMutator(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier);
-    // TODO Auto-generated constructor stub
+
+    pConfig.inject(this, CFAMutator.class);
+  }
+
+  private void addNode(CFANode pNode) {
+    logger.logf(Level.FINER, "adding node %s", pNode);
+    assert parseResult.getCFANodes().put(pNode.getFunctionName(), pNode);
+    originalNodes.add(pNode);
+  }
+
+  private void addEdge(CFAEdge pEdge) {
+    logger.logf(Level.FINER, "adding edge %s", pEdge);
+    CFANode pred = pEdge.getPredecessor();
+    assert !pred.hasEdgeTo(pEdge.getSuccessor());
+    assert !CFAUtils.enteringEdges(pred).contains(pEdge);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(pEdge);
+    originalEdges.add(pEdge);
+  }
+
+  private void addEdgeToNode(CFAEdge pEdge, CFANode pNode) {
+    logger.logf(Level.FINER, "adding edge %s to node %s", pEdge, pNode);
+    if (pEdge.getPredecessor() == pNode) {
+      assert !pNode.hasEdgeTo(pEdge.getSuccessor());
+      pNode.addLeavingEdge(pEdge);
+    } else if (pEdge.getSuccessor() == pNode) {
+      assert !CFAUtils.enteringEdges(pNode).contains(pEdge);
+      pNode.addEnteringEdge(pEdge);
+    } else {
+      assert false : "Tried to add edge " + pEdge + " to node " + pNode;
+    }
+    originalEdges.add(pEdge);
   }
 
   private void removeEdge(CFAEdge pEdge) {
@@ -130,22 +152,22 @@ public class CFAMutator extends CFACreator {
     originalEdges.remove(pEdge);
   }
 
-  private void addEdge(CFAEdge pEdge) {
-    logger.logf(Level.FINER, "adding edge %s", pEdge);
-    CFACreationUtils.addEdgeUnconditionallyToCFA(pEdge);
-    originalEdges.add(pEdge);
-  }
-
-  private void removeNode(SortedSetMultimap<String, CFANode> nodes, CFANode pNode) {
+  private void removeNode(CFANode pNode) {
     logger.logf(Level.FINER, "removing node %s", pNode);
-    nodes.remove(pNode.getFunctionName(), pNode);
+    assert parseResult.getCFANodes().remove(pNode.getFunctionName(), pNode);
     originalNodes.remove(pNode);
   }
 
-  private void addNode(SortedSetMultimap<String, CFANode> nodes, CFANode pNode) {
-    logger.logf(Level.FINER, "adding node %s", pNode);
-    nodes.put(pNode.getFunctionName(), pNode);
-    originalNodes.add(pNode);
+  private void removeEdgeFromNode(CFAEdge pEdge, CFANode pNode) {
+    logger.logf(Level.FINER, "removing edge %s from node %s", pEdge, pNode);
+    if (pEdge.getPredecessor() == pNode) {
+      pNode.removeLeavingEdge(pEdge);
+    } else if (pEdge.getSuccessor() == pNode) {
+      pNode.removeEnteringEdge(pEdge);
+    } else {
+      assert false : "Tried to remove edge " + pEdge + " from node " + pNode;
+    }
+    originalEdges.remove(pEdge);
   }
 
   // kind of main function
@@ -166,67 +188,104 @@ public class CFAMutator extends CFACreator {
       originalEdges = Sets.newIdentityHashSet();
       originalEdges.addAll(visitor.getVisitedEdges());
 
-      countPossibleMutations();
+      ((CFAMutatorStatistics) stats).possibleMutations = countPossibleMutations();
       return parseResult;
 
     } else if (!doLastRun) { // do non-last run
-      if (wasRollback) {
-        ((CFAMutatorStatistics) stats).rollbacksDone.inc();
-        wasRollback = false;
-      } else {
-        clearParseResultAfterPostprocessings();
-        ((CFAMutatorStatistics) stats).mutationsDone.inc();
-      }
+      doMutationAftermath();
 
-      ((CFAMutatorStatistics) stats).mutationTimer.start();
-      if (!mutate()
-          || ((CFAMutatorStatistics) stats).mutationsAttempted.getValue()
-              == runMutationsCount - 2) {
+      if (((CFAMutatorStatistics) stats).mutationsAttempted.getValue() == runMutationsCount) {
         doLastRun = true;
-      }
-      ((CFAMutatorStatistics) stats).mutationTimer.stop();
+      } else {
 
+        ((CFAMutatorStatistics) stats).mutationTimer.start();
+        doLastRun = !mutate();
+        ((CFAMutatorStatistics) stats).mutationTimer.stop();
+      }
       // need to return after possible rollback
       return parseResult;
 
     } else { // do last run
+      // need to clear out deleted in case we run out of times
+      doMutationAftermath();
+
       exportCFAAsync(lastCFA);
       return null;
     }
   }
 
-  private void countPossibleMutations() {
-    ((CFAMutatorStatistics) stats).possibleMutations.inc();
+  private void doMutationAftermath() {
+    if (((CFAMutatorStatistics) stats).mutationsAttempted.getValue() == 0) {
+      clearParseResultAfterPostprocessings();
+    } else if (wasRollback) {
+      ((CFAMutatorStatistics) stats).rollbacksDone.inc();
+      wasRollback = false;
+    } else if (!doLastRun) {
+      clearParseResultAfterPostprocessings();
+      ((CFAMutatorStatistics) stats).mutationsDone.inc();
+    }
+
+    deletedEdges.clear();
+    lastEdgesOfDeletedChains.clear();
+  }
+
+  private boolean mutate() {
+    ((CFAMutatorStatistics) stats).mutationsAttempted.inc();
+    for (CFANode node : parseResult.getCFANodes().values()) {
+      if (!canDeleteNodeSimply(node)) {
+        continue;
+      }
+      removeLeavingEdgeAndConnectEnteringEdgeAround(node);
+      return true;
+    }
+    return false;
+  }
+
+  // undo last mutation
+  public void rollback() {
+    wasRollback = true;
+    clearParseResultAfterPostprocessings();
+    for (CFAEdge edge : deletedEdges) {
+      returnNodeWithLeavingEdge(edge); // TODO out of bound
+    }
+  }
+
+  public long countPossibleMutations() {
+    long possibleMutations = 0;
 
     for (CFANode node : parseResult.getCFANodes().values()) {
-      if (node.getNumLeavingEdges() == 1 && node.getNumEnteringEdges() == 1) {
-
-        CFAEdge leavingEdge = node.getLeavingEdge(0);
-        CFANode successor = leavingEdge.getSuccessor();
-        CFAEdge enteringEdge = node.getEnteringEdge(0);
-        CFANode predecessor = enteringEdge.getPredecessor();
-
-        // TODO can't duplicate or remove such edges
-        if (enteringEdge.getEdgeType() != CFAEdgeType.ReturnStatementEdge
-            && enteringEdge.getEdgeType() != CFAEdgeType.FunctionCallEdge
-            && enteringEdge.getEdgeType() != CFAEdgeType.FunctionReturnEdge
-            && enteringEdge.getEdgeType() != CFAEdgeType.CallToReturnEdge
-            && leavingEdge.getEdgeType() != CFAEdgeType.ReturnStatementEdge
-            && leavingEdge.getEdgeType() != CFAEdgeType.FunctionCallEdge
-            && leavingEdge.getEdgeType() != CFAEdgeType.FunctionReturnEdge
-            && leavingEdge.getEdgeType() != CFAEdgeType.CallToReturnEdge) {
-
-          assert predecessor.getFunctionName().equals(node.getFunctionName())
-                  && successor.getFunctionName().equals(node.getFunctionName())
-              : "Nodes from different functions were not expected.";
-
-          if (!predecessor.hasEdgeTo(successor)
-              || leavingEdge.getEdgeType() != CFAEdgeType.BlankEdge) {
-            ((CFAMutatorStatistics) stats).possibleMutations.inc();
-          }
-        }
+      if (canDeleteNodeSimply(node)) {
+        possibleMutations += 1;
       }
     }
+
+    return possibleMutations;
+  }
+
+  // can delete node with its only leaving edge and reconnect entering edge instead
+  public boolean canDeleteNodeSimply(CFANode pNode) {
+    if (pNode instanceof FunctionEntryNode
+        || pNode instanceof FunctionExitNode
+        || pNode instanceof CFATerminationNode) {
+      return false;
+    }
+    if (pNode.getNumLeavingEdges() != 1) {
+      return false;
+    }
+    if (pNode.getNumEnteringEdges() != 1) {
+      return false;
+    }
+
+    CFANode successor = pNode.getLeavingEdge(0).getSuccessor();
+    if (successor.getNumEnteringEdges() != 1) {
+      return false;
+    }
+    CFANode predecessor = pNode.getEnteringEdge(0).getPredecessor();
+    if (predecessor.getNumLeavingEdges() != 1) {
+      return false;
+    }
+
+    return true;
   }
 
   private void clearParseResultAfterPostprocessings() {
@@ -278,163 +337,50 @@ public class CFAMutator extends CFACreator {
     ((CFAMutatorStatistics) stats).clearingTimer.stop();
   }
 
-  // try to do simple mutation:
-  // remove an edge, or blank one if it's between two assume edges' successors
-  private ParseResult removeAnEdge(ParseResult pParseResult1) {
-    SortedSetMultimap<String, CFANode> nodes = TreeMultimap.create(pParseResult1.getCFANodes());
-
-    boolean canMutate = false;
-
-    for (CFANode node : pParseResult1.getCFANodes().values()) {
-      if (node.getNumLeavingEdges() != 1 || node.getNumEnteringEdges() != 1) {
-        continue;
-      }
-
-      CFAEdge leavingEdge = node.getLeavingEdge(0);
-      if (restoredEdges.contains(leavingEdge)) {
-        logger.logf(Level.FINEST, "skipping restored edge %s after node %s", leavingEdge, node);
-        continue;
-      }
-
-      CFANode successor = leavingEdge.getSuccessor();
-      CFAEdge enteringEdge = node.getEnteringEdge(0);
-      CFANode predecessor = enteringEdge.getPredecessor();
-
-      // TODO can't duplicate or remove such edges
-      if (enteringEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
-          || enteringEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
-          || enteringEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
-          || enteringEdge.getEdgeType() == CFAEdgeType.CallToReturnEdge
-          || leavingEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
-          || leavingEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
-          || leavingEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
-          || leavingEdge.getEdgeType() == CFAEdgeType.CallToReturnEdge) {
-        continue;
-      }
-
-      assert predecessor.getFunctionName().equals(node.getFunctionName())
-              && successor.getFunctionName().equals(node.getFunctionName())
-          : "Nodes from different functions were not expected.";
-
-      if (predecessor.hasEdgeTo(successor)) {
-        if (leavingEdge.getEdgeType() == CFAEdgeType.BlankEdge) {
-          // stickAssumeEdgesIntoOne(predecessor, successor); TODO
-          continue;
-        } else {
-          blankifyEdge(leavingEdge);
-        }
-      } else {
-        removeLeavingEdgeAndConnectEnteringEdgeAround(node);
-        removeNode(nodes, node);
-      }
-      canMutate = true;
-      break;
-    }
-
-    if (!canMutate) {
-      logger.log(Level.INFO, "no edge was removed or blanked");
-      return null;
-    }
-    return new ParseResult(
-        pParseResult1.getFunctions(),
-        nodes,
-        pParseResult1.getGlobalDeclarations(),
-        pParseResult1.getFileNames());
-  }
-
-  private boolean mutate() {
-    ParseResult r = removeAnEdge(parseResult);
-    if (r == null) {
-      return false;
-    } else {
-      ((CFAMutatorStatistics) stats).mutationsAttempted.inc();
-      parseResult = r;
-      return true;
-    }
-  }
-
-  // undo last mutation
-  public void rollback() {
-    wasRollback = true;
-    clearParseResultAfterPostprocessings();
-    if (lastMutation == MutationType.NodeAndEdgeRemoval) {
-      parseResult = returnEdge(parseResult);
-    } else {
-      parseResult = refillEdge(parseResult);
-    }
-  }
-
   // remove the node with its only leaving and entering edges
   // and insert new edge similar to entering edge.
   private void removeLeavingEdgeAndConnectEnteringEdgeAround(CFANode pNode) {
-    lastMutation = MutationType.NodeAndEdgeRemoval;
-    lastRemovedEdge = pNode.getLeavingEdge(0);
-    logger.logf(Level.INFO, "removing %s with edge %s", pNode, lastRemovedEdge);
+    assert pNode.getNumLeavingEdges() == 1;
+    CFAEdge leavingEdge = pNode.getLeavingEdge(0);
 
-    CFANode successor = lastRemovedEdge.getSuccessor();
+    deletedEdges.add(leavingEdge);
+    logger.logf(Level.INFO, "removing node %s with edge %s", pNode, leavingEdge);
+
+    CFANode successor = leavingEdge.getSuccessor();
+    assert successor.getNumEnteringEdges() == 1;
+    removeEdge(leavingEdge);
+
+    assert pNode.getNumEnteringEdges() == 1;
     CFAEdge enteringEdge = pNode.getEnteringEdge(0);
+    CFANode predecessor = enteringEdge.getPredecessor();
+    assert predecessor.getNumLeavingEdges() == 1;
 
     CFAEdge newEdge = dupEdge(enteringEdge, null, successor);
     removeEdge(enteringEdge);
     addEdge(newEdge);
-    removeEdge(lastRemovedEdge);
+
+    removeNode(pNode);
+    System.out.println("removed " + enteringEdge + ", " + pNode + ", " + leavingEdge);
   }
 
-  // undo removing a node with leaving edge
-  private ParseResult returnEdge(ParseResult pParseResult) {
-    logger.logf(Level.FINE, "returning edge %s", lastRemovedEdge);
-    // undo mutation: insert node, reconnect edges, insert lastRemovedEdge
-    SortedSetMultimap<String, CFANode> nodes = TreeMultimap.create(pParseResult.getCFANodes());
+  // undo removing a node with leaving edge:
+  // insert node, delete inserted edge, reconnect edges
+  private void returnNodeWithLeavingEdge(CFAEdge pLeavingEdge) {
+    logger.logf(Level.FINE, "returning edge %s", pLeavingEdge);
 
-    CFANode removedNode = lastRemovedEdge.getPredecessor();
-    addNode(nodes, removedNode);
-
-    CFANode successor = lastRemovedEdge.getSuccessor();
-    assert successor.getNumEnteringEdges() > 0;
+    CFANode removedNode = pLeavingEdge.getPredecessor();
+    assert removedNode.getNumEnteringEdges() == 0 && removedNode.getNumLeavingEdges() == 0;
+    addNode(removedNode);
+    CFANode successor = pLeavingEdge.getSuccessor();
+    assert successor.getNumEnteringEdges() == 1;
     CFAEdge insertedEdge = successor.getEnteringEdge(0);
-
+    CFANode predecessor = insertedEdge.getPredecessor();
+    assert predecessor.getNumLeavingEdges() == 1;
     removeEdge(insertedEdge);
-    CFAEdge firstEdge = dupEdge(insertedEdge, null, removedNode);
-
-    addEdge(firstEdge);
-    addEdge(lastRemovedEdge);
-    restoredEdges.add(lastRemovedEdge);
-
-    return new ParseResult(
-        pParseResult.getFunctions(),
-        nodes,
-        pParseResult.getGlobalDeclarations(),
-        pParseResult.getFileNames());
-  }
-
-  // replace the edge with blank edge
-  private void blankifyEdge(CFAEdge pEdge) {
-    lastMutation = MutationType.EdgeBlanking;
-    lastRemovedEdge = pEdge;
-    logger.logf(Level.INFO, "blanking edge %s", pEdge);
-
-    CFAEdge newEdge =
-        new BlankEdge(
-            "",
-            FileLocation.DUMMY,
-            pEdge.getPredecessor(),
-            pEdge.getSuccessor(),
-            "CFAMutator blanked this edge");
-
-    removeEdge(pEdge);
-    addEdge(newEdge);
-  }
-
-  // undo blanking an edge
-  private ParseResult refillEdge(ParseResult pParseResult) {
-    logger.logf(Level.FINE, "refilling edge %s", lastRemovedEdge);
-    CFAEdge blank = lastRemovedEdge.getPredecessor().getLeavingEdge(0);
-    restoredEdges.add(lastRemovedEdge);
-
-    removeEdge(blank);
-    addEdge(lastRemovedEdge);
-
-    return pParseResult;
+    addEdge(pLeavingEdge);
+    CFAEdge enteringEdge = dupEdge(insertedEdge, null, removedNode);
+    addEdge(enteringEdge);
+    System.out.println("returned " + enteringEdge + ", " + removedNode + ", " + pLeavingEdge);
   }
 
   // return an edge with same "contents" but from pPredNode to pSuccNode
