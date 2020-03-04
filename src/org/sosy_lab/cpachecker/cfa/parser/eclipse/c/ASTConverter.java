@@ -1013,6 +1013,7 @@ class ASTConverter {
 
     CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
     CFunctionDeclaration declaration = null;
+    final FileLocation loc = getLocation(e);
 
     if (functionName instanceof CIdExpression) {
       if (FUNC_TYPES_COMPATIBLE.equals(((CIdExpression) functionName).getName())) {
@@ -1054,12 +1055,17 @@ class ASTConverter {
           return CIntegerLiteralExpression.ZERO;
         }
       }
-      if (((CIdExpression) functionName).getName().equals(FUNC_OFFSETOF) && params.size() == 1) {
+      if (((CIdExpression) functionName).getName().equals(FUNC_OFFSETOF)
+          && params.size() == 1
+          && params.get(0) instanceof CFieldReference) {
         CFieldReference exp = (CFieldReference) params.get(0);
-        BigInteger offset = handleBuiltinOffsetOfFunction(exp);
-        int byteInBit = 8;
-        return CIntegerLiteralExpression
-            .createDummyLiteral(offset.longValue() / byteInBit, CNumericTypes.INT);
+        BigInteger offset = handleBuiltinOffsetOfFunction(exp, e);
+        BigInteger byteInBit = new BigInteger("8");
+        if (offset.remainder(byteInBit).equals(BigInteger.ZERO)) {
+          return new CIntegerLiteralExpression(loc, CNumericTypes.INT, offset.divide(byteInBit));
+        } else {
+          throw parseContext.parseError("__builtin_offset is not applicable to bitfields ", exp);
+        }
 
       }
 
@@ -1097,7 +1103,6 @@ class ASTConverter {
           ((CPointerType)functionNameType).getType(), functionName);
     }
 
-    final FileLocation loc = getLocation(e);
     CType returnType = typeConverter.convert(e.getExpressionType());
     if (containsProblemType(returnType)) {
       // workaround for Eclipse CDT problems
@@ -1129,7 +1134,8 @@ class ASTConverter {
     return new CFunctionCallExpression(loc, returnType, functionName, params, declaration);
   }
 
-  private BigInteger handleBuiltinOffsetOfFunction(CFieldReference exp) {
+  private BigInteger
+      handleBuiltinOffsetOfFunction(CFieldReference exp, IASTFunctionCallExpression e) {
     List<CFieldReference> fields = new ArrayList<>();
     fields.add(exp);
     while (exp.getFieldOwner() instanceof CFieldReference) {
@@ -1137,26 +1143,49 @@ class ASTConverter {
       exp = tmp;
       fields.add(exp);
     }
+    CIdExpression owner;
+    CElaboratedType structType;
+    if (exp.getFieldOwner() instanceof CIdExpression) {
+      owner = (CIdExpression) exp.getFieldOwner();
 
-    CIdExpression owner = (CIdExpression) exp.getFieldOwner();
-    CElaboratedType structType = (CElaboratedType) owner.getExpressionType();
+    } else {
+      throw parseContext.parseError(
+          "unexpected type " + exp.getFieldOwner() + " in __builtin_offsetof argument: ",
+          e);
+    }
 
+    if (owner.getExpressionType() instanceof CElaboratedType) {
+      structType = (CElaboratedType) owner.getExpressionType();
+    } else {
+      throw parseContext.parseError(
+          "unexpected type " + owner.getExpressionType() + " in __builtin_offsetof argument",
+          e);
+    }
     BigInteger sumOffset = BigInteger.ZERO;
     Collections.reverse(fields);
 
-    for (CFieldReference field : fields) {
-      BigInteger offset =
-          machinemodel
-              .getFieldOffsetInBits(
-                  (CCompositeType) structType.getRealType(),
-                  field.getFieldName());
-      sumOffset = sumOffset.add(offset);
-      if (field.getExpressionType() instanceof CElaboratedType) {
-        structType = (CElaboratedType) field.getExpressionType();
+    if (structType.getRealType() instanceof CCompositeType) {
+      for (CFieldReference field : fields) {
+        BigInteger offset =
+            machinemodel.getFieldOffsetInBits(
+                (CCompositeType) structType.getRealType(),
+                field.getFieldName());
+        sumOffset = sumOffset.add(offset);
+        if (field.getExpressionType() instanceof CElaboratedType) {
+          structType = (CElaboratedType) field.getExpressionType();
+        } else {
+          throw parseContext.parseError(
+              "unexpected type " + field.getExpressionType() + " in __builtin_offsetof argument",
+              e);
+        }
       }
-    }
 
-    return sumOffset;
+      return sumOffset;
+    } else {
+      throw parseContext.parseError(
+          "unexpected type " + structType.getRealType() + " in __builtin_offsetof argument: ",
+          e);
+    }
   }
 
   private boolean areCompatibleTypes(CType a, CType b) {
