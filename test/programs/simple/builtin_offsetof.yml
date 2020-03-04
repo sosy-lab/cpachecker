@@ -4,4 +4,4 @@ input_files: 'builtin_offsetof.c'
 
 properties:
   - property_file: ../../config/properties/unreach-label.prp
-    expected_verdict: false
+    expected_verdict: true

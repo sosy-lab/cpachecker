@@ -6,7 +6,7 @@ struct s1 {
   } s2;
 };
 
-int offset = __builtin_offsetof(struct s1, i1);
+int offset = __builtin_offsetof(struct s1, s2.i2);
 
 int main() {
   if (offset != 16) {
