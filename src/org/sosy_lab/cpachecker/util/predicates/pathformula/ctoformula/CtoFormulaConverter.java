@@ -547,7 +547,10 @@ public class CtoFormulaConverter {
 
   protected Formula makeNondet(
       final String name, final CType type, final SSAMapBuilder ssa, final Constraints constraints) {
-    Formula newVariable = makeFreshVariable(name, type, ssa);
+    final int index = makeFreshIndex(name, type, ssa);
+    Formula newVariable =
+        fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromCType(type), name + "!" + index);
+
     if (options.addRangeConstraintsForNondet()) {
       addRangeConstraint(newVariable, type, constraints);
     }
