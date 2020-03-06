@@ -48,20 +48,20 @@ final class OverflowState
 
   private final ImmutableSet<? extends AExpression> assumptions;
   private final boolean hasOverflow;
+  private final boolean nextHasOverflow;
   private static final String PROPERTY_OVERFLOW = "overflow";
-  private ImmutableSet<AbstractState> previousStates;
   private ImmutableSet<AbstractState> currentStates;
   private boolean alreadyStrengthened;
 
-  public OverflowState(Set<? extends AExpression> pAssumptions, boolean pHasOverflow) {
-    this(pAssumptions, pHasOverflow, null);
+  public OverflowState(Set<? extends AExpression> pAssumptions, boolean pHasOverflow, boolean pNextHasOverflow) {
+    this(pAssumptions, pHasOverflow, pNextHasOverflow, null);
   }
 
   public OverflowState(
-      Set<? extends AExpression> pAssumptions, boolean pHasOverflow, OverflowState parent) {
+      Set<? extends AExpression> pAssumptions, boolean pHasOverflow, boolean pNextHasOverflow, OverflowState parent) {
     assumptions = ImmutableSet.copyOf(pAssumptions);
     hasOverflow = pHasOverflow;
-    previousStates = null;
+    nextHasOverflow = pNextHasOverflow;
     if (parent != null) {
       currentStates = parent.currentStates;
     } else {
@@ -73,9 +73,13 @@ final class OverflowState
     return hasOverflow;
   }
 
+  public boolean nextHasOverflow() {
+    return nextHasOverflow;
+  }
+
   @Override
   public List<? extends AExpression> getAssumptions() {
-    return ImmutableList.of();
+    return ImmutableList.copyOf(assumptions);
   }
 
   @Override
@@ -92,13 +96,13 @@ final class OverflowState
       return false;
     }
     OverflowState that = (OverflowState) pO;
-    return hasOverflow == that.hasOverflow && Objects.equals(assumptions, that.assumptions);
+    return nextHasOverflow == that.nextHasOverflow && hasOverflow == that.hasOverflow && Objects.equals(assumptions, that.assumptions);
   }
 
   @Override
   public String toString() {
     return "OverflowState{" + ", assumeEdges=" + getReadableAssumptions() + ", hasOverflow="
-        + hasOverflow + '}';
+        + hasOverflow + ", nextHasOverflow=" + nextHasOverflow + '}';
   }
 
   @Override
@@ -131,25 +135,8 @@ final class OverflowState
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
   }
 
-  @Override
-  public Set<AbstractState> getStatesForPreconditions() {
-    if (alreadyStrengthened) {
-      assert (previousStates != null)
-          : "Expected state information to be not null after strengthening!";
-      return previousStates;
-    } else {
-      return currentStates;
-    }
-  }
-
-  @Override
-  public Set<? extends AExpression> getPreconditionAssumptions() {
-    return assumptions;
-  }
-
   protected void updateStatesForPreconditions(Iterable<AbstractState> pCurrentStates) {
     if (!alreadyStrengthened) {
-      previousStates = currentStates;
       // update current states while deliberately removing "this".
       // Other states may get hold of this set via getStatesForPreconditions().
       // We want to prevent infinite recursion and accelerate garbage collection.
