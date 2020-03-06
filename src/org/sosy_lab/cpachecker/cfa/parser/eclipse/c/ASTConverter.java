@@ -1143,49 +1143,48 @@ class ASTConverter {
       exp = tmp;
       fields.add(exp);
     }
-    CIdExpression owner;
-    CElaboratedType structType;
-    if (exp.getFieldOwner() instanceof CIdExpression) {
-      owner = (CIdExpression) exp.getFieldOwner();
 
-    } else {
+    if (!(exp.getFieldOwner() instanceof CIdExpression)) {
       throw parseContext.parseError(
           "unexpected type " + exp.getFieldOwner() + " in __builtin_offsetof argument: ",
           e);
-    }
 
-    if (owner.getExpressionType() instanceof CElaboratedType) {
-      structType = (CElaboratedType) owner.getExpressionType();
-    } else {
+    }
+    CIdExpression owner = (CIdExpression) exp.getFieldOwner();
+
+    if (!(owner.getExpressionType() instanceof CElaboratedType)) {
       throw parseContext.parseError(
           "unexpected type " + owner.getExpressionType() + " in __builtin_offsetof argument",
           e);
     }
+    CElaboratedType structType = (CElaboratedType) owner.getExpressionType();
+
     BigInteger sumOffset = BigInteger.ZERO;
     Collections.reverse(fields);
 
-    if (structType.getRealType() instanceof CCompositeType) {
-      for (CFieldReference field : fields) {
-        BigInteger offset =
-            machinemodel.getFieldOffsetInBits(
-                (CCompositeType) structType.getRealType(),
-                field.getFieldName());
-        sumOffset = sumOffset.add(offset);
-        if (field.getExpressionType() instanceof CElaboratedType) {
-          structType = (CElaboratedType) field.getExpressionType();
-        } else {
-          throw parseContext.parseError(
-              "unexpected type " + field.getExpressionType() + " in __builtin_offsetof argument",
-              e);
-        }
-      }
-
-      return sumOffset;
-    } else {
+    if (!(structType.getRealType() instanceof CCompositeType)) {
       throw parseContext.parseError(
           "unexpected type " + structType.getRealType() + " in __builtin_offsetof argument: ",
           e);
     }
+    for (CFieldReference field : fields) {
+      BigInteger offset =
+          machinemodel.getFieldOffsetInBits(
+              (CCompositeType) structType.getRealType(),
+              field.getFieldName());
+      sumOffset = sumOffset.add(offset);
+      if (!field.equals(fields.get(fields.size() - 1))) {
+        if (!(field.getExpressionType() instanceof CElaboratedType)) {
+          throw parseContext.parseError(
+              "unexpected type " + field.getExpressionType() + " in __builtin_offsetof argument",
+              e);
+        }
+        structType = (CElaboratedType) field.getExpressionType();
+      }
+    }
+
+    return sumOffset;
+
   }
 
   private boolean areCompatibleTypes(CType a, CType b) {
