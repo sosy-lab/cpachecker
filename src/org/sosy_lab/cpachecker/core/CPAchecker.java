@@ -43,7 +43,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -493,7 +492,6 @@ public class CPAchecker {
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
-    List<CPAcheckerResult> resultList = new ArrayList<>();
     CPAcheckerResult currentResult = null, originalResult = null;
     Exception originalException = null, currentException = null;
 
