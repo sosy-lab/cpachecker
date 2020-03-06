@@ -604,12 +604,6 @@ public class ARGToCTranslator {
           }
         }
       }
-      // precondition assumptions can be added here, since they shall be applied before the actual
-      // edge is taken, which is exactly here:
-      AbstractStates.asIterable(child)
-          .filter(AbstractStateWithAssumptions.class)
-          .transform(x -> x.getPreconditionAssumptions())
-          .forEach(x -> conditions.addAll(x));
 
       String cond;
       if (count == 0) {

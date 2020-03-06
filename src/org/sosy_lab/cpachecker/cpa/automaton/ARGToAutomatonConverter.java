@@ -799,7 +799,6 @@ public class ARGToAutomatonConverter {
     final Multimap<CallstackState, CallstackState> callstacks = LinkedHashMultimap.create();
     final Map<CallstackState, CallstackState> inverseCallstacks = new LinkedHashMap<>();
     final Multimap<CallstackState, ARGState> callstackToLeaves = LinkedHashMultimap.create();
-    final Multimap<CallstackState, ARGState> callstackToLeafWithPreAssumptions = LinkedHashMultimap.create();
     for (ARGState leaf : pLeaves) {
       CallstackState callstack = AbstractStates.extractStateByType(leaf, CallstackState.class);
       Preconditions.checkNotNull(callstack);
@@ -811,11 +810,6 @@ public class ARGToAutomatonConverter {
         callstack = callstack.getPreviousState();
       }
       callstackToLeaves.put(callstack, leaf);
-      if (AbstractStates.projectToType(
-              AbstractStates.asIterable(leaf), AbstractStateWithAssumptions.class)
-          .anyMatch(x -> !x.getPreconditionAssumptions().isEmpty())) {
-        callstackToLeafWithPreAssumptions.put(callstack, leaf);
-      }
       CallstackState prev = callstack.getPreviousState();
       while (prev != null) {
         callstacks.put(prev, callstack);
@@ -840,43 +834,12 @@ public class ARGToAutomatonConverter {
     while (!waitlist.isEmpty()) {
       final CallstackState elem = waitlist.removeFirst();
       boolean useAll = false;
-      Set<AExpression> assumptions = new HashSet<>();
-      for (ARGState leaf : callstackToLeafWithPreAssumptions.get(elem)) {
-        AbstractStates.projectToType(
-                AbstractStates.asIterable(leaf), AbstractStateWithAssumptions.class)
-            .stream()
-            .map(x -> x.getPreconditionAssumptions())
-            .flatMap(Collection::stream)
-            .forEach(assumptions::add);
-      }
       final List<AutomatonTransition> transitions = new ArrayList<>();
       for (ARGState leaf : callstackToLeaves.get(elem)) {
-        if (assumptions.isEmpty()) {
-          // no assumptions, proceed normally:
-          transitions.add(
-              makeLocationTransition(
-                  AbstractStates.extractLocation(leaf).getNodeNumber(),
-                  withTargetStates ? AutomatonInternalState.ERROR.getName() : id(leaf)));
-        } else {
-          // assumptions present, bend transition to parent instead:
-          ARGState parent = leaf.getParents().iterator().next();
-          stacksWithAssumptions.add(elem);
-          transitions.add(
-              makeLocationTransition(
-                  AbstractStates.extractLocation(parent).getNodeNumber(), id(parent), assumptions));
-          try {
-            transitions.add(
-                makeLocationTransition(
-                    AbstractStates.extractLocation(parent).getNodeNumber(),
-                    id(elem),
-                    transformedImmutableListCopy(
-                        assumptions, x -> negateExpression((CExpression) x))));
-          } catch (ClassCastException e) {
-            throw new AssertionError(
-                "Currently there is only support for negating CExpressions", e);
-          }
-          useAll = true;
-        }
+        transitions.add(
+            makeLocationTransition(
+                AbstractStates.extractLocation(leaf).getNodeNumber(),
+                withTargetStates ? AutomatonInternalState.ERROR.getName() : id(leaf)));
       }
       for (CallstackState called : callstacks.get(elem)) {
         if (!reached.contains(called.getCallNode())) {

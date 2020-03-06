@@ -306,7 +306,6 @@ public class PathChecker {
     Deque<PathFormula> callstack = new ArrayDeque<>();
 
     while (pathIt.hasNext()) {
-      pathFormula = handlePreconditionAssumptions(pathFormula, pathIt.getNextAbstractState());
       CFAEdge edge = pathIt.getOutgoingEdge();
       pathIt.advance();
 
@@ -327,23 +326,6 @@ public class PathChecker {
     }
 
     return Pair.of(pathFormula, ssaMaps);
-  }
-
-  private PathFormula handlePreconditionAssumptions(PathFormula pathFormula, ARGState nextState)
-      throws CPATransferException, InterruptedException {
-    if (nextState != null) {
-      // there could be more than one state that has assumptions:
-      FluentIterable<AbstractStateWithAssumptions> assumptionStates =
-          AbstractStates.projectToType(
-              AbstractStates.asIterable(nextState), AbstractStateWithAssumptions.class);
-      for (AbstractStateWithAssumptions assumptionState : assumptionStates) {
-          for (AExpression expr : assumptionState.getPreconditionAssumptions()) {
-            assert expr instanceof CExpression : "Expected a CExpression as precondition assumption!";
-            pathFormula = pmgr.makeAnd(pathFormula, (CExpression) expr);
-          }
-      }
-    }
-    return pathFormula;
   }
 
   private List<ValueAssignment> getModel(ProverEnvironment thmProver) {

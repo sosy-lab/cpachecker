@@ -319,16 +319,6 @@ public class SlicingAbstractionsUtils {
       startFormula = emptyPathFormulaWithSSAMap(pSolver.getFormulaManager().getBooleanFormulaManager().makeTrue(), pSSAMap, pPts);
     }
 
-    // Add precondition assumptions if any:
-    AbstractStateWithAssumptions other =
-        AbstractStates.extractStateByType(stop, AbstractStateWithAssumptions.class);
-    if (other != null) {
-      for (CExpression preassumption :
-          Iterables.filter(other.getPreconditionAssumptions(), CExpression.class)) {
-        startFormula = pPfmgr.makeAnd(startFormula, preassumption);
-      }
-    }
-
     // generate the PathFormula for the path between start and stop
     // using the relevant non-abstraction states
     pfb = buildFormulaBuilder(start, stop, segmentList, pPfmgr);

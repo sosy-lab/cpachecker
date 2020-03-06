@@ -352,43 +352,6 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
     PathFormula pf = pElement.getPathFormula();
 
-    Collection<AbstractState> oldStates = pAssumeElement.getStatesForPreconditions();
-    com.google.common.base.Optional<PredicateAbstractState> optionalPreviousPredicateState =
-        AbstractStates.projectToType(oldStates, PredicateAbstractState.class).first();
-
-    if (optionalPreviousPredicateState.isPresent() && optionalPreviousPredicateState.get().getPathFormula() != null) {
-      assert !pElement.equals(optionalPreviousPredicateState.get())
-          : "Found current state as state for preconditions."
-              + " Most likely this means strengthen of the PredicateCPA is called after strengthen of the OverflowCPA!";
-      PathFormula previousPathFormula = optionalPreviousPredicateState.get().getPathFormula();
-      for (CExpression preconditionAssumption : from(pAssumeElement.getPreconditionAssumptions())
-          .filter(CExpression.class)) {
-        if (CFAUtils.getIdExpressionsOfExpression(preconditionAssumption)
-            .anyMatch(var -> var.getExpressionType() instanceof CProblemType)) {
-          continue;
-        }
-        pathFormulaTimer.start();
-        try {
-          // compute a pathFormula where the SSAMap/ PointerTargetSet is set back to the previous state:
-          PathFormula temp = new PathFormula(
-              pf.getFormula(),
-              previousPathFormula.getSsa(),
-              previousPathFormula.getPointerTargetSet(),
-              previousPathFormula.getLength());
-          // add the assumption, which is now instantiated with the right indices:
-          temp = pathFormulaManager.makeAnd(temp, preconditionAssumption);
-          // add back the original SSAMap ant PointerTargetSet:
-          pf = new PathFormula(
-              temp.getFormula(),
-              pf.getSsa(),
-              pf.getPointerTargetSet(),
-              pf.getLength() + 1);
-        } finally {
-          pathFormulaTimer.stop();
-        }
-      }
-    }
-
     if (options.assumptionStrengtheningSatCheck()) {
       PathFormula f = pathFormulaManager.makeFormulaForPath(Collections.singletonList(pEdge));
       for (CExpression assumption :

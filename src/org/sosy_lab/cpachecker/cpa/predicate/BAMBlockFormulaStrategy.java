@@ -138,7 +138,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
           prevCallState = callStacks.get(parentElement);
         }
 
-        PathFormula currentFormula = strengthen(currentState, parentFormula);
+        PathFormula currentFormula = parentFormula;
         for (CFAEdge edge : edges) {
           currentFormula = pfmgr.makeAnd(currentFormula, edge);
           if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
@@ -201,20 +201,6 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
     BooleanFormula branchingFormula =
         pfmgr.buildBranchingFormula(finishedFormulas.keySet(), branchingFormulas);
     return new BlockFormulas(abstractionFormulas, branchingFormula);
-  }
-
-  /** Add additional information from other CPAs. */
-  private PathFormula strengthen(final ARGState currentState, PathFormula currentFormula)
-      throws CPATransferException, InterruptedException {
-    AbstractStateWithAssumptions other =
-        AbstractStates.extractStateByType(currentState, AbstractStateWithAssumptions.class);
-    if (other != null) {
-      for (CExpression preassumption :
-          Iterables.filter(other.getPreconditionAssumptions(), CExpression.class)) {
-        currentFormula = pfmgr.makeAnd(currentFormula, preassumption);
-      }
-    }
-    return currentFormula;
   }
 
   /* rebuild indices from outer scope */
