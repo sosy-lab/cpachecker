@@ -1173,7 +1173,8 @@ class ASTConverter {
               (CCompositeType) structType.getRealType(),
               field.getFieldName());
       sumOffset = sumOffset.add(offset);
-      if (!field.equals(fields.get(fields.size() - 1))) {
+      CFieldReference lastField = fields.get(fields.size() - 1);
+      if (!field.equals(lastField)) {
         if (!(field.getExpressionType() instanceof CElaboratedType)) {
           throw parseContext.parseError(
               "unexpected type " + field.getExpressionType() + " in __builtin_offsetof argument",
