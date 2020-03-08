@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -890,8 +891,7 @@ public class CFACreator {
         .collect(ImmutableSet.toImmutableSet());
   }
 
-  @VisibleForTesting
-  void checkForAmbiguousMethod(
+  private void checkForAmbiguousMethod(
       FunctionEntryNode mainFunction, String mainMethodName, Map<String, FunctionEntryNode> cfas) {
     if (!mainFunction.getFunctionDefinition().getName().equals(mainFunctionName)) {
       Set<FunctionEntryNode> pNodesWithCorrectClassPath =
@@ -904,33 +904,33 @@ public class CFACreator {
           pNodesWithCorrectClassPath.stream()
               .filter(
                   v ->
-                      (((JMethodDeclaration) v.getFunctionDefinition())
-                          .getDeclaringClass()
-                          .getName()
-                          + "."
-                          + ((JMethodDeclaration) v.getFunctionDefinition())
-                          .getSimpleName())
-                          .equals(mainMethodName)
-                          || ((JMethodDeclaration) v.getFunctionDefinition()).getSimpleName()
-                          .equals(mainMethodName))
+                      hasMethodName(v, mainMethodName))
               .collect(ImmutableSet.toImmutableSet());
 
       if (methodsWithSameName.size() > 1) {
-        StringBuilder foundMethods = new StringBuilder();
-        for (FunctionEntryNode method : methodsWithSameName) {
-          foundMethods.append(method.getFunctionDefinition().getName()).append("\n");
-        }
-        if (logger != null) {
-          logger.log(
-              Level.WARNING,
-              "Multiple methods with same name but different parameters found. Make sure you picked the right one.\n"
-                  + "Methods found\n"
-                  + foundMethods
-                  + "\n"
-                  + EXAMPLE_JAVA_METHOD_NAME);
-        }
+        String foundMethods = methodsWithSameName.stream()
+            .map(m -> m.getFunctionDefinition().getName())
+            .collect(Collectors.joining("\n"));
+
+        logger.log(
+            Level.WARNING,
+            "Multiple methods with same name but different parameters found. Make sure you picked the right one.\n"
+                + "Methods found:\n\n"
+                + foundMethods
+                + "\n\n"
+                + EXAMPLE_JAVA_METHOD_NAME);
       }
     }
+  }
+
+  private static boolean hasMethodName(FunctionEntryNode entryNode, String methodName) {
+    final JMethodDeclaration functionDefinition =
+        (JMethodDeclaration) entryNode.getFunctionDefinition();
+    return (functionDefinition.getDeclaringClass().getName()
+        + "."
+        + functionDefinition.getSimpleName())
+        .equals(methodName)
+        || functionDefinition.getSimpleName().equals(methodName);
   }
 
   private void checkIfValidFiles(List<String> sourceFiles) throws InvalidConfigurationException {
