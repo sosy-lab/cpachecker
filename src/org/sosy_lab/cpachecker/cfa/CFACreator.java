@@ -711,13 +711,12 @@ public class CFACreator {
       // TODO Thus verification is different
     }
 
-    if (sourceFiles.size() == 1) {
-      if (language == Language.JAVA) {
-        parseResult =
-            ((JavaParser) parser).parseFile(sourceFiles.get(0), mainFunctionName);
-      } else {
-        parseResult = parser.parseFile(sourceFiles.get(0));
-      }
+    if (language == Language.JAVA) {
+      parseResult = ((JavaParser) parser).parseFile(sourceFiles, mainFunctionName);
+    } else if (sourceFiles.size() == 1) {
+
+      parseResult = parser.parseFile(sourceFiles.get(0));
+
     } else {
       // when there is more than one file which should be evaluated, the
       // program denotations are separated from each other and a prefix for

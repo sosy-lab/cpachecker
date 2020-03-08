@@ -152,20 +152,15 @@ class EclipseJavaParser implements JavaParser {
     }
   }
 
-  private void setMissingClassPath(String sourceFiles) throws InvalidConfigurationException {
+  private void setMissingClassPath(List<String> sourceFiles) throws InvalidConfigurationException {
 
-    ImmutableList<Path> pathToProgram = convertToPathList(sourceFiles);
-
-    if (pathToProgram.isEmpty()) {
-      throw new InvalidConfigurationException("No valid Paths could be found.");
-    }
-
-    if (sourceFiles.endsWith(".java")) {
+    if (sourceFiles.size() == 1 && sourceFiles.get(0).endsWith(".java")) {
+      ImmutableList<Path> pathToProgram = convertToPathList(sourceFiles.get(0));
       javaClassPaths = ImmutableList.of(pathToProgram.get(0).getParent());
     } else {
-      javaClassPaths = ImmutableList.of(pathToProgram.get(0));
+      javaClassPaths =
+          sourceFiles.stream().map(v -> Paths.get(v)).collect(ImmutableList.toImmutableList());
     }
-
     if (javaSourcepath.isEmpty()) {
       javaSourcePaths = javaClassPaths;
     } else {
@@ -201,13 +196,13 @@ class EclipseJavaParser implements JavaParser {
   }
 
   @Override
-  public ParseResult parseFile(String sourceFiles, String mainFunctionName)
+  public ParseResult parseFile(List<String> sourceFiles, String mainFunctionName)
       throws ParserException, IOException, InvalidConfigurationException {
     if (javaClasspath.isEmpty()) {
       setMissingClassPath(sourceFiles);
       return parseFile(mainFunctionName);
     } else {
-      return parseFile(sourceFiles);
+      return parseFile(sourceFiles.get(0));
     }
 
   }
