@@ -210,16 +210,31 @@ class EclipseJavaParser implements JavaParser {
   /**
    * Parse the program of the Main class in this file into a CFA.
    *
-   * @param mainClassFileName The Main Class File of the program to parse.
+   * @param entryFunction The Main Class File of the program to parse.
    * @return The CFA.
    */
   @Override
-  public ParseResult parseFile(String mainClassFileName) throws JParserException, IOException {
-    String mainClassAbsolutePath = getMainClassAbsolutePath(mainClassFileName) + ".java";
-    Scope scope = prepareScope(mainClassFileName);
+  public ParseResult parseFile(String entryFunction) throws JParserException, IOException {
+    String mainClassAbsolutePath = getMainClassAbsolutePath(entryFunction) + ".java";
+    String mainClassFile = stripMethodNameFromEntryFunction(entryFunction);
+    Scope scope = prepareScope(mainClassFile);
     ParseResult result = buildCFA(parse(getPathToFile(mainClassAbsolutePath)), scope);
     exportTypeHierarchy(scope);
     return result;
+  }
+
+  private String stripMethodNameFromEntryFunction(String mainFunctionName) {
+    Optional<Path> mainClassFile = searchForClassFile(mainFunctionName);
+    while (mainClassFile.isEmpty() && !mainFunctionName.isEmpty()) {
+      int indexOfLastDot = mainFunctionName.lastIndexOf('.');
+      if (indexOfLastDot < 0) {
+        break;
+      }
+      mainFunctionName = mainFunctionName.substring(0, indexOfLastDot);
+      mainClassFile = searchForClassFile(mainFunctionName);
+    }
+
+    return mainFunctionName;
   }
 
   /**
