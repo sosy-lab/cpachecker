@@ -53,6 +53,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.CPATestRunner.ExpectedVerdict;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
@@ -79,14 +80,14 @@ public class WitnessExporterTest {
 
   @Test(timeout = 90000)
   public void multivar_true() throws Exception {
-    newWitnessTester("multivar_true-unreach-call1_true-termination.i")
+    newWitnessTester("multivar.i", ExpectedVerdict.TRUE)
         .useGenerationConfig(WitnessGenerationConfig.K_INDUCTION)
         .performTest();
   }
 
   @Test(timeout = 90000)
   public void minepump_spec1_product33_false() throws Exception {
-    newWitnessTester("minepump_spec1_product33_false-unreach-call_false-termination.cil.c")
+    newWitnessTester("minepump_spec1_product33.cil.c", ExpectedVerdict.FALSE)
         .performTest()
         .useGenerationConfig(WitnessGenerationConfig.K_INDUCTION)
         .performTest();
@@ -94,13 +95,13 @@ public class WitnessExporterTest {
 
   @Test(timeout = 90000)
   public void rule60_list2_false() throws Exception {
-    newWitnessTester("rule60_list2.c_false-unreach-call_1.i")
-      .performTest();
+    newWitnessTester("rule60_list2.i", ExpectedVerdict.FALSE).performTest();
   }
 
   private static void performTest(
       String pFilename,
       String pSpecification,
+      ExpectedVerdict pExpected,
       WitnessGenerationConfig pGenerationConfig,
       Map<String, String> pOverrideOptions)
       throws Exception {
@@ -109,13 +110,16 @@ public class WitnessExporterTest {
     TempCompressedFilePath witnessPath = new TempCompressedFilePath("witness", ".graphml");
 
     WitnessType witnessType =
-        generateWitness(fullPath, pGenerationConfig, pSpecification, pOverrideOptions, witnessPath);
+        generateWitness(
+            fullPath, pExpected, pGenerationConfig, pSpecification, pOverrideOptions, witnessPath);
 
-    validateWitness(fullPath, pSpecification, pOverrideOptions, witnessPath, witnessType);
+    validateWitness(
+        fullPath, pSpecification, pExpected, pOverrideOptions, witnessPath, witnessType);
   }
 
   private static WitnessType generateWitness(
       String pFilePath,
+      ExpectedVerdict pExpected,
       WitnessGenerationConfig pGenerationConfig,
       String pSpecification,
       Map<String, String> pOverrideOptions,
@@ -171,10 +175,10 @@ public class WitnessExporterTest {
     // Trigger statistics so that the witness is written to the file
     results.getCheckerResult().writeOutputFiles();
 
-    if (isSupposedToBeSafe(pFilePath)) {
+    if (pExpected == ExpectedVerdict.TRUE) {
       results.assertIsSafe();
       return WitnessType.CORRECTNESS_WITNESS;
-    } else if (isSupposedToBeUnsafe(pFilePath)) {
+    } else if (pExpected == ExpectedVerdict.FALSE) {
       results.assertIsUnsafe();
       return WitnessType.VIOLATION_WITNESS;
     }
@@ -185,6 +189,7 @@ public class WitnessExporterTest {
   private static void validateWitness(
       String pFilePath,
       String pSpecification,
+      ExpectedVerdict pExpected,
       Map<String, String> pOverrideOptions,
       TempCompressedFilePath witnessPath,
       WitnessType witnessType)
@@ -213,9 +218,9 @@ public class WitnessExporterTest {
 
     TestResults results = CPATestRunner.run(validationConfig, pFilePath);
 
-    if (isSupposedToBeSafe(pFilePath)) {
+    if (pExpected == ExpectedVerdict.TRUE) {
       results.assertIsSafe();
-    } else if (isSupposedToBeUnsafe(pFilePath)) {
+    } else if (pExpected == ExpectedVerdict.FALSE) {
       results.assertIsUnsafe();
     } else {
       assertWithMessage("Cannot determine expected result.").fail();
@@ -232,14 +237,6 @@ public class WitnessExporterTest {
       pOverrideOptions.put(SPECIFICATION_OPTION, pSpecification);
     }
     return configBuilder.setOptions(pOverrideOptions).build();
-  }
-
-  private static boolean isSupposedToBeUnsafe(String pFilePath) {
-    return pFilePath.contains("_false_assert") || pFilePath.contains("_false-unreach");
-  }
-
-  private static boolean isSupposedToBeSafe(String pFilePath) {
-    return pFilePath.contains("_true_assert") || pFilePath.contains("_true-unreach");
   }
 
   private static class TempCompressedFilePath {
@@ -292,6 +289,7 @@ public class WitnessExporterTest {
   private static class WitnessTester {
 
     private final String programFile;
+    private final ExpectedVerdict expected;
 
     private WitnessGenerationConfig generationConfig = WitnessGenerationConfig.PREDICATE_ANALYSIS;
 
@@ -299,8 +297,9 @@ public class WitnessExporterTest {
 
     private ImmutableMap.Builder<String, String> overrideOptionsBuilder = ImmutableMap.builder();
 
-    private WitnessTester(String pProgramFile) {
+    private WitnessTester(String pProgramFile, ExpectedVerdict pExpected) {
       programFile = Objects.requireNonNull(pProgramFile);
+      expected = pExpected;
     }
 
     @CanIgnoreReturnValue
@@ -326,13 +325,14 @@ public class WitnessExporterTest {
       WitnessExporterTest.performTest(
           programFile,
           specificationFile,
+          expected,
           generationConfig,
           overrideOptionsBuilder.build());
       return this;
     }
   }
 
-  private static WitnessTester newWitnessTester(String pProgramFile) {
-    return new WitnessTester(pProgramFile);
+  public static WitnessTester newWitnessTester(String pProgramFile, ExpectedVerdict pExpected) {
+    return new WitnessTester(pProgramFile, pExpected);
   }
 }
