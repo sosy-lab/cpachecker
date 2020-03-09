@@ -444,7 +444,7 @@ public class SimpleInterval {
     return BigInteger.ONE;
   }
 
-  private static SimpleInterval INFINITE = new SimpleInterval(null, null);
+  private static final SimpleInterval INFINITE = new SimpleInterval(null, null);
 
   public static SimpleInterval infinite() {
     return INFINITE;
@@ -484,9 +484,9 @@ public class SimpleInterval {
       upper = a.upperBound.max(b.upperBound);
     }
 
-    if (lower == a.lowerBound && upper == a.upperBound) {
+    if (Objects.equals(lower, a.lowerBound) && Objects.equals(upper, a.upperBound)) {
       return a;
-    } else if (lower == b.lowerBound && upper == b.upperBound) {
+    } else if (Objects.equals(lower, b.lowerBound) && Objects.equals(upper, b.upperBound)) {
       return b;
     } else {
       return new SimpleInterval(lower, upper);

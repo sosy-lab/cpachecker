@@ -48,25 +48,23 @@ public abstract class BinarySymbolicExpression extends SymbolicExpression {
    */
   private Type expressionType;
 
-  protected BinarySymbolicExpression(
+  BinarySymbolicExpression(
       SymbolicExpression pOperand1,
       SymbolicExpression pOperand2,
       Type pExpressionType,
-      Type pCalculationType
-  ) {
+      Type pCalculationType) {
     operand1 = pOperand1;
     operand2 = pOperand2;
     expressionType = pExpressionType;
     calculationType = pCalculationType;
   }
 
-  protected BinarySymbolicExpression(
+  BinarySymbolicExpression(
       SymbolicExpression pOperand1,
       SymbolicExpression pOperand2,
       Type pExpressionType,
       Type pCalculationType,
-      MemoryLocation pRepresentedLocation
-  ) {
+      MemoryLocation pRepresentedLocation) {
 
     super(pRepresentedLocation);
     operand1 = pOperand1;
@@ -98,7 +96,8 @@ public abstract class BinarySymbolicExpression extends SymbolicExpression {
   }
 
   @Override
-  public boolean equals(Object pObj) {
+  @SuppressWarnings("EqualsGetClass") // on purpose, case-class structure with single equals()
+  public final boolean equals(Object pObj) {
     if (this == pObj) {
       return true;
     }
@@ -114,7 +113,7 @@ public abstract class BinarySymbolicExpression extends SymbolicExpression {
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return super.hashCode() + Objects.hash(getClass(), operand1, operand2, expressionType);
   }
 

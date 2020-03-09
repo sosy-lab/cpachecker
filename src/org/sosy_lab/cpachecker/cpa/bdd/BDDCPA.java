@@ -70,6 +70,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final LogManager logger;
   private final CFA cfa;
   private final BDDStatistics stats;
+  private final BitvectorComputer bvComputer;
 
   @Option(
     secure = true,
@@ -108,6 +109,14 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
     manager           = new NamedRegionManager(rmgr);
     bvmgr             = new BitvectorManager(rmgr);
     predmgr           = new PredicateManager(config, manager, cfa);
+    bvComputer =
+        new BitvectorComputer(
+            compressIntEqual,
+            cfa.getVarClassification().orElseThrow(),
+            bvmgr,
+            manager,
+            predmgr,
+            cfa.getMachineModel());
     stats = new BDDStatistics(config, cfa, logger, manager, predmgr);
   }
 
@@ -143,7 +152,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new BDDTransferRelation(manager, bvmgr, predmgr, cfa, bitsize, compressIntEqual);
+    return new BDDTransferRelation(manager, bvmgr, predmgr, cfa, bitsize, bvComputer);
   }
 
   @Override
@@ -168,9 +177,11 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
         bvmgr,
         predmgr,
         cfa.getMachineModel(),
+        cfa.getVarClassification().orElseThrow(),
         shutdownNotifier,
         logger,
-        useBlockAbstraction);
+        useBlockAbstraction,
+        bvComputer);
   }
 
   public Configuration getConfiguration() {

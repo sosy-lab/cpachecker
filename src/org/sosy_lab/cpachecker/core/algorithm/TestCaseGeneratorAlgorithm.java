@@ -586,6 +586,9 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   @Override
   public void collectStatistics(final Collection<Statistics> pStatsCollection) {
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    }
     pStatsCollection.add(TestTargetProvider.getTestTargetStatisitics(printTestTargetInfoInStats));
   }
 

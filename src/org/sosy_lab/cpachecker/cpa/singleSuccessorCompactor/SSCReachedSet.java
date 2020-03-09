@@ -80,7 +80,7 @@ class SSCReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     while (sccState.getSSCState().getWrappedState() != sccState.getWrappedState()) {
       sccState = (SSCARGState) Iterables.getOnlyElement(sccState.getParents());
     }
-    assert sccState.getSSCState() == ((SSCARGState) cutState).getSSCState();
+    assert sccState.getSSCState().equals(((SSCARGState) cutState).getSSCState());
 
     // remove original state and its subtree
     super.removeSubtree(sccState.getSSCState(), newPrecisions, pPrecisionTypes);

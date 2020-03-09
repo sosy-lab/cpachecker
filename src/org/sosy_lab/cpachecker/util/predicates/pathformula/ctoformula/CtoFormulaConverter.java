@@ -547,7 +547,10 @@ public class CtoFormulaConverter {
 
   protected Formula makeNondet(
       final String name, final CType type, final SSAMapBuilder ssa, final Constraints constraints) {
-    Formula newVariable = makeFreshVariable(name, type, ssa);
+    final int index = makeFreshIndex(name, type, ssa);
+    Formula newVariable =
+        fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromCType(type), name + "!" + index);
+
     if (options.addRangeConstraintsForNondet()) {
       addRangeConstraint(newVariable, type, constraints);
     }
@@ -845,9 +848,9 @@ public class CtoFormulaConverter {
       if (pToCType.getCanonicalType().equals(CNumericTypes.BOOL)
           || (pToCType instanceof CBitFieldType
               && ((CBitFieldType) pToCType).getType().equals(CNumericTypes.BOOL))) {
-        Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0l);
-        Formula zeroToSize = efmgr.makeBitvector(toSize, 0l);
-        Formula oneToSize = efmgr.makeBitvector(toSize, 1l);
+        Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0L);
+        Formula zeroToSize = efmgr.makeBitvector(toSize, 0L);
+        Formula oneToSize = efmgr.makeBitvector(toSize, 1L);
         ret = bfmgr.ifThenElse(fmgr.makeEqual(zeroFromSize, pFormula), zeroToSize, oneToSize);
       } else {
         if (fromSize > toSize) {
@@ -883,9 +886,7 @@ public class CtoFormulaConverter {
   }
 
   private void checkSimpleCastArgument(CType pType) {
-    if (!isSimple(pType)) {
-      throw new IllegalArgumentException("Cannot make a simple cast from or to " + pType);
-    }
+    checkArgument(isSimple(pType), "Cannot make a simple cast from or to %s", pType);
   }
 
   private boolean isSimple(CType pType) {

@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 /**
  * Linear expression over program variables.
  */
-public class Template {
+public final class Template {
   // todo: switch to MemoryLocation, additionally track type.
   private final LinearExpression<CIdExpression> linearExpression;
 

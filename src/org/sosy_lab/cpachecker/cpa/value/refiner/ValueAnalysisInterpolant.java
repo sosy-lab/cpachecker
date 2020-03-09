@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * This class represents a Value-Analysis interpolant, itself, just a mere wrapper around a map from
  * memory locations to values, representing a variable assignment.
  */
-public class ValueAnalysisInterpolant
+public final class ValueAnalysisInterpolant
     implements Interpolant<ValueAnalysisState, ValueAnalysisInterpolant> {
 
   /** the variable assignment of the interpolant */

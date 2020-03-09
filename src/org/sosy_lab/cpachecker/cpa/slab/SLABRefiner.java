@@ -218,7 +218,6 @@ public class SLABRefiner implements Refiner, StatisticsProvider {
         if (thmProver.isUnsat()) {
           slabState.removeFromARG();
           toRemove.add(slabState);
-        } else {
         }
       } catch (SolverException e) {
         throw new CPAException("Solver Failure", e);

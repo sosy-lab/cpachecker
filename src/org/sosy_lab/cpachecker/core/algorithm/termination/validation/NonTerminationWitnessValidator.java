@@ -42,6 +42,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -257,7 +258,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
         if (stemSynState.isPresent()) {
           CFANode stemEndLoc = AbstractStates.extractLocation(stemSynState.get());
-          CFANode afterInvCheck = new CFANode(stemEndLoc.getFunctionName());
+          CFANode afterInvCheck = new CFANode(stemEndLoc.getFunction());
 
           // extract quasi invariant which describes recurrent set, use true as default
           ExpressionTree<AExpression> quasiInvariant = ExpressionTrees.getTrue();
@@ -291,7 +292,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                   "!( " + invCheck.getRawStatement() + " )",
                   FileLocation.DUMMY,
                   stemEndLoc,
-                  new CFANode(stemEndLoc.getFunctionName()),
+                  new CFANode(stemEndLoc.getFunction()),
                   invCheck.getExpression(),
                   false);
 
@@ -765,8 +766,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       throws InterruptedException {
 
     Preconditions.checkArgument(
-        pAssumeRecurrentSetInvariant.getPredecessor()
-            == pAssumeRecurrentSetInvariant.getSuccessor());
+        Objects.equals(
+            pAssumeRecurrentSetInvariant.getPredecessor(),
+            pAssumeRecurrentSetInvariant.getSuccessor()));
     AbstractState initialDefault =
         cpaWrappedInARGCPA.getInitialState(
             pRecurrentSetLoc, StateSpacePartition.getDefaultPartition());

@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -220,6 +221,7 @@ public abstract class ConditionFolder {
     return pChild;
   }
 
+  @SuppressWarnings("checkstyle:PublicReferenceToPrivateType")
   protected void merge(
       final ARGState newState1, final ARGState newState2, final MergeUpdateFunction updateFun) {
 
@@ -238,7 +240,7 @@ public abstract class ConditionFolder {
         mergeInto = mergedInto.get(mergeInto);
       }
 
-      if (merge == mergeInto) {
+      if (merge.equals(mergeInto)) {
         continue;
       }
 
@@ -246,7 +248,7 @@ public abstract class ConditionFolder {
         for (ARGState ch : mergeInto.getChildren()) {
           if (merge.getEdgeToChild(child) != null
               && merge.getEdgeToChild(child).equals(mergeInto.getEdgeToChild(ch))
-              && ch != child) {
+              && !Objects.equals(ch, child)) {
             toMerge.add(Pair.of(child, ch));
           }
         }
@@ -399,7 +401,7 @@ public abstract class ConditionFolder {
           if (!oldARGToFoldedState.containsKey(child)) {
             if (shouldFold(locChild) && folderStatesFoldIDToFoldedARGState.containsKey(foldIDChild)) {
               foldedNode = folderStatesFoldIDToFoldedARGState.get(foldIDChild);
-              assert (locChild == AbstractStates.extractLocation(foldedNode));
+              assert (Objects.equals(locChild, AbstractStates.extractLocation(foldedNode)));
             } else {
               foldedNode = null;
               newState = oldARGToFoldedState.get(oldState);
@@ -441,7 +443,7 @@ public abstract class ConditionFolder {
             }
           }
 
-          if (newChild != null && newChild != oldARGToFoldedState.get(child)) {
+          if (newChild != null && !newChild.equals(oldARGToFoldedState.get(child))) {
             merge(newChild, oldARGToFoldedState.get(child), update);
           }
 

@@ -124,7 +124,6 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       Optional<VariableClassification> pVc,
       Class<? extends ConfigurableProgramAnalysis> cpaClass)
       throws InvalidConfigurationException {
-    super();
     config.inject(this);
     this.cpaClass = cpaClass;
     this.vc = pVc;

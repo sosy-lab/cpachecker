@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 
@@ -44,10 +43,10 @@ public interface AliasCreator {
   );
 
   /**
-   * Environment for comparison of sets of symbolic values. An environment contains
-   * aliases for {@link SymbolicIdentifier}s and counterparts of {@link SymbolicValue}s.
+   * Environment for comparison of sets of symbolic values. An environment contains aliases for
+   * {@link SymbolicIdentifier}s and counterparts of {@link SymbolicValue}s.
    */
-  class Environment {
+  final class Environment {
     private Map<SymbolicIdentifier, SymbolicIdentifier> aliases = new HashMap<>();
     private Map<SymbolicValue, SymbolicValue> counterparts = new HashMap<>();
 

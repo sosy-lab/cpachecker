@@ -187,6 +187,7 @@ class ASTConverter {
 
   // Calls to this functions are handled by this class and replaced with regular C code.
   private static final String FUNC_CONSTANT = "__builtin_constant_p";
+  private static final String FUNC_OFFSETOF = "__builtin_offsetof";
   private static final String FUNC_EXPECT = "__builtin_expect";
   private static final String FUNC_TYPES_COMPATIBLE = "__builtin_types_compatible_p";
 
@@ -538,6 +539,7 @@ class ASTConverter {
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
     CIdExpression tmp = createTemporaryVariable(e);
     sideAssignmentStack.addConditionalExpression(e, tmp);
+
     return tmp;
   }
 
@@ -600,9 +602,28 @@ class ASTConverter {
       }
 
       // workaround for strange CDT behaviour
-    } else if (type instanceof CProblemType && e instanceof IASTConditionalExpression) {
-      return typeConverter.convert(
-          ((IASTConditionalExpression)e).getNegativeResultExpression() .getExpressionType());
+    } else if (type instanceof CProblemType) {
+      if (e instanceof IASTConditionalExpression) {
+        return typeConverter.convert(
+            ((IASTConditionalExpression) e).getNegativeResultExpression().getExpressionType());
+      } else if (e instanceof IGNUASTCompoundStatementExpression) {
+        // manually ceck whether type of compundStatementExpression is void
+        IGNUASTCompoundStatementExpression statementExpression =
+            (IGNUASTCompoundStatementExpression) e;
+        IASTStatement[] statements = statementExpression.getCompoundStatement().getStatements();
+
+        if (statements.length > 0) {
+          IASTStatement lastStatement = statements[statements.length - 1];
+
+          if (lastStatement instanceof IASTExpressionStatement) {
+            IASTExpression lastExpression =
+                ((IASTExpressionStatement) lastStatement).getExpression();
+            return convertType(lastExpression);
+          } else {
+            return CVoidType.create(false, false);
+          }
+        }
+      }
     }
     return type;
   }
@@ -1012,6 +1033,7 @@ class ASTConverter {
 
     CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
     CFunctionDeclaration declaration = null;
+    final FileLocation loc = getLocation(e);
 
     if (functionName instanceof CIdExpression) {
       if (FUNC_TYPES_COMPATIBLE.equals(((CIdExpression) functionName).getName())) {
@@ -1053,6 +1075,20 @@ class ASTConverter {
           return CIntegerLiteralExpression.ZERO;
         }
       }
+      if (((CIdExpression) functionName).getName().equals(FUNC_OFFSETOF)
+          && params.size() == 1
+          && params.get(0) instanceof CFieldReference) {
+        CFieldReference exp = (CFieldReference) params.get(0);
+        BigInteger offset = handleBuiltinOffsetOfFunction(exp, e);
+        BigInteger byteInBit = new BigInteger("8");
+        if (offset.remainder(byteInBit).equals(BigInteger.ZERO)) {
+          return new CIntegerLiteralExpression(loc, CNumericTypes.INT, offset.divide(byteInBit));
+        } else {
+          throw parseContext.parseError("__builtin_offset is not applicable to bitfields ", exp);
+        }
+
+      }
+
       CSimpleDeclaration d = ((CIdExpression)functionName).getDeclaration();
       if (d instanceof CFunctionDeclaration) {
         // it may also be a variable declaration, when a function pointer is called
@@ -1087,7 +1123,6 @@ class ASTConverter {
           ((CPointerType)functionNameType).getType(), functionName);
     }
 
-    final FileLocation loc = getLocation(e);
     CType returnType = typeConverter.convert(e.getExpressionType());
     if (containsProblemType(returnType)) {
       // workaround for Eclipse CDT problems
@@ -1117,6 +1152,60 @@ class ASTConverter {
     }
 
     return new CFunctionCallExpression(loc, returnType, functionName, params, declaration);
+  }
+
+  private BigInteger
+      handleBuiltinOffsetOfFunction(CFieldReference exp, IASTFunctionCallExpression e) {
+    List<CFieldReference> fields = new ArrayList<>();
+    fields.add(exp);
+    while (exp.getFieldOwner() instanceof CFieldReference) {
+      CFieldReference tmp = (CFieldReference) exp.getFieldOwner();
+      exp = tmp;
+      fields.add(exp);
+    }
+
+    if (!(exp.getFieldOwner() instanceof CIdExpression)) {
+      throw parseContext.parseError(
+          "unexpected type " + exp.getFieldOwner() + " in __builtin_offsetof argument: ",
+          e);
+
+    }
+    CIdExpression owner = (CIdExpression) exp.getFieldOwner();
+
+    if (!(owner.getExpressionType() instanceof CElaboratedType)) {
+      throw parseContext.parseError(
+          "unexpected type " + owner.getExpressionType() + " in __builtin_offsetof argument",
+          e);
+    }
+    CElaboratedType structType = (CElaboratedType) owner.getExpressionType();
+
+    BigInteger sumOffset = BigInteger.ZERO;
+    Collections.reverse(fields);
+
+    if (!(structType.getRealType() instanceof CCompositeType)) {
+      throw parseContext.parseError(
+          "unexpected type " + structType.getRealType() + " in __builtin_offsetof argument: ",
+          e);
+    }
+    for (CFieldReference field : fields) {
+      BigInteger offset =
+          machinemodel.getFieldOffsetInBits(
+              (CCompositeType) structType.getRealType(),
+              field.getFieldName());
+      sumOffset = sumOffset.add(offset);
+      CFieldReference lastField = fields.get(fields.size() - 1);
+      if (!field.equals(lastField)) {
+        if (!(field.getExpressionType() instanceof CElaboratedType)) {
+          throw parseContext.parseError(
+              "unexpected type " + field.getExpressionType() + " in __builtin_offsetof argument",
+              e);
+        }
+        structType = (CElaboratedType) field.getExpressionType();
+      }
+    }
+
+    return sumOffset;
+
   }
 
   private boolean areCompatibleTypes(CType a, CType b) {

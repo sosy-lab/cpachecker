@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc.pdr;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.END_STATE_FILTER;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.getLocationPredicate;
 
@@ -230,9 +231,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
       throw new IllegalArgumentException(
           String.format("Minimum (%d) not lower than maximum (%d)", pMinIt, pMaxIt));
     }
-    if (pMinIt < 0) {
-      throw new IllegalArgumentException("Minimum must not be lower than 0 but is " + pMinIt);
-    }
+    checkArgument(pMinIt >= 0, "Minimum must not be lower than 0 but is %s", pMinIt);
     int min = pMinIt;
     int max = pMaxIt;
     Set<CFANode> startLocations = loopHeads;

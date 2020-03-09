@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -187,7 +188,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       if (!caption.isEmpty() && !(edge instanceof CFunctionReturnEdge)) {
         writer.write("Line 0:     N0 -{/*" + caption + "*/}-> N0\n");
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
-      } else if (edge.getSuccessor() == usage.getCFANode()
+      } else if (Objects.equals(edge.getSuccessor(), usage.getCFANode())
           && edge.toString().contains(id.getName())) {
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
       }

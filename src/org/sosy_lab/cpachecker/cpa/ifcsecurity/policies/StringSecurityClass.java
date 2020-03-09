@@ -31,11 +31,8 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity.policies;
  */
 public class StringSecurityClass extends SecurityClasses{
 
-  /**
-   * Internal Variable containing the String-Identifier of the Security class
-   */
-  private String sc;
-
+  /** Internal Variable containing the String-Identifier of the Security class */
+  private final String sc;
 
   /**
    * Constructor for the Security-Class
@@ -53,5 +50,13 @@ public class StringSecurityClass extends SecurityClasses{
   @Override
   public int hashCode() {
     return this.sc.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (!(pObj instanceof StringSecurityClass)) {
+      return false;
+    }
+    return sc.equals(((StringSecurityClass) pObj).sc);
   }
 }

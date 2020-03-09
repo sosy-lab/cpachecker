@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -207,7 +208,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
       TerminationState loopHeadState, Precision pPrecision, CFANode loopHead)
       throws CPATransferException, InterruptedException {
     Collection<TerminationState> resultingSuccessors = new ArrayList<>(4);
-    String functionName = loopHead.getFunctionName();
+    AFunctionDeclaration functionName = loopHead.getFunction();
 
     logger.logf(
         FINEST,
@@ -392,7 +393,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
   }
 
   private CDeclarationEdge createTmpVarDeclaration(CFANode predecessor, CFANode successor) {
-    String function = predecessor.getFunctionName();
+    AFunctionDeclaration function = predecessor.getFunction();
     CVariableDeclaration declaration =
         new CVariableDeclaration(
             FileLocation.DUMMY,
@@ -409,7 +410,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     return edge;
   }
 
-  private CFANode createCfaNode(String functionName) {
+  private CFANode createCfaNode(AFunctionDeclaration functionName) {
     return new CFANode(functionName);
   }
 

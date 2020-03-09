@@ -21,8 +21,5 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+/** Utilities for CPA testing. */
 package org.sosy_lab.cpachecker.util.test;
-
-/**
- * Utilities for CPA testing.
- */

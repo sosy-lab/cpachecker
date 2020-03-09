@@ -55,8 +55,10 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
-import org.sosy_lab.pjbdd.CreatorBuilder;
-import org.sosy_lab.pjbdd.creators.Creator;
+import org.sosy_lab.pjbdd.Builders;
+import org.sosy_lab.pjbdd.Builders.ParallelizationType;
+import org.sosy_lab.pjbdd.creator.bdd.BDDBuilder;
+import org.sosy_lab.pjbdd.creator.bdd.Creator;
 import org.sosy_lab.pjbdd.node.BDD;
 
 public class PJBDDRegionManager implements RegionManager {
@@ -74,7 +76,7 @@ public class PJBDDRegionManager implements RegionManager {
 
   @Override
   public boolean entails(Region f1, Region f2) {
-    return bddCreator.entails(unwrap(f1), unwrap(f2));
+    return bddCreator.makeImply(unwrap(f1), unwrap(f2)).isTrue();
   }
 
   @Override
@@ -86,8 +88,12 @@ public class PJBDDRegionManager implements RegionManager {
   public Region fromFormula(
       BooleanFormula pF, FormulaManagerView fmgr, Function<BooleanFormula, Region> atomToRegion) {
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
-    if (bfmgr.isFalse(pF)) return makeFalse();
-    if (bfmgr.isTrue(pF)) return makeTrue();
+    if (bfmgr.isFalse(pF)) {
+      return makeFalse();
+    }
+    if (bfmgr.isTrue(pF)) {
+      return makeTrue();
+    }
 
     try (FormulaToRegionConverter converter = new FormulaToRegionConverter(fmgr, atomToRegion)) {
       return wrap(bfmgr.visit(pF, converter));
@@ -97,7 +103,7 @@ public class PJBDDRegionManager implements RegionManager {
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region f) {
     BDD bdd = unwrap(f);
-    return Triple.of(f, wrap(bdd.getHigh()), wrap(bdd.getLow()));
+    return Triple.of(wrap(bddCreator.makeIthVar(bdd.getVariable())), wrap(bdd.getHigh()), wrap(bdd.getLow()));
   }
 
   @Override
@@ -169,6 +175,7 @@ public class PJBDDRegionManager implements RegionManager {
 
   @Override
   public Region makeExists(Region f1, Region... f2) {
+
     BDD[] bddF2 = new BDD[f2.length];
     IntStream.range(0, f2.length).forEach(i -> bddF2[i] = unwrap(f2[i]));
     return wrap(bddCreator.makeExists(unwrap(f1), bddF2));
@@ -229,7 +236,9 @@ public class PJBDDRegionManager implements RegionManager {
 
     @Override
     public BDD visitAnd(List<BooleanFormula> pList) {
-      if (pList.isEmpty()) return bddCreator.makeFalse();
+      if (pList.isEmpty()) {
+        return bddCreator.makeFalse();
+      }
 
       BDD result = bddCreator.makeTrue();
       for (BooleanFormula bFormula : pList) {
@@ -240,7 +249,9 @@ public class PJBDDRegionManager implements RegionManager {
 
     @Override
     public BDD visitOr(List<BooleanFormula> pList) {
-      if (pList.isEmpty()) return bddCreator.makeFalse();
+      if (pList.isEmpty()) {
+        return bddCreator.makeFalse();
+      }
 
       BDD result = bddCreator.makeFalse();
       for (BooleanFormula bFormula : pList) {
@@ -357,7 +368,9 @@ public class PJBDDRegionManager implements RegionManager {
 
         BDD result = bddCreator.makeTrue();
 
-        for (BDD bdd : clauses) result = bddCreator.makeOr(result, bdd);
+        for (BDD bdd : clauses) {
+          result = bddCreator.makeOr(result, bdd);
+        }
 
         cubes.clear();
 
@@ -378,23 +391,19 @@ public class PJBDDRegionManager implements RegionManager {
 
     @Option(secure = true, description = "unique table's concurrency factor")
     @IntegerOption(min = 1)
-    private int tableParallelism = 1000;
+    private int tableParallelism = 10000;
 
     @Option(secure = true, description = "initial variable count")
     @IntegerOption(min = 1)
-    private int varCount = 10;
+    private int varCount = 100;
 
     @Option(secure = true, description = "increase factor for resizing tables")
     @IntegerOption(min = 1)
     private int increaseFactor = 1;
 
-    @Option(secure = true, description = "initial size of the BDD node table.")
-    @IntegerOption(min = 1)
-    private int tableSize = 50000;
-
     @Option(secure = true, description = "size of the BDD cache.")
     @IntegerOption(min = 1)
-    private int cacheSize = 10000;
+    private int cacheSize = 0;
 
     @Option(
         secure = true,
@@ -406,75 +415,58 @@ public class PJBDDRegionManager implements RegionManager {
     @Option(
         secure = true,
         description =
-            "Which parallel bdd creator should be used? PJBDD only!"
-                + "\n- serial-int: uses serial int-based algorithms with concurrent access"
-                + "\n- serial: uses serial algorithms with concurrent access"
-                + "\n- comp-fut: uses CompletableFuture based concurrent algorithms"
-                + "\n- fork-join:  uses ForkJoin based concurrent algorithms",
-        values = {"COMP-FUT", "FORK-JOIN", "SERIAL", "SERIAL-INT"},
-        toUppercase = true)
-    private String creator = "FORK-JOIN";
+            "Initial size of the BDD node table in percentage of available Java heap memory (only used if initTableSize is 0).")
+    private double initTableRatio = 0.001;
+
+    @Option(
+        secure = true,
+        description = "Initial size of the BDD node table, use 0 for size based on initTableRatio.")
+    @IntegerOption(min = 0)
+    private int initTableSize = 0;
 
     @Option(
         secure = true,
         description =
-            "Which uniquetable implementation should be used?"
-                + "\n- array:  a concurrent resizing array"
-                + "\n- map:    a concurrent hash map"
-                + "\n- bucket: a concurrent hash bucket",
-        values = {"ARRAY", "MAP", "BUCKET"},
-        toUppercase = true)
-    private String tableType = "ARRAY";
+            "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
+    private double cacheRatio = 0.1;
 
-    private CreatorBuilder builder;
+    private BDDBuilder builder;
 
     private BuildFromConfig(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
-      builder = CreatorBuilder.newBuilder();
+      builder = Builders.newBDDBuilder();
     }
 
     private Creator makeCreator() {
       resolveProperties(builder);
-      resolveTable(builder);
-      switch (creator) {
-        case "SERIAL-INT":
-          return builder.makeSerialIntCreator();
-        case "SERIAL":
-          return builder.makeSerialApplyCreator();
-        case "COMP-FUT":
-          return builder.makeCompletableFutureApplyCreator();
-        case "FORK-JOIN":
-          return builder.makeConcurrentApplyCreator();
-        default:
-          return builder.makeConcurrentApplyCreator();
-      }
+      return builder.build();
     }
 
-    private void resolveTable(CreatorBuilder pBuilder) {
-      switch (tableType) {
-        case "ARRAY":
-          pBuilder.useConcurrentResizingArray();
-          break;
-        case "MAP":
-          pBuilder.useConcurrentHashMap();
-          break;
-        case "BUCKET":
-          pBuilder.useConcurrentHashBucket();
-          break;
-        default:
-          pBuilder.useConcurrentResizingArray();
-          break;
-      }
-    }
+    private void resolveProperties(BDDBuilder pBuilder) {
 
-    private void resolveProperties(CreatorBuilder pBuilder) {
+      if ((initTableRatio <= 0 || initTableRatio >= 1) && initTableSize == 0) {
+        initTableSize = 100000;
+      }
+      if (initTableSize == 0) {
+        // JFactory uses 5 ints of 4 byte sizes for each entry in the BDD table
+        double size = Runtime.getRuntime().maxMemory() * initTableRatio / 5 / 8;
+        initTableSize = (size > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) size;
+      }
+
+      if (cacheSize == 0) {
+        cacheSize = (int) (initTableSize * cacheRatio);
+      }
+
       pBuilder
           .setParallelism(tableParallelism)
-          .setVarNum(varCount)
+          .setVarCount(varCount)
           .setSelectedCacheSize(cacheSize)
-          .setNumWorkerThreads(threads)
-          .setTableSize(tableSize)
+          .setThreads(threads)
+          .setTableSize(initTableSize)
           .setIncreaseFactor(increaseFactor);
+      if (threads == 1) {
+        pBuilder.setParallelizationType(ParallelizationType.NONE);
+      }
     }
   }
 }

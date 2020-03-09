@@ -64,8 +64,11 @@ public class SlicingTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       final AbstractState pState, final Precision pPrecision, final CFAEdge pCfaEdge
   ) throws CPATransferException, InterruptedException {
-    checkState(pPrecision instanceof SlicingPrecision, "Precision not of type " +
-        SlicingPrecision.class.getSimpleName() + ", but " + pPrecision.getClass().getSimpleName());
+    checkState(
+        pPrecision instanceof SlicingPrecision,
+        "Precision not of type %s, but %s",
+        SlicingPrecision.class.getSimpleName(),
+        pPrecision.getClass().getSimpleName());
 
     SlicingPrecision slicingPrecision = (SlicingPrecision) pPrecision;
 

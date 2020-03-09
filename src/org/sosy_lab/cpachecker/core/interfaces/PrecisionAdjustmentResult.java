@@ -27,17 +27,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
 import java.util.Objects;
-import javax.annotation.concurrent.Immutable;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
- * Represents the result to a call to
- * {@link PrecisionAdjustment#prec(AbstractState, Precision, UnmodifiableReachedSet, Function, AbstractState)}.
- * Contains the (possibly changed) abstract abstractState and precision,
- * and an {@link PrecisionAdjustmentResult.Action} instance (all are not null).
+ * Represents the result to a call to {@link PrecisionAdjustment#prec(AbstractState, Precision,
+ * UnmodifiableReachedSet, Function, AbstractState)}. Contains the (possibly changed) abstract
+ * abstractState and precision, and an {@link PrecisionAdjustmentResult.Action} instance (all are
+ * not null).
  */
-@Immutable
+@javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public class PrecisionAdjustmentResult {
 
   private final AbstractState abstractState;

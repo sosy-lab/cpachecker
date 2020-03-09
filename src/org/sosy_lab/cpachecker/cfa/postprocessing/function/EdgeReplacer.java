@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -78,9 +79,9 @@ public abstract class EdgeReplacer {
   }
 
   /** @category helper */
-  private CFANode newCFANode(final String functionName) {
+  private CFANode newCFANode(final AFunctionDeclaration pFunction) {
     assert cfa != null;
-    CFANode nextNode = new CFANode(functionName);
+    CFANode nextNode = new CFANode(pFunction);
     cfa.addNode(nextNode);
     return nextNode;
   }
@@ -170,8 +171,8 @@ public abstract class EdgeReplacer {
 
     CFANode rootNode = start;
     for (FunctionEntryNode fNode : funcs) {
-      CFANode thenNode = newCFANode(start.getFunctionName());
-      CFANode elseNode = newCFANode(start.getFunctionName());
+      CFANode thenNode = newCFANode(start.getFunction());
+      CFANode elseNode = newCFANode(start.getFunction());
 
       CIdExpression func =
           new CIdExpression(
@@ -185,7 +186,7 @@ public abstract class EdgeReplacer {
               new CPointerType(false, false, func.getExpressionType()),
               func,
               CUnaryExpression.UnaryOperator.AMPER);
-      CFANode retNode = newCFANode(start.getFunctionName());
+      CFANode retNode = newCFANode(start.getFunction());
 
       addConditionEdges(nameExp, amper, rootNode, thenNode, elseNode, fileLocation);
 
@@ -209,7 +210,7 @@ public abstract class EdgeReplacer {
     if (createUndefinedFunctionCall) {
       ae = createSummaryEdge(statement, rootNode, end);
     } else {
-      CFANode term = new CFATerminationNode(rootNode.getFunctionName());
+      CFANode term = new CFATerminationNode(rootNode.getFunction());
       cfa.addNode(term);
       ae = new BlankEdge("blank pointer call", fileLocation, rootNode, term, "blank pointer call");
     }

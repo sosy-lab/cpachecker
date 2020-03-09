@@ -45,6 +45,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -269,7 +270,7 @@ public class CFABuilder {
       // create the basic blocks and instructions of the function.
       // A basic block is mapped to a pair <entry node, exit node>
       SortedMap<Integer, BasicBlockInfo> basicBlocks = new TreeMap<>();
-      CLabelNode entryBB = iterateOverBasicBlocks(currFunc, en, funcName, basicBlocks, pFileName);
+      CLabelNode entryBB = iterateOverBasicBlocks(currFunc, en, basicBlocks, pFileName);
 
       // add the edge from the entry of the function to the first
       // basic block
@@ -326,7 +327,6 @@ public class CFABuilder {
   private CLabelNode iterateOverBasicBlocks(
       final Function pFunction,
       final FunctionEntryNode pEntryNode,
-      final String pFuncName,
       final SortedMap<Integer, BasicBlockInfo> pBasicBlocks,
       final String pFileName)
       throws LLVMException {
@@ -337,14 +337,14 @@ public class CFABuilder {
     CLabelNode entryBB = null;
     for (BasicBlock block : pFunction) {
       // process this basic block
-      CLabelNode label = new CLabelNode(pFuncName, getBBName(block));
-      addNode(pFuncName, label);
+      CLabelNode label = new CLabelNode(pEntryNode.getFunction(), getBBName(block));
+      addNode(pEntryNode.getFunctionName(), label);
       if (entryBB == null) {
         entryBB = label;
       }
 
       BasicBlockInfo bbi =
-          handleInstructions(pEntryNode.getExitNode(), pFuncName, block, pFileName);
+          handleInstructions(pEntryNode.getExitNode(), pEntryNode.getFunction(), block, pFileName);
       pBasicBlocks.put(block.hashCode(), new BasicBlockInfo(label, bbi.getExitNode()));
 
       // add an edge from label to the first node
@@ -452,7 +452,7 @@ public class CFABuilder {
                   true);
           addEdge(jumpEdge);
 
-          CFANode nextNode = newNode(brNode.getFunctionName());
+          CFANode nextNode = newNode(brNode.getFunction());
           CAssumeEdge toNextCaseEdge =
               new CAssumeEdge(
                   comparisonExp.toASTString(),
@@ -479,26 +479,26 @@ public class CFABuilder {
     }
   }
 
-  private CFANode newNode(String funcName) {
-    CFANode nd = new CFANode(funcName);
-    addNode(funcName, nd);
-
+  private CFANode newNode(AFunctionDeclaration func) {
+    CFANode nd = new CFANode(func);
+    addNode(func.getName(), nd);
     return nd;
   }
 
   /** Create a chain of nodes and edges corresponding to one basic block. */
   private BasicBlockInfo handleInstructions(
       final FunctionExitNode exitNode,
-      final String funcName,
+      final AFunctionDeclaration pFunction,
       final BasicBlock pItem,
       final String pFileName)
       throws LLVMException {
     assert pItem.getFirstInstruction() != null; // empty BB not supported
+    final String funcName = pFunction.getName();
 
     Value lastI = pItem.getLastInstruction();
     assert lastI != null;
 
-    CFANode prevNode = newNode(funcName);
+    CFANode prevNode = newNode(pFunction);
     CFANode firstNode = prevNode;
     CFANode curNode = null;
 
@@ -508,7 +508,7 @@ public class CFABuilder {
 
       } else if (i.isSelectInst()) {
         CDeclaration decl = (CDeclaration) getAssignedVarDeclaration(i, funcName, null, pFileName);
-        curNode = newNode(funcName);
+        curNode = newNode(pFunction);
         addEdge(
             new CDeclarationEdge(
                 decl.toASTString(), decl.getFileLocation(), prevNode, curNode, decl));
@@ -531,8 +531,8 @@ public class CFABuilder {
         CStatement falseAssignment =
             (CStatement) getAssignStatement(i, falseValue, funcName, pFileName).get(0);
 
-        CFANode trueNode = newNode(funcName);
-        CFANode falseNode = newNode(funcName);
+        CFANode trueNode = newNode(pFunction);
+        CFANode falseNode = newNode(pFunction);
         CAssumeEdge trueBranch =
             new CAssumeEdge(
                 conditionForElse.toASTString(),
@@ -553,7 +553,7 @@ public class CFABuilder {
         addEdge(falseBranch);
 
         prevNode = trueNode;
-        trueNode = newNode(funcName);
+        trueNode = newNode(pFunction);
         CStatementEdge trueAssign =
             new CStatementEdge(
                 trueAssignment.toASTString(),
@@ -564,7 +564,7 @@ public class CFABuilder {
         addEdge(trueAssign);
 
         prevNode = falseNode;
-        falseNode = newNode(funcName);
+        falseNode = newNode(pFunction);
         CStatementEdge falseAssign =
             new CStatementEdge(
                 falseAssignment.toASTString(),
@@ -574,7 +574,7 @@ public class CFABuilder {
                 falseNode);
         addEdge(falseAssign);
 
-        curNode = newNode(funcName);
+        curNode = newNode(pFunction);
         BlankEdge trueMeet =
             new BlankEdge("", falseAssignment.getFileLocation(), trueNode, curNode, "");
         addEdge(trueMeet);
@@ -590,7 +590,7 @@ public class CFABuilder {
         // process this basic block
         List<CAstNode> expressions = visitInstruction(i, funcName, pFileName);
         if (expressions == null) {
-          curNode = newNode(funcName);
+          curNode = newNode(pFunction);
           addEdge(new BlankEdge(i.toString(), FileLocation.DUMMY, prevNode, curNode, "noop"));
           prevNode = curNode;
           continue;
@@ -600,7 +600,7 @@ public class CFABuilder {
           FileLocation exprLocation = expr.getFileLocation();
           // build an edge with this expression over it
           if (expr instanceof CDeclaration) {
-            curNode = newNode(funcName);
+            curNode = newNode(pFunction);
             addEdge(
                 new CDeclarationEdge(
                     expr.toASTString(), exprLocation, prevNode, curNode, (CDeclaration) expr));
@@ -610,14 +610,14 @@ public class CFABuilder {
                 new CReturnStatementEdge(
                     i.toString(), (CReturnStatement) expr, exprLocation, prevNode, exitNode));
           } else if (i.isUnreachableInst()) {
-            curNode = new CFATerminationNode(funcName);
+            curNode = new CFATerminationNode(pFunction);
             addNode(funcName, curNode);
             addEdge(new BlankEdge(i.toString(), exprLocation, prevNode, curNode, "unreachable"));
             // don't continue in that block after an `undef` statement
             break;
 
           } else {
-            curNode = newNode(funcName);
+            curNode = newNode(pFunction);
             addEdge(
                 new CStatementEdge(
                     expr.toASTString() + i.toString(),
@@ -1627,7 +1627,8 @@ public class CFABuilder {
     assert !pFuncDef.isDeclaration();
 
     String functionName = pFuncDef.getValueName();
-    FunctionExitNode functionExit = new FunctionExitNode(functionName);
+    CFunctionDeclaration functionDeclaration = functionDeclarations.get(functionName);
+    FunctionExitNode functionExit = new FunctionExitNode(functionDeclaration);
     addNode(functionName, functionExit);
 
     // Function type
@@ -1648,7 +1649,6 @@ public class CFABuilder {
       returnVar = Optional.of(returnVarDecl);
     }
 
-    CFunctionDeclaration functionDeclaration = functionDeclarations.get(functionName);
     FunctionEntryNode entry =
         new CFunctionEntryNode(
             getLocation(pFuncDef, pFileName), functionDeclaration, functionExit, returnVar);
@@ -1703,8 +1703,9 @@ public class CFABuilder {
     /* if this is and expression starting with &,
      * just remove the & */
     if (expr instanceof CUnaryExpression
-        && ((CUnaryExpression) expr).getOperator() == UnaryOperator.AMPER)
-        return ((CUnaryExpression) expr).getOperand();
+        && ((CUnaryExpression) expr).getOperator() == UnaryOperator.AMPER) {
+      return ((CUnaryExpression) expr).getOperand();
+    }
 
     return new CPointerExpression(fileLocation, derefType, expr);
   }

@@ -48,9 +48,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
+import org.sosy_lab.cpachecker.util.slicing.Slice;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
-import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
+import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
 
 /**
  * CPA that performs program slicing during analysis. The Slicing CPA wraps another CPA. If a CFA
@@ -114,11 +114,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
     stopOperator = new PrecisionDelegatingStop(pCpa.getStopOperator());
     precisionAdjustment = new PrecisionDelegatingPrecisionAdjustment(pCpa.getPrecisionAdjustment());
 
-    final DependenceGraph dependenceGraph =
-        pCfa.getDependenceGraph()
-            .orElseThrow(
-                () -> new InvalidConfigurationException("SlicingCPA requires dependence graph"));
-    slicer = new StaticSlicer(logger, shutdownNotifier, config, dependenceGraph, pCfa);
+    slicer = new SlicerFactory().create(logger, shutdownNotifier, config, pCfa);
   }
 
   @Override
@@ -156,15 +152,14 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
     if (useRefinableSlice) {
       relevantEdges = ImmutableSet.of();
     } else {
-      relevantEdges = computeSlice(cfa, spec);
+      relevantEdges = computeSlice(cfa, spec).getRelevantEdges();
     }
 
     return new SlicingPrecision(wrappedPrec, relevantEdges);
   }
 
-  private ImmutableSet<CFAEdge> computeSlice(CFA pCfa, Specification pSpec)
-      throws InterruptedException {
-    return slicer.getRelevantEdges(pCfa, pSpec);
+  private Slice computeSlice(CFA pCfa, Specification pSpec) throws InterruptedException {
+    return slicer.getSlice(pCfa, pSpec);
   }
 
   public LogManager getLogger() {

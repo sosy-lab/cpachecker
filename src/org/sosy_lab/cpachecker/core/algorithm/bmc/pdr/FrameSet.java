@@ -163,9 +163,7 @@ class FrameSet implements AutoCloseable {
 
   public int getFrontierIndex(CandidateInvariant pRootInvariant) {
     Integer index = rootCandidateInvariantFrontierIndices.get(pRootInvariant);
-    if (index == null) {
-      throw new IllegalArgumentException("Unknown root invariant: " + pRootInvariant);
-    }
+    checkArgument(index != null, "Unknown root invariant: %s", pRootInvariant);
     return index;
   }
 

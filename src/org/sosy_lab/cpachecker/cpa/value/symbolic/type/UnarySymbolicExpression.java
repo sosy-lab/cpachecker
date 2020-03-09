@@ -39,16 +39,15 @@ public abstract class UnarySymbolicExpression extends SymbolicExpression {
   private final SymbolicExpression operand;
   private final Type type;
 
-  public UnarySymbolicExpression(SymbolicExpression pOperand, Type pType) {
+  UnarySymbolicExpression(SymbolicExpression pOperand, Type pType) {
     operand = pOperand;
     type = pType;
   }
 
-  public UnarySymbolicExpression(
+  UnarySymbolicExpression(
       final SymbolicExpression pOperand,
       final Type pType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pRepresentedLocation);
     operand = pOperand;
     type = pType;
@@ -69,7 +68,8 @@ public abstract class UnarySymbolicExpression extends SymbolicExpression {
   }
 
   @Override
-  public boolean equals(Object o) {
+  @SuppressWarnings("EqualsGetClass") // on purpose, case-class structure with single equals()
+  public final boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -84,7 +84,7 @@ public abstract class UnarySymbolicExpression extends SymbolicExpression {
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return super.hashCode() + Objects.hash(getClass(), operand, type);
   }
 

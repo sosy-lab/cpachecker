@@ -30,7 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-public class NondeterministicFiniteAutomaton<T> {
+public final class NondeterministicFiniteAutomaton<T> {
 
   public static class State {
 
@@ -156,7 +156,7 @@ public class NondeterministicFiniteAutomaton<T> {
         return false;
       }
 
-      if (!pOther.getClass().equals(getClass())) {
+      if (!(pOther instanceof NondeterministicFiniteAutomaton.Edge)) {
         return false;
       }
 

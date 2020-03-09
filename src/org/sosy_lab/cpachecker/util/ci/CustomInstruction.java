@@ -670,7 +670,7 @@ public class CustomInstruction {
   private void compareFunctionCallEdge(final CFunctionCallEdge ciEdge, final CFunctionCallEdge aciEdge,
       final Map<String,String> ciVarToAciVar) throws AppliedCustomInstructionParsingFailedException {
 
-    if(ciEdge.getSuccessor() != aciEdge.getSuccessor()) {
+    if (!Objects.equals(ciEdge.getSuccessor(), aciEdge.getSuccessor())) {
       throw new AppliedCustomInstructionParsingFailedException("Applied custom instruction calls different method than custom instruction.");
     }
 

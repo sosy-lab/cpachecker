@@ -811,10 +811,8 @@ public class CProgramScope implements Scope {
 
   public CSimpleDeclaration getFunctionReturnVariable(String pFunctionName) {
     CSimpleDeclaration result = retValDeclarations.get(pFunctionName);
-    if (result == null) {
-      throw new IllegalArgumentException(
-          "Function unknown or does not have a return value: " + pFunctionName);
-    }
+    checkArgument(
+        result != null, "Function unknown or does not have a return value: %s", pFunctionName);
     return result;
   }
 

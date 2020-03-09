@@ -48,6 +48,7 @@ import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -191,7 +192,7 @@ public class TerminationLoopInformation {
     loopLeavingEdges = ImmutableSet.copyOf(pLoop.getOutgoingEdges());
     resetRankingRelation();
 
-    String functionName = pLoop.getLoopHeads().iterator().next().getFunctionName();
+    AFunctionDeclaration functionName = pLoop.getLoopHeads().iterator().next().getFunction();
     ImmutableList.Builder<CFANode> intermediateStates = ImmutableList.builder();
     ImmutableMap.Builder<CExpression, CVariableDeclaration> builder = ImmutableMap.builder();
 
@@ -277,7 +278,7 @@ public class TerminationLoopInformation {
   }
 
   public List<CFAEdge> createPrimedVariableDeclarations(CFANode startLocation) {
-    String function = startLocation.getFunctionName();
+    AFunctionDeclaration function = startLocation.getFunction();
     logger.logf(
         FINEST,
         "Adding declarations of primed variables %s after %s in function %s.",
@@ -318,8 +319,8 @@ public class TerminationLoopInformation {
     return createRankingRelationAssumeEdge(pLoopHead, targetNode.orElseThrow(), false);
   }
 
-  private CFANode createCfaNode(String functionName) {
-    return new CFANode(functionName);
+  private CFANode createCfaNode(AFunctionDeclaration pFunction) {
+    return new CFANode(pFunction);
   }
 
   private CExpressionAssignmentStatement createAssignmentStatement(

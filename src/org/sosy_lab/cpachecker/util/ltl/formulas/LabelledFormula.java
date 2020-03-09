@@ -23,9 +23,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.util.Property;
 
-public class LabelledFormula implements Property {
+public final class LabelledFormula implements Property {
 
   public static LabelledFormula of(LtlFormula pFormula, List<Literal> pList) {
     return new LabelledFormula(pFormula, pList);
@@ -53,11 +54,7 @@ public class LabelledFormula implements Property {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((atomicPropositions == null) ? 0 : atomicPropositions.hashCode());
-    result = prime * result + ((formula == null) ? 0 : formula.hashCode());
-    return result;
+    return Objects.hash(atomicPropositions, formula);
   }
 
   @Override
@@ -68,25 +65,11 @@ public class LabelledFormula implements Property {
     if (obj == null) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof LabelledFormula)) {
       return false;
     }
     LabelledFormula other = (LabelledFormula) obj;
-    if (atomicPropositions == null) {
-      if (other.atomicPropositions != null) {
-        return false;
-      }
-    } else if (!atomicPropositions.equals(other.atomicPropositions)) {
-      return false;
-    }
-    if (formula == null) {
-      if (other.formula != null) {
-        return false;
-      }
-    } else if (!formula.equals(other.formula)) {
-      return false;
-    }
-    return true;
+    return formula.equals(other.formula) && atomicPropositions.equals(other.atomicPropositions);
   }
 
   @Override

@@ -23,6 +23,7 @@
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
       <exclude reason="timeout">../programs/benchmarks/systemc/token_ring.1*</exclude>
       <exclude reason="timeout">../programs/benchmarks/systemc/transmitter.1*</exclude>
+      <exclude>../programs/benchmarks/systemc/transmitter.06.cil.yml</exclude> <!-- flapping timeout -->
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
   </tasks>
@@ -39,6 +40,7 @@
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
       <option name="-64"/>
+      <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_linux-43_1a-drivers--usb--gadget--mv_udc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout / OOM -->
   </tasks>
 
   <!-- Widening Tests -->

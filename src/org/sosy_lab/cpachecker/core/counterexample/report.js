@@ -1508,7 +1508,7 @@ function init() {
 						        simplifiedGraphMap.shift();
 						        simplifiedGraphCounter++;
 						}
-						if (reducedGraphMap.length > 0) {
+						if (typeof reducedGraphMap !== 'undefined' && reducedGraphMap.length > 0) {
 					        self.postMessage({
 					              "graph": JSON.stringify(reducedGraphMap[0]),
 					              "id": reducedGraphCounter,

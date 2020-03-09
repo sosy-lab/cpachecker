@@ -83,16 +83,6 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
       description = "Should the nested CPA-algorithm be wrapped with CEGAR within BAM?")
   private boolean useCEGAR = false;
 
-  @Option(
-      secure = true,
-      description =
-          "By default, the CPA algorithm terminates when finding the first target state, "
-              + "which makes it easy to identify this last state. For special analyses, "
-              + "we need to search for more target states in the reached-set, "
-              + "when reaching a block-exit. This flag is needed if the option "
-              + "'cpa.automaton.breakOnTargetState' is unequal to 1.")
-  private boolean searchTargetStatesOnExit = false;
-
   private BAMCPA(
       ConfigurableProgramAnalysis pCpa,
       Configuration config,
@@ -138,11 +128,11 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
     if (handleRecursiveProcedures) {
       transfer =
           new BAMTransferRelationWithFixPointForRecursion(
-              config, this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit);
+              config, this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit());
     } else {
       transfer =
           new BAMTransferRelation(
-              this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit);
+              this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit());
     }
   }
 

@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -328,7 +329,7 @@ public class BlockedCFAReducer implements BlockComputer {
 
           openEndpoints.add(callReturnTarget);
         } else {
-          if (e.getSuccessor() == pFunctionNode.getExitNode()) {
+          if (Objects.equals(e.getSuccessor(), pFunctionNode.getExitNode())) {
             result.addEdge(uSn, exitNode);
           } else {
             ReducedNode vSn = functionNodes.getWrapper(e.getSuccessor());

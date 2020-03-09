@@ -167,7 +167,6 @@ public class LiveVariables {
     private final ImmutableSet<ASimpleDeclaration> allVariables;
 
     private AllVariablesAsLiveVariables(CFA cfa, List<Pair<ADeclaration, String>> globalsList) {
-      super();
       checkNotNull(cfa);
       checkNotNull(globalsList);
 
@@ -493,9 +492,11 @@ public class LiveVariables {
     final Collection<FunctionEntryNode> functionHeads;
     switch (evaluationStrategy) {
       case FUNCTION_WISE:
-        functionHeads = pCfa.getAllFunctionHeads(); break;
+        functionHeads = pCfa.getAllFunctionHeads();
+        break;
       case GLOBAL:
-        functionHeads = Collections.singleton(pCfa.getMainFunction()); break;
+        functionHeads = Collections.singleton(pCfa.getMainFunction());
+        break;
       default:
         throw new AssertionError("Unhandled case statement: " +
             evaluationStrategy);

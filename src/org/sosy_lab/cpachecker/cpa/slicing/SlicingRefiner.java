@@ -74,7 +74,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
-import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
+import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
 
 /**
  * Refiner for {@link SlicingPrecision}. Precision refinement is done through program slicing [1].
@@ -176,16 +176,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
             fullSlicingPrecision, Predicates.instanceOf(SlicingPrecision.class));
 
     ShutdownNotifier shutdownNotifier = slicingCPA.getShutdownNotifier();
-    Slicer slicer =
-        new StaticSlicer(
-            logger,
-            shutdownNotifier,
-            config,
-            cfa.getDependenceGraph()
-                .orElseThrow(
-                    () ->
-                        new InvalidConfigurationException("Dependence graph of CFA " + "missing")),
-            cfa);
+    Slicer slicer = new SlicerFactory().create(logger, shutdownNotifier, config, cfa);
 
     return new SlicingRefiner(
         pathExtractor,
@@ -379,7 +370,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
         CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
     criteriaEdges.addAll(edgesToTarget);
 
-    Set<CFAEdge> relevantEdges = slicer.getRelevantEdges(cfa, criteriaEdges);
+    Set<CFAEdge> relevantEdges = slicer.getSlice(cfa, criteriaEdges).getRelevantEdges();
 
     if (addCexConstraintsToSlice) {
       // this must always be added _after_ adding the slices, otherwise

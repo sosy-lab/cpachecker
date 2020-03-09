@@ -563,13 +563,14 @@ public class CFACreator {
             "Variable Classification not present. Consider turning this on "
                 + "to improve dependence graph construction.");
       }
+      final DependenceGraphBuilder depGraphBuilder =
+          DependenceGraph.builder(cfa, varClassification, config, logger, shutdownNotifier);
       try {
-        DependenceGraphBuilder depGraphBuilder =
-            DependenceGraph.builder(cfa, varClassification, config, logger, shutdownNotifier);
         depGraph = Optional.of(depGraphBuilder.build());
-        depGraphBuilder.collectStatistics(stats.statisticsCollection);
       } catch (CPAException pE) {
         throw new CParserException(pE);
+      } finally {
+        depGraphBuilder.collectStatistics(stats.statisticsCollection);
       }
     } else {
       depGraph = Optional.empty();
@@ -889,7 +890,7 @@ public class CFACreator {
     // we can add new edges between them and then reconnect the nodes
 
     // insert one node to start the series of declarations
-    CFANode cur = new CFANode(firstNode.getFunctionName());
+    CFANode cur = new CFANode(firstNode.getFunction());
     cfa.addNode(cur);
     final CFAEdge newFirstEdge = new BlankEdge("", FileLocation.DUMMY, firstNode, cur, "INIT GLOBAL VARS");
     CFACreationUtils.addEdgeUnconditionallyToCFA(newFirstEdge);
@@ -900,7 +901,7 @@ public class CFACreator {
       String rawSignature = p.getSecond();
       assert d.isGlobal();
 
-      CFANode n = new CFANode(cur.getFunctionName());
+      CFANode n = new CFANode(cur.getFunction());
       cfa.addNode(n);
 
       final CFAEdge newEdge;

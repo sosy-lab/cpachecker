@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -498,7 +499,7 @@ public class PolicyIterationManager {
       PolicyIntermediateState oldState
   ) throws InterruptedException {
 
-    Preconditions.checkState(newState.getNode() == oldState.getNode());
+    Preconditions.checkState(Objects.equals(newState.getNode(), oldState.getNode()));
 
     if (!newState.getBackpointerState().equals(oldState.getBackpointerState())) {
 
@@ -533,7 +534,7 @@ public class PolicyIterationManager {
       final TemplatePrecision precision,
       Map<Template, PolicyBound> updated,
       BooleanFormula extraInvariant) {
-    Preconditions.checkState(newState.getNode() == oldState.getNode());
+    Preconditions.checkState(Objects.equals(newState.getNode(), oldState.getNode()));
     Preconditions.checkState(
         newState.getLocationID() == oldState.getLocationID());
 

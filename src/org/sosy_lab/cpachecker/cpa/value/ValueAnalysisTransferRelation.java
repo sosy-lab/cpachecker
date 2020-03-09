@@ -464,10 +464,9 @@ public class ValueAnalysisTransferRelation
             String op1QualifiedName = ((AIdExpression)op1).getDeclaration().getQualifiedName();
             memLoc = Optional.of(MemoryLocation.valueOf(op1QualifiedName));
           }
-        }
 
-        // a* = b(); TODO: for now, nothing is done here, but cloning the current element
-        else if (op1 instanceof APointerExpression) {
+        } else if (op1 instanceof APointerExpression) {
+          // a* = b(); TODO: for now, nothing is done here, but cloning the current element
 
         } else {
           throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
@@ -808,11 +807,11 @@ public class ValueAnalysisTransferRelation
     if (expression instanceof AAssignment) {
       return handleAssignment((AAssignment)expression, cfaEdge);
 
-    // external function call - do nothing
     } else if (expression instanceof AFunctionCallStatement) {
+      // external function call - do nothing
 
-    // there is such a case
     } else if (expression instanceof AExpressionStatement) {
+      // there is such a case
 
     } else {
       throw new UnrecognizedCodeException("Unknown statement", cfaEdge, expression);

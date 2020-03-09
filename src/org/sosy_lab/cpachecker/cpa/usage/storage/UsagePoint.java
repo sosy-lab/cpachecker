@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class UsagePoint implements Comparable<UsagePoint> {
+public final class UsagePoint implements Comparable<UsagePoint> {
 
   private final Access access;
   private final List<CompatibleNode> compatibleNodes;

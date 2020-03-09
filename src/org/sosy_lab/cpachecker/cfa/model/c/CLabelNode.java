@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.model.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class CLabelNode extends CFANode {
@@ -32,8 +33,8 @@ public class CLabelNode extends CFANode {
   private static final long serialVersionUID = 9172364902060726643L;
   private final String label;
 
-  public CLabelNode(String pFunctionName, String pLabel) {
-    super(pFunctionName);
+  public CLabelNode(AFunctionDeclaration pFunction, String pLabel) {
+    super(pFunction);
     checkArgument(!pLabel.isEmpty());
     label = pLabel;
   }

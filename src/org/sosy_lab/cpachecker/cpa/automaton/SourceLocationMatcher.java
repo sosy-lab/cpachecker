@@ -66,11 +66,6 @@ class SourceLocationMatcher {
     }
 
     @Override
-    public int hashCode() {
-      return originFileName.hashCode();
-    }
-
-    @Override
     public String toString() {
       return originFileName.isPresent() ? "FILE " + originFileName : "TRUE";
     }

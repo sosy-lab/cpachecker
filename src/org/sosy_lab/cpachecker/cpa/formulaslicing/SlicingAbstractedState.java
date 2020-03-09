@@ -2,7 +2,10 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -11,18 +14,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-
 /**
  * Abstracted state, containing invariants obtained by slicing.
  *
  * The invariant is universally true wrt the intermediate state
  * which was used for the abstraction.
  */
-class SlicingAbstractedState
+final class SlicingAbstractedState
     extends SlicingState implements FormulaReportingState, Graphable {
 
   /**

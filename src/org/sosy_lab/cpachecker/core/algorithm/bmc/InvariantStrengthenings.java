@@ -56,7 +56,7 @@ public class InvariantStrengthenings {
   private static class NoAbstraction<S extends CandidateInvariant>
       implements InvariantStrengthening<S, S> {
 
-    private static NoAbstraction<CandidateInvariant> INSTANCE = new NoAbstraction<>();
+    private static final NoAbstraction<CandidateInvariant> INSTANCE = new NoAbstraction<>();
 
     private NoAbstraction() {}
 

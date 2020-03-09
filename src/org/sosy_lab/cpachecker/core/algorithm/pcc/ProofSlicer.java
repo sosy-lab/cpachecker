@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -460,7 +461,7 @@ public class ProofSlicer {
       returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
       // add remaining elements
       for (Entry<ARGState, ARGState> entry : oldToSliced.entrySet()) {
-        if (entry.getKey() != root && !entry.getKey().isCovered()) {
+        if (Objects.equals(entry.getKey(), root) && !entry.getKey().isCovered()) {
           returnReached.add(entry.getValue(), pReached.getPrecision(entry.getKey()));
         }
       }

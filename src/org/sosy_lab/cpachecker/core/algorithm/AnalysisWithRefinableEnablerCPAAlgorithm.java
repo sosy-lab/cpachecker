@@ -452,7 +452,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
   }
 
   private CFANode createFakeEdge(final CExpression pAssumeExpr, final CFANode pPredecessor) {
-    CFANode successor = new CFANode(pPredecessor.getFunctionName());
+    CFANode successor = new CFANode(pPredecessor.getFunction());
     CAssumeEdge assumeEdge =
         new CAssumeEdge(
             pAssumeExpr.toASTString(),

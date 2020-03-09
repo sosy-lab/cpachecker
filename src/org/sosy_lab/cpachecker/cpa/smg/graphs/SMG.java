@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -118,12 +120,14 @@ public class SMG implements UnmodifiableSMG {
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return Objects.hash(machine_model, hv_edges, neq, validObjects, objects, pt_edges, values);
   }
 
   @Override
-  public boolean equals(Object obj) {
+  // refactoring would be better, but currently safe for the existing subclass
+  @SuppressWarnings("EqualsGetClass")
+  public final boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -301,7 +305,7 @@ public class SMG implements UnmodifiableSMG {
    * @param pValidity Validity to set.
    */
   public void setValidity(SMGObject pObject, boolean pValidity) {
-    Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
+    checkArgument(objects.contains(pObject), "Object [%s] not in SMG", pObject);
     if (pValidity) {
       validObjects = validObjects.addAndCopy(pObject);
     } else {
@@ -320,7 +324,7 @@ public class SMG implements UnmodifiableSMG {
    * @param pExternal Validity to set.
    */
   public void setExternallyAllocatedFlag(SMGObject pObject, boolean pExternal) {
-    Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
+    checkArgument(objects.contains(pObject), "Object [%s] not in SMG", pObject);
     if (pExternal) {
       externalObjectAllocation = externalObjectAllocation.addAndCopy(pObject);
     } else {
@@ -412,7 +416,7 @@ public class SMG implements UnmodifiableSMG {
    */
   @Override
   public final @Nullable SMGObject getObjectPointedBy(SMGValue pValue) {
-    Preconditions.checkArgument(values.contains(pValue), "Value [" + pValue + "] not in SMG");
+    checkArgument(values.contains(pValue), "Value [%s] not in SMG", pValue);
     if (pt_edges.containsEdgeWithValue(pValue)) {
       return pt_edges.getEdgeWithValue(pValue).getObject();
     } else {

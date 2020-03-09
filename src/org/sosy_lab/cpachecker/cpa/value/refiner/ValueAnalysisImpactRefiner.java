@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
@@ -225,7 +226,7 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
       }
       timeCoverage.stop();
 
-      CFANode dummyCfaNode = new CFANode("dummy");
+      CFANode dummyCfaNode = new CFANode(CFunctionDeclaration.DUMMY);
       VariableTrackingPrecision previsousPrecision = null;
       SetMultimap<CFANode, MemoryLocation> previousIncrement = null;
       timePrecision.start();

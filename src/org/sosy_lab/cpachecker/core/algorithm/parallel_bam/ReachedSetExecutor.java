@@ -43,12 +43,9 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -64,6 +61,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
+import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.bam.MissingBlockAbstractionState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
@@ -105,7 +103,7 @@ class ReachedSetExecutor {
   private final AlgorithmFactory algorithmFactory;
   private final ShutdownNotifier shutdownNotifier;
   private final ParallelBAMStatistics stats;
-  private final AtomicReference<Throwable> error;
+  private final List<Throwable> errors;
   private final AtomicBoolean terminateAnalysis;
   private final LogManager logger;
 
@@ -143,7 +141,7 @@ class ReachedSetExecutor {
       AlgorithmFactory pAlgorithmFactory,
       ShutdownNotifier pShutdownNotifier,
       ParallelBAMStatistics pStats,
-      AtomicReference<Throwable> pError,
+      List<Throwable> pErrors,
       AtomicBoolean pTerminateAnalysis,
       LogManager pLogger) {
     bamcpa = pBamCpa;
@@ -155,7 +153,7 @@ class ReachedSetExecutor {
     algorithmFactory = pAlgorithmFactory;
     shutdownNotifier = pShutdownNotifier;
     stats = pStats;
-    error = pError;
+    errors = pErrors;
     terminateAnalysis = pTerminateAnalysis;
     logger = pLogger;
 
@@ -177,6 +175,10 @@ class ReachedSetExecutor {
     return asRunnable(ImmutableSet.of());
   }
 
+  /**
+   * create a new execution step where some states are added to the waitlist before running the
+   * execution step.
+   */
   private Runnable asRunnable(Collection<AbstractState> pStatesToBeAdded) {
     // copy needed, because access to pStatesToBeAdded is done in the future
     ImmutableSet<AbstractState> copy = ImmutableSet.copyOf(pStatesToBeAdded);
@@ -208,12 +210,7 @@ class ReachedSetExecutor {
     execCounter++;
 
     try { // big try-block to catch all exceptions
-
-      if (shutdownNotifier.shouldShutdown()) {
-        terminateAnalysis.set(true);
-        pool.shutdownNow();
-        return;
-      }
+      shutdownNotifier.shutdownIfNecessary();
 
       logger.logf(
           level,
@@ -262,7 +259,7 @@ class ReachedSetExecutor {
     } catch (Throwable e) { // catch everything to avoid deadlocks after a problem.
       logger.logException(level, e, e.getClass().getName());
       terminateAnalysis.set(true);
-      error.set(e);
+      errors.add(e);
       pool.shutdownNow();
     } finally {
       stats.numActiveThreads.decrementAndGet();
@@ -271,7 +268,8 @@ class ReachedSetExecutor {
   }
 
   private void checkForTargetState() {
-    boolean endsWithTargetState = endsWithTargetState();
+    boolean endsWithTargetState =
+        rs.getLastState() != null && AbstractStates.isTargetState(rs.getLastState());
 
     if (targetStateFound) {
       Preconditions.checkState(
@@ -282,7 +280,7 @@ class ReachedSetExecutor {
           "when a target was found before, we want to stop further scheduling");
     }
 
-    if (endsWithTargetState) {
+    if (endsWithTargetState && !bamcpa.searchTargetStatesOnExit()) {
       targetStateFound = true;
       terminateAnalysis.set(true);
     }
@@ -316,10 +314,6 @@ class ReachedSetExecutor {
     }
   }
 
-  private boolean endsWithTargetState() {
-    return rs.getLastState() != null && AbstractStates.isTargetState(rs.getLastState());
-  }
-
   boolean isTargetStateFound() {
     return targetStateFound;
   }
@@ -332,29 +326,29 @@ class ReachedSetExecutor {
     boolean isFinished = dependsOn.isEmpty();
     if (isFinished) {
       if (rs.getWaitlist().isEmpty() || targetStateFound) {
-        updateCache(targetStateFound);
+        updateCache();
       } else {
         // otherwise we have an unfinished reached-set and do not cache the incomplete result.
       }
       reAddStatesToDependingReachedSets();
-
-      if (isMainReachedSet) {
-        logger.logf(level, "%s :: mainRS finished, shutdown threadpool", this);
-        pool.shutdown();
-      }
 
       // we never need to execute this RSE again,
       // thus we can clean up and avoid a (small) memory-leak
       reachedSetMapping.remove(rs);
       stats.executionCounter.insertValue(execCounter);
       // no need to wait for this#waitingTask, we assume a error-free exit after this point.
+
+      if (reachedSetMapping.isEmpty()) {
+        logger.logf(level, "%s :: all RSEs finished, shutdown threadpool", this);
+        pool.shutdown();
+      }
     }
 
     logger.logf(
         level, "%s :: finished=%s, targetStateFound=%s", this, isFinished, targetStateFound);
   }
 
-  private void updateCache(boolean pEndsWithTargetState) {
+  private void updateCache() {
     if (isMainReachedSet) {
       // we do not cache main reached set, because it should not be used internally
       return;
@@ -364,7 +358,7 @@ class ReachedSetExecutor {
     Precision reducedInitialPrecision = rs.getPrecision(reducedInitialState);
     Block innerBlock = getBlockForState(reducedInitialState);
     final Set<AbstractState> exitStates =
-        extractExitStates(pEndsWithTargetState, innerBlock);
+        BAMTransferRelation.extractExitStates(rs, innerBlock, bamcpa.searchTargetStatesOnExit());
     BAMCacheEntry entry =
         bamcpa.getCache().get(reducedInitialState, reducedInitialPrecision, innerBlock);
     assert entry.getReachedSet() == rs
@@ -380,17 +374,6 @@ class ReachedSetExecutor {
               Collections2.transform(entry.getExitStates(), s -> id(s)));
       entry.setExitStates(exitStates);
       entry.setRootOfBlock(null);
-    }
-  }
-
-  private Set<AbstractState> extractExitStates(boolean pEndsWithTargetState, Block pBlock) {
-    if (pEndsWithTargetState) {
-      assert AbstractStates.isTargetState(rs.getLastState());
-      return Collections.singleton(rs.getLastState());
-    } else {
-      return AbstractStates.filterLocations(rs, pBlock.getReturnNodes())
-          .filter(s -> ((ARGState) s).getChildren().isEmpty())
-          .toSet();
     }
   }
 
@@ -527,7 +510,7 @@ class ReachedSetExecutor {
             algorithmFactory,
             shutdownNotifier,
             stats,
-            error,
+            errors,
             terminateAnalysis,
             logger);
 
@@ -583,15 +566,13 @@ class ReachedSetExecutor {
 
     @Override
     public Void apply(Throwable e) {
-      if (e instanceof RejectedExecutionException || e instanceof CompletionException) {
-        // pool will shutdown on forced termination after timeout and throw lots of them.
-        // we can ignore those exceptions.
-        logger.logException(level, e, e.getClass().getSimpleName());
-      } else {
-        logger.logException(Level.WARNING, e, e.getClass().getSimpleName());
-        error.compareAndSet(null, e);
-        rse.terminateAnalysis.set(true);
-      }
+      // if (e instanceof RejectedExecutionException || e instanceof CompletionException) {
+      // pool will shutdown on forced termination after timeout and throw lots of them.
+      // we could ignore those exceptions.
+      // }
+
+      errors.add(e);
+      rse.terminateAnalysis.set(true);
 
       return null;
     }

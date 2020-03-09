@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.slicing;
+package org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -32,8 +32,9 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.slicing.AbstractSlicer;
+import org.sosy_lab.cpachecker.util.slicing.Slicer;
+import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
 import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
 
 /**
@@ -44,7 +45,7 @@ import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
  */
 public class SlicingAlgorithm implements Algorithm {
 
-  private final AbstractSlicer slicer;
+  private final Slicer slicer;
   private final Specification spec;
   private final CFA cfa;
 
@@ -56,12 +57,7 @@ public class SlicingAlgorithm implements Algorithm {
       Specification pSpecification)
       throws InvalidConfigurationException {
 
-    final DependenceGraph depGraph =
-        pCfa.getDependenceGraph()
-            .orElseThrow(
-                () -> new InvalidConfigurationException("Dependence graph required, but missing"));
-
-    slicer = new StaticSlicer(pLogger, pShutdownNotifier, pConfig, depGraph, pCfa);
+    slicer = new SlicerFactory().create(pLogger, pShutdownNotifier, pConfig, pCfa);
     cfa = pCfa;
     spec = pSpecification;
   }
@@ -70,7 +66,7 @@ public class SlicingAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // at the moment, we don't do anything with the computed slice here,
     // but expect the slicer itself to output it in some file.
-    slicer.getRelevantEdges(cfa, spec);
+    slicer.getSlice(cfa, spec);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 }

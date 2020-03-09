@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.HashMap;
@@ -257,9 +258,10 @@ final class SMGJoinSubSMGs {
 
   public boolean isDefined() {
     if (!defined) {
-      Preconditions.checkState(
+      checkState(
           status == SMGJoinStatus.INCOMPARABLE,
-          "Join of SubSMGs not defined, but status is " + status);
+          "Join of SubSMGs not defined, but status is %s",
+          status);
     }
     return defined;
   }

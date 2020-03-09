@@ -142,7 +142,6 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     CExpression identifier;
     SIGN value;
     public IdentifierValuePair(CExpression pIdentifier, SIGN pValue) {
-      super();
       identifier = pIdentifier;
       value = pValue;
     }
