@@ -76,7 +76,8 @@ public class AssumptionStorageCPA
     solver = Solver.create(config, logger, pShutdownNotifier);
     formulaManager = solver.getFormulaManager();
     FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, cfa.getMachineModel());
+    CtoFormulaTypeHandler typeHandler =
+        new CtoFormulaTypeHandler(logger, cfa.getMachineModel(), options);
     CtoFormulaConverter converter = new CtoFormulaConverter(options, formulaManager, cfa.getMachineModel(), cfa.getVarClassification(), logger, pShutdownNotifier, typeHandler, AnalysisDirection.FORWARD);
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
     topState = new AssumptionStorageState(formulaManager, bfmgr.makeTrue(), bfmgr.makeTrue());
