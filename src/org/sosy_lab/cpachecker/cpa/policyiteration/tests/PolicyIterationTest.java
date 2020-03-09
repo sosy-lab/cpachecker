@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.CPATestRunner.ExpectedVerdict;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
@@ -20,209 +21,225 @@ public class PolicyIterationTest {
   private static final String TEST_DIR_PATH = "test/programs/policyiteration/";
 
   @Test public void stateful_true_assert() throws Exception {
-    check("stateful_true_assert.c");
+    check("stateful.c", ExpectedVerdict.TRUE);
   }
 
   @Test public void tests_true_assert() throws Exception {
-    check("tests_true_assert.c");
+    check("tests.c", ExpectedVerdict.TRUE);
   }
 
   @Test public void loop_bounds_true_assert() throws Exception {
-    check("loop_bounds_true_assert.c");
+    check("loop_bounds.c", ExpectedVerdict.TRUE);
   }
 
   @Test public void pointer_read_true_assert() throws Exception {
-    check("pointers/pointer_read_true_assert.c");
+    check("pointers/pointer_read-1.c", ExpectedVerdict.TRUE);
   }
 
   @Test public void pointer_read_false_assert() throws Exception {
-    check("pointers/pointer_read_false_assert.c");
+    check("pointers/pointer_read-2.c", ExpectedVerdict.FALSE);
   }
 
   @Test public void pointer_write_false_assert() throws Exception {
-    check("pointers/pointer_write_false_assert.c");
+    check("pointers/pointer_write.c", ExpectedVerdict.FALSE);
   }
 
   @Test public void pointer2_true_assert() throws Exception {
-    check("pointers/pointer2_true_assert.c");
+    check("pointers/pointer2.c", ExpectedVerdict.TRUE);
   }
 
   @Test public void loop2_true_assert() throws Exception {
-    check("loop2_true_assert.c");
+    check("loop2.c", ExpectedVerdict.TRUE);
   }
 
   @Test public void simplest_false_assert() throws Exception {
-    check("simplest_false_assert.c");
+    check("simplest-1.c", ExpectedVerdict.FALSE);
   }
 
   @Test public void loop_false_assert() throws Exception {
-    check("loop_false_assert.c");
+    check("loop.c", ExpectedVerdict.FALSE);
   }
 
   @Test public void double_pointer() throws Exception {
-    check("pointers/double_pointer.c");
+    check("pointers/double_pointer.c", ExpectedVerdict.NONE);
   }
 
   @Test public void loop_nested_false_assert() throws Exception {
-    check("loop_nested_false_assert.c");
+    check("loop_nested-2.c", ExpectedVerdict.FALSE);
   }
 
   @Test
   public void pointer_past_abstraction_true_assert() throws Exception {
     checkWithSlicing(
-        "pointers/pointer_past_abstraction_true_assert.c",
-        ImmutableMap.of("cpa.lpi.maxExpressionSize", "2"));
+        "pointers/pointer_past_abstraction-2.c",
+        ImmutableMap.of("cpa.lpi.maxExpressionSize", "2"),
+        ExpectedVerdict.TRUE);
   }
 
   @Test
   public void pointer_past_abstraction_false_assert() throws Exception {
     checkWithSlicing(
-        "pointers/pointer_past_abstraction_false_assert.c", ImmutableMap.of());
+        "pointers/pointer_past_abstraction-1.c", ImmutableMap.of(), ExpectedVerdict.FALSE);
   }
 
   @Test
   public void pointers_loop_true_assert() throws Exception {
     checkWithSlicing(
-        "pointers/pointers_loop_true_assert.c",
+        "pointers/pointers_loop-2.c",
         ImmutableMap.of(
             "cpa.lpi.maxExpressionSize", "2",
-            "cpa.lpi.linearizePolicy", "false"));
+            "cpa.lpi.linearizePolicy", "false"),
+        ExpectedVerdict.TRUE);
   }
 
   @Test public void octagons_loop_true_assert() throws Exception {
-    check("octagons/octagons_loop_true_assert.c",
-       ImmutableMap.of("cpa.lpi.maxExpressionSize", "2"));
+    check("octagons/octagons_loop-1.c",
+       ImmutableMap.of("cpa.lpi.maxExpressionSize", "2"),
+       ExpectedVerdict.TRUE);
   }
 
   @Test public void octagons_loop_false_assert() throws Exception {
-    check("octagons/octagons_loop_false_assert.c",
-        ImmutableMap.of("cpa.lpi.maxExpressionSize", "2"));
+    check("octagons/octagons_loop-2.c",
+        ImmutableMap.of("cpa.lpi.maxExpressionSize", "2"),
+        ExpectedVerdict.FALSE);
   }
 
   @Test public void inequality_true_assert() throws Exception {
-    check("inequality_true_assert.c");
+    check("inequality.c", ExpectedVerdict.TRUE);
   }
 
   @Test public void initial_true_assert() throws Exception {
-    check("initial_true_assert.c");
+    check("initial.c", ExpectedVerdict.TRUE);
   }
 
   @Test public void template_generation_true_assert() throws Exception {
-    check("template_generation_true_assert.c");
+    check("template_generation.c", ExpectedVerdict.TRUE);
   }
 
   @Test public void pointers_change_aliasing_false_assert() throws Exception {
-    check("pointers/pointers_change_aliasing_false_assert.c");
+    check("pointers/pointers_change_aliasing.c", ExpectedVerdict.FALSE);
   }
 
   @Test public void fixpoint_true_assert() throws Exception {
-    check("fixpoint_true_assert.c");
+    check("fixpoint.c", ExpectedVerdict.TRUE);
   }
 
   @Test public void valdet_prefixing_true_assert() throws Exception {
-    check("valdet_prefixing_true_assert.c",
+    check("valdet_prefixing.c",
         ImmutableMap.of("cpa.lpi.maxExpressionSize", "2",
 
             // Enabling two options below make non-prefixing variation of
             // val.det. work.
             "cpa.lpi.shortCircuitSyntactic", "false",
-            "cpa.lpi.checkPolicyInitialCondition", "false"));
+            "cpa.lpi.checkPolicyInitialCondition", "false"),
+        ExpectedVerdict.TRUE);
   }
 
   @Test public void array_false_assert() throws Exception {
-    check("array_false_assert.c");
+    check("array.c", ExpectedVerdict.FALSE);
   }
 
   @Test public void classcast_fail_true_assert() throws Exception {
-    check("classcast_fail_true_assert.c");
+    check("classcast_fail.c", ExpectedVerdict.TRUE);
   }
 
   @Test public void formula_fail_true_assert() throws Exception {
-    check("formula_fail_true_assert.c",
+    check("formula_fail.c",
         ImmutableMap.of("cpa.lpi.allowedCoefficients", "1",
-                        "cpa.lpi.abstractionLocations", "all"));
+                        "cpa.lpi.abstractionLocations", "all"),
+        ExpectedVerdict.TRUE);
   }
 
   @Test public void unrolling_true_assert() throws Exception {
-    check("unrolling_true_assert.c",
-        ImmutableMap.of("cpa.loopbound.loopIterationsBeforeAbstraction", "2"));
+    check("unrolling.c",
+        ImmutableMap.of("cpa.loopbound.loopIterationsBeforeAbstraction", "2"),
+        ExpectedVerdict.TRUE);
   }
 
   @Test public void timeout_true_assert() throws Exception {
-    check("timeout_true_assert.c");
+    check("timeout.c",
+        ExpectedVerdict.TRUE);
   }
 
   @Test public void boolean_true_assert() throws Exception {
     // Use explicit value analysis to track boolean variables.
-    check("boolean_true_assert.c",
+    check("boolean.c",
         ImmutableMap.of("cpa.lpi.maxExpressionSize", "2",
             "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.loopbound.LoopBoundCPA, cpa.value.ValueAnalysisCPA, cpa.policyiteration.PolicyCPA",
             "cpa.loopbound.trackStack", "true",
             "precision.trackIntAddVariables", "false",
-            "precision.trackVariablesBesidesEqAddBool", "false"));
+            "precision.trackVariablesBesidesEqAddBool", "false"),
+        ExpectedVerdict.TRUE);
   }
 
   // Testing overflow tracking.
   @Test public void overflow_guards_true_assert() throws Exception {
-    checkWithOverflow("overflow/guards_true_assert.c");
+    checkWithOverflow("overflow/guards.c", ExpectedVerdict.TRUE);
   }
 
   @Test public void overflow_increment_false_assert() throws Exception {
-    checkWithOverflow("overflow/increment_false_assert.c");
+    checkWithOverflow("overflow/increment.c",
+        ExpectedVerdict.FALSE);
   }
 
   @Test public void overflow_simplest_true_assert() throws Exception {
-    checkWithOverflow("overflow/simplest_true_assert.c");
+    checkWithOverflow("overflow/simplest.c",
+        ExpectedVerdict.TRUE);
   }
 
   @Test public void increment_in_guard_false_assert() throws Exception {
-    checkWithOverflow("overflow/increment_in_guard_false_assert.c");
+    checkWithOverflow("overflow/increment_in_guard.c",
+        ExpectedVerdict.FALSE);
   }
 
   @Test public void many_functions_true_assert() throws Exception {
-    checkWithBAM("bam/many_functions_true_assert.c");
+    checkWithBAM("bam/many_functions-1.c",
+        ExpectedVerdict.TRUE);
   }
 
   @Test public void many_functions_false_assert() throws Exception {
-    checkWithBAM("bam/many_functions_false_assert.c");
+    checkWithBAM("bam/many_functions-2.c",
+        ExpectedVerdict.FALSE);
   }
 
   @Test public void loop_around_summary_true_assert() throws Exception {
-    checkWithBAM("bam/loop_around_summary_true_assert.c");
+    checkWithBAM("bam/loop_around_summary-1.c",
+        ExpectedVerdict.TRUE);
   }
 
   @Test public void loop_around_summary_false_assert() throws Exception {
-    checkWithBAM("bam/loop_around_summary_false_assert.c");
+    checkWithBAM("bam/loop_around_summary-2.c",
+        ExpectedVerdict.FALSE);
   }
 
-  private void check(String filename) throws Exception {
-    check(filename, ImmutableMap.of());
+  private void check(String filename, ExpectedVerdict pExpected) throws Exception {
+    check(filename, ImmutableMap.of(), pExpected);
   }
 
-  private void check(String filename, Map<String, String> extra) throws Exception {
-    check(filename, getProperties("policyIteration.properties", extra));
+  private void check(String filename, Map<String, String> extra, ExpectedVerdict pExpected) throws Exception {
+    check(filename, getProperties("policyIteration.properties", extra), pExpected);
   }
 
-  private void checkWithSlicing(String filename, Map<String, String> extra)
+  private void checkWithSlicing(String filename, Map<String, String> extra, ExpectedVerdict pExpected)
       throws Exception {
-    check(filename, getProperties("policyIteration-with-slicing.properties", extra));
+    check(filename, getProperties("policyIteration-with-slicing.properties", extra), pExpected);
   }
 
-  private void checkWithOverflow(String filename) throws Exception {
+  private void checkWithOverflow(String filename, ExpectedVerdict pExpected) throws Exception {
     check(
         filename,
-        getProperties("policyIteration-with-overflow.properties", ImmutableMap.of())
-    );
+        getProperties("policyIteration-with-overflow.properties", ImmutableMap.of()),
+        pExpected);
   }
 
-  private void checkWithBAM(String filename) throws Exception {
+  private void checkWithBAM(String filename, ExpectedVerdict pExpected) throws Exception {
     check(
         filename,
-        getProperties("policyIteration-with-bam.properties", ImmutableMap.of())
-    );
+        getProperties("policyIteration-with-bam.properties", ImmutableMap.of()),
+        pExpected);
   }
 
-  private void check(String filename, Configuration config) throws Exception {
+  private void check(String filename, Configuration config, ExpectedVerdict pExpected) throws Exception {
     String fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
 
     TestResults results;
@@ -232,9 +249,9 @@ public class PolicyIterationTest {
       assumeNoException("missing binary dependency for old apron binary", e);
       throw new AssertionError(e);
     }
-    if (filename.contains("_true_assert") || filename.contains("_true-unreach")) {
+    if (pExpected == ExpectedVerdict.TRUE) {
       results.assertIsSafe();
-    } else if (filename.contains("_false_assert") || filename.contains("_false-unreach")) {
+    } else if (pExpected == ExpectedVerdict.FALSE) {
       results.assertIsUnsafe();
     }
   }

@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: non_pure_function_BUG.c
+input_files: 'non_pure_function_BUG.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

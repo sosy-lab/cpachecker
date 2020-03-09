@@ -12,9 +12,9 @@
   <requiredfiles>../config/alwaysTopAnalysis.properties</requiredfiles>
 
   <tasks>
-    <include>../programs/simple/functionCall.c</include>
-    <include>../programs/simple/loop1.c</include>
-    <include>../programs/simple/uninitVars.cil.c</include>
+    <include>../programs/simple/functionCall.yml</include>
+    <include>../programs/simple/loop1.yml</include>
+    <include>../programs/simple/uninitVars.cil.yml</include>
   </tasks>
 
   <columns>

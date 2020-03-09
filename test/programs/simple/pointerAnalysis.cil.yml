@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: pointerAnalysis.cil.c
+input_files: 'pointerAnalysis.cil.c'
+
+properties: []

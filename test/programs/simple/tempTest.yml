@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: tempTest.c
+input_files: 'tempTest.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: ex2.cil.c
+input_files: 'ex2.cil.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

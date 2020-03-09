@@ -11,12 +11,16 @@
 
   <tasks>
     <includesfile>../programs/simple/explicit/symbolic/symbolic.set</includesfile>
-    <propertyfile>../programs/simple/ALL.prp</propertyfile>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
   </tasks>
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
-    <propertyfile>../programs/simple/ALL.prp</propertyfile>
-    <exclude>../programs/simple/struct-char-array-initializer_true-unreach-label.c</exclude> <!-- flapping timeout / out of memory -->
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+    <exclude>../programs/simple/struct-char-array-initializer.yml</exclude> <!-- flapping timeout / out of memory -->
+  </tasks>
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
@@ -63,7 +67,6 @@
 
   <tasks>
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--*</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--*</exclude>

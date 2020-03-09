@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: bit_shift.cil.c
+input_files: 'bit_shift.cil.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp
