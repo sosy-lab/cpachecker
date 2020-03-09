@@ -332,7 +332,7 @@ public class WitnessExporterTest {
     }
   }
 
-  public static WitnessTester newWitnessTester(String pProgramFile, ExpectedVerdict pExpected) {
+  private static WitnessTester newWitnessTester(String pProgramFile, ExpectedVerdict pExpected) {
     return new WitnessTester(pProgramFile, pExpected);
   }
 }
