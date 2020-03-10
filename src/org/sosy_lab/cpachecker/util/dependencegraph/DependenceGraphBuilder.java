@@ -290,8 +290,12 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                   getDGNode(assumeEdge, Optional.empty()),
                   getDGNode(dependentEdge, Optional.empty()),
                   DependenceType.CONTROL);
-              dependentEdges.add(dependentEdge);
               controlDepCount++;
+
+              // if not control-dependent on itself
+              if (!dependentNode.equals(branchNode)) {
+                    dependentEdges.add(dependentEdge);
+              }
             }
           }
         }
