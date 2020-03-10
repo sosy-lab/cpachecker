@@ -235,6 +235,37 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
+  private Iterable<CFANode> createNodeIterable(
+      CFANode pNode, boolean pForward, Predicate<CFANode> pStop, Predicate<CFANode> pFilter) {
+
+    if (pStop.test(pNode)) {
+      return Collections::emptyIterator;
+    }
+
+    Iterator<CFANode> iterator =
+        (pForward ? CFAUtils.allSuccessorsOf(pNode) : CFAUtils.allPredecessorsOf(pNode)).iterator();
+
+    return () -> Iterators.filter(iterator, pFilter);
+  }
+
+  private Iterable<CFANode> iterateReverseSuccessors(CFANode pNode) {
+
+    return createNodeIterable(
+        pNode,
+        false,
+        node -> node instanceof FunctionEntryNode,
+        node -> !(node instanceof FunctionExitNode));
+  }
+
+  private Iterable<CFANode> iterateReversePredecessors(CFANode pNode) {
+
+    return createNodeIterable(
+        pNode,
+        true,
+        node -> node instanceof FunctionExitNode,
+        node -> !(node instanceof FunctionEntryNode));
+  }
+
   private void addControlDependencesNew() {
 
     int controlDepCount = 0;
@@ -244,26 +275,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       DomTree<CFANode> domTree =
           dom.createDomTree(
               entryNode.getExitNode(),
-              node -> {
-                if (node instanceof FunctionEntryNode) {
-                  return Collections::emptyIterator;
-                }
-
-                return () ->
-                    Iterators.filter(
-                        CFAUtils.allPredecessorsOf(node).iterator(),
-                        next -> !(next instanceof FunctionExitNode));
-              },
-              node -> {
-                if (node instanceof FunctionExitNode) {
-                  return Collections::emptyIterator;
-                }
-
-                return () ->
-                    Iterators.filter(
-                        CFAUtils.allSuccessorsOf(node).iterator(),
-                        next -> !(next instanceof FunctionEntryNode));
-              });
+              this::iterateReverseSuccessors,
+              this::iterateReversePredecessors);
 
       DomFrontiers<CFANode> frontiers = dom.createDomFrontiers(domTree);
       Set<CFAEdge> dependentEdges = new HashSet<>();
