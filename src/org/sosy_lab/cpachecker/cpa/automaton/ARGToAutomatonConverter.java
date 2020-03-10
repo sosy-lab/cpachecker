@@ -54,6 +54,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.eclipse.cdt.core.index.IPDOMASTProcessor.Abstract;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -799,6 +801,7 @@ public class ARGToAutomatonConverter {
     final Multimap<CallstackState, CallstackState> callstacks = LinkedHashMultimap.create();
     final Map<CallstackState, CallstackState> inverseCallstacks = new LinkedHashMap<>();
     final Multimap<CallstackState, ARGState> callstackToLeaves = LinkedHashMultimap.create();
+    final Multimap<CallstackState, ARGState> callstackToLeafWithParentAssumptions = LinkedHashMultimap.create();
     for (ARGState leaf : pLeaves) {
       CallstackState callstack = AbstractStates.extractStateByType(leaf, CallstackState.class);
       Preconditions.checkNotNull(callstack);
@@ -810,6 +813,13 @@ public class ARGToAutomatonConverter {
         callstack = callstack.getPreviousState();
       }
       callstackToLeaves.put(callstack, leaf);
+      for(ARGState parent : leaf.getParents()) {
+        if (AbstractStates.projectToType(
+            AbstractStates.asIterable(parent), AbstractStateWithAssumptions.class)
+            .anyMatch(x -> !x.getAssumptions().isEmpty())) {
+          callstackToLeafWithParentAssumptions.put(callstack, leaf);
+        }
+      }
       CallstackState prev = callstack.getPreviousState();
       while (prev != null) {
         callstacks.put(prev, callstack);
@@ -834,12 +844,45 @@ public class ARGToAutomatonConverter {
     while (!waitlist.isEmpty()) {
       final CallstackState elem = waitlist.removeFirst();
       boolean useAll = false;
+      Set<AExpression> assumptions = new HashSet<>();
+      for (ARGState leaf : callstackToLeafWithParentAssumptions.get(elem)) {
+        for (ARGState parent : leaf.getParents()) {
+          AbstractStates.projectToType(
+                  AbstractStates.asIterable(parent), AbstractStateWithAssumptions.class)
+              .stream()
+              .map(x -> x.getAssumptions())
+              .flatMap(Collection::stream)
+              .forEach(assumptions::add);
+        }
+      }
       final List<AutomatonTransition> transitions = new ArrayList<>();
       for (ARGState leaf : callstackToLeaves.get(elem)) {
-        transitions.add(
-            makeLocationTransition(
-                AbstractStates.extractLocation(leaf).getNodeNumber(),
-                withTargetStates ? AutomatonInternalState.ERROR.getName() : id(leaf)));
+        if (assumptions.isEmpty()) {
+          // no assumptions, proceed normally:
+          transitions.add(
+              makeLocationTransition(
+                  AbstractStates.extractLocation(leaf).getNodeNumber(),
+                  withTargetStates ? AutomatonInternalState.ERROR.getName() : id(leaf)));
+        } else {
+          // assumptions present, bend transition to parent instead:
+          ARGState parent = leaf.getParents().iterator().next();
+          stacksWithAssumptions.add(elem);
+          transitions.add(
+              makeLocationTransition(
+                  AbstractStates.extractLocation(parent).getNodeNumber(), id(parent), assumptions));
+          try {
+            transitions.add(
+                makeLocationTransition(
+                    AbstractStates.extractLocation(parent).getNodeNumber(),
+                    id(elem),
+                    transformedImmutableListCopy(
+                        assumptions, x -> negateExpression((CExpression) x))));
+          } catch (ClassCastException e) {
+            throw new AssertionError(
+                "Currently there is only support for negating CExpressions", e);
+          }
+          useAll = true;
+        }
       }
       for (CallstackState called : callstacks.get(elem)) {
         if (!reached.contains(called.getCallNode())) {
