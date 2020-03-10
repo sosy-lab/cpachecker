@@ -268,11 +268,11 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       DomFrontiers<CFANode> frontiers = dom.createDomFrontiers(domTree);
       Set<CFAEdge> dependentEdges = new HashSet<>();
 
-      for (CFANode dependedNode : frontiers.getNodes()) {
-        for (CFANode branchNode : frontiers.getFrontier(dependedNode)) {
+      for (CFANode dependentNode : frontiers.getNodes()) {
+        for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
           // TODO: depend only on necessary leaving-edges of branching-node
           for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
-            for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependedNode)) {
+            for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
               addDependence(
                   getDGNode(assumeEdge, Optional.empty()),
                   getDGNode(dependentEdge, Optional.empty()),
