@@ -41,7 +41,9 @@ public class Dominance {
   public static final int UNDEFINED = -1;
 
   private <T> Map<T, Integer> createReversePostOrder(
-      T pStartNode, Function<? super T, ? extends Iterable<? extends T>> pSuccFunc) {
+      T pStartNode,
+      Function<? super T, ? extends Iterable<? extends T>> pSuccFunc,
+      Function<? super T, ? extends Iterable<? extends T>> pPredFunc) {
 
     Map<T, Integer> visited = new HashMap<>();
     Deque<T> stack = new ArrayDeque<>();
@@ -49,18 +51,32 @@ public class Dominance {
 
     stack.push(pStartNode);
 
+    outer:
     while (!stack.isEmpty()) {
 
       T current = stack.pop();
 
-      for (T next : pSuccFunc.apply(current)) {
-        if (!visited.containsKey(next)) {
-          stack.push(next);
-          visited.put(next, UNDEFINED);
+      Integer id = visited.get(current);
+      if (id != null && id != UNDEFINED) { // node already visited?
+        continue;
+      }
+
+      for (T pred : pPredFunc.apply(current)) {
+        if (!visited.containsKey(pred)) { // not seen and not visited?
+          stack.push(current);
+          stack.push(pred);
+          visited.put(pred, UNDEFINED); // set node as seen but not visited
+          continue outer;
         }
       }
 
-      visited.put(current, counter);
+      for (T succ : pSuccFunc.apply(current)) {
+        if (!visited.containsKey(succ)) {
+          stack.push(succ);
+        }
+      }
+
+      visited.put(current, counter); // set node as visited
       counter++;
     }
 
@@ -104,7 +120,7 @@ public class Dominance {
     Objects.requireNonNull(pSuccFunc, "successor-function");
     Objects.requireNonNull(pPredFunc, "predecessor-function");
 
-    Map<T, Integer> ids = createReversePostOrder(pStartNode, pSuccFunc);
+    Map<T, Integer> ids = createReversePostOrder(pStartNode, pSuccFunc, pPredFunc);
 
     @SuppressWarnings("unchecked")
     T[] nodes = (T[]) new Object[ids.size()];
