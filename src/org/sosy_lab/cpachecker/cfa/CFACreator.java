@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers;
+import org.sosy_lab.cpachecker.cfa.LlvmParserWithClang;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
@@ -130,6 +131,12 @@ public class CFACreator {
       description="For C files, run the preprocessor on them before parsing. " +
                   "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
   private boolean usePreprocessor = false;
+
+  //TODO change description
+  @Option(secure=true, name="parser.useClang",
+      description="For C files, run the preprocessor on them before parsing. " +
+                  "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
+  private boolean useClang = false;
 
   @Option(secure=true, name="parser.readLineDirectives",
       description="For C files, read #line preprocessor directives and use their information for outputting line numbers."
@@ -369,14 +376,19 @@ public class CFACreator {
 
       outerParser =
           new CParserWithLocationMapper(
-              config, logger, outerParser, readLineDirectives || usePreprocessor);
+              config, logger, outerParser, readLineDirectives || usePreprocessor || useClang);
 
       if (usePreprocessor) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);
         outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
       }
 
-      parser = outerParser;
+      if (useClang) {
+        ClangProcessor clang = new ClangProcessor(config, logger);
+        parser = LlvmParserWithClang.Factory.getParser(clang, logger, machineModel);
+      } else {
+        parser = outerParser;
+      }
 
       break;
     case LLVM:
@@ -623,7 +635,6 @@ public class CFACreator {
     final ParseResult parseResult;
 
     parseResult = parser.parseString("test", program);
-
     if (parseResult.isEmpty()) {
       switch (language) {
       case JAVA:
@@ -685,7 +696,6 @@ public class CFACreator {
   private MutableCFA postProcessingOnMutableCFAs(
       MutableCFA cfa, final List<Pair<ADeclaration, String>> globalDeclarations)
       throws InvalidConfigurationException, CParserException {
-
     // remove all edges which don't have any effect on the program
     if (simplifyCfa) {
       CFASimplifier.simplifyCFA(cfa);
