@@ -25,7 +25,7 @@ Verifying a Program with CPAchecker
 
 1. Choose a source code file that you want to be checked.
    If you use your own program, remember to pre-process it as mentioned above.
-   Example: doc/examples/example.c
+   Example: `doc/examples/example.c` or `doc/examples/example_bug.c`
    A good source for more example programs is the benchmark set of the
    [International Competition on Software Verification](http://sv-comp.sosy-lab.org/),
    which can be checked out from https://github.com/sosy-lab/sv-benchmarks.

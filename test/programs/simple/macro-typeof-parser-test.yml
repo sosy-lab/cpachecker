@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: macro-typeof-parser-test.c
+input_files: 'macro-typeof-parser-test.c'
+
+properties: []

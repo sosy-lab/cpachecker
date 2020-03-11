@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: locking_correct.c
+input_files: 'locking_correct.c'
+
+properties: []

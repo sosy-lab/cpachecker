@@ -1,0 +1,8 @@
+format_version: '1.0'
+
+# old file name: modfl_long_double_true-unreach-call.c
+input_files: 'modfl_long_double.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-call.prp
+    expected_verdict: true

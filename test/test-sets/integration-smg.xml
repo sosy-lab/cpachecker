@@ -9,11 +9,11 @@
 
   <requiredfiles>../programs/cpalien/cpalien-headers.h</requiredfiles>
 
-  <tasks name="cpalien-okay">
+  <tasks name="cpalien">
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
     <option name="-smg"/>
     <option name="-preprocess" />
-    <propertyfile>../programs/cpalien/ALL.prp</propertyfile>
+    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="HeapMemSafety">
@@ -31,7 +31,7 @@
   <tasks name="ExtAllocMemSafety">
     <includesfile>../programs/smg_External_Allocation_Test/ExtAlloc.set</includesfile>
     <option name="-smg"/>
-    <propertyfile>../programs/smg_External_Allocation_Test/ALL.prp</propertyfile>
+    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <columns>

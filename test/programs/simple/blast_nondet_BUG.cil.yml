@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: blast_nondet_BUG.cil.c
+input_files: 'blast_nondet_BUG.cil.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

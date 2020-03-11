@@ -1347,7 +1347,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected Formula makeNondet(
       String pVarName, CType pType, SSAMapBuilder pSsa, Constraints pConstraints) {
-    return super.makeNondet(pVarName, pType, pSsa, pConstraints);
+    return super.makeNondet(pVarName, typeHandler.simplifyType(pType), pSsa, pConstraints);
   }
 
   /** {@inheritDoc} */

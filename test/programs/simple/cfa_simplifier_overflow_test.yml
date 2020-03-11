@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: cfa_simplifier_overflow_test.c
+input_files: 'cfa_simplifier_overflow_test.c'
+
+properties: []
