@@ -288,6 +288,12 @@ public class DependenceGraphBuilder implements StatisticsProvider {
           // TODO: depend only on necessary leaving-edges of branching-node
           for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
             for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
+
+              for (DGNode dependentDGN : getDGNodes(dependentEdge)) {
+                addDependence(
+                    getDGNode(assumeEdge, Optional.empty()), dependentDGN, DependenceType.CONTROL);
+              }
+
               addDependence(
                   getDGNode(assumeEdge, Optional.empty()),
                   getDGNode(dependentEdge, Optional.empty()),
