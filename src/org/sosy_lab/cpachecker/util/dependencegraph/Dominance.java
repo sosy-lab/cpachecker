@@ -91,7 +91,8 @@ public class Dominance {
       T[] pNodes,
       Function<? super T, ? extends Iterable<? extends T>> pPredFunc) {
 
-    List<int[]> predsList = new ArrayList<>(Collections.nCopies(pIds.size(), new int[0]));
+    List<List<Integer>> predsList =
+        new ArrayList<>(Collections.nCopies(pIds.size(), new ArrayList<>()));
 
     List<Integer> preds = new ArrayList<>();
     for (Map.Entry<T, Integer> entry : pIds.entrySet()) {
@@ -103,7 +104,7 @@ public class Dominance {
         preds.add(predId);
       }
 
-      predsList.set(id, preds.stream().mapToInt(i -> i).toArray());
+      predsList.set(id, new ArrayList<>(preds));
       pNodes[id] = entry.getKey();
       preds.clear();
     }
@@ -146,12 +147,12 @@ public class Dominance {
 
       // all nodes in reverse postorder (except start)
       for (int id = 0; id < start; id++) {
-        final int[] preds = pInput.getPredecessors(id);
+        final List<Integer> preds = pInput.getPredecessors(id);
         int idom = UNDEFINED; // immediate dominator for node
 
         // all predecessors of node (any order)
-        for (int index = 0; index < preds.length; index++) {
-          final int pred = preds[index];
+        for (int index = 0; index < preds.size(); index++) {
+          final int pred = preds.get(index);
 
           // does predecessor have an immediate dominator?
           if (doms[pred] != UNDEFINED) {
@@ -211,11 +212,11 @@ public class Dominance {
     }
 
     for (int id = 0; id < pInput.getLength(); id++) {
-      final int[] preds = pInput.getPredecessors(id);
+      final List<Integer> preds = pInput.getPredecessors(id);
 
-      if (preds.length > 1) {
-        for (int index = 0; index < preds.length; index++) {
-          int runner = preds[index];
+      if (preds.size() > 1) {
+        for (int index = 0; index < preds.size(); index++) {
+          int runner = preds.get(index);
 
           while (runner != UNDEFINED && runner != pDoms[id]) {
             frontiers[runner].putInt(id);
@@ -230,9 +231,9 @@ public class Dominance {
 
   private static final class DomInput {
 
-    private final List<int[]> data;
+    private final List<List<Integer>> data;
 
-    private DomInput(List<int[]> pData) {
+    private DomInput(List<List<Integer>> pData) {
       data = pData;
     }
 
@@ -240,7 +241,7 @@ public class Dominance {
       return data.size();
     }
 
-    private int[] getPredecessors(int pId) {
+    private List<Integer> getPredecessors(int pId) {
       return data.get(pId);
     }
   }
