@@ -40,7 +40,7 @@
              Contains a lot of helpful data structures. -->
         <dependency org="com.google.guava" name="guava" rev="28.2-jre" conf="runtime->default; contrib->sources"/>
 
-        <dependency org="org.sosy_lab" name="llvm-j" rev="0.3.1-15-gdb8139f" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="llvm-j" rev="0.4" conf="runtime->runtime; contrib->sources"/>
         <!-- ParallelJBDD
             Parallel java BDD library for predicate abstraction. -->
         <dependency org="org.sosy_lab" name="pjbdd" rev="1.0.2-9-g284be91" conf="runtime->runtime; contrib->sources"/>
