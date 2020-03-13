@@ -31,7 +31,7 @@ public class CallstackOptions {
   // set of functions that may not appear in the source code
   @Option(secure = true, description = "unsupported functions cause an exception")
   private ImmutableSet<String> unsupportedFunctions =
-      ImmutableSet.of("pthread_create", "longjmp", "siglongjmp");
+      ImmutableSet.of("pthread_create", "longjmp", "siglongjmp", "__builtin_va_arg");
 
   @Option(secure = true, name = "depth", description = "depth of recursion bound")
   private int recursionBoundDepth = 0;

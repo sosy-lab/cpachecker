@@ -520,12 +520,19 @@ class EclipseCParser implements CParser {
       // Eclipse CDT 8.1.1 has problems with more complex attributes
       macrosBuilder.put("__attribute__(a)", "");
 
-      // There are some interesting macros available at
-      // http://research.microsoft.com/en-us/um/redmond/projects/invisible/include/stdarg.h.htm
-      macrosBuilder.put("_INTSIZEOF(n)", "((sizeof(n) + sizeof(int) - 1) & ~(sizeof(int) - 1))"); // at least size of smallest addressable unit
-      //macrosBuilder.put("__builtin_va_start(ap,v)", "(ap = (va_list)&v + _INTSIZEOF(v))");
-      macrosBuilder.put("__builtin_va_arg(ap,t)", "*(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))");
+      // For vararg handling there are some interesting macros that we could use available at
+      // https://web.archive.org/web/20160801170919/http://research.microsoft.com/en-us/um/redmond/projects/invisible/include/stdarg.h.htm
+      // However, without proper support in the analysis, these just make things worse.
+      // Cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/711
+      // We need size of smallest addressable unit:
+      // macrosBuilder.put("_INTSIZEOF(n)", "((sizeof(n) + sizeof(int) - 1) & ~(sizeof(int) - 1))");
+      // macrosBuilder.put("__builtin_va_start(ap,v)", "(ap = (va_list)&v + _INTSIZEOF(v))");
+      // macrosBuilder.put("__builtin_va_arg(ap,t)", "*(t *)((ap += _INTSIZEOF(t)) -
+      // _INTSIZEOF(t))");
       // macrosBuilder.put("__builtin_va_end(ap)", "(ap = (va_list)0)");
+
+      // But for now we just make sure that code with varargs can be parsed
+      macrosBuilder.put("__builtin_va_arg(ap,t)", "(t)__builtin_va_arg(ap)");
 
       // specifying a GCC version >= 4.7 enables handling of 128-bit types in
       // GCCScannerExtensionConfiguration
