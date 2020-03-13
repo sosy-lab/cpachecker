@@ -113,12 +113,6 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         final String calledFunction = succ.getFunctionName();
         final CFANode callerNode = pred;
 
-          if (options
-              .getUnsupportedFunctions()
-              .contains(CFACloner.extractFunctionName(calledFunction))) {
-            throw new UnsupportedCodeException(calledFunction, pEdge);
-          }
-
         if (hasRecursion(e, calledFunction)) {
           if (skipRecursiveFunctionCall(e, (FunctionCallEdge)pEdge)) {
             // skip recursion, don't enter function

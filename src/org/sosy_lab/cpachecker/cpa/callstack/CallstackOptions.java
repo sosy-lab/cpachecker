@@ -26,10 +26,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
 @Options(prefix = "cpa.callstack")
-public class CallstackOptions {
+class CallstackOptions {
 
   // set of functions that may not appear in the source code
-  @Option(secure = true, description = "unsupported functions cause an exception")
+  @Option(
+      secure = true,
+      description = "Blacklist of extern functions that will make the analysis abort if called")
   private ImmutableSet<String> unsupportedFunctions =
       ImmutableSet.of("pthread_create", "longjmp", "siglongjmp", "__builtin_va_arg");
 
@@ -73,7 +75,7 @@ public class CallstackOptions {
     config.inject(this);
   }
 
-  public ImmutableSet<String> getUnsupportedFunctions() {
+  ImmutableSet<String> getUnsupportedFunctions() {
     return unsupportedFunctions;
   }
 

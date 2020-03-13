@@ -1352,7 +1352,7 @@ cpa.callstack.skipVoidRecursion = false
 # analyse the CFA backwards
 cpa.callstack.traverseBackwards = false
 
-# unsupported functions cause an exception
+# Blacklist of extern functions that will make the analysis abort if called
 cpa.callstack.unsupportedFunctions = {"pthread_create", "longjmp", "siglongjmp"}
 
 # firing relation to be used in the precision adjustment operator
