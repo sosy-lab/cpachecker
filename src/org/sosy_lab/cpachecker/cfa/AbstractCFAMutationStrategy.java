@@ -49,7 +49,6 @@ public abstract class AbstractCFAMutationStrategy {
   protected void addNodeToParseResult(ParseResult parseResult, CFANode pNode) {
     logger.logf(Level.FINEST, "adding node %s", pNode);
     assert parseResult.getCFANodes().put(pNode.getFunctionName(), pNode);
-    //originalNodes.add(pNode);
   }
 
   protected void connectEdge(CFAEdge pEdge) {
@@ -67,7 +66,6 @@ public abstract class AbstractCFAMutationStrategy {
             + pred.getEdgeTo(succ);
     assert !CFAUtils.enteringEdges(succ).contains(pEdge);
     CFACreationUtils.addEdgeUnconditionallyToCFA(pEdge);
-    //originalEdges.add(pEdge);
   }
 
   protected void connectEdgeToNode(CFAEdge pEdge, CFANode pNode) {
@@ -81,19 +79,16 @@ public abstract class AbstractCFAMutationStrategy {
     } else {
       assert false : "Tried to add edge " + pEdge + " to node " + pNode;
     }
-    //   originalEdges.add(pEdge);
   }
 
   protected void removeNodeFromParseResult(ParseResult parseResult, CFANode pNode) {
     logger.logf(Level.FINEST, "removing node %s", pNode);
     assert parseResult.getCFANodes().remove(pNode.getFunctionName(), pNode);
-    // originalNodes.remove(pNode);
   }
 
   protected void disconnectEdge(CFAEdge pEdge) {
     logger.logf(Level.FINEST, "removing edge %s", pEdge);
     CFACreationUtils.removeEdgeFromNodes(pEdge);
-  //  originalEdges.remove(pEdge);
   }
 
   protected void disconnectEdgeFromNode(CFAEdge pEdge, CFANode pNode) {
@@ -105,21 +100,18 @@ public abstract class AbstractCFAMutationStrategy {
     } else {
       assert false : "Tried to remove edge " + pEdge + " from node " + pNode;
     }
-    //originalEdges.remove(pEdge);
+  }
+
+  protected CFAEdge dupEdge(CFAEdge pEdge, CFANode pSuccessor) {
+    return dupEdge(pEdge, pEdge.getPredecessor(), pSuccessor);
   }
 
   // return an edge with same "contents" but from pPredNode to pSuccNode
   protected CFAEdge dupEdge(CFAEdge pEdge, CFANode pPredecessor, CFANode pSuccessor) {
-    if (pPredecessor == null) {
-      pPredecessor = pEdge.getPredecessor();
-    }
-    if (pSuccessor == null) {
-      pSuccessor = pEdge.getSuccessor();
-    }
 
     assert pPredecessor.getFunctionName().equals(pSuccessor.getFunctionName());
 
-    CFAEdge newEdge = new DummyCFAEdge(pPredecessor, pSuccessor);
+    CFAEdge newEdge;
 
     switch (pEdge.getEdgeType()) {
       case AssumeEdge:

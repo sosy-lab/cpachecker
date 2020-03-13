@@ -37,16 +37,15 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SingleNodeStrategy extends AbstractCFAMutationStrategy {
 
-  private final Set<CFANode> answered = new TreeSet<>();
-  private final Set<CFANode> lastAnswer = new TreeSet<>();
+  private final Set<CFANode> previousMutations = new TreeSet<>();
+  private List<CFANode> currentMutation = new ArrayList<>();
   private Set<CFANode> rollbackedNodes = new TreeSet<>();
   protected int nodesAtATime;
 
   private Set<CFANode> deletedNodes = new HashSet<>();
 
   public SingleNodeStrategy(LogManager pLogger) {
-    super(pLogger);
-    nodesAtATime = 0;
+    this(pLogger, 0);
   }
 
   public SingleNodeStrategy(LogManager pLogger, int pNodesAtATime) {
@@ -93,13 +92,12 @@ public class SingleNodeStrategy extends AbstractCFAMutationStrategy {
   }
 
   public Collection<CFANode> chooseNodesToRemove(ParseResult parseResult) {
-    List<CFANode> answer = new ArrayList<>();
-    lastAnswer.clear();
+    List<CFANode> result = new ArrayList<>();
     Set<CFANode> succs = new HashSet<>();
 
     int nodesFound = 0;
     for (CFANode node : parseResult.getCFANodes().values()) {
-      if (answered.contains(node) || !canDeleteNode(node) || succs.contains(node)) {
+      if (previousMutations.contains(node) || !canDeleteNode(node) || succs.contains(node)) {
         continue;
       }
 
@@ -116,16 +114,16 @@ public class SingleNodeStrategy extends AbstractCFAMutationStrategy {
           node.getFunctionName(),
           node,
           successor);
-      answer.add(node);
+      result.add(node);
 
       if (++nodesFound >= nodesAtATime) {
         break;
       }
     }
 
-    answered.addAll(answer);
-    lastAnswer.addAll(answer);
-    return ImmutableList.copyOf(answer);
+    previousMutations.addAll(result);
+    currentMutation = result;
+    return ImmutableList.copyOf(result);
   }
 
   @Override
@@ -146,7 +144,7 @@ public class SingleNodeStrategy extends AbstractCFAMutationStrategy {
 
   @Override
   public void rollback(ParseResult parseResult) {
-    rollbackedNodes.addAll(lastAnswer);
+    rollbackedNodes.addAll(currentMutation);
     for (CFANode node : deletedNodes) {
       returnNodeWithLeavingEdge(parseResult, node);
     }
@@ -165,7 +163,7 @@ public class SingleNodeStrategy extends AbstractCFAMutationStrategy {
       CFANode predecessor = enteringEdge.getPredecessor();
       disconnectEdgeFromNode(enteringEdge, predecessor);
 
-      CFAEdge newEdge = dupEdge(enteringEdge, null, successor);
+      CFAEdge newEdge = dupEdge(enteringEdge, successor);
       connectEdge(newEdge);
     }
 

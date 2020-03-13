@@ -43,6 +43,3 @@ public class FunctionCallStrategy extends SingleNodeStrategy {
     return (((AStatementEdge) leavingEdge).getStatement() instanceof AFunctionCall);
   }
 }
-
-// TODO FunctionBodyStrategy
-// 2. add o this

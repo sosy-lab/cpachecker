@@ -30,13 +30,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 public class FunctionBodyStrategy extends AbstractCFAMutationStrategy {
 
-  private final Set<String> answered = new TreeSet<>();
+  private final Set<String> previousMutations = new TreeSet<>();
   private SortedSet<CFANode> deletedFunctionNodes;
   private FunctionEntryNode deletedFunctionEntry;
 
   public FunctionBodyStrategy(LogManager pLogger) {
     super(pLogger);
-    // TODO Auto-generated constructor stub
   }
 
   @Override
@@ -50,10 +49,10 @@ public class FunctionBodyStrategy extends AbstractCFAMutationStrategy {
         ImmutableSet.copyOf(pParseResult.getFunctions().values());
     for (FunctionEntryNode entryNode : functionEntries) {
       final String functionName = entryNode.getFunctionName();
-      if (answered.contains(functionName)) {
+      if (previousMutations.contains(functionName)) {
         continue;
       }
-      answered.add(functionName);
+      previousMutations.add(functionName);
 
       logger.log(Level.INFO, "Removing function", functionName);
 

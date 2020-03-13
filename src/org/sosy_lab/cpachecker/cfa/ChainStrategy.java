@@ -254,7 +254,7 @@ public class ChainStrategy extends AbstractCFAMutationStrategy {
       removeNodeFromParseResult(parseResult, node);
     }
 
-    CFAEdge newEdge = dupEdge(enteringEdge, null, successor);
+    CFAEdge newEdge = dupEdge(enteringEdge, successor);
     connectEdge(newEdge);
 
     deletedChains.add(pChain);

@@ -134,10 +134,15 @@ public class CFAMutator extends CFACreator {
       ((CFAMutatorStatistics) stats).originalEdgesCount = originalEdges.size();
       ((CFAMutatorStatistics) stats).possibleMutations =
           strategy.countPossibleMutations(parseResult);
-      return parseResult;
 
-    } else if (!doLastRun) { // do non-last run
+    } else {
       doMutationAftermath();
+
+      if (doLastRun) {
+        // need to clear out deleted in case we run out of times
+        exportCFAAsync(lastCFA);
+        return null;
+      }
 
       if (((CFAMutatorStatistics) stats).mutationRound.getValue() == runMutationsCount) {
         doLastRun = true;
@@ -155,24 +160,16 @@ public class CFAMutator extends CFACreator {
             strategy.countPossibleMutations(parseResult);
       }
 
-      // need to return after possible rollback
-      return parseResult;
-
-    } else { // do last run
-      // need to clear out deleted in case we run out of times
-      doMutationAftermath();
-      exportCFAAsync(lastCFA);
-      return null;
     }
+    // need to return after possible rollback
+    return parseResult;
   }
 
   private void saveBeforePostproccessings() {
     originalNodes = new HashSet<>(parseResult.getCFANodes().values());
 
     final EdgeCollectingCFAVisitor visitor = new EdgeCollectingCFAVisitor();
-    for (final FunctionEntryNode entryNode : parseResult.getFunctions().values()) {
-      CFATraversal.dfs().traverseOnce(entryNode, visitor);
-    }
+    parseResult.getFunctions().forEach((k, v) -> CFATraversal.dfs().traverseOnce(v, visitor));
 
     originalEdges = Sets.newIdentityHashSet();
     originalEdges.addAll(visitor.getVisitedEdges());
