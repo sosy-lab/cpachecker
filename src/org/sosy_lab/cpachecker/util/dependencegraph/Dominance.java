@@ -91,24 +91,27 @@ public class Dominance {
       T[] pNodes,
       Function<? super T, ? extends Iterable<? extends T>> pPredFunc) {
 
-    List<int[]> predsList = new ArrayList<>(Collections.nCopies(pIds.size(), new int[0]));
+    List<List<Integer>> predsList = new ArrayList<>(Collections.nCopies(pIds.size(), null));
 
     List<Integer> preds = new ArrayList<>();
+    int predCount = 0;
     for (Map.Entry<T, Integer> entry : pIds.entrySet()) {
       int id = entry.getValue();
 
       for (T next : pPredFunc.apply(entry.getKey())) {
         Integer predId = pIds.get(next);
         assert predId != null : "Unknown node (missing order-ID): " + next;
+
         preds.add(predId);
+        predCount++;
       }
 
-      predsList.set(id, preds.stream().mapToInt(i -> i).toArray());
+      predsList.set(id, new ArrayList<>(preds));
       pNodes[id] = entry.getKey();
       preds.clear();
     }
 
-    return new DomInput(predsList);
+    return DomInput.create(predsList, predCount);
   }
 
   public <T> DomTree<T> createDomTree(
@@ -134,8 +137,8 @@ public class Dominance {
 
   private int[] calculateDoms(final DomInput pInput) {
 
-    final int start = pInput.getLength() - 1; // start node is node with the highest number
-    int[] doms = new int[pInput.getLength()]; // doms[x] == immediate dominator of x
+    final int start = pInput.getNodeCount() - 1; // start node is node with the highest number
+    int[] doms = new int[pInput.getNodeCount()]; // doms[x] == immediate dominator of x
     boolean changed = true;
 
     Arrays.fill(doms, UNDEFINED); // no immediate dominator is known
@@ -144,33 +147,30 @@ public class Dominance {
     while (changed) {
       changed = false;
 
-      // all nodes in reverse postorder (except start)
-      for (int id = 0; id < start; id++) {
-        final int[] preds = pInput.getPredecessors(id);
+      int index = 0; // index for input data
+      for (int id = 0; id < start; id++) { // all nodes in reverse postorder (except start)
         int idom = UNDEFINED; // immediate dominator for node
 
-        // all predecessors of node (any order)
-        for (int index = 0; index < preds.length; index++) {
-          final int pred = preds[index];
+        int pred;
+        while ((pred = pInput.data[index]) != DomInput.DELIMITER) { // all predecessors of node
 
-          // does predecessor have an immediate dominator?
-          if (doms[pred] != UNDEFINED) {
-            // is idom initialized?
-            if (idom != UNDEFINED) {
-              // update idom using predecessor
-              idom = intersect(doms, pred, idom);
+          if (doms[pred] != UNDEFINED) { // does predecessor have an immediate dominator?
+            if (idom != UNDEFINED) { // is idom already initialized?
+              idom = intersect(doms, pred, idom); // update idom using predecessor
             } else {
-              // initialize idom with predecessor
-              idom = pred;
+              idom = pred; // initialize idom with predecessor
             }
           }
+
+          index++; // next predecessor
         }
 
-        // update immediate dominator for node?
-        if (doms[id] != idom) {
+        if (doms[id] != idom) { // update immediate dominator for node?
           doms[id] = idom;
           changed = true;
         }
+
+        index++; // skip delimiter
       }
     }
 
@@ -205,43 +205,78 @@ public class Dominance {
 
   private DomFrontiers.Frontier[] calculateFrontiers(final DomInput pInput, final int[] pDoms) {
 
-    DomFrontiers.Frontier[] frontiers = new DomFrontiers.Frontier[pInput.getLength()];
+    DomFrontiers.Frontier[] frontiers = new DomFrontiers.Frontier[pInput.getNodeCount()];
     for (int id = 0; id < frontiers.length; id++) {
       frontiers[id] = new DomFrontiers.Frontier();
     }
 
-    for (int id = 0; id < pInput.getLength(); id++) {
-      final int[] preds = pInput.getPredecessors(id);
+    int index = 0; // index for input data
+    for (int id = 0; id < pInput.getNodeCount(); id++) { // all nodes
 
-      if (preds.length > 1) {
-        for (int index = 0; index < preds.length; index++) {
-          int runner = preds[index];
+      if (pInput.data[index] == DomInput.DELIMITER) { // has zero predecessors?
+        index++; // skip delimiter
+        continue;
+      }
+
+      if (pInput.data[index + 1] == DomInput.DELIMITER) { // has only one predecessor?
+        index += 2; // skip single predecessor + delimiter
+        continue;
+      }
+
+      int runner;
+      while ((runner = pInput.data[index]) != DomInput.DELIMITER) { // all predecessors of node
 
           while (runner != UNDEFINED && runner != pDoms[id]) {
             frontiers[runner].putInt(id);
             runner = pDoms[runner];
           }
+
+        index++; // next predecessor
         }
-      }
+
+      index++; // skip delimiter
     }
-    
+
     return frontiers;
   }
 
   private static final class DomInput {
 
-    private final List<int[]> data;
+    private static final int DELIMITER = -2;
 
-    private DomInput(List<int[]> pData) {
+    // p_X_Y: predecessor Y of node X
+    // format example: [p_0_0, p_0_1, DELIMITER, p_1_0, DELIMITER, DELIMITER, p_3_0, ...]
+    //   - node 0 has 2 predecessors
+    //   - node 1 has 1 predecessor
+    //   - node 2 has 0 predecessors
+    //   - node 3 has (at least) 1 predecessor
+    // the array must contain exactly one delimiter for every node
+    private final int[] data;
+
+    private final int nodeCount;
+
+    private DomInput(int[] pData, int pNodeCount) {
       data = pData;
+      nodeCount = pNodeCount;
     }
 
-    private int getLength() {
-      return data.size();
+    private static DomInput create(List<List<Integer>> pData, int pPredCount) {
+
+      int[] data = new int[pPredCount + pData.size()];
+
+      int index = 0;
+      for (List<Integer> preds : pData) {
+        for (int pred : preds) {
+          data[index++] = pred;
+        }
+        data[index++] = DELIMITER;
+      }
+
+      return new DomInput(data, pData.size());
     }
 
-    private int[] getPredecessors(int pId) {
-      return data.get(pId);
+    private int getNodeCount() {
+      return nodeCount;
     }
   }
 
