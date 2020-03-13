@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -381,7 +382,17 @@ public abstract class PathTranslator {
     Deque<FunctionBody> newStack = cloneStack(functionStack);
     FunctionBody currentFunction = newStack.peek();
     currentFunction.enterBlock(parent.getStateId(), edge, cond);
-    return new Edge(child, parent, edge, newStack);
+
+    // Create dummy edge as next edge, otherwise we would get a __CPROVER_assume() statement that
+    // just duplicates the condition.
+    BlankEdge dummyEdge =
+        new BlankEdge(
+            edge.getRawStatement(),
+            edge.getFileLocation(),
+            edge.getPredecessor(),
+            edge.getSuccessor(),
+            "");
+    return new Edge(child, parent, dummyEdge, newStack);
   }
 
   private static FunctionBody processIncomingStacks(
