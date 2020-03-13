@@ -38,7 +38,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -188,13 +187,7 @@ public class CoreComponentsFactory {
     description = "Use termination algorithm to prove (non-)termination.")
   private boolean useTerminationAlgorithm = false;
 
-  @Option(
-    secure = true,
-    name = "algorithm.termination.spec_as_reach",
-    description = "Specification for termination analysis that is used by its internal safety analysis. "
-        + "DO NOT CHANGE unless you know what you are doing.")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path termSpecFile = Paths.get("config/specification/termination_as_reach.spc");
+  private final Path termSpecFile = Paths.get("config/specification/termination_as_reach.spc");
 
   @Option(
       secure = true,
