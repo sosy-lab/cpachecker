@@ -336,7 +336,7 @@ public class CoreComponentsFactory {
   }
 
   public Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification pSpecification)
+      final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification pOrigSpecification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating algorithms");
 
@@ -345,11 +345,11 @@ public class CoreComponentsFactory {
     }
 
     // TerminationAlgorithm requires hard coded specification.
-    Specification specification;
+    final Specification specification;
     if (useTerminationAlgorithm) {
-      specification = loadTerminationSpecification(cfa, pSpecification);
+      specification = loadTerminationSpecification(cfa, pOrigSpecification);
     } else {
-      specification = pSpecification;
+      specification = pOrigSpecification;
     }
 
     Algorithm algorithm;
@@ -361,7 +361,7 @@ public class CoreComponentsFactory {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =
           new NonTerminationWitnessValidator(
-              cfa, config, logger, shutdownNotifier, pSpecification.getSpecificationAutomata());
+              cfa, config, logger, shutdownNotifier, pOrigSpecification.getSpecificationAutomata());
     } else if(useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
