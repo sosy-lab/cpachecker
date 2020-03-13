@@ -41,8 +41,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -118,8 +116,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
-import org.sosy_lab.cpachecker.util.SpecificationProperty;
 
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
@@ -128,10 +124,6 @@ import org.sosy_lab.cpachecker.util.SpecificationProperty;
 public class TerminationAlgorithm implements Algorithm, AutoCloseable, StatisticsProvider {
 
   private final static Set<Property> TERMINATION_PROPERTY = NamedProperty.singleton("termination");
-
-  private final static Path SPEC_FILE = Paths.get("config/specification/termination_as_reach.spc");
-
-  @Nullable private static Specification terminationSpecification;
 
   private enum ResetReachedSetStrategy {
     REMOVE_TARGET_STATE,
@@ -190,7 +182,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       Specification pSpecification,
       Algorithm pSafetyAlgorithm,
       ConfigurableProgramAnalysis pSafetyCPA)
-      throws InvalidConfigurationException, InterruptedException {
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
     shutdownNotifier = pShutdownNotifier;
@@ -199,16 +191,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     aggregatedReachedSetManager = checkNotNull(pAggregatedReachedSetManager);
     safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
     safetyCPA = checkNotNull(pSafetyCPA);
-
-    Specification requiredSpecification =
-        loadTerminationSpecification(
-            pSpecification.getProperties(), pCfa, pConfig, pLogger, pShutdownNotifier);
-    Preconditions.checkArgument(
-        requiredSpecification.equals(pSpecification),
-        "%s requires %s, but %s is given.",
-        TerminationAlgorithm.class.getSimpleName(),
-        requiredSpecification,
-        pSpecification);
 
     TerminationCPA terminationCpa =
         CPAs.retrieveCPAOrFail(pSafetyCPA, TerminationCPA.class, TerminationAlgorithm.class);
@@ -228,64 +210,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                     new InvalidConfigurationException(
                         "Loop structure is not present, but required for termination analysis."));
 
-    // rebuild termination specification for witness export
-    Set<SpecificationProperty> property =
-        ImmutableSet.of(
-            new SpecificationProperty(
-                pCfa.getMainFunction().getFunctionName(),
-                CommonPropertyType.TERMINATION,
-                Optional.of(SPEC_FILE.toString())));
-    Specification termSpec =
-        Specification.fromFiles(
-            property, Collections.singleton(SPEC_FILE), pCfa, pConfig, pLogger, pShutdownNotifier);
-
     statistics =
         new TerminationStatistics(
-            pConfig, logger, loopStructure.getAllLoops().size(), termSpec, pCfa);
+            pConfig, logger, loopStructure.getAllLoops().size(), pSpecification, pCfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
-  }
-
-  /** Loads the specification required to run the {@link TerminationAlgorithm}. */
-  public static Specification loadTerminationSpecification(
-      Set<SpecificationProperty> pProperties,
-      CFA pCfa,
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException, InterruptedException {
-    if (terminationSpecification == null) {
-      terminationSpecification =
-          Specification.fromFiles(
-              pProperties,
-              Collections.singleton(SPEC_FILE),
-              pCfa,
-              pConfig,
-              pLogger,
-              pShutdownNotifier);
-    }
-
-    return terminationSpecification;
-  }
-
-  public static Specification loadTerminationSpecification(
-      final Set<SpecificationProperty> pProperties,
-      final Optional<Path> pWitness,
-      final CFA pCfa,
-      final Configuration pConfig,
-      final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException, InterruptedException {
-    if (pWitness.isPresent()) {
-      Collection<Path> specFiles = new ArrayList<>(2);
-      specFiles.add(SPEC_FILE);
-      specFiles.add(pWitness.orElseThrow());
-      terminationSpecification =
-          Specification.fromFiles(
-              pProperties, specFiles, pCfa, pConfig, pLogger, pShutdownNotifier);
-      return terminationSpecification;
-    } else {
-      return loadTerminationSpecification(pProperties, pCfa, pConfig, pLogger, pShutdownNotifier);
-    }
   }
 
   @Override

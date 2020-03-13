@@ -198,6 +198,10 @@ analysis.algorithm.propertyCheck = false
 # Use termination algorithm to prove (non-)termination.
 analysis.algorithm.termination = false
 
+# Specification for termination analysis that is used by its internal safety
+# analysis. DO NOT CHANGE unless you know what you are doing.
+analysis.algorithm.termination.spec_as_reach = "config/specification/termination_as_reach.spc"
+
 # collect undefined functions
 analysis.algorithm.undefinedFunctionCollector = false
 
