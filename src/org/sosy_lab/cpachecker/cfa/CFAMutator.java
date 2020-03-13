@@ -161,7 +161,6 @@ public class CFAMutator extends CFACreator {
     } else { // do last run
       // need to clear out deleted in case we run out of times
       doMutationAftermath();
-
       exportCFAAsync(lastCFA);
       return null;
     }
@@ -270,8 +269,8 @@ public class CFAMutator extends CFACreator {
 
     logger.logf(Level.FINE, "Count of CFA nodes: %d", cfa.getAllNodes().size());
 
-    if (doLastRun) {
-      super.exportCFAAsync(cfa);
+    if (cfa == lastCFA) {
+      super.exportCFAAsync(lastCFA);
     } else {
       lastCFA = cfa;
     }

@@ -20,29 +20,27 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class FunctionCallStrategy extends SingleNodeStrategy {
+public class DummyStrategy extends AbstractCFAMutationStrategy {
+  private int steps;
 
-  public FunctionCallStrategy(LogManager pLogger, int step) {
-    super(pLogger, step);
+  public DummyStrategy(LogManager pLogger, int pSteps) {
+    super(pLogger);
+    steps = pSteps;
   }
 
   @Override
-  protected boolean canDeleteNode(CFANode pNode) {
-    if (!super.canDeleteNode(pNode)) {
-      return false;
-    }
-    CFAEdge leavingEdge = pNode.getLeavingEdge(0);
-    if (!(leavingEdge instanceof AStatementEdge)) {
-      return false;
-    }
-    return (((AStatementEdge) leavingEdge).getStatement() instanceof AFunctionCall);
+  public long countPossibleMutations(ParseResult pParseResult) {
+    return steps;
+  }
+
+  @Override
+  public boolean mutate(ParseResult pParseResult) {
+    return steps-- > 0;
+  }
+
+  @Override
+  public void rollback(ParseResult pParseResult) {
+    assert false : "Dummy strategy does not change parseResult, there has to be no rollbacks";
   }
 }
-
-// TODO FunctionBodyStrategy
-// 2. add o this

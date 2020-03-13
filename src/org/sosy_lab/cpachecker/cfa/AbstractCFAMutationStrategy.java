@@ -47,23 +47,31 @@ public abstract class AbstractCFAMutationStrategy {
   public abstract void rollback(ParseResult parseResult);
 
   protected void addNodeToParseResult(ParseResult parseResult, CFANode pNode) {
-    logger.logf(Level.INFO, "adding node %s", pNode);
+    logger.logf(Level.FINEST, "adding node %s", pNode);
     assert parseResult.getCFANodes().put(pNode.getFunctionName(), pNode);
     //originalNodes.add(pNode);
   }
 
   protected void connectEdge(CFAEdge pEdge) {
-    logger.logf(Level.INFO, "adding edge %s", pEdge);
+    logger.logf(Level.FINEST, "adding edge %s", pEdge);
     CFANode pred = pEdge.getPredecessor();
     CFANode succ = pEdge.getSuccessor();
-    assert !pred.hasEdgeTo(succ);
+    assert !pred.hasEdgeTo(succ)
+        : "can not connect edge "
+            + pEdge
+            + ": "
+            + pred.getFunctionName()
+            + ":"
+            + pred
+            + " already has edge "
+            + pred.getEdgeTo(succ);
     assert !CFAUtils.enteringEdges(succ).contains(pEdge);
     CFACreationUtils.addEdgeUnconditionallyToCFA(pEdge);
     //originalEdges.add(pEdge);
   }
 
   protected void connectEdgeToNode(CFAEdge pEdge, CFANode pNode) {
-    logger.logf(Level.INFO, "adding edge %s to node %s", pEdge, pNode);
+    logger.logf(Level.FINEST, "adding edge %s to node %s", pEdge, pNode);
     if (pEdge.getPredecessor() == pNode) {
       assert !pNode.hasEdgeTo(pEdge.getSuccessor());
       pNode.addLeavingEdge(pEdge);
@@ -77,19 +85,19 @@ public abstract class AbstractCFAMutationStrategy {
   }
 
   protected void removeNodeFromParseResult(ParseResult parseResult, CFANode pNode) {
-    logger.logf(Level.INFO, "removing node %s", pNode);
+    logger.logf(Level.FINEST, "removing node %s", pNode);
     assert parseResult.getCFANodes().remove(pNode.getFunctionName(), pNode);
     // originalNodes.remove(pNode);
   }
 
   protected void disconnectEdge(CFAEdge pEdge) {
-    logger.logf(Level.INFO, "removing edge %s", pEdge);
+    logger.logf(Level.FINEST, "removing edge %s", pEdge);
     CFACreationUtils.removeEdgeFromNodes(pEdge);
   //  originalEdges.remove(pEdge);
   }
 
   protected void disconnectEdgeFromNode(CFAEdge pEdge, CFANode pNode) {
-    logger.logf(Level.INFO, "removing edge %s from node %s", pEdge, pNode);
+    logger.logf(Level.FINEST, "removing edge %s from node %s", pEdge, pNode);
     if (pEdge.getPredecessor() == pNode) {
       pNode.removeLeavingEdge(pEdge);
     } else if (pEdge.getSuccessor() == pNode) {
@@ -206,8 +214,13 @@ public abstract class AbstractCFAMutationStrategy {
             "Unsupported type of edge " + pEdge.getEdgeType() + " at edge " + pEdge);
     }
 
-    logger.logf(Level.FINER, "duplicated edge %s as %s", pEdge, newEdge);
+    logger.logf(Level.FINEST, "duplicated edge %s as %s", pEdge, newEdge);
 
     return newEdge;
+  }
+
+  @Override
+  public String toString() {
+    return this.getClass().getSimpleName();
   }
 }

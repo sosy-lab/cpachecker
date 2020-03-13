@@ -151,6 +151,8 @@ public class CPAcheckerResult {
         return sb.toString();
       case TRUE:
         return "TRUE. No property violation found by chosen configuration.";
+      case NOT_YET_STARTED:
+        return "NOT YET STARTED.";
       default:
         throw new AssertionError(result);
     }

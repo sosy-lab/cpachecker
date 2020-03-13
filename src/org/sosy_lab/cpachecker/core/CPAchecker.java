@@ -98,6 +98,7 @@ import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 @Options
 public class CPAchecker {
@@ -344,7 +345,12 @@ public class CPAchecker {
     checkArgument(!programDenotation.isEmpty());
 
     if (runMutations) {
-      return runWithMutations(programDenotation, properties);
+      final StatTimer timer = new StatTimer("Total time of all rounds");
+      timer.start();
+      CPAcheckerResult res = runWithMutations(programDenotation, properties);
+      timer.stop();
+      System.out.println(timer.getTitle() + ": " + timer);
+      return res;
     }
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
@@ -707,9 +713,6 @@ public class CPAchecker {
       logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
       stats.setCFACreator(cfaCreator);
       cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
-      if (cfa == null) {
-        return null;
-      }
 
     } else {
       // load CFA from serialization file
@@ -723,7 +726,9 @@ public class CPAchecker {
       assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel());
     }
 
-    stats.setCFA(cfa);
+    if (cfa != null) {
+      stats.setCFA(cfa);
+    }
     return cfa;
   }
 

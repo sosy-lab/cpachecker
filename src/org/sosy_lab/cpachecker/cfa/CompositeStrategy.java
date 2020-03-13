@@ -21,6 +21,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 
 public class CompositeStrategy extends AbstractCFAMutationStrategy {
@@ -32,22 +33,28 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
   public CompositeStrategy(LogManager pLogger) {
     super(pLogger);
     strategiesList =
-        ImmutableList.of(new FunctionCallStrategy(pLogger), new SingleNodeStrategy(pLogger));
+        ImmutableList.of(
+            new FunctionBodyStrategy(pLogger),
+            new GlobalDeclarationStrategy(pLogger, 300),
+            new ChainStrategy(pLogger, 10),
+            new ChainStrategy(pLogger, 1),
+            new SingleNodeStrategy(pLogger, 1),
+            new AssumeEdgeStrategy(pLogger),
+            new GlobalDeclarationStrategy(pLogger, 1));
     strategies = strategiesList.iterator();
     currentStrategy = strategies.next();
   }
 
   @Override
   public boolean mutate(ParseResult parseResult) {
-    System.out.println("STRATEGY " + currentStrategy);
+    logger.logf(Level.FINE, "Mutation strategy %s", currentStrategy);
     boolean answer = currentStrategy.mutate(parseResult);
     while (!answer) {
       if (!strategies.hasNext()) {
-        System.out.println("Strategies ended");
         return answer;
       }
       currentStrategy = strategies.next();
-      System.out.println("Switching strategy to " + currentStrategy);
+      logger.logf(Level.INFO, "Switching strategy to %s", currentStrategy);
       answer = currentStrategy.mutate(parseResult);
     }
     return answer;
@@ -62,7 +69,9 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
   public long countPossibleMutations(ParseResult parseResult) {
     long sum = 0;
     for (AbstractCFAMutationStrategy strategy : strategiesList) {
-      sum += strategy.countPossibleMutations(parseResult);
+      long term = strategy.countPossibleMutations(parseResult);
+      logger.logf(Level.INFO, "Strategy %s: %d possible mutations", strategy, term);
+      sum += term;
     }
     return sum;
   }
