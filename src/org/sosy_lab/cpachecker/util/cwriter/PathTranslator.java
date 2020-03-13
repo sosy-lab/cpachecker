@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.cwriter;
 
 import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
@@ -312,39 +313,23 @@ public abstract class PathTranslator {
       case 2:
         { // If there are more than one relevant child, then this is a condition.
           // We need to update the stack.
-          ImmutableList.Builder<Edge> result = ImmutableList.builder();
-          int ind = 0;
-          for (ARGState elem : relevantChildrenOfElement) {
-            Deque<FunctionBody> newStack = cloneStack(functionStack);
-            CFAEdge e = currentElement.getEdgeToChild(elem);
-            FunctionBody currentFunction = newStack.peek();
-            assert e instanceof CAssumeEdge;
-            CAssumeEdge assumeEdge = (CAssumeEdge) e;
-            boolean truthAssumption = assumeEdge.getTruthAssumption();
+          ARGState child1 = relevantChildrenOfElement.get(0);
+          ARGState child2 = relevantChildrenOfElement.get(1);
+          CAssumeEdge edge1 = (CAssumeEdge) currentElement.getEdgeToChild(child1);
+          CAssumeEdge edge2 = (CAssumeEdge) currentElement.getEdgeToChild(child2);
+          verify(edge1.getExpression().equals(edge2.getExpression()));
+          verify(edge1.getTruthAssumption() != edge2.getTruthAssumption());
 
-            String cond = "";
-
-            if (ind == 0) {
-              cond = "if ";
-            } else if (ind == 1) {
-              cond = "else if ";
-            } else {
-              throw new AssertionError();
-            }
-            ind++;
-
-            if (truthAssumption) {
-              cond += "(" + assumeEdge.getExpression().toASTString() + ")";
-            } else {
-              cond += "(!(" + assumeEdge.getExpression().toASTString() + "))";
-            }
-
-            // create a new block starting with this condition
-            currentFunction.enterBlock(currentElement.getStateId(), assumeEdge, cond);
-
-            result.add(new Edge(elem, currentElement, e, newStack));
+          String cond = "if ";
+          if (edge1.getTruthAssumption()) {
+            cond += "(" + edge1.getExpression().toASTString() + ")";
+          } else {
+            cond += "(!(" + edge1.getExpression().toASTString() + "))";
           }
-          return result.build();
+
+          return ImmutableList.of(
+              createNewBasicBlock(currentElement, child1, edge1, cond, functionStack),
+              createNewBasicBlock(currentElement, child2, edge2, "else", functionStack));
         }
       default:
         throw new AssertionError();
@@ -385,6 +370,18 @@ public abstract class PathTranslator {
       }
     }
     return result;
+  }
+
+  private Edge createNewBasicBlock(
+      ARGState parent,
+      ARGState child,
+      CAssumeEdge edge,
+      String cond,
+      Deque<FunctionBody> functionStack) {
+    Deque<FunctionBody> newStack = cloneStack(functionStack);
+    FunctionBody currentFunction = newStack.peek();
+    currentFunction.enterBlock(parent.getStateId(), edge, cond);
+    return new Edge(child, parent, edge, newStack);
   }
 
   private static FunctionBody processIncomingStacks(
