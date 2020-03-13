@@ -370,6 +370,10 @@ public class ConfigurationFileChecks {
         "config/specification/test-comp-terminatingfunctions.spc",
         tempFolder.getRoot().getAbsolutePath(),
         "config/specification/test-comp-terminatingfunctions.spc");
+    copyFile(
+        "config/specification/termination_as_reach.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/termination_as_reach.spc");
   }
 
   /**
