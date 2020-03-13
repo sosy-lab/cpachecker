@@ -297,54 +297,58 @@ public abstract class PathTranslator {
     List<ARGState> relevantChildrenOfElement = from(currentElement.getChildren()).filter(in(elementsOnPath)).toList();
     relevantChildrenOfElement = chooseIfArbitrary(currentElement, relevantChildrenOfElement);
 
-    // if there is only one child on the path
-    if (relevantChildrenOfElement.size() == 1) {
-      // get the next ARG state, create a new edge using the same stack and add it to the waitlist
-      ARGState elem = Iterables.getOnlyElement(relevantChildrenOfElement);
-      CFAEdge e = currentElement.getEdgeToChild(elem);
-      Edge newEdge = new Edge(elem, currentElement, e, functionStack);
-      return Collections.singleton(newEdge);
+    switch (relevantChildrenOfElement.size()) {
+      case 0:
+        return ImmutableList.of();
 
-    } else if (relevantChildrenOfElement.size() > 1) {
-      // if there are more than one relevant child, then this is a condition
-      // we need to update the stack
-      assert relevantChildrenOfElement.size() == 2;
-      ImmutableList.Builder<Edge> result = ImmutableList.builder();
-      int ind = 0;
-      for (ARGState elem : relevantChildrenOfElement) {
-        Deque<FunctionBody> newStack = cloneStack(functionStack);
-        CFAEdge e = currentElement.getEdgeToChild(elem);
-        FunctionBody currentFunction = newStack.peek();
-        assert e instanceof CAssumeEdge;
-        CAssumeEdge assumeEdge = (CAssumeEdge) e;
-        boolean truthAssumption = assumeEdge.getTruthAssumption();
-
-        String cond = "";
-
-        if (ind == 0) {
-          cond = "if ";
-        } else if (ind == 1) {
-          cond = "else if ";
-        } else {
-          throw new AssertionError();
-        }
-        ind++;
-
-        if (truthAssumption) {
-          cond += "(" + assumeEdge.getExpression().toASTString() + ")";
-        } else {
-          cond += "(!(" + assumeEdge.getExpression().toASTString() + "))";
+      case 1:
+        { // If there is only one child on the path, get the next ARG state, create a new edge using
+          // the same stack and add it to the waitlist.
+          ARGState elem = Iterables.getOnlyElement(relevantChildrenOfElement);
+          CFAEdge e = currentElement.getEdgeToChild(elem);
+          return ImmutableList.of(new Edge(elem, currentElement, e, functionStack));
         }
 
-        // create a new block starting with this condition
-        currentFunction.enterBlock(currentElement.getStateId(), assumeEdge, cond);
+      case 2:
+        { // If there are more than one relevant child, then this is a condition.
+          // We need to update the stack.
+          ImmutableList.Builder<Edge> result = ImmutableList.builder();
+          int ind = 0;
+          for (ARGState elem : relevantChildrenOfElement) {
+            Deque<FunctionBody> newStack = cloneStack(functionStack);
+            CFAEdge e = currentElement.getEdgeToChild(elem);
+            FunctionBody currentFunction = newStack.peek();
+            assert e instanceof CAssumeEdge;
+            CAssumeEdge assumeEdge = (CAssumeEdge) e;
+            boolean truthAssumption = assumeEdge.getTruthAssumption();
 
-        Edge newEdge = new Edge(elem, currentElement, e, newStack);
-        result.add(newEdge);
-      }
-      return result.build();
+            String cond = "";
+
+            if (ind == 0) {
+              cond = "if ";
+            } else if (ind == 1) {
+              cond = "else if ";
+            } else {
+              throw new AssertionError();
+            }
+            ind++;
+
+            if (truthAssumption) {
+              cond += "(" + assumeEdge.getExpression().toASTString() + ")";
+            } else {
+              cond += "(!(" + assumeEdge.getExpression().toASTString() + "))";
+            }
+
+            // create a new block starting with this condition
+            currentFunction.enterBlock(currentElement.getStateId(), assumeEdge, cond);
+
+            result.add(new Edge(elem, currentElement, e, newStack));
+          }
+          return result.build();
+        }
+      default:
+        throw new AssertionError();
     }
-    return ImmutableList.of();
   }
 
   private List<ARGState> chooseIfArbitrary(ARGState parent, List<ARGState> pRelevantChildrenOfElement) {
