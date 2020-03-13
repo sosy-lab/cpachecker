@@ -321,12 +321,17 @@ public abstract class PathTranslator {
           verify(edge1.getExpression().equals(edge2.getExpression()));
           verify(edge1.getTruthAssumption() != edge2.getTruthAssumption());
 
-          String cond = "if ";
-          if (edge1.getTruthAssumption()) {
-            cond += "(" + edge1.getExpression().toASTString() + ")";
-          } else {
-            cond += "(!(" + edge1.getExpression().toASTString() + "))";
+          if (edge2.getTruthAssumption()) {
+            // swap edges such that edge1 is the positive one
+            ARGState tmpState = child1;
+            CAssumeEdge tmpEdge = edge1;
+            child1 = child2;
+            edge1 = edge2;
+            child2 = tmpState;
+            edge2 = tmpEdge;
           }
+
+          String cond = "if (" + edge1.getExpression().toASTString() + ")";
 
           return ImmutableList.of(
               createNewBasicBlock(currentElement, child1, edge1, cond, functionStack),
