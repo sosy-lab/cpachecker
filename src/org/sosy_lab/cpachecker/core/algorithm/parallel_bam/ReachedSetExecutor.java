@@ -46,6 +46,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -109,6 +110,13 @@ class ReachedSetExecutor {
   private final AtomicBoolean terminateAnalysis;
   private final LogManager logger;
 
+  /**
+   * This variable is shared acros all threads and counts the number of currently scheduled, but not
+   * yet running jobs. It is used to automatically shutdown the thread pool as soon as all jobs are
+   * done.
+   */
+  private final AtomicInteger scheduledJobs;
+
   int execCounter = 0; // statistics
   private final TimerWrapper threadTimer;
   private final TimerWrapper addingStatesTimer;
@@ -145,6 +153,7 @@ class ReachedSetExecutor {
       ParallelBAMStatistics pStats,
       List<Throwable> pErrors,
       AtomicBoolean pTerminateAnalysis,
+      AtomicInteger pScheduledJobs,
       LogManager pLogger) {
     bamcpa = pBamCpa;
     rs = pRs;
@@ -157,6 +166,7 @@ class ReachedSetExecutor {
     stats = pStats;
     errors = pErrors;
     terminateAnalysis = pTerminateAnalysis;
+    scheduledJobs = pScheduledJobs;
     logger = pLogger;
 
     algorithm = algorithmFactory.newInstance();
@@ -188,6 +198,7 @@ class ReachedSetExecutor {
   }
 
   synchronized void addNewTask(Runnable r) {
+    scheduledJobs.incrementAndGet();
     waitingTask = waitingTask.thenRunAsync(r, pool).exceptionally(new ExceptionHandler(this));
   }
 
@@ -203,6 +214,8 @@ class ReachedSetExecutor {
     stats.numMaxRSE.accumulate(reachedSetMapping.size());
     stats.runningRSESeries.add(running);
     execCounter++;
+
+    scheduledJobs.decrementAndGet();
 
     try { // big try-block to catch all exceptions
       shutdownNotifier.shutdownIfNecessary();
@@ -345,7 +358,7 @@ class ReachedSetExecutor {
       stats.executionCounter.insertValue(execCounter);
       // no need to wait for this#waitingTask, we assume a error-free exit after this point.
 
-      if (reachedSetMapping.isEmpty()) {
+      if (scheduledJobs.get() == 0 && reachedSetMapping.isEmpty()) {
         logger.logf(level, "%s :: all RSEs finished, shutdown threadpool", this);
         pool.shutdown();
       }
@@ -519,6 +532,7 @@ class ReachedSetExecutor {
             stats,
             errors,
             terminateAnalysis,
+            scheduledJobs,
             logger);
 
     // check whether we already have a matching RSE. If not use the new one.
