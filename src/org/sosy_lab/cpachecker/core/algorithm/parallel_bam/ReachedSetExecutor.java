@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm.ParallelBAMStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -259,8 +258,7 @@ class ReachedSetExecutor {
 
     if (!targetStateFound) {
       // further analysis of the reached-set, sub-analysis is scheduled if necessary
-      @SuppressWarnings("unused")
-      AlgorithmStatus tmpStatus = algorithm.run(rs);
+      algorithm.run(rs);
 
       if (bamcpa.doesBreakForMissingBlock()) {
         AbstractState lastState = rs.getLastState();
