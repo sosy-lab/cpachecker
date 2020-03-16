@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.bam.MissingBlockAbstractionState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
@@ -182,7 +183,7 @@ class ReachedSetExecutor {
   private Runnable asRunnable(Collection<AbstractState> pStatesToBeAdded) {
     // copy needed, because access to pStatesToBeAdded is done in the future
     ImmutableSet<AbstractState> copy = ImmutableSet.copyOf(pStatesToBeAdded);
-    return () -> apply(copy);
+    return () -> apply0(copy);
   }
 
   synchronized void addNewTask(Runnable r) {
@@ -194,14 +195,7 @@ class ReachedSetExecutor {
     return waitingTask;
   }
 
-  /**
-   * This method contains the main function of the RSE: It analyzes the reached-set, handles blocks
-   * and updates dependencies.
-   *
-   * <p>This method should be synchronized by design of the algorithm. There exists a mapping of
-   * ReachedSet to ReachedSetExecutor that guarantees single-threaded access to each ReachedSet.
-   */
-  private void apply(Collection<AbstractState> pStatesToBeAdded) {
+  private void apply0(Collection<AbstractState> pStatesToBeAdded) {
     threadTimer.start();
     int running = stats.numActiveThreads.incrementAndGet();
     stats.histActiveThreads.insertValue(running);
@@ -212,6 +206,28 @@ class ReachedSetExecutor {
     try { // big try-block to catch all exceptions
       shutdownNotifier.shutdownIfNecessary();
 
+      apply(pStatesToBeAdded);
+
+    } catch (Throwable e) { // catch everything to avoid deadlocks after a problem.
+      logger.logException(level, e, e.getClass().getName());
+      terminateAnalysis.set(true);
+      errors.add(e);
+      pool.shutdownNow();
+    } finally {
+      stats.numActiveThreads.decrementAndGet();
+      threadTimer.stop();
+    }
+  }
+
+  /**
+   * This method contains the main function of the RSE: It analyzes the reached-set, handles blocks
+   * and updates dependencies.
+   *
+   * <p>This method should be synchronized by design of the algorithm. There exists a mapping of
+   * ReachedSet to ReachedSetExecutor that guarantees single-threaded access to each ReachedSet.
+   */
+  private void apply(Collection<AbstractState> pStatesToBeAdded)
+      throws InterruptedException, CPAEnabledAnalysisPropertyViolationException, CPAException {
       logger.logf(
           level,
           "%s :: starting, target=%s, statesToBeAdded=%s",
@@ -255,16 +271,6 @@ class ReachedSetExecutor {
       terminationCheckTimer.stop();
 
       logger.logf(level, "%s :: exiting, targetStateFound=%s", this, targetStateFound);
-
-    } catch (Throwable e) { // catch everything to avoid deadlocks after a problem.
-      logger.logException(level, e, e.getClass().getName());
-      terminateAnalysis.set(true);
-      errors.add(e);
-      pool.shutdownNow();
-    } finally {
-      stats.numActiveThreads.decrementAndGet();
-      threadTimer.stop();
-    }
   }
 
   private void checkForTargetState() {
