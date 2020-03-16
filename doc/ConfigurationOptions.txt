@@ -1080,6 +1080,10 @@ cpa.arg.dumpAfterIteration = false
 # export final ARG as .dot file
 cpa.arg.export = true
 
+# Enable the integration of __VERIFIER_assume statements for non-true
+# assumption in states. Disable if you want to create residual programs.
+cpa.arg.export.code.addAssumptions = true
+
 # Only enable CLOSEFUNCTIONBLOCK if you are sure that the ARG merges
 # different flows through a function at the end of the function.
 cpa.arg.export.code.blockAtFunctionEnd = KEEPBLOCK
