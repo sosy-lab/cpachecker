@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.bam.MissingBlockAbstractionState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -228,49 +229,49 @@ class ReachedSetExecutor {
    */
   private void apply(Collection<AbstractState> pStatesToBeAdded)
       throws InterruptedException, CPAEnabledAnalysisPropertyViolationException, CPAException {
-      logger.logf(
-          level,
-          "%s :: starting, target=%s, statesToBeAdded=%s",
-          this,
-          targetStateFound,
-          id(pStatesToBeAdded));
+    logger.logf(
+        level,
+        "%s :: starting, target=%s, statesToBeAdded=%s",
+        this,
+        targetStateFound,
+        id(pStatesToBeAdded));
 
-      addingStatesTimer.start();
-      updateStates(pStatesToBeAdded);
-      addingStatesTimer.stop();
+    addingStatesTimer.start();
+    updateStates(pStatesToBeAdded);
+    addingStatesTimer.stop();
 
-      // handle finished reached-set after refinement
-      // TODO checking this once on RSE-creation would be sufficient
-      checkForTargetState();
+    // handle finished reached-set after refinement
+    // TODO checking this once on RSE-creation would be sufficient
+    checkForTargetState();
 
-      if (!targetStateFound) {
-        // further analysis of the reached-set, sub-analysis is scheduled if necessary
-        @SuppressWarnings("unused")
-        AlgorithmStatus tmpStatus = algorithm.run(rs);
+    if (!targetStateFound) {
+      // further analysis of the reached-set, sub-analysis is scheduled if necessary
+      @SuppressWarnings("unused")
+      AlgorithmStatus tmpStatus = algorithm.run(rs);
 
-        if (bamcpa.doesBreakForMissingBlock()) {
-          AbstractState lastState = rs.getLastState();
-          if (lastState instanceof MissingBlockAbstractionState) {
-            handleMissingBlock((MissingBlockAbstractionState) lastState);
-          }
-        } else {
-          // create local copy of important states, because RS will be modified later.
-          Collection<MissingBlockAbstractionState> missingBlockAbstractionStates =
-              Lists.newArrayList(Iterables.filter(rs, MissingBlockAbstractionState.class));
-          for (MissingBlockAbstractionState state : missingBlockAbstractionStates) {
-            handleMissingBlock(state);
-          }
+      if (bamcpa.doesBreakForMissingBlock()) {
+        AbstractState lastState = rs.getLastState();
+        if (lastState instanceof MissingBlockAbstractionState) {
+          handleMissingBlock((MissingBlockAbstractionState) lastState);
         }
-
-        assert FluentIterable.from(rs).filter(MissingBlockAbstractionState.class).isEmpty()
-            : "dummy state should be removed from reached-set";
+      } else {
+        // create local copy of important states, because RS will be modified later.
+        Collection<MissingBlockAbstractionState> missingBlockAbstractionStates =
+            Lists.newArrayList(Iterables.filter(rs, MissingBlockAbstractionState.class));
+        for (MissingBlockAbstractionState state : missingBlockAbstractionStates) {
+          handleMissingBlock(state);
+        }
       }
 
-      terminationCheckTimer.start();
-      handleTermination();
-      terminationCheckTimer.stop();
+      assert FluentIterable.from(rs).filter(MissingBlockAbstractionState.class).isEmpty()
+          : "dummy state should be removed from reached-set";
+    }
 
-      logger.logf(level, "%s :: exiting, targetStateFound=%s", this, targetStateFound);
+    terminationCheckTimer.start();
+    handleTermination();
+    terminationCheckTimer.stop();
+
+    logger.logf(level, "%s :: exiting, targetStateFound=%s", this, targetStateFound);
   }
 
   private void checkForTargetState() {
