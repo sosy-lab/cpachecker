@@ -2506,6 +2506,16 @@ class ASTConverter {
         FileLocation loc = getLocation(i);
 
         if (declaration != null && !declaration.getType().getCanonicalType().isConst()) {
+          if (!areInitializerAssignable(
+              declaration.getType(),
+              ((CFunctionCallExpression) initializer).getFunctionNameExpression())) {
+            throw parseContext.parseError(
+                "Declaration type "
+                    + declaration.getType()
+                    + " does not match initializer type "
+                    + ((CFunctionCallExpression) initializer).getExpressionType(),
+                e);
+          }
           // This is a variable declaration like "int i = f();"
           // We can replace this with "int i; i = f();"
           CIdExpression var = new CIdExpression(loc, declaration);
