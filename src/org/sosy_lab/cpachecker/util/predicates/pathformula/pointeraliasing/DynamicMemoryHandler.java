@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 /**
  * This class is responsible for handling everything related to dynamic memory,
@@ -274,17 +275,23 @@ class DynamicMemoryHandler {
       }
     }
     final Formula sizeExp =
-        conv.makeCast(
+        conv.makeFormulaTypeCast(
+            FormulaType.IntegerType,
             parameter.getExpressionType(),
-            conv.machineModel.getPointerDiffType(),
-            conv.buildTerm(
-                parameter,
-                edge,
-                edge.getPredecessor().getFunctionName(),
-                ssa,
-                pts,
+            conv.makeCast(
+                parameter.getExpressionType(),
+                conv.machineModel.getPointerDiffType(),
+                conv.buildTerm(
+                    parameter,
+                    edge,
+                    edge.getPredecessor().getFunctionName(),
+                    ssa,
+                    pts,
+                    constraints,
+                    errorConditions),
                 constraints,
-                errorConditions),
+                edge),
+            ssa,
             constraints,
             edge);
     Formula address;
