@@ -65,7 +65,7 @@ public class FunctionBodyStrategy
     String functionName = pRollbackInfo.getFirst().getFunctionName();
     logger.logf(
         Level.INFO,
-        "removing %s (entry is %s, %d nodes)",
+        "returning %s (entry is %s, %d nodes)",
         functionName,
         pRollbackInfo.getFirst(),
         pRollbackInfo.getSecond().size());

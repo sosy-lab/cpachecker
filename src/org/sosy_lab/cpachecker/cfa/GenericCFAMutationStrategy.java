@@ -40,7 +40,7 @@ public abstract class GenericCFAMutationStrategy<ObjectKey, RollbackInfo>
 
   public GenericCFAMutationStrategy(LogManager pLogger, int pRate) {
     super(pLogger);
-    assert pRate > 0;
+    assert pRate >= 0;
     rate = pRate;
   }
 
@@ -84,6 +84,7 @@ public abstract class GenericCFAMutationStrategy<ObjectKey, RollbackInfo>
   @Override
   public boolean mutate(ParseResult pParseResult) {
     currentMutation.clear();
+    assert rate > 0;
 
     ImmutableCollection<ObjectKey> chosenObjects =
         ImmutableList.copyOf(getObjects(pParseResult, rate));

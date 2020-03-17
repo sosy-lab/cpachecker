@@ -39,50 +39,25 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
     super(pLogger);
     strategiesList =
         ImmutableList.of(
-            new BlankChainStrategy(pLogger, 2500),
-            // fb
-            new FunctionBodyStrategy(pLogger, 125), // 5  / 3
-            new FunctionBodyStrategy(pLogger, 25), // 15 / 3
-            new FunctionBodyStrategy(pLogger, 5), // 15 / 6
-            new FunctionBodyStrategy(pLogger, 1), // 30 / 8
-            // gd
-            new GlobalDeclarationStrategy(pLogger, 1200), // 2 / 0
-            // cs
-            new BlankChainStrategy(pLogger, 200),
-            //            new ChainStrategy(pLogger, 125), // 3 / 2
-            // new ChainStrategy(pLogger, 25),
-            new ChainStrategy(pLogger, 5), // 27 / 9
-            new ChainStrategy(pLogger, 1), // 20 / 9
-            // ae
-            new AssumeEdgeStrategy(pLogger, 125), // 8 / 0
-            new AssumeEdgeStrategy(pLogger, 25), // 0 / 0
-            new AssumeEdgeStrategy(pLogger, 5), // 0 / 0
-            new AssumeEdgeStrategy(pLogger, 1), // 0 / 0
-            // cs
+            new FunctionBodyStrategy(pLogger, 125), // 1
+            new FunctionBodyStrategy(pLogger, 25),
+            new FunctionBodyStrategy(pLogger, 5),
+            new FunctionBodyStrategy(pLogger, 1),
+            new BlankChainStrategy(pLogger, 200), // 5
+            new ChainStrategy(pLogger, 5),
+            new ChainStrategy(pLogger, 1),
+            new AssumeEdgeStrategy(pLogger, 1000),
             new BlankChainStrategy(pLogger, 100),
-            // new ChainStrategy(pLogger, 49), // 3  / 2
-            // new ChainStrategy(pLogger, 1), // 71 / 71 (2 rem.)
-            new SingleNodeStrategy(pLogger, 25), // 49), // 6 / 5
-            new SingleNodeStrategy(pLogger, 5), // 7), // 32 / 9
-            new SingleNodeStrategy(pLogger, 1), // 34 / 4 (24 rem.)
-            // ae
-            // new AssumeEdgeStrategy(pLogger, 9),
-            new AssumeEdgeStrategy(pLogger, 1), // 25 / 0
-            // cs
-            //            new ChainStrategy(pLogger, 9),
-            //            new ChainStrategy(pLogger, 1),
-            //            // sn
-            //            new SingleNodeStrategy(pLogger, 49),
-            //            new SingleNodeStrategy(pLogger, 7),
-            //            new SingleNodeStrategy(pLogger, 1),
-            //            // ae
-            //            new AssumeEdgeStrategy(pLogger, 3),
-            new BlankChainStrategy(pLogger, 100),
+            new SingleNodeStrategy(pLogger, 25), // 10
+            new SingleNodeStrategy(pLogger, 5),
             new SingleNodeStrategy(pLogger, 1),
             new AssumeEdgeStrategy(pLogger, 1),
-            new SingleNodeStrategy(pLogger, 1),
+            new BlankChainStrategy(pLogger, 100),
+            new SingleNodeStrategy(pLogger, 1), // 15
             new AssumeEdgeStrategy(pLogger, 1),
-            new GlobalDeclarationStrategy(pLogger, 1));
+            new SingleNodeStrategy(pLogger, 1),
+            new SpoilerFunctionStrategy(pLogger, 10),
+            new GlobalDeclarationStrategy(pLogger, 2400)); // 19
     strategies = strategiesList.iterator();
     currentStrategy = strategies.next();
     rounds = new ArrayDeque<>();
