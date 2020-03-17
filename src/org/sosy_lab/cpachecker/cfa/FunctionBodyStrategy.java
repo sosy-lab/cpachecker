@@ -19,58 +19,57 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import com.google.common.collect.ImmutableSet;
-import java.util.Set;
+import java.util.Collection;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.util.Pair;
 
-public class FunctionBodyStrategy extends AbstractCFAMutationStrategy {
+public class FunctionBodyStrategy
+    extends GenericCFAMutationStrategy<String, Pair<FunctionEntryNode, SortedSet<CFANode>>> {
 
-  private final Set<String> previousMutations = new TreeSet<>();
-  private SortedSet<CFANode> deletedFunctionNodes;
-  private FunctionEntryNode deletedFunctionEntry;
-
-  public FunctionBodyStrategy(LogManager pLogger) {
-    super(pLogger);
+  public FunctionBodyStrategy(LogManager pLogger, int pRate) {
+    super(pLogger, pRate);
   }
 
   @Override
-  public long countPossibleMutations(ParseResult pParseResult) {
-    return pParseResult.getFunctions().size();
+  protected Collection<String> getAllObjects(ParseResult pParseResult) {
+    return pParseResult.getFunctions().keySet(); // TODO order?
   }
 
   @Override
-  public boolean mutate(ParseResult pParseResult) {
-    ImmutableSet<FunctionEntryNode> functionEntries =
-        ImmutableSet.copyOf(pParseResult.getFunctions().values());
-    for (FunctionEntryNode entryNode : functionEntries) {
-      final String functionName = entryNode.getFunctionName();
-      if (previousMutations.contains(functionName)) {
-        continue;
-      }
-      previousMutations.add(functionName);
-
-      logger.log(Level.INFO, "Removing function", functionName);
-
-      deletedFunctionNodes = new TreeSet<>(pParseResult.getCFANodes().get(functionName));
-      deletedFunctionEntry = entryNode;
-      pParseResult.getCFANodes().removeAll(functionName);
-      pParseResult.getFunctions().remove(functionName);
-
-      return true;
-    }
-    return false;
+  protected Pair<FunctionEntryNode, SortedSet<CFANode>> getRollbackInfo(ParseResult pParseResult, String pObject) {
+    return Pair.of(
+        pParseResult.getFunctions().get(pObject),
+        new TreeSet<>(pParseResult.getCFANodes().get(pObject)));
   }
 
   @Override
-  public void rollback(ParseResult pParseResult) {
-    final String functionName = deletedFunctionEntry.getFunctionName();
-    logger.logf(Level.FINE, "returning %s", functionName);
-    pParseResult.getCFANodes().putAll(functionName, deletedFunctionNodes);
-    pParseResult.getFunctions().put(functionName, deletedFunctionEntry);
+  protected void removeObject(ParseResult pParseResult, String functionName) {
+    logger.logf(
+        Level.INFO,
+        "removing %s (entry is %s, %d nodes)",
+        functionName,
+        pParseResult.getFunctions().get(functionName),
+        pParseResult.getCFANodes().get(functionName).size());
+    pParseResult.getCFANodes().removeAll(functionName);
+    pParseResult.getFunctions().remove(functionName);
+  }
+
+  @Override
+  protected void returnObject(
+      ParseResult pParseResult, Pair<FunctionEntryNode, SortedSet<CFANode>> pRollbackInfo) {
+    String functionName = pRollbackInfo.getFirst().getFunctionName();
+    logger.logf(
+        Level.INFO,
+        "removing %s (entry is %s, %d nodes)",
+        functionName,
+        pRollbackInfo.getFirst(),
+        pRollbackInfo.getSecond().size());
+    pParseResult.getCFANodes().putAll(functionName, pRollbackInfo.getSecond());
+    pParseResult.getFunctions().put(functionName, pRollbackInfo.getFirst());
   }
 }

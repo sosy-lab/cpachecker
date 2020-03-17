@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -35,43 +34,19 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class SingleNodeStrategy extends AbstractCFAMutationStrategy {
+public class SingleNodeStrategy extends GenericCFAMutationStrategy<CFANode, CFANode> {
 
-  private final Set<CFANode> previousMutations = new TreeSet<>();
-  private List<CFANode> currentMutation = new ArrayList<>();
-  private Set<CFANode> rollbackedNodes = new TreeSet<>();
-  protected int nodesAtATime;
-
-  private Set<CFANode> deletedNodes = new HashSet<>();
-
-  public SingleNodeStrategy(LogManager pLogger) {
-    this(pLogger, 0);
-  }
-
-  public SingleNodeStrategy(LogManager pLogger, int pNodesAtATime) {
-    super(pLogger);
-    nodesAtATime = pNodesAtATime;
-  }
-
-  @Override
-  public long countPossibleMutations(final ParseResult parseResult) {
-    long possibleMutations = 0;
-
-    for (CFANode node : parseResult.getCFANodes().values()) {
-      if (canDeleteNode(node)) {
-        possibleMutations += 1;
-      }
-    }
-
-    if (nodesAtATime == 0) {
-      nodesAtATime = (int) Math.round(Math.sqrt(nodesAtATime));
-    }
-
-    return possibleMutations;
+  public SingleNodeStrategy(LogManager pLogger, int pRate) {
+    super(pLogger, pRate);
   }
 
   // can delete node with its only leaving edge and reconnect entering edge instead
-  protected boolean canDeleteNode(CFANode pNode) {
+  @Override
+  protected boolean canRemove(ParseResult pParseResult, CFANode pNode) {
+    if (!super.canRemove(pParseResult, pNode)) {
+      return false;
+    }
+
     if (pNode instanceof FunctionEntryNode
         || pNode instanceof FunctionExitNode
         || pNode instanceof CFATerminationNode) {
@@ -91,13 +66,25 @@ public class SingleNodeStrategy extends AbstractCFAMutationStrategy {
     return true;
   }
 
-  public Collection<CFANode> chooseNodesToRemove(ParseResult parseResult) {
+  @Override
+  protected Collection<CFANode> getAllObjects(ParseResult parseResult) {
+    List<CFANode> answer = new ArrayList<>();
+    for (CFANode node : parseResult.getCFANodes().values()) {
+      if (canRemove(parseResult, node)) {
+        answer.add(node);
+      }
+    }
+    return answer;
+  }
+
+  @Override
+  protected Collection<CFANode> getObjects(ParseResult parseResult, int pCount) {
     List<CFANode> result = new ArrayList<>();
     Set<CFANode> succs = new HashSet<>();
 
     int nodesFound = 0;
     for (CFANode node : parseResult.getCFANodes().values()) {
-      if (previousMutations.contains(node) || !canDeleteNode(node) || succs.contains(node)) {
+      if (!canRemove(parseResult, node) || succs.contains(node)) {
         continue;
       }
 
@@ -106,57 +93,31 @@ public class SingleNodeStrategy extends AbstractCFAMutationStrategy {
         continue;
       }
       succs.add(successor);
+      // succs.add(node);
 
-      logger.logf(
-          Level.FINER,
-          "Choosing (p: %s) %s:%s (s: %s)",
-          null,
-          node.getFunctionName(),
-          node,
-          successor);
+      logger.logf(Level.FINER, "Choosing %s:%s (s: %s)", node.getFunctionName(), node, successor);
       result.add(node);
 
-      if (++nodesFound >= nodesAtATime) {
+      if (++nodesFound >= pCount) {
         break;
       }
     }
 
-    previousMutations.addAll(result);
-    currentMutation = result;
     return ImmutableList.copyOf(result);
-  }
-
-  @Override
-  public boolean mutate(ParseResult parseResult) {
-    deletedNodes.clear();
-
-    Collection<CFANode> chosenNodes = chooseNodesToRemove(parseResult);
-    if (chosenNodes.isEmpty()) {
-      return false;
-    }
-
-    for (CFANode node : chosenNodes) {
-      removeLeavingEdgeAndConnectEnteringEdgeAround(parseResult, node);
-    }
-
-    return true;
-  }
-
-  @Override
-  public void rollback(ParseResult parseResult) {
-    rollbackedNodes.addAll(currentMutation);
-    for (CFANode node : deletedNodes) {
-      returnNodeWithLeavingEdge(parseResult, node);
-    }
   }
 
   // remove the node with its only leaving and entering edges
   // and insert new edge similar to entering edge.
-  private void removeLeavingEdgeAndConnectEnteringEdgeAround(
-      ParseResult parseResult, CFANode pNode) {
+  @Override
+  protected void removeObject(ParseResult parseResult, CFANode pNode) {
     assert pNode.getNumLeavingEdges() == 1;
     CFAEdge leavingEdge = pNode.getLeavingEdge(0);
     CFANode successor = leavingEdge.getSuccessor();
+    logger.logf(Level.INFO, "removing node %s with edge %s", pNode, leavingEdge);
+    logger.logf(Level.FINEST, "entering edges: %s", CFAUtils.allEnteringEdges(pNode));
+    logger.logf(
+        Level.FINEST, "successor's entering edges: %s", CFAUtils.allEnteringEdges(successor));
+
     disconnectEdgeFromNode(leavingEdge, successor);
 
     for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(pNode)) {
@@ -168,17 +129,20 @@ public class SingleNodeStrategy extends AbstractCFAMutationStrategy {
     }
 
     removeNodeFromParseResult(parseResult, pNode);
-
-    deletedNodes.add(pNode);
-    logger.logf(Level.INFO, "removing node %s with edge %s", pNode, leavingEdge);
   }
 
   // undo removing a node with leaving edge:
   // insert node, delete inserted edge, reconnect edges
-  private void returnNodeWithLeavingEdge(ParseResult parseResult, CFANode pNode) {
+  @Override
+  protected void returnObject(ParseResult parseResult, CFANode pNode) {
     assert pNode.getNumLeavingEdges() == 1;
     CFAEdge leavingEdge = pNode.getLeavingEdge(0);
     CFANode successor = leavingEdge.getSuccessor();
+    logger.logf(Level.FINE, "returning node %s with edge %s", pNode, leavingEdge);
+
+    logger.logf(Level.FINEST, "entering edges: %s", CFAUtils.allEnteringEdges(pNode));
+    logger.logf(
+        Level.FINEST, "successor's entering edges: %s", CFAUtils.allEnteringEdges(successor));
 
     for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(pNode)) {
       CFANode predecessor = enteringEdge.getPredecessor();
@@ -191,6 +155,10 @@ public class SingleNodeStrategy extends AbstractCFAMutationStrategy {
     connectEdgeToNode(leavingEdge, successor);
     addNodeToParseResult(parseResult, pNode);
 
-    logger.logf(Level.FINE, "returning node %s with edge %s", pNode, leavingEdge);
+  }
+
+  @Override
+  protected CFANode getRollbackInfo(ParseResult pParseResult, CFANode pNode) {
+    return pNode;
   }
 }

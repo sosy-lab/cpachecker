@@ -206,6 +206,7 @@ public class CFAMutator extends CFACreator {
     saveBeforePostproccessings();
   }
 
+  // TODO reset loopstarts?
   private void clearAfterPostprocessings() {
     ((CFAMutatorStatistics) stats).clearingTimer.start();
     final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();

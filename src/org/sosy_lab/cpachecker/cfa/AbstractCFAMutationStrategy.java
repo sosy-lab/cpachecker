@@ -40,19 +40,19 @@ public abstract class AbstractCFAMutationStrategy {
     logger = pLogger;
   }
 
-  public abstract long countPossibleMutations(final ParseResult parseResult);
+  public abstract int countPossibleMutations(final ParseResult parseResult);
 
   public abstract boolean mutate(ParseResult parseResult);
 
   public abstract void rollback(ParseResult parseResult);
 
   protected void addNodeToParseResult(ParseResult parseResult, CFANode pNode) {
-    logger.logf(Level.FINEST, "adding node %s", pNode);
+    logger.logf(Level.FINER, "adding node %s", pNode);
     assert parseResult.getCFANodes().put(pNode.getFunctionName(), pNode);
   }
 
   protected void connectEdge(CFAEdge pEdge) {
-    logger.logf(Level.FINEST, "adding edge %s", pEdge);
+    logger.logf(Level.FINER, "adding edge %s", pEdge);
     CFANode pred = pEdge.getPredecessor();
     CFANode succ = pEdge.getSuccessor();
     assert !pred.hasEdgeTo(succ)
@@ -69,7 +69,7 @@ public abstract class AbstractCFAMutationStrategy {
   }
 
   protected void connectEdgeToNode(CFAEdge pEdge, CFANode pNode) {
-    logger.logf(Level.FINEST, "adding edge %s to node %s", pEdge, pNode);
+    logger.logf(Level.FINER, "adding edge %s to node %s", pEdge, pNode);
     if (pEdge.getPredecessor() == pNode) {
       assert !pNode.hasEdgeTo(pEdge.getSuccessor());
       pNode.addLeavingEdge(pEdge);
@@ -82,17 +82,17 @@ public abstract class AbstractCFAMutationStrategy {
   }
 
   protected void removeNodeFromParseResult(ParseResult parseResult, CFANode pNode) {
-    logger.logf(Level.FINEST, "removing node %s", pNode);
+    logger.logf(Level.FINER, "removing node %s", pNode);
     assert parseResult.getCFANodes().remove(pNode.getFunctionName(), pNode);
   }
 
   protected void disconnectEdge(CFAEdge pEdge) {
-    logger.logf(Level.FINEST, "removing edge %s", pEdge);
+    logger.logf(Level.FINER, "removing edge %s", pEdge);
     CFACreationUtils.removeEdgeFromNodes(pEdge);
   }
 
   protected void disconnectEdgeFromNode(CFAEdge pEdge, CFANode pNode) {
-    logger.logf(Level.FINEST, "removing edge %s from node %s", pEdge, pNode);
+    logger.logf(Level.FINER, "removing edge %s from node %s", pEdge, pNode);
     if (pEdge.getPredecessor() == pNode) {
       pNode.removeLeavingEdge(pEdge);
     } else if (pEdge.getSuccessor() == pNode) {

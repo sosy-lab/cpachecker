@@ -19,42 +19,23 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class FunctionCallStrategy extends SingleNodeStrategy {
+public class BlankChainStrategy extends ChainStrategy {
 
-  public FunctionCallStrategy(LogManager pLogger, int step) {
-    super(pLogger, step);
+  public BlankChainStrategy(LogManager pLogger, int pRate) {
+    super(pLogger, pRate);
   }
 
   @Override
-  protected boolean canRemove(ParseResult pr, CFANode pNode) {
-    if (!super.canRemove(pr, pNode)) {
+  protected boolean canDeleteNode(CFANode pNode) {
+    if (!super.canDeleteNode(pNode)) {
       return false;
     }
-
     CFAEdge leavingEdge = pNode.getLeavingEdge(0);
-    if (!(leavingEdge instanceof AStatementEdge)) {
-      return false;
-    }
-    return (((AStatementEdge) leavingEdge).getStatement() instanceof AFunctionCall);
-  }
-
-  @Override
-  protected Collection<CFANode> getAllObjects(ParseResult pParseResult) {
-    List<CFANode> answer = new ArrayList<>();
-    for (CFANode node : super.getAllObjects(pParseResult)) {
-      if (canRemove(pParseResult, node)) {
-        answer.add(node);
-      }
-    }
-    return answer;
+    return leavingEdge.getEdgeType() == CFAEdgeType.BlankEdge;
   }
 }

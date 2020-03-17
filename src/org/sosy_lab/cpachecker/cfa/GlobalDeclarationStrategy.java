@@ -19,27 +19,26 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.Stack;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class GlobalDeclarationStrategy extends AbstractCFAMutationStrategy {
-  private final Set<Pair<ADeclaration, String>> answered = new HashSet<>();
-  private final Stack<Pair<Pair<ADeclaration, String>, Integer>> lastAnswer = new Stack<>();
-  private int atATime;
+public class GlobalDeclarationStrategy
+    extends GenericCFAMutationStrategy<Pair<ADeclaration, String>, Pair<Integer, Pair<ADeclaration, String>>> {
 
   public GlobalDeclarationStrategy(LogManager pLogger, int pAtATime) {
-    super(pLogger);
-    atATime = pAtATime;
+    super(pLogger, pAtATime);
   }
 
-  private boolean canDeleteDeclarationPair(ParseResult pParseResult, Pair<ADeclaration, String> p) {
+  @Override
+  protected boolean canRemove(ParseResult pParseResult, Pair<ADeclaration, String> p) {
+    if (!super.canRemove(pParseResult, p)) {
+      return false;
+    }
+
     ADeclaration decl = p.getFirst();
     if (decl instanceof AFunctionDeclaration
         && pParseResult.getFunctions().containsKey(decl.getName())) {
@@ -49,67 +48,33 @@ public class GlobalDeclarationStrategy extends AbstractCFAMutationStrategy {
   }
 
   @Override
-  public long countPossibleMutations(ParseResult pParseResult) {
-    int count = 0;
-    for (Pair<ADeclaration, String> p : pParseResult.getGlobalDeclarations()) {
-      if (canDeleteDeclarationPair(pParseResult, p)) {
-        count++;
-      }
-    }
-    if (atATime == 0) {
-      atATime = (int) Math.round(Math.sqrt(count));
-    }
-    return count;
+  protected Collection<Pair<ADeclaration, String>> getAllObjects(ParseResult pParseResult) {
+    return pParseResult.getGlobalDeclarations(); // TODO
   }
 
   @Override
-  public boolean mutate(ParseResult pParseResult) {
-    lastAnswer.clear();
+  protected Pair<Integer, Pair<ADeclaration, String>> getRollbackInfo(
+      ParseResult pParseResult, Pair<ADeclaration, String> pObject) {
+    return Pair.of(pParseResult.getGlobalDeclarations().indexOf(pObject), pObject);
+  }
 
+  @Override
+  protected void removeObject(ParseResult pParseResult, Pair<ADeclaration, String> pObject) {
     List<Pair<ADeclaration, String>> prgd = pParseResult.getGlobalDeclarations();
-
-    if (prgd.isEmpty()) {
-      return false;
-    }
-
-    int foundToDelete = 0;
-    for (int i = prgd.size() - 1; i >= 0; i--) {
-      Pair<ADeclaration, String> p = prgd.get(i);
-      if (answered.contains(p) || !canDeleteDeclarationPair(pParseResult, p)) {
-        continue;
-      }
-
-      prgd.remove(p);
-      lastAnswer.push(Pair.of(p, i));
-      answered.add(p);
-      logger.logf(
-          Level.INFO,
-          "removed from global declarations at index %d: %s %s, %s",
-          i,
-          p.getFirst().getType(),
-          p.getFirst().getOrigName(),
-          p.getFirst().getClass().getSimpleName());
-
-      if (++foundToDelete >= atATime) {
-        break;
-      }
-    }
-
+    prgd.remove(pObject);
     pParseResult =
         new ParseResult(
             pParseResult.getFunctions(),
             pParseResult.getCFANodes(),
             prgd,
             pParseResult.getFileNames());
-    return foundToDelete > 0;
   }
 
   @Override
-  public void rollback(ParseResult pParseResult) {
+  protected void returnObject(
+      ParseResult pParseResult, Pair<Integer, Pair<ADeclaration, String>> pRollbackInfo) {
     List<Pair<ADeclaration, String>> prgd = pParseResult.getGlobalDeclarations();
-    for (Pair<Pair<ADeclaration, String>, Integer> pp : lastAnswer) {
-      prgd.add(pp.getSecond(), pp.getFirst());
-    }
+    prgd.add(pRollbackInfo.getFirst(), pRollbackInfo.getSecond());
     pParseResult =
         new ParseResult(
             pParseResult.getFunctions(),

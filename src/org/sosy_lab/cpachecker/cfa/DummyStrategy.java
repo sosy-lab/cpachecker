@@ -30,7 +30,7 @@ public class DummyStrategy extends AbstractCFAMutationStrategy {
   }
 
   @Override
-  public long countPossibleMutations(ParseResult pParseResult) {
+  public int countPossibleMutations(ParseResult pParseResult) {
     return steps;
   }
 

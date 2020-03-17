@@ -25,8 +25,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -37,71 +35,70 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
-public class ChainStrategy extends AbstractCFAMutationStrategy {
+class Chain extends ArrayDeque<CFANode> {
 
-  private class Chain extends ArrayDeque<CFANode> {
+  private static final long serialVersionUID = -1849261707800370541L;
 
-    private static final long serialVersionUID = -1849261707800370541L;
-
-    public CFAEdge getEnteringEdge() {
-      CFANode firstNode = peekFirst();
-      if (firstNode == null) {
-        return null;
-      }
-      assert firstNode.getNumEnteringEdges() == 1;
-      return firstNode.getEnteringEdge(0);
+  public CFAEdge getEnteringEdge() {
+    CFANode firstNode = peekFirst();
+    if (firstNode == null) {
+      return null;
     }
-
-    public CFANode getPredecessor() {
-      CFAEdge e = getEnteringEdge();
-      if (e == null) {
-        return null;
-      }
-      return e.getPredecessor();
-    }
-
-    public CFAEdge getLeavingEdge() {
-      CFANode lastNode = peekLast();
-      if (lastNode == null) {
-        return null;
-      }
-      assert lastNode.getNumLeavingEdges() == 1;
-      return lastNode.getLeavingEdge(0);
-    }
-
-    public CFANode getSuccessor() {
-      CFAEdge e = getLeavingEdge();
-      if (e == null) {
-        return null;
-      }
-      return e.getSuccessor();
-    }
-
+    assert firstNode.getNumEnteringEdges() == 1;
+    return firstNode.getEnteringEdge(0);
   }
 
-  private final Set<CFANode> answered = new TreeSet<>();
-  private final Set<CFANode> lastAnswer = new TreeSet<>();
-  private Set<CFANode> rollbackedNodes = new TreeSet<>();
-
-  private Set<Chain> deletedChains = new HashSet<>();
-  private int chainsAtATime;
-
-  public ChainStrategy(LogManager pLogger) {
-    super(pLogger);
-    chainsAtATime = 1;
+  public CFANode getPredecessor() {
+    CFAEdge e = getEnteringEdge();
+    if (e == null) {
+      return null;
+    }
+    return e.getPredecessor();
   }
 
-  public ChainStrategy(LogManager pLogger, int pChainsAtATime) {
-    super(pLogger);
-    chainsAtATime = pChainsAtATime;
+  public CFAEdge getLeavingEdge() {
+    CFANode lastNode = peekLast();
+    if (lastNode == null) {
+      return null;
+    }
+    assert lastNode.getNumLeavingEdges() == 1;
+    return lastNode.getLeavingEdge(0);
   }
 
-  @Override
-  public long countPossibleMutations(final ParseResult parseResult) {
+  public CFANode getSuccessor() {
+    CFAEdge e = getLeavingEdge();
+    if (e == null) {
+      return null;
+    }
+    return e.getSuccessor();
+  }
 
-    int result = chooseChains(parseResult, true).size();
+  public String getDescription() {
+    String desc;
+    StringBuilder sb = new StringBuilder();
+    for (CFANode n : this) {
+      desc = n.getEnteringEdge(0).getDescription();
+      if (!desc.isBlank()) {
+        sb.append("\n").append(desc);
+      }
+    }
+    desc = getLeavingEdge().getDescription();
+    if (!desc.isBlank()) {
+      sb.append("\n").append(desc);
+    }
+    if (sb.length() > 0) {
+      sb.deleteCharAt(0);
+    }
+    return sb.toString();
+  }
+}
 
-    return result;
+public class ChainStrategy extends GenericCFAMutationStrategy<Chain, Chain> {
+
+  private Set<CFANode> previousChainsNodes = new HashSet<>();
+
+  public ChainStrategy(LogManager pLogger, int pRate) {
+    super(pLogger, pRate);
   }
 
   // can delete node with its only leaving edge and reconnect entering edge instead
@@ -121,24 +118,39 @@ public class ChainStrategy extends AbstractCFAMutationStrategy {
     CFANode successor = pNode.getLeavingEdge(0).getSuccessor();
     CFANode predecessor = pNode.getEnteringEdge(0).getPredecessor();
     if (predecessor.hasEdgeTo(successor)) {
-      return false;
-      // TODO actually we could delete chain but one edge and so get double edge....
-      // redo?..
+      return false; // and chains from with predecessor and successor are checked in getObjects
     }
 
     return true;
   }
 
-  private Collection<Chain> chooseChains(ParseResult parseResult, boolean counting) {
+  @Override
+  protected Collection<Chain> getAllObjects(ParseResult parseResult) {
+    List<Chain> chosenChains = new ArrayList<>();
+    Set<CFANode> seenNodes = new HashSet<>();
+
+    for (CFANode node : parseResult.getCFANodes().values()) {
+      if (previousChainsNodes.contains(node) || !canDeleteNode(node) || seenNodes.contains(node)) {
+        continue;
+      }
+      Chain chain = getChainWith(node);
+      seenNodes.addAll(chain);
+      chosenChains.add(chain);
+    }
+    return chosenChains;
+  }
+
+  @Override
+  protected Collection<Chain> getObjects(ParseResult parseResult, int count) {
     int found = 0;
     List<Chain> chosenChains = new ArrayList<>();
     Set<CFANode> seenNodes = new HashSet<>();
 
     for (CFANode node : parseResult.getCFANodes().values()) {
-      if (answered.contains(node) || !canDeleteNode(node) || seenNodes.contains(node)) {
+      if (previousChainsNodes.contains(node) || !canDeleteNode(node) || seenNodes.contains(node)) {
         continue;
       }
-      Chain chain = pollChainFrom(parseResult, node);
+      Chain chain = getChainWith(node);
       seenNodes.addAll(chain);
 
       // get chain one node less
@@ -152,6 +164,7 @@ public class ChainStrategy extends AbstractCFAMutationStrategy {
             if (cc.getPredecessor() == chain.getPredecessor()
                 && cc.getSuccessor() == chain.getSuccessor()) {
               chain.pollFirst();
+              break; // next node has only one leaving edge, so no other chain
             }
           }
         }
@@ -162,38 +175,12 @@ public class ChainStrategy extends AbstractCFAMutationStrategy {
       }
 
       chosenChains.add(chain);
-      if (!counting) {
-        answered.addAll(chain);
-        if (found++ > chainsAtATime) {
-          break;
-        }
+      previousChainsNodes.addAll(chain);
+      if (found++ > count) {
+        break;
       }
     }
     return chosenChains;
-  }
-
-  @Override
-  public boolean mutate(ParseResult parseResult) {
-    deletedChains.clear();
-    Collection<Chain> chosenChains = chooseChains(parseResult, false);
-    if (chosenChains.isEmpty()) {
-      return false;
-    }
-
-    for (Chain chain : chosenChains) {
-      removeChain(parseResult, chain);
-      deletedChains.add(chain);
-    }
-
-    return !deletedChains.isEmpty();
-  }
-
-  @Override
-  public void rollback(ParseResult parseResult) {
-    rollbackedNodes.addAll(lastAnswer);
-    for (final Chain chain : deletedChains) {
-      returnChain(parseResult, chain);
-    }
   }
 
   private class NodePollingChainVisitor extends CFATraversal.DefaultCFAVisitor {
@@ -229,10 +216,7 @@ public class ChainStrategy extends AbstractCFAMutationStrategy {
     }
   }
 
-  private Chain pollChainFrom(ParseResult pr, CFANode pNode) {
-    SortedSet<CFANode> pNodes = pr.getCFANodes().get(pNode.getFunctionName());
-    assert pNodes.contains(pNode);
-
+  private Chain getChainWith(CFANode pNode) {
     NodePollingChainVisitor oneWayChainVisitor = new NodePollingChainVisitor(false);
     CFATraversal.dfs().backwards().traverse(pNode, oneWayChainVisitor);
     oneWayChainVisitor.changeDirection();
@@ -240,8 +224,8 @@ public class ChainStrategy extends AbstractCFAMutationStrategy {
     return oneWayChainVisitor.getChain();
   }
 
-  private void removeChain(ParseResult parseResult, Chain pChain) {
-
+  @Override
+  protected void removeObject(ParseResult parseResult, Chain pChain) {
     CFAEdge leavingEdge = pChain.getLeavingEdge();
     CFANode successor = leavingEdge.getSuccessor();
     disconnectEdgeFromNode(leavingEdge, successor);
@@ -255,14 +239,12 @@ public class ChainStrategy extends AbstractCFAMutationStrategy {
     }
 
     CFAEdge newEdge = dupEdge(enteringEdge, successor);
-    connectEdge(newEdge);
-
-    deletedChains.add(pChain);
     logger.logf(Level.INFO, "replacing chain %s with edge %s", pChain, newEdge);
+    connectEdge(newEdge);
   }
 
-  private void returnChain(ParseResult parseResult, final Chain pChain) {
-
+  @Override
+  protected void returnObject(ParseResult parseResult, Chain pChain) {
     CFAEdge leavingEdge = pChain.getLeavingEdge();
     CFANode successor = leavingEdge.getSuccessor();
 
@@ -280,5 +262,10 @@ public class ChainStrategy extends AbstractCFAMutationStrategy {
     }
 
     logger.logf(Level.FINE, "returning chain %s with edge %s", pChain, leavingEdge);
+  }
+
+  @Override
+  protected Chain getRollbackInfo(ParseResult pParseResult, Chain pChain) {
+    return pChain;
   }
 }

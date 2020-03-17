@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.eclipse.jdt.launching.localJavaApplication">
+    <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+        <listEntry value="/cpachecker/src/org/sosy_lab/cpachecker/cmdline/CPAMain.java"/>
+    </listAttribute>
+    <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+        <listEntry value="1"/>
+    </listAttribute>
+    <booleanAttribute key="org.eclipse.jdt.launching.ATTR_USE_CLASSPATH_ONLY_JAR" value="false"/>
+    <stringAttribute key="org.eclipse.jdt.launching.JRE_CONTAINER" value="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JRE-1.1"/>
+    <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
+    <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-setprop statistics.memory=true -ldv-bam -timelimit 180s -stats -spec ../ldv-benchmarks/PropertyERROR.prp doc/examples/linux-3.14_complex_emg_linux-usb-dev_drivers-media-usb-uvc-uvcvideo.cil.i  -setprop analysis.runMutations=true -setprop analysis.runMutationsCount=250 -setprop log.consoleLevel=INFO -setprop output.disable=false -setprop analysis.summaryEdges=false -setprop cpa.predicate.useConstraintOptimization=true"/>
+    <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="cpachecker"/>
+    <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea&#10;-Xmx3000m"/>
+</launchConfiguration>

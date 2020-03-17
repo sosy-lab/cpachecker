@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
+import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -644,6 +645,15 @@ public class CPAchecker {
         logger.logUserException(Level.SEVERE, e, null);
         currentException = e;
 
+      } catch (VerifyException e) {
+        for (final StackTraceElement ste : e.getStackTrace()) {
+          if (ste.getClassName().contains("CFACreator")) {
+            throw e;
+          }
+        }
+        logger.logUserException(Level.SEVERE, e, null);
+        currentException = e;
+
       } finally {
         CPAs.closeIfPossible(algorithm, logger);
         shutdownNotifier.unregister(interruptThreadOnShutdown);
@@ -682,6 +692,15 @@ public class CPAchecker {
       }
     }
     logger.log(Level.INFO, "Mutations ended.");
+    logger.log(Level.INFO, "Verification result:");
+    if (currentResult != null) {
+      logger.log(Level.INFO, currentResult.getResultString());
+    } else {
+      logger.log(Level.INFO, "null result");
+    }
+    if (originalException != null) {
+      logger.logUserException(Level.INFO, originalException, null);
+    }
     return currentResult;
   }
 

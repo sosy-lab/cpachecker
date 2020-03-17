@@ -21,6 +21,8 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 
@@ -29,27 +31,81 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
   private final ImmutableList<AbstractCFAMutationStrategy> strategiesList;
   private final UnmodifiableIterator<AbstractCFAMutationStrategy> strategies;
   private AbstractCFAMutationStrategy currentStrategy;
+  private int round = 0;
+  private final Deque<Integer> rounds;
+  private final Deque<Integer> rollbacks;
 
   public CompositeStrategy(LogManager pLogger) {
     super(pLogger);
     strategiesList =
         ImmutableList.of(
-            new FunctionBodyStrategy(pLogger),
-            new GlobalDeclarationStrategy(pLogger, 300),
-            new ChainStrategy(pLogger, 10),
-            new ChainStrategy(pLogger, 1),
+            new BlankChainStrategy(pLogger, 2500),
+            // fb
+            new FunctionBodyStrategy(pLogger, 125), // 5  / 3
+            new FunctionBodyStrategy(pLogger, 25), // 15 / 3
+            new FunctionBodyStrategy(pLogger, 5), // 15 / 6
+            new FunctionBodyStrategy(pLogger, 1), // 30 / 8
+            // gd
+            new GlobalDeclarationStrategy(pLogger, 1200), // 2 / 0
+            // cs
+            new BlankChainStrategy(pLogger, 200),
+            //            new ChainStrategy(pLogger, 125), // 3 / 2
+            // new ChainStrategy(pLogger, 25),
+            new ChainStrategy(pLogger, 5), // 27 / 9
+            new ChainStrategy(pLogger, 1), // 20 / 9
+            // ae
+            new AssumeEdgeStrategy(pLogger, 125), // 8 / 0
+            new AssumeEdgeStrategy(pLogger, 25), // 0 / 0
+            new AssumeEdgeStrategy(pLogger, 5), // 0 / 0
+            new AssumeEdgeStrategy(pLogger, 1), // 0 / 0
+            // cs
+            new BlankChainStrategy(pLogger, 100),
+            // new ChainStrategy(pLogger, 49), // 3  / 2
+            // new ChainStrategy(pLogger, 1), // 71 / 71 (2 rem.)
+            new SingleNodeStrategy(pLogger, 25), // 49), // 6 / 5
+            new SingleNodeStrategy(pLogger, 5), // 7), // 32 / 9
+            new SingleNodeStrategy(pLogger, 1), // 34 / 4 (24 rem.)
+            // ae
+            // new AssumeEdgeStrategy(pLogger, 9),
+            new AssumeEdgeStrategy(pLogger, 1), // 25 / 0
+            // cs
+            //            new ChainStrategy(pLogger, 9),
+            //            new ChainStrategy(pLogger, 1),
+            //            // sn
+            //            new SingleNodeStrategy(pLogger, 49),
+            //            new SingleNodeStrategy(pLogger, 7),
+            //            new SingleNodeStrategy(pLogger, 1),
+            //            // ae
+            //            new AssumeEdgeStrategy(pLogger, 3),
+            new BlankChainStrategy(pLogger, 100),
             new SingleNodeStrategy(pLogger, 1),
-            new AssumeEdgeStrategy(pLogger),
+            new AssumeEdgeStrategy(pLogger, 1),
+            new SingleNodeStrategy(pLogger, 1),
+            new AssumeEdgeStrategy(pLogger, 1),
             new GlobalDeclarationStrategy(pLogger, 1));
     strategies = strategiesList.iterator();
     currentStrategy = strategies.next();
+    rounds = new ArrayDeque<>();
+    rollbacks = new ArrayDeque<>();
   }
 
   @Override
   public boolean mutate(ParseResult parseResult) {
-    logger.logf(Level.FINE, "Mutation strategy %s", currentStrategy);
+    logger.logf(Level.INFO, "Round %d. Mutation strategy %s", ++round, currentStrategy);
+    System.out.println(rounds);
+    System.out.println(rollbacks);
+    rounds.addLast(rounds.pollLast() + 1);
     boolean answer = currentStrategy.mutate(parseResult);
     while (!answer) {
+      logger.logf(
+          Level.INFO,
+          "Round %d. Mutation strategy %s finished in %d rounds with %d rollbacks.",
+          round,
+          currentStrategy,
+          rounds.peekLast(),
+          rollbacks.peekLast());
+      rounds.addLast(0);
+      rollbacks.addLast(0);
       if (!strategies.hasNext()) {
         return answer;
       }
@@ -62,17 +118,28 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
 
   @Override
   public void rollback(ParseResult parseResult) {
+    rollbacks.addLast(rollbacks.pollLast() + 1);
     currentStrategy.rollback(parseResult);
   }
 
   @Override
-  public long countPossibleMutations(ParseResult parseResult) {
-    long sum = 0;
+  public int countPossibleMutations(ParseResult parseResult) {
+    int sum = 0;
     for (AbstractCFAMutationStrategy strategy : strategiesList) {
-      long term = strategy.countPossibleMutations(parseResult);
+      int term = strategy.countPossibleMutations(parseResult);
       logger.logf(Level.INFO, "Strategy %s: %d possible mutations", strategy, term);
       sum += term;
+
+      if (!rounds.isEmpty()) {
+        logger.logf(
+            Level.INFO,
+            "in %d rounds with %d rollbacks",
+            rounds.pollFirst(),
+            rollbacks.pollFirst());
+      }
     }
+    rounds.add(0);
+    rollbacks.add(0);
     return sum;
   }
 }

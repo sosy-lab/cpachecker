@@ -21,117 +21,137 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
+public class AssumeEdgeStrategy
+    extends GenericCFAMutationStrategy<Pair<AssumeEdge, AssumeEdge>, Pair<AssumeEdge, AssumeEdge>> {
 
-public class AssumeEdgeStrategy extends AbstractCFAMutationStrategy {
-
-  private final List<Pair<AssumeEdge, AssumeEdge>> deleted = new ArrayList<>();
-
-  public AssumeEdgeStrategy(LogManager pLogger) {
-    super(pLogger);
-  }
-
-  private boolean checkNode(CFANode pNode) {
-    if (pNode.getNumLeavingEdges() == 2) {
-      CFAEdge left = pNode.getLeavingEdge(0);
-      CFAEdge right = pNode.getLeavingEdge(1);
-      assert left instanceof AssumeEdge && right instanceof AssumeEdge;
-      return true;
-    } else {
-      return false;
-    }
+  public AssumeEdgeStrategy(LogManager pLogger, int p) {
+    super(pLogger, p);
   }
 
   @Override
-  public long countPossibleMutations(ParseResult pParseResult) {
-    int count = 0;
-    for (CFANode node : pParseResult.getCFANodes().values()) {
-      if (checkNode(node)) {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  private Collection<Pair<AssumeEdge, AssumeEdge>> chooseEdgesToDelete(ParseResult pParseResult) {
+  protected Collection<Pair<AssumeEdge, AssumeEdge>> getAllObjects(ParseResult pParseResult) {
     List<Pair<AssumeEdge, AssumeEdge>> answer = new ArrayList<>();
 
-    int found = 0;
     for (CFANode node : pParseResult.getCFANodes().values()) {
-      if (!checkNode(node)) {
+      if (node.getNumLeavingEdges() != 2) {
         continue;
       }
 
-      AssumeEdge edge0 = (AssumeEdge) node.getLeavingEdge(0);
-      AssumeEdge edge1 = (AssumeEdge) node.getLeavingEdge(1);
+      AssumeEdge e0 = (AssumeEdge) node.getLeavingEdge(0);
+      AssumeEdge e1 = (AssumeEdge) node.getLeavingEdge(1);
 
-      if (edge0.getSuccessor().getNumEnteringEdges() > 1) {
-        answer.add(Pair.of(edge0, edge1));
-        found++;
-      } else if (edge1.getSuccessor().getNumEnteringEdges() > 1) {
-        answer.add(Pair.of(edge1, edge0));
-        found++;
+      // loops can be disconnected from cfa,
+      // CFANode.isLoopStart is not enough for some reason
+      CFANode s = e0.getSuccessor();
+      if (isBackwardEdge(e0) && s.getNumEnteringEdges() > 1 || countForwardEnteringEdges(s) > 1) {
+        answer.add(Pair.of(e0, e1));
       }
-
-      if (found > 0) {
-        break;
+      s = e1.getSuccessor();
+      if (isBackwardEdge(e1) && s.getNumEnteringEdges() > 1 || countForwardEnteringEdges(s) > 1) {
+        answer.add(Pair.of(e1, e0));
       }
     }
 
     return answer;
   }
 
-  @Override
-  public boolean mutate(ParseResult pParseResult) {
-    deleted.clear();
-    Collection<Pair<AssumeEdge, AssumeEdge>> chosenEdges = chooseEdgesToDelete(pParseResult);
-    if (chosenEdges.isEmpty()) {
-      return false;
-    }
+  private boolean isBackwardEdge(CFAEdge pEdge) {
+    return pEdge.getPredecessor().getReversePostorderId()
+        <= pEdge.getSuccessor().getReversePostorderId();
+  }
 
-    for (Pair<AssumeEdge, AssumeEdge> pair : chosenEdges) {
-      logger.logf(
-          Level.INFO,
-          "removing %s and replacing %s with blank edge",
-          pair.getFirst(),
-          pair.getSecond());
-      disconnectEdge(pair.getFirst());
-      blankEdge(pair.getSecond());
-      deleted.add(pair);
+  private int countForwardEnteringEdges(CFANode pNode) {
+    int count = 0;
+    for (CFANode p : CFAUtils.predecessorsOf(pNode)) {
+      if (p.getReversePostorderId() > pNode.getReversePostorderId()) {
+        count++;
+      }
     }
-
-    return true;
+    return count;
   }
 
   @Override
-  public void rollback(ParseResult pParseResult) {
-    for (Pair<AssumeEdge, AssumeEdge> pair : deleted) {
+  protected Collection<Pair<AssumeEdge, AssumeEdge>> getObjects(
+      ParseResult pParseResult, int count) {
+    List<Pair<AssumeEdge, AssumeEdge>> result = new ArrayList<>();
+    Set<CFANode> preds = new HashSet<>();
+    Set<CFANode> succs0 = new HashSet<>();
+
+    int found = 0;
+    for (Pair<AssumeEdge, AssumeEdge> pair : getAllObjects(pParseResult)) {
+      if (!canRemove(pParseResult, pair)) {
+        continue;
+      }
+
+      // can't mutate pair and swapped pair simultaneously
       CFANode predecessor = pair.getFirst().getPredecessor();
-      assert predecessor.getNumLeavingEdges() == 1;
-      BlankEdge insertedEdge = (BlankEdge) predecessor.getLeavingEdge(0);
-      disconnectEdge(insertedEdge);
-      connectEdge(pair.getFirst());
-      connectEdge(pair.getSecond());
+      if (preds.contains(predecessor)) {
+        continue;
+      }
+      // can't remove assume edge because it might be last entering edge to successor
+      // TODO *might be* -> *is*
+      CFANode successor0 = pair.getFirst().getSuccessor();
+      if (succs0.contains(successor0)) {
+        continue;
+      }
+
+      preds.add(predecessor);
+      succs0.add(successor0);
+
+      result.add(pair);
+
+      if (++found >= count) {
+        break;
+      }
     }
+
+    return result;
   }
 
-  private void blankEdge(AssumeEdge pEdge) {
-    disconnectEdge(pEdge);
+  @Override
+  protected Pair<AssumeEdge, AssumeEdge> getRollbackInfo(
+      ParseResult pParseResult, Pair<AssumeEdge, AssumeEdge> pObject) {
+    return pObject;
+  }
+
+  @Override
+  protected void removeObject(ParseResult pParseResult, Pair<AssumeEdge, AssumeEdge> pair) {
+    AssumeEdge edgeToRemove = pair.getFirst();
+    AssumeEdge edgeToBlank = pair.getSecond();
+
+    logger.logf(
+        Level.INFO, "removing %s and replacing %s with blank edge", edgeToRemove, edgeToBlank);
+    disconnectEdge(edgeToRemove);
+    disconnectEdge(edgeToBlank);
     BlankEdge newEdge =
         new BlankEdge(
             "", // pEdge.getRawStatement(),
-            pEdge.getFileLocation(),
-            pEdge.getPredecessor(),
-            pEdge.getSuccessor(),
-            "blanked " + pEdge.getDescription());
+            edgeToBlank.getFileLocation(),
+            edgeToBlank.getPredecessor(),
+            edgeToBlank.getSuccessor(),
+            "blanked " + edgeToBlank.getDescription());
     connectEdge(newEdge);
+  }
+
+  @Override
+  protected void returnObject(ParseResult pParseResult, Pair<AssumeEdge, AssumeEdge> pair) {
+    CFANode predecessor = pair.getFirst().getPredecessor();
+    assert predecessor.getNumLeavingEdges() == 1;
+    BlankEdge insertedEdge = (BlankEdge) predecessor.getLeavingEdge(0);
+    disconnectEdge(insertedEdge);
+    connectEdge(pair.getFirst());
+    connectEdge(pair.getSecond());
   }
 }
