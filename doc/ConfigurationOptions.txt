@@ -2372,6 +2372,9 @@ cpa.predicate.simplifyGeneratedPathFormulas = false
 # iteration
 cpa.predicate.slicingabstractions.dynamicBlockEncoding = false
 
+# Execute in Parallel
+cpa.predicate.slicingabstractions.executeParallel = false
+
 # Only slices the minimal amount of edges to guarantuee progress
 cpa.predicate.slicingabstractions.minimalslicing = false
 
