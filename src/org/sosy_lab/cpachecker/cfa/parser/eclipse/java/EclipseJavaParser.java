@@ -226,15 +226,25 @@ class EclipseJavaParser implements JavaParser {
   private String stripMethodNameFromEntryFunction(String mainFunctionName) {
     Optional<Path> mainClassFile = searchForClassFile(mainFunctionName);
     while (mainClassFile.isEmpty() && !mainFunctionName.isEmpty()) {
-      int indexOfLastDot = mainFunctionName.lastIndexOf('.');
-      if (indexOfLastDot < 0) {
+      if (mainFunctionName.contains(".")) {
+        mainFunctionName = removeEverythingAfterLastOccurrenceOf(".", mainFunctionName);
+        mainClassFile = searchForClassFile(mainFunctionName);
+      } else {
         break;
       }
-      mainFunctionName = mainFunctionName.substring(0, indexOfLastDot);
-      mainClassFile = searchForClassFile(mainFunctionName);
     }
 
     return mainFunctionName;
+  }
+
+  private static String removeEverythingAfterLastOccurrenceOf(
+      final String separator, String string) {
+    int indexOfLastString = string.lastIndexOf(separator);
+    if (indexOfLastString >= 0) {
+      return string.substring(0, indexOfLastString);
+    } else {
+      return string;
+    }
   }
 
   /**
