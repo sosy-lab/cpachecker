@@ -417,13 +417,38 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       Map<ARGState, List<ARGState>> segmentMap =
           SlicingAbstractionsUtils.calculateOutgoingSegments(currentState);
       Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
+      ExecutorService executor = Executors.newFixedThreadPool(4); // TODO
+      List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>();
       for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
         ARGState key = entry.getKey();
         List<ARGState> segment = entry.getValue();
-        boolean infeasible;
         if (currentState instanceof SLARGState) {
-          infeasible = checkSymbolicEdge(currentState, key, segment);
+          Callable<Boolean> c =
+              new Callable<Boolean>() {
+                @Override
+                public Boolean call() throws Exception {
+                  return checkSymbolicEdge(currentState, key, segment);
+                }
+              };
+          tasks.add(c);
+          // infeasible = checkSymbolicEdge(currentState, key, segment);
         } else {
+          Callable<Boolean> c =
+              new Callable<Boolean>() {
+                @Override
+                public Boolean call() throws Exception {
+                  return checkEdge(
+                      currentState,
+                      key,
+                      segment,
+                      pAbstractionStatesTrace,
+                      rootState,
+                      pInfeasiblePartOfART,
+                      pChangedElements);
+                }
+              };
+          tasks.add(c);
+          /*
           infeasible =
               checkEdge(
                   currentState,
@@ -433,9 +458,23 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
                   rootState,
                   pInfeasiblePartOfART,
                   pChangedElements);
+           */
         }
-
-        infeasibleMap.put(key, infeasible);
+      }
+      try {
+        List<Future<Boolean>> results = executor.invokeAll(tasks);
+        int counter = 0;
+        for (Map.Entry<ARGState, List<ARGState>> entry : segmentMap.entrySet()) {
+          ARGState key = entry.getKey();
+          boolean res;
+          res = results.get(counter).get();
+          infeasibleMap.put(key, res);
+          counter++;
+        }
+      } catch (ExecutionException e) {
+        ;
+      } finally {
+        executor.shutdown();
       }
       slice0(currentState, segmentMap, infeasibleMap);
     }
