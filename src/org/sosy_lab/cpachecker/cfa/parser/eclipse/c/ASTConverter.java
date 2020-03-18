@@ -38,8 +38,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.LongSummaryStatistics;
+import java.util.Map;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
@@ -2000,79 +2002,53 @@ class ASTConverter {
       // Example: int a[] = { 1, 2 };
       // will be converted as int a[2] = { 1, 2 };
       if (type instanceof CArrayType) {
-        CArrayType arrayType = (CArrayType)type;
+        CArrayType arrayType = (CArrayType) type;
 
-        if (arrayType.getLength() == null
-            && initializer instanceof IASTEqualsInitializer) {
-          IASTInitializerClause initClause = ((IASTEqualsInitializer)initializer).getInitializerClause();
-          if (initClause instanceof IASTInitializerList) {
-            int length = 0;
-            int position = 0;
-            for (IASTInitializerClause x : ((IASTInitializerList)initClause).getClauses()) {
-              if (length == -1) {
-                break;
+        if (initializer instanceof IASTEqualsInitializer) {
+          IASTInitializerClause initClause =
+              ((IASTEqualsInitializer) initializer).getInitializerClause();
+          CExpression lengthExp = computeLengthOfArray(initClause, arrayType);
+
+          type =
+              new CArrayType(
+                  arrayType.isConst(),
+                  arrayType.isVolatile(),
+                  arrayType.getType(),
+                  lengthExp);
+
+          // if there are nested arrays
+          if (arrayType.getType() instanceof CArrayType) {
+
+            if (arrayType.getLength() == null) {
+
+              Map<CArrayType, CExpression> arrayPlusLength = new LinkedHashMap<>();
+              arrayPlusLength.put(arrayType, computeLengthOfArray(initClause, arrayType));
+
+              arrayPlusLength = computeLengthMultiDimArrays(arrayType, arrayPlusLength, initClause);
+              List<CArrayType> types = new ArrayList<>(arrayPlusLength.keySet());
+              Collections.reverse(types);
+              List<CExpression> lenghts = new ArrayList<>(arrayPlusLength.values());
+
+              CArrayType innerType =
+                  new CArrayType(
+                      types.get(0).isConst(),
+                      types.get(0).isVolatile(),
+                      types.get(0).getType(),
+                      lenghts.get(0));
+              List<CArrayType> typesWLength = new ArrayList<>();
+              typesWLength.add(innerType);
+
+              for (int i = 1; i < types.size(); i++) {
+                CArrayType temp =
+                    new CArrayType(
+                        types.get(i).isConst(),
+                        types.get(i).isVolatile(),
+                        typesWLength.get(i - 1),
+                        lenghts.get(i));
+                typesWLength.add(temp);
               }
-
-              if (x instanceof ICASTDesignatedInitializer) {
-                for (ICASTDesignator designator : ((ICASTDesignatedInitializer) x).getDesignators()) {
-                  if (designator instanceof CASTArrayRangeDesignator) {
-                    CAstNode ceil = convertExpressionWithSideEffects(((CASTArrayRangeDesignator)designator).getRangeCeiling());
-                    if (ceil instanceof CIntegerLiteralExpression) {
-                      int c = ((CIntegerLiteralExpression)ceil).getValue().intValue();
-                      length = Math.max(length, c + 1);
-                      position = c + 1;
-
-                      // we need distinct numbers for the range bounds, if they
-                      // are not there we cannot calculate the length of the array
-                      // correctly
-                    } else {
-                      length = -1;
-                      break;
-                    }
-
-                  } else if (designator instanceof CASTArrayDesignator) {
-                    CAstNode subscript = convertExpressionWithSideEffects(((CASTArrayDesignator)designator).getSubscriptExpression());
-                    int s = ((CIntegerLiteralExpression)subscript).getValue().intValue();
-                    length = Math.max(length, s+1);
-                    position = s + 1;
-
-                    // we only know the length of the CASTArrayDesignator and the CASTArrayRangeDesignator, all other designators
-                    // have to be ignore, if one occurs, we cannot calculate the length of the array correctly
-                  } else {
-                    length = -1;
-                    break;
-                  }
-                }
-              } else {
-                position++;
-                length = Math.max(position, length);
-              }
-            }
-
-            // only adjust the length of the array if we definitely know it
-            if (length != -1) {
-              CExpression lengthExp = new CIntegerLiteralExpression(
-                  getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
-
-              type = new CArrayType(arrayType.isConst(), arrayType.isVolatile(),
-                  arrayType.getType(), lengthExp);
-            }
-          } else {
-            // Arrays with unknown length but an string initializer
-            // have their length calculated from the initializer.
-            // Example: char a[] = "abc";
-            // will be converted as char a[4] = "abc";
-            if (initClause instanceof CASTLiteralExpression &&
-                  (arrayType.getType().equals(CNumericTypes.CHAR) ||
-                   arrayType.getType().equals(CNumericTypes.SIGNED_CHAR) ||
-                   arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
-              CASTLiteralExpression literalExpression = (CASTLiteralExpression) initClause;
-              int length = literalExpression.getLength() - 1;
-              CExpression lengthExp = new CIntegerLiteralExpression(
-                  getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
-
-              type = new CArrayType(arrayType.isConst(), arrayType.isVolatile(),
-                  arrayType.getType(), lengthExp);
+              int lastIndex = typesWLength.size() - 1;
+              type = typesWLength.get(lastIndex);
             }
           }
         }
@@ -2084,6 +2060,122 @@ class ASTConverter {
       return Triple.of(type, initializer, name);
     }
   }
+
+  /**
+   * Calculates length for every dimension of a multidimensional array.
+   */
+  private Map<CArrayType, CExpression> computeLengthMultiDimArrays(
+      CArrayType arrayType,
+      Map<CArrayType, CExpression> arrPlusLength,
+      IASTInitializerClause initClause) {
+
+    if (!(arrayType.getType() instanceof CArrayType)) {
+      return arrPlusLength;
+    }
+    arrayType = (CArrayType) arrayType.getType();
+    CIntegerLiteralExpression realLength = CIntegerLiteralExpression.ZERO;
+    for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
+      if (!(x instanceof CIntegerLiteralExpression)) {
+        CIntegerLiteralExpression lengthNested =
+            (CIntegerLiteralExpression) (computeLengthOfArray(x, arrayType));
+        // nested array with highest number of elements is actual length of nested array
+        if (realLength.getValue().compareTo(lengthNested.getValue()) == -1) {
+          arrPlusLength.put(arrayType, lengthNested);
+          realLength = lengthNested;
+
+        }
+      }
+    }
+    for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
+      return computeLengthMultiDimArrays(arrayType, arrPlusLength, x);
+    }
+    return arrPlusLength;
+  }
+
+
+  private CExpression
+      computeLengthOfArray(IASTInitializerClause initClause, CType type) {
+    CArrayType arrayType = (CArrayType) type;
+
+      int length = 0;
+      if (initClause instanceof IASTInitializerList) {
+        int position = 0;
+
+        for (IASTInitializerClause x : ((IASTInitializerList)initClause).getClauses()) {
+          if (length == -1) {
+            break;
+          }
+
+          if (x instanceof ICASTDesignatedInitializer) {
+            for (ICASTDesignator designator : ((ICASTDesignatedInitializer) x).getDesignators()) {
+              if (designator instanceof CASTArrayRangeDesignator) {
+                CAstNode ceil = convertExpressionWithSideEffects(((CASTArrayRangeDesignator)designator).getRangeCeiling());
+                if (ceil instanceof CIntegerLiteralExpression) {
+                  int c = ((CIntegerLiteralExpression)ceil).getValue().intValue();
+                  length = Math.max(length, c + 1);
+                  position = c + 1;
+
+                  // we need distinct numbers for the range bounds, if they
+                  // are not there we cannot calculate the length of the array
+                  // correctly
+                } else {
+                  length = -1;
+                  break;
+                }
+
+              } else if (designator instanceof CASTArrayDesignator) {
+                CAstNode subscript = convertExpressionWithSideEffects(((CASTArrayDesignator)designator).getSubscriptExpression());
+                int s = ((CIntegerLiteralExpression)subscript).getValue().intValue();
+                length = Math.max(length, s+1);
+                position = s + 1;
+
+                // we only know the length of the CASTArrayDesignator and the CASTArrayRangeDesignator, all other designators
+                // have to be ignore, if one occurs, we cannot calculate the length of the array correctly
+              } else {
+                length = -1;
+                break;
+              }
+            }
+          } else {
+            position++;
+            length = Math.max(position, length);
+          }
+        }
+
+        // only adjust the length of the array if we definitely know it
+        if (length != -1) {
+          CExpression lengthExp = new CIntegerLiteralExpression(
+                getLocation(initClause),
+                CNumericTypes.INT,
+                BigInteger.valueOf(length));
+          return lengthExp;
+        }
+
+      } else {
+        // Arrays with unknown length but an string initializer
+        // have their length calculated from the initializer.
+        // Example: char a[] = "abc";
+        // will be converted as char a[4] = "abc";
+        if (initClause instanceof CASTLiteralExpression &&
+              (arrayType.getType().equals(CNumericTypes.CHAR) ||
+               arrayType.getType().equals(CNumericTypes.SIGNED_CHAR) ||
+               arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
+          CASTLiteralExpression literalExpression = (CASTLiteralExpression) initClause;
+          length = literalExpression.getLength() - 1;
+          CExpression lengthExp = new CIntegerLiteralExpression(
+                getLocation(initClause),
+                CNumericTypes.INT,
+                BigInteger.valueOf(length));
+
+          return lengthExp;
+          // type = new CArrayType(arrayType.isConst(), arrayType.isVolatile(),
+          // arrayType.getType(), lengthExp);
+        }
+      }
+    return arrayType.getLength();
+
+    }
+
 
   private CType convert(IASTArrayModifier am, CType type) {
     if (am instanceof ICASTArrayModifier) {
