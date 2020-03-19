@@ -41,6 +41,7 @@ import jpl.Query;
 import jpl.Term;
 import jpl.Util;
 import jpl.Variable;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -73,7 +74,14 @@ public class ConstraintManager {
 
   public static boolean init(String firingRelation, String generalizationOperator, LogManager logM) {
 
-    String initstr[] = {"swipl", "-x", "./lib/native/x86_64-linux/chc_lib", "-g", "true", "-nosignals"};
+    String initstr[] = {
+      "swipl",
+      "-x",
+      NativeLibraries.getNativeLibraryPath().resolve("chc_lib").toString(),
+      "-g",
+      "true",
+      "-nosignals"
+    };
 
     boolean init = JPL.init(initstr);
 

@@ -3794,7 +3794,8 @@ slicing.conditionFile = "output/AssumptionAutomaton.txt"
 # condition itself is in propriertary format and not in witness format
 slicing.conditionFiles = [
           Paths.get("output/AssumptionAutomaton.txt"),
-          Paths.get("config/specification/AssumptionGuidingAutomaton.spc")]
+          Classes.getCodeLocation(ReducerExtractor.class)
+              .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc")]
 
 # Export the used slicing criteria to file
 slicing.exportCriteria.enable = false
@@ -3909,7 +3910,7 @@ termination.considerRecursion = false
 termination.lassoAnalysis.eigenvectors = 3
 
 # Shell command used to call the external SMT solver.
-termination.lassoAnalysis.externalSolverCommand = "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true "
+termination.lassoAnalysis.externalSolverCommand = NativeLibraries.getNativeLibraryPath().resolve("z3") + " -smt2 -in SMTLIB2_COMPLIANT=true "
 
 # Analysis type used for synthesis of linear termination arguments.
 termination.lassoAnalysis.linear.analysisType = LINEAR_WITH_GUESSES

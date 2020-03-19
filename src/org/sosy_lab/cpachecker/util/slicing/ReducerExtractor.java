@@ -26,6 +26,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -43,16 +44,16 @@ public class ReducerExtractor extends AllTargetsExtractor {
   private final Configuration config;
 
   @Option(
-    secure = true,
-    name = "conditionFiles",
-    description =
-        "path to condition files plus additional assumption guiding automaton when condition itself is in propriertary format and not in witness format"
-  )
+      secure = true,
+      name = "conditionFiles",
+      description =
+          "path to condition files plus additional assumption guiding automaton when condition itself is in propriertary format and not in witness format")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private List<Path> conditionFiles =
       ImmutableList.of(
           Paths.get("output/AssumptionAutomaton.txt"),
-          Paths.get("config/specification/AssumptionGuidingAutomaton.spc"));
+          Classes.getCodeLocation(ReducerExtractor.class)
+              .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc"));
 
   public ReducerExtractor(final Configuration pConfig) throws InvalidConfigurationException {
     config = pConfig;

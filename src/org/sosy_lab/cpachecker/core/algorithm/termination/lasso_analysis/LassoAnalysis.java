@@ -52,6 +52,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -167,7 +168,7 @@ public class LassoAnalysis {
 
   @Option(description = "Shell command used to call the external SMT solver.")
   private String externalSolverCommand =
-      "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true ";
+      NativeLibraries.getNativeLibraryPath().resolve("z3") + " -smt2 -in SMTLIB2_COMPLIANT=true ";
 
   @Option(
     secure = true,

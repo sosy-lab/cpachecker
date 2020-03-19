@@ -359,10 +359,6 @@ public class ConfigurationFileChecks {
         tempFolder.getRoot().getAbsolutePath(),
         "config/specification/modifications-present.spc");
     copyFile(
-        "config/specification/sv-comp-reachability.spc",
-        tempFolder.getRoot().getAbsolutePath(),
-        "config/specification/sv-comp-reachability.spc");
-    copyFile(
         "config/specification/TargetState.spc",
         tempFolder.getRoot().getAbsolutePath(),
         "config/specification/TargetState.spc");
@@ -370,10 +366,6 @@ public class ConfigurationFileChecks {
         "config/specification/test-comp-terminatingfunctions.spc",
         tempFolder.getRoot().getAbsolutePath(),
         "config/specification/test-comp-terminatingfunctions.spc");
-    copyFile(
-        "config/specification/termination_as_reach.spc",
-        tempFolder.getRoot().getAbsolutePath(),
-        "config/specification/termination_as_reach.spc");
   }
 
   /**
