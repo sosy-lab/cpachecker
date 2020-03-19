@@ -165,7 +165,7 @@ public class LassoAnalysis {
   )
   private boolean nonlinearExternalSolver = false;
 
-  @Option(secure = true, description = "Shell command used to call the external SMT solver.")
+  @Option(description = "Shell command used to call the external SMT solver.")
   private String externalSolverCommand =
       "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true ";
 
