@@ -94,12 +94,11 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   private boolean handleStringLiteralInitializers = false;
 
   @Option(
-    secure = true,
-    description =
-        "When then builtin strlen is called, approximate it up to length set by this option."
-            + "If the string passed to strlen is longer, the return value will be overapproximated via nondet."
-  )
-  private int maxPreciseStrlenSize = 3;
+      secure = true,
+      description =
+          "When then builtin strlen is called, approximate it up to length set by this option."
+              + "If the string passed to strlen is longer, the return value will be overapproximated via nondet.")
+  private int maxPreciseStrlenSize = 100;
 
   @Option(secure=true, description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
   private boolean handleImplicitInitialization = true;

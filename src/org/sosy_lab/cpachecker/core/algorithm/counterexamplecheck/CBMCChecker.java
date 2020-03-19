@@ -145,10 +145,10 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       cbmcArgs.add("--stop-on-fail");
       cbmcArgs.add("--no-built-in-assertions"); // do not check for memory safety etc.
 
-      // Our paths are loop-free, but there might be hidden loops in stdlib functions like memcpy.
-      // CBMC would sometimes endlessly unroll them, so its better to break the loops.
+      // Our paths are loop-free, but CBMC adds loops in stdlib functions like memcmp.
+      // CBMC would endlessly unroll them, so its better to break the loops.
       cbmcArgs.add("--unwind");
-      cbmcArgs.add("3");
+      cbmcArgs.add("100");
       cbmcArgs.add("--partial-loops");
       cbmcArgs.add("--no-unwinding-assertions");
 
