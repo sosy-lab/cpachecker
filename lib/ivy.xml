@@ -34,7 +34,7 @@
     <dependencies>
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-380-gd4e86457" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-392-g680ac82" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
