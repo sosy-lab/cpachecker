@@ -24,27 +24,36 @@ import com.google.common.collect.SortedSetMultimap;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -57,6 +66,19 @@ public class CFAMutator extends CFACreator {
       description =
           "if analysis.runMutations is true and this option is not 0, this option limits count of runs")
   private int runMutationsCount = 0;
+
+  @Option(
+      secure = true,
+      name = "exportToC.enable",
+      description = "Whether to export slices as C program files")
+  private boolean exportToC = true;
+
+  @Option(
+      secure = true,
+      name = "exportToC.file",
+      description = "File template for exported C program slices")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path exportToCFile = Paths.get("mutated.c");
 
   private ParseResult parseResult = null;
   private Set<CFANode> originalNodes = null;
@@ -126,7 +148,6 @@ public class CFAMutator extends CFACreator {
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     if (parseResult == null) { // do zero-th run, init
-
       parseResult = super.parseToCFAs(sourceFiles);
       saveBeforePostproccessings();
 
@@ -134,33 +155,31 @@ public class CFAMutator extends CFACreator {
       ((CFAMutatorStatistics) stats).originalEdgesCount = originalEdges.size();
       ((CFAMutatorStatistics) stats).possibleMutations =
           strategy.countPossibleMutations(parseResult);
-
-    } else {
-      doMutationAftermath();
-
-      if (doLastRun) {
-        // need to clear out deleted in case we run out of times
-        exportCFAAsync(lastCFA);
-        return null;
-      }
-
-      if (((CFAMutatorStatistics) stats).mutationRound.getValue() == runMutationsCount) {
-        doLastRun = true;
-      } else {
-
-        ((CFAMutatorStatistics) stats).mutationTimer.start();
-        doLastRun = !mutate();
-        ((CFAMutatorStatistics) stats).mutationTimer.stop();
-      }
-
-      if (doLastRun) {
-        ((CFAMutatorStatistics) stats).remainedNodesCount = originalNodes.size();
-        ((CFAMutatorStatistics) stats).remainedEdgesCount = originalEdges.size();
-        ((CFAMutatorStatistics) stats).remainedMutations =
-            strategy.countPossibleMutations(parseResult);
-      }
-
+      return parseResult;
     }
+
+    doMutationAftermath();
+
+    if (doLastRun) {
+      exportCFAAsync(lastCFA);
+      return null;
+    }
+
+    if (((CFAMutatorStatistics) stats).mutationRound.getValue() == runMutationsCount) {
+      doLastRun = true;
+    } else {
+      ((CFAMutatorStatistics) stats).mutationTimer.start();
+      doLastRun = !mutate();
+      ((CFAMutatorStatistics) stats).mutationTimer.stop();
+    }
+
+    if (doLastRun) {
+      ((CFAMutatorStatistics) stats).remainedNodesCount = originalNodes.size();
+      ((CFAMutatorStatistics) stats).remainedEdgesCount = originalEdges.size();
+      ((CFAMutatorStatistics) stats).remainedMutations =
+          strategy.countPossibleMutations(parseResult);
+    }
+
     // need to return after possible rollback
     return parseResult;
   }
@@ -200,13 +219,14 @@ public class CFAMutator extends CFACreator {
 
   // undo last mutation
   public void rollback() {
+    assert !wasRollback;
+    assert !doLastRun;
     wasRollback = true;
     clearAfterPostprocessings();
     strategy.rollback(parseResult);
     saveBeforePostproccessings();
   }
 
-  // TODO reset loopstarts?
   private void clearAfterPostprocessings() {
     ((CFAMutatorStatistics) stats).clearingTimer.start();
     final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
@@ -269,9 +289,29 @@ public class CFAMutator extends CFACreator {
 
     if (cfa == lastCFA) {
       super.exportCFAAsync(lastCFA);
+      if (exportToC && exportToCFile != null) {
+        exportCFAToC(lastCFA);
+      }
     } else {
       lastCFA = cfa;
     }
+  }
+
+  private void exportCFAToC(CFA pCFA) {
+    logger.logf(Level.INFO, "translating cfa to %s", exportToCFile);
+    Concurrency.newThread(
+            "CFAMutator-to-C-exporter",
+            () -> {
+              try (Writer writer = IO.openOutputFile(exportToCFile, Charset.defaultCharset())) {
+
+                String code = new CFAToCTranslator().translateCfa(pCFA);
+                writer.write(code);
+
+              } catch (CPAException | IOException | InvalidConfigurationException e) {
+                logger.logUserException(Level.WARNING, e, "Could not write CFA to C file.");
+              }
+            })
+        .start();
   }
 
   @Override
