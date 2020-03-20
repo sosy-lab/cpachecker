@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -109,6 +110,12 @@ public class CoreComponentsFactory {
       name = "disable",
       description = "stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.tarantula",
+      description = "use tarantula")
+  private boolean useTarantula = false;
 
   @Option(secure=true, description="use assumption collecting algorithm")
   private boolean collectAssumptions = false;
@@ -320,6 +327,7 @@ public class CoreComponentsFactory {
     if (checkCounterexamplesWithBDDCPARestriction) {
       checkCounterexamples = true;
     }
+
   }
 
   private boolean analysisNeedsShutdownManager() {
@@ -521,7 +529,9 @@ public class CoreComponentsFactory {
             new ResultCheckAlgorithm(
                 algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
       }
-
+      if(useTarantula){
+        algorithm = new TarantulaAlgorithm(algorithm,logger);
+      }
       if (useCustomInstructionRequirementExtraction) {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
       }
