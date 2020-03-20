@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SingleNodeStrategy extends GenericCFAMutationStrategy<CFANode, CFANode> {
 
-  public SingleNodeStrategy(LogManager pLogger, int pRate) {
-    super(pLogger, pRate);
+  public SingleNodeStrategy(LogManager pLogger, int pRate, int pStartDepth) {
+    super(pLogger, pRate, pStartDepth);
   }
 
   // can delete node with its only leaving edge and reconnect entering edge instead
@@ -55,9 +55,9 @@ public class SingleNodeStrategy extends GenericCFAMutationStrategy<CFANode, CFAN
     if (pNode.getNumLeavingEdges() != 1) {
       return false;
     }
-
-    CFANode successor = pNode.getLeavingEdge(0).getSuccessor();
-    for (CFANode predecessor : CFAUtils.predecessorsOf(pNode)) {
+    CFAEdge leavingEdge = pNode.getLeavingEdge(0);
+    CFANode successor = leavingEdge.getSuccessor();
+    for (CFANode predecessor : CFAUtils.allPredecessorsOf(pNode)) {
       if (predecessor.hasEdgeTo(successor)) {
         return false;
       }
@@ -82,8 +82,8 @@ public class SingleNodeStrategy extends GenericCFAMutationStrategy<CFANode, CFAN
     List<CFANode> result = new ArrayList<>();
     Set<CFANode> succs = new HashSet<>();
 
-    int nodesFound = 0;
-    for (CFANode node : parseResult.getCFANodes().values()) {
+    int found = 0;
+    for (CFANode node : getAllObjects(parseResult)) {
       if (!canRemove(parseResult, node) || succs.contains(node)) {
         continue;
       }
@@ -93,12 +93,12 @@ public class SingleNodeStrategy extends GenericCFAMutationStrategy<CFANode, CFAN
         continue;
       }
       succs.add(successor);
-      // succs.add(node);
+      succs.add(node);
 
       logger.logf(Level.FINER, "Choosing %s:%s (s: %s)", node.getFunctionName(), node, successor);
       result.add(node);
 
-      if (++nodesFound >= pCount) {
+      if (++found >= pCount) {
         break;
       }
     }
@@ -113,7 +113,7 @@ public class SingleNodeStrategy extends GenericCFAMutationStrategy<CFANode, CFAN
     assert pNode.getNumLeavingEdges() == 1;
     CFAEdge leavingEdge = pNode.getLeavingEdge(0);
     CFANode successor = leavingEdge.getSuccessor();
-    logger.logf(Level.INFO, "removing node %s with edge %s", pNode, leavingEdge);
+    logger.logf(Level.FINE, "removing node %s with edge %s", pNode, leavingEdge);
     logger.logf(Level.FINEST, "entering edges: %s", CFAUtils.allEnteringEdges(pNode));
     logger.logf(
         Level.FINEST, "successor's entering edges: %s", CFAUtils.allEnteringEdges(successor));

@@ -19,6 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.log.LogManager;
@@ -29,8 +30,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class GlobalDeclarationStrategy
     extends GenericCFAMutationStrategy<Pair<ADeclaration, String>, Pair<Integer, Pair<ADeclaration, String>>> {
 
-  public GlobalDeclarationStrategy(LogManager pLogger, int pAtATime) {
-    super(pLogger, pAtATime);
+  public GlobalDeclarationStrategy(LogManager pLogger, int pAtATime, int pStartDepth) {
+    super(pLogger, pAtATime, pStartDepth);
   }
 
   @Override
@@ -40,16 +41,21 @@ public class GlobalDeclarationStrategy
     }
 
     ADeclaration decl = p.getFirst();
-    if (decl instanceof AFunctionDeclaration
-        && pParseResult.getFunctions().containsKey(decl.getName())) {
-      return false;
+    if (decl instanceof AFunctionDeclaration) {
+      return !pParseResult.getFunctions().containsKey(decl.getName());
     }
     return true;
   }
 
   @Override
   protected Collection<Pair<ADeclaration, String>> getAllObjects(ParseResult pParseResult) {
-    return pParseResult.getGlobalDeclarations(); // TODO
+    List<Pair<ADeclaration, String>> answer = new ArrayList<>();
+    for (Pair<ADeclaration, String> p : pParseResult.getGlobalDeclarations()) {
+      if (canRemove(pParseResult, p)) {
+        answer.add(0, p);
+      }
+    }
+    return answer;
   }
 
   @Override
@@ -61,7 +67,16 @@ public class GlobalDeclarationStrategy
   @Override
   protected void removeObject(ParseResult pParseResult, Pair<ADeclaration, String> pObject) {
     List<Pair<ADeclaration, String>> prgd = pParseResult.getGlobalDeclarations();
-    prgd.remove(pObject);
+    System.out.println(
+        "prgd size is "
+            + prgd.size()
+            + "\nremoving ("
+            + prgd.indexOf(pObject)
+            + ", "
+            + pObject
+            + ")");
+    assert prgd.remove(pObject);
+    assert !prgd.contains(pObject);
     pParseResult =
         new ParseResult(
             pParseResult.getFunctions(),
@@ -74,7 +89,10 @@ public class GlobalDeclarationStrategy
   protected void returnObject(
       ParseResult pParseResult, Pair<Integer, Pair<ADeclaration, String>> pRollbackInfo) {
     List<Pair<ADeclaration, String>> prgd = pParseResult.getGlobalDeclarations();
+    System.out.println("prgd size is " + prgd.size() + "\nreturning " + pRollbackInfo);
+    assert !prgd.contains(pRollbackInfo.getSecond());
     prgd.add(pRollbackInfo.getFirst(), pRollbackInfo.getSecond());
+    assert prgd.indexOf(pRollbackInfo.getSecond()) == pRollbackInfo.getFirst();
     pParseResult =
         new ParseResult(
             pParseResult.getFunctions(),

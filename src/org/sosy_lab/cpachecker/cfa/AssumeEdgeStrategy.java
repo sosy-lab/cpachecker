@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class AssumeEdgeStrategy
     extends GenericCFAMutationStrategy<Pair<AssumeEdge, AssumeEdge>, Pair<AssumeEdge, AssumeEdge>> {
 
-  public AssumeEdgeStrategy(LogManager pLogger, int p) {
-    super(pLogger, p);
+  public AssumeEdgeStrategy(LogManager pLogger, int pRate, int pStartDepth) {
+    super(pLogger, pRate, pStartDepth);
   }
 
   @Override

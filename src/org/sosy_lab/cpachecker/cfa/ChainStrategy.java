@@ -97,8 +97,8 @@ public class ChainStrategy extends GenericCFAMutationStrategy<Chain, Chain> {
 
   private Set<CFANode> previousChainsNodes = new HashSet<>();
 
-  public ChainStrategy(LogManager pLogger, int pRate) {
-    super(pLogger, pRate);
+  public ChainStrategy(LogManager pLogger, int pRate, int pStartDepth) {
+    super(pLogger, pRate, pStartDepth);
   }
 
   // can delete node with its only leaving edge and reconnect entering edge instead
@@ -239,7 +239,7 @@ public class ChainStrategy extends GenericCFAMutationStrategy<Chain, Chain> {
     }
 
     CFAEdge newEdge = dupEdge(enteringEdge, successor);
-    logger.logf(Level.INFO, "replacing chain %s with edge %s", pChain, newEdge);
+    logger.logf(Level.FINE, "replacing chain %s with edge %s", pChain, newEdge);
     connectEdge(newEdge);
   }
 

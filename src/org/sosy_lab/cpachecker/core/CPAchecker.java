@@ -499,8 +499,10 @@ public class CPAchecker {
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
-    CPAcheckerResult currentResult = null, originalResult = null;
-    Exception originalException = null, currentException = null;
+    CPAcheckerResult originalResult = null;
+    CPAcheckerResult currentResult = null;
+    Throwable originalThrowable = null;
+    Throwable currentThrowable = null;
 
     for (int mutationRound = 0; true; mutationRound++) {
       MainCPAStatistics stats = null;
@@ -514,7 +516,6 @@ public class CPAchecker {
       shutdownNotifier.register(interruptThreadOnShutdown);
 
       logger.logf(Level.INFO, "Mutation round %d", mutationRound);
-      currentException = null;
       try {
         stats = new MainCPAStatistics(config, logger, shutdownNotifier);
 
@@ -533,6 +534,9 @@ public class CPAchecker {
           cfa = parse(programDenotation, stats);
           if (cfa == null) {
             break;
+          } else {
+            currentResult = null;
+            currentThrowable = null;
           }
           GlobalInfo.getInstance().storeCFA(cfa);
           shutdownNotifier.shutdownIfNecessary();
@@ -643,16 +647,16 @@ public class CPAchecker {
 
       } catch (CPAException e) {
         logger.logUserException(Level.SEVERE, e, null);
-        currentException = e;
+        currentThrowable = e;
 
-      } catch (VerifyException e) {
+      } catch (VerifyException | AssertionError e) {
         for (final StackTraceElement ste : e.getStackTrace()) {
           if (ste.getClassName().contains("CFACreator")) {
             throw e;
           }
         }
         logger.logUserException(Level.SEVERE, e, null);
-        currentException = e;
+        currentThrowable = e;
 
       } finally {
         CPAs.closeIfPossible(algorithm, logger);
@@ -662,44 +666,48 @@ public class CPAchecker {
       currentResult = new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
       if (originalResult == null) {
         originalResult = currentResult;
-        originalException = currentException;
+        originalThrowable = currentThrowable;
         logger.logf(Level.INFO, "original result: %s", originalResult.getResultString());
-        if (originalException != null) {
-          logger.logf(Level.INFO, "original exception: %s", originalException);
+        if (originalThrowable != null) {
+          logger.logf(Level.INFO, "original exception: %s", originalThrowable);
         }
 
       } else if (originalResult.getResult() != currentResult.getResult()
           || !originalResult.getResultString().equals(currentResult.getResultString())
-          || (originalException == null && currentException != null)
-          || (originalException != null && currentException == null)
-          || (originalException != null
-              && currentException != null
-              && !originalException.getMessage().equals(currentException.getMessage()))) {
+          || (originalThrowable == null && currentThrowable != null)
+          || (originalThrowable != null && currentThrowable == null)
+          || (originalThrowable != null
+              && currentThrowable != null
+              && !originalThrowable.getMessage().equals(currentThrowable.getMessage()))) {
 
         logger.log(Level.INFO, "Result changed, mutation rollback.");
-        logger.log(Level.INFO, currentResult.getResultString());
-        if (currentException != null) {
-          logger.log(Level.INFO, currentException);
+        logger.logf(Level.INFO, "Expected: %s", originalResult.getResultString());
+        if (originalThrowable != null) {
+          logger.logf(Level.INFO, "With: %s", originalThrowable.getMessage());
+        }
+        logger.logf(Level.INFO, "Got: %s", currentResult.getResultString());
+        if (currentThrowable != null) {
+          logger.logf(Level.INFO, "With: %s", currentThrowable.getMessage());
         }
         ((CFAMutator) cfaCreator).rollback();
 
       } else {
         logger.log(Level.INFO, "Result did not change.");
-        logger.log(Level.FINE, currentResult.getResultString());
-        if (currentException != null) {
-          logger.log(Level.FINE, currentException);
+        logger.logf(Level.FINE, "Got %s", currentResult.getResultString());
+        if (currentThrowable != null) {
+          logger.logf(Level.FINE, "With %s", currentThrowable.getMessage());
         }
       }
     }
     logger.log(Level.INFO, "Mutations ended.");
     logger.log(Level.INFO, "Verification result:");
-    if (currentResult != null) {
-      logger.log(Level.INFO, currentResult.getResultString());
+    if (originalResult != null) {
+      logger.log(Level.INFO, originalResult.getResultString());
     } else {
       logger.log(Level.INFO, "null result");
     }
-    if (originalException != null) {
-      logger.logUserException(Level.INFO, originalException, null);
+    if (originalThrowable != null) {
+      logger.logUserException(Level.INFO, originalThrowable, null);
     }
     return currentResult;
   }

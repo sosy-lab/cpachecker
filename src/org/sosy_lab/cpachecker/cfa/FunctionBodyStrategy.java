@@ -19,7 +19,11 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -31,13 +35,27 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class FunctionBodyStrategy
     extends GenericCFAMutationStrategy<String, Pair<FunctionEntryNode, SortedSet<CFANode>>> {
 
-  public FunctionBodyStrategy(LogManager pLogger, int pRate) {
-    super(pLogger, pRate);
+  public FunctionBodyStrategy(LogManager pLogger, int pRate, int pStartDepth) {
+    super(pLogger, pRate, pStartDepth);
   }
 
   @Override
   protected Collection<String> getAllObjects(ParseResult pParseResult) {
-    return pParseResult.getFunctions().keySet(); // TODO order?
+    class FunctionSize implements Comparator<String> {
+      private final ParseResult parseResult;
+      public FunctionSize(final ParseResult pr) {
+        parseResult = pr;
+      }
+      @Override
+      public int compare(String pArg0, String pArg1) {
+        return parseResult.getCFANodes().get(pArg0).size()
+            - parseResult.getCFANodes().get(pArg1).size();
+      }
+    }
+    List<String> answer = new ArrayList<>(pParseResult.getFunctions().keySet());
+    answer.removeIf(s -> s.equals("main"));
+    Collections.sort(answer, new FunctionSize(pParseResult));
+    return answer;
   }
 
   @Override

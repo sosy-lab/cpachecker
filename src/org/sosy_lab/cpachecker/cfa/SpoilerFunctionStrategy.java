@@ -41,9 +41,9 @@ public class SpoilerFunctionStrategy
 
   private final FunctionBodyStrategy functionRemover;
 
-  public SpoilerFunctionStrategy(LogManager pLogger, int pRate) {
-    super(pLogger, pRate);
-    functionRemover = new FunctionBodyStrategy(pLogger, 0);
+  public SpoilerFunctionStrategy(LogManager pLogger, int pRate, int pStartDepth) {
+    super(pLogger, pRate, pStartDepth);
+    functionRemover = new FunctionBodyStrategy(pLogger, 0, 0);
   }
 
   @Override

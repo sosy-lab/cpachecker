@@ -39,25 +39,22 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
     super(pLogger);
     strategiesList =
         ImmutableList.of(
-            new FunctionBodyStrategy(pLogger, 125), // 1
-            new FunctionBodyStrategy(pLogger, 25),
-            new FunctionBodyStrategy(pLogger, 5),
-            new FunctionBodyStrategy(pLogger, 1),
-            new BlankChainStrategy(pLogger, 200), // 5
-            new ChainStrategy(pLogger, 5),
-            new ChainStrategy(pLogger, 1),
-            new AssumeEdgeStrategy(pLogger, 1000),
-            new BlankChainStrategy(pLogger, 100),
-            new SingleNodeStrategy(pLogger, 25), // 10
-            new SingleNodeStrategy(pLogger, 5),
-            new SingleNodeStrategy(pLogger, 1),
-            new AssumeEdgeStrategy(pLogger, 1),
-            new BlankChainStrategy(pLogger, 100),
-            new SingleNodeStrategy(pLogger, 1), // 15
-            new AssumeEdgeStrategy(pLogger, 1),
-            new SingleNodeStrategy(pLogger, 1),
-            new SpoilerFunctionStrategy(pLogger, 10),
-            new GlobalDeclarationStrategy(pLogger, 2400)); // 19
+            new FunctionBodyStrategy(pLogger, 5, 0),
+            new BlankChainStrategy(pLogger, 5, 0),
+            new ChainStrategy(pLogger, 5, 1),
+            new AssumeEdgeStrategy(pLogger, 5, 1),
+            //
+            new BlankChainStrategy(pLogger, 5, 0),
+            new SingleNodeStrategy(pLogger, 5, 1),
+            new AssumeEdgeStrategy(pLogger, 5, 1),
+            //
+            new BlankChainStrategy(pLogger, 5, 0),
+            new SingleNodeStrategy(pLogger, 5, 1),
+            new AssumeEdgeStrategy(pLogger, 5, 1),
+            //
+            new SingleNodeStrategy(pLogger, 5, 1),
+            new SpoilerFunctionStrategy(pLogger, 5, 0),
+            new GlobalDeclarationStrategy(pLogger, 5, 0));
     strategies = strategiesList.iterator();
     currentStrategy = strategies.next();
     rounds = new ArrayDeque<>();
@@ -66,14 +63,12 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
 
   @Override
   public boolean mutate(ParseResult parseResult) {
-    logger.logf(Level.INFO, "Round %d. Mutation strategy %s", ++round, currentStrategy);
-    System.out.println(rounds);
-    System.out.println(rollbacks);
+    logger.logf(Level.SEVERE, "Round %d. Mutation strategy %s", ++round, currentStrategy);
     rounds.addLast(rounds.pollLast() + 1);
     boolean answer = currentStrategy.mutate(parseResult);
     while (!answer) {
       logger.logf(
-          Level.INFO,
+          Level.SEVERE,
           "Round %d. Mutation strategy %s finished in %d rounds with %d rollbacks.",
           round,
           currentStrategy,
@@ -85,7 +80,7 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
         return answer;
       }
       currentStrategy = strategies.next();
-      logger.logf(Level.INFO, "Switching strategy to %s", currentStrategy);
+      logger.logf(Level.SEVERE, "Switching strategy to %s", currentStrategy);
       answer = currentStrategy.mutate(parseResult);
     }
     return answer;
@@ -102,12 +97,12 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
     int sum = 0;
     for (AbstractCFAMutationStrategy strategy : strategiesList) {
       int term = strategy.countPossibleMutations(parseResult);
-      logger.logf(Level.INFO, "Strategy %s: %d possible mutations", strategy, term);
+      logger.logf(Level.SEVERE, "Strategy %s: %d possible mutations", strategy, term);
       sum += term;
 
       if (!rounds.isEmpty()) {
         logger.logf(
-            Level.INFO,
+            Level.SEVERE,
             "in %d rounds with %d rollbacks",
             rounds.pollFirst(),
             rollbacks.pollFirst());
