@@ -45,8 +45,17 @@ public class TarantulaAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     AlgorithmStatus result = analysis.run(reachedSet);
+
     logger.log(Level.INFO, "Run tarantula algorithm");
-    printResult(System.out, reachedSet);
+    if (TarantulaUtils.checkForErrorPath(reachedSet)) {
+      if (TarantulaUtils.checkSafePath(reachedSet)) {
+        printResult(System.out, reachedSet);
+      } else {
+        logger.log(Level.WARNING, "There is no Safe path, the algorithm can´t be started");
+      }
+    } else {
+      logger.log(Level.WARNING, "There is no CounterExample, therefore the program is safe");
+    }
     logger.log(Level.INFO, "Tarantula algorithm Finished");
     return result;
   }
