@@ -140,17 +140,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       description = "Whether to consider (data-)flow dependencies.")
   private boolean considerFlowDeps = true;
 
-  @Option(
-      secure = true,
-      name = "controldeps.considerInverseAssumption",
-      description =
-          "Whether to take an assumption edge 'p' as control dependence if edge 'not p' "
-              + "is a control dependence. This creates a larger slice, but may reduce the size of the "
-              + "state space for deterministic programs. This behavior is also closer to the static "
-              + "program slicing based on control-flow graphs (CFGs), where branching is "
-              + "represented by a single assumption (with true- and false-edges)")
-  private boolean controlDepsTakeBothAssumptions = false;
-
   public DependenceGraphBuilder(
       final MutableCFA pCfa,
       final Optional<VariableClassification> pVarClassification,
