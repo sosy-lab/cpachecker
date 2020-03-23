@@ -73,7 +73,7 @@ public class CounterexampleInfo extends AbstractAppender {
   private static final CounterexampleInfo SPURIOUS =
       new CounterexampleInfo(true, null, null, false, CFAPathWithAdditionalInfo.empty());
 
-  private CounterexampleInfo(
+  protected CounterexampleInfo(
       boolean pSpurious,
       ARGPath pTargetPath,
       CFAPathWithAssumptions pAssignments,
@@ -303,12 +303,21 @@ public class CounterexampleInfo extends AbstractAppender {
             edgeWithAssignment.prettyPrintCode(0).replace(System.lineSeparator(), "\n")
                 + edgeWithAssignment.getComment().replace(System.lineSeparator(), "\n"));
       }
+      addAdditionalInfo(elem, edge);
 
       path.add(elem);
       iterator.advance();
     }
     JSON.writeJSONString(path, sb);
   }
+
+  /**
+   * Method for classes that inherit from this class.
+   * Append additional information to JSON-Object
+   * @param element map that will be converted to JSON
+   * @param edge the edge that is currently transformed into JSON format.
+   */
+  protected void addAdditionalInfo(Map<String, Object> element, CFAEdge edge) {}
 
   @Override
   public void appendTo(Appendable out) throws IOException {

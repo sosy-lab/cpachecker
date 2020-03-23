@@ -293,12 +293,21 @@ with considerably less effort */
 		};
 
 		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
-                var importantEdges = [];
-                var importantIndex = -1;
+        var importantEdges = [];
+        var importantIndex = -1;
+		var isFaultLocalizationEnabled = false;
+		
+		var faultEdges = [];
+		var faultEdgesObject = [];
+		var showDetailed = false;
+		var lastSelectedLine = -1;
+
 		if (errorPath !== undefined) {
 			var indentationlevel = 0;
 			for (var i = 0; i < errorPath.length; i++) {
 				var errPathElem = errorPath[i];
+				if(errPathElem.enabled) 
+					isFaultLocalizationEnabled = true;
 
 				// do not show start, return and blank edges
 				if (errPathElem.desc.indexOf("Return edge from") === -1 && errPathElem.desc != "Function start dummy edge" && errPathElem.desc != "") {
@@ -329,24 +338,109 @@ with considerably less effort */
 					indentationlevel += 1;
 				}
 
+				if(errPathElem.fault.indexOf("Error") !== -1) {
+					faultEdges.push(importantIndex);
+					faultEdgesObject.push(errPathElem);		
+				}
 				// store the important edges
-                                if(errPathElem.importance == 1){
-                                      importantEdges.push(importantIndex);
-                                   }
+                if(errPathElem.importance == 1){
+                    importantEdges.push(importantIndex);
+                }
 			}
 
                         // this function puts the important edges into a CSS class that highlights them
 			function highlightEdges(impEdges){
 			    for (var j = 0; j < impEdges.length; j++){
-			        d3.selectAll("#errpath-" + impEdges[j] + " td pre").classed("important", true);
+				d3.selectAll("#errpath-" + impEdges[j] + " td pre").classed("important", true);
 			    }
-                        };
+			};
+						
 
-                        angular.element(document).ready(function(){
-                            highlightEdges(importantEdges);
-                        });
+			function addFaultLocalizationInfo(indicatorEdges){
+				if(isFaultLocalizationEnabled) {
+					//TODO: find more elegant way
+					for(var j = 0; j < errorPath.length; j++){
+						$("#rank-"+j).addClass("rank");
+					}
+					for (var j = 0; j < indicatorEdges.length; j++){
+						d3.selectAll("#errpath-" + indicatorEdges[j] + " td pre").classed("fault", true);	    	
+					}
+					// header to describe the columns in the info table
+					d3.selectAll("#errpath-header td pre").classed("tableheader", true);
+				} else {
+				 	$("#errpath-header").remove();
+					$("#sortFaultLocalizationInfo").remove();
+					for(var i = 0; i < errorPath.length; i++)
+						$("#rank-"+i).remove();			
+				}			
+			}
+
+            angular.element(document).ready(function(){
+                highlightEdges(importantEdges);
+			    addFaultLocalizationInfo(faultEdges);
+				$("#value-assignment").append(createFaultLocTable(faultEdgesObject));
+				$("#complete-fault-loc-table").hide();
+            });
 
 
+		}
+
+		function appendCell(row, text, colspan, title, line, filename){
+			var cell = row.insertCell();
+			cell.innerHTML = text;
+			if(title !== ""){
+				cell.title = title;
+			}
+			cell.colSpan = colspan;
+			cell.onclick = function() {
+				if(lastSelectedLine > 0){
+					$("#source-"+lastSelectedLine).removeClass("highlight-line");
+				}
+				$("#source-"+line).addClass("highlight-line");
+				lastSelectedLine = line;
+			};
+		}
+
+		function createFaultLocTable(indicatorEdgesObject){
+			var faultDict = {};
+			for (var j = 0; j < indicatorEdgesObject.length; j++){
+				var edge = indicatorEdgesObject[j];
+				var htmlTable = document.createElement("table");
+				var headerRow = htmlTable.insertRow();
+
+				appendCell(headerRow, edge.rank + ".", 1, "Rank", edge.line, edge.file);
+				appendCell(headerRow, edge.score, 1, "Score", edge.line, edge.file);
+				appendCell(headerRow, edge.desc.trim(), 1, "", edge.line, edge.file);
+
+				var explanationRow = htmlTable.insertRow();
+				appendCell(explanationRow, edge.fault, 3, "", edge.line, edge.file);
+				htmlTable.className = "fault-table";
+
+				//htmlTable.id = "fault-loc-table-"+j;
+				faultDict["rank_" + edge.rank] = htmlTable;
+			}
+			var table = document.createElement("table");
+			for(var j = 0; j < indicatorEdgesObject.length; j++){
+				var row = table.insertRow();
+				var cell = row.insertCell();
+				cell.appendChild(faultDict["rank_"+(j+1)]);
+			}
+			table.id = "complete-fault-loc-table";
+			return table;
+		}		
+
+		$scope.sortFaultClicked = function(){
+			//TODO: change to log tab
+			//TODO: button text
+			if(!showDetailed) {
+				$("#err-table").hide();
+				$("#complete-fault-loc-table").show();
+				$("#report-controller").scope().setTab(3);
+			} else {
+				$("#err-table").show();
+				$("#complete-fault-loc-table").hide();
+			}
+			showDetailed = !showDetailed;
 		}
 
 		$scope.errPathPrevClicked = function ($event) {

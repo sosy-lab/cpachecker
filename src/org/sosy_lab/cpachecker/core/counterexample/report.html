@@ -106,6 +106,9 @@ with considerably less effort -->
             <strong>Find only exact matches</strong>
           </label>
         </div>
+	      <div id="sortFaultLocalizationInfo">
+          <button id="fault-button" class="btn btn-success" ng-click="sortFaultClicked()" data-toggle="tooltip" data-placement="bottom" title="Click here to get more detailed information about the error">Change view</button>
+        </div>
         <div id="matches">
           <p class="markedValues">Matches in value-assignements (V): {{numOfValueMatches}}</p>
           <p class="markedDescriptions">Matches in edge-description: {{numOfDescriptionMatches}}</p>
@@ -113,9 +116,13 @@ with considerably less effort -->
       </header>
       <div class="fileContent" ng-controller="ValueAssignmentsController" id="value-assignment">
         <table id="err-table">
+          <tr id="errpath-header"> <td><pre></pre></td> <td><pre>Rank</pre></td> <td><pre>Scope</pre></td> </tr>
           <tr id="errpath-{{$index}}" ng-repeat="line in errorPath">
             <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}">
               <pre>-V-</pre>
+            </td>
+	    <td id="rank-{{$index}}" ng-click="showValues($event)" data-toggle="popover" data-placement="bottom" data-trigger="click" data-content="{{line.fault}}">
+              <pre>{{line.rank}}</pre>
             </td>
             <td class="disabled" ng-click="clickedErrpathElement($event)">
               <pre class="make-pretty">{{line.desc}}</pre>
@@ -208,7 +215,6 @@ with considerably less effort -->
             </label>
             <select class="btn btn-outline-secondary selectpicker" ng-options="s as s for s in argSelections" ng-model="$root.displayedARG"
               ng-change="displayARG()"></select>
-            <label>
           </div>
           <div class="nav-item">
             <strong>Mouse Wheel Zoom</strong>
