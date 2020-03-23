@@ -39,16 +39,18 @@ import java.util.Set;
 import java.util.function.Function;
 
 /** A utility class for calculating dominance trees and dominance frontiers. */
-public class Dominance {
+final class Dominance {
 
   /** Undefined ID. */
   public static final int UNDEFINED = -1;
+
+  private Dominance() {}
 
   /**
    * Traverses the graph and assigns every visited node its reverse-postorder-ID. All IDs are stored
    * in the resulting map (node to ID).
    */
-  private <T> Map<T, Integer> createReversePostOrder(
+  private static <T> Map<T, Integer> createReversePostOrder(
       T pStartNode,
       Function<? super T, ? extends Iterable<? extends T>> pSuccFunc,
       Function<? super T, ? extends Iterable<? extends T>> pPredFunc) {
@@ -108,7 +110,7 @@ public class Dominance {
    * @param pPredFunc the predecessor-function.
    * @return the created {@link DomInput}-object.
    */
-  private <T> DomInput createDomInput(
+  private static <T> DomInput createDomInput(
       Map<T, Integer> pIds,
       T[] pNodes,
       Function<? super T, ? extends Iterable<? extends T>> pPredFunc) {
@@ -149,7 +151,7 @@ public class Dominance {
    * @throws NullPointerException if any parameter is {@code null}.
    * @return the created {@link DomTree}-object.
    */
-  public <T> DomTree<T> createDomTree(
+  public static <T> DomTree<T> createDomTree(
       T pStartNode,
       Function<? super T, ? extends Iterable<? extends T>> pSuccFunc,
       Function<? super T, ? extends Iterable<? extends T>> pPredFunc) {
@@ -174,7 +176,7 @@ public class Dominance {
    * Iterative Algorithm for calculating the immediate dominators of all nodes. For more information
    * on the algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et al.).
    */
-  private int[] calculateDoms(final DomInput pInput) {
+  private static int[] calculateDoms(final DomInput pInput) {
 
     final int start = pInput.getNodeCount() - 1; // start node is node with the highest number
     int[] doms = new int[pInput.getNodeCount()]; // doms[x] == immediate dominator of x
@@ -216,7 +218,7 @@ public class Dominance {
     return doms;
   }
 
-  private int intersect(final int[] pDoms, final int pId1, final int pId2) {
+  private static int intersect(final int[] pDoms, final int pId1, final int pId2) {
 
     int f1 = pId1;
     int f2 = pId2;
@@ -242,7 +244,7 @@ public class Dominance {
    * @throws NullPointerException if {@code pDomTree} is {@code null}.
    * @return the created {@link DomFrontiers}-object.
    */
-  public <T> DomFrontiers<T> createDomFrontiers(DomTree<T> pDomTree) {
+  public static <T> DomFrontiers<T> createDomFrontiers(DomTree<T> pDomTree) {
 
     Objects.requireNonNull(pDomTree, "pDomTree must not be null");
 
@@ -255,7 +257,8 @@ public class Dominance {
    * For more information on the algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et
    * al.).
    */
-  private DomFrontiers.Frontier[] calculateFrontiers(final DomInput pInput, final int[] pDoms) {
+  private static DomFrontiers.Frontier[] calculateFrontiers(
+      final DomInput pInput, final int[] pDoms) {
 
     DomFrontiers.Frontier[] frontiers = new DomFrontiers.Frontier[pInput.getNodeCount()];
     for (int id = 0; id < frontiers.length; id++) {

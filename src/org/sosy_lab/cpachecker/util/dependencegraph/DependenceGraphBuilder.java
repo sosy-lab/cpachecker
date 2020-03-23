@@ -261,14 +261,13 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     int controlDepCount = 0;
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      Dominance dom = new Dominance();
       DomTree<CFANode> domTree =
-          dom.createDomTree(
+          Dominance.createDomTree(
               entryNode.getExitNode(),
               this::iterateReverseSuccessors,
               this::iterateReversePredecessors);
 
-      DomFrontiers<CFANode> frontiers = dom.createDomFrontiers(domTree);
+      DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(domTree);
       Set<CFAEdge> dependentEdges = new HashSet<>();
 
       for (CFANode dependentNode : domTree) {
