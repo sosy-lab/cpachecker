@@ -2007,6 +2007,8 @@ class ASTConverter {
         if (initializer instanceof IASTEqualsInitializer) {
           IASTInitializerClause initClause =
               ((IASTEqualsInitializer) initializer).getInitializerClause();
+
+          if (arrayType.getType() instanceof CSimpleType) {
           CExpression lengthExp = computeLengthOfArray(initClause, arrayType);
 
           type =
@@ -2015,10 +2017,13 @@ class ASTConverter {
                   arrayType.isVolatile(),
                   arrayType.getType(),
                   lengthExp);
+          }
 
           // if there are nested arrays
+          // TODO if one length is not empty in declaration, for three-dimensional
           if (arrayType.getType() instanceof CArrayType) {
 
+            // TODO still need else
             if (arrayType.getLength() == null) {
 
               Map<CArrayType, CExpression> arrayPlusLength = new LinkedHashMap<>();
@@ -2026,28 +2031,31 @@ class ASTConverter {
 
               arrayPlusLength = computeLengthMultiDimArrays(arrayType, arrayPlusLength, initClause);
               List<CArrayType> types = new ArrayList<>(arrayPlusLength.keySet());
-              Collections.reverse(types);
+              // Collections.reverse(types);
               List<CExpression> lenghts = new ArrayList<>(arrayPlusLength.values());
+
+              int lastIndex = types.size() - 1;
 
               CArrayType innerType =
                   new CArrayType(
-                      types.get(0).isConst(),
-                      types.get(0).isVolatile(),
-                      types.get(0).getType(),
-                      lenghts.get(0));
+                      types.get(lastIndex).isConst(),
+                      types.get(lastIndex).isVolatile(),
+                      types.get(lastIndex).getType(),
+                      lenghts.get(lastIndex));
               List<CArrayType> typesWLength = new ArrayList<>();
               typesWLength.add(innerType);
 
-              for (int i = 1; i < types.size(); i++) {
+              int counter = 0;
+              for (int i = lastIndex - 1; i >= 0; i--) {
                 CArrayType temp =
                     new CArrayType(
                         types.get(i).isConst(),
                         types.get(i).isVolatile(),
-                        typesWLength.get(i - 1),
+                        typesWLength.get(counter),
                         lenghts.get(i));
                 typesWLength.add(temp);
+                counter++;
               }
-              int lastIndex = typesWLength.size() - 1;
               type = typesWLength.get(lastIndex);
             }
           }
@@ -2173,6 +2181,12 @@ class ASTConverter {
         }
       }
     return arrayType.getLength();
+    /**
+     * if (arrayType.getLength() != null) { if (arrayType.getLengthAsInt().getAsInt() < length) {
+     * throw parseContext.parseError( "Length in array declaration " +
+     * arrayType.getLengthAsInt().getAsInt() + " does not match number of contained elements " +
+     * length, initializer); } }
+     **/
 
     }
 
