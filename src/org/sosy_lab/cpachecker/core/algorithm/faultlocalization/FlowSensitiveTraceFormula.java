@@ -1,4 +1,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
+public class FlowSensitiveTraceFormula {
+
+}
+
+/*
+package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
@@ -24,6 +30,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 
+*/
 /* Necessary run configuration
 -setprop
 cfa.createDependenceGraph=true
@@ -31,7 +38,8 @@ cfa.createDependenceGraph=true
 controldeps.use=true
 -setprop
 flowdeps.use=false
- */
+ *//*
+
 public class FlowSensitiveTraceFormula {
 
   private TraceFormula errorTrace;
@@ -199,7 +207,8 @@ public class FlowSensitiveTraceFormula {
     return frame(pVariables, pCurrent);
   }
 
-  /*  private SSAMap generatePlainMap(SSAMap lastMap, BooleanFormula formula){
+  */
+/*  private SSAMap generatePlainMap(SSAMap lastMap, BooleanFormula formula){
     FormulaManagerView fmgr = solver.getFormulaManager();
     SSAMap plainMap = SSAMap.emptySSAMap();
     Map<String, Formula> variables = fmgr.extractVariables(formula);
@@ -235,6 +244,8 @@ public class FlowSensitiveTraceFormula {
       substitute.put(e.getValue(), shifted);
     }
     return fmgr.substitute(pFormula, substitute);
-  }*/
+  }*//*
+
 
 }
+*/

@@ -41,6 +41,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
   private Solver solver;
   private BooleanFormulaManager bmgr;
 
+  @Override
   public ErrorIndicatorSet<Selector> run(FormulaContext pContext, TraceFormula tf)
       throws CPATransferException, InterruptedException, SolverException, VerifyException {
 

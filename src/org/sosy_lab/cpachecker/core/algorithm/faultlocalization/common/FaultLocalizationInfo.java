@@ -50,8 +50,8 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
    */
   public FaultLocalizationInfo(
       ErrorIndicatorSet<I> pErrorIndicators,
-      FaultLocalizationHeuristic<I> pRanking,
-      CounterexampleInfo pCreated) {
+      CounterexampleInfo pCreated,
+      FaultLocalizationHeuristic<I> pRanking) {
     super(
         pCreated.isSpurious(),
         pCreated.getTargetPath(),
@@ -106,9 +106,9 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
 
   public static <I extends FaultLocalizationOutput>
       FaultLocalizationInfo<I> withPredefinedHeuristics(
-          ErrorIndicatorSet<I> pResult, RankingMode pRankingMode, CounterexampleInfo pInfo) {
+          ErrorIndicatorSet<I> pResult, CounterexampleInfo pInfo, RankingMode pRankingMode) {
     return new FaultLocalizationInfo<>(
-        pResult, m -> FaultLocalizationHeuristicImpl.rank(m, pRankingMode), pInfo);
+        pResult, pInfo, m -> FaultLocalizationHeuristicImpl.rank(m, pRankingMode));
   }
 
   @Override
@@ -122,7 +122,7 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
       elem.put("enabled", true);
       if (edgeToInfoMap.get(edge).hasReasons()) {
         elem.put("fault", infoEdge.htmlRepresentation());
-        elem.put("score", (int) (infoEdge.getScore()));
+        elem.put("score", (int) infoEdge.getScore());
         // TODO map
         elem.put("rank", rankedList.indexOf(infoEdge) + 1);
       }

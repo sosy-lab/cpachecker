@@ -215,6 +215,7 @@ public class TraceFormula {
     return slice(0, end);
   }
 
+  @Override
   public String toString() {
     return ExpressionConverter.convert(actualForm);
   }

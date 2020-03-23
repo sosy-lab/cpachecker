@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 
+import java.util.ArrayDeque;
 import java.util.HashMap;
-import java.util.Stack;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -71,11 +71,11 @@ public class ExpressionConverter {
       return input;
     }
 
-    Stack<String> process = new Stack<>();
-    process.push(lastExpression);
+    ArrayDeque<String> process = new ArrayDeque<>();
+    process.addFirst(lastExpression);
 
-    while (!process.empty()) {
-      String expr = process.pop();
+    while (!process.isEmpty()) {
+      String expr = process.removeFirst();
       String current = expressions.get(expr);
       String[] objects = current.split("` ", 2);
       String operator = objects[0];
@@ -87,9 +87,9 @@ public class ExpressionConverter {
         throw new IllegalArgumentException("Only unary and binary operations are allowed.");
       }
 
-      if (expressions.containsKey(operands[0])) process.push(operands[0]);
+      if (expressions.containsKey(operands[0])) process.addFirst(operands[0]);
       if (operands.length == 2) {
-        if (expressions.containsKey(operands[1])) process.push(operands[1]);
+        if (expressions.containsKey(operands[1])) process.addFirst(operands[1]);
         if (operator.equals("∧")) {
           input = input.replaceFirst(expr, operands[0] + " " + operator + " " + operands[1]);
         } else {

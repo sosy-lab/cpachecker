@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common;
 
 import com.google.common.base.Functions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -112,15 +114,13 @@ public class FaultLocalizationHeuristicImpl {
    * @param pHeuristic all heuristics to be concatenated
    * @return concatenated Heuristic sorted by total score. The score has a range of [0;100]
    */
-  @SafeVarargs
   public static <I extends FaultLocalizationOutput> FaultLocalizationHeuristic<I> concatHeuristics(
-      FaultLocalizationHeuristic<I>... pHeuristic) {
+      List<FaultLocalizationHeuristic<I>> pHeuristic) {
     return l -> forAll(l, pHeuristic);
   }
 
-  @SafeVarargs
   private static <I extends FaultLocalizationOutput> List<I> forAll(
-      ErrorIndicatorSet<I> result, FaultLocalizationHeuristic<I>... pHeuristic) {
+      ErrorIndicatorSet<I> result, List<FaultLocalizationHeuristic<I>> pHeuristic) {
     Set<I> resultSet = new HashSet<>();
     for (FaultLocalizationHeuristic<I> iFaultLocalizationHeuristic : pHeuristic) {
       resultSet.addAll(iFaultLocalizationHeuristic.rank(result));
@@ -162,36 +162,36 @@ public class FaultLocalizationHeuristicImpl {
 
   private static <I extends FaultLocalizationOutput> List<I> rankByCountingSubsetOccurrencesImpl(
       ErrorIndicatorSet<I> result) {
-    Map<Set<I>, Double> map = new HashMap<>();
+    Map<Set<I>, Integer> map = new HashMap<>();
     for (Set<I> selectors : result) {
       for (Set<I> set : result) {
         if (selectors.containsAll(set)) {
-          map.merge(set, 1.0, Double::sum);
+          map.merge(set, 1, Integer::sum);
         }
       }
     }
-    List<I> subset =
-        new ArrayList<>(
-            map.keySet().stream()
-                .reduce(
-                    (a, b) -> {
-                      if (map.get(a) < map.get(b)) {
-                        return b;
-                      } else {
-                        return a;
-                      }
-                    })
-                .orElse(Collections.emptySet()));
-    if (subset.isEmpty()) {
-      return subset;
+
+    int totalOccurrences = map.values().stream().mapToInt(Integer::intValue).sum();
+    Map<I, Double> mapLikelihood = new HashMap<>();
+
+    for (Set<I> subset : map.keySet()) {
+      for (I temp : subset) {
+        FaultLocalizationReason<I> reason =
+            FaultLocalizationReason.defaultExplanationOf(Collections.singleton(temp));
+        List<I> related = new ArrayList<>(subset);
+        related.remove(temp);
+        reason.setRelated(related);
+        double likelihood = ((double)map.get(subset))/totalOccurrences;
+        reason.setLikelihood(likelihood);
+        mapLikelihood.put(temp, likelihood);
+        temp.addReason(reason);
+      }
     }
-    FaultLocalizationReason<I> reason =
-        FaultLocalizationReason.defaultExplanationOf(Collections.singleton(subset.get(0)));
-    I temp = subset.remove(0);
-    reason.setRelated(subset);
-    reason.setLikelihood(1);
-    temp.addReason(reason);
-    return Collections.singletonList(temp);
+
+    List<I> output = new ArrayList<>(condenseErrorIndicatorSet(result));
+    output.sort(Comparator.comparingDouble(mapLikelihood::get));
+
+    return output;
   }
 
   public static <I extends FaultLocalizationOutput> Set<I> condenseErrorIndicatorSet(
@@ -244,7 +244,7 @@ public class FaultLocalizationHeuristicImpl {
       case StatementEdge:
         {
           return "Try to change the assigned value of \""
-              + description.split(" ")[0]
+              + Iterables.get(Splitter.on(" ").split(description), 0)
               + "\" in \""
               + description
               + "\" to another value.";

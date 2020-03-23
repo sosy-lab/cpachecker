@@ -141,7 +141,7 @@ public abstract class FaultLocalizationOutput {
             .append("Error suspected on line ")
             .append(correspondingEdge().getFileLocation().getStartingLineInOrigin())
             .append(". (Score: ")
-            .append((int) (getScore()))
+            .append((int) getScore())
             .append(")\n")
             .append("Detected ")
             .append(reasons)

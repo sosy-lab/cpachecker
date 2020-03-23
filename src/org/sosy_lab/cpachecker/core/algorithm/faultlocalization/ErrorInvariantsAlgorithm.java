@@ -35,7 +35,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
@@ -59,20 +58,21 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   private TraceFormula errorTrace;
   private Solver solver;
   private BooleanFormulaManager bmgr;
-  private CFA cfa;
-  private boolean useImproved;
+  //private CFA cfa;
+  //private boolean useImproved;
 
   public ErrorInvariantsAlgorithm(
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfiguration,
-      LogManager pLogger,
-      CFA pCfa,
-      boolean pImproved) {
+      LogManager pLogger
+      //CFA pCfa,
+      //boolean pImproved
+      ) {
     shutdownNotifier = pShutdownNotifier;
     config = pConfiguration;
     logger = pLogger;
-    cfa = pCfa;
-    useImproved = pImproved;
+    //cfa = pCfa;
+    //useImproved = pImproved;
   }
 
   @Override
@@ -95,11 +95,12 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     List<BooleanFormula> allFormulas = new ArrayList<>();
 
     allFormulas.add(tf.getPreCondition());
-    if (useImproved) {
+    /*if (useImproved) {
       allFormulas.addAll(FlowSensitiveTraceFormula.asList(context, tf, cfa));
     } else {
       allFormulas.addAll(tf.getAtoms());
-    }
+    }*/
+    allFormulas.addAll(tf.getAtoms());
     allFormulas.add(tf.getPostCondition());
     CounterexampleTraceInfo counterexampleTraceInfo =
         interpolationManager.buildCounterexampleTrace(new BlockFormulas(allFormulas));

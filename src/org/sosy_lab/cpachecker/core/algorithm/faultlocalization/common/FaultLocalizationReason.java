@@ -36,7 +36,7 @@ public class FaultLocalizationReason<I extends FaultLocalizationOutput> {
   private double likelihood;
 
   // set this to true if likelihood of this reason should not be weighted.
-  private boolean hintOnly;
+  //private boolean hintOnly;
 
   // The ranking does not support ranking subsets. Sometimes an error may be caused by multiple
   // lines.
@@ -58,6 +58,12 @@ public class FaultLocalizationReason<I extends FaultLocalizationOutput> {
   public FaultLocalizationReason(String pDescription) {
     related = new ArrayList<>();
     description = pDescription;
+  }
+
+  public FaultLocalizationReason(String pDescription, double pLikelihood) {
+    related = new ArrayList<>();
+    description = pDescription;
+    likelihood = pLikelihood;
   }
 
   public String getDescription() {

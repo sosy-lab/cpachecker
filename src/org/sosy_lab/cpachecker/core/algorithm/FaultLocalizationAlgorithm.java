@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.CallHierarchyHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.ErrorLocationNearestHeuristic;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SubsetSizeHeuristic;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -70,7 +71,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
   private final PathFormulaManagerImpl manager;
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
-  private final CFA cfa;
+  //private final CFA cfa;
 
   private final boolean useSingleUnsat = false;
   private final boolean useMaxSat = true;
@@ -95,7 +96,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
             pCfa,
             AnalysisDirection.FORWARD);
     logger = pLogger;
-    cfa = pCfa;
+    //cfa = pCfa;
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     context = new FormulaContext(solver, manager);
     shutdownNotifier = pShutdownNotifier;
@@ -121,7 +122,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
     if (useSingleUnsat) algorithms.add(new SingleUnsatCoreAlgorithm());
     if (useMaxSat) algorithms.add(new MaxSatAlgorithm());
     if (useErrInv)
-      algorithms.add(new ErrorInvariantsAlgorithm(shutdownNotifier, config, logger, cfa, false));
+      algorithms.add(new ErrorInvariantsAlgorithm(shutdownNotifier, config, logger));
 
     // run algorithm for every error
     for (CounterexampleInfo info : counterExamples) {
@@ -168,14 +169,16 @@ public class FaultLocalizationAlgorithm implements Algorithm {
         ErrorIndicatorSet<Selector> errorIndicators = locAlgorithm.run(context, tf);
         // FaultLocalizationInfo<Selector> info =
         // FaultLocalizationInfo.withPredefinedHeuristics(result, RankingMode.OVERALL);
+
         FaultLocalizationHeuristic<Selector> concat =
-            FaultLocalizationHeuristicImpl.concatHeuristics(
+            FaultLocalizationHeuristicImpl.concatHeuristics(List.of(
                 FaultLocalizationHeuristicImpl.getRankByCountingElements(),
+                new SubsetSizeHeuristic<>(),
                 FaultLocalizationHeuristicImpl.getRankByCountingSubsetOccurrences(),
                 new ErrorLocationNearestHeuristic<>(edgeList.get(edgeList.size() - 1)),
-                new CallHierarchyHeuristic<>(edgeList, tf.getNegated().size()));
+                new CallHierarchyHeuristic<>(edgeList, tf.getNegated().size())));
         FaultLocalizationInfo<Selector> info =
-            new FaultLocalizationInfo<>(errorIndicators, concat, pInfo);
+            new FaultLocalizationInfo<>(errorIndicators, pInfo, concat);
         pInfo.getTargetPath().getLastState().replaceCounterexampleInformation(info);
         logger.log(
             Level.INFO,
