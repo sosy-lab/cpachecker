@@ -2007,31 +2007,48 @@ class ASTConverter {
         if (initializer instanceof IASTEqualsInitializer) {
           IASTInitializerClause initClause =
               ((IASTEqualsInitializer) initializer).getInitializerClause();
+          if (arrayType.getLength() == null) {
 
-          if (arrayType.getType() instanceof CSimpleType) {
-          CExpression lengthExp = computeLengthOfArray(initClause, arrayType);
+            if (arrayType.getType() instanceof CSimpleType) {
+              CExpression lengthExp = computeLengthOfArray(initClause, arrayType);
 
-          type =
-              new CArrayType(
-                  arrayType.isConst(),
-                  arrayType.isVolatile(),
-                  arrayType.getType(),
-                  lengthExp);
+              type =
+                  new CArrayType(
+                      arrayType.isConst(),
+                      arrayType.isVolatile(),
+                      arrayType.getType(),
+                      lengthExp);
+            }
           }
 
           // if there are nested arrays
-          // TODO if one length is not empty in declaration, for three-dimensional
           if (arrayType.getType() instanceof CArrayType) {
 
-            // TODO still need else
-            if (arrayType.getLength() == null) {
+            Map<CArrayType, CExpression> arrayPlusLength = new LinkedHashMap<>();
 
-              Map<CArrayType, CExpression> arrayPlusLength = new LinkedHashMap<>();
-              arrayPlusLength.put(arrayType, computeLengthOfArray(initClause, arrayType));
+            // if all nested arrays already have length in declarator
+            boolean hasLength = true;
+            CType tmp = arrayType;
 
-              arrayPlusLength = computeLengthMultiDimArrays(arrayType, arrayPlusLength, initClause);
+            while (tmp instanceof CArrayType) {
+              if (((CArrayType) tmp).getLength() != null) {
+                tmp = ((CArrayType) tmp).getType();
+              } else {
+                hasLength = false;
+                break;
+              }
+            }
+
+            if (hasLength == false) {
+
+              if (arrayType.getLength() == null) {
+                arrayPlusLength.put(arrayType, computeLengthOfArray(initClause, arrayType));
+              } else {
+                arrayPlusLength.put(arrayType, arrayType.getLength());
+              }
+
+              arrayPlusLength = computeLengthTwoDimArray(arrayType, arrayPlusLength, initClause);
               List<CArrayType> types = new ArrayList<>(arrayPlusLength.keySet());
-              // Collections.reverse(types);
               List<CExpression> lenghts = new ArrayList<>(arrayPlusLength.values());
 
               int lastIndex = types.size() - 1;
@@ -2059,6 +2076,7 @@ class ASTConverter {
               type = typesWLength.get(lastIndex);
             }
           }
+
         }
       }
 
@@ -2070,9 +2088,9 @@ class ASTConverter {
   }
 
   /**
-   * Calculates length for every dimension of a multidimensional array.
+   * Calculates length for every dimension of a two-dimensional array.
    */
-  private Map<CArrayType, CExpression> computeLengthMultiDimArrays(
+  private Map<CArrayType, CExpression> computeLengthTwoDimArray(
       CArrayType arrayType,
       Map<CArrayType, CExpression> arrPlusLength,
       IASTInitializerClause initClause) {
@@ -2081,21 +2099,25 @@ class ASTConverter {
       return arrPlusLength;
     }
     arrayType = (CArrayType) arrayType.getType();
-    CIntegerLiteralExpression realLength = CIntegerLiteralExpression.ZERO;
-    for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
-      if (!(x instanceof CIntegerLiteralExpression)) {
-        CIntegerLiteralExpression lengthNested =
-            (CIntegerLiteralExpression) (computeLengthOfArray(x, arrayType));
-        // nested array with highest number of elements is actual length of nested array
-        if (realLength.getValue().compareTo(lengthNested.getValue()) == -1) {
-          arrPlusLength.put(arrayType, lengthNested);
-          realLength = lengthNested;
+    if (arrayType.getLength() != null) {
+      arrPlusLength.put(arrayType, arrayType.getLength());
+    } else {
+      CIntegerLiteralExpression realLength = CIntegerLiteralExpression.ZERO;
+      for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
+        if (!(x instanceof CIntegerLiteralExpression)) {
+          CIntegerLiteralExpression lengthNested =
+              (CIntegerLiteralExpression) (computeLengthOfArray(x, arrayType));
+          // nested array with highest number of elements is actual length of nested array
+          if (realLength.getValue().compareTo(lengthNested.getValue()) == -1) {
+            arrPlusLength.put(arrayType, lengthNested);
+            realLength = lengthNested;
 
+          }
         }
       }
     }
     for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
-      return computeLengthMultiDimArrays(arrayType, arrPlusLength, x);
+      return computeLengthTwoDimArray(arrayType, arrPlusLength, x);
     }
     return arrPlusLength;
   }
