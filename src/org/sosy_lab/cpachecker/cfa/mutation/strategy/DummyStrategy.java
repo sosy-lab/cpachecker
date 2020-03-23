@@ -17,9 +17,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.mutation.strategy;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
 
 public class DummyStrategy extends AbstractCFAMutationStrategy {
   private int steps;
@@ -36,7 +37,12 @@ public class DummyStrategy extends AbstractCFAMutationStrategy {
 
   @Override
   public boolean mutate(ParseResult pParseResult) {
-    return steps-- > 0;
+    if (steps > 0) {
+      steps--;
+      return true;
+    } else {
+      return false;
+    }
   }
 
   @Override

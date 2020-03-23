@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.mutation.strategy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
@@ -25,6 +25,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
 
 public class CompositeStrategy extends AbstractCFAMutationStrategy {
 
@@ -39,22 +40,34 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
     super(pLogger);
     strategiesList =
         ImmutableList.of(
-            new FunctionBodyStrategy(pLogger, 5, 0),
-            new BlankChainStrategy(pLogger, 5, 0),
-            new ChainStrategy(pLogger, 5, 1),
+            new BlankNodeStrategy(pLogger, 5, 0),
+            new FunctionBodyStrategy(pLogger, 5, 1),
+            new DummyStrategy(pLogger, 1),
+            //
             new AssumeEdgeStrategy(pLogger, 5, 1),
+            new DummyStrategy(pLogger, 1),
             //
             new BlankChainStrategy(pLogger, 5, 0),
+            new DummyStrategy(pLogger, 1),
             new SingleNodeStrategy(pLogger, 5, 1),
+            new DummyStrategy(pLogger, 1),
             new AssumeEdgeStrategy(pLogger, 5, 1),
+            new DummyStrategy(pLogger, 1),
             //
             new BlankChainStrategy(pLogger, 5, 0),
+            new DummyStrategy(pLogger, 1),
             new SingleNodeStrategy(pLogger, 5, 1),
+            new DummyStrategy(pLogger, 1),
             new AssumeEdgeStrategy(pLogger, 5, 1),
+            new DummyStrategy(pLogger, 1),
             //
             new SingleNodeStrategy(pLogger, 5, 1),
+            new DummyStrategy(pLogger, 1),
+            //
             new SpoilerFunctionStrategy(pLogger, 5, 0),
-            new GlobalDeclarationStrategy(pLogger, 5, 0));
+            new DummyStrategy(pLogger, 1),
+            new GlobalDeclarationStrategy(pLogger, 5, 1),
+            new DummyStrategy(pLogger, 1));
     strategies = strategiesList.iterator();
     currentStrategy = strategies.next();
     rounds = new ArrayDeque<>();

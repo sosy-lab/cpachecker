@@ -17,7 +17,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.mutation.strategy;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,11 +25,14 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -121,17 +124,31 @@ public class SpoilerFunctionStrategy
         continue; // skipping assume edges and termination nodes
       }
       CFAEdge leavingEdge = node.getLeavingEdge(0);
-      if (leavingEdge.getEdgeType() == CFAEdgeType.BlankEdge) {
-        continue; // skipping blank edges
+      switch (leavingEdge.getEdgeType()) {
+        case BlankEdge:
+          continue; // skipping blank edges
+        case StatementEdge:
+          if (((AStatementEdge) leavingEdge).getStatement() instanceof AFunctionCall) {
+            if (found != null) { // if more than one call
+              return null;
+            }
+            found = leavingEdge;
+            continue;
+          }
+          return null;
+        case ReturnStatementEdge:
+          AExpression expr = ((AReturnStatementEdge) leavingEdge).getExpression().orNull();
+          if (expr != null && expr instanceof AFunctionCallExpression) {
+            if (found != null) { // if more than one call
+              return null;
+            }
+            found = leavingEdge;
+            continue;
+          }
+          return null;
+        default:
+          return null;
       }
-      if (!(leavingEdge instanceof AStatementEdge
-          && ((AStatementEdge) leavingEdge).getStatement() instanceof AFunctionCall)) {
-        return null; // found an edge that is not a function call
-      }
-      if (found != null) { // if more than one call
-        return null;
-      }
-      found = leavingEdge;
     }
     return found;
   }
