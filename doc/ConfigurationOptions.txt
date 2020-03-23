@@ -3141,6 +3141,18 @@ enabledanalysis.allowLazyRefinement = false
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
 
+# Whether to export list of remained functions
+exportFunctionNames = true
+
+# File for exported function names list
+exportFunctionNamesFile = "functions.txt"
+
+# Whether to export mutated CFA as C program
+exportToC = true
+
+# File for mutated CFA exported as C program
+exportToCFile = "mutated.c"
+
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.
 heuristicSelection.addressedConfig = no default value

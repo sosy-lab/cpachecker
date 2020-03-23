@@ -45,6 +45,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.mutation.strategy.AbstractCFAMutationStrategy;
+import org.sosy_lab.cpachecker.cfa.mutation.strategy.CompositeStrategy;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -69,16 +71,29 @@ public class CFAMutator extends CFACreator {
 
   @Option(
       secure = true,
-      name = "exportToC.enable",
-      description = "Whether to export slices as C program files")
+      name = "exportToC",
+      description = "Whether to export mutated CFA as C program")
   private boolean exportToC = true;
 
   @Option(
       secure = true,
-      name = "exportToC.file",
-      description = "File template for exported C program slices")
+      name = "exportToCFile",
+      description = "File for mutated CFA exported as C program")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportToCFile = Paths.get("mutated.c");
+
+  @Option(
+      secure = true,
+      name = "exportFunctionNames",
+      description = "Whether to export list of remained functions")
+  private boolean exportFunctionNames = true;
+
+  @Option(
+      secure = true,
+      name = "exportFunctionNamesFile",
+      description = "File for exported function names list")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path exportFunctionNamesFile = Paths.get("functions.txt");
 
   private ParseResult parseResult = null;
   private Set<CFANode> originalNodes = null;
@@ -288,6 +303,9 @@ public class CFAMutator extends CFACreator {
     logger.logf(Level.FINE, "Count of CFA nodes: %d", cfa.getAllNodes().size());
 
     if (cfa == lastCFA) {
+      if (exportFunctionNames && exportFunctionNamesFile != null) {
+        exportFunctionNames(lastCFA);
+      }
       super.exportCFAAsync(lastCFA);
       if (exportToC && exportToCFile != null) {
         exportCFAToC(lastCFA);
@@ -295,6 +313,27 @@ public class CFAMutator extends CFACreator {
     } else {
       lastCFA = cfa;
     }
+  }
+
+  private void exportFunctionNames(CFA pCFA) {
+    logger.logf(Level.INFO, "translating cfa to %s", exportFunctionNamesFile);
+    Concurrency.newThread(
+            "CFAMutator function list exporter",
+            () -> {
+              try (Writer writer =
+                  IO.openOutputFile(exportFunctionNamesFile, Charset.defaultCharset())) {
+
+                StringBuilder sb = new StringBuilder();
+                for (String function : pCFA.getAllFunctionNames()) {
+                  sb.append(function).append("\n");
+                }
+                writer.write(sb.toString());
+
+              } catch (IOException e) {
+                logger.logUserException(Level.WARNING, e, "Could not write function list to file.");
+              }
+            })
+        .start();
   }
 
   private void exportCFAToC(CFA pCFA) {
