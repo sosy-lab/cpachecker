@@ -2007,10 +2007,10 @@ class ASTConverter {
         if (initializer instanceof IASTEqualsInitializer) {
           IASTInitializerClause initClause =
               ((IASTEqualsInitializer) initializer).getInitializerClause();
-          if (arrayType.getLength() == null) {
 
             if (arrayType.getType() instanceof CSimpleType) {
               CExpression lengthExp = computeLengthOfArray(initClause, arrayType);
+              compareArrayLengths(arrayType.getLength(), lengthExp, d);
 
               type =
                   new CArrayType(
@@ -2019,7 +2019,7 @@ class ASTConverter {
                       arrayType.getType(),
                       lengthExp);
             }
-          }
+
 
           // if there are nested arrays
           if (arrayType.getType() instanceof CArrayType) {
@@ -2039,17 +2039,22 @@ class ASTConverter {
               }
             }
 
-            if (hasLength == false) {
-
               if (arrayType.getLength() == null) {
                 arrayPlusLength.put(arrayType, computeLengthOfArray(initClause, arrayType));
               } else {
-                arrayPlusLength.put(arrayType, arrayType.getLength());
-              }
+                CIntegerLiteralExpression computedL =
+                    (CIntegerLiteralExpression) computeLengthOfArray(initClause, arrayType);
+              compareArrayLengths(arrayType.getLength(), computedL, d);
+
+                  arrayPlusLength.put(arrayType, arrayType.getLength());
+                }
+
 
               arrayPlusLength = computeLengthTwoDimArray(arrayType, arrayPlusLength, initClause);
               List<CArrayType> types = new ArrayList<>(arrayPlusLength.keySet());
               List<CExpression> lenghts = new ArrayList<>(arrayPlusLength.values());
+
+            if (!hasLength) {
 
               int lastIndex = types.size() - 1;
 
@@ -2099,9 +2104,7 @@ class ASTConverter {
       return arrPlusLength;
     }
     arrayType = (CArrayType) arrayType.getType();
-    if (arrayType.getLength() != null) {
-      arrPlusLength.put(arrayType, arrayType.getLength());
-    } else {
+
       CIntegerLiteralExpression realLength = CIntegerLiteralExpression.ZERO;
       for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
         if (!(x instanceof CIntegerLiteralExpression)) {
@@ -2109,19 +2112,37 @@ class ASTConverter {
               (CIntegerLiteralExpression) (computeLengthOfArray(x, arrayType));
           // nested array with highest number of elements is actual length of nested array
           if (realLength.getValue().compareTo(lengthNested.getValue()) == -1) {
+          if (arrayType.getLength() != null) {
+            compareArrayLengths(arrayType.getLength(), lengthNested, initClause);
+            arrPlusLength.put(arrayType, arrayType.getLength());
+          } else {
             arrPlusLength.put(arrayType, lengthNested);
             realLength = lengthNested;
-
+          }
           }
         }
       }
-    }
+
     for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
       return computeLengthTwoDimArray(arrayType, arrPlusLength, x);
     }
     return arrPlusLength;
   }
 
+
+  private void
+      compareArrayLengths(CExpression lengthDeclarator, CExpression lengthComputed, IASTNode i) {
+    BigInteger lengthDecl = ((CIntegerLiteralExpression) lengthDeclarator).getValue();
+    BigInteger lengthComp = ((CIntegerLiteralExpression) lengthComputed).getValue();
+    if (lengthDecl.compareTo(lengthComp) == -1) {
+      throw parseContext.parseError(
+          "Array contains more elements: "
+              + lengthComp.intValue()
+              + " than specified in the declarator: "
+              + lengthDecl.intValue(),
+          i);
+    }
+  }
 
   private CExpression
       computeLengthOfArray(IASTInitializerClause initClause, CType type) {
@@ -2203,12 +2224,6 @@ class ASTConverter {
         }
       }
     return arrayType.getLength();
-    /**
-     * if (arrayType.getLength() != null) { if (arrayType.getLengthAsInt().getAsInt() < length) {
-     * throw parseContext.parseError( "Length in array declaration " +
-     * arrayType.getLengthAsInt().getAsInt() + " does not match number of contained elements " +
-     * length, initializer); } }
-     **/
 
     }
 
