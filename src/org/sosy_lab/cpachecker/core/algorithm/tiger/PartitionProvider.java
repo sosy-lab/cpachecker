@@ -155,7 +155,8 @@ public class PartitionProvider {
     return createOrderedPartition(sortedEdges);
   }
 
-  public List<Set<CFAGoal>> createPartition(Set<CFAGoal> allEdges, CFA cfa) {
+  public List<Set<CFAGoal>>
+      createPartition(Set<CFAGoal> allEdges, @SuppressWarnings("unused") CFA cfa) {
     if (strategy == Strategy.RANDOM) {
       return createRandomPartition(allEdges);
     }

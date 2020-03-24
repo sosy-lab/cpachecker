@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
-import com.google.common.collect.Lists;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;

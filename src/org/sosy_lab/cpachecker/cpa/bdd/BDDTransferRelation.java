@@ -123,8 +123,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     compressIntEqual = pCompressIntEqual;
     assert cfa.getVarClassification().isPresent();
     this.varClass = cfa.getVarClassification().get();
-    if (globalConstraint == null) {
-      globalConstraint = manager.makeTrue();
+    if (BDDTransferRelation.globalConstraint == null) {
+      BDDTransferRelation.globalConstraint = manager.makeTrue();
     }
   }
 
@@ -135,7 +135,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       return Collections.singleton(pState);
     }
     // the path is not fulfilled
-    if (rmgr.makeAnd(globalConstraint, pState.getRegion()).isFalse()) {
+    if (rmgr.makeAnd(BDDTransferRelation.globalConstraint, pState.getRegion()).isFalse()) {
       return ImmutableList.of();
     }
     if (pState.getRegion().isFalse()) {
@@ -168,7 +168,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
     assert !result.getRegion().isFalse();
 
-    if (rmgr.makeAnd(globalConstraint, state.getRegion()).isFalse()) {
+    if (rmgr.makeAnd(BDDTransferRelation.globalConstraint, state.getRegion()).isFalse()) {
       // the new state must be ignored
       return null;
     }
@@ -227,7 +227,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         final Region[] regRHS = evaluateVectorExpression(partition, (CExpression) rhs, targetType, successor);
         newState = newState.addAssignment(var, regRHS);
       }
-      if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
+      if (rmgr.makeAnd(BDDTransferRelation.globalConstraint, newState.getRegion()).isFalse()) {
         // the new state must be ignored
         return null;
       }
@@ -311,7 +311,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       if (init != null) {
         final Region[] rhs = evaluateVectorExpression(partition, init, vdecl.getType(), cfaEdge.getSuccessor());
         newState = newState.addAssignment(var, rhs);
-        if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
+        if (rmgr.makeAnd(BDDTransferRelation.globalConstraint, newState.getRegion()).isFalse()) {
           // the new state must be ignored
           return null;
         }
@@ -349,7 +349,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       final Region[] arg = evaluateVectorExpression(partition, args.get(i), targetType, cfaEdge.getSuccessor());
       newState = newState.addAssignment(var, arg);
     }
-    if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
+    if (rmgr.makeAnd(BDDTransferRelation.globalConstraint, newState.getRegion()).isFalse()) {
       // the new state must be ignored
       return null;
     }
@@ -394,7 +394,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     } else {
       assert summaryExpr instanceof CFunctionCallStatement; // no assignment, nothing to do
     }
-    if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
+    if (rmgr.makeAnd(BDDTransferRelation.globalConstraint, newState.getRegion()).isFalse()) {
       // the new state must be ignored
       return null;
     }
@@ -457,7 +457,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
           newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
         }
       }
-      if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
+      if (rmgr.makeAnd(BDDTransferRelation.globalConstraint, newState.getRegion()).isFalse()) {
         // the new state must be ignored
         return null;
       }
@@ -492,7 +492,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     Region newRegion = rmgr.makeAnd(state.getRegion(), evaluated);
     if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
       return null;
-    } else if (rmgr.makeAnd(globalConstraint, newRegion).isFalse()) {
+    } else if (rmgr.makeAnd(BDDTransferRelation.globalConstraint, newRegion).isFalse()) {
       return null;
     } else {
       return new BDDState(rmgr, bvmgr, newRegion);

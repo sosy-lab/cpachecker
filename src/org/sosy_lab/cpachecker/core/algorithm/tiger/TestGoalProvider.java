@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -45,7 +47,7 @@ public class TestGoalProvider {
   boolean reduceGoals;
 
   private static final String goalPrefix = "Goals:";
-
+  private static final String goalRegex = "GoalRegex:";
   LogManager logger;
 
   public static TestGoalProvider getInstace(LogManager pLogger, boolean reduceGoals)
@@ -154,10 +156,7 @@ public class TestGoalProvider {
   }
 
 
-  private Set<CFAGoal> extractGoalSyntax(String fqlQuery, CFA cfa) {
-    if (!fqlQuery.startsWith(goalPrefix)) {
-      throw new RuntimeException("Could not parse FQL Query: " + fqlQuery);
-    }
+  private Set<CFAGoal> extractGoalsFromList(String fqlQuery, CFA cfa) {
     String query = fqlQuery.substring(goalPrefix.length());
     String[] goals = query.split(",");
     Set<CFAEdge> edges = new HashSet<>();
@@ -184,7 +183,39 @@ public class TestGoalProvider {
     return cfaGoals;
   }
 
-  public Set<CFAGoal> initializeTestGoalSet(String fqlQuery, CFA cfa, boolean reduceGoals) {
+  private Set<CFAGoal> extractGoalFromRegex(String fqlQuery, CFA cfa) {
+    String query = fqlQuery.substring(goalRegex.length());
+    Pattern pattern = Pattern.compile(query);
+    Set<CFAEdge> edges = new HashSet<>();
+    for (CFANode node : cfa.getAllNodes()) {
+      edges.addAll(CFAUtils.allLeavingEdges(node).toSet());
+    }
+    Set<CFAGoal> cfaGoals = new HashSet<>();
+    for (CFAEdge edge : edges) {
+      Matcher matcher = pattern.matcher(edge.getDescription());
+      if (matcher.find()) {
+        cfaGoals.add(new CFAGoal(edge));
+      }
+    }
+    return cfaGoals;
+  }
+
+  private Set<CFAGoal> extractGoalSyntax(String fqlQuery, CFA cfa) {
+    if (fqlQuery.startsWith(goalPrefix)) {
+      return extractGoalsFromList(fqlQuery, cfa);
+    }
+    if (fqlQuery.startsWith(goalRegex)) {
+      return extractGoalFromRegex(fqlQuery, cfa);
+    }
+
+    throw new RuntimeException("Could not parse FQL Query: " + fqlQuery);
+
+  }
+
+  public Set<CFAGoal> initializeTestGoalSet(
+      String fqlQuery,
+      CFA cfa,
+      @SuppressWarnings("unused") boolean reduceGoals) {
     if (!cache.containsKey(fqlQuery)) {
       Set<CFAGoal> goals = tryExtractPredefinedFQL(fqlQuery, cfa);
       if (goals == null) {

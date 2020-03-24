@@ -26,6 +26,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -152,7 +153,7 @@ public class TestSuiteWriter {
     builder.append("</test-metadata>");
     Path metaFile = Paths.get(outputFolder + "/metadata.xml");
     logger.log(Level.INFO, "writing metainfo to: " + metaFile.toString());
-    Files.write(metaFile, builder.toString().getBytes());
+    Files.write(metaFile, builder.toString().getBytes(StandardCharsets.UTF_8));
 
     // logger.log(
     // Level.INFO,
@@ -247,7 +248,7 @@ public class TestSuiteWriter {
       builder.append("</testcase>\n");
       Files.write(
           Paths.get(outputFolder + "/testcase-" + testcase.getId() + ".xml"),
-          builder.toString().getBytes());
+          builder.toString().getBytes(StandardCharsets.UTF_8));
     } catch (IOException ex) {
       logger.log(Level.SEVERE, "Could not write test-case!");
     }
@@ -304,14 +305,14 @@ public class TestSuiteWriter {
 
   private void initTestSuiteFolder() {
     File outputFolderFile = new File(outputFolder);
-    if (!outputFolderFile.exists()) {
-      outputFolderFile.mkdirs();
-    }
-    if (useTestCompOutput) {
-      try {
-        writeMetaData();
-      } catch (IOException e) {
-        logger.log(Level.SEVERE, "could not write metadata");
+    boolean folderExists = outputFolderFile.exists() || outputFolderFile.mkdirs();
+    if (folderExists) {
+      if (useTestCompOutput) {
+        try {
+          writeMetaData();
+        } catch (IOException e) {
+          logger.log(Level.SEVERE, "could not write metadata");
+        }
       }
     }
   }

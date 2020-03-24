@@ -75,7 +75,6 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerCexCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerConfiguration;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerMultiGoalAlgorithm;
@@ -494,8 +493,6 @@ public class CoreComponentsFactory {
                 cfa,
                 pSpecification,
                 logger);
-      } else if (tigerConfig.useTigerAlgorithm) {
-        algorithm = new TigerAlgorithm(logger, cfa, config, cpa, shutdownNotifier, specification);
       } else if (tigerConfig.useTigerMultiGoalAlgorithm) {
         algorithm =
             new TigerMultiGoalAlgorithm(logger, cfa, config, cpa, shutdownNotifier, specification);

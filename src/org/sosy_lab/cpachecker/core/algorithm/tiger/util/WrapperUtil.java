@@ -43,6 +43,7 @@ public class WrapperUtil {
   public static final String CPAtiger_MAIN = "__CPAtiger__main";
   public static final String CPAtiger_INPUT = "input";
 
+  @SuppressWarnings("null")
   public static FileToParse getWrapperCFunction(CFunctionEntryNode pMainFunction, LogManager logger)
       throws IOException {
 
@@ -107,9 +108,13 @@ public class WrapperUtil {
               new FileOutputStream(f), "utf-8"));
         writer.write(lWrapperFunction.toString());
     } catch (IOException ex) {
-      // TODO report
+      throw ex;
     } finally {
-       try {writer.close();} catch (Exception ex) {}
+      try {
+        writer.close();
+      } catch (Exception ex) {
+        throw ex;
+      }
     }
 
     //return new FileToParse(f.getAbsolutePath(), CPAtiger_MAIN + "__");

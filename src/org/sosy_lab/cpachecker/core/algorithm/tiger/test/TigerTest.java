@@ -27,6 +27,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.util.Iterator;
 import java.util.List;
@@ -74,6 +75,7 @@ public class TigerTest {
 
   private static List<ExpectedGoalProperties> exampleGoalProperties_ifCombinations;
 
+  @SuppressFBWarnings()
   @Rule
   public Timeout globalTimeout = Timeout.seconds(90);
 

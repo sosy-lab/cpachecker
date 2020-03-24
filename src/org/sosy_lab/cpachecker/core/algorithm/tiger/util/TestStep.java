@@ -36,21 +36,6 @@ public class TestStep {
     variables = new ArrayList<>();
   }
 
-  public class InputStep extends TestStep {
-
-    public void addInput(String variable, BigInteger value) {
-      variables.add(Pair.of(variable, value));
-    }
-
-  }
-
-  public class OutputStep extends TestStep {
-
-    public void addOutput(String variable, BigInteger value) {
-      variables.add(Pair.of(variable, value));
-    }
-
-  }
 
   @Override
   public String toString() {

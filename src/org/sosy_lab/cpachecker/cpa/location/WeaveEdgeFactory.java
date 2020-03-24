@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cpa.multigoal.MultiGoalState;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class WeaveEdgeFactory {
-  private class WeavedVariable {
+  private static class WeavedVariable {
     public WeavedVariable(
         CVariableDeclaration pVarDecl,
         CExpressionAssignmentStatement pIncrement,
@@ -59,7 +59,6 @@ public class WeaveEdgeFactory {
     CVariableDeclaration varDecl;
     CExpressionAssignmentStatement increment;
     CExpression assumption;
-    CExpression negatedAssumption;
 
     public CVariableDeclaration getVarDecl() {
       return varDecl;
@@ -72,13 +71,8 @@ public class WeaveEdgeFactory {
     public CExpression getAssumption() {
       return assumption;
     }
-
-    public CExpression getNegatedAssumption() {
-      return negatedAssumption;
-    }
-
   }
-  private class WeavingCacheKey {
+  private static class WeavingCacheKey {
     CFANode initialCFANode;
     CFANode finalCFANode;
     ImmutableSet<Pair<CFAEdge, WeavingType>> weavingEdges;
@@ -302,42 +296,42 @@ public class WeaveEdgeFactory {
 
 
 
-  private void createNegatedEdges(
-      MultiGoalState mgState,
-      CFAEdge pCfaEdge,
-      String functionName,
-      WeavingCacheKey wck) {
-    Iterator<Pair<CFAEdge, WeavingType>> iter = mgState.getEdgesToWeave().iterator();
-    // TODO important to weave NEGATEDASSUMPTION last!
-      List<CFAEdge> weavedEdges = new ArrayList<>();
-      CFANode predecessor = pCfaEdge.getPredecessor();
-
-      CFANode successor = null;
-      while (iter.hasNext()) {
-
-        Pair<CFAEdge, WeavingType> pair = iter.next();
-        successor = new CFANode(functionName);
-
-        CFAEdge weaveEdge = createWeaveEdge(pair, successor, predecessor);
-        weavedEdges.add(weaveEdge);
-
-        if (predecessor != pCfaEdge.getPredecessor()) {
-          predecessor.addLeavingEdge(weaveEdge);
-      }
-
-        successor.addEnteringEdge(weaveEdge);
-        predecessor = successor;
-      }
-
-      successor = pCfaEdge.getSuccessor();
-      CFAEdge finalEdge = copy(pCfaEdge, predecessor, successor);
-      weavedEdgesToOriginalEdgesMap.put(finalEdge, pCfaEdge);
-      predecessor.addLeavingEdge(finalEdge);
-      weavedEdges.add(finalEdge);
-
-      weavingCache.put(wck, weavedEdges);
-
-  }
+  // private void createNegatedEdges(
+  // MultiGoalState mgState,
+  // CFAEdge pCfaEdge,
+  // String functionName,
+  // WeavingCacheKey wck) {
+  // Iterator<Pair<CFAEdge, WeavingType>> iter = mgState.getEdgesToWeave().iterator();
+  // // TODO important to weave NEGATEDASSUMPTION last!
+  // List<CFAEdge> weavedEdges = new ArrayList<>();
+  // CFANode predecessor = pCfaEdge.getPredecessor();
+  //
+  // CFANode successor = null;
+  // while (iter.hasNext()) {
+  //
+  // Pair<CFAEdge, WeavingType> pair = iter.next();
+  // successor = new CFANode(functionName);
+  //
+  // CFAEdge weaveEdge = createWeaveEdge(pair, successor, predecessor);
+  // weavedEdges.add(weaveEdge);
+  //
+  // if (predecessor != pCfaEdge.getPredecessor()) {
+  // predecessor.addLeavingEdge(weaveEdge);
+  // }
+  //
+  // successor.addEnteringEdge(weaveEdge);
+  // predecessor = successor;
+  // }
+  //
+  // successor = pCfaEdge.getSuccessor();
+  // CFAEdge finalEdge = copy(pCfaEdge, predecessor, successor);
+  // weavedEdgesToOriginalEdgesMap.put(finalEdge, pCfaEdge);
+  // predecessor.addLeavingEdge(finalEdge);
+  // weavedEdges.add(finalEdge);
+  //
+  // weavingCache.put(wck, weavedEdges);
+  //
+  // }
 
   private void
       create(

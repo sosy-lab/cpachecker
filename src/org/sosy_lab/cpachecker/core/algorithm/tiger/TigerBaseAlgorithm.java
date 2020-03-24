@@ -84,7 +84,6 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     TIMEDOUT
   }
 
-  String originalMainFunction = "main";
   protected TigerAlgorithmConfiguration tigerConfig;
   protected InputOutputValues values;
   protected LogManager logger;
@@ -119,7 +118,6 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     logger = pLogger;
     if (pStats != null && pStats.getProperties() != null) {
       for (SpecificationProperty specProperty : pStats.getProperties()) {
-        originalMainFunction = specProperty.getEntryFunction();
         Property property = specProperty.getProperty();
         if (property instanceof CommonCoverageType) {
           tigerConfig.setFQLQuery(((CommonCoverageType) property).toString());

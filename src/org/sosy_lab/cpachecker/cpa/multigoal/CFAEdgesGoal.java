@@ -91,8 +91,8 @@ public class CFAEdgesGoal implements Property {
   }
 
   public boolean containsNegatedEdge(CFAEdge pCfaEdge) {
-    for (Collection<CFAEdge> negatedEdges : getNegatedEdges()) {
-      for (CFAEdge edge : negatedEdges) {
+    for (Collection<CFAEdge> negEdges : getNegatedEdges()) {
+      for (CFAEdge edge : negEdges) {
         if (edge.equals(pCfaEdge)) {
           return true;
         }

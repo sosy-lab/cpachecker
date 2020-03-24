@@ -437,14 +437,7 @@ public class InputOutputValues {
                   if (binExp.getOperand2() instanceof ALiteralExpression
                       && binExp.getOperand1().equals(assignment.getLeftHandSide())) {
                     Object value = ((ALiteralExpression) binExp.getOperand2()).getValue();
-                    Type returnType = functionDeclaration.getType().getReturnType();
-                    // if(returnType instanceof CSimpleType) {
-                    // if(((CSimpleType) returnType).getType() == CBasicType.CHAR ) {
-                    // int intVal = ((BigInteger) value).intValue();
-                    // char charvalue = (char) intVal;
-                    // value = charvalue;
-                    // }
-                    // }
+
                     return Optional
                         .of(
                             new TestCaseVariable(

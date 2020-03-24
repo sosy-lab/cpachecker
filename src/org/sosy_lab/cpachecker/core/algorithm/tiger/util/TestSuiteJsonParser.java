@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -34,7 +35,7 @@ public class TestSuiteJsonParser {
   public static TestSuiteData parseJson(String path) throws IOException {
     ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationConfig.Feature.INDENT_OUTPUT);
-    String json = new String(Files.readAllBytes(Paths.get(path)));
+    String json = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
     return mapper.readValue(json, TestSuiteData.class);
   }
 }

@@ -81,7 +81,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
       Set<CFAGoal> pAllGOals) {
     if (cFAGoalTS != null) {
       if (sameTestGoals(cFAGoalTS.includedTestGoals, includedTestGoals)
-          && premovePrefixString == cFAGoalTS.removePrefixString) {
+          && premovePrefixString.equals(cFAGoalTS.removePrefixString)) {
         return cFAGoalTS;
       }
     }
@@ -101,7 +101,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
     if (automatonGoalTS != null) {
       if (automatonGoalTS.getBddUtils() == pBddUtils
           && sameTestGoals(automatonGoalTS.includedTestGoals, includedTestGoals)
-          && premovePrefixString == automatonGoalTS.removePrefixString) {
+          && premovePrefixString.equals(automatonGoalTS.removePrefixString)) {
         return automatonGoalTS;
       }
     }

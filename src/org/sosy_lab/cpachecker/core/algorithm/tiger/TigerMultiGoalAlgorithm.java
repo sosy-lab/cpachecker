@@ -135,16 +135,6 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
   }
 
-  private int getRandomValue(int min) {
-    int max = (min * 100);
-    if (max < min) {
-      int swap = max;
-      max = min;
-      min = swap;
-    }
-    return (int) (Math.random() * ((-min) + 1)) + min;
-  }
-
   private void createDefaultTestCases() {
     if (tigerConfig.getNumberOfDefaultTestCases() > 0) {
       int lastValue = 1;
@@ -153,7 +143,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
         List<TestCaseVariable> inputs = new ArrayList<>();
         for (int y = 0; y <= 10; y++) {
           TestCaseVariable var =
-              new TestCaseVariable("Dummy", String.valueOf(getRandomValue(lastValue)));
+              new TestCaseVariable("Dummy", String.valueOf(0));
           inputs.add(var);
         }
         TestCase tc = new TestCase(inputs, Collections.emptyList(), null, null, null);

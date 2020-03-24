@@ -43,7 +43,7 @@ public class BDDUtils {
   private static BDDUtils cache;
 
   public BDDUtils(ConfigurableProgramAnalysis pCPA, LogManager pLogger) {
-    bddCpa = getBddCpa(pCPA);
+    extractBddCpa(pCPA);
     cpa = pCPA;
     logger = pLogger;
   }
@@ -52,17 +52,14 @@ public class BDDUtils {
     return bddCpa != null;
   }
 
-  public BDDCPA getBddCpa(ConfigurableProgramAnalysis pCpa) {
+  private void extractBddCpa(ConfigurableProgramAnalysis pCpa) {
     if (pCpa instanceof WrapperCPA) {
       // TODO: This returns the *first* BDDCPA. Currently I cannot get/match which name the cpa
       // has in the config. Might lead to problems when more than one BDDCPA is configured.
-      BDDCPA bddCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BDDCPA.class);
-      return bddCpa;
+      bddCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BDDCPA.class);
     } else if (pCpa instanceof BDDCPA) {
-      return ((BDDCPA) pCpa);
+      bddCpa = ((BDDCPA) pCpa);
     }
-
-    return null;
   }
 
   public String dumpRegion(Region pPresenceCondition) {

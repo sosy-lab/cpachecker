@@ -20,6 +20,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
@@ -69,7 +70,7 @@ public class TigerCexCheckAlgorithm implements Algorithm, ShutdownRequestListene
     assert spec.getPathToSpecificationAutomata().keySet().size() == 1;
     for (Path specPath : spec.getPathToSpecificationAutomata().keySet()) {
       try {
-        String content = new String(Files.readAllBytes(specPath));
+        String content = new String(Files.readAllBytes(specPath), StandardCharsets.UTF_8);
 
         Pattern pattern =
             Pattern.compile("(<data key=\"violatedProperty\">)(((?!.*</data>).*\\n*)*)");

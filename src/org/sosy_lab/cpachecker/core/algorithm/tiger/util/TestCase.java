@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 public class TestCase {
 
-  public static int currentTestCaseID;
+  static int currentTestCaseID;
 
   public static int nextTCID() {
     return currentTestCaseID++;
@@ -106,24 +106,6 @@ public class TestCase {
     return presenceCondition;
   }
 
-  public String toCode() {
-    StringBuilder str = new StringBuilder();
-    str.append("int input() {\n  static int index = 0;\n  switch (index) {\n");
-
-    int index = 0;
-    for (TestCaseVariable var : inputs) {
-      str.append("  case ");
-      str.append(index);
-      str.append("\":\\n    index++;\\n    return \"");
-      str.append("var.getValue()");
-      str.append(";\n");
-      index++;
-    }
-
-    str.append("  default:\n    return 0;\n  }\n}\n");
-
-    return str.toString();
-  }
 
   public List<String> calculateCoveredLabels() {
     List<String> result = Lists.newLinkedList();

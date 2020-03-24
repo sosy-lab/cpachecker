@@ -103,6 +103,9 @@ public final class CArrayType extends AArrayType implements CType {
 
   @Override
   public boolean isIncomplete() {
+    if (length == null) {
+      return true;
+    }
     return length == null; // C standard § 6.2.5 (22)
   }
 
