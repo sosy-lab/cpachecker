@@ -34,10 +34,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class AssumeEdgeStrategy
+public class SimpleAssumeEdgeStrategy
     extends GenericCFAMutationStrategy<Pair<AssumeEdge, AssumeEdge>, Pair<AssumeEdge, AssumeEdge>> {
 
-  public AssumeEdgeStrategy(LogManager pLogger, int pRate, int pStartDepth) {
+  public SimpleAssumeEdgeStrategy(LogManager pLogger, int pRate, int pStartDepth) {
     super(pLogger, pRate, pStartDepth);
   }
 
@@ -68,7 +68,7 @@ public class AssumeEdgeStrategy
     return answer;
   }
 
-  private boolean isBackwardEdge(CFAEdge pEdge) {
+  protected static boolean isBackwardEdge(CFAEdge pEdge) {
     return pEdge.getPredecessor().getReversePostorderId()
         <= pEdge.getSuccessor().getReversePostorderId();
   }

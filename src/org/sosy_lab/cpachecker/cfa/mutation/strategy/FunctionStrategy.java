@@ -33,10 +33,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class FunctionBodyStrategy
+public class FunctionStrategy
     extends GenericCFAMutationStrategy<String, Pair<FunctionEntryNode, SortedSet<CFANode>>> {
 
-  public FunctionBodyStrategy(LogManager pLogger, int pRate, int pStartDepth) {
+  public FunctionStrategy(LogManager pLogger, int pRate, int pStartDepth) {
     super(pLogger, pRate, pStartDepth);
   }
 

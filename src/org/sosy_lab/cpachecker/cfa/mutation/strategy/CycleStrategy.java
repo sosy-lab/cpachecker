@@ -19,39 +19,39 @@
  */
 package org.sosy_lab.cpachecker.cfa.mutation.strategy;
 
+import com.google.common.collect.ImmutableList;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 
-public class DummyStrategy extends AbstractCFAMutationStrategy {
-  private int steps;
+public class CycleStrategy extends CompositeStrategy {
+  private int cycle = 0;
 
-  public DummyStrategy(LogManager pLogger) {
-    super(pLogger);
-    steps = 1;
-  }
-
-  public DummyStrategy(LogManager pLogger, int pSteps) {
-    super(pLogger);
-    steps = pSteps;
-  }
-
-  @Override
-  public int countPossibleMutations(ParseResult pParseResult) {
-    return steps;
+  public CycleStrategy(LogManager pLogger) {
+    super(
+        pLogger,
+        ImmutableList.of(
+            // First, remove AssumeEdges if possible
+            new SimpleAssumeEdgeStrategy(pLogger, 5, 1),
+            // Second, remove statements if possible
+            new StatementNodeStrategy(pLogger, 5, 1),
+            // Then remove blank edges
+            new BlankNodeStrategy(pLogger, 5, 0)));
   }
 
   @Override
   public boolean mutate(ParseResult pParseResult) {
-    if (steps > 0) {
-      steps--;
+    if (super.mutate(pParseResult)) {
       return true;
-    } else {
-      return false;
     }
+    logger.logf(Level.INFO, "Starting cycle %d", ++cycle);
+    strategies = strategiesList.iterator();
+    currentStrategy = strategies.next();
+    return super.mutate(pParseResult);
   }
 
   @Override
-  public void rollback(ParseResult pParseResult) {
-    assert false : "Dummy strategy does not change parseResult, there has to be no rollbacks";
+  public String toString() {
+    return super.toString() + ", " + cycle + " cycles";
   }
 }

@@ -42,11 +42,11 @@ public class SpoilerFunctionStrategy
     extends GenericCFAMutationStrategy<
         String, Triple<FunctionEntryNode, SortedSet<CFANode>, Collection<CFAEdge>>> {
 
-  private final FunctionBodyStrategy functionRemover;
+  private final FunctionStrategy functionRemover;
 
   public SpoilerFunctionStrategy(LogManager pLogger, int pRate, int pStartDepth) {
     super(pLogger, pRate, pStartDepth);
-    functionRemover = new FunctionBodyStrategy(pLogger, 0, 0);
+    functionRemover = new FunctionStrategy(pLogger, 0, 0);
   }
 
   @Override

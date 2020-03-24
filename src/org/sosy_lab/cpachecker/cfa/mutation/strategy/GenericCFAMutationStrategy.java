@@ -97,7 +97,7 @@ public abstract class GenericCFAMutationStrategy<ObjectKey, RollbackInfo>
     if (batchNum == batchCount && !goNextLevel(pParseResult)) {
       return false;
     } else {
-      logger.logf(Level.SEVERE, "Batch number %d / %d", ++batchNum, batchCount);
+      logger.logf(Level.INFO, "Batch number %d / %d", ++batchNum, batchCount);
     }
 
     ImmutableCollection<ObjectKey> chosenObjects =
@@ -115,19 +115,17 @@ public abstract class GenericCFAMutationStrategy<ObjectKey, RollbackInfo>
     }
 
     logger.logf(
-        Level.SEVERE,
+        Level.INFO,
         "Depth %d, Batch %d. Removed %d objects",
         depth,
         batchNum,
         chosenObjects.size());
 
-    after -= chosenObjects.size();
-    System.out.flush();
     for (ObjectKey object : chosenObjects) {
       currentMutation.push(getRollbackInfo(pParseResult, object));
       removeObject(pParseResult, object);
     }
-    System.out.flush();
+    after -= currentMutation.size();
 
     previousMutations.addAll(chosenObjects);
     return true;
@@ -148,7 +146,7 @@ public abstract class GenericCFAMutationStrategy<ObjectKey, RollbackInfo>
     if (depth == 1) {
       batchSize = (batchSize - 1) / rate + 1;
     }
-    logger.logf(Level.SEVERE, "batchsize init %d at depth %d", batchSize, depth);
+    logger.logf(Level.INFO, "batchsize init %d at depth %d", batchSize, depth);
   }
 
   private boolean goNextLevel(ParseResult pParseResult) {
@@ -158,7 +156,7 @@ public abstract class GenericCFAMutationStrategy<ObjectKey, RollbackInfo>
       return true;
     } else if (batchSize == 1) {
       for (ObjectKey o : getAllObjects(pParseResult)) {
-        System.out.println("" + this + " remained " + o);
+        logger.logf(Level.INFO, "%s: remained %s", this, o);
       }
       return false;
     }
@@ -168,23 +166,20 @@ public abstract class GenericCFAMutationStrategy<ObjectKey, RollbackInfo>
     batchCount = batchCount * rate;
     batchSize = (batchSize - 1) / rate + 1;
 
-    logger.logf(Level.SEVERE, "previous mutations was %d", previousMutations.size());
+    logger.logf(Level.INFO, "previous mutations was %d", previousMutations.size());
     previousMutations.clear();
-    logger.logf(
-        Level.SEVERE, "batch size updated %d x %d at depth %d", batchSize, batchCount, depth);
+    logger.logf(Level.INFO, "batch size updated %d x %d at depth %d", batchSize, batchCount, depth);
     return true;
   }
 
   @Override
   public void rollback(ParseResult pParseResult) {
-    System.out.flush();
-    logger.logf(Level.SEVERE, "rollbacked %d", currentMutation.size());
+    logger.logf(Level.INFO, "rollbacked %d", currentMutation.size());
     after += currentMutation.size();
     Iterator<RollbackInfo> it = currentMutation.iterator();
     while (it.hasNext()) {
       returnObject(pParseResult, it.next());
     }
-    System.out.flush();
   }
 
   @Override

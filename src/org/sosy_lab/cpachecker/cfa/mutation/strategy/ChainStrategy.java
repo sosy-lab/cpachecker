@@ -217,7 +217,7 @@ public class ChainStrategy extends GenericCFAMutationStrategy<Chain, Chain> {
     }
   }
 
-  private Chain getChainWith(CFANode pNode) {
+  public Chain getChainWith(CFANode pNode) {
     NodePollingChainVisitor oneWayChainVisitor = new NodePollingChainVisitor(false);
     CFATraversal.dfs().backwards().traverse(pNode, oneWayChainVisitor);
     oneWayChainVisitor.changeDirection();

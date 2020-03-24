@@ -45,6 +45,7 @@ public class GlobalDeclarationStrategy
     if (decl instanceof AFunctionDeclaration) {
       return !pParseResult.getFunctions().containsKey(decl.getName());
     }
+    // TODO other declarations
     return true;
   }
 

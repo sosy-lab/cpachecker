@@ -21,37 +21,17 @@ package org.sosy_lab.cpachecker.cfa.mutation.strategy;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class DummyStrategy extends AbstractCFAMutationStrategy {
-  private int steps;
+public class BlankNodeStrategy extends SingleNodeStrategy {
 
-  public DummyStrategy(LogManager pLogger) {
-    super(pLogger);
-    steps = 1;
-  }
-
-  public DummyStrategy(LogManager pLogger, int pSteps) {
-    super(pLogger);
-    steps = pSteps;
+  public BlankNodeStrategy(LogManager pLogger, int pRate, int pStartDepth) {
+    super(pLogger, pRate, pStartDepth);
   }
 
   @Override
-  public int countPossibleMutations(ParseResult pParseResult) {
-    return steps;
-  }
-
-  @Override
-  public boolean mutate(ParseResult pParseResult) {
-    if (steps > 0) {
-      steps--;
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  @Override
-  public void rollback(ParseResult pParseResult) {
-    assert false : "Dummy strategy does not change parseResult, there has to be no rollbacks";
+  protected boolean canRemove(ParseResult pParseResult, CFANode pNode) {
+    return super.canRemove(pParseResult, pNode) && pNode.getLeavingEdge(0) instanceof BlankEdge;
   }
 }

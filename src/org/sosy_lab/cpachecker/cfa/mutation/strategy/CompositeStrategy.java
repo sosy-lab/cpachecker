@@ -29,9 +29,9 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 
 public class CompositeStrategy extends AbstractCFAMutationStrategy {
 
-  private final ImmutableList<AbstractCFAMutationStrategy> strategiesList;
-  private final UnmodifiableIterator<AbstractCFAMutationStrategy> strategies;
-  private AbstractCFAMutationStrategy currentStrategy;
+  protected final ImmutableList<AbstractCFAMutationStrategy> strategiesList;
+  protected UnmodifiableIterator<AbstractCFAMutationStrategy> strategies;
+  protected AbstractCFAMutationStrategy currentStrategy;
   private int round = 0;
   private final Deque<Integer> rounds;
   private final Deque<Integer> rollbacks;
@@ -40,34 +40,53 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
     super(pLogger);
     strategiesList =
         ImmutableList.of(
+            // First, try to remove most functions.
+            //   Remove functions, 60-150 rounds for 10-15k nodes in input, 500-800 nodes remain.
+            new FunctionStrategy(pLogger, 5, 1),
+            //   Check that analysis result remains unchanged.
+            new DummyStrategy(pLogger),
+            //   It seems it does not change result, so try to remove all in one round.
             new BlankNodeStrategy(pLogger, 5, 0),
-            new FunctionBodyStrategy(pLogger, 5, 1),
-            new DummyStrategy(pLogger, 1),
-            //
-            new AssumeEdgeStrategy(pLogger, 5, 1),
-            new DummyStrategy(pLogger, 1),
-            //
-            new BlankChainStrategy(pLogger, 5, 0),
-            new DummyStrategy(pLogger, 1),
-            new SingleNodeStrategy(pLogger, 5, 1),
-            new DummyStrategy(pLogger, 1),
-            new AssumeEdgeStrategy(pLogger, 5, 1),
-            new DummyStrategy(pLogger, 1),
-            //
-            new BlankChainStrategy(pLogger, 5, 0),
-            new DummyStrategy(pLogger, 1),
-            new SingleNodeStrategy(pLogger, 5, 1),
-            new DummyStrategy(pLogger, 1),
-            new AssumeEdgeStrategy(pLogger, 5, 1),
-            new DummyStrategy(pLogger, 1),
-            //
-            new SingleNodeStrategy(pLogger, 5, 1),
-            new DummyStrategy(pLogger, 1),
-            //
+
+            // Second, mutate remained functions somehow.
+            //   1. Remove unneeded assumes and statements.
+            new CycleStrategy(pLogger),
+            //   Check the result
+            new DummyStrategy(pLogger),
+            //   2. Remove loops on nodes (edges from node to itself).
+            new NodeWithLoopStrategy(pLogger, 5, 0),
+            //   Now we can remove delooped blank edges.
+            new BlankNodeStrategy(pLogger, 5, 0),
+            //   3. Remove unneeded declarations. TODO *unneeded*
+            new DeclarationStrategy(pLogger, 5, 0),
+            new DummyStrategy(pLogger),
+            new CycleStrategy(pLogger),
+            new DummyStrategy(pLogger),
+            //   4. Linearize loops: instead branching
+            //   insert loop body branch and "exit" branch successively,
+            //   as if loop is "executed" once.
+            new LoopAssumeEdgeStrategy(pLogger, 5, 0),
+            new DummyStrategy(pLogger),
+
+            // Third, remove functions-spoilers: they just call another function
+            // It seems it does not change result, so try to remove all in one round
             new SpoilerFunctionStrategy(pLogger, 5, 0),
-            new DummyStrategy(pLogger, 1),
+            new DummyStrategy(pLogger),
+
+            // And last: remove global declarations, certainly of already removed functions.
+            // TODO declarations of global variables and types
             new GlobalDeclarationStrategy(pLogger, 5, 1),
-            new DummyStrategy(pLogger, 1));
+            new DummyStrategy(pLogger));
+    strategies = strategiesList.iterator();
+    currentStrategy = strategies.next();
+    rounds = new ArrayDeque<>();
+    rollbacks = new ArrayDeque<>();
+  }
+
+  public CompositeStrategy(
+      LogManager pLogger, ImmutableList<AbstractCFAMutationStrategy> pStrategiesList) {
+    super(pLogger);
+    strategiesList = pStrategiesList;
     strategies = strategiesList.iterator();
     currentStrategy = strategies.next();
     rounds = new ArrayDeque<>();
@@ -76,12 +95,12 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
 
   @Override
   public boolean mutate(ParseResult parseResult) {
-    logger.logf(Level.SEVERE, "Round %d. Mutation strategy %s", ++round, currentStrategy);
+    logger.logf(Level.INFO, "Round %d. Mutation strategy %s", ++round, currentStrategy);
     rounds.addLast(rounds.pollLast() + 1);
     boolean answer = currentStrategy.mutate(parseResult);
     while (!answer) {
       logger.logf(
-          Level.SEVERE,
+          Level.INFO,
           "Round %d. Mutation strategy %s finished in %d rounds with %d rollbacks.",
           round,
           currentStrategy,
@@ -93,7 +112,7 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
         return answer;
       }
       currentStrategy = strategies.next();
-      logger.logf(Level.SEVERE, "Switching strategy to %s", currentStrategy);
+      logger.logf(Level.INFO, "Switching strategy to %s", currentStrategy);
       answer = currentStrategy.mutate(parseResult);
     }
     return answer;
@@ -110,12 +129,12 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
     int sum = 0;
     for (AbstractCFAMutationStrategy strategy : strategiesList) {
       int term = strategy.countPossibleMutations(parseResult);
-      logger.logf(Level.SEVERE, "Strategy %s: %d possible mutations", strategy, term);
+      logger.logf(Level.INFO, "Strategy %s: %d possible mutations", strategy, term);
       sum += term;
 
       if (!rounds.isEmpty()) {
         logger.logf(
-            Level.SEVERE,
+            Level.INFO,
             "in %d rounds with %d rollbacks",
             rounds.pollFirst(),
             rollbacks.pollFirst());
