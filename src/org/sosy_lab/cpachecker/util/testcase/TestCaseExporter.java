@@ -24,13 +24,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.URI;
-import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -61,7 +61,9 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -71,12 +73,16 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -361,11 +367,10 @@ public class TestCaseExporter {
       final CFA pCfa,
       final TestValuesToFormat formatter) {
 
-    if (!pCounterexampleInfo.isPreciseCounterExample()) {
-      return Optional.empty();
-    }
+    Preconditions.checkArgument(pCounterexampleInfo.isPreciseCounterExample()
+        || !areAssignmentsOnPath(pCounterexampleInfo.getTargetPath()));
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap =
-        pCounterexampleInfo.getExactVariableValues();
+        getValueMap(pCounterexampleInfo);
 
     List<String> values = new ArrayList<>();
     Set<ARGState> visited = new HashSet<>();
@@ -425,7 +430,52 @@ public class TestCaseExporter {
     return Optional.empty();
   }
 
-  public static Optional<String> getReturnValueForExternalFunction(
+  private Multimap<ARGState, CFAEdgeWithAssumptions> getValueMap(CounterexampleInfo pCounterexampleInfo) {
+    if (pCounterexampleInfo.isPreciseCounterExample()) {
+      return pCounterexampleInfo.getExactVariableValues();
+    } else {
+      return HashMultimap.create();
+    }
+  }
+
+  private static boolean areAssignmentsOnPath(ARGPath pPath) {
+    for (CFAEdge e : pPath.getInnerEdges()) {
+      switch (e.getEdgeType()) {
+        case BlankEdge:
+        case CallToReturnEdge:
+        case AssumeEdge:
+        case ReturnStatementEdge:
+        case FunctionCallEdge:
+          // no assignments
+          break;
+        case DeclarationEdge:
+          ADeclaration decl = ((ADeclarationEdge) e).getDeclaration();
+          if (decl instanceof AVariableDeclaration) {
+            if (((AVariableDeclaration) decl).getInitializer() != null) {
+              return true;
+            }
+          }
+          break;
+        case StatementEdge:
+          AStatement stmt = ((AStatementEdge) e).getStatement();
+          if (stmt instanceof AAssignment) {
+            return true;
+          }
+          break;
+        case FunctionReturnEdge:
+          AFunctionCall call = ((FunctionReturnEdge) e).getSummaryEdge().getExpression();
+          if (call instanceof AAssignment) {
+            return true;
+          }
+          break;
+        default:
+          throw new AssertionError("Unhandled edge type: " + e.getEdgeType());
+      }
+    }
+    return false;
+  }
+
+  private Optional<String> getReturnValueForExternalFunction(
       final AFunctionCall functionCall,
       final CFAEdge edge,
       final @Nullable Collection<CFAEdgeWithAssumptions> pAssumptions,
