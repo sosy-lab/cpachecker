@@ -330,11 +330,7 @@ public class CEXExporter {
                     counterexample));
 
     if (options.exportToTest() && testExporter != null) {
-      try {
-        testExporter.writeTestCaseFiles(counterexample, Optional.empty());
-      } catch (IOException pE) {
-        logger.logUserException(Level.INFO, pE, "Error path could not be written to test case.");
-      }
+      testExporter.writeTestCaseFiles(counterexample, Optional.empty());
     }
   }
 
