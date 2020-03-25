@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public abstract class FaultLocalizationOutput {
@@ -38,7 +37,7 @@ public abstract class FaultLocalizationOutput {
    * ranking because the calculated average will be high to. it is possible to change the score
    * evaluation algorithm.
    */
-  protected List<FaultLocalizationReason<? extends FaultLocalizationOutput>>
+  protected List<FaultLocalizationReason>
       faultLocalizationReasons = new ArrayList<>();
 
   public double getScore() {
@@ -46,20 +45,20 @@ public abstract class FaultLocalizationOutput {
   }
 
   public void addReason(
-      FaultLocalizationReason<? extends FaultLocalizationOutput> pFaultLocalizationReason) {
+      FaultLocalizationReason pFaultLocalizationReason) {
     faultLocalizationReasons.add(pFaultLocalizationReason);
   }
 
   // Override this method to change the default score evaluation
   protected double evaluateScore() {
-    return faultLocalizationReasons.stream()
+    return faultLocalizationReasons.stream().filter(l -> !l.isHintOnly())
             .mapToDouble(FaultLocalizationReason::getLikelihood)
             .average()
             .orElse(0)
         * 100;
   }
 
-  public List<FaultLocalizationReason<? extends FaultLocalizationOutput>>
+  public List<FaultLocalizationReason>
       getFaultLocalizationReasons() {
     return faultLocalizationReasons;
   }
@@ -85,42 +84,49 @@ public abstract class FaultLocalizationOutput {
     };
   }
 
-  protected String reasonToHtml(FaultLocalizationReason<? extends FaultLocalizationOutput> reason) {
+  protected String reasonToHtml(FaultLocalizationReason reason) {
     double likelihood = reason.getLikelihood();
+    boolean hintOnly = reason.isHintOnly();
     String description = reason.getDescription();
-    List<? extends FaultLocalizationOutput> related = reason.getRelated();
 
-    String percent = ((int) (likelihood * 10000)) / 100d + "%";
-    if (related.isEmpty()) {
-      return description + " (<strong>" + percent + "</strong>)";
+    String percent = "<strong>" + ((int) (likelihood * 10000)) / 100d + "%</strong>";
+    if(hintOnly){
+      return description;
     }
-    return description
-        + " (strict relation to lines: "
-        + related.stream()
-            .map(l -> "" + l.correspondingEdge().getFileLocation().getStartingLineInOrigin())
-            .distinct()
-            .sorted(Comparator.comparingInt(Integer::parseInt))
-            .collect(Collectors.joining(","))
-        + " with likelihood of "
-        + percent
-        + ")";
+    return description + " (" + percent + ")";
   }
 
   public String htmlRepresentation() {
+    Comparator<FaultLocalizationReason> sortReasons =
+        Comparator.comparingInt(l -> l.isHintOnly()?0:1);
+    sortReasons = sortReasons.thenComparingDouble(b -> 1/b.getLikelihood());
+    faultLocalizationReasons.sort(sortReasons);
     StringBuilder html =
         new StringBuilder(
             "Error suspected on <strong>line "
                 + correspondingEdge().getFileLocation().getStartingLineInOrigin()
                 + "</strong>.<br>");
-    int reasons = faultLocalizationReasons.size();
+    int reasons = faultLocalizationReasons.stream().filter(l -> !l.isHintOnly()).mapToInt(l -> 1).sum();
     html.append("Detected <strong>")
         .append(reasons)
         .append("</strong> possible reason")
         .append(reasons == 1 ? "" : "s")
         .append(":<br>");
+
+    //style:\"list-style-type:none;\">
+    html.append("<ul id=\"hint-list\">");
+    for (var reason : faultLocalizationReasons){
+      if(reason.isHintOnly())
+        html.append("<li>").append(reasonToHtml(reason)).append("</li>");
+      else break;
+    }
+    html.append("</ul>");
+
     html.append("<ol>");
-    for (var reason : faultLocalizationReasons)
-      html.append("<li>").append(reasonToHtml(reason)).append("</li>");
+    for (var reason : faultLocalizationReasons){
+      if(!reason.isHintOnly())
+        html.append("<li>").append(reasonToHtml(reason)).append("</li>");
+    }
     html.append("</ol>");
     return html.toString();
   }

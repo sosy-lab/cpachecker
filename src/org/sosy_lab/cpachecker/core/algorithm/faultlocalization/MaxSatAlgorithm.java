@@ -54,33 +54,33 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
     Set<Selector> soft = new HashSet<>(tf.getSelectors());
     Set<Set<Selector>> singletons = new HashSet<>();
 
-    Set<Selector> add = getMinUnsatCore(soft, tf, hard);
+    Set<Selector> minUnsatCore = getMinUnsatCore(soft, tf, hard);
 
-    if (add.size() == numberSelectors) {
-      hard.add(add);
+    if (minUnsatCore.size() == numberSelectors) {
+      hard.add(minUnsatCore);
       return new ErrorIndicatorSet<>(hard);
     }
 
-    while (add.size() != numberSelectors) {
+    while (minUnsatCore.size() != numberSelectors) {
       // Subsets of size 1 cannot be added to the hard set.
       // Assume that pre & implicForm & S1 is unsat.
       // Adding S1 to the hard set would make the formula pre & implicForm & hardSet unsat.
       // No new minimal subset can be found.
       // The correct handling of subsets of size 1 is to remove them from the soft set and later add
       // them to the hard set.
-      if (add.size() == 1) {
-        soft.removeAll(add);
-        singletons.add(add);
+      if (minUnsatCore.size() == 1) {
+        soft.removeAll(minUnsatCore);
+        singletons.add(minUnsatCore);
         numberSelectors = soft.size();
       } else {
-        hard.add(add);
+        hard.add(minUnsatCore);
       }
-      add = getMinUnsatCore(soft, tf, hard);
+      minUnsatCore = getMinUnsatCore(soft, tf, hard);
       // Very small programs lead to problems in analyzing.
       // Imagine the program: int a = 0;
-      if (add.size() == numberSelectors
+      if (minUnsatCore.size() == numberSelectors
           && hard.stream().map(l -> l.size() == 1).reduce((a, b) -> a && b).orElse(false)) {
-        hard.add(add);
+        hard.add(minUnsatCore);
       }
     }
 

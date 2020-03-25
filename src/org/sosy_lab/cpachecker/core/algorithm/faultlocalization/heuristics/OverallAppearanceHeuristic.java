@@ -23,36 +23,40 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics;
 
+import com.google.common.base.Functions;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicImpl;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationOutput;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationSetOutput;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationSubsetHeuristic;
 
-public class SubsetSizeHeuristic<I extends FaultLocalizationOutput> implements FaultLocalizationSubsetHeuristic<I> {
+public class OverallAppearanceHeuristic<I extends FaultLocalizationOutput> implements
+                                                                           FaultLocalizationHeuristic<I> {
   @Override
-  public Map<FaultLocalizationSetOutput<I>, Integer> rankSubsets(
-      ErrorIndicatorSet<I> errorIndicators) {
-    Map<Set<I>, Integer> mapSetToSize = new HashMap<>();
-    errorIndicators.forEach(l -> mapSetToSize.put(l, l.size()));
-    List<Set<I>> sorted = new ArrayList<>(mapSetToSize.keySet());
-    sorted.sort(Comparator.comparingInt(l -> mapSetToSize.get(l)));
+  public Map<I, Integer> rank(ErrorIndicatorSet<I> result) {
+    List<I> selectors = new ArrayList<>(FaultLocalizationHeuristicImpl.condenseErrorIndicatorSet(result));
 
-    int sizeSum = errorIndicators.stream().mapToInt(l -> l.size()).sum();
-    Map<FaultLocalizationSetOutput<I>, Double> scoreMap = new HashMap<>();
-    for(Set<I> set: sorted){
-      FaultLocalizationSetOutput<I> temp = new FaultLocalizationSetOutput<>(set);
-      double likelihood = (sizeSum-temp.size())/(double)sizeSum;
-      temp.addReason(new FaultLocalizationReason("The set has a size of " + temp.size() + ".", likelihood));
-      scoreMap.put(temp, likelihood);
-    }
-    return FaultLocalizationHeuristicImpl.scoreToRankMapSet(scoreMap);
+    Map<I, Long> map =
+        selectors.stream()
+            .collect(Collectors.groupingBy(Functions.identity(), Collectors.counting()));
+
+    Map<I, Double> mapToScore = new HashMap<>();
+    long sum = map.values().stream().mapToLong(pLong -> pLong).sum();
+    map.keySet()
+        .forEach(
+            l -> {
+              FaultLocalizationReason reason = new FaultLocalizationReason("Overall occurence.");
+              double likelihood = (double) map.get(l) / (double) sum;
+              reason.setLikelihood(likelihood);
+              mapToScore.put(l, likelihood);
+              l.addReason(reason);
+            });
+
+    return FaultLocalizationHeuristicImpl.scoreToRankMap(mapToScore);
   }
 }

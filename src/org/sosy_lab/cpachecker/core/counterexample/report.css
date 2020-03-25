@@ -270,7 +270,6 @@ input:checked+.slider:before {
 .fault-table {
 	width: 100%;
 	border-collapse: collapse;
-	padding-bottom: 10px;
 }
 
 .fault-table td{
@@ -297,6 +296,25 @@ input:checked+.slider:before {
 	font-weight: 700;
 }
 
+.horizontal-div{
+	display: flex;
+	width: 50%;
+	margin: 0 auto;
+	justify-content:space-between; 
+}
+
+#hint-list {
+	list-style-type: none;
+	counter-reset: elementcounter;
+  }
+  
+#hint-list>li::before {
+	position: relative;
+	content: "Hint " counter(elementcounter) ": ";
+	counter-increment: elementcounter;
+	font-weight: 700;
+}
+
 .important {
         background-color: #ffc107;
         outline: #ffc107 solid 2px;
@@ -305,6 +323,11 @@ input:checked+.slider:before {
 .highlight-line {
 	font-weight: 700;
 	outline: #57301d solid 3px;
+}
+
+.highlight-selected-line {
+	font-weight: 700;
+	outline: #ff0000 solid 3px;
 }
 
 .fault {

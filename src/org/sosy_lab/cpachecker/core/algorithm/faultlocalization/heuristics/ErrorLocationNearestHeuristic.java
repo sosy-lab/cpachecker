@@ -27,7 +27,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
@@ -50,29 +52,31 @@ public class ErrorLocationNearestHeuristic<I extends FaultLocalizationOutput>
   }
 
   @Override
-  public List<I> rank(ErrorIndicatorSet<I> result) {
+  public Map<I, Integer> rank(ErrorIndicatorSet<I> result) {
     List<I> sort =
         new ArrayList<>(FaultLocalizationHeuristicImpl.condenseErrorIndicatorSet(result));
     sort.sort(
         Comparator.comparingInt(
             a -> Math.abs(errorLocation - a.correspondingEdge().getLineNumber())));
+    Map<I, Double> scoreMap = new HashMap<>();
     for (I l : sort) {
-      FaultLocalizationReason<I> reason =
-          new FaultLocalizationReason<>(
+      FaultLocalizationReason reason =
+          new FaultLocalizationReason(
               "Distance to error location: "
                   + Math.abs(errorLocation - l.correspondingEdge().getLineNumber())
                   + " line(s).");
-      reason.setLikelihood(
-          BigDecimal.valueOf(2)
-              .pow(sort.size() - 1 - sort.indexOf(l))
-              .divide(
-                  BigDecimal.valueOf(2).pow(sort.size()).subtract(BigDecimal.ONE),
-                  10,
-                  RoundingMode.HALF_UP)
-              .doubleValue());
+      double likelihood = BigDecimal.valueOf(2)
+          .pow(sort.size() - 1 - sort.indexOf(l))
+          .divide(
+              BigDecimal.valueOf(2).pow(sort.size()).subtract(BigDecimal.ONE),
+              10,
+              RoundingMode.HALF_UP)
+          .doubleValue();
+      scoreMap.put(l, likelihood);
+      reason.setLikelihood(likelihood);
       l.addReason(reason);
     }
 
-    return sort;
+    return FaultLocalizationHeuristicImpl.scoreToRankMap(scoreMap);
   }
 }

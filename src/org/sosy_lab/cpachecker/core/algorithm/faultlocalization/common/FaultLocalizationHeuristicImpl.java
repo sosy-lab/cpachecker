@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common;
 
-import com.google.common.base.Functions;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -34,9 +31,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.IdentityHeuristic;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.OverallAppearanceHeuristic;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SubsetAppearanceHeuristic;
 
 public class FaultLocalizationHeuristicImpl {
 
@@ -48,49 +45,20 @@ public class FaultLocalizationHeuristicImpl {
    * @param <I> Must be the same type as it is used in the FaultLocalizationInfo
    * @return a ranked list of all outputs.
    */
-  public static <I extends FaultLocalizationOutput> List<I> rank(
+  public static <I extends FaultLocalizationOutput> Map<I, Integer> rank(
       ErrorIndicatorSet<I> result, RankingMode m) {
     if (result.size() == 0) {
-      return Collections.emptyList();
+      return Collections.emptyMap();
     }
     switch (m) {
       case SUBSET:
-        return rankByCountingSubsetOccurrencesImpl(result);
+        return new SubsetAppearanceHeuristic<I>().rank(result);
       case OVERALL:
-        return rankByCountingElementsImpl(result);
+        return new OverallAppearanceHeuristic<I>().rank(result);
       case IDENTITY:
       default:
-        return rankIdentityImpl(result);
+        return new IdentityHeuristic<I>().rank(result);
     }
-  }
-
-  /**
-   * Heuristic that sorts all elements by relative frequency
-   *
-   * @return ranked list
-   */
-  public static <I extends FaultLocalizationOutput>
-      FaultLocalizationHeuristic<I> getRankByCountingElements() {
-    return FaultLocalizationHeuristicImpl::rankByCountingElementsImpl;
-  }
-
-  /**
-   * Heuristic that sorts subsets by relative frequency
-   *
-   * @return ranked list
-   */
-  public static <I extends FaultLocalizationOutput>
-      FaultLocalizationHeuristic<I> getRankByCountingSubsetOccurrences() {
-    return FaultLocalizationHeuristicImpl::rankByCountingSubsetOccurrencesImpl;
-  }
-
-  /**
-   * Will produce an arbitrary sorted list.
-   *
-   * @return arbitrary sorted list.
-   */
-  public static <I extends FaultLocalizationOutput> FaultLocalizationHeuristic<I> rankIdentity() {
-    return FaultLocalizationHeuristicImpl::rankIdentityImpl;
   }
 
   /**
@@ -111,87 +79,76 @@ public class FaultLocalizationHeuristicImpl {
    *
    * <p>Note that the maximum score is 100.
    *
-   * @param pHeuristic all heuristics to be concatenated
-   * @return concatenated Heuristic sorted by total score. The score has a range of [0;100]
+   * @param pHeuristics all heuristics to be concatenated
+   * @return concatenated Heuristic sorted by total score.
    */
   public static <I extends FaultLocalizationOutput> FaultLocalizationHeuristic<I> concatHeuristics(
-      List<FaultLocalizationHeuristic<I>> pHeuristic) {
-    return l -> forAll(l, pHeuristic);
+      List<FaultLocalizationHeuristic<I>> pHeuristics) {
+    return l -> forAll(l, pHeuristics);
   }
 
-  private static <I extends FaultLocalizationOutput> List<I> forAll(
+  public static <I extends FaultLocalizationOutput> FaultLocalizationSubsetHeuristic<I> concatSubsetHeuristics(
+      List<FaultLocalizationSubsetHeuristic<I>> pHeuristics) {
+    return l -> forAllSetHeuristics(l, pHeuristics);
+  }
+
+  private static <I extends FaultLocalizationOutput> Map<I, Integer> forAll(
       ErrorIndicatorSet<I> result, List<FaultLocalizationHeuristic<I>> pHeuristic) {
-    Set<I> resultSet = new HashSet<>();
-    for (FaultLocalizationHeuristic<I> iFaultLocalizationHeuristic : pHeuristic) {
-      resultSet.addAll(iFaultLocalizationHeuristic.rank(result));
+    Map<I, Double> setToScoreMap = new HashMap<>();
+    Set<I> elements = new HashSet<>();
+    for(FaultLocalizationHeuristic<I> heuristic: pHeuristic){
+      elements.addAll(heuristic.rank(result).keySet());
     }
-    List<I> last = new ArrayList<>(resultSet);
-    last.sort(Comparator.comparingDouble(FaultLocalizationOutput::getScore));
-    Collections.reverse(last);
-    return last;
+    for(I elem: elements){
+      setToScoreMap.put(elem, elem.getScore());
+    }
+    return scoreToRankMap(setToScoreMap);
   }
 
-  // no heuristic applied, printed in order of appearance in the iterator
-  private static <I extends FaultLocalizationOutput> List<I> rankIdentityImpl(
-      ErrorIndicatorSet<I> result) {
-    return new ArrayList<>(condenseErrorIndicatorSet(result));
+  public static <I extends FaultLocalizationOutput> Map<FaultLocalizationSetOutput<I>, Integer> forAllSetHeuristics(ErrorIndicatorSet<I> result, List<FaultLocalizationSubsetHeuristic<I>> concat){
+    Map<FaultLocalizationSetOutput<I>, Double> setToScoreMap = new HashMap<>();
+    for(FaultLocalizationSubsetHeuristic<I> heuristic: concat){
+      heuristic.rankSubsets(result).forEach((k,v) -> setToScoreMap.merge(k, k.calculateScore(), (v1,v2) -> Math.max(v1,v2)));
+    }
+    return scoreToRankMapSet(setToScoreMap);
   }
 
-  private static <I extends FaultLocalizationOutput> List<I> rankByCountingElementsImpl(
-      ErrorIndicatorSet<I> result) {
-    List<I> selectors = new ArrayList<>(condenseErrorIndicatorSet(result));
+  public static <I extends FaultLocalizationOutput> Map<I, Integer> scoreToRankMap(Map<I, Double> outputToScoreMap){
+    List<I> ranking = new ArrayList<>(outputToScoreMap.keySet());
+    ranking.sort(Comparator.comparingDouble(l -> outputToScoreMap.get(l)));
 
-    Map<I, Long> map =
-        selectors.stream()
-            .collect(Collectors.groupingBy(Functions.identity(), Collectors.counting()));
-
-    long sum = map.values().stream().mapToLong(pLong -> pLong).sum();
-    map.keySet()
-        .forEach(
-            l -> {
-              FaultLocalizationReason<I> reason = FaultLocalizationReason.defaultExplanationOf(l);
-              reason.setLikelihood(((double) map.get(l)) / sum);
-              l.addReason(reason);
-            });
-
-    List<I> edge = new ArrayList<>(map.keySet());
-    edge.sort((a, b) -> (int) (map.get(b) - map.get(a)));
-
-    return edge;
-  }
-
-  private static <I extends FaultLocalizationOutput> List<I> rankByCountingSubsetOccurrencesImpl(
-      ErrorIndicatorSet<I> result) {
-    Map<Set<I>, Integer> map = new HashMap<>();
-    for (Set<I> selectors : result) {
-      for (Set<I> set : result) {
-        if (selectors.containsAll(set)) {
-          map.merge(set, 1, Integer::sum);
-        }
+    Map<I, Integer> rankMap = new HashMap<>();
+    if(ranking.isEmpty())
+      return rankMap;
+    double min = outputToScoreMap.get(ranking.get(ranking.size()-1));
+    int rank = 1;
+    for(int i = ranking.size() - 1; i >= 0; i--){
+      if(outputToScoreMap.get(ranking.get(i)) != min){
+        rank++;
+        min = outputToScoreMap.get(ranking.get(i));
       }
+      rankMap.put(ranking.get(i), rank);
     }
+    return rankMap;
+  }
 
-    int totalOccurrences = map.values().stream().mapToInt(Integer::intValue).sum();
-    Map<I, Double> mapLikelihood = new HashMap<>();
+  public static <I extends FaultLocalizationOutput> Map<FaultLocalizationSetOutput<I>, Integer> scoreToRankMapSet(Map<FaultLocalizationSetOutput<I>, Double> outputToScoreMap){
+    List<FaultLocalizationSetOutput<I>> ranking = new ArrayList<>(outputToScoreMap.keySet());
+    ranking.sort(Comparator.comparingDouble(l -> outputToScoreMap.get(l)));
 
-    for (Set<I> subset : map.keySet()) {
-      for (I temp : subset) {
-        FaultLocalizationReason<I> reason =
-            FaultLocalizationReason.defaultExplanationOf(Collections.singleton(temp));
-        List<I> related = new ArrayList<>(subset);
-        related.remove(temp);
-        reason.setRelated(related);
-        double likelihood = ((double)map.get(subset))/totalOccurrences;
-        reason.setLikelihood(likelihood);
-        mapLikelihood.put(temp, likelihood);
-        temp.addReason(reason);
+    Map<FaultLocalizationSetOutput<I>, Integer> rankMap = new HashMap<>();
+    if(ranking.isEmpty())
+      return rankMap;
+    double min = outputToScoreMap.get(ranking.get(ranking.size()-1));
+    int rank = 1;
+    for(int i = ranking.size() - 1; i >= 0; i--){
+      if(outputToScoreMap.get(ranking.get(i)) != min){
+        rank++;
+        min = outputToScoreMap.get(ranking.get(i));
       }
+      rankMap.put(ranking.get(i), rank);
     }
-
-    List<I> output = new ArrayList<>(condenseErrorIndicatorSet(result));
-    output.sort(Comparator.comparingDouble(mapLikelihood::get));
-
-    return output;
+    return rankMap;
   }
 
   public static <I extends FaultLocalizationOutput> Set<I> condenseErrorIndicatorSet(
@@ -203,73 +160,5 @@ public class FaultLocalizationHeuristicImpl {
     return allObjects;
   }
 
-  public static FaultLocalizationExplanation explainLocationWithoutContext() {
-    return FaultLocalizationHeuristicImpl::possibleSolutionsWithoutContext;
-  }
 
-  /**
-   * possible implementation of a function that maps a FaultLocalizationOutput object to a
-   * description (as string) this function relies on singleton sets otherwise an error is thrown.
-   * based on the edge type a suggestion for fixing the bug is made. A sample usage can be found
-   * here: FaultLocalizationHeuristicsImpl.rankByCountingSubsetOccurrences
-   *
-   * @param pFaultLocalizationOutputs set of FaultLocalizationOutputs.
-   * @return explanation of what might be a fix
-   */
-  private static <I extends FaultLocalizationOutput> String possibleSolutionsWithoutContext(
-      Set<I> pFaultLocalizationOutputs) {
-    if (pFaultLocalizationOutputs.size() != 1) {
-      throw new IllegalArgumentException("reason without context requires exactly one edge");
-    }
-    I object = new ArrayList<>(pFaultLocalizationOutputs).get(0);
-    CFAEdge pEdge = object.correspondingEdge();
-    String description = pEdge.getDescription();
-    switch (pEdge.getEdgeType()) {
-      case AssumeEdge:
-        {
-          String[] ops = {"<", ">", "<=", "!=", "==", ">="};
-          String op = "";
-          for (String o : ops) {
-            if (description.contains(o)) {
-              op = o;
-              break;
-            }
-          }
-          return "Try to replace \""
-              + op
-              + "\" in \""
-              + description
-              + "\" with another boolean operator (<, >, <=, !=, ==, >=).";
-        }
-      case StatementEdge:
-        {
-          return "Try to change the assigned value of \""
-              + Iterables.get(Splitter.on(" ").split(description), 0)
-              + "\" in \""
-              + description
-              + "\" to another value.";
-        }
-      case DeclarationEdge:
-        {
-          return "Try to declare the variable in \"" + description + "\" differently.";
-        }
-      case ReturnStatementEdge:
-        {
-          return "Try to change the return-value of \"" + description + "\" to another value.";
-        }
-      case FunctionCallEdge:
-        {
-          return "The function call \"" + description + "\" may have unwanted side effects.";
-        }
-      case FunctionReturnEdge:
-        {
-          String functionName = ((CFunctionReturnEdge) pEdge).getFunctionEntry().getFunctionName();
-          return "The function " + functionName + "(...) may have an unwanted return value.";
-        }
-      case CallToReturnEdge:
-      case BlankEdge:
-      default:
-        return "No proposal found for the statement: \"" + description + "\".";
-    }
-  }
 }

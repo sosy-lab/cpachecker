@@ -30,6 +30,7 @@ import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -44,6 +45,8 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndi
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicImpl;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationInfo;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.OverallAppearanceHeuristic;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SingleEdgeHintHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
@@ -172,13 +175,12 @@ public class FaultLocalizationAlgorithm implements Algorithm {
 
         FaultLocalizationHeuristic<Selector> concat =
             FaultLocalizationHeuristicImpl.concatHeuristics(List.of(
-                FaultLocalizationHeuristicImpl.getRankByCountingElements(),
-                new SubsetSizeHeuristic<>(),
-                FaultLocalizationHeuristicImpl.getRankByCountingSubsetOccurrences(),
+                new SingleEdgeHintHeuristic<>(),
+                new OverallAppearanceHeuristic<>(),
                 new ErrorLocationNearestHeuristic<>(edgeList.get(edgeList.size() - 1)),
                 new CallHierarchyHeuristic<>(edgeList, tf.getNegated().size())));
         FaultLocalizationInfo<Selector> info =
-            new FaultLocalizationInfo<>(errorIndicators, pInfo, concat);
+            new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.empty(), Optional.empty());
         pInfo.getTargetPath().getLastState().replaceCounterexampleInformation(info);
         logger.log(
             Level.INFO,

@@ -23,17 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.NoContextExplanation;
 
-public class FaultLocalizationReason<I extends FaultLocalizationOutput> {
+public class FaultLocalizationReason {
 
   private String description;
   private double likelihood;
+  private boolean hintOnly;
 
   // set this to true if likelihood of this reason should not be weighted.
   //private boolean hintOnly;
@@ -53,25 +51,31 @@ public class FaultLocalizationReason<I extends FaultLocalizationOutput> {
                       (related: S3)                       2) S3 (related: S1)
                2)  S2 (related: S4)                       3) S4 (related: S2)
    */
-  private List<I> related;
 
   public FaultLocalizationReason(String pDescription) {
-    related = new ArrayList<>();
     description = pDescription;
   }
 
   public FaultLocalizationReason(String pDescription, double pLikelihood) {
-    related = new ArrayList<>();
     description = pDescription;
     likelihood = pLikelihood;
   }
 
-  public String getDescription() {
-    return description;
+  public FaultLocalizationReason(String pDescription, boolean pHintOnly) {
+    description = pDescription;
+    hintOnly = pHintOnly;
   }
 
-  public List<I> getRelated() {
-    return related;
+  public void setHintOnly(boolean pHintOnly) {
+    hintOnly = pHintOnly;
+  }
+
+  public boolean isHintOnly() {
+    return hintOnly;
+  }
+
+  public String getDescription() {
+    return description;
   }
 
   public double getLikelihood() {
@@ -82,10 +86,6 @@ public class FaultLocalizationReason<I extends FaultLocalizationOutput> {
     likelihood = pLikelihood;
   }
 
-  public void setRelated(List<I> pRelated) {
-    related = pRelated;
-  }
-
   public void setDescription(String pDescription) {
     description = pDescription;
   }
@@ -93,38 +93,33 @@ public class FaultLocalizationReason<I extends FaultLocalizationOutput> {
   @Override
   public String toString() {
     String percent = ((int) (likelihood * 10000)) / 100d + "%";
-    if (related.isEmpty()) {
-      return description + " (" + percent + ")";
+    if(hintOnly){
+      return description;
     }
-    return description
-        + " (related to lines: "
-        + related.stream()
-            .map(l -> "" + l.correspondingEdge().getFileLocation().getStartingLineInOrigin())
-            .distinct()
-            .sorted(Comparator.comparingInt(Integer::parseInt))
-            .collect(Collectors.joining(","))
-        + " with likelihood of "
-        + percent
-        + ")";
+    return description + " (" + percent + ")";
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationReason<I> of(
+  public static <I extends FaultLocalizationOutput> FaultLocalizationReason of(
       Set<I> causes, FaultLocalizationExplanation reason) {
-    return new FaultLocalizationReason<>(reason.explanationFor(causes));
+    return new FaultLocalizationReason(reason.explanationFor(causes));
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationReason<I> of(
+  public static <I extends FaultLocalizationOutput> FaultLocalizationReason of(
       I cause, FaultLocalizationExplanation reason) {
     return of(Collections.singleton(cause), reason);
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationReason<I> defaultExplanationOf(
-      Set<I> cause) {
-    return new FaultLocalizationReason<>(
-        FaultLocalizationHeuristicImpl.explainLocationWithoutContext().explanationFor(cause));
+  public static <I extends FaultLocalizationOutput> FaultLocalizationReason hint(
+      String pDescription) {
+    return new FaultLocalizationReason(pDescription, true);
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationReason<I> defaultExplanationOf(
+  public static <I extends FaultLocalizationOutput> FaultLocalizationReason defaultExplanationOf(
+      Set<I> cause) {
+    return new FaultLocalizationReason(new NoContextExplanation().explanationFor(cause));
+  }
+
+  public static <I extends FaultLocalizationOutput> FaultLocalizationReason defaultExplanationOf(
       I cause) {
     return defaultExplanationOf(Collections.singleton(cause));
   }

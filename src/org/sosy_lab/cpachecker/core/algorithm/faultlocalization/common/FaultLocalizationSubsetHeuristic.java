@@ -25,20 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common;
 
 import java.util.Map;
 
-public interface FaultLocalizationHeuristic<I extends FaultLocalizationOutput> {
+public interface FaultLocalizationSubsetHeuristic<I extends FaultLocalizationOutput>{
 
-  /**
-   * Rank the input set for visualizing in the ReportManager.
-   *
-   * If more than just one parameter is needed (here: result) a class that
-   * implements this interface can be created. For more details and an example see
-   * ErrorLocationFarthestHeuristic. If you want to have more heuristics applied you can concatenate
-   * them by using FaultLocalizationHeuristic.concatHeuristics() This will return a new interface
-   * concatenating all passed heuristics and finally rank the objects by the average score. For more
-   * details take a look at the documentation of FaultLocalizationHeuristicImpl
-   *
-   * @param result The result of any FaultLocalizationAlgorithm
-   * @return a ranked list of all contained FaultLocalizationOutput objects.
-   */
-  Map<I, Integer> rank(ErrorIndicatorSet<I> result);
+  Map<FaultLocalizationSetOutput<I>, Integer> rankSubsets(ErrorIndicatorSet<I> errorIndicators);
+
 }
