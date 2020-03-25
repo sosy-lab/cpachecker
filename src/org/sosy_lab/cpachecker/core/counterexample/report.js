@@ -306,7 +306,7 @@ with considerably less effort */
 		var showDetailed = false;
 
 		// state of toggle slider
-		var showSubset = true;
+		var showSubset = false;
 
 		// edges that are marked as potential bug
 		var faultEdgesIndex = [];
@@ -316,8 +316,6 @@ with considerably less effort */
 		var lastSelectedLine = [];
 
 		var redLine = 0;
-
-		var minRankDict = {};
 
 		if (errorPath !== undefined) {
 			var indentationlevel = 0;
@@ -330,6 +328,8 @@ with considerably less effort */
 					var previousValueDictionary = {};
 					errPathElem["valDict"] = {};
 					errPathElem["valString"] = "";
+					errPathElem["showrank"] = errPathElem.rank;
+					errPathElem["showfault"] = errPathElem.fault;
 					if (i > 0) {
 						$.extend(errPathElem.valDict, $rootScope.errorPath[$rootScope.errorPath.length - 1].valDict);
 						previousValueDictionary = $rootScope.errorPath[$rootScope.errorPath.length - 1].valDict;
@@ -383,8 +383,13 @@ with considerably less effort */
 					if(isFaultLocalizationEnabled ^ isFaultLocalizationSubsetUsed){
 						$("#sort-fault-localization-slider").remove();
 						showSubset = isFaultLocalizationSubsetUsed;
-					} else {
-						$("toggle-fault-subset").attr("checked", showSubset);
+						if(showSubset){
+							//TODO duplicate of scope.toggle function
+							for(var j = 0; j < errorPath.length; j++){
+								errorPath[j].showrank = errorPath[j].setminrank;
+								errorPath[j].showfault = errorPath[j].setminrankreason;
+							}
+						}
 					}
 					//TODO: find more elegant way
 					for(var j = 0; j < errorPath.length; j++){
@@ -407,7 +412,6 @@ with considerably less effort */
 
             angular.element(document).ready(function(){
                 highlightEdges(importantEdges);
-				addFaultLocalizationInfo(faultEdgesIndex);
 				if(isFaultLocalizationEnabled){
 					$("#value-assignment").append(createSingleFaultLocTable(faultEdges));
 					$("#single-fault-loc-table").hide();
@@ -416,6 +420,7 @@ with considerably less effort */
 					$("#value-assignment").append(createSetFaultLocTable(faultEdgesSubset));
 					$("#set-fault-loc-table").hide();
 				}
+				addFaultLocalizationInfo(faultEdgesIndex);
             });
 
 
@@ -500,12 +505,6 @@ with considerably less effort */
 					rankList[rank] = rankList[rank] + 1;
 				}
 
-				if(minRankDict[element] === undefined){
-					minRankDict[element] = [rank, reason];
-				} else if (minRankDict[element][0] > rank){
-					minRankDict[element] = [rank, reason];
-				}
-
 				var htmlTable = document.createElement("table");
 				var headerRow = htmlTable.insertRow();
 
@@ -564,9 +563,8 @@ with considerably less effort */
 		}
 
 		$scope.sortFaultClicked = function(){
-			//TODO: change to log tab
-			//TODO: button text
-			if(!showDetailed) {
+			showDetailed = !showDetailed;
+			if(showDetailed) {
 				$("#err-table").hide();
 				if(showSubset){
 					$("#single-fault-loc-table").hide();
@@ -581,33 +579,31 @@ with considerably less effort */
 				$("#single-fault-loc-table").hide();
 				$("#set-fault-loc-table").hide();
 			}
-			showDetailed = !showDetailed;
 		}
 
 		$scope.toggleFaultSubset = function() {
-			if(showDetailed){
-				if(showSubset){
-					$("#set-fault-loc-table").hide();
-					$("#single-fault-loc-table").show();
-				} else {
-					$("#single-fault-loc-table").hide();
-					$("#set-fault-loc-table").show();
-				}	
-			}
+			showSubset = !showSubset;
 			if(showSubset){
 				for(var j = 0; j < errorPath.length; j++){
-					if(minRankDict[errorPath[i]] !== undefined){
-						//change text to rank and add on click to description
-					} else {
-						// remove on click and change text to "-"
+					for(var j = 0; j < errorPath.length; j++){
+						errorPath[j].showrank = errorPath[j].setminrank;
+						errorPath[j].showfault = errorPath[j].setminrankreason;
 					}
+				}
+				if(showDetailed){
+					$("#set-fault-loc-table").show();
+					$("#single-fault-loc-table").hide();
 				}
 			} else {
 				for(var j = 0; j < errorPath.length; j++){
-					//set text to edge.rank
+					errorPath[j].showrank = errorPath[j].rank;
+					errorPath[j].showfault = errorPath[j].fault;
+				}
+				if(showDetailed){
+					$("#set-fault-loc-table").hide();
+					$("#single-fault-loc-table").show();
 				}
 			}
-			showSubset = !showSubset;
 		}
 
 		$scope.errPathPrevClicked = function ($event) {

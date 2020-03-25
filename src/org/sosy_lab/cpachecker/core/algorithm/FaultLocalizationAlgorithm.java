@@ -180,7 +180,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
                 new ErrorLocationNearestHeuristic<>(edgeList.get(edgeList.size() - 1)),
                 new CallHierarchyHeuristic<>(edgeList, tf.getNegated().size())));
         FaultLocalizationInfo<Selector> info =
-            new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.empty(), Optional.empty());
+            new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.of(concat), Optional.of(new SubsetSizeHeuristic<>()));
         pInfo.getTargetPath().getLastState().replaceCounterexampleInformation(info);
         logger.log(
             Level.INFO,

@@ -45,6 +45,8 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
 
   private Map<CFAEdge, I> edgeToInfoMap;
   private MultiMap<CFAEdge, FaultLocalizationSetOutput<I>> edgeToSetInfoMap;
+  private Map<CFAEdge, Integer> edgeToMinRankMap;
+  private Map<CFAEdge, String> edgeToDescMap;
 
   /**
    * Object to represent a result set obtained from any FaultLocalizationAlgorithm Note: there is no
@@ -85,16 +87,29 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
 
     edgeToInfoMap = new HashMap<>();
     edgeToSetInfoMap = new MultiMap<>();
+    edgeToMinRankMap = new HashMap<>();
+    edgeToDescMap = new HashMap<>();
 
     for (I out : rankedList.keySet()) {
       edgeToInfoMap.put(out.correspondingEdge(), out);
     }
 
     for (FaultLocalizationSetOutput<I> set : rankedSetsList.keySet()) {
+      boolean alreadyAssigned = false;
       if(set.isEmpty()) continue;
       for(I elem: set){
-        edgeToSetInfoMap.map(elem.correspondingEdge(), set);
-        break;
+        edgeToMinRankMap.merge(elem.correspondingEdge(), rankedSetsList.get(set), Integer::min);
+        edgeToDescMap.merge(elem.correspondingEdge(), set.toHtml(), (a,b) -> {
+          if(rankedSetsList.get(set) == edgeToMinRankMap.get(elem.correspondingEdge())){
+            return a;
+          } else {
+            return b;
+          }
+        });
+        if(!alreadyAssigned){
+          edgeToSetInfoMap.map(elem.correspondingEdge(), set);
+          alreadyAssigned = true;
+        }
       }
     }
   }
@@ -159,6 +174,16 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
     elem.put("rank", "-");
     elem.put("enabled", false);
     elem.put("set-indicator", false);
+    elem.put("setminrank", "-");
+
+    if(edgeToMinRankMap.get(edge)!= null){
+      elem.put("setminrank", edgeToMinRankMap.get(edge));
+      elem.put("setminrankreason", edgeToDescMap.get(edge));
+    } else {
+      elem.put("setminrank", "-");
+      elem.put("setminrankreason", "-");
+    }
+
     if (edgeToInfoMap.get(edge) != null) {
       I infoEdge = edgeToInfoMap.get(edge);
       elem.put("enabled", true);
@@ -179,7 +204,7 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
       List<Integer> scores = new ArrayList<>();
       List<Integer> ranks = new ArrayList<>();
       for (FaultLocalizationSetOutput<I> info : infoSet) {
-        descriptions.add(info.stream().map(l -> l.correspondingEdge().getDescription()).collect(Collectors.toList()));
+        descriptions.add(info.stream().sorted(Comparator.comparingInt(a -> a.correspondingEdge().getFileLocation().getStartingLineInOrigin())).map(l -> l.correspondingEdge().getDescription()).collect(Collectors.toList()));
         concatLines.add(info.sortedLineNumbers());
         reasons.add(info.toHtml());
         scores.add((int)info.calculateScore());

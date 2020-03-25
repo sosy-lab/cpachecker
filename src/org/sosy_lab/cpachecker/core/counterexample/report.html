@@ -129,8 +129,8 @@ with considerably less effort -->
             <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}">
               <pre>-V-</pre>
             </td>
-	    <td id="rank-{{$index}}" ng-click="showValues($event)" data-toggle="popover" data-placement="bottom" data-trigger="click" data-content="{{line.fault}}">
-              <pre>{{line.rank}}</pre>
+	    <td id="rank-{{$index}}" ng-click="showValues($event)" data-toggle="popover" data-placement="bottom" data-trigger="click" data-content="{{line.showfault}}">
+              <pre>{{line.showrank}}</pre>
             </td>
             <td class="disabled" ng-click="clickedErrpathElement($event)">
               <pre class="make-pretty">{{line.desc}}</pre>
