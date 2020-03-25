@@ -100,46 +100,6 @@ import org.sosy_lab.cpachecker.util.testcase.XMLTestCaseExport;
 @Options(prefix = "testcase")
 public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, StatisticsProvider {
 
-  private static enum FormatType {
-    HARNESS,
-    METADATA,
-    PLAIN,
-    XML;
-  }
-
-  private static UniqueIdGenerator id = new UniqueIdGenerator();
-
-  @Option(secure = true, name = "file", description = "export test harness to file as code")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate testHarnessFile = null;
-
-  @Option(secure = true, name = "values", description = "export test values to file (line separated)")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate testValueFile = null;
-
-  @Option(
-    secure = true,
-    name = "xml",
-    description = "export test cases to xm file (Test-Comp format)"
-  )
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate testXMLFile = null;
-
-  @Option(
-    secure = true,
-    name = "compress",
-    description = "zip all exported test cases into a single file"
-  )
-  private boolean zipTestCases = false;
-
-  @Option(
-    secure = true,
-    name = "zip.file",
-    description = "Zip file into which all test case files are bundled"
-  )
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path testCaseZip = null;
-
   @Option(
     secure = true,
     name = "inStats",
@@ -153,14 +113,11 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ConfigurableProgramAnalysis cpa;
-  private final CFA cfa;
-  private final HarnessExporter harnessExporter;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final Set<CFAEdge> testTargets;
   private final SpecificationProperty specProp;
-  private final String producerString;
-  private FileSystem zipFS = null;
+  private final TestCaseExporter exporter;
   private double progress = 0;
 
   public TestCaseGeneratorAlgorithm(
@@ -173,7 +130,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       final Specification pSpec)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    cfa = pCfa;
     CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, TestCaseGeneratorAlgorithm.class);
     algorithm = pAlgorithm;
     cpa = pCpa;
@@ -185,12 +141,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         CPAs.retrieveCPAOrFail(pCpa, TestTargetCPA.class, TestCaseGeneratorAlgorithm.class);
     testTargets =
         ((TestTargetTransferRelation) testTargetCpa.getTransferRelation()).getTestTargets();
-    harnessExporter = new HarnessExporter(pConfig, logger, pCfa);
-    producerString = CPAchecker.getVersion(pConfig);
-
-    Preconditions.checkState(
-        !isZippedTestCaseWritingEnabled() || testCaseZip != null,
-        "Need to specify testcase.zip.file if test case values are compressed.");
+    exporter = new TestCaseExporter(pCfa, logger, pConfig);
 
     if (pSpec.getProperties().size() == 1) {
       specProp = pSpec.getProperties().iterator().next();
@@ -234,10 +185,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     }
 
     try {
-      if (isZippedTestCaseWritingEnabled()) {
-        openZipFS();
-      }
-
       boolean shouldReturnFalse, ignoreTargetState;
       while (pReached.hasWaitingState() && !testTargets.isEmpty()) {
         shutdownNotifier.shutdownIfNecessary();
@@ -268,7 +215,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
           // may be thrown only be counterexample check, if not will be thrown again in finally
           // block due to respective shutdown notifier call)
           status = status.withPrecise(false);
-          closeZipFS();
         } catch (Exception e2) {
           // precaution always set precision to false, thus last target state not handled in case of
           // exception
@@ -296,7 +242,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
               if (testTargets.contains(targetEdge)) {
 
                 if (status.isPrecise()) {
-                  writeTestCaseFiles(argState);
+                  CounterexampleInfo cexInfo = ARGUtils.tryGetOrCreateCounterexampleInformation(argState, cpa, assumptionToEdgeAllocator).orElseThrow();
+                  exporter.writeTestCaseFiles(cexInfo, Optional.ofNullable(specProp));
 
                   logger.log(Level.FINE, "Removing test target: " + targetEdge.toString());
                   testTargets.remove(targetEdge);
@@ -355,8 +302,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       if (uncoveredGoalsAtStart != testTargets.size()) {
         logger.log(Level.SEVERE, TestTargetProvider.getCoverageInfo());
       }
-      closeZipFS();
-
     }
 
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
@@ -395,193 +340,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     return reportCoveredErrorCallAsError
         && specProp != null
         && specProp.getProperty().equals(CommonCoverageType.COVERAGE_ERROR);
-  }
-
-  private void writeTestCaseFiles(final ARGState pTarget) {
-
-    // TODO check if this and openZipFS(), closeZipFS() are thread-safe
-    if (areTestsEnabled()) {
-      CounterexampleInfo cexInfo =
-          ARGUtils.tryGetOrCreateCounterexampleInformation(pTarget, cpa, assumptionToEdgeAllocator)
-              .orElseThrow();
-      ARGPath targetPath = cexInfo.getTargetPath();
-      Preconditions.checkState(!zipTestCases || zipFS != null);
-
-      if (testHarnessFile != null) {
-        writeTestCase(
-            testHarnessFile.getPath(id.getFreshId()), targetPath, cexInfo, FormatType.HARNESS);
-      }
-
-      if (testValueFile != null) {
-        writeTestCase(
-            testValueFile.getPath(id.getFreshId()), targetPath, cexInfo, FormatType.PLAIN);
-      }
-
-      if (testXMLFile != null) {
-        Path testCaseFile = testXMLFile.getPath(id.getFreshId());
-        if (testTargets.size() == TestTargetProvider.getCurrentNumOfTestTargets()) {
-          writeTestCase(
-              testCaseFile.resolveSibling("metadata.xml"),
-              targetPath,
-              cexInfo,
-              FormatType.METADATA);
-        }
-        writeTestCase(testCaseFile, targetPath, cexInfo, FormatType.XML);
-      }
-    }
-  }
-
-  private void writeTestCase(
-      final Path pFile,
-      final ARGPath pTargetPath,
-      final CounterexampleInfo pCexInfo,
-      final FormatType type) {
-    final ARGState rootState = pTargetPath.getFirstState();
-    final Predicate<? super ARGState> relevantStates = Predicates.in(pTargetPath.getStateSet());
-    final BiPredicate<ARGState, ARGState> relevantEdges =
-        BiPredicates.pairIn(ImmutableSet.copyOf(pTargetPath.getStatePairs()));
-    try {
-      Optional<String> testOutput;
-
-      if (zipTestCases) {
-        Path fileName = pFile.getFileName();
-        Path testFile =
-            zipFS.getPath(fileName != null ? fileName.toString() : id.getFreshId() + "test.txt");
-        try (Writer writer =
-            new OutputStreamWriter(
-                zipFS
-                    .provider()
-                    .newOutputStream(testFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE),
-                Charset.defaultCharset())) {
-          switch (type) {
-            case HARNESS:
-              harnessExporter.writeHarness(
-                  writer, rootState, relevantStates, relevantEdges, pCexInfo);
-              break;
-            case METADATA:
-              XMLTestCaseExport.writeXMLMetadata(writer, cfa, specProp, producerString);
-              break;
-            case PLAIN:
-              testOutput =
-                  TestCaseExporter.writeTestInputNondetValues(
-                      rootState,
-                      relevantStates,
-                      relevantEdges,
-                      pCexInfo,
-                      cfa,
-                      TestCaseExporter.LINE_SEPARATED);
-              if (testOutput.isPresent()) {
-                writer.write(testOutput.orElseThrow());
-              }
-              break;
-            case XML:
-              testOutput =
-                  TestCaseExporter.writeTestInputNondetValues(
-                      rootState,
-                      relevantStates,
-                      relevantEdges,
-                      pCexInfo,
-                      cfa,
-                      XMLTestCaseExport.XML_TEST_CASE);
-              if (testOutput.isPresent()) {
-                writer.write(testOutput.orElseThrow());
-              }
-              break;
-            default:
-              throw new AssertionError("Unknown test case format.");
-          }
-        }
-      } else {
-        Object content = null;
-
-        switch (type) {
-          case HARNESS:
-            content =
-                (Appender)
-                    appendable ->
-                        harnessExporter.writeHarness(
-                            appendable, rootState, relevantStates, relevantEdges, pCexInfo);
-            break;
-          case METADATA:
-            content =
-                (Appender)
-                    appendable ->
-                        XMLTestCaseExport.writeXMLMetadata(
-                            appendable, cfa, specProp, producerString);
-            break;
-          case PLAIN:
-            testOutput =
-                TestCaseExporter.writeTestInputNondetValues(
-                    rootState,
-                    relevantStates,
-                    relevantEdges,
-                    pCexInfo,
-                    cfa,
-                    TestCaseExporter.LINE_SEPARATED);
-
-            if (testOutput.isPresent()) {
-              content = (Appender) appendable -> appendable.append(testOutput.orElseThrow());
-            }
-            break;
-          case XML:
-            testOutput =
-                TestCaseExporter.writeTestInputNondetValues(
-                    rootState,
-                    relevantStates,
-                    relevantEdges,
-                    pCexInfo,
-                    cfa,
-                    XMLTestCaseExport.XML_TEST_CASE);
-            if (testOutput.isPresent()) {
-              content = (Appender) appendable -> appendable.append(testOutput.orElseThrow());
-            }
-            break;
-          default:
-            throw new AssertionError("Unknown test case format.");
-        }
-        if (content != null) {
-          IO.writeFile(pFile, Charset.defaultCharset(), content);
-        }
-      }
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write test case to file");
-    }
-  }
-
-  private boolean areTestsEnabled() {
-    return testValueFile != null || testHarnessFile != null || testXMLFile != null;
-  }
-
-  private boolean isZippedTestCaseWritingEnabled() {
-    return zipTestCases && areTestsEnabled();
-  }
-
-  private void openZipFS() throws IOException {
-    Map<String, String> env = new HashMap<>(1);
-    env.put("create", "true");
-
-    Preconditions.checkNotNull(testCaseZip);
-    // create parent directories if do not exist
-    Path parent = testCaseZip.getParent();
-    if (parent != null) {
-      Files.createDirectories(parent);
-    }
-
-    zipFS =
-        FileSystems.newFileSystem(URI.create("jar:" + testCaseZip.toUri().toString()), env, null);
-  }
-
-  private void closeZipFS() {
-    if (zipFS != null && zipFS.isOpen()) {
-      try {
-        zipFS.close();
-      } catch (ClosedByInterruptException e1) {
-        // nothing needs to be done, is closed anyway
-      } catch (IOException e) {
-        logger.logException(Level.SEVERE, e, "Problem while handling zip file with test cass");
-      }
-      zipFS = null;
-    }
   }
 
   @Override
