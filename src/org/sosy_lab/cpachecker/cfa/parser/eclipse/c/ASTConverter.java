@@ -1997,6 +1997,7 @@ class ASTConverter {
         type = convert(tmpArrMod.get(i), type);
       }
 
+      // §6.7.9 (22)
       // Arrays with unknown length but an initializer
       // have their length calculated from the initializer.
       // Example: int a[] = { 1, 2 };
@@ -2010,8 +2011,9 @@ class ASTConverter {
 
             if (arrayType.getType() instanceof CSimpleType) {
               CExpression lengthExp = computeLengthOfArray(initClause, arrayType);
+            if (arrayType.getLength() != null) {
               compareArrayLengths(arrayType.getLength(), lengthExp, d);
-
+            }
               type =
                   new CArrayType(
                       arrayType.isConst(),
@@ -2039,18 +2041,41 @@ class ASTConverter {
               }
             }
 
+
               if (arrayType.getLength() == null) {
                 arrayPlusLength.put(arrayType, computeLengthOfArray(initClause, arrayType));
               } else {
                 CIntegerLiteralExpression computedL =
                     (CIntegerLiteralExpression) computeLengthOfArray(initClause, arrayType);
-              compareArrayLengths(arrayType.getLength(), computedL, d);
 
+              // check if number of contained elements doesn't surpass max possible length
+              if (!isFullyBracketed(initClause, modifiers.size())) {
+                int arraySize = 1;
+                // calculate max possible size
+                CType temp = arrayType;
+                while (temp instanceof CArrayType) {
+                  CIntegerLiteralExpression size =
+                      (CIntegerLiteralExpression) ((CArrayType) temp).getLength();
+                  arraySize *= size.getValue().intValue();
+                  temp = ((CArrayType) temp).getType();
+
+                }
+
+                CExpression lengthExp =
+                    new CIntegerLiteralExpression(
+                        getLocation(initClause),
+                        CNumericTypes.INT,
+                        BigInteger.valueOf(arraySize));
+                compareArrayLengths(lengthExp, computedL, d);
+              } else {
+
+              compareArrayLengths(arrayType.getLength(), computedL, d);
+              }
                   arrayPlusLength.put(arrayType, arrayType.getLength());
                 }
 
 
-              arrayPlusLength = computeLengthTwoDimArray(arrayType, arrayPlusLength, initClause);
+            arrayPlusLength = computeLengthMultiDimArray(arrayType, arrayPlusLength, initClause);
               List<CArrayType> types = new ArrayList<>(arrayPlusLength.keySet());
               List<CExpression> lenghts = new ArrayList<>(arrayPlusLength.values());
 
@@ -2092,10 +2117,22 @@ class ASTConverter {
     }
   }
 
+  private boolean isFullyBracketed(IASTInitializerClause initClause, int numDimensions) {
+    int counter = 0;
+    while (((IASTInitializerList) initClause).getClauses()[0] instanceof IASTInitializerList) {
+      initClause = ((IASTInitializerList) initClause).getClauses()[0];
+      counter++;
+    }
+    if (counter == numDimensions - 1) {
+      return true;
+    }
+    return false;
+  }
+
   /**
-   * Calculates length for every dimension of a two-dimensional array.
+   * Calculates length for every dimension of a multi-dimensional array.
    */
-  private Map<CArrayType, CExpression> computeLengthTwoDimArray(
+  private Map<CArrayType, CExpression> computeLengthMultiDimArray(
       CArrayType arrayType,
       Map<CArrayType, CExpression> arrPlusLength,
       IASTInitializerClause initClause) {
@@ -2124,7 +2161,7 @@ class ASTConverter {
       }
 
     for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
-      return computeLengthTwoDimArray(arrayType, arrPlusLength, x);
+      return computeLengthMultiDimArray(arrayType, arrPlusLength, x);
     }
     return arrPlusLength;
   }
@@ -2202,8 +2239,8 @@ class ASTConverter {
           return lengthExp;
         }
 
-      } else {
-        // Arrays with unknown length but an string initializer
+    } else {
+      // Arrays with unknown length but an string initializer
         // have their length calculated from the initializer.
         // Example: char a[] = "abc";
         // will be converted as char a[4] = "abc";
