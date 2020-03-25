@@ -158,6 +158,12 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
   )
   private boolean executeParallel = false;
   
+  @Option(
+    secure = true,
+    description = "Number of threads, is only used when executeParallel is True"
+  )
+  private int threadNum = 1;
+  
 
   private final Stats stats = new Stats();
 
@@ -166,6 +172,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
   private final ImpactUtility impact;
   private final PathFormulaManager pfmgr;
   private final Solver solver;
+  private final List<Solver> parallelSolvers;
   private final ARGLogger argLogger;
   private final LogManager logger;
 
@@ -185,7 +192,13 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
   public SlicingAbstractionsStrategy(final PredicateCPA pPredicateCpa, final Configuration config)
       throws InvalidConfigurationException {
     super(pPredicateCpa.getSolver());
-    solver = pPredicateCpa.getSolver();
+    parallelSolvers = new ArrayList<Solver>();
+    if(threadNum == 1){
+        solver = pPredicateCpa.getSolver();
+    } else {
+        parallelSolvers.add(pPredicateCpa.getSolver());
+        solver = parallelSolvers.get(0);
+    }
 
     bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
     predAbsMgr = pPredicateCpa.getPredicateManager();
@@ -435,8 +448,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       // TODO
       
       if(executeParallel == true){
-        ExecutorService executor = Executors.newFixedThreadPool(4);
+        ExecutorService executor = Executors.newFixedThreadPool(threadNum);
         List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>();
+        final int[] currentThreadId = new int[1];
+        currentThreadId[0] = 0;
         for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
             ARGState key = entry.getKey();
             List<ARGState> segment = entry.getValue();
@@ -445,7 +460,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
                 new Callable<Boolean>() {
                     @Override
                     public Boolean call() throws Exception {
-                    return checkSymbolicEdge(currentState, key, segment);
+                    return checkSymbolicEdgeParallel(currentState, key, segment,currentThreadId[0]);
                     }
                 };
             tasks.add(c);
@@ -454,18 +469,20 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
                 new Callable<Boolean>() {
                     @Override
                     public Boolean call() throws Exception {
-                    return checkEdge(
+                    return checkEdgeParallel(
                         currentState,
                         key,
                         segment,
                         pAbstractionStatesTrace,
                         rootState,
                         pInfeasiblePartOfART,
-                        pChangedElements);
+                        pChangedElements,
+                        currentThreadId[0]);
                     }
                 };
             tasks.add(c);
             }
+            currentThreadId[0] = (currentThreadId[0] + 1)%threadNum;
         }
         try {
             List<Future<Boolean>> results = executor.invokeAll(tasks);
@@ -580,6 +597,27 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     }
     return infeasible;
   }
+  
+  private boolean checkEdgeSetParallel(SLARGState startState, SLARGState endState, int currentThreadId)
+      throws InterruptedException, CPAException {
+    assert startState.getChildren().contains(endState);
+    EdgeSet edgeSet = startState.getEdgeSetToChild(endState);
+    boolean infeasible = true;
+    CFAEdge savedEdge = edgeSet.choose();
+    for (Iterator<CFAEdge> it = edgeSet.iterator(); it.hasNext(); ) {
+      CFAEdge cfaEdge = it.next();
+      edgeSet.select(cfaEdge);
+      if (isInfeasibleEdgeParallel(startState, endState, ImmutableList.of(), currentThreadId)) {
+        it.remove();
+      } else {
+        infeasible = false;
+      }
+    }
+    if (!infeasible && edgeSet.contains(savedEdge)) {
+      edgeSet.select(savedEdge);
+    }
+    return infeasible;
+  }
 
   private boolean checkEdge(ARGState startState, ARGState endState,
       List<ARGState> segmentList, final List<ARGState> abstractionStatesTrace, ARGState rootState,
@@ -599,6 +637,36 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       infeasible = mustBeInfeasible;
     } else {
       infeasible = isInfeasibleEdge(startState, endState, segmentList);
+      // Assert that mustBeInfeasible => infeasible holds:
+      assert (!mustBeInfeasible || infeasible) : "Edge " + startState.getStateId() + " -> "
+          + endState.getStateId() + " must be infeasible!";
+    }
+
+    assert !(startState instanceof SLARGState)
+        || ((SLARGState) startState).getEdgeSetToChild(endState) == null
+        || ((SLARGState) startState).getEdgeSetToChild(endState).size() > 0
+        || infeasible;
+    return infeasible;
+  }
+  
+  private boolean checkEdgeParallel(ARGState startState, ARGState endState,
+      List<ARGState> segmentList, final List<ARGState> abstractionStatesTrace, ARGState rootState,
+      ARGState pInfeasiblePartOfART, List<ARGState> pChangedElements, int currentThreadId)
+          throws InterruptedException, CPAException {
+    boolean infeasible = false;
+    final boolean mustBeInfeasible = mustBeInfeasible(startState, endState,
+        abstractionStatesTrace, rootState, pInfeasiblePartOfART, pChangedElements);
+
+    if (mustBeInfeasible && optimizeSlicing) {
+      infeasible = true;
+    } else if (minimalSlicing) {
+      if (!optimizeSlicing) {
+        assert (!mustBeInfeasible || isInfeasibleEdgeParallel(startState, endState, segmentList, currentThreadId)) : "Edge "
+            + startState.getStateId() + " -> " + endState.getStateId() + " must be infeasible!";
+      }
+      infeasible = mustBeInfeasible;
+    } else {
+      infeasible = isInfeasibleEdgeParallel(startState, endState, segmentList, currentThreadId);
       // Assert that mustBeInfeasible => infeasible holds:
       assert (!mustBeInfeasible || infeasible) : "Edge " + startState.getStateId() + " -> "
           + endState.getStateId() + " must be infeasible!";
@@ -631,7 +699,28 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       throw new RuntimeException("Checking a nonexisting transition in the ARG!");
     }
   }
-
+  
+    private boolean checkSymbolicEdgeParallel(
+      ARGState pStartState, ARGState pEndState, List<ARGState> pSegmentList, int currentThreadId)
+      throws InterruptedException, CPAException {
+    boolean edgeSetExists = pStartState.getChildren().contains(pEndState);
+    boolean segmentExists = !pSegmentList.isEmpty();
+    if (segmentExists && !edgeSetExists) {
+      return isInfeasibleEdgeParallel(pStartState, pEndState, pSegmentList,currentThreadId);
+    } else if (!segmentExists && edgeSetExists) {
+      return checkEdgeSetParallel((SLARGState) pStartState, (SLARGState) pEndState, currentThreadId);
+    } else if (segmentExists && edgeSetExists) {
+      boolean edgeSetInfeasible = checkEdgeSetParallel((SLARGState) pStartState, (SLARGState) pEndState, currentThreadId);
+      if (edgeSetInfeasible) {
+        pEndState.removeParent(pStartState);
+      }
+      boolean segmentInfeasible = isInfeasibleEdgeParallel(pStartState, pEndState, pSegmentList,currentThreadId);
+      return edgeSetInfeasible && segmentInfeasible;
+    } else {
+      throw new RuntimeException("Checking a nonexisting transition in the ARG!");
+    }
+  }
+  
   private boolean isInfeasibleEdge(ARGState start, ARGState stop, List<ARGState> segmentList)
       throws InterruptedException, CPAException {
     boolean infeasible = false;
@@ -640,6 +729,27 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     PointerTargetSet startPts = PointerTargetSet.emptyPointerTargetSet();
     BooleanFormula formula = buildPathFormula(start, stop, segmentList, startSSAMap, startPts, solver, pfmgr, true).getFormula();
     try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      thmProver.push(formula);
+      stats.increaseSolverCallCounter();
+      if (thmProver.isUnsat()) {
+        infeasible = true;
+      } else {
+        infeasible = false;
+      }
+    } catch (SolverException  e){
+         throw new CPAException("Solver Failure", e);
+    }
+    return infeasible;
+  }
+
+  private boolean isInfeasibleEdgeParallel(ARGState start, ARGState stop, List<ARGState> segmentList, int currentThreadId)
+      throws InterruptedException, CPAException {
+    boolean infeasible = false;
+
+    SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
+    PointerTargetSet startPts = PointerTargetSet.emptyPointerTargetSet();
+    BooleanFormula formula = buildPathFormula(start, stop, segmentList, startSSAMap, startPts, parallelSolvers.get(currentThreadId), pfmgr, true).getFormula();
+    try (ProverEnvironment thmProver = parallelSolvers.get(currentThreadId).newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       thmProver.push(formula);
       stats.increaseSolverCallCounter();
       if (thmProver.isUnsat()) {

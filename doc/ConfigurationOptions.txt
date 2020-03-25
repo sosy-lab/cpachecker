@@ -2385,6 +2385,9 @@ cpa.predicate.slicingabstractions.optimizeslicing = true
 # Whether to remove parts fo the ARG from which no target state is reachable
 cpa.predicate.slicingabstractions.removeSafeRegions = true
 
+# Number of threads, is only used when executeParallel is True
+cpa.predicate.slicingabstractions.threadNum = 1
+
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
 
