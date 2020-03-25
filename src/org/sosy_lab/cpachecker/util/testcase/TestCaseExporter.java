@@ -335,7 +335,7 @@ public class TestCaseExporter {
         harnessExporter.extractTestVector(pRootState, pIsRelevantState, pIsRelevantEdge, valueMap);
 
     if (maybeTestVector.isPresent()) {
-      final TestVector vector = maybeTestVector.get().getVector();
+      final TestVector vector = maybeTestVector.orElseThrow().getVector();
 
       List<String> inputs =
           vector.getTestInputsInOrder().stream()
