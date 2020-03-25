@@ -24,10 +24,6 @@ import com.google.common.collect.SortedSetMultimap;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -35,14 +31,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -52,13 +45,11 @@ import org.sosy_lab.cpachecker.cfa.mutation.strategy.CompositeStrategy;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
-import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -67,36 +58,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class CFAMutator extends CFACreator {
   @Option(
       secure = true,
-      name = "analysis.runMutationsCount",
+      name = "mutations.count",
       description =
           "if analysis.runMutations is true and this option is not 0, this option limits count of runs")
   private int runMutationsCount = 0;
-
-  @Option(
-      secure = true,
-      name = "exportToC",
-      description = "Whether to export mutated CFA as C program")
-  private boolean exportToC = true;
-
-  @Option(
-      secure = true,
-      name = "exportToCFile",
-      description = "File for mutated CFA exported as C program")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportToCFile = Paths.get("mutated.c");
-
-  @Option(
-      secure = true,
-      name = "exportFunctionNames",
-      description = "Whether to export list of remained functions")
-  private boolean exportFunctionNames = true;
-
-  @Option(
-      secure = true,
-      name = "exportFunctionNamesFile",
-      description = "File for exported function names list")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportFunctionNamesFile = Paths.get("functions.txt");
 
   private ParseResult parseResult = null;
   private Set<CFANode> originalNodes = null;
@@ -156,7 +121,7 @@ public class CFAMutator extends CFACreator {
 
     pConfig.inject(this, CFAMutator.class);
 
-    strategy = new CompositeStrategy(logger);
+    strategy = new CompositeStrategy(pConfig, pLogger);
   }
 
 
@@ -181,7 +146,8 @@ public class CFAMutator extends CFACreator {
       return null;
     }
 
-    if (((CFAMutatorStatistics) stats).mutationRound.getValue() == runMutationsCount) {
+    if (runMutationsCount > 0
+        && ((CFAMutatorStatistics) stats).mutationRound.getValue() == runMutationsCount) {
       doLastRun = true;
     } else {
       ((CFAMutatorStatistics) stats).mutationTimer.start();
@@ -304,58 +270,14 @@ public class CFAMutator extends CFACreator {
     logger.logf(Level.FINE, "Count of CFA nodes: %d", cfa.getAllNodes().size());
 
     if (cfa == lastCFA) {
-      if (exportFunctionNames && exportFunctionNamesFile != null) {
-        exportFunctionNames(lastCFA);
-      }
       super.exportCFAAsync(lastCFA);
-      if (exportToC && exportToCFile != null) {
-        exportCFAToC(lastCFA);
-      }
     } else {
       lastCFA = cfa;
     }
   }
 
-  private void exportFunctionNames(CFA pCFA) {
-    logger.logf(Level.INFO, "translating cfa to %s", exportFunctionNamesFile);
-    Concurrency.newThread(
-            "CFAMutator function list exporter",
-            () -> {
-              try (Writer writer =
-                  IO.openOutputFile(exportFunctionNamesFile, Charset.defaultCharset())) {
-
-                StringBuilder sb = new StringBuilder();
-                for (String function : pCFA.getAllFunctionNames()) {
-                  sb.append(function).append("\n");
-                }
-                writer.write(sb.toString());
-
-              } catch (IOException e) {
-                logger.logUserException(Level.WARNING, e, "Could not write function list to file.");
-              }
-            })
-        .start();
-  }
-
-  private void exportCFAToC(CFA pCFA) {
-    logger.logf(Level.INFO, "translating cfa to %s", exportToCFile);
-    Concurrency.newThread(
-            "CFAMutator-to-C-exporter",
-            () -> {
-              try (Writer writer = IO.openOutputFile(exportToCFile, Charset.defaultCharset())) {
-
-                String code = new CFAToCTranslator().translateCfa(pCFA);
-                writer.write(code);
-
-              } catch (CPAException | IOException | InvalidConfigurationException e) {
-                logger.logUserException(Level.WARNING, e, "Could not write CFA to C file.");
-              }
-            })
-        .start();
-  }
-
   @Override
-  protected CFACreatorStatistics createStatistics(LogManager pLogger) {
+  protected CFAMutatorStatistics createStatistics(LogManager pLogger) {
     return new CFAMutatorStatistics(pLogger);
   }
 }

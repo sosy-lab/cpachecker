@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
@@ -40,13 +42,14 @@ public class FunctionStrategy
     extends GenericCFAMutationStrategy<String, Pair<FunctionEntryNode, SortedSet<CFANode>>> {
   @Option(
       secure = true,
-      name = "functionsWhiteList",
+      name = "mutations.functionsWhiteList",
       description = "Names of functions that should not be deleted from CFA")
   private Collection<String> whiteList = List.of("main");
 
-  public FunctionStrategy(LogManager pLogger, int pRate, int pStartDepth) {
+  public FunctionStrategy(Configuration pConfig, LogManager pLogger, int pRate, int pStartDepth)
+      throws InvalidConfigurationException {
     super(pLogger, pRate, pStartDepth, "Functions");
-    // TODO whitelist config injection
+    pConfig.inject(this);
   }
 
   @Override

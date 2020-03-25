@@ -23,6 +23,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
 import java.util.Collection;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -33,13 +35,14 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
   protected UnmodifiableIterator<AbstractCFAMutationStrategy> strategies;
   protected AbstractCFAMutationStrategy currentStrategy;
 
-  public CompositeStrategy(LogManager pLogger) {
+  public CompositeStrategy(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
     super(pLogger);
     strategiesList =
         ImmutableList.of(
             // First, try to remove most functions.
             //   Remove functions, 60-150 rounds for 10-15k nodes in input, 500-800 nodes remain.
-            new FunctionStrategy(pLogger, 5, 1),
+            new FunctionStrategy(pConfig, pLogger, 5, 1),
             //   Check that analysis result remains unchanged.
             new DummyStrategy(pLogger),
             //   It seems it does not change result, so try to remove all in one round.
@@ -67,7 +70,7 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
 
             // Third, remove functions-spoilers: they just call another function
             // It seems it does not change result, so try to remove all in one round
-            new SpoilerFunctionStrategy(pLogger, 5, 0),
+            new SpoilerFunctionStrategy(pConfig, pLogger, 5, 0),
             new DummyStrategy(pLogger),
 
             // And last: remove global declarations, certainly of already removed functions.

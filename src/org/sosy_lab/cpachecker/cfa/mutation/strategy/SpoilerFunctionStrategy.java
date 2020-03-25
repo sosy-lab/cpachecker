@@ -24,6 +24,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -44,9 +46,11 @@ public class SpoilerFunctionStrategy
 
   private final FunctionStrategy functionRemover;
 
-  public SpoilerFunctionStrategy(LogManager pLogger, int pRate, int pStartDepth) {
+  public SpoilerFunctionStrategy(
+      Configuration pConfig, LogManager pLogger, int pRate, int pStartDepth)
+      throws InvalidConfigurationException {
     super(pLogger, pRate, pStartDepth, "Spoiler functions");
-    functionRemover = new FunctionStrategy(pLogger, 0, 0);
+    functionRemover = new FunctionStrategy(pConfig, pLogger, 0, 0);
   }
 
   @Override
