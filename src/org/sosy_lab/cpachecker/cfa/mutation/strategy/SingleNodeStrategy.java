@@ -38,7 +38,11 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public class SingleNodeStrategy extends GenericCFAMutationStrategy<CFANode, CFANode> {
 
   public SingleNodeStrategy(LogManager pLogger, int pRate, int pStartDepth) {
-    super(pLogger, pRate, pStartDepth);
+    super(pLogger, pRate, pStartDepth, "Nodes (w 1 leaving edge)");
+  }
+
+  protected SingleNodeStrategy(LogManager pLogger, int pRate, int pStartDepth, String objects) {
+    super(pLogger, pRate, pStartDepth, objects);
   }
 
   // can delete node with its only leaving edge and reconnect entering edge instead

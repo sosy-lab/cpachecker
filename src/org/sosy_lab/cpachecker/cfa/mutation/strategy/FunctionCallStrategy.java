@@ -19,9 +19,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.mutation.strategy;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -32,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class FunctionCallStrategy extends SingleNodeStrategy {
 
   public FunctionCallStrategy(LogManager pLogger, int step, int pStartDepth) {
-    super(pLogger, step, pStartDepth);
+    super(pLogger, step, pStartDepth, "Function call edges");
   }
 
   @Override
@@ -46,16 +43,5 @@ public class FunctionCallStrategy extends SingleNodeStrategy {
       return false;
     }
     return (((AStatementEdge) leavingEdge).getStatement() instanceof AFunctionCall);
-  }
-
-  @Override
-  protected Collection<CFANode> getAllObjects(ParseResult pParseResult) {
-    List<CFANode> answer = new ArrayList<>();
-    for (CFANode node : super.getAllObjects(pParseResult)) {
-      if (canRemove(pParseResult, node)) {
-        answer.add(node);
-      }
-    }
-    return answer;
   }
 }

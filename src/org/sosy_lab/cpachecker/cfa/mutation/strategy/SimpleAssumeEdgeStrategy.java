@@ -38,7 +38,7 @@ public class SimpleAssumeEdgeStrategy
     extends GenericCFAMutationStrategy<Pair<AssumeEdge, AssumeEdge>, Pair<AssumeEdge, AssumeEdge>> {
 
   public SimpleAssumeEdgeStrategy(LogManager pLogger, int pRate, int pStartDepth) {
-    super(pLogger, pRate, pStartDepth);
+    super(pLogger, pRate, pStartDepth, "Easy branching");
   }
 
   @Override
@@ -73,7 +73,7 @@ public class SimpleAssumeEdgeStrategy
         <= pEdge.getSuccessor().getReversePostorderId();
   }
 
-  private int countForwardEnteringEdges(CFANode pNode) {
+  private static int countForwardEnteringEdges(CFANode pNode) {
     int count = 0;
     for (CFANode p : CFAUtils.predecessorsOf(pNode)) {
       if (p.getReversePostorderId() > pNode.getReversePostorderId()) {

@@ -32,18 +32,21 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public class NodeWithLoopStrategy extends GenericCFAMutationStrategy<CFANode, CFANode> {
 
   public NodeWithLoopStrategy(LogManager pLogger, int pRate, int pStartDepth) {
-    super(pLogger, pRate, pStartDepth);
+    super(pLogger, pRate, pStartDepth, "Nodes with loops");
   }
 
-  private boolean isNodeWithLoop(CFANode pNode) {
-    return pNode.getNumLeavingEdges() == 1 && pNode.hasEdgeTo(pNode);
+  @Override
+  protected boolean canRemove(ParseResult pParseResult, CFANode pNode) {
+    return super.canRemove(pParseResult, pNode)
+        && pNode.getNumLeavingEdges() == 1
+        && pNode.hasEdgeTo(pNode);
   }
 
   @Override
   protected Collection<CFANode> getAllObjects(ParseResult pParseResult) {
     Collection<CFANode> answer = new ArrayList<>();
     for (CFANode node : pParseResult.getCFANodes().values()) {
-      if (isNodeWithLoop(node)) {
+      if (canRemove(pParseResult, node)) {
         answer.add(node);
       }
     }

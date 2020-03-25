@@ -19,8 +19,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.mutation.strategy;
 
+import java.util.Collection;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 
 public class DummyStrategy extends AbstractCFAMutationStrategy {
   private int steps;
@@ -33,11 +35,6 @@ public class DummyStrategy extends AbstractCFAMutationStrategy {
   public DummyStrategy(LogManager pLogger, int pSteps) {
     super(pLogger);
     steps = pSteps;
-  }
-
-  @Override
-  public int countPossibleMutations(ParseResult pParseResult) {
-    return steps;
   }
 
   @Override
@@ -54,4 +51,10 @@ public class DummyStrategy extends AbstractCFAMutationStrategy {
   public void rollback(ParseResult pParseResult) {
     assert false : "Dummy strategy does not change parseResult, there has to be no rollbacks";
   }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {}
+
+  @Override
+  public void makeAftermath(ParseResult pParseResult) {}
 }

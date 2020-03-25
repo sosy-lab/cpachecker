@@ -27,17 +27,26 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.Pair;
 
+@Options
 public class FunctionStrategy
     extends GenericCFAMutationStrategy<String, Pair<FunctionEntryNode, SortedSet<CFANode>>> {
+  @Option(
+      secure = true,
+      name = "functionsWhiteList",
+      description = "Names of functions that should not be deleted from CFA")
+  private Collection<String> whiteList = List.of("main");
 
   public FunctionStrategy(LogManager pLogger, int pRate, int pStartDepth) {
-    super(pLogger, pRate, pStartDepth);
+    super(pLogger, pRate, pStartDepth, "Functions");
+    // TODO whitelist config injection
   }
 
   @Override
@@ -54,7 +63,7 @@ public class FunctionStrategy
       }
     }
     List<String> answer = new ArrayList<>(pParseResult.getFunctions().keySet());
-    answer.removeIf(s -> s.equals("main"));
+    answer.removeIf(s -> whiteList.contains(s));
     Collections.sort(answer, new FunctionSize(pParseResult));
     return answer;
   }

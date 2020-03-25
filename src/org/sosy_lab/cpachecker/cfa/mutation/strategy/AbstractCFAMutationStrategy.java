@@ -19,7 +19,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.mutation.strategy;
 
+import java.io.PrintStream;
+import java.util.Collection;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -32,21 +35,51 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-public abstract class AbstractCFAMutationStrategy {
+public abstract class AbstractCFAMutationStrategy implements StatisticsProvider {
 
   protected final LogManager logger;
+  protected AbstractMutationStatistics stats = new AbstractMutationStatistics();
+
+  protected class AbstractMutationStatistics implements Statistics {
+    protected final StatCounter rounds = new StatCounter("rounds");
+    protected final StatCounter rollbacks = new StatCounter("rollbacks");
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      StatisticsWriter.writingStatisticsTo(pOut).beginLevel().put(rounds).put(rollbacks).endLevel();
+    }
+    @Override
+    public @Nullable String getName() {
+      return this.toString();
+    }
+  }
 
   public AbstractCFAMutationStrategy(LogManager pLogger) {
     logger = pLogger;
   }
 
-  public abstract int countPossibleMutations(final ParseResult parseResult);
-
   public abstract boolean mutate(ParseResult parseResult);
 
   public abstract void rollback(ParseResult parseResult);
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+  }
+
+  @Override
+  public String toString() {
+    return this.getClass().getSimpleName();
+  }
+
+  public abstract void makeAftermath(ParseResult pParseResult);
 
   protected void addNodeToParseResult(ParseResult parseResult, CFANode pNode) {
     logger.logf(Level.FINER, "adding node %s", pNode);
@@ -211,10 +244,5 @@ public abstract class AbstractCFAMutationStrategy {
     logger.logf(Level.FINEST, "duplicated edge %s as %s", pEdge, newEdge);
 
     return newEdge;
-  }
-
-  @Override
-  public String toString() {
-    return this.getClass().getSimpleName();
   }
 }

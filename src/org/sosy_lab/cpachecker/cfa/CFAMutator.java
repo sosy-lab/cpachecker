@@ -28,6 +28,8 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -48,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.mutation.strategy.AbstractCFAMutationStrategy;
 import org.sosy_lab.cpachecker.cfa.mutation.strategy.CompositeStrategy;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -111,12 +114,11 @@ public class CFAMutator extends CFACreator {
     private final StatCounter mutationsDone = new StatCounter("Successful mutation rounds");
     private final StatCounter rollbacksDone =
         new StatCounter("Unsuccessful rounds (count of rollbacks)");
-    private long possibleMutations;
     private long originalNodesCount;
     private long originalEdgesCount;
     private long remainedNodesCount;
     private long remainedEdgesCount;
-    private long remainedMutations;
+    private final Collection<Statistics> strategyStats = new ArrayList<>();
 
     private CFAMutatorStatistics(LogManager pLogger) {
       super(pLogger);
@@ -131,14 +133,15 @@ public class CFAMutator extends CFACreator {
           .put(clearingTimer)
           .put("Initial nodes count", originalNodesCount)
           .put("Initial edges count", originalEdgesCount)
-          .put("Mutations possible", possibleMutations)
           .put(mutationRound)
           .put(mutationsDone)
           .put(rollbacksDone)
           .put("Nodes remained", remainedNodesCount)
           .put("Edges remained", remainedEdgesCount)
-          .put("Mutations remained", remainedMutations)
           .endLevel();
+      for (Statistics st : strategyStats) {
+        st.printStatistics(out, pResult, pReached);
+      }
     }
 
     @Override
@@ -168,8 +171,6 @@ public class CFAMutator extends CFACreator {
 
       ((CFAMutatorStatistics) stats).originalNodesCount = originalNodes.size();
       ((CFAMutatorStatistics) stats).originalEdgesCount = originalEdges.size();
-      ((CFAMutatorStatistics) stats).possibleMutations =
-          strategy.countPossibleMutations(parseResult);
       return parseResult;
     }
 
@@ -191,8 +192,8 @@ public class CFAMutator extends CFACreator {
     if (doLastRun) {
       ((CFAMutatorStatistics) stats).remainedNodesCount = originalNodes.size();
       ((CFAMutatorStatistics) stats).remainedEdgesCount = originalEdges.size();
-      ((CFAMutatorStatistics) stats).remainedMutations =
-          strategy.countPossibleMutations(parseResult);
+      strategy.makeAftermath(parseResult);
+      strategy.collectStatistics(((CFAMutatorStatistics) stats).strategyStats);
     }
 
     // need to return after possible rollback
@@ -354,7 +355,7 @@ public class CFAMutator extends CFACreator {
   }
 
   @Override
-  protected CFAMutatorStatistics createStatistics(LogManager pLogger) {
+  protected CFACreatorStatistics createStatistics(LogManager pLogger) {
     return new CFAMutatorStatistics(pLogger);
   }
 }

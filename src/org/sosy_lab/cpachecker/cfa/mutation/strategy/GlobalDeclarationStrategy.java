@@ -32,7 +32,7 @@ public class GlobalDeclarationStrategy
     extends GenericCFAMutationStrategy<Pair<ADeclaration, String>, Pair<Integer, Pair<ADeclaration, String>>> {
 
   public GlobalDeclarationStrategy(LogManager pLogger, int pAtATime, int pStartDepth) {
-    super(pLogger, pAtATime, pStartDepth);
+    super(pLogger, pAtATime, pStartDepth, "Global declarations");
   }
 
   @Override
@@ -69,14 +69,6 @@ public class GlobalDeclarationStrategy
   @Override
   protected void removeObject(ParseResult pParseResult, Pair<ADeclaration, String> pObject) {
     List<Pair<ADeclaration, String>> prgd = pParseResult.getGlobalDeclarations();
-    System.out.println(
-        "prgd size is "
-            + prgd.size()
-            + "\nremoving ("
-            + prgd.indexOf(pObject)
-            + ", "
-            + pObject
-            + ")");
     assert prgd.remove(pObject);
     assert !prgd.contains(pObject);
     pParseResult =
@@ -91,7 +83,6 @@ public class GlobalDeclarationStrategy
   protected void returnObject(
       ParseResult pParseResult, Pair<Integer, Pair<ADeclaration, String>> pRollbackInfo) {
     List<Pair<ADeclaration, String>> prgd = pParseResult.getGlobalDeclarations();
-    System.out.println("prgd size is " + prgd.size() + "\nreturning " + pRollbackInfo);
     assert !prgd.contains(pRollbackInfo.getSecond());
     prgd.add(pRollbackInfo.getFirst(), pRollbackInfo.getSecond());
     assert prgd.indexOf(pRollbackInfo.getSecond()) == pRollbackInfo.getFirst();

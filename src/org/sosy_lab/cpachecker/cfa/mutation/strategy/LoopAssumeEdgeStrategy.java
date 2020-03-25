@@ -36,7 +36,7 @@ public class LoopAssumeEdgeStrategy
     extends GenericCFAMutationStrategy<Chain, Triple<CFAEdge, CFAEdge, CFAEdge>> {
 
   public LoopAssumeEdgeStrategy(LogManager pLogger, int pRate, int pStartDepth) {
-    super(pLogger, pRate, pStartDepth);
+    super(pLogger, pRate, pStartDepth, "Branch-loops");
   }
 
   private Collection<CFAEdge> getBackwardEnteringEdges(final CFANode pNode) {
@@ -99,12 +99,13 @@ public class LoopAssumeEdgeStrategy
 
       if (chain == null) {
         chain = otherChain;
-      } else {
-        if (otherChain != null) {
+      } else if (otherChain != null) {
           logger.logf(
-              Level.SEVERE, "Got two chains in branching point:\n%s\n%s", chain, otherChain);
+              Level.SEVERE,
+              "Got two loop chains at one branching point:\n%s\n%s",
+              chain,
+              otherChain);
           continue;
-        }
       }
       answer.add(chain);
     }

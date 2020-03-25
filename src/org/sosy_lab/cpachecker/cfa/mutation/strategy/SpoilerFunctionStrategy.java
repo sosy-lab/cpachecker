@@ -45,7 +45,7 @@ public class SpoilerFunctionStrategy
   private final FunctionStrategy functionRemover;
 
   public SpoilerFunctionStrategy(LogManager pLogger, int pRate, int pStartDepth) {
-    super(pLogger, pRate, pStartDepth);
+    super(pLogger, pRate, pStartDepth, "Spoiler functions");
     functionRemover = new FunctionStrategy(pLogger, 0, 0);
   }
 

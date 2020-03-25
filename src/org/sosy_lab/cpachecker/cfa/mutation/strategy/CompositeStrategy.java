@@ -21,20 +21,17 @@ package org.sosy_lab.cpachecker.cfa.mutation.strategy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 
 public class CompositeStrategy extends AbstractCFAMutationStrategy {
 
   protected final ImmutableList<AbstractCFAMutationStrategy> strategiesList;
   protected UnmodifiableIterator<AbstractCFAMutationStrategy> strategies;
   protected AbstractCFAMutationStrategy currentStrategy;
-  private int round = 0;
-  private final Deque<Integer> rounds;
-  private final Deque<Integer> rollbacks;
 
   public CompositeStrategy(LogManager pLogger) {
     super(pLogger);
@@ -79,8 +76,6 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
             new DummyStrategy(pLogger));
     strategies = strategiesList.iterator();
     currentStrategy = strategies.next();
-    rounds = new ArrayDeque<>();
-    rollbacks = new ArrayDeque<>();
   }
 
   public CompositeStrategy(
@@ -89,25 +84,22 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
     strategiesList = pStrategiesList;
     strategies = strategiesList.iterator();
     currentStrategy = strategies.next();
-    rounds = new ArrayDeque<>();
-    rollbacks = new ArrayDeque<>();
   }
 
   @Override
   public boolean mutate(ParseResult parseResult) {
-    logger.logf(Level.INFO, "Round %d. Mutation strategy %s", ++round, currentStrategy);
-    rounds.addLast(rounds.pollLast() + 1);
+    stats.rounds.inc();
+    logger.logf(
+        Level.INFO, "Round %d. Mutation strategy %s", stats.rounds.getValue(), currentStrategy);
     boolean answer = currentStrategy.mutate(parseResult);
     while (!answer) {
       logger.logf(
           Level.INFO,
           "Round %d. Mutation strategy %s finished in %d rounds with %d rollbacks.",
-          round,
+          stats.rounds.getValue(),
           currentStrategy,
-          rounds.peekLast(),
-          rollbacks.peekLast());
-      rounds.addLast(0);
-      rollbacks.addLast(0);
+          currentStrategy.stats.rounds.getValue(),
+          currentStrategy.stats.rollbacks.getValue());
       if (!strategies.hasNext()) {
         return answer;
       }
@@ -120,28 +112,25 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
 
   @Override
   public void rollback(ParseResult parseResult) {
-    rollbacks.addLast(rollbacks.pollLast() + 1);
+    stats.rollbacks.inc();
     currentStrategy.rollback(parseResult);
   }
 
   @Override
-  public int countPossibleMutations(ParseResult parseResult) {
-    int sum = 0;
+  public void makeAftermath(ParseResult pParseResult) {
     for (AbstractCFAMutationStrategy strategy : strategiesList) {
-      int term = strategy.countPossibleMutations(parseResult);
-      logger.logf(Level.INFO, "Strategy %s: %d possible mutations", strategy, term);
-      sum += term;
-
-      if (!rounds.isEmpty()) {
-        logger.logf(
-            Level.INFO,
-            "in %d rounds with %d rollbacks",
-            rounds.pollFirst(),
-            rollbacks.pollFirst());
+      strategy.makeAftermath(pParseResult);
+      if (strategy instanceof DummyStrategy) {
+        // TODO checksDone+=rounds or somthin
       }
     }
-    rounds.add(0);
-    rollbacks.add(0);
-    return sum;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+    for (AbstractCFAMutationStrategy str : strategiesList) {
+      str.collectStatistics(pStatsCollection);
+    }
   }
 }

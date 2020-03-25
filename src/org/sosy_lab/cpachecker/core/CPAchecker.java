@@ -504,15 +504,27 @@ public class CPAchecker {
     Throwable originalThrowable = null;
     Throwable currentThrowable = null;
 
+    MainCPAStatistics stats = null;
+    Algorithm algorithm = null;
+    ReachedSet reached = null;
+    CFA cfa = null;
+    Result result = Result.NOT_YET_STARTED;
+    String violatedPropertyDescription = "";
+    Specification specification = null;
+
     for (int mutationRound = 0; true; mutationRound++) {
-      MainCPAStatistics stats = null;
-      Algorithm algorithm = null;
-      ReachedSet reached = null;
-      CFA cfa = null;
-      Result result = Result.NOT_YET_STARTED;
-      String violatedPropertyDescription = "";
-      Specification specification = null;
       final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
+      stats = null;
+      algorithm = null;
+      reached = null;
+      cfa = null;
+      result = Result.NOT_YET_STARTED;
+      violatedPropertyDescription = "";
+      specification = null;
+
+      currentResult = null;
+      currentThrowable = null;
+
       shutdownNotifier.register(interruptThreadOnShutdown);
 
       logger.logf(Level.INFO, "Mutation round %d", mutationRound);
@@ -534,9 +546,6 @@ public class CPAchecker {
           cfa = parse(programDenotation, stats);
           if (cfa == null) {
             break;
-          } else {
-            currentResult = null;
-            currentThrowable = null;
           }
           GlobalInfo.getInstance().storeCFA(cfa);
           shutdownNotifier.shutdownIfNecessary();
@@ -619,6 +628,7 @@ public class CPAchecker {
 
       } catch (IOException e) {
         logger.logUserException(Level.SEVERE, e, "Could not read file");
+        break;
 
       } catch (ParserException e) {
         logger.logUserException(Level.SEVERE, e, "Parsing failed");
@@ -631,19 +641,23 @@ public class CPAchecker {
         msg.append(
             "If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@googlegroups.com.\n");
         logger.log(Level.INFO, msg);
+        break;
 
       } catch (ClassNotFoundException e) {
         logger.logUserException(
             Level.SEVERE, e, "Could not read serialized CFA. Class is missing.");
+        break;
 
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.SEVERE, e, "Invalid configuration");
+        break;
 
       } catch (InterruptedException e) {
         // CPAchecker must exit because it was asked to
         // we return normally instead of propagating the exception
         // so we can return the partial result we have so far
         logger.logUserException(Level.WARNING, e, "Analysis interrupted");
+        break;
 
       } catch (CPAException e) {
         logger.logUserException(Level.SEVERE, e, null);
@@ -699,15 +713,20 @@ public class CPAchecker {
         }
       }
     }
-    logger.log(Level.INFO, "Mutations ended.");
-    logger.log(Level.INFO, "Verification result:");
-    if (originalResult != null) {
-      logger.log(Level.INFO, originalResult.getResultString());
+    if (currentResult != null) {
+      logger.log(Level.INFO, "Mutations ended.");
+      logger.log(Level.INFO, "Verification result:");
+      if (originalResult != null) {
+        logger.log(Level.INFO, originalResult.getResultString());
+      } else {
+        logger.log(Level.INFO, "null result");
+      }
+      if (originalThrowable != null) {
+        logger.logUserException(Level.INFO, originalThrowable, null);
+      }
     } else {
-      logger.log(Level.INFO, "null result");
-    }
-    if (originalThrowable != null) {
-      logger.logUserException(Level.INFO, originalThrowable, null);
+      currentResult =
+          new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
     }
     return currentResult;
   }
