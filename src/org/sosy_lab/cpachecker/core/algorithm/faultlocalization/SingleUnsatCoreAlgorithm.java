@@ -27,6 +27,7 @@ import com.google.common.base.VerifyException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
@@ -74,7 +75,7 @@ public class SingleUnsatCoreAlgorithm implements FaultLocalizationAlgorithmInter
             .collect(Collectors.toList());
 
     ErrorIndicatorSet<Selector> indicators = new ErrorIndicatorSet<>();
-    indicators.add(new HashSet<>(unsatCore));
+    indicators.add(new ErrorIndicator<>(new HashSet<>(unsatCore)));
     return indicators;
   }
 }

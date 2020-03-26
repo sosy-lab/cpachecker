@@ -35,6 +35,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
@@ -143,8 +144,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
             .filter(l -> !l.interpolant.equals(errorTrace.getPostCondition()))
             .map(
                 l ->
-                    Collections.singleton(
-                        Selector.of(l.edge).orElse(Selector.makeSelector(context, l.edge, null))))
+                    new ErrorIndicator<>(Collections.singleton(
+                        Selector.of(l.edge).orElse(Selector.makeSelector(context, l.edge, null)))))
             .collect(Collectors.toSet()));
   }
 

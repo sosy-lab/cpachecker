@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.Ident
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.OverallAppearanceHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SubsetAppearanceHeuristic;
 
-public class FaultLocalizationHeuristicImpl {
+public class FaultLocalizationHeuristicUtils {
 
   /**
    * Sample heuristics for sorting the result set.
@@ -87,8 +87,8 @@ public class FaultLocalizationHeuristicImpl {
     return l -> forAll(l, pHeuristics);
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationSubsetHeuristic<I> concatSubsetHeuristics(
-      List<FaultLocalizationSubsetHeuristic<I>> pHeuristics) {
+  public static <I extends FaultLocalizationOutput> FaultLocalizationSetHeuristic<I> concatSubsetHeuristics(
+      List<FaultLocalizationSetHeuristic<I>> pHeuristics) {
     return l -> forAllSetHeuristics(l, pHeuristics);
   }
 
@@ -105,9 +105,9 @@ public class FaultLocalizationHeuristicImpl {
     return scoreToRankMap(setToScoreMap);
   }
 
-  public static <I extends FaultLocalizationOutput> Map<FaultLocalizationSetOutput<I>, Integer> forAllSetHeuristics(ErrorIndicatorSet<I> result, List<FaultLocalizationSubsetHeuristic<I>> concat){
-    Map<FaultLocalizationSetOutput<I>, Double> setToScoreMap = new HashMap<>();
-    for(FaultLocalizationSubsetHeuristic<I> heuristic: concat){
+  public static <I extends FaultLocalizationOutput> Map<ErrorIndicator<I>, Integer> forAllSetHeuristics(ErrorIndicatorSet<I> result, List<FaultLocalizationSetHeuristic<I>> concat){
+    Map<ErrorIndicator<I>, Double> setToScoreMap = new HashMap<>();
+    for(FaultLocalizationSetHeuristic<I> heuristic: concat){
       heuristic.rankSubsets(result).forEach((k,v) -> setToScoreMap.merge(k, k.calculateScore(), (v1,v2) -> Math.max(v1,v2)));
     }
     return scoreToRankMapSet(setToScoreMap);
@@ -132,11 +132,11 @@ public class FaultLocalizationHeuristicImpl {
     return rankMap;
   }
 
-  public static <I extends FaultLocalizationOutput> Map<FaultLocalizationSetOutput<I>, Integer> scoreToRankMapSet(Map<FaultLocalizationSetOutput<I>, Double> outputToScoreMap){
-    List<FaultLocalizationSetOutput<I>> ranking = new ArrayList<>(outputToScoreMap.keySet());
+  public static <I extends FaultLocalizationOutput> Map<ErrorIndicator<I>, Integer> scoreToRankMapSet(Map<ErrorIndicator<I>, Double> outputToScoreMap){
+    List<ErrorIndicator<I>> ranking = new ArrayList<>(outputToScoreMap.keySet());
     ranking.sort(Comparator.comparingDouble(l -> outputToScoreMap.get(l)));
 
-    Map<FaultLocalizationSetOutput<I>, Integer> rankMap = new HashMap<>();
+    Map<ErrorIndicator<I>, Integer> rankMap = new HashMap<>();
     if(ranking.isEmpty())
       return rankMap;
     double min = outputToScoreMap.get(ranking.get(ranking.size()-1));

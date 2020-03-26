@@ -10,7 +10,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicImpl;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicUtils;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationOutput;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason;
 
@@ -28,7 +28,7 @@ public class CallHierarchyHeuristic<I extends FaultLocalizationOutput>
   @Override
   public Map<I, Integer> rank(ErrorIndicatorSet<I> result) {
     List<I> singleSet =
-        new ArrayList<>(FaultLocalizationHeuristicImpl.condenseErrorIndicatorSet(result));
+        new ArrayList<>(FaultLocalizationHeuristicUtils.condenseErrorIndicatorSet(result));
     singleSet.sort(Comparator.comparingInt(l -> edgeList.indexOf(l.correspondingEdge())));
     Map<I, Double> scoreMap = new HashMap<>();
     for (I l : singleSet) {
@@ -48,6 +48,6 @@ public class CallHierarchyHeuristic<I extends FaultLocalizationOutput>
       scoreMap.put(l, likelihood);
       l.addReason(reason);
     }
-    return FaultLocalizationHeuristicImpl.scoreToRankMap(scoreMap);
+    return FaultLocalizationHeuristicUtils.scoreToRankMap(scoreMap);
   }
 }

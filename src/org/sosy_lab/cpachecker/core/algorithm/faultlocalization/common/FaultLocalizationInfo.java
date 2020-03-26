@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common;
 
+import com.google.common.base.Splitter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -34,6 +35,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.misc.MultiMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SetIdentityHeuristic;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -41,10 +43,10 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends CounterexampleInfo {
 
   private Map<I, Integer> mapOutToRank;
-  private Map<FaultLocalizationSetOutput<I>, Integer> mapRankToSet;
+  private Map<ErrorIndicator<I>, Integer> mapRankToSet;
 
   private Map<CFAEdge, I> mapEdgeToInfo;
-  private MultiMap<CFAEdge, FaultLocalizationSetOutput<I>> mapEdgeToSetInfo;
+  private MultiMap<CFAEdge, ErrorIndicator<I>> mapEdgeToSetInfo;
   private Map<CFAEdge, Integer> mapEdgeToMinRank;
   private Map<CFAEdge, String> mapEdgeToDescription;
 
@@ -61,7 +63,7 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
       ErrorIndicatorSet<I> pErrorIndicators,
       CounterexampleInfo pCreated,
       Optional<FaultLocalizationHeuristic<I>> pRanking,
-      Optional<FaultLocalizationSubsetHeuristic<I>> pSetRanking) {
+      Optional<FaultLocalizationSetHeuristic<I>> pSetRanking) {
     super(
         pCreated.isSpurious(),
         pCreated.getTargetPath(),
@@ -78,7 +80,7 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
     if(pSetRanking.isPresent()){
       mapRankToSet = pSetRanking.get().rankSubsets(pErrorIndicators);
     } else {
-      if(!pRanking.isPresent()){
+      if(pRanking.isEmpty()){
         mapRankToSet = new SetIdentityHeuristic<I>().rankSubsets(pErrorIndicators);
       } else {
         mapRankToSet = Collections.emptyMap();
@@ -94,13 +96,13 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
       mapEdgeToInfo.put(out.correspondingEdge(), out);
     }
 
-    for (FaultLocalizationSetOutput<I> set : mapRankToSet.keySet()) {
+    for (ErrorIndicator<I> set : mapRankToSet.keySet()) {
       boolean alreadyAssigned = false;
       if(set.isEmpty()) continue;
       for(I elem: set){
         mapEdgeToMinRank.merge(elem.correspondingEdge(), mapRankToSet.get(set), Integer::min);
         mapEdgeToDescription.merge(elem.correspondingEdge(), set.toHtml(), (a, b) -> {
-          if(mapRankToSet.get(set) == mapEdgeToMinRank.get(elem.correspondingEdge())){
+          if(mapRankToSet.get(set).intValue() == mapEdgeToMinRank.get(elem.correspondingEdge()).intValue()){
             return a;
           } else {
             return b;
@@ -118,21 +120,21 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
     return mapOutToRank;
   }
 
-  public Map<FaultLocalizationSetOutput<I>, Integer> getMapRankToSet() {
+  public Map<ErrorIndicator<I>, Integer> getMapRankToSet() {
     return mapRankToSet;
   }
 
   @Override
   public String toString() {
     List<I> ranked = new ArrayList<>(mapOutToRank.keySet());
-    List<FaultLocalizationSetOutput<I>> rankedSet = new ArrayList<>(mapRankToSet.keySet());
+    List<ErrorIndicator<I>> rankedSet = new ArrayList<>(mapRankToSet.keySet());
     ranked.sort(Comparator.comparingInt(l -> mapOutToRank.get(l)));
     String edgeRanking = "Ranking of single edges:\n" +
         ranked.stream()
         .map(FaultLocalizationOutput::textRepresentation)
         .collect(Collectors.joining("\n"));
     String setRanking = "Ranking of sets:\n" +
-        rankedSet.stream().map(FaultLocalizationSetOutput::toString).collect(Collectors.joining("\n"));
+        rankedSet.stream().map(ErrorIndicator::toString).collect(Collectors.joining("\n"));
     if(mapOutToRank.isEmpty() ^ mapRankToSet.isEmpty()){
       return mapOutToRank.isEmpty() ? setRanking : edgeRanking;
     }
@@ -153,8 +155,8 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
       Set<Set<CFAEdge>> pErrorIndicators) {
     ErrorIndicatorSet<FaultLocalizationOutput> transformed = new ErrorIndicatorSet<>();
     for (Set<CFAEdge> errorIndicator : pErrorIndicators) {
-      transformed.add(
-          errorIndicator.stream().map(FaultLocalizationOutput::of).collect(Collectors.toSet()));
+      transformed.add(new ErrorIndicator<>(
+          errorIndicator.stream().map(FaultLocalizationOutput::of).collect(Collectors.toSet())));
     }
     return transformed;
   }
@@ -162,7 +164,8 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
   public static <I extends FaultLocalizationOutput>
       FaultLocalizationInfo<I> withPredefinedHeuristics(
           ErrorIndicatorSet<I> pResult, CounterexampleInfo pInfo, RankingMode pRankingMode) {
-    Optional<FaultLocalizationHeuristic<I>> predefinedHeuristic = Optional.of(m -> FaultLocalizationHeuristicImpl.rank(m, pRankingMode));
+    Optional<FaultLocalizationHeuristic<I>> predefinedHeuristic = Optional.of(m -> FaultLocalizationHeuristicUtils
+        .rank(m, pRankingMode));
     return new FaultLocalizationInfo<>(
         pResult, pInfo, predefinedHeuristic, Optional.empty());
   }
@@ -196,15 +199,25 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
     }
     if(mapEdgeToSetInfo.get(edge) != null){
       elem.put("setindicator", true);
-      List<FaultLocalizationSetOutput<I>> infoSet = mapEdgeToSetInfo.get(edge);
+      List<ErrorIndicator<I>> infoSet = mapEdgeToSetInfo.get(edge);
 
       List<List<Integer>> concatLines = new ArrayList<>();
       List<String> reasons = new ArrayList<>();
       List<List<String>> descriptions = new ArrayList<>();
       List<Integer> scores = new ArrayList<>();
       List<Integer> ranks = new ArrayList<>();
-      for (FaultLocalizationSetOutput<I> info : infoSet) {
-        descriptions.add(info.stream().sorted(Comparator.comparingInt(a -> a.correspondingEdge().getFileLocation().getStartingLineInOrigin())).map(l -> l.correspondingEdge().getDescription()).collect(Collectors.toList()));
+      for (ErrorIndicator<I> info : infoSet) {
+        descriptions.add(info
+            .stream()
+            .sorted(Comparator.comparingInt(a -> a.correspondingEdge().getFileLocation().getStartingLineInOrigin()))
+            .map(l -> {
+              CFAEdge cfaEdge = l.correspondingEdge();
+              if(cfaEdge.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge)){
+                return Splitter.on(":").split(cfaEdge.getDescription()).iterator().next();
+              }
+              return l.correspondingEdge().getDescription();
+            })
+            .collect(Collectors.toList()));
         concatLines.add(info.sortedLineNumbers());
         reasons.add(info.toHtml());
         scores.add((int)info.calculateScore());

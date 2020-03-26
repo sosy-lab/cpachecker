@@ -28,19 +28,18 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationOutput;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationSetOutput;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationSubsetHeuristic;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationSetHeuristic;
 
 public class SetIdentityHeuristic<I extends FaultLocalizationOutput> implements
-                                                                     FaultLocalizationSubsetHeuristic<I> {
+                                                                     FaultLocalizationSetHeuristic<I> {
   @Override
-  public Map<FaultLocalizationSetOutput<I>, Integer> rankSubsets(
+  public Map<ErrorIndicator<I>, Integer> rankSubsets(
       ErrorIndicatorSet<I> errorIndicators) {
-    Map<FaultLocalizationSetOutput<I>, Integer> rank = new HashMap<>();
+    Map<ErrorIndicator<I>, Integer> rank = new HashMap<>();
     errorIndicators.forEach(l -> {
-      FaultLocalizationSetOutput<I> out = new FaultLocalizationSetOutput<>(l);
-      out.addReason(FaultLocalizationReason.hint("Identity heuristic applied."));
-      rank.put(out, 1);
+      l.addReason(FaultLocalizationReason.hint("Identity heuristic applied."));
+      rank.put(l, 1);
     });
     return rank;
   }

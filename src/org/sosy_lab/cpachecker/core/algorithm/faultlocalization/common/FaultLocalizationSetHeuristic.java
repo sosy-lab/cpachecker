@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common;
 
 import java.util.Map;
 
-public interface FaultLocalizationSubsetHeuristic<I extends FaultLocalizationOutput>{
+public interface FaultLocalizationSetHeuristic<I extends FaultLocalizationOutput>{
 
-  Map<FaultLocalizationSetOutput<I>, Integer> rankSubsets(ErrorIndicatorSet<I> errorIndicators);
+  Map<ErrorIndicator<I>, Integer> rankSubsets(ErrorIndicatorSet<I> errorIndicators);
 
 }

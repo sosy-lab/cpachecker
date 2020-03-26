@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicImpl;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicUtils;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationOutput;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason;
 
@@ -36,7 +36,7 @@ public class IdentityHeuristic<I extends FaultLocalizationOutput> implements
   @Override
   public Map<I, Integer> rank(ErrorIndicatorSet<I> result) {
     Map<I, Integer> ranking = new HashMap<>();
-    FaultLocalizationHeuristicImpl.condenseErrorIndicatorSet(result).forEach(l -> {
+    FaultLocalizationHeuristicUtils.condenseErrorIndicatorSet(result).forEach(l -> {
       ranking.put(l, 1);
       l.addReason(FaultLocalizationReason.hint("Identity heuristic applied"));
     });

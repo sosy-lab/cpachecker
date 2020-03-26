@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicImpl;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicUtils;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationOutput;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason;
 
@@ -39,7 +39,7 @@ public class OverallAppearanceHeuristic<I extends FaultLocalizationOutput> imple
                                                                            FaultLocalizationHeuristic<I> {
   @Override
   public Map<I, Integer> rank(ErrorIndicatorSet<I> result) {
-    List<I> selectors = new ArrayList<>(FaultLocalizationHeuristicImpl.condenseErrorIndicatorSet(result));
+    List<I> selectors = new ArrayList<>(FaultLocalizationHeuristicUtils.condenseErrorIndicatorSet(result));
 
     Map<I, Long> map =
         selectors.stream()
@@ -57,6 +57,6 @@ public class OverallAppearanceHeuristic<I extends FaultLocalizationOutput> imple
               l.addReason(reason);
             });
 
-    return FaultLocalizationHeuristicImpl.scoreToRankMap(mapToScore);
+    return FaultLocalizationHeuristicUtils.scoreToRankMap(mapToScore);
   }
 }

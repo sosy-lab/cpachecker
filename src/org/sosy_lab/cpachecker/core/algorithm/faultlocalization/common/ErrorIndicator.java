@@ -33,7 +33,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class FaultLocalizationSetOutput<I extends FaultLocalizationOutput> extends ForwardingSet<I> {
+public class ErrorIndicator<I extends FaultLocalizationOutput> extends ForwardingSet<I> {
 
   private Set<I> errorSet;
   private List<FaultLocalizationReason> reasonList;
@@ -50,12 +50,12 @@ public class FaultLocalizationSetOutput<I extends FaultLocalizationOutput> exten
     return lines;
   }
 
-  public FaultLocalizationSetOutput(Set<I> pErrorSet){
+  public ErrorIndicator(Set<I> pErrorSet){
     errorSet = pErrorSet;
     reasonList = new ArrayList<>();
   }
 
-  public FaultLocalizationSetOutput(){
+  public ErrorIndicator(){
     errorSet = new HashSet<>();
     reasonList = new ArrayList<>();
   }
@@ -91,7 +91,7 @@ public class FaultLocalizationSetOutput<I extends FaultLocalizationOutput> exten
     reasonList.sort(sortReasons);
     int numberReasons = reasonList.stream().filter(l -> !l.isHintOnly()).mapToInt(l -> 1).sum();
 
-    String header = "Error suspected on line(s): <strong>" + errorSet.stream().mapToInt(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin()).sorted()
+    String header = "Error suspected on line(s): <strong>" + errorSet.stream().mapToInt(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin()).sorted().distinct()
         .mapToObj(l -> (Integer)l + "").collect(
         Collectors.joining(", ")) + "</strong><br>";
     String reasons = "Detected <strong>" + numberReasons + "</strong> possible reason(s):<br>";

@@ -33,7 +33,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicImpl;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicUtils;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationOutput;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason;
 
@@ -54,7 +54,7 @@ public class ErrorLocationNearestHeuristic<I extends FaultLocalizationOutput>
   @Override
   public Map<I, Integer> rank(ErrorIndicatorSet<I> result) {
     List<I> sort =
-        new ArrayList<>(FaultLocalizationHeuristicImpl.condenseErrorIndicatorSet(result));
+        new ArrayList<>(FaultLocalizationHeuristicUtils.condenseErrorIndicatorSet(result));
     sort.sort(
         Comparator.comparingInt(
             a -> Math.abs(errorLocation - a.correspondingEdge().getLineNumber())));
@@ -77,6 +77,6 @@ public class ErrorLocationNearestHeuristic<I extends FaultLocalizationOutput>
       l.addReason(reason);
     }
 
-    return FaultLocalizationHeuristicImpl.scoreToRankMap(scoreMap);
+    return FaultLocalizationHeuristicUtils.scoreToRankMap(scoreMap);
   }
 }

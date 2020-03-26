@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicImpl;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicUtils;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationOutput;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason;
 
@@ -58,6 +58,6 @@ public class SubsetAppearanceHeuristic<I extends FaultLocalizationOutput> implem
       }
     }
 
-    return FaultLocalizationHeuristicImpl.scoreToRankMap(mapLikelihood);
+    return FaultLocalizationHeuristicUtils.scoreToRankMap(mapLikelihood);
   }
 }

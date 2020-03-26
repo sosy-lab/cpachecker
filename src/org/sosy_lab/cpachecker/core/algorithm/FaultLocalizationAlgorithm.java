@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.*;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicImpl;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicUtils;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.OverallAppearanceHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SingleEdgeHintHeuristic;
@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.CallHierarchyHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.ErrorLocationNearestHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SubsetSizeHeuristic;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SetSizeHeuristic;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -174,13 +174,13 @@ public class FaultLocalizationAlgorithm implements Algorithm {
         // FaultLocalizationInfo.withPredefinedHeuristics(result, RankingMode.OVERALL);
 
         FaultLocalizationHeuristic<Selector> concat =
-            FaultLocalizationHeuristicImpl.concatHeuristics(List.of(
+            FaultLocalizationHeuristicUtils.concatHeuristics(List.of(
                 new SingleEdgeHintHeuristic<>(),
                 new OverallAppearanceHeuristic<>(),
                 new ErrorLocationNearestHeuristic<>(edgeList.get(edgeList.size() - 1)),
                 new CallHierarchyHeuristic<>(edgeList, tf.getNegated().size())));
         FaultLocalizationInfo<Selector> info =
-            new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.of(concat), Optional.empty());//Optional.of(new SubsetSizeHeuristic<>()));
+            new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.empty(), Optional.of(new SetSizeHeuristic<>()));
         pInfo.getTargetPath().getLastState().replaceCounterexampleInformation(info);
         logger.log(
             Level.INFO,

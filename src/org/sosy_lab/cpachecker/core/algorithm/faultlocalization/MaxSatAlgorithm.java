@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 import com.google.common.base.VerifyException;
 import java.util.HashSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
@@ -50,18 +51,14 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
 
     int numberSelectors = tf.getSelectors().size();
 
-    Set<Set<Selector>> hard = new HashSet<>();
+    Set<ErrorIndicator<Selector>> hard = new HashSet<>();
     Set<Selector> soft = new HashSet<>(tf.getSelectors());
-    Set<Set<Selector>> singletons = new HashSet<>();
+    Set<ErrorIndicator<Selector>> singletons = new HashSet<>();
 
-    Set<Selector> minUnsatCore = getMinUnsatCore(soft, tf, hard);
+    ErrorIndicator<Selector> minUnsatCore = getMinUnsatCore(soft, tf, hard);
 
-    if (minUnsatCore.size() == numberSelectors) {
-      hard.add(minUnsatCore);
-      return new ErrorIndicatorSet<>(hard);
-    }
-
-    while (minUnsatCore.size() != numberSelectors) {
+    while(minUnsatCore.size() != numberSelectors){
+      minUnsatCore = getMinUnsatCore(soft, tf, hard);
       // Subsets of size 1 cannot be added to the hard set.
       // Assume that pre & implicForm & S1 is unsat.
       // Adding S1 to the hard set would make the formula pre & implicForm & hardSet unsat.
@@ -73,13 +70,6 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
         singletons.add(minUnsatCore);
         numberSelectors = soft.size();
       } else {
-        hard.add(minUnsatCore);
-      }
-      minUnsatCore = getMinUnsatCore(soft, tf, hard);
-      // Very small programs lead to problems in analyzing.
-      // Imagine the program: int a = 0;
-      if (minUnsatCore.size() == numberSelectors
-          && hard.stream().map(l -> l.size() == 1).reduce((a, b) -> a && b).orElse(false)) {
         hard.add(minUnsatCore);
       }
     }
@@ -98,8 +88,8 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
    * @throws SolverException thrown if tf is satisfiable
    * @throws InterruptedException thrown if interrupted
    */
-  private Set<Selector> getMinUnsatCore(
-      Set<Selector> pSoftSet, TraceFormula pTraceFormula, Set<Set<Selector>> pHardSet)
+  private ErrorIndicator<Selector> getMinUnsatCore(
+      Set<Selector> pSoftSet, TraceFormula pTraceFormula, Set<ErrorIndicator<Selector>> pHardSet)
       throws SolverException, InterruptedException {
     Set<Selector> result = new HashSet<>(pSoftSet);
     BooleanFormula composedFormula =
@@ -122,10 +112,10 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
         }
       }
     } while (changed);
-    return result;
+    return new ErrorIndicator<>(result);
   }
 
-  private boolean isSubsetOrSupersetOf(Set<Selector> pSet, Set<Set<Selector>> pHardSet) {
+  private boolean isSubsetOrSupersetOf(Set<Selector> pSet, Set<ErrorIndicator<Selector>> pHardSet) {
     for (Set<Selector> hardSet : pHardSet) {
       if (hardSet.containsAll(pSet) || pSet.containsAll(hardSet)) {
         return true;
@@ -144,7 +134,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
    * @param hardSet the current hard set
    * @return conjunction of the disjunction of the sets
    */
-  private BooleanFormula hardSetFormula(Set<Set<Selector>> hardSet) {
+  private BooleanFormula hardSetFormula(Set<ErrorIndicator<Selector>> hardSet) {
     return hardSet.stream()
         .map(l -> l.stream().map(Selector::getFormula).collect(bmgr.toDisjunction()))
         .collect(bmgr.toConjunction());
