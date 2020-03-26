@@ -77,7 +77,7 @@ public class FaultLocalizationHeuristicUtils {
    *
    * <p>The resulting ranking is: I (Score: 70) J (Score: 29)
    *
-   * <p>Note that the maximum score is 100.
+   * <p>Note that the maximum score is 100 by default. Overriding the corresponding methods can invalidate this.
    *
    * @param pHeuristics all heuristics to be concatenated
    * @return concatenated Heuristic sorted by total score.

@@ -96,11 +96,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     List<BooleanFormula> allFormulas = new ArrayList<>();
 
     allFormulas.add(tf.getPreCondition());
-    /*if (useImproved) {
-      allFormulas.addAll(FlowSensitiveTraceFormula.asList(context, tf, cfa));
-    } else {
-      allFormulas.addAll(tf.getAtoms());
-    }*/
     allFormulas.addAll(tf.getAtoms());
     allFormulas.add(tf.getPostCondition());
     CounterexampleTraceInfo counterexampleTraceInfo =

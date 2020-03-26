@@ -19,18 +19,15 @@ static void shell_sort(int a[], int size) {
 	} while (h!=1);
 }
 
-int main(int argc, char* argv[]){
-	int i = 0;
-	int *a = NULL;
-	a = (int*)malloc((argc-1) * sizeof(int));
-	for (i = 0; i < argc-1; i++)
-		a[i] = atoi(argv[i+1]);
-	shell_sort(a, argc);
-	if(a[0] == 0){
-		free(a);
-		goto ERROR;
+int main(){
+	int a[] = {14,11};
+	shell_sort(a, 2);
+	for(int i = 0; i < 1;i++) {
+		if(a[i] > a[i+1]){
+			goto ERROR;
+		}
 	}
-	free(a);
+	
 EXIT: return 0;
 ERROR: return 1;
 }

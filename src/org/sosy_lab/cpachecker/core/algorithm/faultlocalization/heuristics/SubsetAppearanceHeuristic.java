@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicUtils;
@@ -36,9 +36,9 @@ public class SubsetAppearanceHeuristic<I extends FaultLocalizationOutput> implem
                                                                           FaultLocalizationHeuristic<I> {
   @Override
   public Map<I, Integer> rank(ErrorIndicatorSet<I> result) {
-    Map<Set<I>, Integer> map = new HashMap<>();
-    for (Set<I> selectors : result) {
-      for (Set<I> set : result) {
+    Map<ErrorIndicator<I>, Integer> map = new HashMap<>();
+    for (ErrorIndicator<I> selectors : result) {
+      for (ErrorIndicator<I> set : result) {
         if (selectors.containsAll(set)) {
           map.merge(set, 1, Integer::sum);
         }
@@ -48,9 +48,9 @@ public class SubsetAppearanceHeuristic<I extends FaultLocalizationOutput> implem
     int totalOccurrences = map.values().stream().mapToInt(Integer::intValue).sum();
     Map<I, Double> mapLikelihood = new HashMap<>();
 
-    for (Set<I> subset : map.keySet()) {
+    for (ErrorIndicator<I> subset : map.keySet()) {
       for (I temp : subset) {
-        FaultLocalizationReason reason = new FaultLocalizationReason("Overall subset occurrence.");
+        FaultLocalizationReason reason = new FaultLocalizationReason("Overall subset occurrence: " + map.get(subset) + ".");
         double likelihood = ((double)map.get(subset))/totalOccurrences;
         reason.setLikelihood(likelihood);
         mapLikelihood.put(temp, likelihood);

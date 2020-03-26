@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -34,6 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -125,7 +128,7 @@ public class TraceFormula {
     int x = 0;
     if (x == 0) {
        x = 1;
-       while(x > 0) x--; <-- last AssumeEdge but that edge is not important, dependence graph?.
+       while(x > 0) x--; <-- last AssumeEdge but that edge is not important.
        goto ERROR;
     }
 
@@ -144,6 +147,7 @@ public class TraceFormula {
 
     PathFormula current = manager.makeEmptyPathFormula();
     ssaMaps.add(current.getSsa());
+    AlternativePrecondition altPre = new AlternativePrecondition();
     // edges.removeIf(l -> !l.getEdgeType().equals(CFAEdgeType.AssumeEdge));
     for (CFAEdge e : edges) {
       BooleanFormula prev = current.getFormula();
@@ -162,9 +166,12 @@ public class TraceFormula {
       } else {
         ssaMaps.add(current.getSsa());
         atoms.add(currentAtom);
+        altPre.add(currentAtom, current.getSsa(), e);
         selectors.add(Selector.makeSelector(context, currentAtom, e));
       }
     }
+    // Create post condition
+    postcondition = bmgr.not(bmgr.and(negate));
 
     // Create pre condition as model of the actual formula.
     // If the program is has a bug the model is guaranteed to be existent.
@@ -176,9 +183,22 @@ public class TraceFormula {
               .map(Model.ValueAssignment::getAssignmentAsFormula)
               .filter(l -> l.toString().contains("__VERIFIER_nondet"))
               .collect(bmgr.toConjunction());
-      // precondition = context.getSolver().getFormulaManager().uninstantiate(precondition);
     } else {
       throw new AssertionError("a model has to be existent");
+    }
+
+    if(bmgr.isTrue(precondition) && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))){
+      precondition = altPre.toFormula();
+      for (BooleanFormula booleanFormula : altPre.getPreCondition()) {
+        int index = atoms.indexOf(booleanFormula);
+        atoms.remove(index);
+        selectors.remove(index);
+        ssaMaps.remove(index);
+      }
+    }
+
+    if(context.getSolver().isUnsat(bmgr.and(precondition, postcondition))){
+      throw new AssertionError("the conjunction of pre and post condition has to be satisfiable");
     }
 
     // No isPresent check needed, because the Selector always exists.
@@ -188,10 +208,10 @@ public class TraceFormula {
             .collect(bmgr.toConjunction());
 
     // create traceformulas
-    postcondition = bmgr.not(bmgr.and(negate));
     actualForm = bmgr.and(bmgr.and(atoms), postcondition);
     implicationForm = bmgr.and(implicationFormula, postcondition);
     negated = negate;
+
   }
 
   public BooleanFormula getAtom(int i) {
@@ -218,5 +238,55 @@ public class TraceFormula {
   @Override
   public String toString() {
     return ExpressionConverter.convert(actualForm);
+  }
+
+  private class AlternativePrecondition{
+
+    private Map<Formula, Integer> variableToIndexMap;
+    private List<BooleanFormula> preCondition;
+
+    AlternativePrecondition(){
+      variableToIndexMap = new HashMap<>();
+      preCondition = new ArrayList<>();
+    }
+
+    void add(BooleanFormula formula, SSAMap currentMap, CFAEdge edge){
+      if(isAccepted(formula, currentMap, edge)){
+        preCondition.add(formula);
+      }
+    }
+
+    BooleanFormula toFormula(){
+      return context.getSolver().getFormulaManager().getBooleanFormulaManager().and(preCondition);
+    }
+
+    public List<BooleanFormula> getPreCondition() {
+      return preCondition;
+    }
+
+    private boolean isAccepted(BooleanFormula formula, SSAMap currentMap, CFAEdge pEdge){
+      Map<String, Formula> variables = context.getSolver().getFormulaManager().extractVariables(formula);
+      Map<Formula, Integer> index = new HashMap<>();
+      for (String s : variables.keySet()) {
+        Formula uninstantiated = context.getSolver().getFormulaManager().uninstantiate(variables.get(s));
+        index.put(uninstantiated, currentMap.builder().getIndex(uninstantiated.toString()));
+      }
+      boolean isAccepted = true;
+      for (Formula f : index.keySet()) {
+        if(variableToIndexMap.get(f) == null){
+          variableToIndexMap.put(f, index.get(f));
+        } else {
+          int firstIndex = variableToIndexMap.get(f);
+          if(firstIndex != index.get(f)){
+            isAccepted = false;
+          }
+        }
+      }
+      if(!(pEdge.getEdgeType().equals(CFAEdgeType.StatementEdge)
+          || pEdge.getEdgeType().equals(CFAEdgeType.DeclarationEdge))){
+        return false;
+      }
+      return isAccepted;
+    }
   }
 }
