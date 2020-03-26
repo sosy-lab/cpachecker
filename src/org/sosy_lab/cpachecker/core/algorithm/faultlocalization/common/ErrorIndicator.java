@@ -91,9 +91,14 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
     reasonList.sort(sortReasons);
     int numberReasons = reasonList.stream().filter(l -> !l.isHintOnly()).mapToInt(l -> 1).sum();
 
-    String header = "Error suspected on line(s): <strong>" + errorSet.stream().mapToInt(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin()).sorted().distinct()
-        .mapToObj(l -> (Integer)l + "").collect(
-        Collectors.joining(", ")) + "</strong><br>";
+    String header = "Error suspected on line(s): <strong>" + errorSet
+        .stream()
+        .mapToInt(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin())
+        .sorted()
+        .distinct()
+        .mapToObj(l -> (Integer)l + "")
+        .collect(Collectors.collectingAndThen(Collectors.toList(), lineCollector()))
+        + "</strong><br>";
     String reasons = "Detected <strong>" + numberReasons + "</strong> possible reason(s):<br>";
     StringBuilder html = new StringBuilder();
     html.append("<ul id=\"hint-list\">");
@@ -117,8 +122,7 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
 
   @Override
   public String toString(){
-    String header = "Error suspected on line(s): " + errorSet.stream().map(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin()+"").collect(
-        Collectors.joining(", "));
+    String header = "Error suspected on line(s): " + errorSet.stream().map(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin()+"").collect(Collectors.collectingAndThen(Collectors.toList(), lineCollector()));
     String reasons = "Detected " + reasonList.size() + " possible reason(s): ";
     StringBuilder body = new StringBuilder();
     for (int i = 0; i < reasonList.size(); i++) {
@@ -126,6 +130,21 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
           .append("\n");
     }
     return header + "\n" + reasons + "\n" + body;
+  }
+
+  /**
+   * Transforms lists like [1,2,7,3] to "1,2,7 and 3"
+   * @return
+   */
+  private Function<List<String>, String> lineCollector() {
+    return list -> {
+      int lastIndex = list.size() - 1;
+      if (lastIndex < 1) return String.join("", list);
+      if (lastIndex == 1) return String.join(" and ", list);
+      return String.join(" and ",
+          String.join(", ", list.subList(0, lastIndex)),
+          list.get(lastIndex));
+    };
   }
 
   @Override

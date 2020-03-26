@@ -45,7 +45,7 @@ public class SingleEdgeHintHeuristic<I extends FaultLocalizationOutput> implemen
     Set<I> condensedSet = FaultLocalizationHeuristicUtils.condenseErrorIndicatorSet(result);
     Map<I, Integer> rank = new HashMap<>();
     for(I temp: condensedSet){
-      FaultLocalizationReason reason = FaultLocalizationReason.defaultExplanationOf(temp);
+      FaultLocalizationReason reason = FaultLocalizationReason.hintFor(temp);
       reason.setHintOnly(true);
       temp.addReason(reason);
       rank.put(temp, 1);

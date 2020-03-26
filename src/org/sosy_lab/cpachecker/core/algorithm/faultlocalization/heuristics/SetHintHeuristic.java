@@ -23,38 +23,40 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicUtils;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationOutput;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationSetHeuristic;
 
-public class SetSizeHeuristic<I extends FaultLocalizationOutput> implements
+public class SetHintHeuristic<I extends FaultLocalizationOutput> implements
                                                                  FaultLocalizationSetHeuristic<I> {
+  private int maxNumberOfHints;
+
+  /**
+   * Create hints for the first pMaxNumberOfHints sets in the ErrorIndicatorSet
+   * @param pMaxNumberOfHints number of hints to be printed. Passing -1 leads to hints for all elements in the set.
+   */
+  public SetHintHeuristic(int pMaxNumberOfHints){
+    maxNumberOfHints=pMaxNumberOfHints;
+  }
   @Override
   public Map<ErrorIndicator<I>, Integer> rankSubsets(
       ErrorIndicatorSet<I> errorIndicators) {
-    Map<ErrorIndicator<I>, Integer> mapSetToSize = new HashMap<>();
-    errorIndicators.forEach(l -> mapSetToSize.put(l, l.size()));
-    List<ErrorIndicator<I>> sorted = new ArrayList<>(mapSetToSize.keySet());
-    sorted.sort(Comparator.comparingInt(l -> mapSetToSize.get(l)));
-
-    int sizeSum = errorIndicators.stream().mapToInt(l -> l.size()).sum();
-    Map<ErrorIndicator<I>, Double> scoreMap = new HashMap<>();
-    for(ErrorIndicator<I> set: sorted){
-      double likelihood = set.size()/(double)sizeSum;
-      scoreMap.put(set, likelihood);
+    Map<ErrorIndicator<I>, Integer> errorIndicatorIntegerMap = new HashMap<>();
+    for (ErrorIndicator<I> errorIndicator : errorIndicators) {
+      int current = 0;
+      for (I i : errorIndicator) {
+        errorIndicator.addReason(FaultLocalizationReason.hintFor(i));
+        current++;
+        if(current == maxNumberOfHints){
+          break;
+        }
+      }
+      errorIndicatorIntegerMap.put(errorIndicator, 1);
     }
-    double totalPercentage = scoreMap.values().stream().mapToDouble(l -> 1d/l).sum();
-    for (ErrorIndicator<I> errorIndicator : scoreMap.keySet()) {
-      errorIndicator.addReason(new FaultLocalizationReason("The set has a size of " + errorIndicator.size() + ".", (1d/scoreMap.get(errorIndicator))/totalPercentage));
-    }
-    return FaultLocalizationHeuristicUtils.scoreToRankMapSet(scoreMap);
+    return errorIndicatorIntegerMap;
   }
 }

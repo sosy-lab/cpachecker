@@ -45,7 +45,9 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndi
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicUtils;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationInfo;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationSetHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.OverallAppearanceHeuristic;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SetHintHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SingleEdgeHintHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
@@ -179,8 +181,10 @@ public class FaultLocalizationAlgorithm implements Algorithm {
                 new OverallAppearanceHeuristic<>(),
                 new ErrorLocationNearestHeuristic<>(edgeList.get(edgeList.size() - 1)),
                 new CallHierarchyHeuristic<>(edgeList, tf.getNegated().size())));
+
+        FaultLocalizationSetHeuristic<Selector> concatSet = FaultLocalizationHeuristicUtils.concatSubsetHeuristics(List.of(new SetSizeHeuristic<>(), new SetHintHeuristic<>(3)));
         FaultLocalizationInfo<Selector> info =
-            new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.empty(), Optional.of(new SetSizeHeuristic<>()));
+            new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.of(concat), Optional.of(concatSet));
         pInfo.getTargetPath().getLastState().replaceCounterexampleInformation(info);
         logger.log(
             Level.INFO,

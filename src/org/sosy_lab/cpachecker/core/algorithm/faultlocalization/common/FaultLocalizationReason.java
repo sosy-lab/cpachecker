@@ -114,13 +114,13 @@ public class FaultLocalizationReason {
     return new FaultLocalizationReason(pDescription, true);
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationReason defaultExplanationOf(
+  public static <I extends FaultLocalizationOutput> FaultLocalizationReason hintFor(
       Set<I> cause) {
-    return new FaultLocalizationReason(new NoContextExplanation().explanationFor(cause));
+    return new FaultLocalizationReason(new NoContextExplanation().explanationFor(cause), true);
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationReason defaultExplanationOf(
+  public static <I extends FaultLocalizationOutput> FaultLocalizationReason hintFor(
       I cause) {
-    return defaultExplanationOf(Collections.singleton(cause));
+    return hintFor(Collections.singleton(cause));
   }
 }
