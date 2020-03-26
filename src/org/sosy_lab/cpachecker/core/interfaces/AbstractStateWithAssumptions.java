@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 
