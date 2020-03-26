@@ -123,7 +123,7 @@ just run `scripts/cpa.sh -debug ...` and point your debugger to TCP port 5005
 of the respective machine.
 
 
-Releasing a new Version
+Releasing a New Version
 -----------------------
 
 1. Preparations:
@@ -133,8 +133,7 @@ Releasing a new Version
    and ensure that [`Copyright.txt`](../Copyright.txt) and [`Authors.txt`](../Authors.txt) are up-to-date.
 
 2. Define a new version by setting `version.base` in [`build.xml`](../build.xml) to the new value.
-   Our versioning system is `decade.year.month`,
-   but the first release in a year is `decade.year`.
+   The version tag is constructed as outlined below in Sect. "Release Tagging".
 
 3. Build binary versions with `ant clean dist` and test them to ensure
    that all necessary files are contained in them.
@@ -148,7 +147,8 @@ Releasing a new Version
    - Move the old download links to `/html/download-oldversions.php`.
    - Update section News on `/html/index.php`.
 
-5. Add a tag in the repository with name `cpachecker-<version>`.
+5. Add a tag in the repository with name `cpachecker-<version>`,
+   where `<version>` is constructed as outlined below in Sect. "Release Tagging".
 
 6. Send a mail with the release announcement to cpachecker-announce and
    cpachecker-users mailing lists.
@@ -157,4 +157,35 @@ Releasing a new Version
    to a new development version, which is the next possible version number
    with the suffix `-svn`.
    For example, if `1.9` was just released, the next possible version
-   is `1.9.1` and the new development version should be `1.9.1-svn`.
+   is `1.9.0` and the new development version should be `1.9.0-svn`.
+
+
+Release Tagging
+---------------
+
+We use the following schema to construct tags for CPAchecker releases
+(from `cpachecker-1.7` onwards, older tags might be inconsistent).
+
+- `X.Y` is to be used as version for the major release in year `20XY`.
+  (There should be exactly one CPAchecker release every year.)
+- `X.Y.z-<label>` is to be used for a minor release, where
+  - `X.Y` is the last major release that already exists and that the minor release builds on,
+  - `z` is the number of full months since release `X.Y`, taking the date of the commit that the tag points to, and
+  - `<label>` is a label that gives a hint on a special purpose for the release.
+- Examples:
+  - `cpachecker-1.9` is the major release in the year 2019.
+  - `cpachecker-1.7.11-svcomp19` is a minor release after major release `1.7`,
+    which points to a commit that was made 11 months later,
+    for the purpose of tagging the version submitted to SV-COMP 2019.
+  - `cpachecker-1.7.7-ase18-symExec` is a minor release after major release `1.7`,
+    which points to a commit that was made 7 months later,
+    for the purpose of tagging the version used for the ASE 2018 paper
+    on Symbolic Execution.
+  - `cpachecker-1.4.2-slicedPathPrefixes` is a minor release after major release `1.4`,
+    which points to a commit that was made 2 months later,
+    for the purpose of tagging the version used for the paper on Sliced Path Prefixes.
+- Invariant: For two tags `X1.Y1.z1` and `X2.Y2.z2` the following holds:
+    If `(X1, Y1, z1) < (X2, Y2, z2)` using the numerical tuple order,
+    then `X1.Y1.z1` points to an older commit than `X2.Y2.z2`.
+
+
