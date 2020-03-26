@@ -26,10 +26,9 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -40,46 +39,133 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class TarantulaUtils {
 
-  private static ARGState targetState;
+  private static List<ARGState> targetStates;
+  private static final int SAFE_PATH_VALUE = 0;
+  private static final int FAILED_PATH_VALUE = 1;
+  private static final int PASSED_PATH_CASE = 0;
+  private static final int FAILED_PATH_CASE = 1;
+  private static final String VERIFIER_ERROR = "__VERIFIER_error()";
 
   /** Helper class for TarantulaAlgorithm related utility methods. */
   private TarantulaUtils() {}
 
-  private static List<CFAEdge> getErrorPath(ReachedSet reached) {
-
-    targetState = getErrorState(reached);
-
-    ARGPath currentFailurePath = ARGUtils.getOnePathTo(targetState);
-    return currentFailurePath.getFullPath();
+  public static List<ARGState> getErrorStates(ReachedSet reachedSet) {
+    return FluentIterable.from(reachedSet)
+        .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
+        .filter(ARGState::isTarget)
+        .toList();
   }
 
-  private static List<CFAEdge> getSafePath(ReachedSet reachedSet) {
+  public static List<List<CFAEdge>> getEdgesOfErrorPaths(ReachedSet reachedSet) {
+    List<List<CFAEdge>> result = new ArrayList<>();
+    targetStates = getErrorStates(reachedSet);
+    for (ARGState pTargetState : targetStates) {
+      result.add(ARGUtils.getOnePathTo(pTargetState).getFullPath());
+    }
+    return result;
+  }
+
+  public static List<List<CFAEdge>> getEdgesOfSafePaths(ReachedSet reachedSet) {
+    List<List<CFAEdge>> result = new ArrayList<>();
+    targetStates = getErrorStates(reachedSet);
+    result.add(TarantulaUtils.getSafePath(reachedSet));
+    return result;
+  }
+
+  private static Collection<ARGState> extractAllStatesOnErrorPaths(ReachedSet reachedSet) {
+    targetStates = getErrorStates(reachedSet);
+    Collection<ARGState> states = null;
+    Collection<Collection<ARGState>> result = new ArrayList<>();
+    for (ARGState pTargetState : targetStates) {
+
+      states = ARGUtils.getAllStatesOnPathsTo(pTargetState);
+      result.add(states);
+    }
+    return result.stream().flatMap(Collection::stream).collect(Collectors.toList());
+  }
+
+  public static List<CFAEdge> getSafePath(ReachedSet reachedSet) {
     ARGPath safePath = null;
 
-    targetState = getErrorState(reachedSet);
+    Collection<ARGState> statesOnErrorPath =
+        TarantulaUtils.extractAllStatesOnErrorPaths(reachedSet);
 
-    Collection<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(targetState);
     for (AbstractState s : reachedSet) {
       ARGState currentState = AbstractStates.extractStateByType(s, ARGState.class);
-
-      if (!statesOnErrorPath.contains(currentState)) {
+      assert currentState != null;
+      if (!statesOnErrorPath.contains(currentState) && currentState.getChildren().isEmpty()) {
         safePath = ARGUtils.getOnePathTo(currentState);
+        break;
       }
     }
+
+    assert safePath != null;
     return safePath.getFullPath();
   }
 
-  public static boolean checkSafePath(ReachedSet reachedSet) {
-    targetState = getErrorState(reachedSet);
-
-    Collection<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(targetState);
+  public static List<CFAEdge> getProgramEdges(ReachedSet reachedSet) {
+    List<CFAEdge> result = new ArrayList<>();
     for (AbstractState s : reachedSet) {
       ARGState currentState = AbstractStates.extractStateByType(s, ARGState.class);
+      assert currentState != null;
+      Collection<CFAEdge> e =
+          currentState.getParents().stream()
+              .map(p -> p.getEdgeToChild(currentState))
+              .filter(x -> x != null && x.getLineNumber() != 0)
+              .collect(Collectors.toList());
 
-      if (!statesOnErrorPath.contains(currentState)) {
+      result.addAll(e);
+    }
+    return result;
+  }
+
+  public static List<Integer> coveredEdges(List<CFAEdge> path, List<CFAEdge> programEdges) {
+    List<Integer> result = new ArrayList<>();
+    for (int i = 0; i < targetStates.size(); i++) {
+      if (path.get(path.size() - 1).getDescription().contains(VERIFIER_ERROR)) {
+        result.add(0, FAILED_PATH_VALUE);
+      } else {
+        result.add(0, SAFE_PATH_VALUE);
+      }
+    }
+    for (int i = 1; i < programEdges.size(); i++) {
+      if (path.contains(programEdges.get(i))) {
+        result.add(i, FAILED_PATH_CASE);
+
+      } else {
+        result.add(i, PASSED_PATH_CASE);
+      }
+    }
+
+    return result;
+  }
+
+  public static List<List<CFAEdge>> mergeInto2dArray(
+      List<List<CFAEdge>> safePaths, List<List<CFAEdge>> errorPaths) {
+    return Stream.concat(safePaths.stream(), errorPaths.stream()).collect(Collectors.toList());
+  }
+
+  public static List<List<Integer>> convertingToBinary(
+      List<List<CFAEdge>> path, List<CFAEdge> programEdges) {
+    List<List<Integer>> result = new ArrayList<>();
+    for (List<CFAEdge> pCFAEdges : path) {
+      result.add(coveredEdges(pCFAEdges, programEdges));
+    }
+    return result;
+  }
+
+  public static boolean checkSafePath(ReachedSet reachedSet) {
+    Collection<ARGState> statesOnErrorPath =
+        TarantulaUtils.extractAllStatesOnErrorPaths(reachedSet);
+
+    for (AbstractState s : reachedSet) {
+      ARGState currentState = AbstractStates.extractStateByType(s, ARGState.class);
+      assert currentState != null;
+      if (!statesOnErrorPath.contains(currentState) && currentState.getChildren().isEmpty()) {
         return true;
       }
     }
+
     return false;
   }
 
@@ -92,94 +178,11 @@ public class TarantulaUtils {
     return false;
   }
 
-  private static ARGState getErrorState(ReachedSet reachedSet) {
-    return FluentIterable.from(reachedSet)
-            .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
-            .filter(ARGState::isTarget)
-            .first()
-            .get();
-  }
-
-  private static List<Integer> getLinesFromPath(
-          List<CFAEdge> path, ArrayList<Integer> programLines, int pPassedPath) {
-    ArrayList<Integer> lines = new ArrayList<>();
-
-    for (int i = 1; i < path.size(); i++) {
-      if (path.get(i).getLineNumber() != 0) {
-        lines.add(path.get(i).getLineNumber());
-      }
-    }
-    List<Integer> listOutput =
-            programLines.stream().map(i -> lines.contains(i) ? i : 0).collect(Collectors.toList());
-    listOutput.add(0, pPassedPath);
-    return listOutput;
-  }
-  // get lines from the input program
-  public static ArrayList<Integer> getProgramLines(ReachedSet reachedSet) {
-    ArrayList<Integer> result = new ArrayList<>();
-    for (AbstractState s : reachedSet) {
-      ARGState currentState = AbstractStates.extractStateByType(s, ARGState.class);
-      Collection<CFAEdge> e =
-              currentState.getParents().stream()
-                      .map(p -> p.getEdgeToChild(currentState))
-                      .filter(x -> x != null && x.getLineNumber() != 0)
-                      .collect(Collectors.toList());
-      Iterator<CFAEdge> iterator = e.iterator();
-      while (iterator.hasNext()) {
-        result.add(iterator.next().getLineNumber());
-      }
-    }
-    LinkedHashSet<Integer> hashSet = new LinkedHashSet<>(result);
-    ArrayList<Integer> listWithoutDuplicates = new ArrayList<>(hashSet);
-    return listWithoutDuplicates;
-  }
-
-  public static List<Integer> CoveredLines(List<Integer> path) {
-    boolean asc = path.get(1) - path.get(0) == 1;
-    for (int i = 1; i < path.size() - 1; i++) {
-      if (path.get(i + 1) - path.get(i) == 1) {
-        path.set(i, 1);
-        asc = true;
-      } else {
-        if (asc) {
-          asc = false;
-          path.set(i, 1);
-        } else {
-          path.set(i, 0);
-        }
-      }
-    }
-    path.set(path.size() - 1, asc ? 1 : 0);
-    return path;
-  }
-
-  private static List<List<Integer>> convertingToTable(
-          ArrayList<Integer> getProgramLines, List<Integer> safePaths, List<Integer> errorPaths) {
-    List<Integer> safeCodeLines = TarantulaUtils.CoveredLines(safePaths);
-    List<Integer> errorCodeLines = TarantulaUtils.CoveredLines(errorPaths);
-    List<List<Integer>> table = new ArrayList<>();
-    table.add(getProgramLines);
-    table.add(safeCodeLines);
-    table.add(errorCodeLines);
-    return table;
-  }
-
-  public static List<Integer> linesFromSafePath(int pathValue, ReachedSet reachedSet) {
-    return TarantulaUtils.getLinesFromPath(
-            TarantulaUtils.getSafePath(reachedSet),
-            TarantulaUtils.getProgramLines(reachedSet),
-            pathValue);
-  }
-
-  public static List<Integer> linesFromErrorPath(int pathValue, ReachedSet reachedSet) {
-    return TarantulaUtils.getLinesFromPath(
-            TarantulaUtils.getErrorPath(reachedSet),
-            TarantulaUtils.getProgramLines(reachedSet),
-            pathValue);
-  }
-
-  public static List<List<Integer>> getTable(
-          ReachedSet reachedSet, List<Integer> passedLines, List<Integer> failedLines) {
-    return convertingToTable(TarantulaUtils.getProgramLines(reachedSet), passedLines, failedLines);
+  public static List<List<Integer>> getTable(ReachedSet reachedSet) {
+    return TarantulaUtils.convertingToBinary(
+        TarantulaUtils.mergeInto2dArray(
+            TarantulaUtils.getEdgesOfSafePaths(reachedSet),
+            TarantulaUtils.getEdgesOfErrorPaths(reachedSet)),
+        TarantulaUtils.getProgramEdges(reachedSet));
   }
 }

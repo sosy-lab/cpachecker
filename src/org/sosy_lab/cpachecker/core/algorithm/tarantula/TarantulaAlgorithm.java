@@ -27,6 +27,7 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -34,8 +35,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class TarantulaAlgorithm implements Algorithm {
   private final Algorithm analysis;
   private final LogManager logger;
-  private final int passedPath = 0;
-  private final int failedPath = 1;
 
   public TarantulaAlgorithm(Algorithm analysisAlgorithm, final LogManager pLogger) {
     analysis = analysisAlgorithm;
@@ -45,48 +44,44 @@ public class TarantulaAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     AlgorithmStatus result = analysis.run(reachedSet);
-
-    logger.log(Level.INFO, "Run tarantula algorithm");
     if (TarantulaUtils.checkForErrorPath(reachedSet)) {
       if (TarantulaUtils.checkSafePath(reachedSet)) {
         printResult(System.out, reachedSet);
       } else {
-        logger.log(Level.WARNING, "There is no Safe path, the algorithm can´t be started");
+        logger.log(Level.WARNING, "There was no safe path, please check your input program");
       }
     } else {
       logger.log(Level.WARNING, "There is no CounterExample, therefore the program is safe");
     }
+
     logger.log(Level.INFO, "Tarantula algorithm Finished");
     return result;
   }
 
   public int totalFailed(List<List<Integer>> coveredLines) {
     int oneCounter = 0;
-    for (int i = 0; i < coveredLines.size(); i++) {
-      if (coveredLines.get(i).get(0) == 1) {
+    for (List<Integer> pCoveredLine : coveredLines) {
+      if (pCoveredLine.get(0) == 1) {
         oneCounter++;
       }
     }
-
     return oneCounter;
   }
 
   public int totalPassed(List<List<Integer>> coveredLines) {
     int zeroCounter = 0;
-    for (int i = 0; i < coveredLines.size(); i++) {
-      if (coveredLines.get(i).get(0) == 0) {
+    for (List<Integer> pCoveredLine : coveredLines) {
+      if (pCoveredLine.get(0) == 0) {
         zeroCounter++;
       }
     }
-
     return zeroCounter;
   }
 
   public int failedCase(List<List<Integer>> coveredLines, int lineNumber) {
     int failedCounter = 0;
-    for (int i = 1; i < coveredLines.size(); i++) {
-      if (coveredLines.get(i).get(0) == 1
-          && coveredLines.get(i).get(getIndexOfLineNumber(coveredLines, lineNumber) + 1) == 1) {
+    for (List<Integer> pCoveredLine : coveredLines) {
+      if (pCoveredLine.get(0) == 1 && pCoveredLine.get(lineNumber) == 1) {
         failedCounter++;
       }
     }
@@ -95,31 +90,30 @@ public class TarantulaAlgorithm implements Algorithm {
 
   public int passedCase(List<List<Integer>> coveredLines, int lineNumber) {
     int passedCounter = 0;
-    for (int i = 1; i < coveredLines.size(); i++) {
-      if (coveredLines.get(i).get(0) == 0
-          && coveredLines.get(i).get(getIndexOfLineNumber(coveredLines, lineNumber) + 1) == 1) {
+
+    for (List<Integer> pCoveredLine : coveredLines) {
+      if (pCoveredLine.get(0) == 0 && pCoveredLine.get(lineNumber) == 1) {
         passedCounter++;
       }
     }
-
     return passedCounter;
   }
 
-  public int getIndexOfLineNumber(List<List<Integer>> coveredLines, int lineNumber) {
+  public int getIndexOfEdge(List<CFAEdge> coveredEdges, CFAEdge edge) {
     int foundIndex = 0;
-    for (int i = 1; i < coveredLines.get(0).size(); i++) {
-      if (lineNumber == coveredLines.get(0).get(i)) {
+    for (int i = 0; i < coveredEdges.size(); i++) {
+      if (coveredEdges.get(i).equals(edge)) {
         foundIndex = i;
       }
     }
     return foundIndex;
   }
 
-  public int findLineNumberByIndex(List<List<Integer>> coveredLines, int index) {
-    int foundLineNumber = 0;
-    for (int i = 0; i < coveredLines.get(0).size(); i++) {
+  public CFAEdge findCFAEdgeByIndex(List<CFAEdge> coveredEdges, int index) {
+    CFAEdge foundLineNumber = null;
+    for (int i = 0; i < coveredEdges.size(); i++) {
       if (index == i) {
-        foundLineNumber = coveredLines.get(0).get(i);
+        foundLineNumber = coveredEdges.get(i);
       }
     }
     return foundLineNumber;
@@ -134,23 +128,25 @@ public class TarantulaAlgorithm implements Algorithm {
   }
 
   public double suspiciousness(int failed, int totalFailed, int passed, int totalPassed) {
-    int numerator = failed / totalFailed;
-    int denominator = (passed / totalPassed) + (failed / totalFailed);
-    if (denominator == 0) {
+    double numerator = (double) failed / (double) totalFailed;
+
+    double denominator =
+        ((double) passed / (double) totalPassed) + ((double) failed / (double) totalFailed);
+    if (denominator == 0.0) {
       return 0.0;
     }
-    return Math.round((numerator / denominator) * 100.0) / 100.0;
+    return (numerator / denominator);
   }
 
   public void printResult(PrintStream out, ReachedSet reachedSet) {
-    List<Integer> passedLines = TarantulaUtils.linesFromSafePath(passedPath, reachedSet);
-    List<Integer> failedLines = TarantulaUtils.linesFromErrorPath(failedPath, reachedSet);
-    List<List<Integer>> table = TarantulaUtils.getTable(reachedSet, passedLines, failedLines);
-    for (int i = 0; i < TarantulaUtils.getProgramLines(reachedSet).size(); i++) {
+
+    List<List<Integer>> table = TarantulaUtils.getTable(reachedSet);
+    List<CFAEdge> programEdges = TarantulaUtils.getProgramEdges(reachedSet);
+    for (CFAEdge e : programEdges) {
       out.println(
-          findLineNumberByIndex(table, i)
-              + "--> "
-              + makeRanking(table, findLineNumberByIndex(table, i)));
+          findCFAEdgeByIndex(programEdges, getIndexOfEdge(programEdges, e))
+              + "--->"
+              + makeRanking(table, getIndexOfEdge(programEdges, e)));
     }
   }
 }
