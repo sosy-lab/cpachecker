@@ -344,7 +344,7 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
     assert stack.isEmpty() : "after building the tree-structure there should not be formulas on the stack";
 
     logger.log(Level.ALL, "formulas of tree are:", formulas);
-    logger.log(Level.ALL, "subtree-structure is:", startOfSubTree);
+    logger.log(Level.ALL, "subtree-structure is:", resultingStartOfSubtree);
     assert formulas.size() == formulasWithStatesAndGroupdIds.size() :
             "invalid number of tree elements: " + formulas.size() + " vs " + formulasWithStatesAndGroupdIds.size();
 
