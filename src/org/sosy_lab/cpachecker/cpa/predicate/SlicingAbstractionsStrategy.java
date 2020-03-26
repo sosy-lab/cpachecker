@@ -196,7 +196,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     if(threadNum == 1){
         solver = pPredicateCpa.getSolver();
     } else {
-        parallelSolvers.add(pPredicateCpa.getSolver());
+        for(int i = 0; i < threadNum; i++){
+            parallelSolvers.add(pPredicateCpa.getSolver());
+        }
         solver = parallelSolvers.get(0);
     }
 
