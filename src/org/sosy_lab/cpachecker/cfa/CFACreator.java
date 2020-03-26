@@ -1009,7 +1009,7 @@ v.addInitializer(initializer);
     Concurrency.newThread("CFA export thread", () -> exportCFA(cfa)).start();
   }
 
-  private void exportCFA(final CFA cfa) {
+  protected void exportCFA(final CFA cfa) {
     stats.exportTime.start();
 
     // write CFA to file

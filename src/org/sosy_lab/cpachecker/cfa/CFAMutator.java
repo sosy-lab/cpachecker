@@ -60,8 +60,21 @@ public class CFAMutator extends CFACreator {
       secure = true,
       name = "mutations.count",
       description =
-          "if analysis.runMutations is true and this option is not 0, this option limits count of runs")
+          "With this option set to positive integer, count of runs will be limited by given number.")
   private int runMutationsCount = 0;
+
+  @Option(
+      secure = true,
+      name = "mutations.exportRounds",
+      description =
+          "With this option set to positive integer, CFA will be exported every round divisible by given number.")
+  private int exportRounds = 0;
+
+  @Option(
+      secure = true,
+      name = "mutations.exportOriginal",
+      description = "With this option set to true, original CFA will be exported as well.")
+  private boolean exportOriginal = false;
 
   private ParseResult parseResult = null;
   private Set<CFANode> originalNodes = null;
@@ -210,6 +223,8 @@ public class CFAMutator extends CFACreator {
   }
 
   private void clearAfterPostprocessings() {
+    exportIfNeeded();
+
     ((CFAMutatorStatistics) stats).clearingTimer.start();
     final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
     final NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
@@ -259,6 +274,18 @@ public class CFAMutator extends CFACreator {
       }
     }
     ((CFAMutatorStatistics) stats).clearingTimer.stop();
+  }
+
+  private void exportIfNeeded() {
+    // TODO export with suffix or to different subdirs
+    if (exportOriginal && ((CFAMutatorStatistics) stats).mutationRound.getValue() == 0) {
+      exportCFA(lastCFA);
+    } else if (exportRounds > 0) {
+      long suf = ((CFAMutatorStatistics) stats).mutationRound.getValue() / exportRounds;
+      if (suf * exportRounds == ((CFAMutatorStatistics) stats).mutationRound.getValue()) {
+        exportCFA(lastCFA);
+      }
+    }
   }
 
   @Override

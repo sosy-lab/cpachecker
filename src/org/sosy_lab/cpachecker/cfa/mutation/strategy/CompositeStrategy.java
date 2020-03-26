@@ -42,21 +42,23 @@ public class CompositeStrategy extends AbstractCFAMutationStrategy {
         ImmutableList.of(
             // First, try to remove most functions.
             //   Remove functions, 60-150 rounds for 10-15k nodes in input, 500-800 nodes remain.
-            new FunctionStrategy(pConfig, pLogger, 5, 1),
-            //   Check that analysis result remains unchanged.
-            new DummyStrategy(pLogger),
-            //   It seems it does not change result, so try to remove all in one round.
+            new FunctionStrategy(pConfig, pLogger, 5, 0),
             new BlankNodeStrategy(pLogger, 5, 0),
+            new DummyStrategy(pLogger),
 
             // Second, mutate remained functions somehow.
+
             //   1. Remove unneeded assumes and statements.
             new CycleStrategy(pLogger),
-            //   Check the result
-            new DummyStrategy(pLogger),
+            //   TODO remove remained branches with a return statement
+
             //   2. Remove loops on nodes (edges from node to itself).
             new NodeWithLoopStrategy(pLogger, 5, 0),
+            new DummyStrategy(pLogger),
             //   Now we can remove delooped blank edges.
             new BlankNodeStrategy(pLogger, 5, 0),
+            new DummyStrategy(pLogger),
+
             //   3. Remove unneeded declarations. TODO *unneeded*
             new DeclarationStrategy(pLogger, 5, 0),
             new DummyStrategy(pLogger),

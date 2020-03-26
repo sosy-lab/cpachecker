@@ -42,9 +42,9 @@ public class FunctionStrategy
     extends GenericCFAMutationStrategy<String, Pair<FunctionEntryNode, SortedSet<CFANode>>> {
   @Option(
       secure = true,
-      name = "mutations.functionsWhiteList",
-      description = "Names of functions that should not be deleted from CFA")
-  private Collection<String> whiteList = List.of("main");
+      name = "mutations.functionsWhitelist",
+      description = "Names of functions (separated with space) that should not be deleted from CFA")
+  private String whitelist = "main";
 
   public FunctionStrategy(Configuration pConfig, LogManager pLogger, int pRate, int pStartDepth)
       throws InvalidConfigurationException {
@@ -65,8 +65,9 @@ public class FunctionStrategy
             - parseResult.getCFANodes().get(pArg1).size();
       }
     }
+    List<String> v = List.of(whitelist.split(" "));
     List<String> answer = new ArrayList<>(pParseResult.getFunctions().keySet());
-    answer.removeIf(s -> whiteList.contains(s));
+    answer.removeAll(v);
     Collections.sort(answer, new FunctionSize(pParseResult));
     return answer;
   }

@@ -60,12 +60,15 @@ public class CycleStrategy extends CompositeStrategy {
     super(
         pLogger,
         ImmutableList.of(
-            // First, remove AssumeEdges if possible
-            new SimpleAssumeEdgeStrategy(pLogger, 5, 1),
-            // Second, remove statements if possible
+            // First, remove statements if possible
             new StatementNodeStrategy(pLogger, 5, 1),
+            new DummyStrategy(pLogger),
+            // Second, remove AssumeEdges if possible
+            new SimpleAssumeEdgeStrategy(pLogger, 5, 1),
+            new DummyStrategy(pLogger),
             // Then remove blank edges
-            new BlankNodeStrategy(pLogger, 5, 0)));
+            new BlankNodeStrategy(pLogger, 5, 0),
+            new DummyStrategy(pLogger)));
     stats = new CycleStatistics();
   }
 
