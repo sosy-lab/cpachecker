@@ -7,8 +7,8 @@
   </rundefinition>
 
   <rundefinition name="parallel">
-    <option name="-setprop">cpa.predicate.executeParallel=true</option>
-    <option name="-setprop">cpa.predicate.threadNum=4</option>
+    <option name="-setprop">cpa.predicate.slicingabstractions.executeParallel=true</option>
+    <option name="-setprop">cpa.predicate.slicingabstractions.threadNum=4</option>
   </rundefinition>
 
 

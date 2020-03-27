@@ -193,13 +193,13 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       throws InvalidConfigurationException {
     super(pPredicateCpa.getSolver());
     parallelSolvers = new ArrayList<Solver>();
-    if(threadNum == 1){
-        solver = pPredicateCpa.getSolver();
-    } else {
+    if(executeParallel){    
         for(int i = 0; i < threadNum; i++){
             parallelSolvers.add(pPredicateCpa.getSolver());
         }
         solver = parallelSolvers.get(0);
+    } else {
+        solver = pPredicateCpa.getSolver();
     }
 
     bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
