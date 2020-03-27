@@ -51,7 +51,7 @@ public abstract class FaultLocalizationOutput {
 
   // Override this method to change the default score evaluation
   protected double evaluateScore() {
-    return faultLocalizationReasons.stream().filter(l -> !l.isHintOnly())
+    return faultLocalizationReasons.stream().filter(l -> !l.isHint())
             .mapToDouble(FaultLocalizationReason::getLikelihood)
             .average()
             .orElse(0)
@@ -86,7 +86,7 @@ public abstract class FaultLocalizationOutput {
 
   protected String reasonToHtml(FaultLocalizationReason reason) {
     double likelihood = reason.getLikelihood();
-    boolean hintOnly = reason.isHintOnly();
+    boolean hintOnly = reason.isHint();
     String description = reason.getDescription();
 
     String percent = "<strong>" + ((int) (likelihood * 10000)) / 100d + "%</strong>";
@@ -98,7 +98,7 @@ public abstract class FaultLocalizationOutput {
 
   public String htmlRepresentation() {
     Comparator<FaultLocalizationReason> sortReasons =
-        Comparator.comparingInt(l -> l.isHintOnly()?0:1);
+        Comparator.comparingInt(l -> l.isHint() ? 0 : 1);
     sortReasons = sortReasons.thenComparingDouble(b -> 1/b.getLikelihood());
     faultLocalizationReasons.sort(sortReasons);
     StringBuilder html =
@@ -106,7 +106,7 @@ public abstract class FaultLocalizationOutput {
             "Error suspected on <strong>line "
                 + correspondingEdge().getFileLocation().getStartingLineInOrigin()
                 + "</strong>.<br>");
-    int reasons = faultLocalizationReasons.stream().filter(l -> !l.isHintOnly()).mapToInt(l -> 1).sum();
+    int reasons = faultLocalizationReasons.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
     html.append("Detected <strong>")
         .append(reasons)
         .append("</strong> possible reason")
@@ -116,7 +116,7 @@ public abstract class FaultLocalizationOutput {
     //style:\"list-style-type:none;\">
     html.append("<ul id=\"hint-list\">");
     for (var reason : faultLocalizationReasons){
-      if(reason.isHintOnly())
+      if(reason.isHint())
         html.append("<li>").append(reasonToHtml(reason)).append("</li>");
       else break;
     }
@@ -124,7 +124,7 @@ public abstract class FaultLocalizationOutput {
 
     html.append("<ol>");
     for (var reason : faultLocalizationReasons){
-      if(!reason.isHintOnly())
+      if(!reason.isHint())
         html.append("<li>").append(reasonToHtml(reason)).append("</li>");
     }
     html.append("</ol>");

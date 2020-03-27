@@ -160,5 +160,11 @@ public class FaultLocalizationHeuristicUtils {
     return allObjects;
   }
 
+  public enum RankingMode {
+    OVERALL,
+    IDENTITY,
+    SUBSET
+  }
+
 
 }

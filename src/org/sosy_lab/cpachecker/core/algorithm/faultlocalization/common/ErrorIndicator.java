@@ -37,7 +37,7 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
 
   private Set<I> errorSet;
   private List<FaultLocalizationReason> reasonList;
-  private Function<List<FaultLocalizationReason>, Double> evaluationFunction = a -> a.stream().filter(c -> !c.isHintOnly()).mapToDouble(b -> b.getLikelihood()).average().orElse(0) * 100;;
+  private Function<List<FaultLocalizationReason>, Double> evaluationFunction = a -> a.stream().filter(c -> !c.isHint()).mapToDouble(b -> b.getLikelihood()).average().orElse(0) * 100;;
 
   public double calculateScore() {return evaluationFunction.apply(reasonList);}
 
@@ -60,6 +60,11 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
     reasonList = new ArrayList<>();
   }
 
+  public ErrorIndicator(I singleton){
+    errorSet = new HashSet<>(Collections.singleton(singleton));
+    reasonList = new ArrayList<>();
+  }
+
   public void addReason(FaultLocalizationReason reason){
     reasonList.add(reason);
   }
@@ -74,7 +79,7 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
 
   protected String reasonToHtml(FaultLocalizationReason reason) {
     double likelihood = reason.getLikelihood();
-    boolean hintOnly = reason.isHintOnly();
+    boolean hintOnly = reason.isHint();
     String description = reason.getDescription();
 
     String percent = "<strong>" + ((int) (likelihood * 10000)) / 100d + "%</strong>";
@@ -86,10 +91,10 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
 
   public String toHtml(){
     Comparator<FaultLocalizationReason> sortReasons =
-        Comparator.comparingInt(l -> l.isHintOnly()?0:1);
+        Comparator.comparingInt(l -> l.isHint() ? 0 : 1);
     sortReasons = sortReasons.thenComparingDouble(b -> 1/b.getLikelihood());
     reasonList.sort(sortReasons);
-    int numberReasons = reasonList.stream().filter(l -> !l.isHintOnly()).mapToInt(l -> 1).sum();
+    int numberReasons = reasonList.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
 
     String header = "Error suspected on line(s): <strong>" + errorSet
         .stream()
@@ -103,7 +108,7 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
     StringBuilder html = new StringBuilder();
     html.append("<ul id=\"hint-list\">");
     for (var reason : reasonList){
-      if(reason.isHintOnly())
+      if(reason.isHint())
         html.append("<li>").append(reasonToHtml(reason)).append("</li>");
       else break;
     }
@@ -111,7 +116,7 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
 
     html.append("<ol>");
     for (var reason : reasonList){
-      if(!reason.isHintOnly())
+      if(!reason.isHint())
         html.append("<li>").append(reasonToHtml(reason)).append("</li>");
     }
     html.append("</ol>");

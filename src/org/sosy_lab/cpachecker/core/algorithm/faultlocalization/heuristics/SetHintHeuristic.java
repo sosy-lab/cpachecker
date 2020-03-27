@@ -49,7 +49,7 @@ public class SetHintHeuristic<I extends FaultLocalizationOutput> implements
     for (ErrorIndicator<I> errorIndicator : errorIndicators) {
       int current = 0;
       for (I i : errorIndicator) {
-        errorIndicator.addReason(FaultLocalizationReason.hintFor(i));
+        errorIndicator.addReason(FaultLocalizationReason.hintFor(new ErrorIndicator<>(i)));
         current++;
         if(current == maxNumberOfHints){
           break;

@@ -111,9 +111,6 @@ public class FaultLocalizationAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
 
-    // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.
-    logger.log(Level.INFO, "Starting fault localization...");
-
     // Find error labels
     AlgorithmStatus status = algorithm.run(reachedSet);
     FluentIterable<CounterexampleInfo> counterExamples =
@@ -141,6 +138,9 @@ public class FaultLocalizationAlgorithm implements Algorithm {
   private void runAlgorithm(
       CounterexampleInfo pInfo, List<FaultLocalizationAlgorithmInterface> pAlgorithms)
       throws CPAException, InterruptedException {
+    // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.
+    logger.log(Level.INFO, "Starting fault localization...");
+
     if (pAlgorithms.size() == 0) {
       logger.log(
           Level.INFO,

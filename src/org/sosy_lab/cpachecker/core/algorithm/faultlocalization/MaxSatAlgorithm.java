@@ -55,7 +55,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
     Set<Selector> soft = new HashSet<>(tf.getSelectors());
     Set<ErrorIndicator<Selector>> singletons = new HashSet<>();
 
-    ErrorIndicator<Selector> minUnsatCore = getMinUnsatCore(soft, tf, hard);
+    ErrorIndicator<Selector> minUnsatCore = new ErrorIndicator<>();
 
     while(minUnsatCore.size() != numberSelectors){
       minUnsatCore = getMinUnsatCore(soft, tf, hard);

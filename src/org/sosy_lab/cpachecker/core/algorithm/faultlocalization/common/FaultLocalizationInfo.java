@@ -163,7 +163,7 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
 
   public static <I extends FaultLocalizationOutput>
       FaultLocalizationInfo<I> withPredefinedHeuristics(
-          ErrorIndicatorSet<I> pResult, CounterexampleInfo pInfo, RankingMode pRankingMode) {
+          ErrorIndicatorSet<I> pResult, CounterexampleInfo pInfo, FaultLocalizationHeuristicUtils.RankingMode pRankingMode) {
     Optional<FaultLocalizationHeuristic<I>> predefinedHeuristic = Optional.of(m -> FaultLocalizationHeuristicUtils
         .rank(m, pRankingMode));
     return new FaultLocalizationInfo<>(

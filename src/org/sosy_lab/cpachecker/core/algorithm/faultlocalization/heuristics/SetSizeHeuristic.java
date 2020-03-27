@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLoca
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationOutput;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason.ReasonType;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationSetHeuristic;
 
 public class SetSizeHeuristic<I extends FaultLocalizationOutput> implements
@@ -53,7 +54,7 @@ public class SetSizeHeuristic<I extends FaultLocalizationOutput> implements
     }
     double totalPercentage = scoreMap.values().stream().mapToDouble(l -> 1d/l).sum();
     for (ErrorIndicator<I> errorIndicator : scoreMap.keySet()) {
-      errorIndicator.addReason(new FaultLocalizationReason("The set has a size of " + errorIndicator.size() + ".", (1d/scoreMap.get(errorIndicator))/totalPercentage));
+      errorIndicator.addReason(new FaultLocalizationReason(ReasonType.HEURISTIC_DESCRIPTION, "The set has a size of " + errorIndicator.size() + ".", (1d/scoreMap.get(errorIndicator))/totalPercentage));
     }
     return FaultLocalizationHeuristicUtils.scoreToRankMapSet(scoreMap);
   }

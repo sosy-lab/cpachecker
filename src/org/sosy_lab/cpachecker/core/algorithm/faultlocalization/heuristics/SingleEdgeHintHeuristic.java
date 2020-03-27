@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicUtils;
@@ -45,8 +46,7 @@ public class SingleEdgeHintHeuristic<I extends FaultLocalizationOutput> implemen
     Set<I> condensedSet = FaultLocalizationHeuristicUtils.condenseErrorIndicatorSet(result);
     Map<I, Integer> rank = new HashMap<>();
     for(I temp: condensedSet){
-      FaultLocalizationReason reason = FaultLocalizationReason.hintFor(temp);
-      reason.setHintOnly(true);
+      FaultLocalizationReason reason = FaultLocalizationReason.hintFor(new ErrorIndicator<>(temp));
       temp.addReason(reason);
       rank.put(temp, 1);
     }

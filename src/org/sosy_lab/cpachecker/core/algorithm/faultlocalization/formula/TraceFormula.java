@@ -187,7 +187,7 @@ public class TraceFormula {
       throw new AssertionError("a model has to be existent");
     }
 
-    if(bmgr.isTrue(precondition) && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))){
+/*    if(bmgr.isTrue(precondition) && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))){
       precondition = altPre.toFormula();
       for (BooleanFormula booleanFormula : altPre.getPreCondition()) {
         int index = atoms.indexOf(booleanFormula);
@@ -195,7 +195,7 @@ public class TraceFormula {
         selectors.remove(index);
         ssaMaps.remove(index);
       }
-    }
+    }*/
 
     if(context.getSolver().isUnsat(bmgr.and(precondition, postcondition))){
       throw new AssertionError("the conjunction of pre and post condition has to be satisfiable");

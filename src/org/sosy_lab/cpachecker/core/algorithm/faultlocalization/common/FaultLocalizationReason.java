@@ -23,55 +23,35 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common;
 
-import java.util.Collections;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.NoContextExplanation;
 
 public class FaultLocalizationReason {
 
   private String description;
   private double likelihood;
-  private boolean hintOnly;
-
-  // set this to true if likelihood of this reason should not be weighted.
-  //private boolean hintOnly;
-
-  // The ranking does not support ranking subsets. Sometimes an error may be caused by multiple
-  // lines.
-  // To indicate this, place all related objects in this list.
-  // Just add the subset to this list.
-  // Only write the FaultLocalizationOutput object containing this Reason object in the list.
-  /*
-  e.g.: Ranking the subset  1) [S1, S2, S3]
-                            2) [S1, S3]
-                            3) [S2, S4]
-
-  should result in the following list after the ranking algorithm is used:
-  RankingList: 1)  S1 (related: S2, S3)    Alternatively: 1) S2 (related: S1, S3)
-                      (related: S3)                       2) S3 (related: S1)
-               2)  S2 (related: S4)                       3) S4 (related: S2)
-   */
+  private ReasonType reasonType;
 
   public FaultLocalizationReason(String pDescription) {
     description = pDescription;
+    reasonType = ReasonType.UNDEFINED;
   }
 
-  public FaultLocalizationReason(String pDescription, double pLikelihood) {
+  public FaultLocalizationReason(ReasonType pReasonType, String pDescription, double pLikelihood) {
     description = pDescription;
     likelihood = pLikelihood;
+    reasonType = pReasonType;
   }
 
-  public FaultLocalizationReason(String pDescription, boolean pHintOnly) {
-    description = pDescription;
-    hintOnly = pHintOnly;
+  public ReasonType getReasonType(){
+    return reasonType;
   }
 
-  public void setHintOnly(boolean pHintOnly) {
-    hintOnly = pHintOnly;
+  public void setReasonType(ReasonType pReasonType) {
+    reasonType = pReasonType;
   }
 
-  public boolean isHintOnly() {
-    return hintOnly;
+  public boolean isHint(){
+    return ReasonType.HINT == reasonType;
   }
 
   public String getDescription() {
@@ -93,34 +73,36 @@ public class FaultLocalizationReason {
   @Override
   public String toString() {
     String percent = ((int) (likelihood * 10000)) / 100d + "%";
-    if(hintOnly){
+    if(reasonType == ReasonType.HINT){
       return description;
     }
     return description + " (" + percent + ")";
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationReason of(
-      Set<I> causes, FaultLocalizationExplanation reason) {
-    return new FaultLocalizationReason(reason.explanationFor(causes));
+  public static <I extends FaultLocalizationOutput> FaultLocalizationReason explain(ReasonType pType, FaultLocalizationExplanation pExplanation, ErrorIndicator<I> indicator, double pLikelihood){
+    return new FaultLocalizationReason(pType, pExplanation.explanationFor(indicator), pLikelihood);
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationReason of(
-      I cause, FaultLocalizationExplanation reason) {
-    return of(Collections.singleton(cause), reason);
+  public static FaultLocalizationReason hint(String pDescription){
+    return new FaultLocalizationReason(ReasonType.HINT, pDescription, 0);
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationReason hint(
-      String pDescription) {
-    return new FaultLocalizationReason(pDescription, true);
+  /**
+   * Returns a possible fix for pSet.
+   * The set has to have size 1 because NoContextExplanation is designed to explain singletons only.
+   * @param pSet the singleton set to calculate the explanation for
+   * @param <I> Any FaultLocalizationOutput
+   * @return Explanation for pSet
+   */
+  public static <I extends FaultLocalizationOutput> FaultLocalizationReason hintFor(ErrorIndicator<I> pSet){
+    return new FaultLocalizationReason(ReasonType.HINT, new NoContextExplanation().explanationFor(pSet), 0);
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationReason hintFor(
-      Set<I> cause) {
-    return new FaultLocalizationReason(new NoContextExplanation().explanationFor(cause), true);
+  public static FaultLocalizationReason fix(String pDescription, double pLikelihood){
+    return new FaultLocalizationReason(ReasonType.FIX, pDescription, pLikelihood);
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationReason hintFor(
-      I cause) {
-    return hintFor(Collections.singleton(cause));
+  public enum ReasonType{
+    HINT, FIX, HEURISTIC_DESCRIPTION, UNDEFINED
   }
 }
