@@ -155,8 +155,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     varClassification = pVarClassification;
   }
 
-  public DependenceGraph build()
-      throws InvalidConfigurationException, InterruptedException, CPAException {
+  public DependenceGraph build() throws InvalidConfigurationException {
     dependenceGraphConstructionTimer.start();
     nodes = new NodeMap();
     adjacencyMatrix = HashBasedTable.create();
@@ -172,7 +171,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     if (considerFlowDeps) {
       flowDependenceTimer.start();
       try {
-        addFlowDependences();
+        // addFlowDependences();
+        addFlowDependencesNew();
       } finally {
         flowDependenceTimer.stop();
       }
@@ -214,7 +214,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  private Iterable<CFANode> createNodeIterable(
+  private static Iterable<CFANode> createNodeIterable(
       CFANode pNode, boolean pForward, Predicate<CFANode> pStop, Predicate<CFANode> pFilter) {
 
     if (pStop.test(pNode)) {
@@ -227,7 +227,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     return () -> Iterators.filter(iterator, pFilter);
   }
 
-  private Iterable<CFANode> iterateReverseSuccessors(CFANode pNode) {
+  static Iterable<CFANode> iteratePredecessors(CFANode pNode) {
 
     return createNodeIterable(
         pNode,
@@ -236,13 +236,44 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         node -> !(node instanceof FunctionExitNode));
   }
 
-  private Iterable<CFANode> iterateReversePredecessors(CFANode pNode) {
+  static Iterable<CFANode> iterateSuccessors(CFANode pNode) {
 
     return createNodeIterable(
         pNode,
         true,
         node -> node instanceof FunctionExitNode,
         node -> !(node instanceof FunctionEntryNode));
+  }
+
+  private void addFlowDependencesNew() {
+
+    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+
+      // TODO: use more reasonable counter
+      var flowDepCount =
+          new Object() {
+            int value = 0;
+          };
+
+      FlowDep.execute(
+          entryNode,
+          (edge, dependent, variable) -> {
+            addDependence(
+                getDGNode(edge, Optional.empty()),
+                getDGNode(dependent, Optional.empty()),
+                DependenceType.FLOW);
+            flowDepCount.value++;
+          },
+          edgeWithUnknownPointer -> {
+            addDependence(
+                getDGNodeForUnknownPointer(),
+                getDGNode(edgeWithUnknownPointer, Optional.empty()),
+                DependenceType.FLOW);
+            flowDepCount.value++;
+          });
+
+      flowDependenceNumber.setNextValue(flowDepCount.value);
+    }
   }
 
   private void addControlDependences() {
@@ -253,8 +284,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       DomTree<CFANode> domTree =
           Dominance.createDomTree(
               entryNode.getExitNode(),
-              this::iterateReverseSuccessors,
-              this::iterateReversePredecessors);
+              DependenceGraphBuilder::iteratePredecessors,
+              DependenceGraphBuilder::iterateSuccessors);
 
       DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(domTree);
       Set<CFAEdge> dependentEdges = new HashSet<>();
@@ -317,6 +348,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     return depCount;
   }
 
+  @SuppressWarnings("unused") // old method for computing flow dependences
   private void addFlowDependences()
       throws InvalidConfigurationException, InterruptedException, CPAException {
     FlowDependences flowDependences =
