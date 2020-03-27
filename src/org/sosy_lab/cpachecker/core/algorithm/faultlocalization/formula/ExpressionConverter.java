@@ -123,6 +123,9 @@ public class ExpressionConverter {
     if (operator.startsWith("bvslt")) {
       return "<";
     }
+    if (operator.startsWith("bvadd")) {
+      return "+";
+    }
     switch (operator) {
       case "and":
         return "∧";

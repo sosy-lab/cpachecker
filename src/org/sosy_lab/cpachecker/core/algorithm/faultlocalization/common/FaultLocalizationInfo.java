@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,6 +51,8 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
   private Map<CFAEdge, Integer> mapEdgeToMinRank;
   private Map<CFAEdge, String> mapEdgeToDescription;
 
+  private Set<CFAEdge> bannedEdges;
+
   /**
    * Object to represent a result set obtained from any FaultLocalizationAlgorithm Note: there is no
    * need to create multiple instances of this object if more than one heuristic should be applied.
@@ -70,7 +73,7 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
         pCreated.getCFAPathWithAssignments(),
         pCreated.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-
+    bannedEdges = new HashSet<>();
     if(pRanking.isPresent()){
       mapOutToRank = pRanking.get().rank(pErrorIndicators);
     } else {
@@ -197,7 +200,8 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
         elem.put("rank", mapOutToRank.get(infoEdge));
       }
     }
-    if(mapEdgeToSetInfo.get(edge) != null){
+    if(mapEdgeToSetInfo.get(edge) != null && !bannedEdges.contains(edge)){
+      bannedEdges.add(edge);
       elem.put("setindicator", true);
       List<ErrorIndicator<I>> infoSet = mapEdgeToSetInfo.get(edge);
 

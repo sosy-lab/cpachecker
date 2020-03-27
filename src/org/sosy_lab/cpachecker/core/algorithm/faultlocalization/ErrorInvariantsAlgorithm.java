@@ -25,18 +25,20 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 
 import com.google.common.base.VerifyException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.antlr.v4.runtime.misc.MultiMap;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.ExpressionConverter;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
@@ -131,17 +133,32 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         maxInterval = currInterval;
       } else if (currInterval.end > maxInterval.end) maxInterval = currInterval;
     }
-    // TODO null edge
     // All interpolants containing the post condition as interpolant must be removed. The post
     // condition cannot be a suitable explanation of why the error happens.
-    return new ErrorIndicatorSet<>(
-        interpolantsForPosition.stream()
-            .filter(l -> !l.interpolant.equals(errorTrace.getPostCondition()))
-            .map(
-                l ->
-                    new ErrorIndicator<>(Collections.singleton(
-                        Selector.of(l.edge).orElse(Selector.makeSelector(context, l.edge, null)))))
-            .collect(Collectors.toSet()));
+
+    MultiMap<Selector, BooleanFormula> allInterpolants = new MultiMap<>();
+    ErrorIndicatorSet<Selector> indicators = new ErrorIndicatorSet<>();
+    for (InterpolantToEdge interpolantToEdge : interpolantsForPosition) {
+      ErrorIndicator<Selector> indicator = new ErrorIndicator<>();
+      Selector current = Selector.of(interpolantToEdge.edge).orElse(null);
+      if(current != null){
+        allInterpolants.map(current, interpolantToEdge.interpolant);
+        indicator.add(current);
+        indicators.add(indicator);
+      }
+    }
+    for (Selector selector : allInterpolants.keySet()) {
+      String description = allInterpolants.get(selector)
+          .stream()
+          //ExpressionConverter is not 100% reliable but better to read
+          .map(l -> ExpressionConverter.convert(l))
+          .distinct()
+          .collect(Collectors.joining(","));
+      if(!description.isEmpty())
+        selector.addReason(FaultLocalizationReason.hint("The error is described by the invariant(s): " + description));
+    }
+
+    return indicators;
   }
 
   private int search(int low, int high, Function<Integer, Boolean> incLow) {

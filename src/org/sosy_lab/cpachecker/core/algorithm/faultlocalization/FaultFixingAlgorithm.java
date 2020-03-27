@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.antlr.v4.runtime.misc.MultiMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -20,7 +21,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class FaultFixingAlgorithm<I extends FaultLocalizationOutput> {
 
-  private MultiMap<CFAEdge, BooleanFormula> fix;
+  private MultiMap<I, BooleanFormula> fix;
   private TraceFormula traceFormula;
   private FormulaContext context;
   private BooleanFormulaManager bmgr;
@@ -28,7 +29,9 @@ public class FaultFixingAlgorithm<I extends FaultLocalizationOutput> {
   private List<CFAEdge> edges;
 
   private FaultFixingAlgorithm(
-      TraceFormula pTraceFormula, FormulaContext pContext, List<I> pRankedList) {
+      TraceFormula pTraceFormula, FormulaContext pContext, Map<I, Integer> pRankedMap) {
+    List<I> pRankedList = pRankedMap.keySet().stream().sorted(Comparator.comparingInt(l -> pRankedMap.get(l))).collect(
+        Collectors.toList());
     fix = new MultiMap<>();
     traceFormula = pTraceFormula;
     context = pContext;
@@ -53,18 +56,18 @@ public class FaultFixingAlgorithm<I extends FaultLocalizationOutput> {
           default:
         }
       } catch (Exception ignore) {
-        pTraceFormula.getEdges();
+
       }
     }
   }
 
-  public MultiMap<CFAEdge, BooleanFormula> getFix() {
+  public MultiMap<I, BooleanFormula> getFix() {
     return fix;
   }
 
-  public static <I extends FaultLocalizationOutput> MultiMap<CFAEdge, BooleanFormula> fix(
-      TraceFormula traceFormula, FormulaContext context, List<I> rankedList) {
-    return new FaultFixingAlgorithm<>(traceFormula, context, rankedList).getFix();
+  public static <I extends FaultLocalizationOutput> MultiMap<I, BooleanFormula> fix(
+      TraceFormula traceFormula, FormulaContext context, Map<I, Integer> rankedMap) {
+    return new FaultFixingAlgorithm<>(traceFormula, context, rankedMap).getFix();
   }
 
   /**
@@ -103,7 +106,8 @@ public class FaultFixingAlgorithm<I extends FaultLocalizationOutput> {
     if (context
         .getSolver()
         .isUnsat(bmgr.and(bmgr.and(atoms), bmgr.and(traceFormula.getNegated())))) {
-      fix.map(edge, formula);
+      fix.map(errorLoc, formula);
+
     }
 
     atoms = new ArrayList<>(traceFormula.getAtoms());
@@ -113,7 +117,7 @@ public class FaultFixingAlgorithm<I extends FaultLocalizationOutput> {
     if (context
         .getSolver()
         .isUnsat(bmgr.and(bmgr.and(atoms), bmgr.and(traceFormula.getNegated())))) {
-      fix.map(edge, copy);
+      fix.map(errorLoc, copy);
     }
     // substitute.put(single, fmgr.makePlus(single, fmgr.makeNumber(FormulaType.IntegerType, 1)));
 
@@ -150,7 +154,7 @@ public class FaultFixingAlgorithm<I extends FaultLocalizationOutput> {
       if (context
           .getSolver()
           .isUnsat(bmgr.and(bmgr.and(atoms), bmgr.and(traceFormula.getNegated())))) {
-        fix.map(edge, replace);
+        fix.map(errorLoc, replace);
       }
     }
   }
