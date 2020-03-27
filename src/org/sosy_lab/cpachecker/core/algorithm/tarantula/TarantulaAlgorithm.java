@@ -24,8 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
 import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.Iterator;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +50,7 @@ public class TarantulaAlgorithm implements Algorithm {
     if (TarantulaUtils.checkForErrorPath(reachedSet)) {
       if (!TarantulaUtils.checkSafePath(reachedSet)) {
         logger.log(
-                Level.WARNING, "There is no safe Path, the algorithm is therefore not efficient");
+            Level.WARNING, "There is no safe Path, the algorithm is therefore not efficient");
       }
       logger.log(Level.INFO, "Start tarantula algorithm ... ");
       printResult(System.out, reachedSet);
@@ -166,10 +165,10 @@ public class TarantulaAlgorithm implements Algorithm {
    */
   public double makeRanking(List<List<Integer>> coveredEdges, int edgeNumber) {
     return suspiciousness(
-            failedCase(coveredEdges, edgeNumber),
-            totalFailed(coveredEdges),
-            passedCase(coveredEdges, edgeNumber),
-            totalPassed(coveredEdges));
+        failedCase(coveredEdges, edgeNumber),
+        totalFailed(coveredEdges),
+        passedCase(coveredEdges, edgeNumber),
+        totalPassed(coveredEdges));
   }
   /**
    * Calculates suspiciousness of tarantula algorithm.
@@ -181,7 +180,7 @@ public class TarantulaAlgorithm implements Algorithm {
    * @return Calculated suspicious.
    */
   public double suspiciousness(
-          double failed, double totalFailed, double passed, double totalPassed) {
+      double failed, double totalFailed, double passed, double totalPassed) {
     double numerator = failed / totalFailed;
     // if there is no safe path therefore the passed and the totalPassed are always 0
     if (passed == 0 && totalPassed == 0) {
@@ -206,8 +205,8 @@ public class TarantulaAlgorithm implements Algorithm {
 
     for (CFAEdge e : programEdges) {
       resultMap.put(
-              findCFAEdgeByIndex(programEdges, getIndexOfEdge(programEdges, e)),
-              makeRanking(table, getIndexOfEdge(programEdges, e)));
+          findCFAEdgeByIndex(programEdges, getIndexOfEdge(programEdges, e)),
+          makeRanking(table, getIndexOfEdge(programEdges, e)));
     }
 
     resultMap.forEach((k, v) -> out.println(k + "--->" + v));

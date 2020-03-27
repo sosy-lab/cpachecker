@@ -56,9 +56,9 @@ public class TarantulaUtils {
    */
   private static List<ARGState> getErrorStates(ReachedSet reachedSet) {
     return FluentIterable.from(reachedSet)
-            .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
-            .filter(ARGState::isTarget)
-            .toList();
+        .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
+        .filter(ARGState::isTarget)
+        .toList();
   }
   /**
    * Gets 2d CFAEdge list of the error paths.
@@ -116,7 +116,7 @@ public class TarantulaUtils {
     ARGPath safePath = null;
 
     Collection<ARGState> statesOnErrorPath =
-            TarantulaUtils.extractAllStatesOnErrorPaths(reachedSet);
+        TarantulaUtils.extractAllStatesOnErrorPaths(reachedSet);
 
     for (AbstractState s : reachedSet) {
       ARGState currentState = AbstractStates.extractStateByType(s, ARGState.class);
@@ -142,10 +142,10 @@ public class TarantulaUtils {
       ARGState currentState = AbstractStates.extractStateByType(s, ARGState.class);
       assert currentState != null;
       Collection<CFAEdge> edge =
-              currentState.getParents().stream()
-                      .map(p -> p.getEdgeToChild(currentState))
-                      .filter(x -> x != null && x.getLineNumber() != 0)
-                      .collect(Collectors.toList());
+          currentState.getParents().stream()
+              .map(p -> p.getEdgeToChild(currentState))
+              .filter(x -> x != null && x.getLineNumber() != 0)
+              .collect(Collectors.toList());
 
       programEdges.addAll(edge);
     }
@@ -186,7 +186,7 @@ public class TarantulaUtils {
    * @return merged ArrayList.
    */
   private static List<List<CFAEdge>> mergeInto2dArray(
-          List<List<CFAEdge>> safePaths, List<List<CFAEdge>> errorPaths) {
+      List<List<CFAEdge>> safePaths, List<List<CFAEdge>> errorPaths) {
     return Stream.concat(safePaths.stream(), errorPaths.stream()).collect(Collectors.toList());
   }
   /**
@@ -197,7 +197,7 @@ public class TarantulaUtils {
    * @return binary result.
    */
   private static List<List<Integer>> convertingToBinary(
-          List<List<CFAEdge>> path, List<CFAEdge> programEdges) {
+      List<List<CFAEdge>> path, List<CFAEdge> programEdges) {
     List<List<Integer>> binaryResult = new ArrayList<>();
     for (List<CFAEdge> pCFAEdges : path) {
       binaryResult.add(coveredEdges(pCFAEdges, programEdges));
@@ -212,7 +212,7 @@ public class TarantulaUtils {
    */
   public static boolean checkSafePath(ReachedSet reachedSet) {
     Collection<ARGState> statesOnErrorPath =
-            TarantulaUtils.extractAllStatesOnErrorPaths(reachedSet);
+        TarantulaUtils.extractAllStatesOnErrorPaths(reachedSet);
 
     for (AbstractState s : reachedSet) {
       ARGState currentState = AbstractStates.extractStateByType(s, ARGState.class);
@@ -246,9 +246,9 @@ public class TarantulaUtils {
    */
   public static List<List<Integer>> getTable(ReachedSet reachedSet) {
     return TarantulaUtils.convertingToBinary(
-            TarantulaUtils.mergeInto2dArray(
-                    TarantulaUtils.getEdgesOfSafePaths(reachedSet),
-                    TarantulaUtils.getEdgesOfErrorPaths(reachedSet)),
-            TarantulaUtils.getProgramEdges(reachedSet));
+        TarantulaUtils.mergeInto2dArray(
+            TarantulaUtils.getEdgesOfSafePaths(reachedSet),
+            TarantulaUtils.getEdgesOfErrorPaths(reachedSet)),
+        TarantulaUtils.getProgramEdges(reachedSet));
   }
 }
