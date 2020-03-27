@@ -157,35 +157,27 @@ Releasing a New Version
    to a new development version, which is the next possible version number
    with the suffix `-svn`.
    For example, if `1.9` was just released, the next possible version
-   is `1.9.0` and the new development version should be `1.9.0-svn`.
+   is `1.9.1` and the new development version should be `1.9.1-svn`.
 
 
 Release Tagging
 ---------------
 
-We use the following schema to construct tags for CPAchecker releases
-(from `cpachecker-1.7` onwards, older tags might be inconsistent).
+We use the following schema to construct tags for CPAchecker releases.
 
 - `X.Y` is to be used as version for the major release in year `20XY`.
-  (There should be exactly one CPAchecker release every year.)
-- `X.Y.z-<label>` is to be used for a minor release, where
-  - `X.Y` is the last major release that already exists and that the minor release builds on,
-  - `z` is the number of full months since release `X.Y`, taking the date of the commit that the tag points to, and
-  - `<label>` is a label that gives a hint on a special purpose for the release.
+  There should be exactly one major CPAchecker release every year.
+- `X.Y.z` should be used for (minor) feature releases.
+- `X.Y.z-<component-version>` (old) or `X.Y-<component-version>` (new) should be used for (minor) component releases.
 - Examples:
   - `cpachecker-1.9` is the major release in the year 2019.
-  - `cpachecker-1.7.11-svcomp19` is a minor release after major release `1.7`,
-    which points to a commit that was made 11 months later,
+  - `cpachecker-1.6.1` is a (minor) feature release after major release `1.6`.
+  - `cpachecker-1.7.11-svcomp19` is a minor release after major release `1.7`
     for the purpose of tagging the version submitted to SV-COMP 2019.
-  - `cpachecker-1.7.7-ase18-symExec` is a minor release after major release `1.7`,
-    which points to a commit that was made 7 months later,
-    for the purpose of tagging the version used for the ASE 2018 paper
-    on Symbolic Execution.
-  - `cpachecker-1.4.2-slicedPathPrefixes` is a minor release after major release `1.4`,
-    which points to a commit that was made 2 months later,
-    for the purpose of tagging the version used for the paper on Sliced Path Prefixes.
-- Invariant: For two tags `X1.Y1.z1` and `X2.Y2.z2` the following holds:
-    If `(X1, Y1, z1) < (X2, Y2, z2)` using the numerical tuple order,
-    then `X1.Y1.z1` points to an older commit than `X2.Y2.z2`.
+  - `cpachecker-1.8-coveritest-sttt` is a (minor) component release after major release `1.8`
+    for the purpose of tagging the component version used for the STTT paper on CoVeriTest.
+- Invariant: For two tags with prefixes `X1.Y1` and `X2.Y2` the following holds:
+    If `(X1, Y1) < (X2, Y2)` using the numerical tuple order,
+    then `X1.Y1` points to an older commit than `X2.Y2`.
 
 
