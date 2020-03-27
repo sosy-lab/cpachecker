@@ -24,7 +24,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
 import java.io.PrintStream;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -45,108 +49,167 @@ public class TarantulaAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     AlgorithmStatus result = analysis.run(reachedSet);
     if (TarantulaUtils.checkForErrorPath(reachedSet)) {
-      if (TarantulaUtils.checkSafePath(reachedSet)) {
-        printResult(System.out, reachedSet);
-      } else {
-        logger.log(Level.WARNING, "There was no safe path, please check your input program");
+      if (!TarantulaUtils.checkSafePath(reachedSet)) {
+        logger.log(
+                Level.WARNING, "There is no safe Path, the algorithm is therefore not efficient");
       }
+      logger.log(Level.INFO, "Start tarantula algorithm ... ");
+      printResult(System.out, reachedSet);
     } else {
-      logger.log(Level.WARNING, "There is no CounterExample, therefore the program is safe");
+      logger.log(Level.WARNING, "There is no CounterExample, the program is therefore safe");
     }
 
-    logger.log(Level.INFO, "Tarantula algorithm Finished");
+    logger.log(Level.INFO, "Tarantula algorithm Finished ... ");
     return result;
   }
-
-  public int totalFailed(List<List<Integer>> coveredLines) {
+  /**
+   * Calculates how many total failed cases are in ARG.
+   *
+   * @param coveredEdges The binary converted result.
+   * @return how many failed cases are found.
+   */
+  public int totalFailed(List<List<Integer>> coveredEdges) {
     int oneCounter = 0;
-    for (List<Integer> pCoveredLine : coveredLines) {
-      if (pCoveredLine.get(0) == 1) {
+    for (List<Integer> pCoveredEdges : coveredEdges) {
+      if (pCoveredEdges.get(0) == 1) {
         oneCounter++;
       }
     }
     return oneCounter;
   }
-
-  public int totalPassed(List<List<Integer>> coveredLines) {
+  /**
+   * Calculates how many total passed cases are in ARG.
+   *
+   * @param coveredEdges The binary converted result.
+   * @return how many passed cases are found.
+   */
+  public int totalPassed(List<List<Integer>> coveredEdges) {
     int zeroCounter = 0;
-    for (List<Integer> pCoveredLine : coveredLines) {
-      if (pCoveredLine.get(0) == 0) {
+    for (List<Integer> pCoveredEdges : coveredEdges) {
+      if (pCoveredEdges.get(0) == 0) {
         zeroCounter++;
       }
     }
     return zeroCounter;
   }
-
-  public int failedCase(List<List<Integer>> coveredLines, int lineNumber) {
+  /**
+   * Calculates how many failed cases are in each edge.
+   *
+   * @param coveredEdges The binary converted result.
+   * @param edgeNumber The edge of its failedCase should be calculated.
+   * @return how many failed cases are found.
+   */
+  public int failedCase(List<List<Integer>> coveredEdges, int edgeNumber) {
     int failedCounter = 0;
-    for (List<Integer> pCoveredLine : coveredLines) {
-      if (pCoveredLine.get(0) == 1 && pCoveredLine.get(lineNumber) == 1) {
+    for (List<Integer> pCoveredEdges : coveredEdges) {
+      if (pCoveredEdges.get(0) == 1 && pCoveredEdges.get(edgeNumber) == 1) {
         failedCounter++;
       }
     }
     return failedCounter;
   }
-
-  public int passedCase(List<List<Integer>> coveredLines, int lineNumber) {
+  /**
+   * Calculates how many passed cases are in each edge.
+   *
+   * @param coveredEdges The binary converted result.
+   * @param edgeNumber The edge of its passedCase should be calculated.
+   * @return how many passed cases are found.
+   */
+  public int passedCase(List<List<Integer>> coveredEdges, int edgeNumber) {
     int passedCounter = 0;
 
-    for (List<Integer> pCoveredLine : coveredLines) {
-      if (pCoveredLine.get(0) == 0 && pCoveredLine.get(lineNumber) == 1) {
+    for (List<Integer> pCoveredEdges : coveredEdges) {
+      if (pCoveredEdges.get(0) == 0 && pCoveredEdges.get(edgeNumber) == 1) {
         passedCounter++;
       }
     }
     return passedCounter;
   }
-
-  public int getIndexOfEdge(List<CFAEdge> coveredEdges, CFAEdge edge) {
+  /**
+   * Detects which index has a specific edge.
+   *
+   * @param programEdges The binary converted result.
+   * @param edge The edge of its index number should be detected.
+   * @return Founded index number.
+   */
+  public int getIndexOfEdge(List<CFAEdge> programEdges, CFAEdge edge) {
     int foundIndex = 0;
-    for (int i = 0; i < coveredEdges.size(); i++) {
-      if (coveredEdges.get(i).equals(edge)) {
+    for (int i = 0; i < programEdges.size(); i++) {
+      if (programEdges.get(i).equals(edge)) {
         foundIndex = i;
       }
     }
     return foundIndex;
   }
-
-  public CFAEdge findCFAEdgeByIndex(List<CFAEdge> coveredEdges, int index) {
-    CFAEdge foundLineNumber = null;
-    for (int i = 0; i < coveredEdges.size(); i++) {
+  /**
+   * Detects which edge has a specific index number.
+   *
+   * @param programEdges The binary converted result.
+   * @param index The index of its edge should be detected.
+   * @return Founded CFAEdge number.
+   */
+  public CFAEdge findCFAEdgeByIndex(List<CFAEdge> programEdges, int index) {
+    CFAEdge foundEdgeNumber = null;
+    for (int i = 0; i < programEdges.size(); i++) {
       if (index == i) {
-        foundLineNumber = coveredEdges.get(i);
+        foundEdgeNumber = programEdges.get(i);
       }
     }
-    return foundLineNumber;
+    return foundEdgeNumber;
   }
-
-  public double makeRanking(List<List<Integer>> coveredLines, int lineNumber) {
+  /**
+   * Makes ranking of suspicious possible.
+   *
+   * @param coveredEdges The binary converted result.
+   * @param edgeNumber The suspicious should be calculate for each edgeNumber
+   * @return suspiciousness for each edgeNumber.
+   */
+  public double makeRanking(List<List<Integer>> coveredEdges, int edgeNumber) {
     return suspiciousness(
-        failedCase(coveredLines, lineNumber),
-        totalFailed(coveredLines),
-        passedCase(coveredLines, lineNumber),
-        totalPassed(coveredLines));
+            failedCase(coveredEdges, edgeNumber),
+            totalFailed(coveredEdges),
+            passedCase(coveredEdges, edgeNumber),
+            totalPassed(coveredEdges));
   }
+  /**
+   * Calculates suspiciousness of tarantula algorithm.
+   *
+   * @param failed Is the number of failed cases are in each edge.
+   * @param totalFailed Is the total numbers of cases that failed.
+   * @param passed Is the number of passed cases are in each edge.
+   * @param totalPassed Is the total numbers of cases that passed.
+   * @return Calculated suspicious.
+   */
+  public double suspiciousness(
+          double failed, double totalFailed, double passed, double totalPassed) {
+    double numerator = failed / totalFailed;
+    // if there is no safe path therefore the passed and the totalPassed are always 0
+    if (passed == 0 && totalPassed == 0) {
+      return 0.0;
+    }
 
-  public double suspiciousness(int failed, int totalFailed, int passed, int totalPassed) {
-    double numerator = (double) failed / (double) totalFailed;
+    double denominator = (passed / totalPassed) + (failed / totalFailed);
 
-    double denominator =
-        ((double) passed / (double) totalPassed) + ((double) failed / (double) totalFailed);
     if (denominator == 0.0) {
       return 0.0;
     }
     return (numerator / denominator);
   }
-
+  /**
+   * Just prints result after calculating suspiciousness and make the ranking for all edges and then
+   * store the result into <code>Map</code>.
+   */
   public void printResult(PrintStream out, ReachedSet reachedSet) {
-
+    Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
     List<List<Integer>> table = TarantulaUtils.getTable(reachedSet);
     List<CFAEdge> programEdges = TarantulaUtils.getProgramEdges(reachedSet);
+
     for (CFAEdge e : programEdges) {
-      out.println(
-          findCFAEdgeByIndex(programEdges, getIndexOfEdge(programEdges, e))
-              + "--->"
-              + makeRanking(table, getIndexOfEdge(programEdges, e)));
+      resultMap.put(
+              findCFAEdgeByIndex(programEdges, getIndexOfEdge(programEdges, e)),
+              makeRanking(table, getIndexOfEdge(programEdges, e)));
     }
+
+    resultMap.forEach((k, v) -> out.println(k + "--->" + v));
   }
 }
