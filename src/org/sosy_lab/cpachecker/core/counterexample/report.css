@@ -303,6 +303,12 @@ input:checked+.slider:before {
 	justify-content:space-between; 
 }
 
+.horizontal-div-center {
+    display: block;
+    margin-left: auto;
+	margin-right: auto 
+}
+
 #hint-list {
 	list-style-type: none;
 	counter-reset: elementcounter;

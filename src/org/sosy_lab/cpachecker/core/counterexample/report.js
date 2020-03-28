@@ -386,6 +386,8 @@ with considerably less effort */
 				if(isFaultLocalizationEnabled || isFaultLocalizationSubsetUsed) {
 					if(isFaultLocalizationEnabled ^ isFaultLocalizationSubsetUsed){
 						$("#sort-fault-localization-slider").remove();
+						$("#fault-interaction-div").removeClass("horizontal-div");
+						$("#fault-interaction-div").addClass("horizontal-div-center");
 						showSubset = isFaultLocalizationSubsetUsed;
 					}
 
