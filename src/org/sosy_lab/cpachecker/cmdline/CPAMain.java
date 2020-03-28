@@ -671,7 +671,7 @@ public class CPAMain {
         validationConfigFile = options.violationWitnessValidationConfig;
         String specs = overrideOptions.get(SPECIFICATION_OPTION);
         String witnessSpec = options.witness.toString();
-        specs = specs == null ? witnessSpec : Joiner.on(',').join(specs, witnessSpec.toString());
+        specs = specs == null ? witnessSpec : Joiner.on(',').join(specs, witnessSpec);
         overrideOptions.put(SPECIFICATION_OPTION, specs);
         break;
       case CORRECTNESS_WITNESS:
@@ -699,7 +699,7 @@ public class CPAMain {
         .build();
   }
 
-  @SuppressWarnings("deprecation")
+  @SuppressWarnings("resource")
   private static void printResultAndStatistics(
       CPAcheckerResult mResult,
       String outputDirectory,
