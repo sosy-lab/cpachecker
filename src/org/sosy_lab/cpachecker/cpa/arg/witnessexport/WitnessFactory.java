@@ -1110,35 +1110,6 @@ class WitnessFactory implements EdgeAppender {
     };
   }
 
-  /**
-   * Creates a {@link Witness} using the supplied parameters and appends this witness as GraphML to
-   * the supplied {@link Appendable}.
-   *
-   * @return the created {@link Witness}
-   */
-  public Witness writePath(
-      Appendable pTarget,
-      final ARGState pRootState,
-      final Predicate<? super ARGState> pIsRelevantState,
-      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
-      final Predicate<? super ARGState> pIsCyclehead,
-      final Optional<Function<? super ARGState, ExpressionTree<Object>>> cycleHeadToQuasiInvariant,
-      Optional<CounterexampleInfo> pCounterExample,
-      GraphBuilder pGraphBuilder)
-      throws IOException {
-    Witness witness =
-        produceWitness(
-            pRootState,
-            pIsRelevantState,
-            pIsRelevantEdge,
-            pIsCyclehead,
-            cycleHeadToQuasiInvariant,
-            pCounterExample,
-            pGraphBuilder);
-    WitnessToOutputFormatsUtils.writeToGraphMl(witness,pTarget);
-    return witness;
-  }
-
   /** Creates a {@link Witness} using the supplied parameters */
   public Witness produceWitness(
       final ARGState pRootState,

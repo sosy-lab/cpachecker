@@ -271,15 +271,16 @@ public class WitnessExporter {
             defaultFileName,
             WitnessType.VIOLATION_WITNESS,
             InvariantProvider.TrueInvariantProvider.INSTANCE);
-    writer.writePath(
-        pWriter,
-        pRoot,
-        pIsRelevantState,
-        pIsRelevantEdge,
-        pIsCycleHead,
-        Optional.of(toQuasiInvariant),
-        Optional.empty(),
-        GraphBuilder.ARG_PATH);
+    Witness witness =
+        writer.produceWitness(
+            pRoot,
+            pIsRelevantState,
+            pIsRelevantEdge,
+            pIsCycleHead,
+            Optional.of(toQuasiInvariant),
+            Optional.empty(),
+            GraphBuilder.ARG_PATH);
+    WitnessToOutputFormatsUtils.writeToGraphMl(witness,pWriter);
   }
 
   public Witness generateProofWitness(

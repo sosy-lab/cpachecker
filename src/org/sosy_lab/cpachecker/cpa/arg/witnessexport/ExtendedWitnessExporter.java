@@ -64,14 +64,15 @@ public class ExtendedWitnessExporter extends WitnessExporter {
             defaultFileName,
             WitnessType.VIOLATION_WITNESS,
             InvariantProvider.TrueInvariantProvider.INSTANCE);
-    writer.writePath(
-        pTarget,
-        pRootState,
-        pIsRelevantState,
-        pIsRelevantEdge,
-        Predicates.alwaysFalse(),
-        Optional.empty(),
-        Optional.of(pCounterExample),
-        GraphBuilder.ARG_PATH);
+    Witness witness =
+        writer.produceWitness(
+            pRootState,
+            pIsRelevantState,
+            pIsRelevantEdge,
+            Predicates.alwaysFalse(),
+            Optional.empty(),
+            Optional.of(pCounterExample),
+            GraphBuilder.ARG_PATH);
+    WitnessToOutputFormatsUtils.writeToGraphMl(witness,pTarget);
   }
 }
