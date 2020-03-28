@@ -79,8 +79,8 @@ public class FaultLocalizationReason {
     return description + " (" + percent + ")";
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationReason explain(ReasonType pType, FaultLocalizationExplanation pExplanation, ErrorIndicator<I> indicator, double pLikelihood){
-    return new FaultLocalizationReason(pType, pExplanation.explanationFor(indicator), pLikelihood);
+  public static <I extends FaultLocalizationOutput> FaultLocalizationReason explain(ReasonType pType, FaultLocalizationExplanation pExplanation, I indicator, double pLikelihood){
+    return new FaultLocalizationReason(pType, pExplanation.explanationFor(new ErrorIndicator<>(indicator)), pLikelihood);
   }
 
   public static FaultLocalizationReason hint(String pDescription){

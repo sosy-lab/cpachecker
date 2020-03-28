@@ -28,17 +28,20 @@ import java.util.Comparator;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
+/**
+ * The main class for FaultLocalizationInfo
+ */
 public abstract class FaultLocalizationOutput {
 
   /**
-   * the heuristics give scores and add reasons on why this object leads to an error here the score
-   * of the whole object is calculated automatically as the average value of all assigned scores.
-   * make sure that the heuristics are balanced. Giving a high score to an object may corrupt the
-   * ranking because the calculated average will be high to. it is possible to change the score
-   * evaluation algorithm.
+   * the heuristics give scores and add reasons on why this object leads to an error.
+   * Here the score of the whole object is calculated automatically as the average value of all assigned scores.
+   * Note that the best results are obtained if the heuristics are balanced.
+   * Giving a high score to an object may corrupt the ranking because the calculated average will be high to.
+   * It is possible to change the score evaluation algorithm by extending this class and overriding evaluateScore().
    */
   protected List<FaultLocalizationReason>
-      faultLocalizationReasons = new ArrayList<>();
+      reasons = new ArrayList<>();
 
   public double getScore() {
     return evaluateScore();
@@ -46,12 +49,12 @@ public abstract class FaultLocalizationOutput {
 
   public void addReason(
       FaultLocalizationReason pFaultLocalizationReason) {
-    faultLocalizationReasons.add(pFaultLocalizationReason);
+    reasons.add(pFaultLocalizationReason);
   }
 
   // Override this method to change the default score evaluation
   protected double evaluateScore() {
-    return faultLocalizationReasons.stream().filter(l -> !l.isHint())
+    return reasons.stream().filter(l -> !l.isHint())
             .mapToDouble(FaultLocalizationReason::getLikelihood)
             .average()
             .orElse(0)
@@ -59,8 +62,8 @@ public abstract class FaultLocalizationOutput {
   }
 
   public List<FaultLocalizationReason>
-      getFaultLocalizationReasons() {
-    return faultLocalizationReasons;
+  getReasons() {
+    return reasons;
   }
 
   public static FaultLocalizationOutput of(CFAEdge pEdge) {
@@ -100,13 +103,13 @@ public abstract class FaultLocalizationOutput {
     Comparator<FaultLocalizationReason> sortReasons =
         Comparator.comparingInt(l -> l.isHint() ? 0 : 1);
     sortReasons = sortReasons.thenComparingDouble(b -> 1/b.getLikelihood());
-    faultLocalizationReasons.sort(sortReasons);
+    reasons.sort(sortReasons);
     StringBuilder html =
         new StringBuilder(
             "Error suspected on <strong>line "
                 + correspondingEdge().getFileLocation().getStartingLineInOrigin()
                 + "</strong>.<br>");
-    int reasons = faultLocalizationReasons.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
+    int reasons = this.reasons.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
     html.append("Detected <strong>")
         .append(reasons)
         .append("</strong> possible reason")
@@ -115,7 +118,7 @@ public abstract class FaultLocalizationOutput {
 
     //style:\"list-style-type:none;\">
     html.append("<ul id=\"hint-list\">");
-    for (var reason : faultLocalizationReasons){
+    for (var reason : this.reasons){
       if(reason.isHint())
         html.append("<li>").append(reasonToHtml(reason)).append("</li>");
       else break;
@@ -123,7 +126,7 @@ public abstract class FaultLocalizationOutput {
     html.append("</ul>");
 
     html.append("<ol>");
-    for (var reason : faultLocalizationReasons){
+    for (var reason : this.reasons){
       if(!reason.isHint())
         html.append("<li>").append(reasonToHtml(reason)).append("</li>");
     }
@@ -141,7 +144,7 @@ public abstract class FaultLocalizationOutput {
    * @return String representation of this object
    */
   public String textRepresentation() {
-    int reasons = faultLocalizationReasons.size();
+    int reasons = this.reasons.size();
     StringBuilder toString =
         new StringBuilder()
             .append("Error suspected on line ")
@@ -157,14 +160,14 @@ public abstract class FaultLocalizationOutput {
           .append("  ")
           .append(i + 1)
           .append(") ")
-          .append(faultLocalizationReasons.get(i).toString())
+          .append(this.reasons.get(i).toString())
           .append("\n");
     }
     return toString.toString();
   }
 
   public boolean hasReasons() {
-    return !faultLocalizationReasons.isEmpty();
+    return !reasons.isEmpty();
   }
 
   @Override

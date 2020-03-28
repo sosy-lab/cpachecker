@@ -56,14 +56,21 @@ public class TraceFormula {
   private BooleanFormula postcondition;
   private BooleanFormula precondition;
 
+  private boolean isAlwaysUnsat;
+
   public TraceFormula(FormulaContext pContext, List<CFAEdge> pEdges)
       throws CPATransferException, InterruptedException, SolverException {
+    isAlwaysUnsat = false;
     edges = pEdges;
     context = pContext;
     selectors = new ArrayList<>();
     atoms = new ArrayList<>();
     ssaMaps = new ArrayList<>();
     createTraceFormulas();
+  }
+
+  public boolean isAlwaysUnsat() {
+    return isAlwaysUnsat;
   }
 
   public List<SSAMap> getSsaMaps() {
@@ -198,7 +205,7 @@ public class TraceFormula {
     }*/
 
     if(context.getSolver().isUnsat(bmgr.and(precondition, postcondition))){
-      throw new AssertionError("the conjunction of pre and post condition has to be satisfiable");
+      isAlwaysUnsat = true;
     }
 
     // No isPresent check needed, because the Selector always exists.

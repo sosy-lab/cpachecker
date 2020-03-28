@@ -54,13 +54,16 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
   private Set<CFAEdge> bannedEdges;
 
   /**
-   * Object to represent a result set obtained from any FaultLocalizationAlgorithm Note: there is no
-   * need to create multiple instances of this object if more than one heuristic should be applied.
-   * FaultLocalzationImpl provides a method that creates an FaultLocalizationHeuristic out of
-   * multiple heuristics.
+   * Object to represent a ErrorIndicatorSet obtained by any FaultLocalizationAlgorithm. *
+   * Note that there is no need to create multiple instances of this object if more than one
+   * heuristic should be applied. FaultLocalizationUtils provides a method that creates a new
+   * heuristic out of multiple heuristics.
    *
-   * @param pErrorIndicators The set of possible candidates.
-   * @param pRanking a ranking algorithm. Examples can be found in FaultLocalizationInfoImpl
+   * If no heuristics are given (both are Optional.empty()) the default heuristic will be used (ranking error indicators by the order of the iterator).
+   * @param pErrorIndicators set of indicators obtained by a fault localization algorithm
+   * @param pCreated the counterexample info of the target state
+   * @param pRanking optional of a heuristic that ranks FaultLocalizationOutputs
+   * @param pSetRanking optional of a heuristic that ranks ErrorIndicators
    */
   public FaultLocalizationInfo(
       ErrorIndicatorSet<I> pErrorIndicators,
@@ -148,8 +151,8 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
   }
 
   /**
-   * Use this if the algorithm of your choice returns CFAEdges and does not use
-   * FaultLocalizationOutput at all.
+   * Transform a set of sets of CFAEdges to a ErrorIndicatorSet.
+   * Use this as a default way. No actual implementation of FaultLocalizationOutput is needed then.
    *
    * @param pErrorIndicators possible candidates for the error
    * @return FaultLocalizationOutputs of the CFAEdges.
@@ -164,15 +167,11 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
     return transformed;
   }
 
-  public static <I extends FaultLocalizationOutput>
-      FaultLocalizationInfo<I> withPredefinedHeuristics(
-          ErrorIndicatorSet<I> pResult, CounterexampleInfo pInfo, FaultLocalizationHeuristicUtils.RankingMode pRankingMode) {
-    Optional<FaultLocalizationHeuristic<I>> predefinedHeuristic = Optional.of(m -> FaultLocalizationHeuristicUtils
-        .rank(m, pRankingMode));
-    return new FaultLocalizationInfo<>(
-        pResult, pInfo, predefinedHeuristic, Optional.empty());
-  }
-
+  /**
+   * append additional information to the CounterexampleInfo output
+   * @param elem maps a property of edge to an object
+   * @param edge the edge that is currently transformed into JSON format.
+   */
   @Override
   protected void addAdditionalInfo(Map<String, Object> elem, CFAEdge edge) {
     elem.put("fault", "");

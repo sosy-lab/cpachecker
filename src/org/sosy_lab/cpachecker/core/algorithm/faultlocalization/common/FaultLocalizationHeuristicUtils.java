@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,31 +32,45 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.IdentityHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.OverallAppearanceHeuristic;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SetIdentityHeuristic;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SetSizeHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SubsetAppearanceHeuristic;
 
 public class FaultLocalizationHeuristicUtils {
 
   /**
-   * Sample heuristics for sorting the result set.
+   * Sample heuristics for sorting FaultLocalizationOutput.
    *
-   * @param result obtained set of FaultLocalizationAlgorithm
-   * @param m the RankingMode decides which heuristic will be applied
+   * @param ranking the RankingMode decides which heuristic will be applied
    * @param <I> Must be the same type as it is used in the FaultLocalizationInfo
    * @return a ranked list of all outputs.
    */
-  public static <I extends FaultLocalizationOutput> Map<I, Integer> rank(
-      ErrorIndicatorSet<I> result, RankingMode m) {
-    if (result.size() == 0) {
-      return Collections.emptyMap();
-    }
-    switch (m) {
+  public static <I extends FaultLocalizationOutput> FaultLocalizationHeuristic<I> rank(RankingMode ranking) {
+    switch (ranking) {
       case SUBSET:
-        return new SubsetAppearanceHeuristic<I>().rank(result);
+        return new SubsetAppearanceHeuristic<>();
       case OVERALL:
-        return new OverallAppearanceHeuristic<I>().rank(result);
+        return new OverallAppearanceHeuristic<>();
       case IDENTITY:
       default:
-        return new IdentityHeuristic<I>().rank(result);
+        return new IdentityHeuristic<>();
+    }
+  }
+
+  /**
+   * Sample heuristics for sorting ErrorIndicator.
+   *
+   * @param ranking the RankingMode decides which heuristic will be applied
+   * @param <I> Must be the same type as it is used in the FaultLocalizationInfo
+   * @return a heuristic
+   */
+  public static <I extends FaultLocalizationOutput> FaultLocalizationSetHeuristic<I> rankSets(SetRankingMode ranking) {
+    switch (ranking) {
+      case SUBSET_SIZE:
+        return new SetSizeHeuristic<>();
+      case IDENTITY:
+      default:
+        return new SetIdentityHeuristic<>();
     }
   }
 
@@ -74,20 +87,29 @@ public class FaultLocalizationHeuristicUtils {
    * second with a score of .295
    *
    * <p>For better readability the score is multiplied by 100 and printed as integer to the user.
+   * To change this override the reasonToHtml and toHTML methods in FaultLocalizationOutput and ErrorIndicator
    *
    * <p>The resulting ranking is: I (Score: 70) J (Score: 29)
    *
    * <p>Note that the maximum score is 100 by default. Overriding the corresponding methods can invalidate this.
+   * The provided heuristics assign scores between 0 and 1 to the FaultLocalizationOutput of a certain set.
+   * For every applied heuristic to a certain set the sum of the scores of the members of the set is exactly 1 by default.
    *
    * @param pHeuristics all heuristics to be concatenated
-   * @return concatenated Heuristic sorted by total score.
+   * @return concatenated heuristic which sorts by total score.
    */
   public static <I extends FaultLocalizationOutput> FaultLocalizationHeuristic<I> concatHeuristics(
       List<FaultLocalizationHeuristic<I>> pHeuristics) {
     return l -> forAll(l, pHeuristics);
   }
 
-  public static <I extends FaultLocalizationOutput> FaultLocalizationSetHeuristic<I> concatSubsetHeuristics(
+  /**
+   * Concatenate FaultLocalizationSetHeuristics
+   * @param pHeuristics heuristics to concatenate
+   * @param <I> inherits FaultLocaliztionOutput
+   * @return new heuristic that concatenates all given heuristics and sorts the elements by total score.
+   */
+  public static <I extends FaultLocalizationOutput> FaultLocalizationSetHeuristic<I> concatSetHeuristics(
       List<FaultLocalizationSetHeuristic<I>> pHeuristics) {
     return l -> forAllSetHeuristics(l, pHeuristics);
   }
@@ -105,7 +127,7 @@ public class FaultLocalizationHeuristicUtils {
     return scoreToRankMap(setToScoreMap);
   }
 
-  public static <I extends FaultLocalizationOutput> Map<ErrorIndicator<I>, Integer> forAllSetHeuristics(ErrorIndicatorSet<I> result, List<FaultLocalizationSetHeuristic<I>> concat){
+  private static <I extends FaultLocalizationOutput> Map<ErrorIndicator<I>, Integer> forAllSetHeuristics(ErrorIndicatorSet<I> result, List<FaultLocalizationSetHeuristic<I>> concat){
     Map<ErrorIndicator<I>, Double> setToScoreMap = new HashMap<>();
     for(FaultLocalizationSetHeuristic<I> heuristic: concat){
       heuristic.rankSubsets(result).forEach((k,v) -> setToScoreMap.merge(k, k.calculateScore(), (v1,v2) -> Math.max(v1,v2)));
@@ -113,6 +135,13 @@ public class FaultLocalizationHeuristicUtils {
     return scoreToRankMapSet(setToScoreMap);
   }
 
+  /**
+   * In the process of calculating the likelihood of a reason it is more likely to obtain a map of I to score instead of I to rank.
+   * This method assigns the correct rank to a map of Outputs to scores. Note that two objects with scores 0,2222229 and 0,2222228 are ranked seperately.
+   * @param outputToScoreMap a map that maps FaultLocalizationOutput to its overall score.
+   * @param <I> FaultLocalizationOutput
+   * @return map of FaultLocalizationOutput to rank (sorted by highest score)
+   */
   public static <I extends FaultLocalizationOutput> Map<I, Integer> scoreToRankMap(Map<I, Double> outputToScoreMap){
     List<I> ranking = new ArrayList<>(outputToScoreMap.keySet());
     ranking.sort(Comparator.comparingDouble(l -> outputToScoreMap.get(l)));
@@ -132,6 +161,12 @@ public class FaultLocalizationHeuristicUtils {
     return rankMap;
   }
 
+  /**
+   * Obtain a map that ranks ErrorIndicators by passing a ErrorIndicator to Score Map.
+   * @param outputToScoreMap a map that maps FaultLocalizationOutput to its overall score.
+   * @param <I> FaultLocalizationOutput
+   * @return map of ErrorIndicator to rank (sorted by highest score)
+   */
   public static <I extends FaultLocalizationOutput> Map<ErrorIndicator<I>, Integer> scoreToRankMapSet(Map<ErrorIndicator<I>, Double> outputToScoreMap){
     List<ErrorIndicator<I>> ranking = new ArrayList<>(outputToScoreMap.keySet());
     ranking.sort(Comparator.comparingDouble(l -> outputToScoreMap.get(l)));
@@ -151,6 +186,12 @@ public class FaultLocalizationHeuristicUtils {
     return rankMap;
   }
 
+  /**
+   * Creates a set of distinct FaultLocalizationOutputs in a ErrorIndicatorSet
+   * @param errorIndicatorSet obtained ErrorIndicatorSet by a fault localization algorithm
+   * @param <I> FaultLocalizationOutput
+   * @return condensed set of distinct FaultLocalizationOutputs
+   */
   public static <I extends FaultLocalizationOutput> Set<I> condenseErrorIndicatorSet(
       ErrorIndicatorSet<I> errorIndicatorSet) {
     Set<I> allObjects = new HashSet<>();
@@ -164,6 +205,11 @@ public class FaultLocalizationHeuristicUtils {
     OVERALL,
     IDENTITY,
     SUBSET
+  }
+
+  public enum SetRankingMode {
+    IDENTITY,
+    SUBSET_SIZE
   }
 
 

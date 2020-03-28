@@ -169,6 +169,10 @@ public class FaultLocalizationAlgorithm implements Algorithm {
       }
 
       TraceFormula tf = new TraceFormula(context, edgeList);
+      if(tf.isAlwaysUnsat()){
+        logger.log(Level.INFO, "Pre and post condition are unsatisfiable when conjugated. This means the initial variable assignment contradicts the post condition. No further analysis required.");
+        return;
+      }
 
       for (FaultLocalizationAlgorithmInterface locAlgorithm : pAlgorithms) {
         ErrorIndicatorSet<Selector> errorIndicators = locAlgorithm.run(context, tf);
@@ -182,7 +186,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
                 new ErrorLocationNearestHeuristic<>(edgeList.get(edgeList.size() - 1)),
                 new CallHierarchyHeuristic<>(edgeList, tf.getNegated().size())));
 
-        FaultLocalizationSetHeuristic<Selector> concatSet = FaultLocalizationHeuristicUtils.concatSubsetHeuristics(List.of(new SetSizeHeuristic<>(), new SetHintHeuristic<>(3)));
+        FaultLocalizationSetHeuristic<Selector> concatSet = FaultLocalizationHeuristicUtils.concatSetHeuristics(List.of(new SetSizeHeuristic<>(), new SetHintHeuristic<>(3)));
         FaultLocalizationInfo<Selector> info =
             new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.of(concat), Optional.empty());
         pInfo.getTargetPath().getLastState().replaceCounterexampleInformation(info);

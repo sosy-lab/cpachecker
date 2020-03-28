@@ -27,6 +27,17 @@ import java.util.Map;
 
 public interface FaultLocalizationSetHeuristic<I extends FaultLocalizationOutput>{
 
+  /**
+   * Rank the input set for visualizing in the ReportManager.
+   *
+   * If more than just one parameter is needed (here: errorIndicators) a class that
+   * implements this interface can be created.
+   * For more details and an example see ErrorLocationFarthestHeuristic.
+   * To concatenate multiple heuristics FaultLocalizationHeuristicUtils.concatSetHeuristics() can be used.
+   *
+   * @param errorIndicators The result of any FaultLocalizationAlgorithm
+   * @return a ranked list of all contained ErrorIndicators.
+   */
   Map<ErrorIndicator<I>, Integer> rankSubsets(ErrorIndicatorSet<I> errorIndicators);
 
 }

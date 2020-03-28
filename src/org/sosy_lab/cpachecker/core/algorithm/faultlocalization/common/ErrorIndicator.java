@@ -36,10 +36,14 @@ import java.util.stream.Collectors;
 public class ErrorIndicator<I extends FaultLocalizationOutput> extends ForwardingSet<I> {
 
   private Set<I> errorSet;
-  private List<FaultLocalizationReason> reasonList;
+  private List<FaultLocalizationReason> reasons;
   private Function<List<FaultLocalizationReason>, Double> evaluationFunction = a -> a.stream().filter(c -> !c.isHint()).mapToDouble(b -> b.getLikelihood()).average().orElse(0) * 100;;
 
-  public double calculateScore() {return evaluationFunction.apply(reasonList);}
+  /**
+   * Calculates the score by the provided evaluation function.
+   * @return calculated score
+   */
+  public double calculateScore() {return evaluationFunction.apply(reasons);}
 
   public List<Integer> sortedLineNumbers(){
     List<Integer> lines = new ArrayList<>();
@@ -50,33 +54,52 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
     return lines;
   }
 
+  /**
+   * Error Indicators indicate a subset of all edges that most likely contain an error.
+   * @param pErrorSet set to forward
+   */
   public ErrorIndicator(Set<I> pErrorSet){
     errorSet = pErrorSet;
-    reasonList = new ArrayList<>();
+    reasons = new ArrayList<>();
   }
 
   public ErrorIndicator(){
     errorSet = new HashSet<>();
-    reasonList = new ArrayList<>();
+    reasons = new ArrayList<>();
   }
 
+  /**
+   * Creates a mutable set with only one member
+   * @param singleton a indicator that is transformed into a singleton set
+   */
   public ErrorIndicator(I singleton){
     errorSet = new HashSet<>(Collections.singleton(singleton));
-    reasonList = new ArrayList<>();
+    reasons = new ArrayList<>();
   }
 
+  /**
+   * Add a reason to explain why this set indicates a error.
+   * Appending reasons in heuristics is the recommended way.
+   * @param reason Fix, Hint or Reason why this might be an error or why a heuristic did add a core to this set.
+   */
   public void addReason(FaultLocalizationReason reason){
-    reasonList.add(reason);
+    reasons.add(reason);
   }
 
-  public List<FaultLocalizationReason> getReasonList() {
-    return reasonList;
+  public List<FaultLocalizationReason> getReasons() {
+    return reasons;
   }
 
   public void setEvaluationFunction(Function<List<FaultLocalizationReason>, Double> evaluation){
     evaluationFunction = evaluation;
   }
 
+  /**
+   * HTML representation of a reason for the report.
+   * Extend this class and override this method to change the representation.
+   * @param reason the reason that is converted to html code
+   * @return html code of reason
+   */
   protected String reasonToHtml(FaultLocalizationReason reason) {
     double likelihood = reason.getLikelihood();
     boolean hintOnly = reason.isHint();
@@ -89,12 +112,16 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
     return description + " (" + percent + ")";
   }
 
+  /**
+   * Convert this object to a HTML string for the report.
+   * @return hmtl code of this instance
+   */
   public String toHtml(){
     Comparator<FaultLocalizationReason> sortReasons =
         Comparator.comparingInt(l -> l.isHint() ? 0 : 1);
     sortReasons = sortReasons.thenComparingDouble(b -> 1/b.getLikelihood());
-    reasonList.sort(sortReasons);
-    int numberReasons = reasonList.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
+    reasons.sort(sortReasons);
+    int numberReasons = reasons.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
 
     String header = "Error suspected on line(s): <strong>" + errorSet
         .stream()
@@ -104,10 +131,10 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
         .mapToObj(l -> (Integer)l + "")
         .collect(Collectors.collectingAndThen(Collectors.toList(), lineCollector()))
         + "</strong><br>";
-    String reasons = "Detected <strong>" + numberReasons + "</strong> possible reason(s):<br>";
+    String reasonsString = "Detected <strong>" + numberReasons + "</strong> possible reason(s):<br>";
     StringBuilder html = new StringBuilder();
     html.append("<ul id=\"hint-list\">");
-    for (var reason : reasonList){
+    for (var reason : this.reasons){
       if(reason.isHint())
         html.append("<li>").append(reasonToHtml(reason)).append("</li>");
       else break;
@@ -115,31 +142,31 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
     html.append("</ul>");
 
     html.append("<ol>");
-    for (var reason : reasonList){
+    for (var reason : this.reasons){
       if(!reason.isHint())
         html.append("<li>").append(reasonToHtml(reason)).append("</li>");
     }
     html.append("</ol>");
 
 
-    return header + "\n" + reasons + "\n" + html;
+    return header + "\n" + reasonsString + "\n" + html;
   }
 
   @Override
   public String toString(){
     String header = "Error suspected on line(s): " + errorSet.stream().map(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin()+"").collect(Collectors.collectingAndThen(Collectors.toList(), lineCollector()));
-    String reasons = "Detected " + reasonList.size() + " possible reason(s): ";
+    String reasonString = "Detected " + this.reasons.size() + " possible reason(s): ";
     StringBuilder body = new StringBuilder();
-    for (int i = 0; i < reasonList.size(); i++) {
-      body.append("  ").append(i + 1).append(") ").append(reasonList.get(i).toString())
+    for (int i = 0; i < this.reasons.size(); i++) {
+      body.append("  ").append(i + 1).append(") ").append(this.reasons.get(i).toString())
           .append("\n");
     }
-    return header + "\n" + reasons + "\n" + body;
+    return header + "\n" + reasonString + "\n" + body;
   }
 
   /**
    * Transforms lists like [1,2,7,3] to "1,2,7 and 3"
-   * @return
+   * @return joined string
    */
   private Function<List<String>, String> lineCollector() {
     return list -> {

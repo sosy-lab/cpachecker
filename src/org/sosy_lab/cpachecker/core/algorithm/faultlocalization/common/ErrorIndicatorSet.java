@@ -8,6 +8,11 @@ public class ErrorIndicatorSet<I extends FaultLocalizationOutput> extends Forwar
 
   private Set<ErrorIndicator<I>> delegate;
 
+  /**
+   * Delegates a set of ErrorIndicators.
+   * To obtain a ErrorIndicatorSet of a Set of Sets of CFAEdges call <code>FaultLocalizationInfo.transform(...)</code>
+   * @param pSet set to delegate
+   */
   public ErrorIndicatorSet(Set<ErrorIndicator<I>> pSet) {
     delegate = pSet;
   }
