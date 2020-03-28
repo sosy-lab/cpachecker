@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SetIdentityHeuristic;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends CounterexampleInfo {
 
@@ -60,6 +61,9 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
    * heuristic out of multiple heuristics.
    *
    * If no heuristics are given (both are Optional.empty()) the default heuristic will be used (ranking error indicators by the order of the iterator).
+   *
+   * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this.
+   *
    * @param pErrorIndicators set of indicators obtained by a fault localization algorithm
    * @param pCreated the counterexample info of the target state
    * @param pRanking optional of a heuristic that ranks FaultLocalizationOutputs
@@ -233,5 +237,14 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
       elem.put("setdescriptions", descriptions); //array
       elem.put("setrank", ranks);
     }
+  }
+
+  /**
+   * to show the result in the report.html pass the target state
+   * @param lastState
+   */
+  public void applyTo(ARGState lastState){
+    assert lastState.isTarget();
+    lastState.replaceCounterexampleInformation(this);
   }
 }

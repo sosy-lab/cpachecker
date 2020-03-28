@@ -189,7 +189,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
         FaultLocalizationSetHeuristic<Selector> concatSet = FaultLocalizationHeuristicUtils.concatSetHeuristics(List.of(new SetSizeHeuristic<>(), new SetHintHeuristic<>(3)));
         FaultLocalizationInfo<Selector> info =
             new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.of(concat), Optional.empty());
-        pInfo.getTargetPath().getLastState().replaceCounterexampleInformation(info);
+        info.applyTo(pInfo.getTargetPath().getLastState());
         logger.log(
             Level.INFO,
             "Running " + locAlgorithm.getClass().getSimpleName() + ":\n" + info.toString());
