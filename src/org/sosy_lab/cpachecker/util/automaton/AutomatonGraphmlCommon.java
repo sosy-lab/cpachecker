@@ -279,19 +279,16 @@ public class AutomatonGraphmlCommon {
           return Optional.of(element);
         }
       }
-      if (pTextualRepresentation.equals("FALSE")) {
-        return Optional.of(VIOLATION_WITNESS);
+      switch (pTextualRepresentation) {
+        case "FALSE":
+        case "false_witness":
+          return Optional.of(VIOLATION_WITNESS);
+        case "TRUE":
+        case "true_witness":
+          return Optional.of(CORRECTNESS_WITNESS);
+        default:
+          return Optional.empty();
       }
-      if (pTextualRepresentation.equals("TRUE")) {
-        return Optional.of(CORRECTNESS_WITNESS);
-      }
-      if (pTextualRepresentation.equals("false_witness")) {
-        return Optional.of(VIOLATION_WITNESS);
-      }
-      if (pTextualRepresentation.equals("true_witness")) {
-        return Optional.of(CORRECTNESS_WITNESS);
-      }
-      return Optional.empty();
     }
   }
 
