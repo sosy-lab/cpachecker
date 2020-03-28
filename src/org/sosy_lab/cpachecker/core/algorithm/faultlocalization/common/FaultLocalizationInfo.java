@@ -241,7 +241,7 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
 
   /**
    * to show the result in the report.html pass the target state
-   * @param lastState
+   * @param lastState target state of the error trace
    */
   public void applyTo(ARGState lastState){
     assert lastState.isTarget();

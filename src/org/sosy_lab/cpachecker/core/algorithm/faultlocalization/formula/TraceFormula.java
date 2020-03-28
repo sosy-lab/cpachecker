@@ -182,19 +182,21 @@ public class TraceFormula {
 
     // Create pre condition as model of the actual formula.
     // If the program is has a bug the model is guaranteed to be existent.
-    ProverEnvironment prover = context.getProver();
-    prover.push(bmgr.and(bmgr.and(atoms), bmgr.and(negate)));
-    if (!prover.isUnsat()) {
-      precondition =
-          prover.getModelAssignments().stream()
-              .map(Model.ValueAssignment::getAssignmentAsFormula)
-              .filter(l -> l.toString().contains("__VERIFIER_nondet"))
-              .collect(bmgr.toConjunction());
-    } else {
-      throw new AssertionError("a model has to be existent");
+    try (ProverEnvironment prover = context.getProver()){
+      prover.push(bmgr.and(bmgr.and(atoms), bmgr.and(negate)));
+      if (!prover.isUnsat()) {
+        precondition =
+            prover.getModelAssignments().stream()
+                .map(Model.ValueAssignment::getAssignmentAsFormula)
+                .filter(l -> l.toString().contains("__VERIFIER_nondet"))
+                .collect(bmgr.toConjunction());
+      } else {
+        throw new AssertionError("a model has to be existent");
+      }
     }
 
-/*    if(bmgr.isTrue(precondition) && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))){
+
+    if(bmgr.isTrue(precondition) && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))){
       precondition = altPre.toFormula();
       for (BooleanFormula booleanFormula : altPre.getPreCondition()) {
         int index = atoms.indexOf(booleanFormula);
@@ -202,7 +204,7 @@ public class TraceFormula {
         selectors.remove(index);
         ssaMaps.remove(index);
       }
-    }*/
+    }
 
     if(context.getSolver().isUnsat(bmgr.and(precondition, postcondition))){
       isAlwaysUnsat = true;

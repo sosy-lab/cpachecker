@@ -33,7 +33,7 @@ public class FaultLocalizationReason {
 
   public FaultLocalizationReason(String pDescription) {
     description = pDescription;
-    reasonType = ReasonType.UNDEFINED;
+    reasonType = ReasonType.HEURISTIC;
   }
 
   public FaultLocalizationReason(ReasonType pReasonType, String pDescription, double pLikelihood) {
@@ -103,6 +103,11 @@ public class FaultLocalizationReason {
   }
 
   public enum ReasonType{
-    HINT, FIX, HEURISTIC_DESCRIPTION, UNDEFINED
+    //FIX: not implemented yet, same behaviour as HEURISTIC_DESCRIPTION
+    //HINT: displayed separately, ignored when calculating score
+    //HEURISTIC: scored and listed in right order
+    HINT,
+    FIX,
+    HEURISTIC
   }
 }

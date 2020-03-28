@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;

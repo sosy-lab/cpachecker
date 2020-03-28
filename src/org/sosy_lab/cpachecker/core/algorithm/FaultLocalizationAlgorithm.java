@@ -81,6 +81,8 @@ public class FaultLocalizationAlgorithm implements Algorithm {
   private final boolean useSingleUnsat = false;
   private final boolean useMaxSat = true;
   private final boolean useErrInv = false;
+
+  //private final boolean useAlternativePrecondition = false;
   // private final boolean useErrInvOptim = false;
 
   public FaultLocalizationAlgorithm(
@@ -90,6 +92,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
       final CFA pCfa,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
+    if(!checkConfig()) throw new InvalidConfigurationException("Exactly one algorithm has to be specified");
     algorithm = pStoreAlgorithm;
     Solver solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     manager =
@@ -205,6 +208,20 @@ public class FaultLocalizationAlgorithm implements Algorithm {
     } catch (IllegalStateException iE) {
       logger.log(
           Level.INFO, "The counterexample is spurious. Calculating interpolants is not possible.");
+    } finally{
+      context.getSolver().close();
     }
+  }
+
+  private boolean checkConfig() {
+    int algorithmsUsed = 0;
+    if(useErrInv) algorithmsUsed++;
+    if(useMaxSat) algorithmsUsed++;
+    if(useSingleUnsat) algorithmsUsed++;
+
+    if(algorithmsUsed != 1){
+      return false;
+    }
+    return true;
   }
 }

@@ -54,7 +54,7 @@ public class SetSizeHeuristic<I extends FaultLocalizationOutput> implements
     }
     double totalPercentage = scoreMap.values().stream().mapToDouble(l -> 1d/l).sum();
     for (ErrorIndicator<I> errorIndicator : scoreMap.keySet()) {
-      errorIndicator.addReason(new FaultLocalizationReason(ReasonType.HEURISTIC_DESCRIPTION, "The set has a size of " + errorIndicator.size() + ".", (1d/scoreMap.get(errorIndicator))/totalPercentage));
+      errorIndicator.addReason(new FaultLocalizationReason(ReasonType.HEURISTIC, "The set has a size of " + errorIndicator.size() + ".", (1d/scoreMap.get(errorIndicator))/totalPercentage));
     }
     return FaultLocalizationHeuristicUtils.scoreToRankMapSet(scoreMap);
   }

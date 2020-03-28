@@ -129,7 +129,14 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
         .sorted()
         .distinct()
         .mapToObj(l -> (Integer)l + "")
-        .collect(Collectors.collectingAndThen(Collectors.toList(), lineCollector()))
+        .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
+          int lastIndex = list.size() - 1;
+          if (lastIndex < 1) return String.join("", list);
+          if (lastIndex == 1) return String.join(" and ", list);
+          return String.join(" and ",
+              String.join(", ", list.subList(0, lastIndex)),
+              list.get(lastIndex));
+        }))
         + "</strong><br>";
     String reasonsString = "Detected <strong>" + numberReasons + "</strong> possible reason(s):<br>";
     StringBuilder html = new StringBuilder();
@@ -165,7 +172,14 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
         .sorted()
         .distinct()
         .mapToObj(l -> (Integer)l + "")
-        .collect(Collectors.collectingAndThen(Collectors.toList(), lineCollector()))
+        .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
+          int lastIndex = list.size() - 1;
+          if (lastIndex < 1) return String.join("", list);
+          if (lastIndex == 1) return String.join(" and ", list);
+          return String.join(" and ",
+              String.join(", ", list.subList(0, lastIndex)),
+              list.get(lastIndex));
+        }))
         + " (Score: " + (int)(calculateScore()*100) + ")";
 
     String amountReasons = "Detected " + numberReasons + " possible reason(s):\n";
@@ -186,21 +200,6 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
   @Override
   public String toString(){
     return textRepresentation();
-  }
-
-  /**
-   * Transforms lists like [1,2,7,3] to "1,2,7 and 3"
-   * @return joined string
-   */
-  private Function<List<String>, String> lineCollector() {
-    return list -> {
-      int lastIndex = list.size() - 1;
-      if (lastIndex < 1) return String.join("", list);
-      if (lastIndex == 1) return String.join(" and ", list);
-      return String.join(" and ",
-          String.join(", ", list.subList(0, lastIndex)),
-          list.get(lastIndex));
-    };
   }
 
   @Override
