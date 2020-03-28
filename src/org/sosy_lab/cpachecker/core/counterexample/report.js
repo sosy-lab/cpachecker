@@ -439,8 +439,8 @@ with considerably less effort */
 
 		}
 
-		//append a cell to row
-		function appendCell(row, text, colspan, title, line, filename){
+		//append a cell to row //TODO filename
+		function appendCell(row, text, colspan, title, line, filename, background){
 			var cell = row.insertCell();
 			cell.innerHTML = text;
 			if(title !== ""){
@@ -448,7 +448,22 @@ with considerably less effort */
 			}
 			cell.colSpan = colspan;
 			cell.onclick = function() {selectLines(line)};
+			return cell;
+		}
 
+		// interpolate the green value to get colors between orange and red.
+		// low score => orange, high score => red
+		function interpolateRGB(score){
+			var interpolate = (193 - (1.36 * score));
+			interpolate = parseInt(interpolate+"");
+			var hex = Number(interpolate).toString(16);
+			var hexString = "";
+			if(hex < 10){
+				hexString = "0"+hex;
+			} else {
+				hexString = ""+hex;
+			}
+			return hexString.toUpperCase();
 		}
 
 		// create table for ranked edges
@@ -462,7 +477,8 @@ with considerably less effort */
 				var line = [edge.line];
 
 				appendCell(headerRow, edge.rank + ".", 1, "Rank", line, edge.file);
-				appendCell(headerRow, edge.score, 1, "Score", line, edge.file);
+				var hexString = interpolateRGB(edge.score);
+				appendCell(headerRow, edge.score, 1, "Score", line, edge.file).style.backgroundColor="#FF"+ hexString +"07";
 				appendCell(headerRow, edge.desc.trim(), 1, "", line, edge.file);
 
 				var explanationRow = htmlTable.insertRow();
@@ -522,7 +538,8 @@ with considerably less effort */
 				var headerRow = htmlTable.insertRow();
 
 				appendCell(headerRow, rank + ".", 1, "Rank", lines, element.file);
-				appendCell(headerRow, score, 1, "Score", lines, element.file);
+				hexString = interpolateRGB(score);
+				appendCell(headerRow, score, 1, "Score", lines, element.file).style.backgroundColor = "#FF"+ hexString +"07";;
 
 				var selectLine = document.createElement("select");
 				for(var k = 0; k < descriptions.length; k++){
