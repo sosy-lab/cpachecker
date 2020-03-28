@@ -63,7 +63,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
@@ -295,26 +297,24 @@ public class CEXExporter {
         options.getWitnessFile(),
         uniqueId,
         (Appender)
-            pAppendable ->
-                witnessExporter.writeErrorWitness(
-                    pAppendable,
-                    rootState,
-                    Predicates.in(pathElements),
-                    isTargetPathEdge,
-                    counterexample),
+            pAppendable -> {
+              Witness witness =
+                  witnessExporter.generateErrorWitness(
+                      rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+              WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable);
+            },
         compressWitness);
 
     writeErrorPathFile(
         options.getExtendedWitnessFile(),
         uniqueId,
         (Appender)
-            pAppendable ->
-                extendedWitnessExporter.writeErrorWitness(
-                    pAppendable,
-                    rootState,
-                    Predicates.in(pathElements),
-                    isTargetPathEdge,
-                    counterexample),
+            pAppendable -> {
+              Witness witness =
+                  extendedWitnessExporter.generateErrorWitness(
+                      rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+              WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable);
+            },
         compressWitness);
 
     writeErrorPathFile(

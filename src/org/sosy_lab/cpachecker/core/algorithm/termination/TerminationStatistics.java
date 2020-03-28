@@ -108,7 +108,9 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
@@ -489,32 +491,23 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
 
+    final Witness witness =
+        witnessExporter.generateTerminationErrorWitness(
+            newRoot,
+            relevantStates,
+            BiPredicates.bothSatisfy(relevantStates),
+            state -> Objects.equals(state, loopStartInCEX),
+            provideQuasiInvariant);
+
+    Appender content =
+        (Appender) pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable);
+
     try {
-      if (!compressWitness) {
-        try (Writer writer = IO.openOutputFile(violationWitness, Charset.defaultCharset())) {
-          witnessExporter.writeTerminationErrorWitness(
-              writer,
-              newRoot,
-              relevantStates,
-              BiPredicates.bothSatisfy(relevantStates),
-              state -> Objects.equals(state, loopStartInCEX),
-              provideQuasiInvariant);
-        }
+      if (compressWitness) {
+        Path file = violationWitness.resolveSibling(violationWitness.getFileName() + ".gz");
+        IO.writeGZIPFile(file, Charset.defaultCharset(), content);
       } else {
-        Path file = violationWitness;
-        file = file.resolveSibling(file.getFileName() + ".gz");
-        IO.writeGZIPFile(
-            file,
-            Charset.defaultCharset(),
-            (Appender)
-                pAppendable ->
-                    witnessExporter.writeTerminationErrorWitness(
-                        pAppendable,
-                        newRoot,
-                        relevantStates,
-                        BiPredicates.bothSatisfy(relevantStates),
-                state -> Objects.equals(state, loopStartInCEX),
-                        provideQuasiInvariant));
+        IO.writeFile(violationWitness, Charset.defaultCharset(), content);
       }
     } catch (IOException e) {
       logger.logException(WARNING, e, "Violation witness export failed.");

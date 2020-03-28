@@ -393,11 +393,11 @@ public class ARGStatistics implements Statistics {
       final Appender content =
           pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable);
       try {
-        if (!compressWitness) {
-          IO.writeFile(witnessFile, StandardCharsets.UTF_8, content);
-        } else {
+        if (compressWitness) {
           witnessFile = witnessFile.resolveSibling(witnessFile.getFileName() + ".gz");
           IO.writeGZIPFile(witnessFile, StandardCharsets.UTF_8, content);
+        } else {
+          IO.writeFile(witnessFile, StandardCharsets.UTF_8, content);
         }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write ARG to file");

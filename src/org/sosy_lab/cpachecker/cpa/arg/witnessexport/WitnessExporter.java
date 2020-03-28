@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Queues;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
@@ -221,13 +220,11 @@ public class WitnessExporter {
     return new ProofInvariantProvider(cfa, factory, fmgr, assumptionToEdgeAllocator);
   }
 
-  public void writeErrorWitness(
-      Appendable pTarget,
+  public Witness generateErrorWitness(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
-      CounterexampleInfo pCounterExample)
-      throws IOException {
+      CounterexampleInfo pCounterExample) {
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessFactory writer =
@@ -240,26 +237,22 @@ public class WitnessExporter {
             defaultFileName,
             WitnessType.VIOLATION_WITNESS,
             InvariantProvider.TrueInvariantProvider.INSTANCE);
-    Witness generatedWitness =
-        writer.produceWitness(
-            pRootState,
-            pIsRelevantState,
-            pIsRelevantEdge,
-            Predicates.alwaysFalse(),
-            Optional.empty(),
-            Optional.ofNullable(pCounterExample),
-            GraphBuilder.ARG_PATH);
-    WitnessToOutputFormatsUtils.writeToGraphMl(generatedWitness, pTarget);
+    return writer.produceWitness(
+        pRootState,
+        pIsRelevantState,
+        pIsRelevantEdge,
+        Predicates.alwaysFalse(),
+        Optional.empty(),
+        Optional.ofNullable(pCounterExample),
+        GraphBuilder.ARG_PATH);
   }
 
-  public void writeTerminationErrorWitness(
-      final Appendable pWriter,
+  public Witness generateTerminationErrorWitness(
       final ARGState pRoot,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       final Predicate<? super ARGState> pIsCycleHead,
-      final Function<? super ARGState, ExpressionTree<Object>> toQuasiInvariant)
-      throws IOException {
+      final Function<? super ARGState, ExpressionTree<Object>> toQuasiInvariant) {
     String defaultFileName = getInitialFileName(pRoot);
     WitnessFactory writer =
         new WitnessFactory(
@@ -271,16 +264,14 @@ public class WitnessExporter {
             defaultFileName,
             WitnessType.VIOLATION_WITNESS,
             InvariantProvider.TrueInvariantProvider.INSTANCE);
-    Witness witness =
-        writer.produceWitness(
-            pRoot,
-            pIsRelevantState,
-            pIsRelevantEdge,
-            pIsCycleHead,
-            Optional.of(toQuasiInvariant),
-            Optional.empty(),
-            GraphBuilder.ARG_PATH);
-    WitnessToOutputFormatsUtils.writeToGraphMl(witness,pWriter);
+    return writer.produceWitness(
+        pRoot,
+        pIsRelevantState,
+        pIsRelevantEdge,
+        pIsCycleHead,
+        Optional.of(toQuasiInvariant),
+        Optional.empty(),
+        GraphBuilder.ARG_PATH);
   }
 
   public Witness generateProofWitness(
