@@ -79,8 +79,8 @@ public class FaultLocalizationAlgorithm implements Algorithm {
   //private final CFA cfa;
 
   private final boolean useSingleUnsat = false;
-  private final boolean useMaxSat = false;
-  private final boolean useErrInv = true;
+  private final boolean useMaxSat = true;
+  private final boolean useErrInv = false;
   // private final boolean useErrInvOptim = false;
 
   public FaultLocalizationAlgorithm(
@@ -188,7 +188,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
 
         FaultLocalizationSetHeuristic<Selector> concatSet = FaultLocalizationHeuristicUtils.concatSetHeuristics(List.of(new SetSizeHeuristic<>(), new SetHintHeuristic<>(3)));
         FaultLocalizationInfo<Selector> info =
-            new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.of(concat), Optional.empty());
+            new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.of(concat), Optional.of(concatSet));
         info.applyTo(pInfo.getTargetPath().getLastState());
         logger.log(
             Level.INFO,

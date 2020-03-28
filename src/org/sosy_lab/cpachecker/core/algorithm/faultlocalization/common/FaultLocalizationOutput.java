@@ -57,8 +57,7 @@ public abstract class FaultLocalizationOutput {
     return reasons.stream().filter(l -> !l.isHint())
             .mapToDouble(FaultLocalizationReason::getLikelihood)
             .average()
-            .orElse(0)
-        * 100;
+            .orElse(0);
   }
 
   public List<FaultLocalizationReason>
@@ -99,7 +98,7 @@ public abstract class FaultLocalizationOutput {
     return description + " (" + percent + ")";
   }
 
-  public String htmlRepresentation() {
+  public String toHtml() {
     Comparator<FaultLocalizationReason> sortReasons =
         Comparator.comparingInt(l -> l.isHint() ? 0 : 1);
     sortReasons = sortReasons.thenComparingDouble(b -> 1/b.getLikelihood());
@@ -109,16 +108,16 @@ public abstract class FaultLocalizationOutput {
             "Error suspected on <strong>line "
                 + correspondingEdge().getFileLocation().getStartingLineInOrigin()
                 + "</strong>.<br>");
-    int reasons = this.reasons.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
+    int numberReasons = reasons.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
     html.append("Detected <strong>")
-        .append(reasons)
+        .append(numberReasons)
         .append("</strong> possible reason")
-        .append(reasons == 1 ? "" : "s")
+        .append(numberReasons == 1 ? "" : "s")
         .append(":<br>");
 
     //style:\"list-style-type:none;\">
     html.append("<ul id=\"hint-list\">");
-    for (var reason : this.reasons){
+    for (var reason : reasons){
       if(reason.isHint())
         html.append("<li>").append(reasonToHtml(reason)).append("</li>");
       else break;
@@ -126,7 +125,7 @@ public abstract class FaultLocalizationOutput {
     html.append("</ul>");
 
     html.append("<ol>");
-    for (var reason : this.reasons){
+    for (var reason : reasons){
       if(!reason.isHint())
         html.append("<li>").append(reasonToHtml(reason)).append("</li>");
     }
@@ -137,33 +136,42 @@ public abstract class FaultLocalizationOutput {
   /**
    * String representation of this class. This method is forwarded to toString method. Classes that
    * extend this class may want to override the toString method this is why an extra method was
-   * created. To change the output int the Report (Counterexample.x.html) just override this
-   * method.) Override this method to change the given output to user. (Click on rank in
+   * created. To change the output in the Report (Counterexample.x.html) just override this
+   * method.) Override this method to change the given output to user. (Click on "Change view" in
    * ReportManager)
    *
    * @return String representation of this object
    */
   public String textRepresentation() {
-    int reasons = this.reasons.size();
-    StringBuilder toString =
-        new StringBuilder()
-            .append("Error suspected on line ")
-            .append(correspondingEdge().getFileLocation().getStartingLineInOrigin())
-            .append(". (Score: ")
-            .append((int) getScore())
-            .append(")\n")
-            .append("Detected ")
-            .append(reasons)
-            .append(" possible reason(s):\n");
-    for (int i = 0; i < reasons; i++) {
-      toString
-          .append("  ")
-          .append(i + 1)
-          .append(") ")
-          .append(this.reasons.get(i).toString())
-          .append("\n");
+    //Sort by Hints and then by likelihood
+    Comparator<FaultLocalizationReason> sortReasons =
+        Comparator.comparingInt(l -> l.isHint() ? 0 : 1);
+    sortReasons = sortReasons.thenComparingDouble(b -> 1/b.getLikelihood());
+    reasons.sort(sortReasons);
+    StringBuilder stringRepresentation =
+        new StringBuilder(
+            "Error suspected on line "
+                + correspondingEdge().getFileLocation().getStartingLineInOrigin()
+                + ". (Score: " + (int)(getScore()*100) + ")\n");
+    int numberReasons = reasons.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
+    stringRepresentation.append("Detected ")
+        .append(numberReasons)
+        .append(" possible reason")
+        .append(numberReasons == 1 ? ":\n" : "s:\n");
+
+    //style:\"list-style-type:none;\">
+    int lastHint = 0;
+    for (int i = 0; i < reasons.size(); i++) {
+      FaultLocalizationReason current = reasons.get(i);
+      if (current.isHint()) {
+        stringRepresentation.append(" Hint: ").append(current.toString()).append("\n");
+        lastHint = i+1;
+      } else {
+        stringRepresentation.append("    ").append(i+1-lastHint).append(") ").append(current.toString()).append("\n");
+      }
     }
-    return toString.toString();
+
+    return stringRepresentation.toString();
   }
 
   public boolean hasReasons() {

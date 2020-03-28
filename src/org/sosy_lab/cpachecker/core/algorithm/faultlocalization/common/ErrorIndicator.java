@@ -37,7 +37,7 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
 
   private Set<I> errorSet;
   private List<FaultLocalizationReason> reasons;
-  private Function<List<FaultLocalizationReason>, Double> evaluationFunction = a -> a.stream().filter(c -> !c.isHint()).mapToDouble(b -> b.getLikelihood()).average().orElse(0) * 100;;
+  private Function<List<FaultLocalizationReason>, Double> evaluationFunction = a -> a.stream().filter(c -> !c.isHint()).mapToDouble(b -> b.getLikelihood()).average().orElse(0);
 
   /**
    * Calculates the score by the provided evaluation function.
@@ -152,16 +152,40 @@ public class ErrorIndicator<I extends FaultLocalizationOutput> extends Forwardin
     return header + "\n" + reasonsString + "\n" + html;
   }
 
+  protected String textRepresentation(){
+    Comparator<FaultLocalizationReason> sortReasons =
+        Comparator.comparingInt(l -> l.isHint() ? 0 : 1);
+    sortReasons = sortReasons.thenComparingDouble(b -> 1d/b.getLikelihood());
+    reasons.sort(sortReasons);
+    int numberReasons = reasons.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
+
+    String header = "Error suspected on line(s): " + errorSet
+        .stream()
+        .mapToInt(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin())
+        .sorted()
+        .distinct()
+        .mapToObj(l -> (Integer)l + "")
+        .collect(Collectors.collectingAndThen(Collectors.toList(), lineCollector()))
+        + " (Score: " + (int)(calculateScore()*100) + ")";
+
+    String amountReasons = "Detected " + numberReasons + " possible reason(s):\n";
+    StringBuilder reasonString = new StringBuilder();
+    int lastHint = 0;
+    for (int i = 0; i < reasons.size(); i++) {
+      FaultLocalizationReason current = reasons.get(i);
+      if (current.isHint()) {
+        reasonString.append(" Hint: ").append(current.toString()).append("\n");
+        lastHint = i+1;
+      } else {
+        reasonString.append("    ").append(i+1-lastHint).append(") ").append(current.toString()).append("\n");
+      }
+    }
+    return header + "\n" + amountReasons + reasonString;
+  }
+
   @Override
   public String toString(){
-    String header = "Error suspected on line(s): " + errorSet.stream().map(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin()+"").collect(Collectors.collectingAndThen(Collectors.toList(), lineCollector()));
-    String reasonString = "Detected " + this.reasons.size() + " possible reason(s): ";
-    StringBuilder body = new StringBuilder();
-    for (int i = 0; i < this.reasons.size(); i++) {
-      body.append("  ").append(i + 1).append(") ").append(this.reasons.get(i).toString())
-          .append("\n");
-    }
-    return header + "\n" + reasonString + "\n" + body;
+    return textRepresentation();
   }
 
   /**

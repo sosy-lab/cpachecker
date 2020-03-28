@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends CounterexampleInfo {
 
   private Map<I, Integer> mapOutToRank;
-  private Map<ErrorIndicator<I>, Integer> mapRankToSet;
+  private Map<ErrorIndicator<I>, Integer> mapSetToRank;
 
   private Map<CFAEdge, I> mapEdgeToInfo;
   private MultiMap<CFAEdge, ErrorIndicator<I>> mapEdgeToSetInfo;
@@ -88,12 +88,12 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
     }
 
     if(pSetRanking.isPresent()){
-      mapRankToSet = pSetRanking.get().rankSubsets(pErrorIndicators);
+      mapSetToRank = pSetRanking.get().rankSubsets(pErrorIndicators);
     } else {
       if(pRanking.isEmpty()){
-        mapRankToSet = new SetIdentityHeuristic<I>().rankSubsets(pErrorIndicators);
+        mapSetToRank = new SetIdentityHeuristic<I>().rankSubsets(pErrorIndicators);
       } else {
-        mapRankToSet = Collections.emptyMap();
+        mapSetToRank = Collections.emptyMap();
       }
     }
 
@@ -106,13 +106,13 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
       mapEdgeToInfo.put(out.correspondingEdge(), out);
     }
 
-    for (ErrorIndicator<I> set : mapRankToSet.keySet()) {
+    for (ErrorIndicator<I> set : mapSetToRank.keySet()) {
       boolean alreadyAssigned = false;
       if(set.isEmpty()) continue;
       for(I elem: set){
-        mapEdgeToMinRank.merge(elem.correspondingEdge(), mapRankToSet.get(set), Integer::min);
+        mapEdgeToMinRank.merge(elem.correspondingEdge(), mapSetToRank.get(set), Integer::min);
         mapEdgeToDescription.merge(elem.correspondingEdge(), set.toHtml(), (a, b) -> {
-          if(mapRankToSet.get(set).intValue() == mapEdgeToMinRank.get(elem.correspondingEdge()).intValue()){
+          if(mapSetToRank.get(set).intValue() == mapEdgeToMinRank.get(elem.correspondingEdge()).intValue()){
             return a;
           } else {
             return b;
@@ -126,32 +126,32 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
     }
   }
 
-  public Map<I, Integer> getMapOutToRank() {
-    return mapOutToRank;
+  public int getRankOfOutput(I key) {
+    return mapOutToRank.get(key);
   }
 
-  public Map<ErrorIndicator<I>, Integer> getMapRankToSet() {
-    return mapRankToSet;
+  public int getRankOfSet(ErrorIndicator<I> set) {
+    return mapSetToRank.get(set);
   }
 
   @Override
   public String toString() {
-    List<I> ranked = new ArrayList<>(mapOutToRank.keySet());
-    List<ErrorIndicator<I>> rankedSet = new ArrayList<>(mapRankToSet.keySet());
-    ranked.sort(Comparator.comparingInt(l -> mapOutToRank.get(l)));
-    String edgeRanking = "Ranking of single edges:\n" +
-        ranked.stream()
-        .map(FaultLocalizationOutput::textRepresentation)
-        .collect(Collectors.joining("\n"));
-    String setRanking = "Ranking of sets:\n" +
-        rankedSet.stream().map(ErrorIndicator::toString).collect(Collectors.joining("\n"));
-    if(mapOutToRank.isEmpty() ^ mapRankToSet.isEmpty()){
-      return mapOutToRank.isEmpty() ? setRanking : edgeRanking;
+    StringBuilder toString = new StringBuilder();
+    if(!mapOutToRank.isEmpty()){
+      List<I> ranked = new ArrayList<>(mapOutToRank.keySet());
+      ranked.sort(Comparator.comparingInt(l -> mapOutToRank.get(l)));
+      if (!ranked.isEmpty()) {
+        toString.append("Ranking edges:\n").append(ranked.stream().map(l -> l.textRepresentation()).collect(Collectors.joining("\n\n"))).append(mapSetToRank.isEmpty()?"":"\n\n");
+      }
     }
-    if(mapOutToRank.isEmpty()&& mapRankToSet.isEmpty()){
-      return "No heuristic provided.";
+    if(!mapSetToRank.isEmpty()){
+      List<ErrorIndicator<I>> ranked = new ArrayList<>(mapSetToRank.keySet());
+      ranked.sort(Comparator.comparingInt(l -> mapSetToRank.get(l)));
+      if(!ranked.isEmpty()){
+        toString.append("Ranking sets:\n").append(ranked.stream().map(l -> l.toString()).collect(Collectors.joining("\n\n")));
+      }
     }
-    return edgeRanking + "\n\n" + setRanking;
+    return toString.toString();
   }
 
   /**
@@ -197,8 +197,8 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
       I infoEdge = mapEdgeToInfo.get(edge);
       elem.put("enabled", true);
       if (mapEdgeToInfo.get(edge).hasReasons()) {
-        elem.put("fault", infoEdge.htmlRepresentation());
-        elem.put("score", (int) infoEdge.getScore());
+        elem.put("fault", infoEdge.toHtml());
+        elem.put("score", (int) (100*infoEdge.getScore()));
         // TODO map
         elem.put("rank", mapOutToRank.get(infoEdge));
       }
@@ -227,8 +227,8 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
             .collect(Collectors.toList()));
         concatLines.add(info.sortedLineNumbers());
         reasons.add(info.toHtml());
-        scores.add((int)info.calculateScore());
-        ranks.add(mapRankToSet.get(info));
+        scores.add((int)(info.calculateScore()*100));
+        ranks.add(mapSetToRank.get(info));
       }
       elem.put("setnumber", reasons.size());
       elem.put("setreason", reasons);
