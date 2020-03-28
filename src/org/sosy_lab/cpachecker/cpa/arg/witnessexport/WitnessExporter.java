@@ -217,6 +217,10 @@ public class WitnessExporter {
     this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpecification);
   }
 
+  public ProofInvariantProvider getProofInvariantProvider() {
+    return new ProofInvariantProvider(cfa, factory, fmgr, assumptionToEdgeAllocator);
+  }
+
   public void writeErrorWitness(
       Appendable pTarget,
       final ARGState pRootState,
@@ -281,19 +285,13 @@ public class WitnessExporter {
   public Witness generateProofWitness(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
-      final BiPredicate<ARGState, ARGState> pIsRelevantEdge) {
-    return generateProofWitness(
-        pRootState,
-        pIsRelevantState,
-        pIsRelevantEdge,
-        new ProofInvariantProvider(cfa, factory, fmgr, assumptionToEdgeAllocator));
-  }
-
-  public Witness generateProofWitness(
-      final ARGState pRootState,
-      final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       InvariantProvider pInvariantProvider) {
+
+    Preconditions.checkNotNull(pRootState);
+    Preconditions.checkNotNull(pIsRelevantState);
+    Preconditions.checkNotNull(pIsRelevantEdge);
+    Preconditions.checkNotNull(pInvariantProvider);
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessFactory writer =
@@ -314,38 +312,6 @@ public class WitnessExporter {
         Optional.empty(),
         Optional.empty(),
         GraphBuilder.CFA_FULL);
-  }
-
-  public void writeProofWitness(
-      Appendable pTarget,
-      final ARGState pRootState,
-      final Predicate<? super ARGState> pIsRelevantState,
-      final BiPredicate<ARGState, ARGState> pIsRelevantEdge)
-      throws IOException {
-    writeProofWitness(
-        pTarget,
-        pRootState,
-        pIsRelevantState,
-        pIsRelevantEdge,
-        new ProofInvariantProvider(cfa, factory, fmgr, assumptionToEdgeAllocator));
-  }
-
-  public void writeProofWitness(
-      Appendable pTarget,
-      final ARGState pRootState,
-      final Predicate<? super ARGState> pIsRelevantState,
-      final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
-      InvariantProvider pInvariantProvider)
-      throws IOException {
-    Preconditions.checkNotNull(pTarget);
-    Preconditions.checkNotNull(pRootState);
-    Preconditions.checkNotNull(pIsRelevantState);
-    Preconditions.checkNotNull(pIsRelevantEdge);
-    Preconditions.checkNotNull(pInvariantProvider);
-
-    Witness generatedWitness =
-        generateProofWitness(pRootState, pIsRelevantState, pIsRelevantEdge, pInvariantProvider);
-    WitnessToOutputFormatsUtils.writeToGraphMl(generatedWitness, pTarget);
   }
 
   protected String getInitialFileName(ARGState pRootState) {

@@ -238,7 +238,10 @@ public class ReportGenerator {
         witnessOptional =
             Optional.of(
                 argWitnessExporter.generateProofWitness(
-                    rootState, Predicates.alwaysTrue(), BiPredicates.alwaysTrue()));
+                    rootState,
+                    Predicates.alwaysTrue(),
+                    BiPredicates.alwaysTrue(),
+                    argWitnessExporter.getProofInvariantProvider()));
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not generate witness for witness view");
       }

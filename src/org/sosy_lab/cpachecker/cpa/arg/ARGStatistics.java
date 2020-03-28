@@ -76,7 +76,9 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExportOptions;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
@@ -381,12 +383,16 @@ public class ARGStatistics implements Statistics {
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
     if (proofWitness != null && EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
+      Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
+      final Witness witness =
+          argWitnessExporter.generateProofWitness(
+              rootState,
+              Predicates.alwaysTrue(),
+              BiPredicates.alwaysTrue(),
+              argWitnessExporter.getProofInvariantProvider());
+      final Appender content =
+          pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable);
       try {
-        Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
-        Appender content =
-            pAppendable ->
-                argWitnessExporter.writeProofWitness(
-                    pAppendable, rootState, Predicates.alwaysTrue(), BiPredicates.alwaysTrue());
         if (!compressWitness) {
           IO.writeFile(witnessFile, StandardCharsets.UTF_8, content);
         } else {
