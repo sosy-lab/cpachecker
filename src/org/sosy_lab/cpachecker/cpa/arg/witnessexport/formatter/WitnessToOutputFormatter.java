@@ -24,7 +24,7 @@ import com.google.common.collect.Queues;
 import java.io.IOException;
 import java.util.Deque;
 import java.util.Map;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
