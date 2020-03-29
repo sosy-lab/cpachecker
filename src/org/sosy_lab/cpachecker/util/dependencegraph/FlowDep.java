@@ -184,7 +184,7 @@ final class FlowDep {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
         Optional<DefsUses.Data> defsUses = DefsUses.getData(edge);
         if (defsUses.isPresent()) {
-          builder.register(edge, defsUses.get());
+          builder.register(edge, defsUses.orElseThrow());
         } else {
           pUnknownPointerConsumer.accept(edge);
           builder.register(edge, DefsUses.getEmptyData(edge));
