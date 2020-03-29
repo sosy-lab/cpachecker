@@ -567,8 +567,6 @@ public class CFACreator {
           DependenceGraph.builder(cfa, varClassification, config, logger, shutdownNotifier);
       try {
         depGraph = Optional.of(depGraphBuilder.build());
-      } catch (CPAException pE) {
-        throw new CParserException(pE);
       } finally {
         depGraphBuilder.collectStatistics(stats.statisticsCollection);
       }
