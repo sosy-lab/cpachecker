@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -118,7 +119,7 @@ final class FlowDep {
               for (MemoryLocation variable : pBuilder.getDefs(edge)) {
                 pBuilder
                     .getCombineDef(pFrame.node, variable)
-                    .add(new AbstractDef.VariableDef(variable, edge));
+                    .add(new AbstractDef.ConcreteDef(variable, edge));
               }
             });
 
@@ -309,7 +310,19 @@ final class FlowDep {
       combineDefs.put(pNode, new AbstractDef.CombineDef(pVariable));
     }
 
-    private Deque<AbstractDef> getStack(MemoryLocation pVariable) {
+    private AbstractDef.ConcreteDef getDeclaration(Deque<AbstractDef> pStack) {
+
+      for (Iterator<AbstractDef> it = pStack.descendingIterator(); it.hasNext(); ) {
+        AbstractDef def = it.next();
+        if (def instanceof AbstractDef.ConcreteDef) {
+          return (AbstractDef.ConcreteDef) def;
+        }
+      }
+
+      return null;
+    }
+
+    private Deque<AbstractDef> getDefStack(MemoryLocation pVariable) {
       return stacks.computeIfAbsent(pVariable, key -> new ArrayDeque<>());
     }
 
@@ -317,20 +330,29 @@ final class FlowDep {
 
       // edge uses: find corresponding AbstractDefs and add dependences
       for (MemoryLocation useVar : getUses(pEdge)) {
-        AbstractDef def = getStack(useVar).peek();
+        AbstractDef def = getDefStack(useVar).peek();
+
         assert def != null
             : String.format("Variable is missing definition: %s @ %s", useVar, pEdge);
+            
         dependences.put(pEdge, def);
       }
 
-      // edge defs: update def stacks
+      // edge defs: update def stacks and add declaration dependences
       for (MemoryLocation defVar : getDefs(pEdge)) {
-        getStack(defVar).push(new AbstractDef.VariableDef(defVar, pEdge));
+        Deque<AbstractDef> stack = getDefStack(defVar);
+        AbstractDef.ConcreteDef declaration = getDeclaration(stack);
+
+        stack.push(new AbstractDef.ConcreteDef(defVar, pEdge));
+
+        if (declaration != null) {
+          dependences.put(pEdge, declaration);
+        }
       }
 
       // update successor CombineDefs
       for (AbstractDef.CombineDef combineDef : combineDefs.get(pEdge.getSuccessor())) {
-        AbstractDef def = getStack(combineDef.getVariable()).peek();
+        AbstractDef def = getDefStack(combineDef.getVariable()).peek();
         if (def != null) {
           combineDef.add(def);
         }
@@ -340,21 +362,21 @@ final class FlowDep {
     private void push(CFANode pNode) {
 
       for (AbstractDef.CombineDef combineDef : combineDefs.get(pNode)) {
-        getStack(combineDef.getVariable()).push(combineDef);
+        getDefStack(combineDef.getVariable()).push(combineDef);
       }
     }
 
     private void pop(CFAEdge pEdge) {
 
       for (MemoryLocation variable : defsUses.get(pEdge).getDefs()) {
-        getStack(variable).pop();
+        getDefStack(variable).pop();
       }
     }
 
     private void pop(CFANode pNode) {
 
       for (AbstractDef.CombineDef combineDef : combineDefs.get(pNode)) {
-        getStack(combineDef.getVariable()).pop();
+        getDefStack(combineDef.getVariable()).pop();
       }
     }
 
@@ -391,6 +413,11 @@ final class FlowDep {
     }
   }
 
+  /**
+   * A class representing reachable definitions for a specific variable.
+   *
+   * <p>All instances are either ConcreteDefs or CombineDefs.
+   */
   private abstract static class AbstractDef {
 
     private final MemoryLocation variable;
@@ -399,17 +426,20 @@ final class FlowDep {
       variable = pVariable;
     }
 
+    /** Returns the variable for this AbstractDef. */
     final MemoryLocation getVariable() {
       return variable;
     }
 
+    /** Returns a collection of all CFAEdges that define the variable and are reachable. */
     protected abstract Collection<CFAEdge> getDefEdges();
 
-    private static final class VariableDef extends AbstractDef {
+    /** A ConcreteDef is used for a variable defined by a CFAEdge. */
+    private static final class ConcreteDef extends AbstractDef {
 
       private final CFAEdge defEdge;
 
-      private VariableDef(MemoryLocation pVariable, CFAEdge pDefEdge) {
+      private ConcreteDef(MemoryLocation pVariable, CFAEdge pDefEdge) {
         super(pVariable);
         defEdge = pDefEdge;
       }
@@ -420,6 +450,12 @@ final class FlowDep {
       }
     }
 
+    /**
+     * A CombineDef is used to collect multiple reachable definitions.
+     *
+     * <p>A CombineDef is used at a CFANode where two branches meet and carry different definitions
+     * of a variable.
+     */
     private static final class CombineDef extends AbstractDef {
 
       private final List<AbstractDef> defs;
@@ -429,6 +465,7 @@ final class FlowDep {
         defs = new ArrayList<>();
       }
 
+      /** Adds definitions to the list of reachable definitions. */
       private void add(AbstractDef pDef) {
         defs.add(pDef);
       }
