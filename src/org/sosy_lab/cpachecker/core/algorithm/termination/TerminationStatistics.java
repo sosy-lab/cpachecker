@@ -55,7 +55,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigDecimal;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -72,7 +71,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -144,6 +142,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   )
   @FileOption(Type.OUTPUT_FILE)
   private Path violationWitness = Paths.get("nontermination_witness.graphml");
+
+  @Option(
+      secure = true,
+      name = "violation.witness.dot",
+      description = "Export termination counterexample to file as dot/graphviz automaton ")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path violationWitnessDot = Paths.get("nontermination_witness.dot");
 
   @Option(
     secure = true,
@@ -419,7 +424,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     exportSynthesizedArguments();
 
-    if (pResult == Result.FALSE && violationWitness != null) {
+    if (pResult == Result.FALSE && (violationWitness != null || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
           pReached
               .asCollection()
@@ -499,18 +504,20 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             state -> Objects.equals(state, loopStartInCEX),
             provideQuasiInvariant);
 
-    Appender content =
-        (Appender) pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable);
+    if (violationWitness != null) {
+      WitnessToOutputFormatsUtils.writeWitness(
+          violationWitness,
+          compressWitness,
+          pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
+          logger);
+    }
 
-    try {
-      if (compressWitness) {
-        Path file = violationWitness.resolveSibling(violationWitness.getFileName() + ".gz");
-        IO.writeGZIPFile(file, Charset.defaultCharset(), content);
-      } else {
-        IO.writeFile(violationWitness, Charset.defaultCharset(), content);
-      }
-    } catch (IOException e) {
-      logger.logException(WARNING, e, "Violation witness export failed.");
+    if (violationWitnessDot != null) {
+      WitnessToOutputFormatsUtils.writeWitness(
+          violationWitnessDot,
+          compressWitness,
+          pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
+          logger);
     }
   }
 

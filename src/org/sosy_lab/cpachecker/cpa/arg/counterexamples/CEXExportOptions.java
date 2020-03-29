@@ -103,6 +103,14 @@ public final class CEXExportOptions {
   private PathTemplate errorPathAutomatonGraphmlFile =
       PathTemplate.ofFormatString("Counterexample.%d.graphml");
 
+  @Option(
+      secure = true,
+      name = "dot",
+      description = "export counterexample to file as Dot/Graphviz automaton")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate errorPathAutomatonDotFile =
+      PathTemplate.ofFormatString("Counterexample.%d.dot");
+
   @Option(secure = true, description = "Export extended witness in addition to regular witness")
   private boolean exportExtendedWitness = false;
 
@@ -222,6 +230,14 @@ public final class CEXExportOptions {
       return null;
     }
     return exportWitness ? errorPathAutomatonGraphmlFile : null;
+  }
+
+  @Nullable
+  PathTemplate getWitnessDotFile() {
+    if (!exportErrorPath) {
+      return null;
+    }
+    return exportWitness ? errorPathAutomatonDotFile : null;
   }
 
   @Nullable

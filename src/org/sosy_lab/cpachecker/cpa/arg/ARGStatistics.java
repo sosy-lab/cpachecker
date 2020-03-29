@@ -39,7 +39,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -118,6 +117,13 @@ public class ARGStatistics implements Statistics {
       description="export a proof as .graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path proofWitness = null;
+
+  @Option(
+      secure = true,
+      name = "proofWitness.dot",
+      description = "export a proof as dot/graphviz file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path proofWitnessDot = null;
 
   @Option(
     secure = true,
@@ -218,12 +224,14 @@ public class ARGStatistics implements Statistics {
         && simplifiedArgFile == null
         && refinementGraphFile == null
         && proofWitness == null
+        && proofWitnessDot == null
         && pixelGraphicFile == null
         && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))) {
       exportARG = false;
     }
 
-    if ((proofWitness == null || !exportARG) && counterexampleOptions.disabledCompletely()) {
+    if (((proofWitness == null && proofWitnessDot == null) || !exportARG)
+        && counterexampleOptions.disabledCompletely()) {
       argWitnessExporter = null;
     } else {
       argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
@@ -382,25 +390,30 @@ public class ARGStatistics implements Statistics {
         ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
-    if (proofWitness != null && EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
-      Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
+    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
       final Witness witness =
           argWitnessExporter.generateProofWitness(
               rootState,
               Predicates.alwaysTrue(),
               BiPredicates.alwaysTrue(),
               argWitnessExporter.getProofInvariantProvider());
-      final Appender content =
-          pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable);
-      try {
-        if (compressWitness) {
-          witnessFile = witnessFile.resolveSibling(witnessFile.getFileName() + ".gz");
-          IO.writeGZIPFile(witnessFile, StandardCharsets.UTF_8, content);
-        } else {
-          IO.writeFile(witnessFile, StandardCharsets.UTF_8, content);
-        }
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+
+      if (proofWitness != null) {
+        Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
+        WitnessToOutputFormatsUtils.writeWitness(
+            witnessFile,
+            compressWitness,
+            pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
+            logger);
+      }
+
+      if (proofWitnessDot != null) {
+        Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitnessDot);
+        WitnessToOutputFormatsUtils.writeWitness(
+            witnessFile,
+            compressWitness,
+            pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
+            logger);
       }
     }
 

@@ -293,15 +293,25 @@ public class CEXExporter {
       }
     }
 
+    final Witness witness =
+        witnessExporter.generateErrorWitness(
+            rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+
     writeErrorPathFile(
         options.getWitnessFile(),
         uniqueId,
         (Appender)
-            pAppendable -> {
-              Witness witness =
-                  witnessExporter.generateErrorWitness(
-                      rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
-              WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable);
+            pApp -> {
+              WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp);
+            },
+        compressWitness);
+
+    writeErrorPathFile(
+        options.getWitnessDotFile(),
+        uniqueId,
+        (Appender)
+            pApp -> {
+              WitnessToOutputFormatsUtils.writeToDot(witness, pApp);
             },
         compressWitness);
 
@@ -310,10 +320,10 @@ public class CEXExporter {
         uniqueId,
         (Appender)
             pAppendable -> {
-              Witness witness =
+              Witness extWitness =
                   extendedWitnessExporter.generateErrorWitness(
                       rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
-              WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable);
+              WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable);
             },
         compressWitness);
 

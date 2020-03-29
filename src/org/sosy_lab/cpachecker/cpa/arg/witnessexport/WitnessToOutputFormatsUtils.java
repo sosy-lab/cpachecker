@@ -20,20 +20,27 @@
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static java.util.logging.Level.WARNING;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.formatter.WitnessToDotFormatter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.formatter.WitnessToGraphMLFormatter;
 import org.sosy_lab.cpachecker.cpa.slab.SLARGToDotWriter;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
@@ -43,6 +50,21 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 public class WitnessToOutputFormatsUtils {
 
+  /** utility method */
+  public static void writeWitness(
+      Path filename, boolean compressFile, Appender content, LogManager logger) {
+    try {
+      if (compressFile) {
+        Path file = filename.resolveSibling(filename.getFileName() + ".gz");
+        IO.writeGZIPFile(file, Charset.defaultCharset(), content);
+      } else {
+        IO.writeFile(filename, Charset.defaultCharset(), content);
+      }
+    } catch (IOException e) {
+      logger.logfException(WARNING, e, "Violation witness export to %s failed.", filename);
+    }
+  }
+
   /**
    * Appends the witness as GraphML to the supplied {@link Appendable}
    *
@@ -51,6 +73,11 @@ public class WitnessToOutputFormatsUtils {
    */
   public static void writeToGraphMl(Witness witness, Appendable pTarget) throws IOException {
     new WitnessToGraphMLFormatter(witness).appendTo(pTarget);
+  }
+
+  /** Appends the witness as Dot/Graphviz to the supplied {@link Appendable}. */
+  public static void writeToDot(Witness witness, Appendable pTarget) throws IOException {
+    new WitnessToDotFormatter(witness).appendTo(pTarget);
   }
 
   /**
