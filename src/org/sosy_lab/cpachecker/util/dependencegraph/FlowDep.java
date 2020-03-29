@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -415,7 +416,7 @@ final class FlowDep {
 
       @Override
       protected Collection<CFAEdge> getDefEdges() {
-        return List.of(defEdge);
+        return ImmutableList.of(defEdge);
       }
     }
 
