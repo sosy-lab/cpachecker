@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -129,7 +128,7 @@ final class FlowDep {
       if (!current.children.isEmpty()) {
 
         Builder.Frame prev = current;
-        current = current.children.remove(0);
+        current = current.children.remove();
 
         CFAEdge edge = getEdge(prev.node, current.node);
 
@@ -382,11 +381,11 @@ final class FlowDep {
       private final CFANode node;
 
       private Frame parent;
-      private List<Frame> children;
+      private Queue<Frame> children;
 
       private Frame(CFANode pNode) {
         node = pNode;
-        children = new LinkedList<>();
+        children = new ArrayDeque<>();
       }
     }
   }
