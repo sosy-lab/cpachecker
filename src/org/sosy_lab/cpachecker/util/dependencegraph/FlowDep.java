@@ -315,6 +315,7 @@ final class FlowDep {
 
     private void push(CFAEdge pEdge) {
 
+      // edge uses: find corresponding AbstractDefs and add dependences
       for (MemoryLocation useVar : getUses(pEdge)) {
         AbstractDef def = getStack(useVar).peek();
         assert def != null
@@ -322,17 +323,17 @@ final class FlowDep {
         dependences.put(pEdge, def);
       }
 
+      // edge defs: update def stacks
       for (MemoryLocation defVar : getDefs(pEdge)) {
         getStack(defVar).push(new AbstractDef.VariableDef(defVar, pEdge));
       }
 
+      // update successor CombineDefs
       for (AbstractDef.CombineDef combineDef : combineDefs.get(pEdge.getSuccessor())) {
         AbstractDef def = getStack(combineDef.getVariable()).peek();
-        assert def != null
-            : String.format(
-                "Variable is missing definition: %s @ %s",
-                combineDef.getVariable(), pEdge.getSuccessor());
-        combineDef.add(def);
+        if (def != null) {
+          combineDef.add(def);
+        }
       }
     }
 
