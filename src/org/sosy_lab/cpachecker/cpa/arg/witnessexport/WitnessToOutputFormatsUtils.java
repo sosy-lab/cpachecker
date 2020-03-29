@@ -31,21 +31,15 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.formatter.WitnessToGraphMLFormatter;
 import org.sosy_lab.cpachecker.cpa.slab.SLARGToDotWriter;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.w3c.dom.Element;
 
 public class WitnessToOutputFormatsUtils {
 
@@ -56,20 +50,7 @@ public class WitnessToOutputFormatsUtils {
    * @param pTarget where to append the GraphML
    */
   public static void writeToGraphMl(Witness witness, Appendable pTarget) throws IOException {
-    // Write elements
-    final GraphMlBuilder doc;
-    try {
-      doc =
-          new GraphMlBuilder(
-              witness.getWitnessType(),
-              witness.getOriginFile(),
-              witness.getCfa(),
-              witness.getMetaData());
-    } catch (ParserConfigurationException e) {
-      throw new IOException(e);
-    }
-    WitnessToOutputFormatsUtils.writeElementsOfGraphToDoc(doc, witness);
-    doc.appendTo(pTarget);
+    new WitnessToGraphMLFormatter(witness).appendTo(pTarget);
   }
 
   /**
@@ -169,84 +150,5 @@ public class WitnessToOutputFormatsUtils {
       return "highlighted";
     }
     return "";
-  }
-
-  private static void writeElementsOfGraphToDoc(GraphMlBuilder doc, Witness witness) {
-    String entryStateNodeId = witness.getEntryStateNodeId();
-    Map<String, Element> nodes = Maps.newHashMap();
-    Deque<String> waitlist = Queues.newArrayDeque();
-    waitlist.push(entryStateNodeId);
-    Element entryNode = createNewNode(doc, entryStateNodeId, witness);
-    addInvariantsData(doc, entryNode, entryStateNodeId, witness);
-    nodes.put(entryStateNodeId, entryNode);
-    while (!waitlist.isEmpty()) {
-      String source = waitlist.pop();
-      for (Edge edge : witness.getLeavingEdges().get(source)) {
-        Element targetNode = nodes.get(edge.getTarget());
-        if (targetNode == null) {
-          targetNode = createNewNode(doc, edge.getTarget(), witness);
-          if (!ExpressionTrees.getFalse()
-              .equals(addInvariantsData(doc, targetNode, edge.getTarget(), witness))) {
-            waitlist.push(edge.getTarget());
-          }
-          nodes.put(edge.getTarget(), targetNode);
-        }
-        createNewEdge(doc, edge, targetNode);
-      }
-    }
-  }
-
-  private static Element createNewNode(
-      GraphMlBuilder pDoc, String pEntryStateNodeId, Witness witness) {
-    Element result = pDoc.createNodeElement(pEntryStateNodeId, NodeType.ONPATH);
-
-    if (witness.getWitnessOptions().exportNodeLabel()) {
-      // add a printable label that for example is shown in yEd
-      pDoc.addDataElementChild(result, KeyDef.LABEL, pEntryStateNodeId);
-    }
-
-    for (NodeFlag f : witness.getNodeFlags().get(pEntryStateNodeId)) {
-      pDoc.addDataElementChild(result, f.key, "true");
-    }
-    for (Property violation : witness.getViolatedProperties().get(pEntryStateNodeId)) {
-      pDoc.addDataElementChild(result, KeyDef.VIOLATEDPROPERTY, violation.toString());
-    }
-
-    if (witness.hasQuasiInvariant(pEntryStateNodeId)) {
-      ExpressionTree<Object> tree = witness.getQuasiInvariant(pEntryStateNodeId);
-      pDoc.addDataElementChild(result, KeyDef.INVARIANT, tree.toString());
-    }
-
-    return result;
-  }
-
-  private static ExpressionTree<Object> addInvariantsData(
-      GraphMlBuilder pDoc, Element pNode, String pStateId, Witness witness) {
-    if (!witness.getInvariantExportStates().contains(pStateId)) {
-      return ExpressionTrees.getTrue();
-    }
-    ExpressionTree<Object> tree = witness.getStateInvariant(pStateId);
-    if (!tree.equals(ExpressionTrees.getTrue())) {
-      pDoc.addDataElementChild(pNode, KeyDef.INVARIANT, tree.toString());
-      String scope = witness.getStateScopes().get(pStateId);
-      if (!isNullOrEmpty(scope) && !tree.equals(ExpressionTrees.getFalse())) {
-        pDoc.addDataElementChild(pNode, KeyDef.INVARIANTSCOPE, scope);
-      }
-    }
-    return tree;
-  }
-
-  private static Element createNewEdge(GraphMlBuilder pDoc, Edge pEdge, Element pTargetNode) {
-    Element edge = pDoc.createEdgeElement(pEdge.getSource(), pEdge.getTarget());
-    for (Map.Entry<KeyDef, String> entry : pEdge.getLabel().getMapping().entrySet()) {
-      KeyDef keyDef = entry.getKey();
-      String value = entry.getValue();
-      if (keyDef.keyFor.equals(ElementType.EDGE)) {
-        pDoc.addDataElementChild(edge, keyDef, value);
-      } else if (keyDef.keyFor.equals(ElementType.NODE)) {
-        pDoc.addDataElementChild(pTargetNode, keyDef, value);
-      }
-    }
-    return edge;
   }
 }

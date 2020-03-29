@@ -34,10 +34,10 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 /**
- * An edge corresponds to the transfer from one node to another.
- * This class is intended to be immutable.
+ * An edge corresponds to the transfer from one node to another. This class is intended to be
+ * immutable.
  */
-class Edge implements Comparable<Edge> {
+public class Edge implements Comparable<Edge> {
 
   private final String source;
 
