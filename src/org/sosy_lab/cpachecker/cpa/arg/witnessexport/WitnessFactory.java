@@ -43,14 +43,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -90,7 +88,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -190,20 +187,8 @@ class WitnessFactory implements EdgeAppender {
               if (!(leftType instanceof CVoidType) || !(rightType instanceof CVoidType)) {
 
                 boolean equalTypes = leftType.equals(rightType);
-
-                FluentIterable<Class<? extends CType>> acceptedTypes =
-                    FluentIterable.from(
-                        Collections.<Class<? extends CType>>singleton(CSimpleType.class));
-
-                boolean leftIsAccepted =
-                    equalTypes
-                        || acceptedTypes.anyMatch(
-                            pArg0 -> pArg0.isAssignableFrom(leftType.getClass()));
-
-                boolean rightIsAccepted =
-                    equalTypes
-                        || acceptedTypes.anyMatch(
-                            pArg0 -> pArg0.isAssignableFrom(rightType.getClass()));
+                boolean leftIsAccepted = equalTypes || leftType instanceof CSimpleType;
+                boolean rightIsAccepted = equalTypes || rightType instanceof CSimpleType;
 
                 if (leftIsAccepted && rightIsAccepted) {
                   boolean leftIsConstant = isConstant(leftSide);
@@ -253,14 +238,15 @@ class WitnessFactory implements EdgeAppender {
 
                 @Override
                 public Boolean visit(CUnaryExpression pIastUnaryExpression) {
-                  if (Arrays.asList(UnaryOperator.MINUS, UnaryOperator.TILDE)
-                      .contains(pIastUnaryExpression.getOperator())) {
-                    return pIastUnaryExpression.getOperand().accept(this);
+                  switch (pIastUnaryExpression.getOperator()) {
+                    case MINUS:
+                    case TILDE:
+                      return pIastUnaryExpression.getOperand().accept(this);
+                    case AMPER:
+                      return true;
+                    default:
+                      return visitDefault(pIastUnaryExpression);
                   }
-                  if (pIastUnaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
-                    return true;
-                  }
-                  return visitDefault(pIastUnaryExpression);
                 }
 
                 @Override
@@ -343,7 +329,7 @@ class WitnessFactory implements EdgeAppender {
       stateToARGStates.putAll(pFrom, pFromState.orElseThrow());
     }
 
-    Iterable<TransitionCondition> transitions =
+    Collection<TransitionCondition> transitions =
         constructTransitionCondition(pFrom, pTo, pEdge, pFromState, pValueMap, pAdditionalInfo);
 
     String from = pFrom;
@@ -415,7 +401,7 @@ class WitnessFactory implements EdgeAppender {
    * build a transition-condition for the given edge, i.e. collect all important data and store it
    * in the new transition-condition.
    */
-  private Iterable<TransitionCondition> constructTransitionCondition(
+  private Collection<TransitionCondition> constructTransitionCondition(
       final String pFrom,
       final String pTo,
       final CFAEdge pEdge,
@@ -604,7 +590,7 @@ class WitnessFactory implements EdgeAppender {
     return true;
   }
 
-  protected Iterable<TransitionCondition> extractTransitionForStates(
+  protected Collection<TransitionCondition> extractTransitionForStates(
       final String pFrom,
       final String pTo,
       final CFAEdge pEdge,
@@ -624,27 +610,10 @@ class WitnessFactory implements EdgeAppender {
 
     for (ARGState state : pFromStates) {
 
-      DelayedAssignmentsKey key = new DelayedAssignmentsKey(pFrom, pEdge, state);
-      CFAEdgeWithAssumptions cfaEdgeWithAssignments = delayedAssignments.get(key);
-
-      final CFAEdgeWithAssumptions currentEdgeWithAssignments;
-      if (pValueMap != null
-          && (currentEdgeWithAssignments = getFromValueMap(pValueMap, state, pEdge)) != null) {
-        if (cfaEdgeWithAssignments == null) {
-          cfaEdgeWithAssignments = currentEdgeWithAssignments;
-
-        } else {
-          ImmutableList.Builder<AExpressionStatement> allAssignments = ImmutableList.builder();
-          allAssignments.addAll(cfaEdgeWithAssignments.getExpStmts());
-          allAssignments.addAll(currentEdgeWithAssignments.getExpStmts());
-          cfaEdgeWithAssignments =
-              new CFAEdgeWithAssumptions(
-                  pEdge, allAssignments.build(), currentEdgeWithAssignments.getComment());
-        }
-      }
+      CFAEdgeWithAssumptions cfaEdgeWithAssignments =
+          getEdgeWithAssignments(pFrom, pEdge, state, pValueMap);
 
       if (cfaEdgeWithAssignments != null) {
-
         Collection<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
         Predicate<AExpressionStatement> assignsParameterOfOtherFunction =
             new AssignsParameterOfOtherFunction(pEdge);
@@ -671,22 +640,12 @@ class WitnessFactory implements EdgeAppender {
           }
         }
 
-        // Determine the scope for static local variables
-        for (AExpressionStatement functionValidAssignment : functionValidAssignments) {
-          if (functionValidAssignment instanceof CExpressionStatement) {
-            CExpression expression = (CExpression) functionValidAssignment.getExpression();
-            for (CIdExpression idExpression :
-                CFAUtils.getIdExpressionsOfExpression(expression).toSet()) {
-              final CSimpleDeclaration declaration = idExpression.getDeclaration();
-              final String qualified = declaration.getQualifiedName();
-              if (declaration.getName().contains("static")
-                  && !declaration.getOrigName().contains("static")
-                  && qualified.contains("::")) {
-                functionScope = true;
-                functionName = qualified.substring(0, qualified.indexOf("::"));
-              }
-            }
-          }
+        // try to get a proper function name for special variables
+        Optional<String> extractedFunctionName =
+            extractFunctionNameOfStaticVariables(functionValidAssignments);
+        if (extractedFunctionName.isPresent()) {
+          functionName = extractedFunctionName.orElseThrow();
+          functionScope = true;
         }
 
         // Do not export our own temporary variables
@@ -764,41 +723,10 @@ class WitnessFactory implements EdgeAppender {
       }
     }
 
-    if (graphType != WitnessType.CORRECTNESS_WITNESS && witnessOptions.exportAssumptions() && !code.isEmpty()) {
-      ExpressionTree<Object> invariant = factory.or(code);
-      CExpressionToOrinalCodeVisitor transformer =
-          resultVariable.isPresent()
-              ? CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER.substitute(
-                  (CIdExpression) resultVariable.orElseThrow(), "\\result")
-              : CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER;
-      final Function<Object, String> converter =
-          new Function<>() {
-
-            @Override
-            public String apply(Object pLeafExpression) {
-              if (pLeafExpression instanceof CExpression) {
-                return ((CExpression) pLeafExpression).accept(transformer);
-              }
-              if (pLeafExpression == null) {
-                return "(0)";
-              }
-              return pLeafExpression.toString();
-            }
-          };
-      final String assumptionCode;
-
-      // If there are only conjunctions, use multiple statements
-      // instead of the "&&" operator that is harder to parse.
-      if (ExpressionTrees.isAnd(invariant)) {
-        assumptionCode =
-            Joiner.on("; ")
-                .join(
-                    ExpressionTrees.getChildren(invariant)
-                        .transform(pTree -> ExpressionTrees.convert(pTree, converter)));
-      } else {
-        assumptionCode = ExpressionTrees.convert(invariant, converter).toString();
-      }
-
+    if (graphType != WitnessType.CORRECTNESS_WITNESS
+        && witnessOptions.exportAssumptions()
+        && !code.isEmpty()) {
+      final String assumptionCode = getAssumptionAsCode(factory.or(code), resultVariable);
       result = result.putAndCopy(KeyDef.ASSUMPTION, assumptionCode + ";");
       if (functionScope) {
         if (witnessOptions.revertThreadFunctionRenaming()) {
@@ -824,6 +752,86 @@ class WitnessFactory implements EdgeAppender {
     }
 
     return Collections.singleton(result);
+  }
+
+  /** Determine the scope for static local variables. */
+  private Optional<String> extractFunctionNameOfStaticVariables(
+      Collection<AExpressionStatement> functionValidAssignments) {
+    for (AExpressionStatement functionValidAssignment : functionValidAssignments) {
+      if (functionValidAssignment instanceof CExpressionStatement) {
+        CExpression expression = (CExpression) functionValidAssignment.getExpression();
+        for (CIdExpression idExpression :
+            CFAUtils.getIdExpressionsOfExpression(expression).toSet()) {
+          final CSimpleDeclaration declaration = idExpression.getDeclaration();
+          final String qualified = declaration.getQualifiedName();
+          if (declaration.getName().contains("static")
+              && !declaration.getOrigName().contains("static")
+              && qualified.contains("::")) {
+            return Optional.of(qualified.substring(0, qualified.indexOf("::")));
+            // TODO fast return or loop over all elements?
+          }
+        }
+      }
+    }
+    return Optional.empty();
+  }
+
+  private CFAEdgeWithAssumptions getEdgeWithAssignments(
+      final String pFrom,
+      final CFAEdge pEdge,
+      ARGState state,
+      final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+
+    final DelayedAssignmentsKey key = new DelayedAssignmentsKey(pFrom, pEdge, state);
+    final CFAEdgeWithAssumptions currentEdgeWithAssignments =
+        getFromValueMap(pValueMap, state, pEdge);
+    CFAEdgeWithAssumptions cfaEdgeWithAssignments = delayedAssignments.get(key);
+
+    if (pValueMap != null && currentEdgeWithAssignments != null) {
+      if (cfaEdgeWithAssignments == null) {
+        cfaEdgeWithAssignments = currentEdgeWithAssignments;
+      } else {
+        // if there is a delayed assignment, merge with it.
+        ImmutableList.Builder<AExpressionStatement> allAssignments = ImmutableList.builder();
+        allAssignments.addAll(cfaEdgeWithAssignments.getExpStmts());
+        allAssignments.addAll(currentEdgeWithAssignments.getExpStmts());
+        cfaEdgeWithAssignments =
+            new CFAEdgeWithAssumptions(
+                pEdge,
+                allAssignments.build(),
+                currentEdgeWithAssignments.getComment());
+      }
+    }
+    return cfaEdgeWithAssignments;
+  }
+
+  private String getAssumptionAsCode(
+      ExpressionTree<Object> assumption, Optional<AIdExpression> resultVariable) {
+    final CExpressionToOrinalCodeVisitor transformer =
+        resultVariable.isPresent()
+            ? CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER.substitute(
+                (CIdExpression) resultVariable.orElseThrow(), "\\result")
+            : CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER;
+    final Function<Object, String> converter =
+        pLeafExpression -> {
+          if (pLeafExpression instanceof CExpression) {
+            return ((CExpression) pLeafExpression).accept(transformer);
+          }
+          if (pLeafExpression == null) {
+            return "(0)";
+          }
+          return pLeafExpression.toString();
+        };
+    // If there are only conjunctions, use multiple statements
+    // instead of the "&&" operator that is harder to parse.
+    if (ExpressionTrees.isAnd(assumption)) {
+      return Joiner.on("; ")
+          .join(
+              ExpressionTrees.getChildren(assumption)
+                  .transform(pTree -> ExpressionTrees.convert(pTree, converter)));
+    } else {
+      return ExpressionTrees.convert(assumption, converter).toString();
+    }
   }
 
   private Scope filterExpressionsForScope(
@@ -920,7 +928,7 @@ class WitnessFactory implements EdgeAppender {
     return pResult;
   }
 
-  private Iterable<TransitionCondition> exportThreadManagement(
+  private Collection<TransitionCondition> exportThreadManagement(
       TransitionCondition pResult,
       final CFAEdge pEdge,
       ARGState pState,
@@ -983,7 +991,8 @@ class WitnessFactory implements EdgeAppender {
       }
     }
 
-    List<TransitionCondition> result = Lists.newArrayList(pResult);
+    ImmutableList.Builder<TransitionCondition> result = ImmutableList.builder();
+    result.add(pResult);
 
     // enter function of newly created thread
     if (threadInitialFunctionName.isPresent()) {
@@ -1000,7 +1009,7 @@ class WitnessFactory implements EdgeAppender {
       }
     }
 
-    return result;
+    return result.build();
   }
 
   private int getUniqueThreadNum(String threadId) {
