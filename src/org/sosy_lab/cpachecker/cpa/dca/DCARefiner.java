@@ -587,7 +587,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
         Level.INFO,
         "Removing %d states that are attached to the given state",
         statesToRemove.size());
-    statesToRemove.stream().forEach(ARGState::removeFromARG);
+    statesToRemove.forEach(ARGState::removeFromARG);
     reached.removeAll(statesToRemove);
   }
 

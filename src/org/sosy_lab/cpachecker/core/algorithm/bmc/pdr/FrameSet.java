@@ -73,7 +73,7 @@ class FrameSet implements AutoCloseable {
     @SuppressWarnings("resource")
     ProverEnvironmentWithFallback prover =
         new ProverEnvironmentWithFallback(
-            solver, proverOptions.stream().toArray(ProverOptions[]::new));
+            solver, proverOptions.toArray(new ProverOptions[0]));
     frameProvers.add(prover);
   }
 
