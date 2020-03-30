@@ -282,6 +282,9 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
                     .map(AExpression::toASTString)
                     .collect(Collectors.joining("; "));
       }
+      if (!vars.isEmpty()) {
+        prettyPrintAsmpts += "\n" + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
+      }
       return (automaton != null ? automaton.getName() + ": " : "")
           + internalState.getName()
           + prettyPrintAsmpts;
