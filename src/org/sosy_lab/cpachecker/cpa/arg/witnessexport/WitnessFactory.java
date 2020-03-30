@@ -1372,21 +1372,21 @@ class WitnessFactory implements EdgeAppender {
    * therefore be shortcut.
    */
   private final boolean isIrrelevantNode(String pNode) {
-          if (!ExpressionTrees.getTrue().equals(getStateInvariant(pNode))) {
-            return false;
-          }
-          if (hasFlagsOrProperties(pNode)) {
-            return false;
-          }
-          if (enteringEdges.get(pNode).isEmpty()) {
-            return false;
-          }
-          for (Edge edge : enteringEdges.get(pNode)) {
-            if (!edge.getLabel().getMapping().isEmpty()) {
-              return false;
-            }
-          }
-          return true;
+    if (!ExpressionTrees.getTrue().equals(getStateInvariant(pNode))) {
+      return false;
+    }
+    if (hasFlagsOrProperties(pNode)) {
+      return false;
+    }
+    if (enteringEdges.get(pNode).isEmpty()) {
+      return false;
+    }
+    for (Edge edge : enteringEdges.get(pNode)) {
+      if (!edge.getLabel().getMapping().isEmpty()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -1399,61 +1399,61 @@ class WitnessFactory implements EdgeAppender {
     final TransitionCondition label = pEdge.getLabel();
 
     if (isIrrelevantNode(target)) {
-            return true;
-          }
+      return true;
+    }
 
     final ExpressionTree<Object> sourceInv = stateQuasiInvariants.get(source);
     final ExpressionTree<Object> targetInv = stateQuasiInvariants.get(target);
     if (sourceInv != null && targetInv != null && !sourceInv.equals(targetInv)) {
-            return false;
-          }
+      return false;
+    }
 
     if (label.getMapping().isEmpty()) {
-            return true;
-          }
+      return true;
+    }
 
     if (source.equals(target)) {
-            return false;
-          }
+      return false;
+    }
 
-          // An edge is never irrelevant if there are conflicting scopes
-          ExpressionTree<Object> sourceTree = getStateInvariant(source);
-          if (sourceTree != null) {
-            String sourceScope = stateScopes.get(source);
-            String targetScope = stateScopes.get(target);
-            if (sourceScope != null && targetScope != null && !sourceScope.equals(targetScope)) {
-              return false;
-            }
-          }
+    // An edge is never irrelevant if there are conflicting scopes
+    ExpressionTree<Object> sourceTree = getStateInvariant(source);
+    if (sourceTree != null) {
+      String sourceScope = stateScopes.get(source);
+      String targetScope = stateScopes.get(target);
+      if (sourceScope != null && targetScope != null && !sourceScope.equals(targetScope)) {
+        return false;
+      }
+    }
 
-          // An edge is irrelevant if it is the only leaving edge of a
-          // node and it is empty or all its non-assumption contents
-          // are summarized by a preceding edge
-          boolean summarizedByPreceedingEdge =
-              Iterables.any(
-                  enteringEdges.get(source),
-                  pPrecedingEdge -> pPrecedingEdge.getLabel().summarizes(label));
+    // An edge is irrelevant if it is the only leaving edge of a
+    // node and it is empty or all its non-assumption contents
+    // are summarized by a preceding edge
+    boolean summarizedByPreceedingEdge =
+        Iterables.any(
+            enteringEdges.get(source),
+            pPrecedingEdge -> pPrecedingEdge.getLabel().summarizes(label));
 
-          if ((!label.hasTransitionRestrictions()
-                  || summarizedByPreceedingEdge
-              || (label.getMapping().size() == 1 && label.getMapping().containsKey(KeyDef.FUNCTIONEXIT)))
-              && (leavingEdges.get(source).size() == 1)) {
-            return true;
-          }
+    if ((!label.hasTransitionRestrictions()
+            || summarizedByPreceedingEdge
+            || (label.getMapping().size() == 1
+                && label.getMapping().containsKey(KeyDef.FUNCTIONEXIT)))
+        && (leavingEdges.get(source).size() == 1)) {
+      return true;
+    }
 
-          if (Iterables.all(
-              leavingEdges.get(source),
-              pLeavingEdge -> !pLeavingEdge.getLabel().hasTransitionRestrictions())) {
-            return true;
-          }
+    if (Iterables.all(
+        leavingEdges.get(source),
+        pLeavingEdge -> !pLeavingEdge.getLabel().hasTransitionRestrictions())) {
+      return true;
+    }
 
-          if (witnessOptions.removeInsufficientEdges()) {
-            if (INSUFFICIENT_KEYS.containsAll(label.getMapping().keySet())) {
-              return true;
-            }
-          }
+    if (witnessOptions.removeInsufficientEdges() &&
+        INSUFFICIENT_KEYS.containsAll(label.getMapping().keySet())) {
+      return true;
+    }
 
-          return false;
+    return false;
   }
 
   /**
