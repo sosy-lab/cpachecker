@@ -210,7 +210,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     return EMPTY;
   }
 
-  class Scope implements Comparable<Scope> {
+  static class Scope implements Comparable<Scope> {
 
     private final Optional<String> functionName;
 
