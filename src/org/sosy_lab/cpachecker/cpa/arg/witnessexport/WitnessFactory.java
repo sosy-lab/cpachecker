@@ -71,8 +71,6 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.BiPredicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -158,9 +156,6 @@ class WitnessFactory implements EdgeAppender {
           KeyDef.ASSUMPTIONRESULTFUNCTION,
           KeyDef.THREADID,
           KeyDef.THREADNAME);
-
-  private static final Pattern CLONED_FUNCTION_NAME_PATTERN =
-      Pattern.compile("(.+)(__cloned_function__\\d+)");
 
   private static final ARGState getCoveringState(ARGState pChild) {
       ARGState child = pChild;
@@ -495,7 +490,7 @@ class WitnessFactory implements EdgeAppender {
         functionName = succ.getFunctionName();
       }
       if (functionName != null) {
-        result = result.putAndCopy(KeyDef.FUNCTIONENTRY, getOriginalFunctionName(functionName));
+        result = result.putAndCopy(KeyDef.FUNCTIONENTRY, functionName);
       }
     }
 
@@ -503,7 +498,7 @@ class WitnessFactory implements EdgeAppender {
         && pEdge.getSuccessor() instanceof FunctionExitNode) {
       FunctionEntryNode entryNode = ((FunctionExitNode) pEdge.getSuccessor()).getEntryNode();
       String functionName = entryNode.getFunctionDefinition().getOrigName();
-      result = result.putAndCopy(KeyDef.FUNCTIONEXIT, getOriginalFunctionName(functionName));
+      result = result.putAndCopy(KeyDef.FUNCTIONEXIT, functionName);
     }
 
     if (pEdge instanceof AssumeEdge && !AutomatonGraphmlCommon.isPartOfTerminatingAssumption(pEdge)) {
@@ -974,7 +969,8 @@ class WitnessFactory implements EdgeAppender {
                         succThreadingState
                             .getThreadLocation(threadId)
                             .getLocationNode()
-                            .getFunctionName();
+                            .getFunction()
+                            .getOrigName();
                     threadInitialFunctionName = Optional.of(calledFunctionName);
                   }
                 }
@@ -1009,14 +1005,6 @@ class WitnessFactory implements EdgeAppender {
 
   private int getUniqueThreadNum(String threadId) {
     return numericThreadIdProvider.provideNumericId(threadId);
-  }
-
-  private String getOriginalFunctionName(String pFunctionName) {
-    Matcher matcher = CLONED_FUNCTION_NAME_PATTERN.matcher(pFunctionName);
-    if (matcher.matches()) {
-      return matcher.group(1);
-    }
-    return pFunctionName;
   }
 
   /**
