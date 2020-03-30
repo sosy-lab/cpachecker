@@ -336,8 +336,7 @@ public class CFloatImpl extends CFloat {
   }
 
   private int[] digitwiseAdd(final int[] pArrayA, final int[] pArrayB, final int pRadix) {
-    int[] rArray =
-        new int[((pArrayB.length > pArrayA.length) ? pArrayB.length : pArrayA.length) + 1];
+    int[] rArray = new int[Math.max(pArrayB.length, pArrayA.length) + 1];
 
     for (int i = rArray.length - 1; i >= 0; i--) {
       rArray[i] +=

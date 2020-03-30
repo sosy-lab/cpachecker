@@ -142,7 +142,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       }
     }
 
-    int score = pMatchResult.getScore() > pMatchResult2.getScore() ? pMatchResult.getScore() : pMatchResult2.getScore();
+    int score = Math.max(pMatchResult.getScore(), pMatchResult2.getScore());
 
     MatchResult destres = builder.build();
 
