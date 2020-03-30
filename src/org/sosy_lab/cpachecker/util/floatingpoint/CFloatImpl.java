@@ -468,10 +468,10 @@ public class CFloatImpl extends CFloat {
     CFloat divisor = new CFloatImpl("1", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
     CFloat result = new CFloatImpl("0", pType);
-    for (int i = 0; i < digits.size(); i++) {
+    for (String pDigit : digits) {
       result = result.multiply(ten);
       divisor = divisor.multiply(ten);
-      CFloat fD = new CFloatImpl(digits.get(i), pType);
+      CFloat fD = new CFloatImpl(pDigit, pType);
       result = result.add(fD);
     }
     result = result.divideBy(divisor);

@@ -79,10 +79,8 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
   boolean fitsPath(List<CFAEdge> pPath) {
     int index = 0;
-    Iterator<CFAEdge> it = pPath.iterator();
 
-    while (it.hasNext()) {
-      CFAEdge edge = it.next();
+    for (CFAEdge edge : pPath) {
       CFAEdgeWithAssumptions cfaWithAssignment = pathWithAssignments.get(index);
 
       if (!edge.equals(cfaWithAssignment.getCFAEdge())) {

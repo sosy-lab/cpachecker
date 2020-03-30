@@ -177,8 +177,7 @@ public class CustomInstruction {
 
     if (!inputVariables.isEmpty()) {
       String last = inputVariables.get(inputVariables.size()-1);
-      for (int i=0; i<inputVariables.size(); i++) {
-        String variable = inputVariables.get(i);
+      for (String variable : inputVariables) {
         if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(variable, false));
 //          sb.append("= ");
@@ -194,8 +193,7 @@ public class CustomInstruction {
 
     if (!outputVariables.isEmpty()) {
       String last = outputVariables.get(outputVariables.size()-1);
-      for (int i=0; i<outputVariables.size(); i++) {
-        String variable = outputVariables.get(i);
+      for (String variable : outputVariables) {
         if (variable.equals(last)) {
           sb.append(" ");
           sb.append(getAssignmentOfVariableToZero(variable, true));
@@ -381,8 +379,7 @@ public class CustomInstruction {
 
     if (!inputVariables.isEmpty()) {
       String last = inputVariables.get(inputVariables.size()-1);
-      for (int i=0; i<inputVariables.size(); i++) {
-        String variable = inputVariables.get(i);
+      for (String variable : inputVariables) {
         if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(map.get(variable), false));
         } else {
@@ -395,8 +392,7 @@ public class CustomInstruction {
 
     if (!outputVariables.isEmpty()) {
       String last = outputVariables.get(outputVariables.size()-1);
-      for (int i=0; i<outputVariables.size(); i++) {
-        String variable = outputVariables.get(i);
+      for (String variable : outputVariables) {
         if (variable.equals(last)) {
           sb.append(" ");
           sb.append(getAssignmentOfVariableToZero(map.get(variable), true));

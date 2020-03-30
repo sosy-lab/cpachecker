@@ -42,7 +42,6 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -684,8 +683,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   private PathFormula createSinglePathFormula(
       List<PathFormula> pPathFormulas, PathFormula pStartFormula) {
     PathFormula result = pathFormulaManager.makeEmptyPathFormula(pStartFormula);
-    for (Iterator<PathFormula> iterator = pPathFormulas.iterator(); iterator.hasNext(); ) {
-      PathFormula next = iterator.next();
+    for (PathFormula next : pPathFormulas) {
       BooleanFormula resultFormula =
           formulaManagerView.getBooleanFormulaManager().and(result.getFormula(), next.getFormula());
       result =

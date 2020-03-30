@@ -441,11 +441,7 @@ public class PdrAlgorithm implements Algorithm {
       TotalTransitionRelation pTransitionRelation)
       throws InterruptedException, SolverException, CPAException {
 
-    Iterator<CandidateInvariant> rootInvariantIterator = pCandidateGenerator.iterator();
-
-    while (rootInvariantIterator.hasNext()) {
-
-      CandidateInvariant rootCandidateInvariant = rootInvariantIterator.next();
+    for (CandidateInvariant rootCandidateInvariant : pCandidateGenerator) {
 
       FrontierExtensionResult frontierExtensionResult = null;
       while (frontierExtensionResult == null || !frontierExtensionResult.isSuccessful()) {
