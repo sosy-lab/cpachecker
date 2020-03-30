@@ -165,6 +165,10 @@ class WitnessFactory implements EdgeAppender {
       return child;
   }
 
+  private static boolean isTmpVariable(AIdExpression exp) {
+    return exp.getDeclaration().getQualifiedName().toUpperCase().contains("__CPACHECKER_TMP");
+  }
+
   static final Function<CFAEdgeWithAssumptions, CFAEdgeWithAssumptions> ASSUMPTION_FILTER =
       new Function<>() {
 
@@ -648,22 +652,7 @@ class WitnessFactory implements EdgeAppender {
           functionScope = true;
         }
 
-        // Do not export our own temporary variables
-        Predicate<AIdExpression> isTmpVariable =
-            idExpression ->
-                idExpression
-                    .getDeclaration()
-                    .getQualifiedName()
-                    .toUpperCase()
-                    .contains("__CPACHECKER_TMP");
-        assignments =
-            Collections2.filter(
-                cfaEdgeWithAssignments.getExpStmts(),
-                statement ->
-                    statement.getExpression() instanceof CExpression
-                        && !CFAUtils.getIdExpressionsOfExpression(
-                                (CExpression) statement.getExpression())
-                            .anyMatch(isTmpVariable));
+        assignments = getAssignments(cfaEdgeWithAssignments, null);
 
         // Export function return value for cases where it is not explicitly assigned to a variable
         if (pEdge instanceof AStatementEdge) {
@@ -675,17 +664,9 @@ class WitnessFactory implements EdgeAppender {
                 && assignment.getFunctionCallExpression().getFunctionNameExpression()
                     instanceof AIdExpression) {
               AIdExpression idExpression = (AIdExpression) assignment.getLeftHandSide();
-              if (isTmpVariable.apply(idExpression)) {
-                assignments =
-                    Collections2.filter(
-                        cfaEdgeWithAssignments.getExpStmts(),
-                        statement ->
-                            statement.getExpression() instanceof CExpression
-                                && !CFAUtils.getIdExpressionsOfExpression(
-                                        (CExpression) statement.getExpression())
-                                    .anyMatch(
-                                        id ->
-                                            isTmpVariable.apply(id) && !id.equals(idExpression)));
+              if (isTmpVariable(idExpression)) {
+                // get only assignments without nested tmpVariables (except self)
+                assignments = getAssignments(cfaEdgeWithAssignments, idExpression);
                 resultVariable = Optional.of(idExpression);
                 AIdExpression resultFunctionName =
                     (AIdExpression)
@@ -752,6 +733,27 @@ class WitnessFactory implements EdgeAppender {
     }
 
     return Collections.singleton(result);
+  }
+
+  /**
+   * Extract all assignments from the given edge. Remove all assignments using tmp variables.
+   *
+   * @param toIgnore a tmp variable that will not be removed.
+   */
+  private Collection<AExpressionStatement> getAssignments(
+      CFAEdgeWithAssumptions cfaEdgeWithAssignments,
+      @Nullable AIdExpression toIgnore) {
+    // Do not export our own temporary variables
+    Predicate<CIdExpression> isGoodVariable = v -> !isTmpVariable(v) || v.equals(toIgnore);
+    Collection<AExpressionStatement> assignments = new ArrayList<>();
+    for (AExpressionStatement s : cfaEdgeWithAssignments.getExpStmts()) {
+      if (s.getExpression() instanceof CExpression
+          && CFAUtils.getIdExpressionsOfExpression((CExpression) s.getExpression())
+              .allMatch(isGoodVariable)) {
+        assignments.add(s);
+      }
+    }
+    return assignments;
   }
 
   /** Determine the scope for static local variables. */
