@@ -460,7 +460,8 @@ public class ConfigurationFileChecks {
     if (configFile instanceof Path) {
       assume()
           .that((Iterable<?>) configFile)
-          .containsNoneOf(Paths.get("includes"), Paths.get("pcc"));
+          .containsNoneOf(
+              Paths.get("includes"), Paths.get("pcc"), Paths.get("witnessValidation.properties"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
