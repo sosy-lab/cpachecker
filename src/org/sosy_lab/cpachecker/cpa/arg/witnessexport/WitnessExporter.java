@@ -156,7 +156,7 @@ public class WitnessExporter {
           return ExpressionTrees.getFalse();
         }
         if (!invString.equals("1")) {
-          return LeafExpression.of((Object) invString);
+          return LeafExpression.of(invString);
         }
       }
       return ExpressionTrees.getTrue(); // no new invariant
@@ -180,7 +180,7 @@ public class WitnessExporter {
               .getExpStmts();
       ImmutableList.Builder<ExpressionTree<Object>> stateInvariants = ImmutableList.builder();
       for (AExpressionStatement expressionStatement : invariants) {
-        stateInvariants.add(LeafExpression.of((Object) expressionStatement.getExpression()));
+        stateInvariants.add(LeafExpression.of(expressionStatement.getExpression()));
       }
       return stateInvariants.build();
     }

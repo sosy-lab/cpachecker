@@ -434,7 +434,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       CBinaryExpression binExpr = (CBinaryExpression) expr;
       if (binExpr.getOperator() == BinaryOperator.NOT_EQUALS
           && binExpr.getOperand2() instanceof CCastExpression
-          && ((CCastExpression) binExpr.getOperand2()).getExpressionType() instanceof CPointerType
+          && binExpr.getOperand2().getExpressionType() instanceof CPointerType
           && ((CCastExpression) binExpr.getOperand2()).getOperand() instanceof CLiteralExpression) {
         return true;
       }
