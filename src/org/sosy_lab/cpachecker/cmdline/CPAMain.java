@@ -361,7 +361,8 @@ public class CPAMain {
             .build();
 
     // Read witness file if present, switch to appropriate config and adjust cmdline options
-    config = handleWitnessOptions(config, cmdLineOptions);
+    config =
+        handleWitnessOptions(config, cmdLineOptions, extractApproachNameFromConfigName(configFile));
 
     BootstrapOptions options = new BootstrapOptions();
     config.inject(options);
@@ -656,7 +657,7 @@ public class CPAMain {
   }
 
   private static Configuration handleWitnessOptions(
-      Configuration config, Map<String, String> overrideOptions)
+      Configuration config, Map<String, String> overrideOptions, String approachName)
       throws InvalidConfigurationException, IOException, InterruptedException {
     WitnessOptions options = new WitnessOptions();
     config.inject(options);
@@ -688,9 +689,9 @@ public class CPAMain {
           "Validating (violation|correctness) witnesses is not supported if option witness.validation.(violation|correctness).config is not specified.");
     }
     return Configuration.builder()
-        .copyFrom(config)
         .loadFromFile(validationConfigFile)
         .setOptions(overrideOptions)
+        .setOption(APPROACH_NAME_OPTION, approachName)
         .clearOption("witness.validation.file")
         .clearOption("witness.validation.violation.config")
         .clearOption("witness.validation.correctness.config")
