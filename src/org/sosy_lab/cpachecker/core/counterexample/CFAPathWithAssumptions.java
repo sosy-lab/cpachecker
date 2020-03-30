@@ -69,7 +69,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
   }
 
   public static CFAPathWithAssumptions empty() {
-    return new CFAPathWithAssumptions(ImmutableList.<CFAEdgeWithAssumptions>of());
+    return new CFAPathWithAssumptions(ImmutableList.of());
   }
 
   @Override

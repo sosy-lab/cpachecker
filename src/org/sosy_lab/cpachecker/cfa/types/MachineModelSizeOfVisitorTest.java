@@ -239,7 +239,6 @@ public class MachineModelSizeOfVisitorTest {
 
   @Test
   public void testSizeOfStruct() {
-    assertThat(Optional.<BigInteger>of(model.getSizeof(testStruct)))
-        .hasValue(BigInteger.valueOf(expectedSize));
+    assertThat(Optional.of(model.getSizeof(testStruct))).hasValue(BigInteger.valueOf(expectedSize));
   }
 }

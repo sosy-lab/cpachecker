@@ -460,8 +460,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private Set<CVariableDeclaration> getRelevantVariables(Loop pLoop) {
     CFANode firstLoopHead = pLoop.getLoopHeads().iterator().next();
     if (firstLoopHead instanceof FunctionEntryNode) {
-      ImmutableSet.Builder<CVariableDeclaration> relVarBuilder =
-          ImmutableSet.<CVariableDeclaration>builder();
+      ImmutableSet.Builder<CVariableDeclaration> relVarBuilder = ImmutableSet.builder();
       relVarBuilder.addAll(globalDeclaration);
       for (CFANode entryNode :
           FluentIterable.from(pLoop.getLoopNodes())

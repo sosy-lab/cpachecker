@@ -566,7 +566,7 @@ public class AssumptionToEdgeAllocator {
     boolean equalTypes = leftType.equals(rightType);
 
     FluentIterable<Class<? extends CType>> acceptedTypes =
-        FluentIterable.from(Collections.<Class<? extends CType>>singleton(CSimpleType.class));
+        FluentIterable.from(Collections.singleton(CSimpleType.class));
     acceptedTypes = acceptedTypes.append(
           Arrays.asList(
               CArrayType.class,

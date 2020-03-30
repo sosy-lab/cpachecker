@@ -56,8 +56,8 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.Precisions;
 
 /**
  * This class is a modifiable live view of a reached set, which shows the ARG
@@ -375,7 +375,7 @@ public class ARGReachedSet {
 
       refinementGraph.writeSubgraph(
           e,
-          Functions.forMap(successors.asMap(), ImmutableSet.<ARGState>of()),
+          Functions.forMap(successors.asMap(), ImmutableSet.of()),
           Predicates.alwaysTrue(),
           BiPredicates.alwaysFalse());
 
