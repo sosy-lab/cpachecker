@@ -164,7 +164,7 @@ Release Tagging
 ---------------
 
 We use the following schema to construct tags for CPAchecker releases
-(from `cpachecker-1.8` onwards:
+(from `cpachecker-1.8` onwards):
 
 - `X.Y` is the *yearly release* in year `20XY`.
   There is exactly one such CPAchecker release every year.
