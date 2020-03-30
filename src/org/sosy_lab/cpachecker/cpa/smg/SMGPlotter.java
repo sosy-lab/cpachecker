@@ -340,7 +340,7 @@ public final class SMGPlotter {
       SMGValue value, Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     String explicitValue = "";
     if (explicitValues.containsKey(value)) {
-      explicitValue = " : " + String.valueOf(explicitValues.get(value).getAsLong());
+      explicitValue = " : " + explicitValues.get(value).getAsLong();
     }
     String prefix = "value_" + value.asDotId() + "[label=\"#" + value.asDotId() + explicitValue;
     if (value instanceof SMGKnownAddressValue) {

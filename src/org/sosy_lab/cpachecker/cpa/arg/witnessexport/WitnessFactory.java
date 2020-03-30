@@ -1895,7 +1895,7 @@ class WitnessFactory implements EdgeAppender {
 
     @Override
     public String toString() {
-      return String.format("Loop head: %s; Goto: %s", loopHead, Boolean.toString(gotoLoop));
+      return String.format("Loop head: %s; Goto: %s", loopHead, gotoLoop);
     }
 
     @Override

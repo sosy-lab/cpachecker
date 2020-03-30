@@ -66,7 +66,7 @@ public class PredicatePersistenceUtils {
     int splitIdx = out.indexOf("(assert");
     verify(splitIdx >= 0, "Unexpected formula format without '(assert': %s", out);
     String declarationsString = out.substring(0, splitIdx);
-    String formulaString = out.substring(splitIdx, out.length()).replace("\n", "");
+    String formulaString = out.substring(splitIdx).replace("\n", "");
 
     List<String> declarations;
 

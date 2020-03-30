@@ -749,7 +749,6 @@ public class ReportGenerator {
       } else {
         edgeLabel.append("Line ");
         edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
-        edgeLabel.append("");
         argEdge.put("line", edgeLabel.substring(5));
       }
       for (CFAEdge edge : edges) {

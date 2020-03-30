@@ -79,6 +79,6 @@ public class CoverageStatistics implements Statistics {
 
   @Override
   public String getName() {
-    return String.format("Code Coverage (Mode: Transfer)");
+    return "Code Coverage (Mode: Transfer)";
   }
 }

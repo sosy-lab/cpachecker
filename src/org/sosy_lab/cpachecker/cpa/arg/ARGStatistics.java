@@ -352,7 +352,7 @@ public class ARGStatistics implements Statistics {
     String path = pPath.toString();
     int sepIx = path.lastIndexOf(".");
     String prefix = path.substring(0, sepIx);
-    String extension = path.substring(sepIx, path.length());
+    String extension = path.substring(sepIx);
     return Paths.get(prefix + "-" + partitionKey + extension);
   }
 
