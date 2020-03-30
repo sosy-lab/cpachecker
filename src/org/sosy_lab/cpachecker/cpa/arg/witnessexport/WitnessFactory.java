@@ -1394,31 +1394,33 @@ class WitnessFactory implements EdgeAppender {
    * therefore be shortcut.
    */
   private final boolean isEdgeIrrelevant(Edge pEdge) {
-    if (isIrrelevantNode(pEdge.getTarget())) {
+    final String source = pEdge.getSource();
+    final String target = pEdge.getTarget();
+    final TransitionCondition label = pEdge.getLabel();
+
+    if (isIrrelevantNode(target)) {
             return true;
           }
 
-          if (stateQuasiInvariants.get(pEdge.getSource()) != null
-              && stateQuasiInvariants.get(pEdge.getTarget()) != null
-              && !stateQuasiInvariants
-                  .get(pEdge.getSource())
-                  .equals(stateQuasiInvariants.get(pEdge.getTarget()))) {
+    final ExpressionTree<Object> sourceInv = stateQuasiInvariants.get(source);
+    final ExpressionTree<Object> targetInv = stateQuasiInvariants.get(target);
+    if (sourceInv != null && targetInv != null && !sourceInv.equals(targetInv)) {
             return false;
           }
 
-          if (pEdge.getLabel().getMapping().isEmpty()) {
+    if (label.getMapping().isEmpty()) {
             return true;
           }
 
-          if (pEdge.getSource().equals(pEdge.getTarget())) {
+    if (source.equals(target)) {
             return false;
           }
 
           // An edge is never irrelevant if there are conflicting scopes
-          ExpressionTree<Object> sourceTree = getStateInvariant(pEdge.getSource());
+          ExpressionTree<Object> sourceTree = getStateInvariant(source);
           if (sourceTree != null) {
-            String sourceScope = stateScopes.get(pEdge.getSource());
-            String targetScope = stateScopes.get(pEdge.getTarget());
+            String sourceScope = stateScopes.get(source);
+            String targetScope = stateScopes.get(target);
             if (sourceScope != null && targetScope != null && !sourceScope.equals(targetScope)) {
               return false;
             }
@@ -1429,25 +1431,24 @@ class WitnessFactory implements EdgeAppender {
           // are summarized by a preceding edge
           boolean summarizedByPreceedingEdge =
               Iterables.any(
-                  enteringEdges.get(pEdge.getSource()),
-                  pPrecedingEdge -> pPrecedingEdge.getLabel().summarizes(pEdge.getLabel()));
+                  enteringEdges.get(source),
+                  pPrecedingEdge -> pPrecedingEdge.getLabel().summarizes(label));
 
-          if ((!pEdge.getLabel().hasTransitionRestrictions()
+          if ((!label.hasTransitionRestrictions()
                   || summarizedByPreceedingEdge
-                  || (pEdge.getLabel().getMapping().size() == 1
-                      && pEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONEXIT)))
-              && (leavingEdges.get(pEdge.getSource()).size() == 1)) {
+              || (label.getMapping().size() == 1 && label.getMapping().containsKey(KeyDef.FUNCTIONEXIT)))
+              && (leavingEdges.get(source).size() == 1)) {
             return true;
           }
 
           if (Iterables.all(
-              leavingEdges.get(pEdge.getSource()),
+              leavingEdges.get(source),
               pLeavingEdge -> !pLeavingEdge.getLabel().hasTransitionRestrictions())) {
             return true;
           }
 
           if (witnessOptions.removeInsufficientEdges()) {
-            if (INSUFFICIENT_KEYS.containsAll(pEdge.getLabel().getMapping().keySet())) {
+            if (INSUFFICIENT_KEYS.containsAll(label.getMapping().keySet())) {
               return true;
             }
           }
