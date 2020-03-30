@@ -74,7 +74,7 @@ public class ConstraintManager {
 
   public static boolean init(String firingRelation, String generalizationOperator, LogManager logM) {
 
-    String initstr[] = {
+    String[] initstr = {
       "swipl",
       "-x",
       NativeLibraries.getNativeLibraryPath().resolve("chc_lib").toString(),
@@ -99,7 +99,7 @@ public class ConstraintManager {
     // Create a list of variable to solve the constraint
     Term varList = Util.termArrayToList(vars.values().toArray(new Term[0]));
     // Solve constraint w.r.t. variables occurring in varList
-    Term args[] = {constraint, varList, new Variable("S")};
+    Term[] args = {constraint, varList, new Variable("S")};
     Query q = new Query("solve", args);
 
     logger.log(Level.FINEST, "\n * solve (w.r.t. " + varList + ")");
@@ -117,7 +117,7 @@ public class ConstraintManager {
     // Constraint 2
     Term constraint2 = Util.termArrayToList(cn2.getConstraint().toArray(new Term[0]));
 
-    Term args[] = {constraint1, constraint2};
+    Term[] args = {constraint1, constraint2};
 
     Query q = new Query("entails", args);
 
@@ -138,7 +138,7 @@ public class ConstraintManager {
     // Constraint 2
     Term constraint2 = Util.termArrayToList(cn2.getConstraint().toArray(new Term[0]));
 
-    Term args[] = {constraint1, constraint2, new Variable("G")};
+    Term[] args = {constraint1, constraint2, new Variable("G")};
 
     Query q = new Query("generalize", args);
 
