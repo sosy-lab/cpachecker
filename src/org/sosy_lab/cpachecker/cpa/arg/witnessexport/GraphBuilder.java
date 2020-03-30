@@ -135,8 +135,7 @@ enum GraphBuilder {
             edgeToNextState = allEdgeToNextState.get(allEdgeToNextState.size() - 1);
           }
 
-          Optional<Collection<ARGState>> state =
-              Optional.<Collection<ARGState>>of(Collections.singleton(s));
+          Optional<Collection<ARGState>> state = Optional.of(Collections.singleton(s));
 
           // Only proceed with this state if the path states contain the child
           if (pPathStates.apply(child) && pIsRelevantEdge.test(s, child)) {

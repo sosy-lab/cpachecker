@@ -1085,7 +1085,7 @@ class WitnessFactory implements EdgeAppender {
               }
             }
 
-            return Pair.<ARGState, Iterable<ARGState>>of(parent, children);
+            return Pair.of(parent, children);
           }
 
           @Override
