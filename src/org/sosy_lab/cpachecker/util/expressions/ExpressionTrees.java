@@ -35,13 +35,12 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.google.common.graph.Traverser;
 import java.io.Serializable;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -204,35 +203,8 @@ public final class ExpressionTrees {
 
   public static <LeafType> Iterable<ExpressionTree<LeafType>> traverseRecursively(
       ExpressionTree<LeafType> pExpressionTree) {
-    return new Iterable<>() {
-
-      @Override
-      public Iterator<ExpressionTree<LeafType>> iterator() {
-
-        return new Iterator<>() {
-
-          private final Deque<ExpressionTree<LeafType>> stack = new ArrayDeque<>();
-
-          {
-            stack.push(pExpressionTree);
-          }
-
-          @Override
-          public boolean hasNext() {
-            return !stack.isEmpty();
-          }
-
-          @Override
-          public ExpressionTree<LeafType> next() {
-            ExpressionTree<LeafType> next = stack.pop();
-            for (ExpressionTree<LeafType> child : getChildren(next)) {
-              stack.push(child);
-            }
-            return next;
-          }
-        };
-      }
-    };
+    return Traverser.<ExpressionTree<LeafType>>forTree(node -> getChildren(node))
+        .depthFirstPreOrder(pExpressionTree);
   }
 
   public static <LeafType> boolean isInCNF(ExpressionTree<LeafType> pExpressionTree) {
