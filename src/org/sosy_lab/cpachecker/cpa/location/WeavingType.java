@@ -21,7 +21,7 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 public enum WeavingType {
   DECLARATION,
-  ASSIGNMENT,
   ASSUMPTION,
-  NEGATEDASSUMPTION
+  NEGATEDASSUMPTION,
+  INCREMENT
 }

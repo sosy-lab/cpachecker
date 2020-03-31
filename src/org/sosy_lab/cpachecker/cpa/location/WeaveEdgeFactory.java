@@ -26,13 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -40,48 +33,20 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cpa.multigoal.MultiGoalState;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class WeaveEdgeFactory {
-  private static class WeavedVariable {
-    public WeavedVariable(
-        CVariableDeclaration pVarDecl,
-        CExpressionAssignmentStatement pIncrement,
-        CExpression pAssumption) {
-      this.varDecl = pVarDecl;
-      this.increment = pIncrement;
-      this.assumption = pAssumption;
-    }
 
-    CVariableDeclaration varDecl;
-    CExpressionAssignmentStatement increment;
-    CExpression assumption;
-
-    public CVariableDeclaration getVarDecl() {
-      return varDecl;
-    }
-
-    public CExpressionAssignmentStatement getIncrement() {
-      return increment;
-    }
-
-    public CExpression getAssumption() {
-      return assumption;
-    }
-  }
   private static class WeavingCacheKey {
     CFANode initialCFANode;
     CFANode finalCFANode;
-    ImmutableSet<Pair<CFAEdge, WeavingType>> weavingEdges;
-
+    ImmutableSet<Pair<WeavingVariable, WeavingType>> weavingEdges;
 
     public WeavingCacheKey(
         CFANode pInitialCFANode,
         CFANode pFinalCFANode,
-        ImmutableSet<Pair<CFAEdge, WeavingType>> pWeavingEdges) {
+        ImmutableSet<Pair<WeavingVariable, WeavingType>> pWeavingEdges) {
       initialCFANode = pInitialCFANode;
       finalCFANode = pFinalCFANode;
       weavingEdges = pWeavingEdges;
@@ -111,8 +76,8 @@ public class WeaveEdgeFactory {
       if (wck.weavingEdges.size() != weavingEdges.size()) {
         return false;
       }
-      Iterator<Pair<CFAEdge, WeavingType>> iter1 = weavingEdges.iterator();
-      Iterator<Pair<CFAEdge, WeavingType>> iter2 = wck.weavingEdges.iterator();
+      Iterator<Pair<WeavingVariable, WeavingType>> iter1 = weavingEdges.iterator();
+      Iterator<Pair<WeavingVariable, WeavingType>> iter2 = wck.weavingEdges.iterator();
       while (iter1.hasNext()) {
         if (!iter2.hasNext()) {
           return false;
@@ -127,8 +92,6 @@ public class WeaveEdgeFactory {
 
   }
 
-
-  private Map<CFAEdge, WeavedVariable> edgeToVar;
   private Map<WeavingCacheKey, List<CFAEdge>> weavingCache;
   private Map<CFANode, LocationState> locations;
   Map<CFAEdge, CFAEdge> weavedEdgesToOriginalEdgesMap;
@@ -136,7 +99,6 @@ public class WeaveEdgeFactory {
 
   private WeaveEdgeFactory() {
     weavingCache = new HashMap<>();
-    edgeToVar = new HashMap<>();
     locations = new HashMap<>();
     weavedEdgesToOriginalEdgesMap = new HashMap<>();
   }
@@ -160,13 +122,11 @@ public class WeaveEdgeFactory {
   }
 
   private CFAEdge
-      createWeaveEdge(Pair<CFAEdge, WeavingType> pair, CFANode successor, CFANode predecessor) {
-    CFAEdge edge = pair.getFirst();
-    if (!edgeToVar.containsKey(edge)) {
-      createVariableForEdge(edge);
-    }
-
-    WeavedVariable var = edgeToVar.get(edge);
+      createWeaveEdge(
+          Pair<WeavingVariable, WeavingType> pair,
+          CFANode successor,
+          CFANode predecessor) {
+    WeavingVariable var = pair.getFirst();
     CFAEdge weaveEdge = null;
     if (pair.getSecond() == WeavingType.DECLARATION) {
       weaveEdge =
@@ -196,7 +156,7 @@ public class WeaveEdgeFactory {
               var.getAssumption(),
               false);
 
-    } else if (pair.getSecond() == WeavingType.ASSIGNMENT) {
+    } else if (pair.getSecond() == WeavingType.INCREMENT) {
       weaveEdge =
           new CStatementEdge(
               "weaved_" + var.getIncrement().toASTString(),
@@ -205,43 +165,11 @@ public class WeaveEdgeFactory {
               predecessor,
               successor);
     }
+
     return weaveEdge;
   }
 
-  private void createVariableForEdge(CFAEdge pEdge) {
-    String name = WeavingEdgeToVarName(pEdge);
-    CVariableDeclaration varDecl =
-        new CVariableDeclaration(
-            FileLocation.DUMMY,
-            true,
-            CStorageClass.AUTO,
-            CNumericTypes.INT,
-            name,
-            name,
-            name,
-            new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO));
 
-    CIdExpression variable =
-        new CIdExpression(FileLocation.DUMMY, CNumericTypes.INT, name, varDecl);
-
-    CExpressionAssignmentStatement increment =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY,
-            variable,
-            CIntegerLiteralExpression.ONE);
-
-    CExpression assumption =
-        new CBinaryExpression(
-            FileLocation.DUMMY,
-            CNumericTypes.INT,
-            CNumericTypes.INT,
-            variable,
-            CIntegerLiteralExpression.ONE,
-            CBinaryExpression.BinaryOperator.EQUALS);
-
-    edgeToVar.put(pEdge, new WeavedVariable(varDecl, increment, assumption));
-
-  }
 
   private LocationState getStateForNode(CFANode node) {
     if (!locations.containsKey(node)) {
@@ -294,52 +222,13 @@ public class WeaveEdgeFactory {
     return weavedEdgesToOriginalEdgesMap;
   }
 
-
-
-  // private void createNegatedEdges(
-  // MultiGoalState mgState,
-  // CFAEdge pCfaEdge,
-  // String functionName,
-  // WeavingCacheKey wck) {
-  // Iterator<Pair<CFAEdge, WeavingType>> iter = mgState.getEdgesToWeave().iterator();
-  // // TODO important to weave NEGATEDASSUMPTION last!
-  // List<CFAEdge> weavedEdges = new ArrayList<>();
-  // CFANode predecessor = pCfaEdge.getPredecessor();
-  //
-  // CFANode successor = null;
-  // while (iter.hasNext()) {
-  //
-  // Pair<CFAEdge, WeavingType> pair = iter.next();
-  // successor = new CFANode(functionName);
-  //
-  // CFAEdge weaveEdge = createWeaveEdge(pair, successor, predecessor);
-  // weavedEdges.add(weaveEdge);
-  //
-  // if (predecessor != pCfaEdge.getPredecessor()) {
-  // predecessor.addLeavingEdge(weaveEdge);
-  // }
-  //
-  // successor.addEnteringEdge(weaveEdge);
-  // predecessor = successor;
-  // }
-  //
-  // successor = pCfaEdge.getSuccessor();
-  // CFAEdge finalEdge = copy(pCfaEdge, predecessor, successor);
-  // weavedEdgesToOriginalEdgesMap.put(finalEdge, pCfaEdge);
-  // predecessor.addLeavingEdge(finalEdge);
-  // weavedEdges.add(finalEdge);
-  //
-  // weavingCache.put(wck, weavedEdges);
-  //
-  // }
-
   private void
       create(
           MultiGoalState mgState,
           CFAEdge pCfaEdge,
           String functionName,
           WeavingCacheKey wck) {
-    Iterator<Pair<CFAEdge, WeavingType>> iter = mgState.getEdgesToWeave().iterator();
+    Iterator<Pair<WeavingVariable, WeavingType>> iter = mgState.getEdgesToWeave().iterator();
     // TODO important to weave NEGATEDASSUMPTION last!
     List<CFAEdge> weavedEdges = new ArrayList<>();
     CFANode predecessor = new CFANode(functionName);
@@ -351,7 +240,7 @@ public class WeaveEdgeFactory {
     CFANode successor = null;
     while (iter.hasNext()) {
 
-      Pair<CFAEdge, WeavingType> pair = iter.next();
+      Pair<WeavingVariable, WeavingType> pair = iter.next();
       if (iter.hasNext()) {
         successor = new CFANode(functionName);
       } else {

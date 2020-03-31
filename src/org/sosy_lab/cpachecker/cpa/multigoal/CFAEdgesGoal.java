@@ -19,7 +19,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.multigoal;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -29,71 +28,45 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 public class CFAEdgesGoal implements Property {
 
-  private List<CFAEdge> edges;
-  private Set<Set<CFAEdge>> negatedEdges;
+  private PartialPath path;
+  private Set<PartialPath> negatedPaths;
 
 
   public CFAEdgesGoal(List<CFAEdge> pEdges) {
-    edges = pEdges;
+    path = new PartialPath(pEdges);
   }
 
   // returns true, if a change of state happened due to processing edge
   public boolean acceptsEdge(CFAEdge edge, int index) {
-    if (index < edges.size()) {
-      // if (edge.equals(edges.get(index))) {
-      // use object comparison instead of equals for performance reasons
-      if (edge == edges.get(index)) {
-        return true;
-      }
-    }
-    return false;
+    return path.acceptsEdge(edge, index);
   }
 
-  public void addNegatedEdges(Set<CFAEdge> pEdges) {
-    if (negatedEdges == null) {
-      negatedEdges = new HashSet<>();
+  public void addNegatedPath(List<CFAEdge> pEdges) {
+    if (negatedPaths == null) {
+      negatedPaths = new HashSet<>();
     }
-    negatedEdges.add(pEdges);
+    negatedPaths.add(new PartialPath(pEdges));
   }
 
-  public Set<Set<CFAEdge>> getNegatedEdges() {
-    if (negatedEdges == null) {
+  public Set<PartialPath> getNegatedPaths() {
+    if (negatedPaths == null) {
       return Collections.emptySet();
     }
-    return negatedEdges;
+    return negatedPaths;
   }
 
-  public List<CFAEdge> getEdges() {
-    return edges;
-  }
-
-  public void replaceEdges(List<CFAEdge> pNewEdges) {
-    edges = pNewEdges;
+  public PartialPath getPath() {
+    return path;
   }
 
   public boolean coveredByPath(List<CFAEdge> pPath) {
-    int index = 0;
-    for (CFAEdge edge : pPath) {
-      if (index >= edges.size()) {
-        break;
-      }
-      if (edge != null) {
-        if (edge.equals(edges.get(0))) {
-          index++;
-        }
-      }
-    }
-    return index >= edges.size();
-  }
-
-  public void addEdge(CFAEdge pEdge) {
-    edges.add(pEdge);
+    return path.isCoveredBy(pPath);
   }
 
   public boolean containsNegatedEdge(CFAEdge pCfaEdge) {
-    for (Collection<CFAEdge> negEdges : getNegatedEdges()) {
-      for (CFAEdge edge : negEdges) {
-        if (edge.equals(pCfaEdge)) {
+    if (negatedPaths != null) {
+      for (PartialPath negPath : negatedPaths) {
+        if (negPath.contains(pCfaEdge)) {
           return true;
         }
       }
@@ -104,22 +77,15 @@ public class CFAEdgesGoal implements Property {
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    builder.append("Edges:\n{");
-    for (CFAEdge edge : edges) {
-      builder.append(edge.toString());
-      builder.append(",");
-    }
-    builder.append("}\n");
+    builder.append("Edges:\n");
+    builder.append(path.toString());
+    builder.append("\n");
 
-    if (negatedEdges != null) {
-      builder.append("Negated Edges:\n");
-      for (Set<CFAEdge> nedges : negatedEdges) {
-        builder.append("{");
-        for (CFAEdge edge : nedges) {
-          builder.append(edge.toString());
-          builder.append(",");
-        }
-        builder.append("}\n");
+    if (negatedPaths != null) {
+      builder.append("Negated Paths:\n");
+      for (PartialPath negPath : negatedPaths) {
+        builder.append(negPath.toString());
+        builder.append("\n");
       }
     }
     return builder.toString();

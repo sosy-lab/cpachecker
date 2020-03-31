@@ -20,7 +20,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.goals;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
@@ -44,15 +43,7 @@ public class CFAGoal extends Goal {
 
   @Override
   public String getName() {
-    Iterator<CFAEdge> iter = cfaEdgesGoal.getEdges().iterator();
-    StringBuilder builder = new StringBuilder();
-    while (iter.hasNext()) {
-      builder.append(iter.next().toString());
-      if (iter.hasNext()) {
-        builder.append("->");
-      }
-    }
-    return builder.toString();
+    return cfaEdgesGoal.toString();
   }
 
   @Override

@@ -20,34 +20,113 @@
 package org.sosy_lab.cpachecker.cpa.multigoal;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.location.WeavingType;
+import org.sosy_lab.cpachecker.cpa.location.WeavingVariable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
   private Set<CFAEdgesGoal> goals;
   private Set<CFAEdgesGoal> coveredGoals;
+  private Map<Object, WeavingVariable> weavingVarStore;
 
   MutliGoalTransferRelation() {
     coveredGoals = new HashSet<>();
+    weavingVarStore = new HashMap<>();
+  }
+
+  private void createweavingVariableForObj(Object obj, int assumeNumber) {
+    String name = "weaved_" + UUID.randomUUID().toString().replaceAll("-", "");
+    CVariableDeclaration varDecl =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            true,
+            CStorageClass.AUTO,
+            CNumericTypes.INT,
+            name,
+            name,
+            name,
+            new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO));
+
+    CIdExpression variable =
+        new CIdExpression(FileLocation.DUMMY, CNumericTypes.INT, name, varDecl);
+
+    CExpressionAssignmentStatement increment =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY,
+            variable,
+            CIntegerLiteralExpression.ONE);
+
+    CExpression assumption =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            CNumericTypes.INT,
+            variable,
+            CIntegerLiteralExpression.createDummyLiteral(assumeNumber, CNumericTypes.INT),
+            CBinaryExpression.BinaryOperator.EQUALS);
+
+    weavingVarStore.put(obj, new WeavingVariable(varDecl, increment, assumption));
+
+  }
+
+  LinkedHashSet<Pair<WeavingVariable, WeavingType>> getPredWeavingEdges(MultiGoalState predState) {
+    if (predState.isInitialState()) {
+      return initializeWeavingForAllGoals();
+    } else {
+      return new LinkedHashSet<>();
+    }
+  }
+
+  Map<CFAEdgesGoal, Map<PartialPath, Integer>> getPredNegatedPathStates(MultiGoalState predState) {
+    Map<CFAEdgesGoal, Map<PartialPath, Integer>> negatedPaths = new HashMap<>();
+    if (predState.isInitialState()) {
+      for (CFAEdgesGoal goal : goals) {
+        if (goal.getNegatedPaths().size() > 0) {
+        Map<PartialPath, Integer> map = new HashMap<>();
+        for (PartialPath path : goal.getNegatedPaths()) {
+          map.put(path, 0);
+        }
+        negatedPaths.put(goal, map);
+        }
+      }
+    } else {
+      for (Entry<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> entry : predState
+          .getNegatedPathsPerGoal()
+          .entrySet()) {
+        Map<PartialPath, Integer> pathStates = new HashMap<>();
+        for (Entry<PartialPath, Integer> pathState : entry.getValue().entrySet()) {
+          pathStates.put(pathState.getKey(), pathState.getValue());
+        }
+        negatedPaths.put(entry.getKey(), pathStates);
+      }
+    }
+    return negatedPaths;
   }
 
   @Override
@@ -58,41 +137,22 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException, InterruptedException {
 
     MultiGoalState predState = (MultiGoalState) pState;
-    LinkedHashSet<Pair<CFAEdge, WeavingType>> weavingEdges = null;
-    HashMap<CFAEdgesGoal, Set<Set<CFAEdge>>> unlockedNegatedEdges = null;
-    if (predState.isInitialState()) {
-     weavingEdges = initializeWeavingForAllGoals();
-      unlockedNegatedEdges = new HashMap<>();
-      for (CFAEdgesGoal goal : goals) {
-        if (goal.getNegatedEdges().size() > 0) {
-          unlockedNegatedEdges.put(goal, new HashSet<>(goal.getNegatedEdges()));
-        }
-      }
-    } else {
-      unlockedNegatedEdges = new HashMap<>();
-      for(Entry<CFAEdgesGoal, ImmutableSet<ImmutableSet<CFAEdge>>> entry: predState.getUnlockedNegatedEdgesPerGoal().entrySet()) {
-        HashSet<Set<CFAEdge>> sets = new HashSet<>();
-        for (ImmutableSet<CFAEdge> set : entry.getValue()) {
-          sets.add(new HashSet<>(set));
-        }
-        unlockedNegatedEdges.put(entry.getKey(), sets);
-      }
+    LinkedHashSet<Pair<WeavingVariable, WeavingType>> weavingEdges = getPredWeavingEdges(predState);
+    Map<CFAEdgesGoal, Map<PartialPath, Integer>> negatedPaths = getPredNegatedPathStates(predState);
 
-      weavingEdges = new LinkedHashSet<>();
-    }
     // if edge is weaved, it needs to be removed from weaved edges instead of processing the edge
     Set<CFAEdge> weavedEdges = new HashSet<>(predState.getWeavedEdges());
     if (weavedEdges.contains(pCfaEdge)) {
       weavedEdges.remove(pCfaEdge);
       return Collections
           .singleton(
-              createSuccessor(
+              new MultiGoalState(
                   predState.getGoals(),
                   weavingEdges,
                   weavedEdges,
-                  predState.getUnlockedNegatedEdgesPerGoal()));
+                  predState.getNegatedPathsPerGoal()));
     } else {
-      return processEdge(predState, pCfaEdge, weavingEdges, unlockedNegatedEdges);
+      return processEdge(predState, pCfaEdge, weavingEdges, negatedPaths);
     }
   }
 
@@ -101,21 +161,43 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
       processEdge(
           MultiGoalState predState,
           final CFAEdge pCfaEdge,
-          LinkedHashSet<Pair<CFAEdge, WeavingType>> edgesToWeave,
-          HashMap<CFAEdgesGoal, Set<Set<CFAEdge>>> unlockedNegatedEdges) {
+          LinkedHashSet<Pair<WeavingVariable, WeavingType>> edgesToWeave,
+          Map<CFAEdgesGoal, Map<PartialPath, Integer>> pNegatedPredPathStates) {
+
     Map<CFAEdgesGoal, Integer> succGoals = new HashMap<>(predState.getGoals());
-    processEdge(edgesToWeave, succGoals, unlockedNegatedEdges, pCfaEdge);
+
+    boolean needsWeaving = false;
+    for (CFAEdgesGoal goal : goals) {
+      needsWeaving = processGoal(goal, succGoals, pCfaEdge);
+      if (pCfaEdge instanceof AssumeEdge) {
+        if (pNegatedPredPathStates.containsKey(goal)) {
+          Map<PartialPath, Integer> pathStates = pNegatedPredPathStates.get(goal);
+          for (Entry<PartialPath, Integer> entry : pathStates.entrySet()) {
+            if (entry.getKey().acceptsEdge(pCfaEdge, entry.getValue())) {
+              edgesToWeave.add(Pair.of(getWeavedVariable(entry.getKey()), WeavingType.INCREMENT));
+              pathStates.put(entry.getKey(), (entry.getValue() + 1));
+            } else {
+              pathStates.put(entry.getKey(), -1);
+            }
+          }
+        }
+      }
+    }
+    if (needsWeaving) {
+      edgesToWeave.add(Pair.of(getWeavedVariable(pCfaEdge), WeavingType.INCREMENT));
+    }
+
     HashSet<CFAEdgesGoal> finishedGoals =
-        getFinishedGoals(succGoals, unlockedNegatedEdges, predState);
+        getFinishedGoals(succGoals, pNegatedPredPathStates, predState);
 
     if (finishedGoals.size() == 0) {
       return Collections
           .singleton(
-              createSuccessor(
+              new MultiGoalState(
                   succGoals,
                   edgesToWeave,
-                  predState,
-                  unlockedNegatedEdges));
+                  predState.getWeavedEdges(),
+                  pNegatedPredPathStates));
     }
     // make sure each successor only covers 1 goal
     // otherwise weaving will break
@@ -124,107 +206,113 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
         finishedGoals,
         succGoals,
         edgesToWeave,
-        predState,
-        unlockedNegatedEdges);
+        predState);
   }
 
-  private MultiGoalState createSuccessor(
-      ImmutableMap<CFAEdgesGoal, Integer> pGoals,
-      LinkedHashSet<Pair<CFAEdge, WeavingType>> pWeavingEdges,
-      Set<CFAEdge> pWeavedEdges,
-      Map<CFAEdgesGoal, ImmutableSet<ImmutableSet<CFAEdge>>> pUnlockedNegatedEdgesPerGoal) {
-      return new MultiGoalState(pGoals, pWeavingEdges, pWeavedEdges, pUnlockedNegatedEdgesPerGoal);
-  }
 
-  private MultiGoalState createSuccessor(
-      Map<CFAEdgesGoal, Integer> pSuccessorGoals,
-      LinkedHashSet<Pair<CFAEdge, WeavingType>> pNewEdgesToWeave,
-      MultiGoalState predState,
-      Map<CFAEdgesGoal, Set<Set<CFAEdge>>> pUnlockedNegatedEdges) {
-    return new MultiGoalState(
-        pSuccessorGoals,
-        pNewEdgesToWeave,
-        predState.getWeavedEdges(),
-        pUnlockedNegatedEdges);
-  }
 
-  private HashSet<MultiGoalState> generateSuccessorForGoal(
+
+  private MultiGoalState generateSuccessorForGoal(
       CFAEdgesGoal goal,
       HashSet<CFAEdgesGoal> finishedGoals,
       Map<CFAEdgesGoal, Integer> succGoals,
-      LinkedHashSet<Pair<CFAEdge, WeavingType>> edgesToWeave,
+      LinkedHashSet<Pair<WeavingVariable, WeavingType>> edgesToWeave,
       MultiGoalState predState) {
-    HashSet<MultiGoalState> succs = new HashSet<>();
+
+    // HashSet<MultiGoalState> succs = new HashSet<>();
     Map<CFAEdgesGoal, Integer> successorGoals = new HashMap<>(succGoals);
     successorGoals.keySet().removeAll(finishedGoals);
-    successorGoals.put(goal, goal.getEdges().size());
-    LinkedHashSet<Pair<CFAEdge, WeavingType>> newEdgesToWeave = new LinkedHashSet<>(edgesToWeave);
-    if (goal.getEdges().size() > 1) {
-      for (CFAEdge cfaEdge : goal.getEdges()) {
-        newEdgesToWeave.add(Pair.of(cfaEdge, WeavingType.ASSUMPTION));
+    successorGoals.put(goal, goal.getPath().size());
+    LinkedHashSet<Pair<WeavingVariable, WeavingType>> newEdgesToWeave =
+        new LinkedHashSet<>(edgesToWeave);
+    if (goal.getPath().size() > 1) {
+      for (CFAEdge cfaEdge : goal.getPath().getEdges()) {
+        newEdgesToWeave.add(Pair.of(getWeavedVariable(cfaEdge), WeavingType.ASSUMPTION));
       }
     }
-    if (goal.getNegatedEdges().size() > 0) {
 
-      List<Set<CFAEdge>> negated = new ArrayList<>();
-      negated.addAll(goal.getNegatedEdges());
-      Set<List<CFAEdge>> product = Sets.cartesianProduct(negated);
-      for (List<CFAEdge> negatedEdges : product) {
-        LinkedHashSet<Pair<CFAEdge, WeavingType>> edgesToWeaveCopy =
-            new LinkedHashSet<>(newEdgesToWeave);
-        for (CFAEdge edge : negatedEdges) {
-          edgesToWeaveCopy.add(Pair.of(edge, WeavingType.NEGATEDASSUMPTION));
-        }
-        MultiGoalState succ =
-            new MultiGoalState(
-                successorGoals,
-                edgesToWeaveCopy,
-                predState.getWeavedEdges(),
-                null);
-        succs.add(succ);
-
-        //TODO test with only one succ
-        // break;
+    if (goal.getNegatedPaths().size() > 0) {
+      for(PartialPath path: goal.getNegatedPaths()) {
+        newEdgesToWeave.add(Pair.of(getWeavedVariable(path), WeavingType.NEGATEDASSUMPTION));
       }
-    } else {
-      succs.add(
-          createSuccessor(
-              successorGoals,
-              newEdgesToWeave,
-              predState,
-              null));
     }
-    return succs;
+    return new MultiGoalState(
+      successorGoals,
+      newEdgesToWeave,
+    predState.getWeavedEdges(),
+        predState.getNegatedPathsPerGoal());
+
+//    if (goal.getNegatedPaths().size() > 0) {
+//      for(PartialPath path: goal.getNegatedPaths()) {
+//        LinkedHashSet<Pair<WeavingVariable, WeavingType>> edgesToWeaveCopy =
+//            new LinkedHashSet<>(newEdgesToWeave);
+//        edgesToWeaveCopy.add(Pair.of(getWeavedVariable(path), WeavingType.NEGATEDASSUMPTION));
+//        MultiGoalState succ =
+//            new MultiGoalState(
+//                successorGoals,
+//                edgesToWeaveCopy,
+//                predState.getWeavedEdges(),
+//                predState.getNegatedPathsPerGoal());
+//        succs.add(succ);
+//      }
+//    } else {
+//        succs.add(
+//          new MultiGoalState(
+//                successorGoals,
+//                newEdgesToWeave,
+//              predState.getWeavedEdges(),
+//              predState.getNegatedPathsPerGoal()));
+//      }
+//    return succs;
   }
+
+  private WeavingVariable getWeavedVariable(Object obj) {
+    return weavingVarStore.get(obj);
+  }
+
   private Collection<MultiGoalState> generateSuccessorPerFinishedGoal(
       HashSet<CFAEdgesGoal> finishedGoals,
       Map<CFAEdgesGoal, Integer> succGoals,
-      LinkedHashSet<Pair<CFAEdge, WeavingType>> edgesToWeave,
-      MultiGoalState predState,
-      HashMap<CFAEdgesGoal, Set<Set<CFAEdge>>> unlockedNegatedEdges) {
+      LinkedHashSet<Pair<WeavingVariable, WeavingType>> edgesToWeave,
+      MultiGoalState predState) {
 
+    // TODO might need change concerning paths
     HashSet<MultiGoalState> succs = new HashSet<>();
     Iterator<CFAEdgesGoal> iter = finishedGoals.iterator();
     while (iter.hasNext()) {
       CFAEdgesGoal goal = iter.next();
-      // if goal wasnt unlocked until now, it should not return a successor
-      if (!unlockedNegatedEdges.containsKey(goal) || unlockedNegatedEdges.get(goal).size() == 0) {
-      succs.addAll(
+      succs.add(
           generateSuccessorForGoal(goal, finishedGoals, succGoals, edgesToWeave, predState));
-      }
     }
     return succs;
   }
 
+  private boolean foundNotNegatedPathForGoal(
+      Map<CFAEdgesGoal, Map<PartialPath, Integer>> negatedPathStates,
+      CFAEdgesGoal goal) {
+    // if no negated path for the goal exists, the path is always "not negated"
+    if (!negatedPathStates.containsKey(goal)) {
+      return true;
+    }
+    // if a path exists, that hat different number of assume edges as the negated paths
+    // a not negated path is found
+    for (Entry<PartialPath, Integer> entry : negatedPathStates.get(goal).entrySet()) {
+      if (entry.getKey().size() != entry.getValue()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private HashSet<CFAEdgesGoal> getFinishedGoals(
       Map<CFAEdgesGoal, Integer> succGoals,
-      HashMap<CFAEdgesGoal, Set<Set<CFAEdge>>> unlockedNegatedEdges,
+      Map<CFAEdgesGoal, Map<PartialPath, Integer>> negatedPathStates,
       MultiGoalState predState) {
     HashSet<CFAEdgesGoal> finishedGoals = new HashSet<>();
     for (CFAEdgesGoal goal : goals) {
       if (succGoals.containsKey(goal)) {
-        if (succGoals.get(goal) >= goal.getEdges().size()
-            && (!unlockedNegatedEdges.containsKey(goal) || unlockedNegatedEdges.get(goal).isEmpty())
+        if (succGoals.get(goal) >= goal.getPath().size()
+            && foundNotNegatedPathForGoal(negatedPathStates, goal)
             && predState.getWeavedEdges().isEmpty()
             && predState.getEdgesToWeave().isEmpty()) {
             finishedGoals.add(goal);
@@ -234,61 +322,36 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
     return finishedGoals;
   }
 
-  private void processEdge(
-      LinkedHashSet<Pair<CFAEdge, WeavingType>> edgesToWeave,
-      Map<CFAEdgesGoal, Integer> succGoals,
-      HashMap<CFAEdgesGoal, Set<Set<CFAEdge>>> succUnlocked,
-      CFAEdge pCfaEdge) {
-    boolean needsWeaving = false;
-    for (Entry<CFAEdgesGoal, Set<Set<CFAEdge>>> entry : succUnlocked.entrySet()) {
-      Iterator<Set<CFAEdge>> iter = entry.getValue().iterator();
-      if (pCfaEdge instanceof AssumeEdge) {
-        while (iter.hasNext()) {
-          Set<CFAEdge> next = iter.next();
-          if (!next.contains(pCfaEdge)) {
-            iter.remove();
-          }
-        }
-      }
+
+
+  private boolean
+      processGoal(CFAEdgesGoal goal, Map<CFAEdgesGoal, Integer> pSuccGoals, CFAEdge pCfaEdge) {
+    int index = 0;
+    if (pSuccGoals.containsKey(goal)) {
+      index = pSuccGoals.get(goal);
     }
-    if (edgesToWeave == null) {
-      edgesToWeave = new LinkedHashSet<>();
+    if (goal.acceptsEdge(pCfaEdge, index)) {
+      index++;
+      pSuccGoals.put(goal, index);
+      return goal.getPath().size() > 1;
     }
-    for (CFAEdgesGoal goal : goals) {
-      if (goal.containsNegatedEdge(pCfaEdge)) {
-        needsWeaving = true;
-      }
-      int index = 0;
-      if (succGoals.containsKey(goal)) {
-        index = succGoals.get(goal);
-      }
-      if (goal.acceptsEdge(pCfaEdge, index)) {
-        index++;
-        succGoals.put(goal, index);
-        if (goal.getEdges().size() > 1) {
-          needsWeaving = true;
-        }
-      }
-    }
-    if (needsWeaving) {
-      edgesToWeave.add(Pair.of(pCfaEdge, WeavingType.ASSIGNMENT));
-    }
+    return false;
   }
 
-  public LinkedHashSet<Pair<CFAEdge, WeavingType>> initializeWeavingForAllGoals() {
-    LinkedHashSet<Pair<CFAEdge, WeavingType>> weavingEdges = new LinkedHashSet<>();
+  public LinkedHashSet<Pair<WeavingVariable, WeavingType>> initializeWeavingForAllGoals() {
+    LinkedHashSet<Pair<WeavingVariable, WeavingType>> weavingEdges = new LinkedHashSet<>();
     for (CFAEdgesGoal goal : goals) {
       // no need to weave goal consists of only 1 edge
-      if (goal.getEdges().size() > 1) {
-        for (CFAEdge edge : goal.getEdges()) {
-          weavingEdges.add(Pair.of(edge, WeavingType.DECLARATION));
+      if (goal.getPath().size() > 1) {
+        for (CFAEdge edge : goal.getPath().getEdges()) {
+          createweavingVariableForObj(edge, 1);
+          weavingEdges.add(Pair.of(getWeavedVariable(edge), WeavingType.DECLARATION));
         }
       }
-      if (goal.getNegatedEdges() != null) {
-        for (Collection<CFAEdge> negatedEdges : goal.getNegatedEdges()) {
-          for (CFAEdge negatedEdge : negatedEdges) {
-            weavingEdges.add(Pair.of(negatedEdge, WeavingType.DECLARATION));
-          }
+      if (goal.getNegatedPaths() != null) {
+        for (PartialPath negatedPath : goal.getNegatedPaths()) {
+          createweavingVariableForObj(negatedPath, negatedPath.size());
+          weavingEdges.add(Pair.of(getWeavedVariable(negatedPath), WeavingType.DECLARATION));
         }
       }
     }

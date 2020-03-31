@@ -447,9 +447,9 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       int tcSize = testsuite.getCoveringTestCases(goal).size();
       if (tigerConfig.getNumberOfTestCasesPerGoal() > 1
           && tigerConfig.getNumberOfTestCasesPerGoal() > tcSize) {
-        HashSet<CFAEdge> negatedEdges = extractAssumeEdges(cex);
+        List<CFAEdge> negatedEdges = extractAssumeEdges(cex);
         // cannot continue with current exploration, since for weaving we need to restart
-        goal.getCFAEdgesGoal().addNegatedEdges(negatedEdges);
+        goal.getCFAEdgesGoal().addNegatedPath(negatedEdges);
         partitions.add(new HashSet<>(Arrays.asList(goal)));
       }
       partition.removeAll(coveredGoals);
@@ -497,10 +497,9 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     pReachedSet.reAddToWaitlist(parentArgState);
   }
 
-  private HashSet<CFAEdge> extractAssumeEdges(CounterexampleInfo cex) {
-    HashSet<CFAEdge> assumeEdges = new HashSet<>();
+  private List<CFAEdge> extractAssumeEdges(CounterexampleInfo cex) {
+    ArrayList<CFAEdge> assumeEdges = new ArrayList<>();
     for (CFAEdge edge : cex.getTargetPath().asEdgesList()) {
-
       if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
         String edgeRawStatement = edge.getRawStatement();
         if (!edgeRawStatement.startsWith("[weaved")) {

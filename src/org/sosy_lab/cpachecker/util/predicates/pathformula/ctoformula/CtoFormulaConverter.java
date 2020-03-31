@@ -293,7 +293,8 @@ public class CtoFormulaConverter {
     }
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
       boolean isRelevantVariable = var.getName().equals(RETURN_VARIABLE_NAME) ||
-          variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());
+          variableClassification.get().getRelevantVariables().contains(var.getQualifiedName())
+          || var.getName().startsWith("weaved_");
       if (options.overflowVariablesAreRelevant()) {
         isRelevantVariable |=
             variableClassification.get().getIntOverflowVars().contains(var.getQualifiedName());

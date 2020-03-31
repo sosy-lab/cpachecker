@@ -128,9 +128,9 @@ public class PartitionProvider {
       @Override
       public int compare(CFAGoal pO1, CFAGoal pO2) {
         // TODO Auto-generated method stub
-        List<CFAEdge> o1Edges = pO1.getCFAEdgesGoal().getEdges();
+        List<CFAEdge> o1Edges = pO1.getCFAEdgesGoal().getPath().getEdges();
         assert o1Edges.size() == 1;
-        List<CFAEdge> o2Edges = pO2.getCFAEdgesGoal().getEdges();
+        List<CFAEdge> o2Edges = pO2.getCFAEdgesGoal().getPath().getEdges();
         assert o2Edges.size() == 1;
         CFANode o1Succ = o1Edges.get(0).getSuccessor();
         CFANode o2Succ = o2Edges.get(0).getSuccessor();

@@ -19,10 +19,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.multigoal;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 import java.util.Map.Entry;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -62,20 +61,10 @@ public class MultiGoalAbstractDomain implements AbstractDomain {
 
     // check for less than
 
-    // if state2 contains a goal further explored than state1 it is not less or equal
-    for (Entry<CFAEdgesGoal, Integer> goal : mgs1.goals.entrySet()) {
-      if (!mgs2.goals.containsKey(goal.getKey())
-          || mgs2.goals.get(goal.getKey()) < goal.getValue()) {
-        return false;
-      }
-    }
-
-    // if state2 contains less negatedEdges that need unlocking it is not less or equal
-    for (Entry<CFAEdgesGoal, ImmutableSet<ImmutableSet<CFAEdge>>> unlockedNegatedGoals : mgs1.unlockedNegatedEdgesPerGoal
-        .entrySet()) {
-      if (mgs2.unlockedNegatedEdgesPerGoal.containsKey(unlockedNegatedGoals.getKey())
-          && !unlockedNegatedGoals.getValue()
-              .containsAll(mgs2.unlockedNegatedEdgesPerGoal.get(unlockedNegatedGoals.getKey()))) {
+    // if state1 contains a goal further explored than state2 it is not less or equal
+    for (Entry<CFAEdgesGoal, Integer> goal : mgs1.goalStates.entrySet()) {
+      if (!mgs2.goalStates.containsKey(goal.getKey())
+          || mgs2.goalStates.get(goal.getKey()) < goal.getValue()) {
         return false;
       }
     }
@@ -91,6 +80,22 @@ public class MultiGoalAbstractDomain implements AbstractDomain {
       return false;
     }
 
+    // if state1 contains a non-negated path, that state2 does not cover, then it is not less or
+    // equal
+    for (Entry<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> negatedGoalPaths : mgs1
+        .getNegatedPathsPerGoal()
+        .entrySet()) {
+      if (mgs2.getNegatedPathsPerGoal().containsKey(negatedGoalPaths.getKey())) {
+        ImmutableMap<PartialPath, Integer> mgs2negatedGoalPaths =
+            mgs2.getNegatedPathsPerGoal().get(negatedGoalPaths.getKey());
+        for (Entry<PartialPath, Integer> negatedPath : negatedGoalPaths.getValue().entrySet()) {
+          if (mgs2negatedGoalPaths.containsKey(negatedPath.getKey())
+              && mgs2negatedGoalPaths.get(negatedPath.getKey()) > negatedPath.getValue()) {
+            return false;
+          }
+        }
+      }
+    }
     return true;
   }
 
