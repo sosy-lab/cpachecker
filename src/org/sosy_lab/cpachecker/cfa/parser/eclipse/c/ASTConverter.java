@@ -2011,9 +2011,10 @@ class ASTConverter {
 
             if (arrayType.getType() instanceof CSimpleType) {
               CExpression lengthExp = computeLengthOfArray(initClause, arrayType);
-            if (arrayType.getLength() != null) {
+            if (arrayType.getLength() != null
+                && !(arrayType.getLength() instanceof CIdExpression)) {
               compareArrayLengths(arrayType.getLength(), lengthExp, d);
-            }
+            } else {
               type =
                   new CArrayType(
                       arrayType.isConst(),
@@ -2021,6 +2022,7 @@ class ASTConverter {
                       arrayType.getType(),
                       lengthExp);
             }
+          }
 
 
           // if there are nested arrays
@@ -2147,7 +2149,7 @@ class ASTConverter {
         if (!(x instanceof CIntegerLiteralExpression)) {
           CIntegerLiteralExpression lengthNested =
               (CIntegerLiteralExpression) (computeLengthOfArray(x, arrayType));
-          // nested array with highest number of elements is actual length of nested array
+        // nested array with highest number of elements is actual length of dimension
           if (realLength.getValue().compareTo(lengthNested.getValue()) == -1) {
           if (arrayType.getLength() != null) {
             compareArrayLengths(arrayType.getLength(), lengthNested, initClause);
@@ -2211,15 +2213,19 @@ class ASTConverter {
                   break;
                 }
 
-              } else if (designator instanceof CASTArrayDesignator) {
+            } else if (designator instanceof CASTArrayDesignator) {
                 CAstNode subscript = convertExpressionWithSideEffects(((CASTArrayDesignator)designator).getSubscriptExpression());
-                int s = ((CIntegerLiteralExpression)subscript).getValue().intValue();
+              if (!(subscript instanceof CIntegerLiteralExpression)) {
+                length = -1;
+                break;
+              }
+              int s = ((CIntegerLiteralExpression) subscript).getValue().intValue();
                 length = Math.max(length, s+1);
                 position = s + 1;
 
                 // we only know the length of the CASTArrayDesignator and the CASTArrayRangeDesignator, all other designators
                 // have to be ignore, if one occurs, we cannot calculate the length of the array correctly
-              } else {
+            } else {
                 length = -1;
                 break;
               }
@@ -2263,6 +2269,8 @@ class ASTConverter {
     return arrayType.getLength();
 
     }
+
+
 
 
   private CType convert(IASTArrayModifier am, CType type) {
