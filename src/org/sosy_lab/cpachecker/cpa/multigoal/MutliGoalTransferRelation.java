@@ -80,7 +80,13 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY,
             variable,
-            CIntegerLiteralExpression.ONE);
+            new CBinaryExpression(
+                FileLocation.DUMMY,
+                CNumericTypes.INT,
+                CNumericTypes.INT,
+                variable,
+                CIntegerLiteralExpression.ONE,
+                CBinaryExpression.BinaryOperator.PLUS));
 
     CExpression assumption =
         new CBinaryExpression(
