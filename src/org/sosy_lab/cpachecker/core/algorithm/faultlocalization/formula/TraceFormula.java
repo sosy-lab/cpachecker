@@ -28,6 +28,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -41,6 +45,7 @@ import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
+@Options(prefix="traceformula")
 public class TraceFormula {
 
   private List<CFAEdge> edges;
@@ -58,8 +63,18 @@ public class TraceFormula {
 
   private boolean isAlwaysUnsat;
 
-  public TraceFormula(FormulaContext pContext, List<CFAEdge> pEdges)
-      throws CPATransferException, InterruptedException, SolverException {
+  @Option(secure=true, name="filter",
+      description="filter the alternative precondition by scopes")
+  private String filter = "";
+
+  @Option(secure=true, name="altpre",
+      description="force alternative precondition if possible")
+  private boolean forceAlternativePreCondition = false;
+
+  public TraceFormula(FormulaContext pContext, Configuration pConfig, List<CFAEdge> pEdges)
+      throws CPATransferException, InterruptedException, SolverException,
+             InvalidConfigurationException {
+    pConfig.inject(this);
     isAlwaysUnsat = false;
     edges = pEdges;
     context = pContext;
@@ -154,7 +169,7 @@ public class TraceFormula {
 
     PathFormula current = manager.makeEmptyPathFormula();
     ssaMaps.add(current.getSsa());
-    AlternativePrecondition altPre = new AlternativePrecondition();
+    AlternativePrecondition altPre = new AlternativePrecondition(filter);
     // edges.removeIf(l -> !l.getEdgeType().equals(CFAEdgeType.AssumeEdge));
     for (CFAEdge e : edges) {
       BooleanFormula prev = current.getFormula();
@@ -195,8 +210,8 @@ public class TraceFormula {
       }
     }
 
-
-    if(bmgr.isTrue(precondition) && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))){
+    //TODO: it is possible that a forced pre condition gets denied. Tell the user that this happened
+    if((forceAlternativePreCondition || bmgr.isTrue(precondition)) && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))){
       precondition = altPre.toFormula();
       for (BooleanFormula booleanFormula : altPre.getPreCondition()) {
         int index = atoms.indexOf(booleanFormula);
@@ -206,6 +221,7 @@ public class TraceFormula {
       }
     }
 
+    //If however the pre condition conjugated with the post condition tell the main algorithm that this formula is always unsat.
     if(context.getSolver().isUnsat(bmgr.and(precondition, postcondition))){
       isAlwaysUnsat = true;
     }
@@ -220,7 +236,6 @@ public class TraceFormula {
     actualForm = bmgr.and(bmgr.and(atoms), postcondition);
     implicationForm = bmgr.and(implicationFormula, postcondition);
     negated = negate;
-
   }
 
   public BooleanFormula getAtom(int i) {
@@ -254,13 +269,15 @@ public class TraceFormula {
     private Map<Formula, Integer> variableToIndexMap;
     private List<BooleanFormula> preCondition;
 
-    AlternativePrecondition(){
+    AlternativePrecondition(String pFilter){
       variableToIndexMap = new HashMap<>();
       preCondition = new ArrayList<>();
+      filter = pFilter;
     }
 
     void add(BooleanFormula formula, SSAMap currentMap, CFAEdge edge){
-      if(isAccepted(formula, currentMap, edge)){
+      //First check = is variable in desired scope?
+      if(formula.toString().contains(filter + "::") && isAccepted(formula, currentMap, edge)){
         preCondition.add(formula);
       }
     }

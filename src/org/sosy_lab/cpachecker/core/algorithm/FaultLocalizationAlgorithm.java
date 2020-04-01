@@ -36,6 +36,8 @@ import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -46,6 +48,7 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLoca
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicUtils;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationSetHeuristic;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.EdgeTypeHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.OverallAppearanceHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SetHintHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SingleEdgeHintHeuristic;
@@ -67,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
+@Options(prefix="faultlocalization")
 public class FaultLocalizationAlgorithm implements Algorithm {
 
   private final Algorithm algorithm;
@@ -78,12 +82,9 @@ public class FaultLocalizationAlgorithm implements Algorithm {
   private final Configuration config;
   //private final CFA cfa;
 
-  private final boolean useSingleUnsat = false;
-  private final boolean useMaxSat = true;
-  private final boolean useErrInv = false;
-
-  //private final boolean useAlternativePrecondition = false;
-  // private final boolean useErrInvOptim = false;
+  @Option(secure=true, name="type", toUppercase=true, values={"UNSAT", "MAXSAT", "ERRINV"},
+      description="which algorithm to use")
+  private String algorithmType = "UNSAT";
 
   public FaultLocalizationAlgorithm(
       final Algorithm pStoreAlgorithm,
@@ -92,7 +93,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
       final CFA pCfa,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    if(!checkConfig()) throw new InvalidConfigurationException("Exactly one algorithm has to be specified");
+    pConfig.inject(this);
     algorithm = pStoreAlgorithm;
     Solver solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     manager =
@@ -123,15 +124,22 @@ public class FaultLocalizationAlgorithm implements Algorithm {
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
 
-    List<FaultLocalizationAlgorithmInterface> algorithms = new ArrayList<>();
-    if (useSingleUnsat) algorithms.add(new SingleUnsatCoreAlgorithm());
-    if (useMaxSat) algorithms.add(new MaxSatAlgorithm());
-    if (useErrInv)
-      algorithms.add(new ErrorInvariantsAlgorithm(shutdownNotifier, config, logger));
+    FaultLocalizationAlgorithmInterface faultAlgorithm;
+    switch (algorithmType){
+      case "MAXSAT":
+        faultAlgorithm = new MaxSatAlgorithm();
+        break;
+      case "ERRINV":
+        faultAlgorithm = new ErrorInvariantsAlgorithm(shutdownNotifier, config, logger);
+        break;
+      default:
+        faultAlgorithm = new SingleUnsatCoreAlgorithm();
+        break;
+    }
 
     // run algorithm for every error
     for (CounterexampleInfo info : counterExamples) {
-      runAlgorithm(info, algorithms);
+      runAlgorithm(info, faultAlgorithm);
     }
 
     logger.log(Level.INFO, "Stopping fault localization...");
@@ -139,17 +147,10 @@ public class FaultLocalizationAlgorithm implements Algorithm {
   }
 
   private void runAlgorithm(
-      CounterexampleInfo pInfo, List<FaultLocalizationAlgorithmInterface> pAlgorithms)
+      CounterexampleInfo pInfo, FaultLocalizationAlgorithmInterface pAlgorithm)
       throws CPAException, InterruptedException {
     // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.
     logger.log(Level.INFO, "Starting fault localization...");
-
-    if (pAlgorithms.size() == 0) {
-      logger.log(
-          Level.INFO,
-          "No algorithm passed for fault localization. Using SingleUnsatCoreAlgorithm as default.");
-      pAlgorithms.add(new SingleUnsatCoreAlgorithm());
-    }
 
     CFAPathWithAssumptions assumptions = pInfo.getCFAPathWithAssignments();
     if (assumptions.size() == 0) {
@@ -171,32 +172,32 @@ public class FaultLocalizationAlgorithm implements Algorithm {
         }
       }
 
-      TraceFormula tf = new TraceFormula(context, edgeList);
+      TraceFormula tf = new TraceFormula(context, config, edgeList);
       if(tf.isAlwaysUnsat()){
         logger.log(Level.INFO, "Pre and post condition are unsatisfiable when conjugated. This means the initial variable assignment contradicts the post condition. No further analysis required.");
         return;
       }
 
-      for (FaultLocalizationAlgorithmInterface locAlgorithm : pAlgorithms) {
-        ErrorIndicatorSet<Selector> errorIndicators = locAlgorithm.run(context, tf);
-        // FaultLocalizationInfo<Selector> info =
-        // FaultLocalizationInfo.withPredefinedHeuristics(result, RankingMode.OVERALL);
+      ErrorIndicatorSet<Selector> errorIndicators = pAlgorithm.run(context, tf);
+      // FaultLocalizationInfo<Selector> info =
+      // FaultLocalizationInfo.withPredefinedHeuristics(result, RankingMode.OVERALL);
 
-        FaultLocalizationHeuristic<Selector> concat =
-            FaultLocalizationHeuristicUtils.concatHeuristics(List.of(
-                new SingleEdgeHintHeuristic<>(),
-                new OverallAppearanceHeuristic<>(),
-                new ErrorLocationNearestHeuristic<>(edgeList.get(edgeList.size() - 1)),
-                new CallHierarchyHeuristic<>(edgeList, tf.getNegated().size())));
+      FaultLocalizationHeuristic<Selector> concat =
+          FaultLocalizationHeuristicUtils.concatHeuristics(List.of(
+              new EdgeTypeHeuristic<>(),
+              new SingleEdgeHintHeuristic<>(),
+              new OverallAppearanceHeuristic<>(),
+              new ErrorLocationNearestHeuristic<>(edgeList.get(edgeList.size() - 1)),
+              new CallHierarchyHeuristic<>(edgeList, tf.getNegated().size())));
 
-        FaultLocalizationSetHeuristic<Selector> concatSet = FaultLocalizationHeuristicUtils.concatSetHeuristics(List.of(new SetSizeHeuristic<>(), new SetHintHeuristic<>(3)));
-        FaultLocalizationInfo<Selector> info =
-            new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.of(concat), Optional.of(concatSet));
-        info.applyTo(pInfo.getTargetPath().getLastState());
-        logger.log(
-            Level.INFO,
-            "Running " + locAlgorithm.getClass().getSimpleName() + ":\n" + info.toString());
-      }
+      FaultLocalizationSetHeuristic<Selector> concatSet = FaultLocalizationHeuristicUtils.concatSetHeuristics(List.of(new SetSizeHeuristic<>(), new SetHintHeuristic<>(3)));
+      FaultLocalizationInfo<Selector> info =
+          new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.of(concat), Optional.of(concatSet));
+      info.applyTo(pInfo.getTargetPath().getLastState());
+      logger.log(
+          Level.INFO,
+          "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info.toString());
+
 
     } catch (SolverException sE) {
       logger.log(Level.SEVERE, "SolverException: " + sE.getMessage());
@@ -211,17 +212,5 @@ public class FaultLocalizationAlgorithm implements Algorithm {
     } finally{
       context.getSolver().close();
     }
-  }
-
-  private boolean checkConfig() {
-    int algorithmsUsed = 0;
-    if(useErrInv) algorithmsUsed++;
-    if(useMaxSat) algorithmsUsed++;
-    if(useSingleUnsat) algorithmsUsed++;
-
-    if(algorithmsUsed != 1){
-      return false;
-    }
-    return true;
   }
 }

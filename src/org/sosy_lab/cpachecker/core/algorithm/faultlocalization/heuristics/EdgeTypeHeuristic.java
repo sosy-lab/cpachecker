@@ -23,38 +23,60 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics;
 
+import com.google.common.base.Splitter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.StringJoiner;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicUtils;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationOutput;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason.ReasonType;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationSetHeuristic;
 
-public class IdentityHeuristic<I extends FaultLocalizationOutput> implements
+public class EdgeTypeHeuristic<I extends FaultLocalizationOutput> implements
                                                                   FaultLocalizationHeuristic<I>,
                                                                   FaultLocalizationSetHeuristic<I> {
   @Override
   public Map<I, Integer> rank(ErrorIndicatorSet<I> result) {
-    Map<I, Integer> ranking = new HashMap<>();
-    FaultLocalizationHeuristicUtils.condenseErrorIndicatorSet(result).forEach(l -> {
-      ranking.put(l, 1);
-      l.addReason(FaultLocalizationReason.hint("Identity heuristic applied"));
-    });
-    return ranking;
+    Set<I> condense = FaultLocalizationHeuristicUtils.condenseErrorIndicatorSet(result);
+    Map<I, Double> scoreMap = new HashMap<>();
+    for(I elem: condense){
+      switch(elem.correspondingEdge().getEdgeType()){
+        case AssumeEdge: scoreMap.put(elem, 100.0); break;
+        case StatementEdge: scoreMap.put(elem, 50.0);
+        case ReturnStatementEdge: scoreMap.put(elem, 25.0); break;
+        case FunctionReturnEdge:
+        case CallToReturnEdge:
+        case FunctionCallEdge: scoreMap.put(elem, 12.5); break;
+        case DeclarationEdge:
+        case BlankEdge:
+        default: scoreMap.put(elem, 0d); break;
+      }
+    }
+    double sum = scoreMap.values().stream().mapToDouble(l -> l).sum();
+    for(Entry<I, Double> entry: scoreMap.entrySet()){
+      entry.getKey().addReason(new FaultLocalizationReason(ReasonType.HEURISTIC, "Based on the edge type: \"" + readableName(entry.getKey().correspondingEdge().getEdgeType()) + "\"", entry.getValue()/sum));
+    }
+    return FaultLocalizationHeuristicUtils.scoreToRankMap(scoreMap);
   }
 
   @Override
   public Map<ErrorIndicator<I>, Integer> rankSubsets(
       ErrorIndicatorSet<I> errorIndicators) {
-    Map<ErrorIndicator<I>, Integer> rank = new HashMap<>();
-    errorIndicators.forEach(l -> {
-      l.addReason(FaultLocalizationReason.hint("Identity heuristic applied."));
-      rank.put(l, 1);
-    });
-    return rank;
+    return null;
   }
 
+  private String readableName(CFAEdgeType type){
+    StringJoiner joiner = new StringJoiner(" ");
+    for (String s : Splitter.onPattern("(?=\\p{Upper})").split(type.name())) {
+      joiner.add(s);
+    }
+    return joiner.toString();
+  }
 }

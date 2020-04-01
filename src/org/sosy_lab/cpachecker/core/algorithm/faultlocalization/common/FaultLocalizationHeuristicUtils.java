@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.IdentityHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.OverallAppearanceHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SetIdentityHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SetSizeHeuristic;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SubsetAppearanceHeuristic;
 
@@ -70,7 +69,7 @@ public class FaultLocalizationHeuristicUtils {
         return new SetSizeHeuristic<>();
       case IDENTITY:
       default:
-        return new SetIdentityHeuristic<>();
+        return new IdentityHeuristic<>();
     }
   }
 

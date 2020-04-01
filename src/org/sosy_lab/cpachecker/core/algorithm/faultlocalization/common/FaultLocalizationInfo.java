@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 import org.antlr.v4.runtime.misc.MultiMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SetIdentityHeuristic;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.IdentityHeuristic;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -91,7 +91,7 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
       mapSetToRank = pSetRanking.get().rankSubsets(pErrorIndicators);
     } else {
       if(pRanking.isEmpty()){
-        mapSetToRank = new SetIdentityHeuristic<I>().rankSubsets(pErrorIndicators);
+        mapSetToRank = new IdentityHeuristic<I>().rankSubsets(pErrorIndicators);
       } else {
         mapSetToRank = Collections.emptyMap();
       }
