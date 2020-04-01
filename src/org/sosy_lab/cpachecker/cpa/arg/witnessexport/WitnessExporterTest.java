@@ -87,8 +87,12 @@ public class WitnessExporterTest {
 
   @Test(timeout = 90000)
   public void minepump_spec1_product33_false() throws Exception {
+    newWitnessTester("minepump_spec1_product33.cil.c", ExpectedVerdict.FALSE).performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void minepump_spec1_product33_false_2() throws Exception {
     newWitnessTester("minepump_spec1_product33.cil.c", ExpectedVerdict.FALSE)
-        .performTest()
         .useGenerationConfig(WitnessGenerationConfig.K_INDUCTION)
         .performTest();
   }
@@ -320,15 +324,13 @@ public class WitnessExporterTest {
       return this;
     }
 
-    @CanIgnoreReturnValue
-    public WitnessTester performTest() throws Exception {
+    public void performTest() throws Exception {
       WitnessExporterTest.performTest(
           programFile,
           specificationFile,
           expected,
           generationConfig,
           overrideOptionsBuilder.build());
-      return this;
     }
   }
 
