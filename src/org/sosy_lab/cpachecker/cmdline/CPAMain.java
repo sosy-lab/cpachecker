@@ -337,8 +337,8 @@ public class CPAMain {
     configBuilder.setOptions(EXTERN_OPTION_DEFAULTS);
     if (configFile.isPresent()) {
       configBuilder.setOption(
-          APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFile.get()));
-      configBuilder.loadFromFile(configFile.get());
+          APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFile.orElseThrow()));
+      configBuilder.loadFromFile(configFile.orElseThrow());
     }
     configBuilder.setOptions(cmdLineOptions);
 
@@ -700,7 +700,7 @@ public class CPAMain {
             .clearOption("rootDirectory");
     if (configFileName.isPresent()) {
       configBuilder.setOption(
-          APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFileName.get()));
+          APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFileName.orElseThrow()));
     }
     return configBuilder.build();
   }
