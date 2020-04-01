@@ -63,6 +63,8 @@ public class WitnessExporterTest {
   private enum WitnessGenerationConfig {
     K_INDUCTION("kInduction"),
 
+    BDD_CONCURRENCY("bddAnalysis-concurrency"),
+
     PREDICATE_ANALYSIS("predicateAnalysis");
 
     private final String fileName;
@@ -97,6 +99,20 @@ public class WitnessExporterTest {
             "minepump_spec1_product33.cil.c",
             ExpectedVerdict.FALSE,
             WitnessGenerationConfig.K_INDUCTION)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void concurrency_false_fib_bench() throws Exception {
+    new WitnessTester(
+            "fib_bench-2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void concurrency_false_mix000_power() throws Exception {
+    new WitnessTester(
+            "mix000_power.oepc.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
         .performTest();
   }
 
