@@ -58,6 +58,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -169,6 +170,10 @@ class WitnessFactory implements EdgeAppender {
     return exp.getDeclaration().getQualifiedName().toUpperCase().contains("__CPACHECKER_TMP");
   }
 
+  /**
+   * Filter the assumptions of an edge for relevant assumptions,
+   * and then return a new edge based on the filtered assumptions.
+   */
   static final Function<CFAEdgeWithAssumptions, CFAEdgeWithAssumptions> ASSUMPTION_FILTER =
       new Function<>() {
 
@@ -177,33 +182,8 @@ class WitnessFactory implements EdgeAppender {
           int originalSize = pEdgeWithAssumptions.getExpStmts().size();
           List<AExpressionStatement> expressionStatements = new ArrayList<>(originalSize);
           for (AExpressionStatement expressionStatement : pEdgeWithAssumptions.getExpStmts()) {
-            AExpression assumption = expressionStatement.getExpression();
-            if (!(assumption instanceof CBinaryExpression)) {
+            if (isRelevantExpression(expressionStatement.getExpression())) {
               expressionStatements.add(expressionStatement);
-            } else {
-              CBinaryExpression binExpAssumption = (CBinaryExpression) assumption;
-              CExpression leftSide = binExpAssumption.getOperand1();
-              CExpression rightSide = binExpAssumption.getOperand2();
-
-              final CType leftType = leftSide.getExpressionType().getCanonicalType();
-              final CType rightType = rightSide.getExpressionType().getCanonicalType();
-
-              if (!(leftType instanceof CVoidType) || !(rightType instanceof CVoidType)) {
-
-                boolean equalTypes = leftType.equals(rightType);
-                boolean leftIsAccepted = equalTypes || leftType instanceof CSimpleType;
-                boolean rightIsAccepted = equalTypes || rightType instanceof CSimpleType;
-
-                if (leftIsAccepted && rightIsAccepted) {
-                  boolean leftIsConstant = isConstant(leftSide);
-                  boolean leftIsPointer = !leftIsConstant && isEffectivelyPointer(leftSide);
-                  boolean rightIsConstant = isConstant(rightSide);
-                  boolean rightIsPointer = !rightIsConstant && isEffectivelyPointer(rightSide);
-                  if (!(leftIsPointer && rightIsConstant) && !(leftIsConstant && rightIsPointer)) {
-                    expressionStatements.add(expressionStatement);
-                  }
-                }
-              }
             }
           }
 
@@ -214,6 +194,42 @@ class WitnessFactory implements EdgeAppender {
               pEdgeWithAssumptions.getCFAEdge(),
               expressionStatements,
               pEdgeWithAssumptions.getComment());
+        }
+
+        /**
+         * Check whether an expresion is relevant for the witness export,
+         * e.g., we assume that assignments of constants to pointers are not relevant.
+         */
+        private boolean isRelevantExpression(final AExpression assumption) {
+          if (!(assumption instanceof CBinaryExpression)) {
+            return true;
+
+          } else {
+            CBinaryExpression binExpAssumption = (CBinaryExpression) assumption;
+            CExpression leftSide = binExpAssumption.getOperand1();
+            CExpression rightSide = binExpAssumption.getOperand2();
+
+            final CType leftType = leftSide.getExpressionType().getCanonicalType();
+            final CType rightType = rightSide.getExpressionType().getCanonicalType();
+
+            if (!(leftType instanceof CVoidType) || !(rightType instanceof CVoidType)) {
+
+              boolean equalTypes = leftType.equals(rightType);
+              boolean leftIsAccepted = equalTypes || leftType instanceof CSimpleType;
+              boolean rightIsAccepted = equalTypes || rightType instanceof CSimpleType;
+
+              if (leftIsAccepted && rightIsAccepted) {
+                boolean leftIsConstant = isConstant(leftSide);
+                boolean leftIsPointer = !leftIsConstant && isEffectivelyPointer(leftSide);
+                boolean rightIsConstant = isConstant(rightSide);
+                boolean rightIsPointer = !rightIsConstant && isEffectivelyPointer(rightSide);
+                if (!(leftIsPointer && rightIsConstant) && !(leftIsConstant && rightIsPointer)) {
+                  return true;
+                }
+              }
+            }
+          }
+          return false;
         }
 
         private boolean isConstant(CExpression pLeftSide) {
@@ -1184,16 +1200,7 @@ class WitnessFactory implements EdgeAppender {
     removeUnnecessarySinkEdges();
 
     // Merge nodes with empty or repeated edges
-    NavigableSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
-    while (!waitlist.isEmpty()) {
-      Edge edge = waitlist.pollFirst();
-      // If the edge still exists in the graph and is irrelevant, remove it
-      if (leavingEdges.get(edge.getSource()).contains(edge) && isEdgeIrrelevant(edge)) {
-        Iterables.addAll(waitlist, mergeNodes(edge));
-        assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
-      }
-      setLoopHeadInvariantIfApplicable(edge.getTarget());
-    }
+    mergeRepeatedEdges(entryStateNodeId);
 
     // merge redundant sibling edges leading to the sink together, if possible
     mergeRedundantSinkEdges();
@@ -1215,6 +1222,24 @@ class WitnessFactory implements EdgeAppender {
         invariantExportStates,
         stateToARGStates,
         edgeToCFAEdges);
+  }
+
+  /**
+   * This method applies a fixed-point algorithm to shrink the ARG-based graph into a (much) smaller
+   * witness graph, i.e., we compute an abstraction of the ARG-based graph without redundant or
+   * irrelevant information.
+   */
+  private void mergeRepeatedEdges(final String entryStateNodeId) {
+    NavigableSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
+    while (!waitlist.isEmpty()) {
+      Edge edge = waitlist.pollFirst();
+      // If the edge still exists in the graph and is irrelevant, remove it
+      if (leavingEdges.get(edge.getSource()).contains(edge) && isEdgeIrrelevant(edge)) {
+        Iterables.addAll(waitlist, mergeNodes(edge));
+        assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
+      }
+      setLoopHeadInvariantIfApplicable(edge.getTarget());
+    }
   }
 
   /**
@@ -1470,6 +1495,8 @@ class WitnessFactory implements EdgeAppender {
   /**
    * Merge two consecutive nodes into one new node, if the edge between the nodes is irrelevant. The
    * merge also merges the information of the nodes, e.g. disjuncts their invariants.
+   *
+   * @return replacement edges that should be (re-)visited for potential further merges.
    */
   private Iterable<Edge> mergeNodes(final Edge pEdge) {
     Preconditions.checkArgument(isEdgeIrrelevant(pEdge));
@@ -1493,7 +1520,7 @@ class WitnessFactory implements EdgeAppender {
     nodeFlags.putAll(nodeToKeep, nodeFlags.removeAll(nodeToRemove));
 
     // Merge the trees
-    mergeExpressionTrees(nodeToKeep, nodeToRemove);
+    mergeExpressionTreesIntoFirst(nodeToKeep, nodeToRemove);
 
     // Merge quasi invariant
     mergeQuasiInvariant(nodeToKeep, nodeToRemove);
@@ -1504,7 +1531,7 @@ class WitnessFactory implements EdgeAppender {
     // Merge mapping
     stateToARGStates.putAll(nodeToKeep, stateToARGStates.removeAll(nodeToRemove));
 
-    Set<Edge> replacementEdges = new HashSet<>();
+    Set<Edge> replacementEdges = new LinkedHashSet<>();
 
     // Move the leaving edges
     Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(nodeToRemove));
@@ -1574,7 +1601,7 @@ class WitnessFactory implements EdgeAppender {
   }
 
   /** Merge two expressionTrees for source and target. */
-  private void mergeExpressionTrees(final String source, final String target) {
+  private void mergeExpressionTreesIntoFirst(final String source, final String target) {
     ExpressionTree<Object> sourceTree = getStateInvariant(source);
     ExpressionTree<Object> targetTree = getStateInvariant(target);
     String sourceScope = stateScopes.get(source);
