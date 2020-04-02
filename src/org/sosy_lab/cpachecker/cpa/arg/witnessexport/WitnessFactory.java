@@ -70,8 +70,10 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.BiPredicate;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -280,6 +282,7 @@ class WitnessFactory implements EdgeAppender {
 
   private final WitnessOptions witnessOptions;
   private final CFA cfa;
+  private final LogManager logger;
   private final VerificationTaskMetaData verificationTaskMetaData;
 
   private final ExpressionTreeFactory<Object> factory;
@@ -319,6 +322,7 @@ class WitnessFactory implements EdgeAppender {
   WitnessFactory(
       WitnessOptions pOptions,
       CFA pCfa,
+      LogManager pLogger,
       VerificationTaskMetaData pMetaData,
       ExpressionTreeFactory<Object> pFactory,
       Simplifier<Object> pSimplifier,
@@ -327,6 +331,7 @@ class WitnessFactory implements EdgeAppender {
       InvariantProvider pInvariantProvider) {
     witnessOptions = pOptions;
     cfa = pCfa;
+    logger = pLogger;
     verificationTaskMetaData = pMetaData;
     factory = pFactory;
     simplifier = pSimplifier;
@@ -1200,7 +1205,14 @@ class WitnessFactory implements EdgeAppender {
     removeUnnecessarySinkEdges();
 
     // Merge nodes with empty or repeated edges
+    int sizeBeforeMerging = edgeToCFAEdges.size();
     mergeRepeatedEdges(entryStateNodeId);
+    int sizeAfterMerging = edgeToCFAEdges.size();
+    logger.logf(
+        Level.ALL,
+        "Witness graph shrinked from %s edges to %s edges when merging edges.",
+        sizeBeforeMerging,
+        sizeAfterMerging);
 
     // merge redundant sibling edges leading to the sink together, if possible
     mergeRedundantSinkEdges();
