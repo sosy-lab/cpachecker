@@ -293,12 +293,35 @@ with considerably less effort */
 		};
 
 		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
-                var importantEdges = [];
-                var importantIndex = -1;
+        var importantEdges = [];
+		var importantIndex = -1;
+		
+		// heuristic for single edges provided?
+		var isFaultLocalizationEnabled = false;
+
+		// heuristic for set ranking provided?
+		var isFaultLocalizationSubsetUsed = false;
+
+		// state of toggle button
+		var showDetailed = false;
+
+		// state of toggle slider
+		var showSubset = false;
+
+		// edges that are marked as potential bug
+		var faultEdgesIndex = [];
+		var faultEdges = [];
+
+		var faultEdgesSubsetIndex = [];
+		var faultEdgesSubset = [];
+		var lastSelectedLine = [];
+
+		var redLine = 0;
+
 		if (errorPath !== undefined) {
 			var indentationlevel = 0;
 			for (var i = 0; i < errorPath.length; i++) {
-				var errPathElem = errorPath[i];
+				var errPathElem = errorPath[i];					
 
 				// do not show start, return and blank edges
 				if (errPathElem.desc.indexOf("Return edge from") === -1 && errPathElem.desc != "Function start dummy edge" && errPathElem.desc != "") {
@@ -306,6 +329,8 @@ with considerably less effort */
 					var previousValueDictionary = {};
 					errPathElem["valDict"] = {};
 					errPathElem["valString"] = "";
+					errPathElem["showrank"] = errPathElem.rank;
+					errPathElem["showfault"] = errPathElem.fault;
 					if (i > 0) {
 						$.extend(errPathElem.valDict, $rootScope.errorPath[$rootScope.errorPath.length - 1].valDict);
 						previousValueDictionary = $rootScope.errorPath[$rootScope.errorPath.length - 1].valDict;
@@ -329,24 +354,296 @@ with considerably less effort */
 					indentationlevel += 1;
 				}
 
+				if(errPathElem.enabled) {
+					faultEdgesIndex.push(importantIndex);
+					faultEdges.push(errPathElem);	
+					isFaultLocalizationEnabled = true;	
+				}
+
+				if(errPathElem.setminrank !== "-"){
+					faultEdgesSubsetIndex.push(importantIndex);
+				}
+				if(errPathElem.setindicator) {
+					faultEdgesSubset.push(errPathElem);
+					isFaultLocalizationSubsetUsed = true;	
+				}
+
 				// store the important edges
-                                if(errPathElem.importance == 1){
-                                      importantEdges.push(importantIndex);
-                                   }
+                if(errPathElem.importance == 1){
+                    importantEdges.push(importantIndex);
+                }
 			}
 
                         // this function puts the important edges into a CSS class that highlights them
 			function highlightEdges(impEdges){
 			    for (var j = 0; j < impEdges.length; j++){
-			        d3.selectAll("#errpath-" + impEdges[j] + " td pre").classed("important", true);
+				d3.selectAll("#errpath-" + impEdges[j] + " td pre").classed("important", true);
 			    }
-                        };
+			};
+						
 
-                        angular.element(document).ready(function(){
-                            highlightEdges(importantEdges);
-                        });
+			function addFaultLocalizationInfo(indicatorEdges, setIndicatorEdges){
+				if(isFaultLocalizationEnabled || isFaultLocalizationSubsetUsed) {
+					if(isFaultLocalizationEnabled ^ isFaultLocalizationSubsetUsed){
+						$("#sort-fault-localization-slider").remove();
+						$("#fault-interaction-div").removeClass("horizontal-div");
+						$("#fault-interaction-div").addClass("horizontal-div-center");
+						showSubset = isFaultLocalizationSubsetUsed;
+					}
+
+					//TODO: find more elegant way
+					for(var j = 0; j < errorPath.length; j++){
+						$("#rank-"+j).addClass("rank");
+					}
+					for (var j = 0; j < setIndicatorEdges.length; j++){
+						d3.selectAll("#errpath-" + setIndicatorEdges[j] + " td pre").classed("fault", true);
+					}
+					for (var j = 0; j < indicatorEdges.length; j++){
+						d3.selectAll("#errpath-" + indicatorEdges[j] + " td pre").classed("fault", true);
+					}
+					
+					// header to describe the columns in the info table
+					d3.selectAll("#errpath-header td pre").classed("tableheader", true);
+					
+				} else {
+				 	$("#errpath-header").remove();
+					$("#sort-fault-localization-info").remove();
+					$("#sort-fault-localization-slider").remove();
+					for(var i = 0; i < errorPath.length; i++){
+						$("#rank-"+i).remove();		
+					}
+				}
+			}
+
+            angular.element(document).ready(function(){
+                highlightEdges(importantEdges);
+				if(isFaultLocalizationEnabled){
+					$("#value-assignment").append(createSingleFaultLocTable(faultEdges));
+					$("#single-fault-loc-table").hide();
+				}
+				if(isFaultLocalizationSubsetUsed){
+					$("#value-assignment").append(createSetFaultLocTable(faultEdgesSubset));
+					$("#set-fault-loc-table").hide();
+				}
+				addFaultLocalizationInfo(faultEdgesIndex, faultEdgesSubsetIndex);
+				if(showSubset){
+					for(const elem of errorPath){
+						elem.showrank = elem.setminrank;
+						elem.showfault = elem.setminrankreason;
+					}
+					// otherwise event has to be triggered to apply changes.
+					$scope.$apply();
+				}
+            });
 
 
+		}
+
+		//append a cell to row //TODO filename
+		function appendCell(row, text, colspan, title, line, filename, background){
+			var cell = row.insertCell();
+			cell.innerHTML = text;
+			if(title !== ""){
+				cell.title = title;
+			}
+			cell.colSpan = colspan;
+			cell.onclick = function() {selectLines(line)};
+			return cell;
+		}
+
+		// interpolate the green value to get colors between orange and red.
+		// low score => orange, high score => red
+		function interpolateRGB(score){
+			var interpolate = (193 - (1.36 * score));
+			interpolate = parseInt(interpolate+"");
+			var hex = Number(interpolate).toString(16);
+			var hexString = "";
+			if(hex < 10){
+				hexString = "0"+hex;
+			} else {
+				hexString = ""+hex;
+			}
+			return hexString.toUpperCase();
+		}
+
+		// create table for ranked edges
+		function createSingleFaultLocTable(indicatorEdgesObject){
+			var faultDict = {};
+			var rankList = Array.from({length: indicatorEdgesObject.length}, (v, i) => 0);
+			for (var j = 0; j < indicatorEdgesObject.length; j++){
+				var edge = indicatorEdgesObject[j];
+				var htmlTable = document.createElement("table");
+				var headerRow = htmlTable.insertRow();
+				var line = [edge.line];
+
+				appendCell(headerRow, edge.rank + ".", 1, "Rank", line, edge.file);
+				var hexString = interpolateRGB(edge.score);
+				appendCell(headerRow, edge.score, 1, "Score", line, edge.file).style.backgroundColor="#FF"+ hexString +"07";
+				appendCell(headerRow, edge.desc.trim(), 1, "", line, edge.file);
+
+				var explanationRow = htmlTable.insertRow();
+				appendCell(explanationRow, edge.fault, 3, "", line, edge.file);
+				htmlTable.className = "fault-table";
+
+				if(typeof rankList[edge.rank] === "undefined"){
+					rankList[edge.rank] = 1;
+				} else {
+					rankList[edge.rank] = rankList[edge.rank]+1;
+				}
+				//htmlTable.id = "fault-loc-table-"+j;
+				faultDict["rank_" + edge.rank + "_" + rankList[edge.rank]] = htmlTable;
+			}
+			//Sorting tables
+			var table = document.createElement("table");
+			for(var j = 0; j < rankList.length; j++){
+				for(var i = 0; i < rankList[j+1]; i++){
+				var row = table.insertRow();
+				var cell = row.insertCell();
+				cell.appendChild(faultDict["rank_"+(j+1)+"_"+(i+1)]);
+				}
+			}
+			table.id = "single-fault-loc-table";
+			return table;
+		}
+
+		//Whenever a entry of the fault loc view is selected the highlighted lines have to change
+		function selectLines(line){
+			$("#source-"+redLine).removeClass("highlight-selected-line");
+			for(var i = 0; i < lastSelectedLine.length; i++){
+				$("#source-"+lastSelectedLine[i]).removeClass("highlight-line");
+			}
+			for(var i = 0; i < line.length; i++){
+				$("#source-"+line[i]).addClass("highlight-line");
+			}
+			lastSelectedLine = line;
+		}
+
+		// the first element of a set gets all the information about the set error. This method extracts this information
+		function tablesFromErrorPathElement(element, rankList){
+			var tabledict = {}
+			for(var i = 0; i < element.setnumber; i++){
+				var rank = element.setrank[i];
+				var score = element.setscores[i];
+				var descriptions = element.setdescriptions[i]; //Array of line descriptions for combobox
+				var reason = element.setreason[i];
+				var lines = element.setlines[i];//Array of lines
+
+				if(rankList[rank] === undefined){
+					rankList[rank] = 1;
+				} else {
+					rankList[rank] = rankList[rank] + 1;
+				}
+
+				var htmlTable = document.createElement("table");
+				var headerRow = htmlTable.insertRow();
+
+				appendCell(headerRow, rank + ".", 1, "Rank", lines, element.file);
+				hexString = interpolateRGB(score);
+				appendCell(headerRow, score, 1, "Score", lines, element.file).style.backgroundColor = "#FF"+ hexString +"07";;
+
+				var selectLine = document.createElement("select");
+				for(var k = 0; k < descriptions.length; k++){
+					var option = document.createElement("option");
+					option.value = lines[k];
+					option.text = descriptions[k];
+					selectLine.appendChild(option);
+				}
+
+				var descCell = headerRow.insertCell();
+				descCell.appendChild(selectLine);
+				//descCell.onclick = function(){selectLines(lines)};
+
+				selectLine.addEventListener("click", function(){
+					selectLines(lines);
+
+					if(selectLine.selectedIndex!== -1) {
+						$("#source-"+lines[selectLine.selectedIndex]).addClass("highlight-selected-line");
+						redLine = lines[selectLine.selectedIndex];
+					}
+
+				}, false);
+
+				var explanationRow = htmlTable.insertRow();
+				appendCell(explanationRow, reason, 3, "", lines, element.file);
+				htmlTable.id = "set-fault-id-"+rank;
+				htmlTable.className = "fault-table";
+				tabledict["rank_"+rank+"_"+rankList[rank]] = htmlTable;
+			}
+			return tabledict;
+		}
+		
+		// Table for ranked sets (fault localization)
+		function createSetFaultLocTable(setIndicatorEdgesObject){
+			var allEntries = {}
+			var rankList = [];
+			for(var i = 0; i < setIndicatorEdgesObject.length; i++){
+				Object.assign(allEntries, tablesFromErrorPathElement(setIndicatorEdgesObject[i], rankList));
+			}
+			
+			var table = document.createElement("table");
+			for(var j = 0; j < Object.keys(allEntries).length; j++){
+				for(var i = 0; i < rankList[j+1]; i++){
+					var row = table.insertRow();
+					var cell = row.insertCell();
+					cell.appendChild(allEntries["rank_"+(j+1) + "_" + (i+1)]);
+				}
+			}
+			table.id = "set-fault-loc-table";
+			return table;
+		}
+
+		function toggleSubsetView(){
+			if(showSubset){
+				for(var j = 0; j < errorPath.length; j++){
+					errorPath[j].showrank = errorPath[j].setminrank;
+					errorPath[j].showfault = errorPath[j].setminrankreason;
+					//d3.selectAll("#errpath-" + j + " td pre").classed("fault", false);
+				}
+				for (var j = 0; j < faultEdgesSubsetIndex.length; j++){
+					//d3.selectAll("#errpath-" + faultEdgesSubsetIndex[j] + " td").classed("fault", true);	    	
+				}
+				if(showDetailed){
+					$("#set-fault-loc-table").show();
+					$("#single-fault-loc-table").hide();
+				}
+			} else {
+				for(var j = 0; j < errorPath.length; j++){
+					errorPath[j].showrank = errorPath[j].rank;
+					errorPath[j].showfault = errorPath[j].fault;
+					//d3.selectAll("#errpath-" + j + " td pre").classed("fault", false);
+				}
+				if(showDetailed){
+					$("#set-fault-loc-table").hide();
+					$("#single-fault-loc-table").show();
+				}
+				for (var j = 0; j < faultEdgesIndex.length; j++){
+					//d3.selectAll("#errpath-" + faultEdgesIndex[j] + " td pre").classed("fault", true);	    	
+				}
+			}
+		}
+
+		$scope.sortFaultClicked = function(){
+			showDetailed = !showDetailed;
+			if(showDetailed) {
+				$("#err-table").hide();
+				if(showSubset){
+					$("#single-fault-loc-table").hide();
+					$("#set-fault-loc-table").show();
+				} else {
+					$("#set-fault-loc-table").hide();
+					$("#single-fault-loc-table").show();
+				}
+				$("#report-controller").scope().setTab(3);
+			} else {
+				$("#err-table").show();
+				$("#single-fault-loc-table").hide();
+				$("#set-fault-loc-table").hide();
+			}
+		}
+
+		$scope.toggleFaultSubset = function(){
+			showSubset = !showSubset;
+			toggleSubsetView();
 		}
 
 		$scope.errPathPrevClicked = function ($event) {

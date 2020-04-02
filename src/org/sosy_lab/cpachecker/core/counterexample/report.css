@@ -263,13 +263,89 @@ input:checked+.slider:before {
 	background-color: #ffe5d5;
 }
 
-#err-table tr.clickedErrPathElement {
-	outline: #df80ff solid 2px;
+.rank {
+	text-align: center;
+}
+
+.fault-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.fault-table td{
+	cursor: pointer;
+	padding: 7px;
+	border: #000000 2px solid;
+}
+
+.fault-table tr:first-child td:first-child{
+	background-color: #28a745;
+	text-align: center;
+	font-weight: 700;
+	width: 10%;
+}
+
+.fault-table tr:first-child td:nth-child(2){
+	background-color: #ffc107;
+	text-align: center;
+	width: 10%;
+}
+
+.fault-table tr:first-child td:nth-child(3){
+	background-color: #ff3907aa;
+	font-weight: 700;
+}
+
+.horizontal-div{
+	display: flex;
+	width: 50%;
+	margin: 0 auto;
+	justify-content:space-between; 
+}
+
+.horizontal-div-center {
+    display: block;
+    margin-left: auto;
+	margin-right: auto 
+}
+
+#hint-list {
+	list-style-type: none;
+	counter-reset: elementcounter;
+  }
+  
+#hint-list>li::before {
+	position: relative;
+	content: "Hint " counter(elementcounter) ": ";
+	counter-increment: elementcounter;
+	font-weight: 700;
 }
 
 .important {
         background-color: #ffc107;
         outline: #ffc107 solid 2px;
+}
+
+.highlight-line {
+	font-weight: 700;
+	outline: #57301d solid 3px;
+}
+
+.highlight-selected-line {
+	font-weight: 700;
+	outline: #ff0000 solid 3px;
+}
+
+.fault {
+        background-color: #ff3333;
+        outline: #aa3333 solid 2px;
+		font-weight: 900;
+}
+
+.tableheader{
+	font-weight: 700;
+	background-color: #bbbbbb;
+	text-align: center;
 }
 
 .marked-source-line {
