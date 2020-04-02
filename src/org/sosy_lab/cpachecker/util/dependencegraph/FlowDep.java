@@ -55,9 +55,12 @@ final class FlowDep {
 
   private FlowDep() {}
 
-  private static void insertCombineDefs(
-      Builder pBuilder, DomFrontiers<CFANode> pFrontiers, CFANode pEntryNode) {
+  /** Inserts an empty CombineDef for every function parameter. */
+  private static void insertFunctionParamCombineDefs(
+      Builder pBuilder, FunctionEntryNode pEntryNode) {
 
+    // use only a single call edge to determine function parameters
+    // add a CombineDef for every variable
     CFAUtils.allEnteringEdges(pEntryNode)
         .first()
         .toJavaUtil()
@@ -67,6 +70,16 @@ final class FlowDep {
                 pBuilder.insertCombineDef(pEntryNode, variable);
               }
             });
+  }
+
+  /**
+   * Inserts empty CombineDefs at all nodes where different definitions of a single variable are
+   * visible.
+   */
+  private static void insertCombineDefs(
+      Builder pBuilder, DomFrontiers<CFANode> pFrontiers, FunctionEntryNode pEntryNode) {
+
+    insertFunctionParamCombineDefs(pBuilder, pEntryNode);
 
     for (MemoryLocation variable : pBuilder.getVariables()) {
 
@@ -98,6 +111,7 @@ final class FlowDep {
     }
   }
 
+  /** Returns the edge between the two specified nodes. Null if such an edge does not exist. */
   private static CFAEdge getEdge(CFANode pPredecessor, CFANode pSuccessor) {
 
     for (CFAEdge edge : CFAUtils.allLeavingEdges(pPredecessor)) {
@@ -109,34 +123,38 @@ final class FlowDep {
     return null;
   }
 
-  private static void traverseDomTree(Builder pBuilder, Builder.Frame pFrame) {
+  /** Initializes function parameter CombineDefs with ConcreteDefs from all entering call edges. */
+  private static void initFunctionParams(Builder pBuilder, DomTreeNode pRoot) {
 
-    Builder.Frame current = pFrame;
+    for (CFAEdge edge : CFAUtils.allEnteringEdges(pRoot.getCfaNode())) {
+      for (MemoryLocation variable : pBuilder.getDefs(edge)) {
+        pBuilder
+            .getCombineDef(pRoot.getCfaNode(), variable)
+            .add(new AbstractDef.ConcreteDef(variable, edge));
+      }
+    }
+  }
 
-    CFAUtils.allEnteringEdges(current.node)
-        .forEach(
-            edge -> {
-              for (MemoryLocation variable : pBuilder.getDefs(edge)) {
-                pBuilder
-                    .getCombineDef(pFrame.node, variable)
-                    .add(new AbstractDef.ConcreteDef(variable, edge));
-              }
-            });
+  private static void addFlowDeps(Builder pBuilder, DomTree<CFANode> pDomTree) {
 
-    pBuilder.push(current.node);
+    DomTreeNode current = DomTreeNode.create(pDomTree);
 
-    while (true) {
+    initFunctionParams(pBuilder, current);
 
-      if (!current.children.isEmpty()) {
+    pBuilder.push(current.getCfaNode());
 
-        Builder.Frame prev = current;
-        current = current.children.remove();
+    while (true) { // traverse the dominance tree (once)
 
-        CFAEdge edge = getEdge(prev.node, current.node);
+      if (current.hasNextChild()) { // any unvisited children left?
+
+        DomTreeNode prev = current;
+        current = current.nextChild();
+
+        CFAEdge edge = getEdge(prev.getCfaNode(), current.getCfaNode());
 
         if (edge != null) {
           if (edge instanceof FunctionSummaryEdge) {
-            for (CFAEdge callEdge : CFAUtils.leavingEdges(prev.node)) {
+            for (CFAEdge callEdge : CFAUtils.leavingEdges(prev.getCfaNode())) {
               pBuilder.push(callEdge);
               pBuilder.pop(callEdge);
             }
@@ -144,38 +162,61 @@ final class FlowDep {
           pBuilder.push(edge);
         }
 
-        pBuilder.push(current.node);
+        pBuilder.push(current.getCfaNode());
 
-        if (current.children.isEmpty() && current.node.getNumLeavingEdges() == 1) {
-          pBuilder.push(current.node.getLeavingEdge(0));
-          pBuilder.pop(current.node.getLeavingEdge(0));
+        if (current.children.isEmpty() && current.getCfaNode().getNumLeavingEdges() == 1) {
+          pBuilder.push(current.getCfaNode().getLeavingEdge(0));
+          pBuilder.pop(current.getCfaNode().getLeavingEdge(0));
         }
 
-      } else if (current.parent != null) {
+      } else if (current.getParent() != null) { // has parent (is not root)?
 
-        Builder.Frame prev = current;
-        current = current.parent;
+        DomTreeNode prev = current;
+        current = current.getParent();
 
-        pBuilder.pop(prev.node);
+        pBuilder.pop(prev.getCfaNode());
 
-        CFAEdge edge = getEdge(current.node, prev.node);
+        CFAEdge edge = getEdge(current.getCfaNode(), prev.getCfaNode());
 
         if (edge != null) {
           pBuilder.pop(edge);
         }
 
       } else {
-        break;
+        break; // node has no unvisited children left and is root -> done
       }
     }
   }
 
-  static void execute(
-      final FunctionEntryNode pEntryNode,
-      final DependenceConsumer pDependenceConsumer,
-      final UnknownPointerConsumer pUnknownPointerConsumer) {
+  private static void addReturnValueFlowDep(
+      final FunctionEntryNode pEntryNode, final DependenceConsumer pDependenceConsumer) {
 
-    Builder builder = new Builder();
+    Optional<? extends AVariableDeclaration> optRetVar =
+        pEntryNode.getReturnVariable().toJavaUtil();
+
+    if (optRetVar.isPresent()) {
+
+      MemoryLocation returnVar = MemoryLocation.valueOf(optRetVar.get().getQualifiedName());
+
+      for (CFAEdge defEdge : CFAUtils.allEnteringEdges(pEntryNode.getExitNode())) {
+        for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(pEntryNode.getExitNode())) {
+          pDependenceConsumer.accept(defEdge, returnEdge, returnVar);
+        }
+      }
+
+      for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(pEntryNode.getExitNode())) {
+        CFAEdge summaryEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
+        assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
+        pDependenceConsumer.accept(returnEdge, summaryEdge, returnVar);
+      }
+    }
+  }
+
+  /** Adds relevant DefsUses.Data to the builder. */
+  private static void initDefsUses(
+      Builder pBuilder,
+      FunctionEntryNode pEntryNode,
+      UnknownPointerConsumer pUnknownPointerConsumer) {
 
     Set<CFANode> nodes =
         CFATraversal.dfs()
@@ -186,17 +227,25 @@ final class FlowDep {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
         Optional<DefsUses.Data> defsUses = DefsUses.getData(edge);
         if (defsUses.isPresent()) {
-          builder.register(edge, defsUses.orElseThrow());
+          pBuilder.register(edge, defsUses.orElseThrow());
         } else {
           pUnknownPointerConsumer.accept(edge);
-          builder.register(edge, DefsUses.getEmptyData(edge));
+          pBuilder.register(edge, DefsUses.getEmptyData(edge));
         }
       }
     }
 
     for (CFAEdge callEdge : CFAUtils.allEnteringEdges(pEntryNode)) {
-      builder.register(callEdge, DefsUses.getCallDefs((FunctionCallEdge) callEdge));
+      pBuilder.register(callEdge, DefsUses.getCallDefs((FunctionCallEdge) callEdge));
     }
+  }
+
+  static void execute(
+      final FunctionEntryNode pEntryNode,
+      final DependenceConsumer pDependenceConsumer,
+      final UnknownPointerConsumer pUnknownPointerConsumer) {
+
+    Builder builder = new Builder();
 
     DomTree<CFANode> domTree =
         Dominance.createDomTree(
@@ -206,10 +255,9 @@ final class FlowDep {
 
     DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(domTree);
 
+    initDefsUses(builder, pEntryNode, pUnknownPointerConsumer);
     insertCombineDefs(builder, frontiers, pEntryNode);
-
-    Builder.Frame root = builder.createFrames(domTree);
-    traverseDomTree(builder, root);
+    addFlowDeps(builder, domTree);
 
     builder.dependences.forEach(
         (dependent, def) -> {
@@ -218,22 +266,7 @@ final class FlowDep {
           }
         });
 
-    // flow dependence on return value (if present)
-    Optional<? extends AVariableDeclaration> optRetVar =
-        pEntryNode.getReturnVariable().toJavaUtil();
-    if (optRetVar.isPresent()) {
-      MemoryLocation returnVar = MemoryLocation.valueOf(optRetVar.get().getQualifiedName());
-      for (CFAEdge defEdge : CFAUtils.allEnteringEdges(pEntryNode.getExitNode())) {
-        for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(pEntryNode.getExitNode())) {
-          pDependenceConsumer.accept(defEdge, returnEdge, returnVar);
-        }
-      }
-      for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(pEntryNode.getExitNode())) {
-        CFAEdge summaryEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
-        assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
-        pDependenceConsumer.accept(returnEdge, summaryEdge, returnVar);
-      }
-    }
+    addReturnValueFlowDep(pEntryNode, pDependenceConsumer);
   }
 
   @FunctionalInterface
@@ -326,6 +359,15 @@ final class FlowDep {
       return stacks.computeIfAbsent(pVariable, key -> new ArrayDeque<>());
     }
 
+    /**
+     *
+     *
+     * <ol>
+     *   <li>Adds dependence on defs used by the specified edge.
+     *   <li>Pushes all ConcreteDefs of the specified edge onto the def-stacks.
+     *   <li>Updates CombineDefs of the successor node of the specified edge.
+     * </ol>
+     */
     private void push(CFAEdge pEdge) {
 
       // edge uses: find corresponding AbstractDefs and add dependences
@@ -359,6 +401,7 @@ final class FlowDep {
       }
     }
 
+    /** Pushes all CombineDefs of the specified node onto the def-stacks. */
     private void push(CFANode pNode) {
 
       for (AbstractDef.CombineDef combineDef : combineDefs.get(pNode)) {
@@ -366,6 +409,7 @@ final class FlowDep {
       }
     }
 
+    /** Pops all ConcreteDefs of the specified edge from the def-stacks. */
     private void pop(CFAEdge pEdge) {
 
       for (MemoryLocation variable : defsUses.get(pEdge).getDefs()) {
@@ -373,43 +417,62 @@ final class FlowDep {
       }
     }
 
+    /** Pops all CombineDefs of the specified node from the def-stacks. */
     private void pop(CFANode pNode) {
 
       for (AbstractDef.CombineDef combineDef : combineDefs.get(pNode)) {
         getDefStack(combineDef.getVariable()).pop();
       }
     }
+  }
 
-    private Frame createFrames(DomTree<CFANode> pDomTree) {
+  /** Traversable dominance tree. */
+  private static final class DomTreeNode {
 
-      Frame[] frames = new Frame[pDomTree.getNodeCount()];
+    private final CFANode cfaNode;
+
+    private DomTreeNode parent;
+    private Queue<DomTreeNode> children;
+
+    private DomTreeNode(CFANode pCfaNode) {
+      cfaNode = pCfaNode;
+      children = new ArrayDeque<>();
+    }
+
+    /** Returns the root node of the traversable dominance tree. */
+    private static DomTreeNode create(DomTree<CFANode> pDomTree) {
+
+      DomTreeNode[] nodes = new DomTreeNode[pDomTree.getNodeCount()];
       for (int id = 0; id < pDomTree.getNodeCount(); id++) {
-        frames[id] = new Frame(pDomTree.getNode(id));
+        nodes[id] = new DomTreeNode(pDomTree.getNode(id));
       }
 
       for (int id = 0; id < pDomTree.getNodeCount(); id++) {
         if (pDomTree.hasParent(id)) {
-          Frame current = frames[id];
-          Frame parent = frames[pDomTree.getParent(id)];
+          DomTreeNode current = nodes[id];
+          DomTreeNode parent = nodes[pDomTree.getParent(id)];
           parent.children.add(current);
           current.parent = parent;
         }
       }
 
-      return frames[frames.length - 1];
+      return nodes[nodes.length - 1];
     }
 
-    private static final class Frame {
+    private CFANode getCfaNode() {
+      return cfaNode;
+    }
 
-      private final CFANode node;
+    private DomTreeNode getParent() {
+      return parent;
+    }
 
-      private Frame parent;
-      private Queue<Frame> children;
+    private boolean hasNextChild() {
+      return !children.isEmpty();
+    }
 
-      private Frame(CFANode pNode) {
-        node = pNode;
-        children = new ArrayDeque<>();
-      }
+    private DomTreeNode nextChild() {
+      return children.remove();
     }
   }
 
