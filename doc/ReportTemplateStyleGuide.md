@@ -1,7 +1,7 @@
 Style & Coding Guide for Report Template
 ========================================
 
-The style guide of the Report Template is based [Google Style for HTML/CSS](https://google.github.io/styleguide/htmlcssguide.html) and [Google Javascript Style](https://google.github.io/styleguide/javascriptguide.xml).
+The style guide of the Report Template is based [Google Style for HTML/CSS](https://google.github.io/styleguide/htmlcssguide.html) and [Google Javascript Style](https://google.github.io/styleguide/jsguide.html).
 
 
 Some additional information can be found in other files
