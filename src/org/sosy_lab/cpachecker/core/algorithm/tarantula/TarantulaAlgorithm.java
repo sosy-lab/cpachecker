@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
 import java.io.PrintStream;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -47,13 +47,17 @@ public class TarantulaAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     AlgorithmStatus result = analysis.run(reachedSet);
+
     if (TarantulaUtils.checkForErrorPath(reachedSet)) {
-      if (!TarantulaUtils.checkSafePath(reachedSet)) {
+      if (!TarantulaUtils.checkForSafePath(reachedSet)) {
+
         logger.log(
             Level.WARNING, "There is no safe Path, the algorithm is therefore not efficient");
       }
       logger.log(Level.INFO, "Start tarantula algorithm ... ");
+
       printResult(System.out, reachedSet);
+
     } else {
       logger.log(Level.WARNING, "There is no CounterExample, the program is therefore safe");
     }
@@ -69,11 +73,13 @@ public class TarantulaAlgorithm implements Algorithm {
    */
   public int totalFailed(List<List<Integer>> coveredEdges) {
     int oneCounter = 0;
+
     for (List<Integer> pCoveredEdges : coveredEdges) {
       if (pCoveredEdges.get(0) == 1) {
         oneCounter++;
       }
     }
+
     return oneCounter;
   }
   /**
@@ -84,11 +90,13 @@ public class TarantulaAlgorithm implements Algorithm {
    */
   public int totalPassed(List<List<Integer>> coveredEdges) {
     int zeroCounter = 0;
+
     for (List<Integer> pCoveredEdges : coveredEdges) {
       if (pCoveredEdges.get(0) == 0) {
         zeroCounter++;
       }
     }
+
     return zeroCounter;
   }
   /**
@@ -100,11 +108,13 @@ public class TarantulaAlgorithm implements Algorithm {
    */
   public int failedCase(List<List<Integer>> coveredEdges, int edgeNumber) {
     int failedCounter = 0;
+
     for (List<Integer> pCoveredEdges : coveredEdges) {
       if (pCoveredEdges.get(0) == 1 && pCoveredEdges.get(edgeNumber) == 1) {
         failedCounter++;
       }
     }
+
     return failedCounter;
   }
   /**
@@ -122,6 +132,7 @@ public class TarantulaAlgorithm implements Algorithm {
         passedCounter++;
       }
     }
+
     return passedCounter;
   }
   /**
@@ -133,11 +144,13 @@ public class TarantulaAlgorithm implements Algorithm {
    */
   public int getIndexOfEdge(List<CFAEdge> programEdges, CFAEdge edge) {
     int foundIndex = 0;
+
     for (int i = 0; i < programEdges.size(); i++) {
       if (programEdges.get(i).equals(edge)) {
         foundIndex = i;
       }
     }
+
     return foundIndex;
   }
   /**
@@ -149,11 +162,13 @@ public class TarantulaAlgorithm implements Algorithm {
    */
   public CFAEdge findCFAEdgeByIndex(List<CFAEdge> programEdges, int index) {
     CFAEdge foundEdgeNumber = null;
+
     for (int i = 0; i < programEdges.size(); i++) {
       if (index == i) {
         foundEdgeNumber = programEdges.get(i);
       }
     }
+
     return foundEdgeNumber;
   }
   /**
@@ -164,6 +179,7 @@ public class TarantulaAlgorithm implements Algorithm {
    * @return suspiciousness for each edgeNumber.
    */
   public double makeRanking(List<List<Integer>> coveredEdges, int edgeNumber) {
+
     return suspiciousness(
         failedCase(coveredEdges, edgeNumber),
         totalFailed(coveredEdges),
@@ -182,33 +198,43 @@ public class TarantulaAlgorithm implements Algorithm {
   public double suspiciousness(
       double failed, double totalFailed, double passed, double totalPassed) {
     double numerator = failed / totalFailed;
+
     // if there is no safe path therefore the passed and the totalPassed are always 0
     if (passed == 0 && totalPassed == 0) {
       return 0.0;
     }
-
     double denominator = (passed / totalPassed) + (failed / totalFailed);
-
     if (denominator == 0.0) {
       return 0.0;
     }
+
     return (numerator / denominator);
   }
   /**
-   * Just prints result after calculating suspiciousness and make the ranking for all edges and then
+   * Just prints result after calculating suspicious and make the ranking for all edges and then
    * store the result into <code>Map</code>.
    */
   public void printResult(PrintStream out, ReachedSet reachedSet) {
     Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
     List<List<Integer>> table = TarantulaUtils.getTable(reachedSet);
     List<CFAEdge> programEdges = TarantulaUtils.getProgramEdges(reachedSet);
-
     for (CFAEdge e : programEdges) {
       resultMap.put(
           findCFAEdgeByIndex(programEdges, getIndexOfEdge(programEdges, e)),
           makeRanking(table, getIndexOfEdge(programEdges, e)));
     }
 
-    resultMap.forEach((k, v) -> out.println(k + "--->" + v));
+    // Sort the result by its value
+    final Map<CFAEdge, Double> sortedByCount = sortByValue(resultMap);
+    sortedByCount.forEach((k, v) -> out.println(k + "--->" + v));
+  }
+
+  private static Map<CFAEdge, Double> sortByValue(final Map<CFAEdge, Double> wordCounts) {
+
+    return wordCounts.entrySet().stream()
+        .sorted((Map.Entry.<CFAEdge, Double>comparingByValue().reversed()))
+        .collect(
+            Collectors.toMap(
+                Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
   }
 }
