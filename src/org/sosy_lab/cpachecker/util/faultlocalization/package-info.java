@@ -23,6 +23,6 @@
  */
 
 /**
- * Custom heuristics for ranking edges
+ * This package provides a data structure for fault localization algorithms.
  */
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics;
+package org.sosy_lab.cpachecker.util.faultlocalization;

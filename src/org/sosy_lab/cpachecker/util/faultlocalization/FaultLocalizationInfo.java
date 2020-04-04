@@ -21,152 +21,166 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common;
+package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.base.Splitter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.misc.MultiMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.IdentityHeuristic;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends CounterexampleInfo {
+public class FaultLocalizationInfo extends CounterexampleInfo {
 
-  private Map<I, Integer> mapOutToRank;
-  private Map<ErrorIndicator<I>, Integer> mapSetToRank;
+  private List<Fault> rankedList;
+  private FaultReportWriter htmlWriter;
 
-  private Map<CFAEdge, I> mapEdgeToInfo;
-  private MultiMap<CFAEdge, ErrorIndicator<I>> mapEdgeToSetInfo;
-  private Map<CFAEdge, Integer> mapEdgeToMinRank;
-  private Map<CFAEdge, String> mapEdgeToDescription;
+  private Map<FaultContribution, Integer> mapFaultContribToRank;
+  private Map<Fault, Integer> mapFaultToRank;
 
+  private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
+  private MultiMap<CFAEdge, Fault> mapEdgeToFault;
+  private Map<CFAEdge, Integer> mapEdgeToBestRank;
+  private Map<CFAEdge, String> mapEdgeToBestDescription;
+
+  /**
+   * already processed edges.
+   * prevents adding the same information twice.
+   */
   private Set<CFAEdge> bannedEdges;
 
   /**
-   * Object to represent a ErrorIndicatorSet obtained by any FaultLocalizationAlgorithm. *
-   * Note that there is no need to create multiple instances of this object if more than one
-   * heuristic should be applied. FaultLocalizationUtils provides a method that creates a new
-   * heuristic out of multiple heuristics.
+   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
+   * Transforming it into a Set of Faults enables the possibility to attach reasons of why this edge is in this set.
+   * After ranking the set of faults an instance of this class can be created.
    *
-   * If no heuristics are given (both are Optional.empty()) the default heuristic will be used (ranking error indicators by the order of the iterator).
+   * The class should be used to display information to the user.
+   *
+   * Note that there is no need to create multiple instances of this object if more than one
+   * heuristic should be applied. FaultRankingUtils provides a method that creates a new
+   * heuristic out of multiple heuristics.
    *
    * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this.
    *
-   * @param pErrorIndicators set of indicators obtained by a fault localization algorithm
+   * @param pFaults set of indicators obtained by a fault localization algorithm
    * @param pCreated the counterexample info of the target state
-   * @param pRanking optional of a heuristic that ranks FaultLocalizationOutputs
-   * @param pSetRanking optional of a heuristic that ranks ErrorIndicators
    */
   public FaultLocalizationInfo(
-      ErrorIndicatorSet<I> pErrorIndicators,
-      CounterexampleInfo pCreated,
-      Optional<FaultLocalizationHeuristic<I>> pRanking,
-      Optional<FaultLocalizationSetHeuristic<I>> pSetRanking) {
+      List<Fault> pFaults,
+      CounterexampleInfo pCreated) {
     super(
         pCreated.isSpurious(),
         pCreated.getTargetPath(),
         pCreated.getCFAPathWithAssignments(),
         pCreated.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-    bannedEdges = new HashSet<>();
-    if(pRanking.isPresent()){
-      mapOutToRank = pRanking.get().rank(pErrorIndicators);
-    } else {
-      mapOutToRank = Collections.emptyMap();
-    }
+    rankedList = pFaults;
+    htmlWriter = new FaultReportWriter();
 
-    if(pSetRanking.isPresent()){
-      mapSetToRank = pSetRanking.get().rankSubsets(pErrorIndicators);
-    } else {
-      if(pRanking.isEmpty()){
-        mapSetToRank = new IdentityHeuristic<I>().rankSubsets(pErrorIndicators);
-      } else {
-        mapSetToRank = Collections.emptyMap();
+    bannedEdges = new HashSet<>();
+
+    mapFaultToRank = new HashMap<>();
+    mapFaultContribToRank = new HashMap<>();
+
+    mapEdgeToFaultContribution = new HashMap<>();
+    mapEdgeToFault = new MultiMap<>();
+    mapEdgeToBestRank = new HashMap<>();
+    mapEdgeToBestDescription = new HashMap<>();
+
+    //Create the mapping of a fault to a rank
+    Map<FaultContribution, Double> scoreMap = new HashMap<>();
+    for (int i = 0; i < pFaults.size(); i++) {
+      Fault current = pFaults.get(i);
+      if(current.isEmpty()){
+        continue;
+      }
+      mapFaultToRank.put(current, i+1);
+      for (FaultContribution faultContribution : current) {
+        if(faultContribution.hasReasons()){
+          scoreMap.merge(faultContribution, faultContribution.getScore(), Double::max);
+        }
       }
     }
 
-    mapEdgeToInfo = new HashMap<>();
-    mapEdgeToSetInfo = new MultiMap<>();
-    mapEdgeToMinRank = new HashMap<>();
-    mapEdgeToDescription = new HashMap<>();
+    //Rank FaultContrib and put them into the map
+    List<FaultContribution> allFaultContributions = scoreMap
+        .keySet()
+        .stream()
+        .sorted(Comparator.comparingDouble(d -> scoreMap.get(d)).reversed())
+        .collect(Collectors.toList());
 
-    for (I out : mapOutToRank.keySet()) {
-      mapEdgeToInfo.put(out.correspondingEdge(), out);
+    //assign ranks to FaultContribution and map it to the corresponding edge
+    for (int i = 0; i < allFaultContributions.size(); i++) {
+      FaultContribution current = allFaultContributions.get(i);
+      mapFaultContribToRank.put(current, i+1);
+      mapEdgeToFaultContribution.put(current.correspondingEdge(), current);
     }
 
-    for (ErrorIndicator<I> set : mapSetToRank.keySet()) {
+    // find the best rank and the related description for all edges
+    for (Fault set : mapFaultToRank.keySet()) {
       boolean alreadyAssigned = false;
       if(set.isEmpty()) continue;
-      for(I elem: set){
-        mapEdgeToMinRank.merge(elem.correspondingEdge(), mapSetToRank.get(set), Integer::min);
-        mapEdgeToDescription.merge(elem.correspondingEdge(), set.toHtml(), (a, b) -> {
-          if(mapSetToRank.get(set).intValue() == mapEdgeToMinRank.get(elem.correspondingEdge()).intValue()){
+      for(FaultContribution elem: set){
+        int newRank = mapEdgeToBestRank.merge(elem.correspondingEdge(), mapFaultToRank.get(set), Integer::min);
+        mapEdgeToBestDescription.merge(elem.correspondingEdge(), htmlWriter.toHtml(set), (a, b) -> {
+          if(mapFaultToRank.get(set).intValue() == newRank){
             return a;
           } else {
             return b;
           }
         });
         if(!alreadyAssigned){
-          mapEdgeToSetInfo.map(elem.correspondingEdge(), set);
+          mapEdgeToFault.map(elem.correspondingEdge(), set);
           alreadyAssigned = true;
         }
       }
     }
   }
 
-  public int getRankOfOutput(I key) {
-    return mapOutToRank.get(key);
+  public FaultLocalizationInfo(Set<Fault> pResult, FaultRanking pRanking, CounterexampleInfo pCreated){
+    this(pRanking.rank(pResult), pCreated);
   }
 
-  public int getRankOfSet(ErrorIndicator<I> set) {
-    return mapSetToRank.get(set);
+  public int getRankOfOutput(FaultContribution key) {
+    return mapFaultContribToRank.get(key);
+  }
+
+  public int getRankOfSet(Fault set) {
+    return mapFaultToRank.get(set);
   }
 
   @Override
   public String toString() {
     StringBuilder toString = new StringBuilder();
-    if(!mapOutToRank.isEmpty()){
-      List<I> ranked = new ArrayList<>(mapOutToRank.keySet());
-      ranked.sort(Comparator.comparingInt(l -> mapOutToRank.get(l)));
-      if (!ranked.isEmpty()) {
-        toString.append("Ranking edges:\n").append(ranked.stream().map(l -> l.textRepresentation()).collect(Collectors.joining("\n\n"))).append(mapSetToRank.isEmpty()?"":"\n\n");
-      }
-    }
-    if(!mapSetToRank.isEmpty()){
-      List<ErrorIndicator<I>> ranked = new ArrayList<>(mapSetToRank.keySet());
-      ranked.sort(Comparator.comparingInt(l -> mapSetToRank.get(l)));
-      if(!ranked.isEmpty()){
-        toString.append("Ranking sets:\n").append(ranked.stream().map(l -> l.toString()).collect(Collectors.joining("\n\n")));
+    if(!mapFaultToRank.isEmpty()){
+      if(!rankedList.isEmpty()){
+        toString.append("Ranking sets:\n").append(rankedList.stream().map(l -> l.toString()).collect(Collectors.joining("\n\n")));
       }
     }
     return toString.toString();
   }
 
   /**
-   * Transform a set of sets of CFAEdges to a ErrorIndicatorSet.
-   * Use this as a default way. No actual implementation of FaultLocalizationOutput is needed then.
+   * Transform a set of sets of CFAEdges to a set of Faults.
    *
    * @param pErrorIndicators possible candidates for the error
    * @return FaultLocalizationOutputs of the CFAEdges.
    */
-  public static ErrorIndicatorSet<FaultLocalizationOutput> transform(
+  public static Set<Fault> transform(
       Set<Set<CFAEdge>> pErrorIndicators) {
-    ErrorIndicatorSet<FaultLocalizationOutput> transformed = new ErrorIndicatorSet<>();
+    Set<Fault> transformed = new HashSet<>();
     for (Set<CFAEdge> errorIndicator : pErrorIndicators) {
-      transformed.add(new ErrorIndicator<>(
-          errorIndicator.stream().map(FaultLocalizationOutput::of).collect(Collectors.toSet())));
+      transformed.add(new Fault(
+          errorIndicator.stream().map(FaultContribution::new).collect(Collectors.toSet())));
     }
     return transformed;
   }
@@ -185,35 +199,34 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
     elem.put("set-indicator", false);
     elem.put("setminrank", "-");
 
-    if(mapEdgeToMinRank.get(edge)!= null){
-      elem.put("setminrank", mapEdgeToMinRank.get(edge));
-      elem.put("setminrankreason", mapEdgeToDescription.get(edge));
+    if(mapEdgeToBestRank.get(edge)!= null){
+      elem.put("setminrank", mapEdgeToBestRank.get(edge));
+      elem.put("setminrankreason", mapEdgeToBestDescription.get(edge));
     } else {
       elem.put("setminrank", "-");
       elem.put("setminrankreason", "-");
     }
 
-    if (mapEdgeToInfo.get(edge) != null) {
-      I infoEdge = mapEdgeToInfo.get(edge);
+    if (mapEdgeToFaultContribution.get(edge) != null) {
+      FaultContribution infoEdge = mapEdgeToFaultContribution.get(edge);
       elem.put("enabled", true);
-      if (mapEdgeToInfo.get(edge).hasReasons()) {
-        elem.put("fault", infoEdge.toHtml());
+      if (mapEdgeToFaultContribution.get(edge).hasReasons()) {
+        elem.put("fault", htmlWriter.toHtml(infoEdge));
         elem.put("score", (int) (100*infoEdge.getScore()));
-        // TODO map
-        elem.put("rank", mapOutToRank.get(infoEdge));
+        elem.put("rank", mapFaultContribToRank.get(infoEdge));
       }
     }
-    if(mapEdgeToSetInfo.get(edge) != null && !bannedEdges.contains(edge)){
+    if(mapEdgeToFault.get(edge) != null && !bannedEdges.contains(edge)){
       bannedEdges.add(edge);
       elem.put("setindicator", true);
-      List<ErrorIndicator<I>> infoSet = mapEdgeToSetInfo.get(edge);
+      List<Fault> infoSet = mapEdgeToFault.get(edge);
 
       List<List<Integer>> concatLines = new ArrayList<>();
       List<String> reasons = new ArrayList<>();
       List<List<String>> descriptions = new ArrayList<>();
       List<Integer> scores = new ArrayList<>();
       List<Integer> ranks = new ArrayList<>();
-      for (ErrorIndicator<I> info : infoSet) {
+      for (Fault info : infoSet) {
         descriptions.add(info
             .stream()
             .sorted(Comparator.comparingInt(a -> a.correspondingEdge().getFileLocation().getStartingLineInOrigin()))
@@ -226,9 +239,9 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
             })
             .collect(Collectors.toList()));
         concatLines.add(info.sortedLineNumbers());
-        reasons.add(info.toHtml());
-        scores.add((int)(info.calculateScore()*100));
-        ranks.add(mapSetToRank.get(info));
+        reasons.add(htmlWriter.toHtml(info));
+        scores.add((int)(info.getScore()*100));
+        ranks.add(mapFaultToRank.get(info));
       }
       elem.put("setnumber", reasons.size());
       elem.put("setreason", reasons);
@@ -237,6 +250,10 @@ public class FaultLocalizationInfo<I extends FaultLocalizationOutput> extends Co
       elem.put("setdescriptions", descriptions); //array
       elem.put("setrank", ranks);
     }
+  }
+
+  public void replaceHtmlWriter(FaultReportWriter pFaultToHtml){
+    htmlWriter = pFaultToHtml;
   }
 
   /**

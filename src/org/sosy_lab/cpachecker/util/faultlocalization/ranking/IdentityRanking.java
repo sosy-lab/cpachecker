@@ -21,9 +21,22 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
-/**
- * This package provides a data structure for fault localization algorithms.
- * A set of error candidates are transformed into information for the user.
- */
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason;
+
+public class IdentityRanking implements FaultRanking {
+
+  @Override
+  public List<Fault> rank(
+      Set<Fault> pFaults) {
+    pFaults.forEach(c -> c.addReason(FaultReason.hint("Ranked by Identity.")));
+    return new ArrayList<>(pFaults);
+  }
+
+}
