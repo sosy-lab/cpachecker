@@ -29,8 +29,9 @@ import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -42,22 +43,14 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.*;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationHeuristicUtils;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationInfo;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationSetHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.EdgeTypeHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.OverallAppearanceHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SetHintHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SingleEdgeHintHeuristic;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.ErrorInvariantsAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.FaultLocalizationAlgorithmInterface;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.MaxSatAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.SingleUnsatCoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.CallHierarchyHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.ErrorLocationNearestHeuristic;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics.SetSizeHeuristic;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.CallHierarchyRanking;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.EdgeTypeRanking;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -65,6 +58,14 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
+import org.sosy_lab.cpachecker.util.faultlocalization.ranking.HintRanking;
+import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MinimalLineDistanceRanking;
+import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceRanking;
+import org.sosy_lab.cpachecker.util.faultlocalization.ranking.SetSizeRanking;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -172,27 +173,36 @@ public class FaultLocalizationAlgorithm implements Algorithm {
         }
       }
 
+      if(edgeList.isEmpty()){
+        logger.log(Level.INFO, "Can't find relevant edges in the error trace.");
+        return;
+      }
+
       TraceFormula tf = new TraceFormula(context, config, edgeList);
       if(tf.isAlwaysUnsat()){
         logger.log(Level.INFO, "Pre and post condition are unsatisfiable when conjugated. This means the initial variable assignment contradicts the post condition. No further analysis required.");
         return;
       }
 
-      ErrorIndicatorSet<Selector> errorIndicators = pAlgorithm.run(context, tf);
+      Set<Fault> errorIndicators = pAlgorithm.run(context, tf);
       // FaultLocalizationInfo<Selector> info =
       // FaultLocalizationInfo.withPredefinedHeuristics(result, RankingMode.OVERALL);
 
-      FaultLocalizationHeuristic<Selector> concat =
-          FaultLocalizationHeuristicUtils.concatHeuristics(List.of(
-              new EdgeTypeHeuristic<>(),
-              new SingleEdgeHintHeuristic<>(),
-              new OverallAppearanceHeuristic<>(),
-              new ErrorLocationNearestHeuristic<>(edgeList.get(edgeList.size() - 1)),
-              new CallHierarchyHeuristic<>(edgeList, tf.getNegated().size())));
+      FaultRanking concat =
+          FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
+              new EdgeTypeRanking(),
+              new SetSizeRanking(),
+              new HintRanking(3),
+              new OverallOccurrenceRanking(),
+              new MinimalLineDistanceRanking(edgeList.get(edgeList.size()-1)),
+              new CallHierarchyRanking(edgeList, tf.getNegated().size()));
 
-      FaultLocalizationSetHeuristic<Selector> concatSet = FaultLocalizationHeuristicUtils.concatSetHeuristics(List.of(new SetSizeHeuristic<>(), new SetHintHeuristic<>(3)));
-      FaultLocalizationInfo<Selector> info =
-          new FaultLocalizationInfo<>(errorIndicators, pInfo, Optional.of(concat), Optional.of(concatSet));
+      List<Fault> ranked = concat.rank(errorIndicators);
+      ranked.forEach(FaultRankingUtils::assignScoreTo);
+      ranked.forEach(l -> l.forEach(FaultRankingUtils::assignScoreTo));
+      ranked.sort(Comparator.comparingDouble(Fault::getScore).reversed());
+
+      FaultLocalizationInfo info = new FaultLocalizationInfo(ranked, pInfo);
       info.applyTo(pInfo.getTargetPath().getLastState());
       logger.log(
           Level.INFO,

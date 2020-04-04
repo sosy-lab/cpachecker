@@ -9,9 +9,9 @@ import java.util.stream.Collectors;
 import org.antlr.v4.runtime.misc.MultiMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationOutput;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -19,9 +19,9 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class FaultFixingAlgorithm<I extends FaultLocalizationOutput> {
+public class FaultFixingAlgorithm {
 
-  private MultiMap<I, BooleanFormula> fix;
+  private MultiMap<FaultContribution, BooleanFormula> fix;
   private TraceFormula traceFormula;
   private FormulaContext context;
   private BooleanFormulaManager bmgr;
@@ -29,8 +29,8 @@ public class FaultFixingAlgorithm<I extends FaultLocalizationOutput> {
   private List<CFAEdge> edges;
 
   private FaultFixingAlgorithm(
-      TraceFormula pTraceFormula, FormulaContext pContext, Map<I, Integer> pRankedMap) {
-    List<I> pRankedList = pRankedMap.keySet().stream().sorted(Comparator.comparingInt(l -> pRankedMap.get(l))).collect(
+      TraceFormula pTraceFormula, FormulaContext pContext, Map<FaultContribution, Integer> pRankedMap) {
+    List<FaultContribution> pRankedList = pRankedMap.keySet().stream().sorted(Comparator.comparingInt(l -> pRankedMap.get(l))).collect(
         Collectors.toList());
     fix = new MultiMap<>();
     traceFormula = pTraceFormula;
@@ -38,7 +38,7 @@ public class FaultFixingAlgorithm<I extends FaultLocalizationOutput> {
     fmgr = context.getSolver().getFormulaManager();
     bmgr = fmgr.getBooleanFormulaManager();
     edges = traceFormula.getEdges();
-    for (I current : pRankedList) {
+    for (FaultContribution current : pRankedList) {
       try {
         switch (current.correspondingEdge().getEdgeType()) {
           case AssumeEdge:
@@ -61,13 +61,13 @@ public class FaultFixingAlgorithm<I extends FaultLocalizationOutput> {
     }
   }
 
-  public MultiMap<I, BooleanFormula> getFix() {
+  public MultiMap<FaultContribution, BooleanFormula> getFix() {
     return fix;
   }
 
-  public static <I extends FaultLocalizationOutput> MultiMap<I, BooleanFormula> fix(
-      TraceFormula traceFormula, FormulaContext context, Map<I, Integer> rankedMap) {
-    return new FaultFixingAlgorithm<>(traceFormula, context, rankedMap).getFix();
+  public static MultiMap<FaultContribution, BooleanFormula> fix(
+      TraceFormula traceFormula, FormulaContext context, Map<FaultContribution, Integer> rankedMap) {
+    return new FaultFixingAlgorithm(traceFormula, context, rankedMap).getFix();
   }
 
   /**
@@ -75,7 +75,7 @@ public class FaultFixingAlgorithm<I extends FaultLocalizationOutput> {
    *
    * @param errorLoc possible error location
    */
-  private void fixStatementEdge(I errorLoc) throws SolverException, InterruptedException {
+  private void fixStatementEdge(FaultContribution errorLoc) throws SolverException, InterruptedException {
     assert errorLoc.correspondingEdge().getEdgeType().equals(CFAEdgeType.DeclarationEdge)
         || errorLoc.correspondingEdge().getEdgeType().equals(CFAEdgeType.StatementEdge);
 
@@ -128,7 +128,7 @@ public class FaultFixingAlgorithm<I extends FaultLocalizationOutput> {
    *
    * @param errorLoc the error location
    */
-  private void fixAssumeEdge(I errorLoc) throws SolverException, InterruptedException {
+  private void fixAssumeEdge(FaultContribution errorLoc) throws SolverException, InterruptedException {
     assert errorLoc.correspondingEdge().getEdgeType().equals(CFAEdgeType.AssumeEdge);
 
     List<BooleanFormula> atoms = new ArrayList<>(traceFormula.getAtoms());

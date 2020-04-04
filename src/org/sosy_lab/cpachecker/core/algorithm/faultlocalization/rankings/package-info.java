@@ -21,20 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
-
-import com.google.common.base.VerifyException;
-import java.util.Set;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.java_smt.api.SolverException;
-
-public interface FaultLocalizationAlgorithmInterface {
-
-  Set<Fault> run(FormulaContext context, TraceFormula tf)
-      throws CPAException, InterruptedException, SolverException, VerifyException,
-          InvalidConfigurationException;
-}
+/**
+ * Custom rankings for fault localization with unsat cores
+ */
+package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings;

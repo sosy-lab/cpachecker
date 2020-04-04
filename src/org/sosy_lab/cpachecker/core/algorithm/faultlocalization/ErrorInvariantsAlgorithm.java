@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 import com.google.common.base.VerifyException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.misc.MultiMap;
@@ -35,15 +37,14 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationReason;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.ExpressionConverter;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -79,7 +80,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   }
 
   @Override
-  public ErrorIndicatorSet<Selector> run(FormulaContext context, TraceFormula tf)
+  public Set<Fault> run(FormulaContext context, TraceFormula tf)
       throws CPAException, InterruptedException, SolverException, VerifyException,
           InvalidConfigurationException {
     solver = context.getSolver();
@@ -137,9 +138,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     // condition cannot be a suitable explanation of why the error happens.
 
     MultiMap<Selector, BooleanFormula> allInterpolants = new MultiMap<>();
-    ErrorIndicatorSet<Selector> indicators = new ErrorIndicatorSet<>();
+    Set<Fault> indicators = new HashSet<>();
     for (InterpolantToEdge interpolantToEdge : interpolantsForPosition) {
-      ErrorIndicator<Selector> indicator = new ErrorIndicator<>();
+      Fault indicator = new Fault();
       Selector current = Selector.of(interpolantToEdge.edge).orElse(null);
       if(current != null){
         allInterpolants.map(current, interpolantToEdge.interpolant);
@@ -155,7 +156,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
           .distinct()
           .collect(Collectors.joining(","));
       if(!description.isEmpty())
-        selector.addReason(FaultLocalizationReason.hint("The error is described by the invariant(s): " + description));
+        selector.addReason(FaultReason.hint("The error is described by the invariant(s): " + description));
     }
 
     return indicators;

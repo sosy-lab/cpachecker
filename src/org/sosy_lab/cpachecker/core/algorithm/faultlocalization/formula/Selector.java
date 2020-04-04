@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 import java.util.HashMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationOutput;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-public class Selector extends FaultLocalizationOutput {
+public class Selector extends FaultContribution {
 
   private static HashMap<String, Selector> selectors = new HashMap<>();
   private static int index = 0;
@@ -55,6 +55,7 @@ public class Selector extends FaultLocalizationOutput {
 
   private Selector(
       int pUniqueIndex, BooleanFormula pFormula, CFAEdge pEdge, FormulaContext pContext) {
+    super(pEdge);
     if (pEdge == null) {
       name = "S" + pUniqueIndex + ": unknown reference";
     } else {
@@ -131,10 +132,5 @@ public class Selector extends FaultLocalizationOutput {
   @Override
   public int hashCode() {
     return name.hashCode();
-  }
-
-  @Override
-  public CFAEdge correspondingEdge() {
-    return edge;
   }
 }

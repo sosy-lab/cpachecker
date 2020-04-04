@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 import com.google.common.base.VerifyException;
 import java.util.HashSet;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -43,7 +43,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
   private BooleanFormulaManager bmgr;
 
   @Override
-  public ErrorIndicatorSet<Selector> run(FormulaContext pContext, TraceFormula tf)
+  public Set<Fault> run(FormulaContext pContext, TraceFormula tf)
       throws CPATransferException, InterruptedException, SolverException, VerifyException {
 
     solver = pContext.getSolver();
@@ -51,11 +51,11 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
 
     int numberSelectors = tf.getSelectors().size();
 
-    Set<ErrorIndicator<Selector>> hard = new HashSet<>();
+    Set<Fault> hard = new HashSet<>();
     Set<Selector> soft = new HashSet<>(tf.getSelectors());
-    Set<ErrorIndicator<Selector>> singletons = new HashSet<>();
+    Set<Fault> singletons = new HashSet<>();
 
-    ErrorIndicator<Selector> minUnsatCore = new ErrorIndicator<>();
+    Fault minUnsatCore = new Fault();
 
     while(minUnsatCore.size() != numberSelectors){
       minUnsatCore = getMinUnsatCore(soft, tf, hard);
@@ -80,7 +80,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
 
     hard.addAll(singletons);
 
-    return new ErrorIndicatorSet<>(hard);
+    return hard;
   }
 
   /**
@@ -92,10 +92,10 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
    * @throws SolverException thrown if tf is satisfiable
    * @throws InterruptedException thrown if interrupted
    */
-  private ErrorIndicator<Selector> getMinUnsatCore(
-      Set<Selector> pSoftSet, TraceFormula pTraceFormula, Set<ErrorIndicator<Selector>> pHardSet)
+  private Fault getMinUnsatCore(
+      Set<Selector> pSoftSet, TraceFormula pTraceFormula, Set<Fault> pHardSet)
       throws SolverException, InterruptedException {
-    Set<Selector> result = new HashSet<>(pSoftSet);
+    Fault result = new Fault(new HashSet<>(pSoftSet));
     BooleanFormula composedFormula =
         bmgr.and(
             pTraceFormula.getPreCondition(),
@@ -104,8 +104,9 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
     boolean changed;
     do {
       changed = false;
-      for (Selector s : result) {
-        Set<Selector> copy = new HashSet<>(result);
+      for (FaultContribution fc : result) {
+        Selector s = (Selector)fc;
+        Fault copy = new Fault(new HashSet<>(result));
         copy.remove(s);
         if (!isSubsetOrSupersetOf(copy, pHardSet)) {
           if (solver.isUnsat(bmgr.and(composedFormula, softSetFormula(copy)))) {
@@ -116,11 +117,11 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
         }
       }
     } while (changed);
-    return new ErrorIndicator<>(result);
+    return new Fault(result);
   }
 
-  private boolean isSubsetOrSupersetOf(Set<Selector> pSet, Set<ErrorIndicator<Selector>> pHardSet) {
-    for (Set<Selector> hardSet : pHardSet) {
+  private boolean isSubsetOrSupersetOf(Fault pSet, Set<Fault> pHardSet) {
+    for (Set<FaultContribution> hardSet : pHardSet) {
       if (hardSet.containsAll(pSet) || pSet.containsAll(hardSet)) {
         return true;
       }
@@ -128,8 +129,8 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
     return false;
   }
 
-  private BooleanFormula softSetFormula(Set<Selector> softSet) {
-    return softSet.stream().map(Selector::getFormula).collect(bmgr.toConjunction());
+  private BooleanFormula softSetFormula(Fault softSet) {
+    return softSet.stream().map(f -> ((Selector)f).getFormula()).collect(bmgr.toConjunction());
   }
 
   /**
@@ -138,9 +139,9 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
    * @param hardSet the current hard set
    * @return conjunction of the disjunction of the sets
    */
-  private BooleanFormula hardSetFormula(Set<ErrorIndicator<Selector>> hardSet) {
+  private BooleanFormula hardSetFormula(Set<Fault> hardSet) {
     return hardSet.stream()
-        .map(l -> l.stream().map(Selector::getFormula).collect(bmgr.toDisjunction()))
+        .map(l -> l.stream().map(f -> ((Selector)f).getFormula()).collect(bmgr.toDisjunction()))
         .collect(bmgr.toConjunction());
   }
 }

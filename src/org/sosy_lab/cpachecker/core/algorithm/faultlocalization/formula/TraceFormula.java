@@ -67,9 +67,11 @@ public class TraceFormula {
       description="filter the alternative precondition by scopes")
   private String filter = "";
 
-  @Option(secure=true, name="altpre",
-      description="force alternative precondition if possible")
-  private boolean forceAlternativePreCondition = false;
+  @Option(
+      secure = true,
+      name = "altpre",
+      description = "force alternative pre condition")
+  boolean forceAlternativePreCondition = false;
 
   public TraceFormula(FormulaContext pContext, Configuration pConfig, List<CFAEdge> pEdges)
       throws CPATransferException, InterruptedException, SolverException,
@@ -220,8 +222,7 @@ public class TraceFormula {
         ssaMaps.remove(index);
       }
     }
-
-    //If however the pre condition conjugated with the post condition tell the main algorithm that this formula is always unsat.
+    //If however the pre condition conjugated with the post condition is unsat tell the main algorithm that this formula is always unsat.
     if(context.getSolver().isUnsat(bmgr.and(precondition, postcondition))){
       isAlwaysUnsat = true;
     }

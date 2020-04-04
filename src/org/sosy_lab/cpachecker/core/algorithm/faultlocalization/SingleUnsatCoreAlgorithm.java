@@ -26,13 +26,13 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 import com.google.common.base.VerifyException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicator;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.ErrorIndicatorSet;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -48,7 +48,7 @@ public class SingleUnsatCoreAlgorithm implements FaultLocalizationAlgorithmInter
    * @return one UNSAT-core
    */
   @Override
-  public ErrorIndicatorSet<Selector> run(FormulaContext context, TraceFormula tf)
+  public Set<Fault> run(FormulaContext context, TraceFormula tf)
       throws CPATransferException, InterruptedException, SolverException, VerifyException {
 
     Solver solver = context.getSolver();
@@ -74,8 +74,8 @@ public class SingleUnsatCoreAlgorithm implements FaultLocalizationAlgorithmInter
             .map(l -> Selector.of(l).get())
             .collect(Collectors.toList());
 
-    ErrorIndicatorSet<Selector> indicators = new ErrorIndicatorSet<>();
-    indicators.add(new ErrorIndicator<>(new HashSet<>(unsatCore)));
-    return indicators;
+    Set<Fault> resultSet = new HashSet<>();
+    resultSet.add(new Fault(new HashSet<>(unsatCore)));
+    return resultSet;
   }
 }
