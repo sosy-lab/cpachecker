@@ -21,35 +21,35 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.heuristics;
+package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationExplanation;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common.FaultLocalizationOutput;
+import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultExplanation;
 
-public class NoContextExplanation implements FaultLocalizationExplanation {
+public class NoContextExplanation implements FaultExplanation {
 
   /**
-   * possible implementation of a function that maps a FaultLocalizationOutput object to a
-   * description (as string) this function relies on singleton sets otherwise an error is thrown.
-   * based on the edge type a suggestion for fixing the bug is made. A sample usage can be found
-   * here: FaultLocalizationHeuristicsImpl.rankByCountingSubsetOccurrences
-   *
+   * Possible implementation of a function that maps a FaultContribution object to a
+   * description (as string). This function relies on singleton sets otherwise an error is thrown.
+   * Make a suggestion for a bug fix based on the EdgeType.
+   * See FaultReason for an example.
+   * @see org.sosy_lab.cpachecker.util.faultlocalization.FaultReason#hintFor(Fault)
    * @param subset set of FaultLocalizationOutputs.
    * @return explanation of what might be a fix
    */
   @Override
-  public String explanationFor(Set<? extends FaultLocalizationOutput> subset) {
+  public String explanationFor(Fault subset) {
     if (subset.size() != 1) {
-      throw new IllegalArgumentException("reason without context requires exactly one edge");
+      throw new IllegalArgumentException("NoContextExplanation requires exactly one edge in Fault");
     }
-    FaultLocalizationOutput object = new ArrayList<>(subset).get(0);
-    CFAEdge pEdge = object.correspondingEdge();
+    FaultContribution faultContribution = new ArrayList<>(subset).get(0);
+    CFAEdge pEdge = faultContribution.correspondingEdge();
     String description = pEdge.getDescription();
     switch (pEdge.getEdgeType()) {
       case AssumeEdge:

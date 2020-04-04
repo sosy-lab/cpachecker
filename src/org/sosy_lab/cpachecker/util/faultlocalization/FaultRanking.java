@@ -21,23 +21,28 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.common;
+package org.sosy_lab.cpachecker.util.faultlocalization;
 
-import java.util.Map;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
+import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MaximalLineDistanceRanking;
 
-public interface FaultLocalizationSetHeuristic<I extends FaultLocalizationOutput>{
+@FunctionalInterface
+public interface FaultRanking {
 
   /**
    * Rank the input set for visualizing in the ReportManager.
    *
-   * If more than just one parameter is needed (here: errorIndicators) a class that
+   * If more than just one parameter is needed (here: result) a class that
    * implements this interface can be created.
-   * For more details and an example see ErrorLocationFarthestHeuristic.
-   * To concatenate multiple heuristics FaultLocalizationHeuristicUtils.concatSetHeuristics() can be used.
-   *
-   * @param errorIndicators The result of any FaultLocalizationAlgorithm
-   * @return a ranked list of all contained ErrorIndicators.
+   * For more details and an example see MaximalLineDistanceRanking.
+   * To concatenate multiple heuristics FaultRankingUtils.concatHeuristics() can be used.
+   * @see FaultRankingUtils#concatHeuristics(Function, FaultRanking...)
+   * @see FaultRankingUtils#concatHeuristicsDefaultFinalScoring(FaultRanking...) 
+   * @see MaximalLineDistanceRanking
+   * @param result The result of any FaultLocalizationAlgorithm
+   * @return a ranked list of all contained FaultContribution objects.
    */
-  Map<ErrorIndicator<I>, Integer> rankSubsets(ErrorIndicatorSet<I> errorIndicators);
-
+  List<Fault> rank(Set<Fault> result);
 }

@@ -23,6 +23,6 @@
  */
 
 /**
- * Includes fault localization algorithms based on error invariants, MAX-SAT and UNSAT-Cores
+ * Examples for rankings for sets of Faults
  */
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
+package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
