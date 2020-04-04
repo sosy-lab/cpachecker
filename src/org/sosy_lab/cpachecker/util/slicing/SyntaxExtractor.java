@@ -153,7 +153,7 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
     // Create new configuration with default set of CPAs
     // might not work correctly in the presence of recursion and function pointers
     ConfigurationBuilder configurationBuilder = Configuration.builder();
-    configurationBuilder.loadFromResource(getClass(), "find-target-locations.properties");
+    configurationBuilder.loadFromResource(getClass(), "find-target-locations-ARG.properties");
     configurationBuilder.setOption("cpa.automaton.breakOnTargetState", "0");
     return configurationBuilder.build();
   }
