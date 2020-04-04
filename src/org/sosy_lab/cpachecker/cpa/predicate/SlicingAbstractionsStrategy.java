@@ -43,15 +43,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
-
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -151,19 +149,19 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     description = "Whether to perform dynamic block encoding as part of each refinement iteration"
   )
   private boolean dynamicBlockEncoding = false;
-  
+
   @Option(
     secure = true,
     description = "Execute in Parallel"
   )
   private boolean executeParallel = false;
-  
+
   @Option(
     secure = true,
     description = "Number of threads, is only used when executeParallel is True"
   )
   private int threadNum = 1;
-  
+
 
   private final Stats stats = new Stats();
 
@@ -193,11 +191,16 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       throws InvalidConfigurationException {
     super(pPredicateCpa.getSolver());
     parallelSolvers = new ArrayList<Solver>();
-    if(executeParallel){    
-        for(int i = 0; i < threadNum; i++){
-            parallelSolvers.add(pPredicateCpa.getSolver());
+    if (executeParallel) {
+      for (int i = 0; i < threadNum + 1; i++) {
+
+        parallelSolvers.add(
+            Solver.create(
+                pPredicateCpa.getConfiguration(),
+                pPredicateCpa.getLogger(),
+                pPredicateCpa.getShutdownNotifier()));
         }
-        solver = parallelSolvers.get(0);
+      solver = parallelSolvers.get(threadNum);
     } else {
         solver = pPredicateCpa.getSolver();
     }
@@ -446,10 +449,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       Map<ARGState, List<ARGState>> segmentMap =
           SlicingAbstractionsUtils.calculateOutgoingSegments(currentState);
       Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
-      
+
       // TODO
-      
-      if(executeParallel == true){
+
+      if (executeParallel == true) {
         ExecutorService executor = Executors.newFixedThreadPool(threadNum);
         List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>();
         final int[] currentThreadId = new int[1];
@@ -524,7 +527,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
             infeasibleMap.put(key, infeasible);
         }
       }
-      
+
       slice0(currentState, segmentMap, infeasibleMap);
     }
   }
@@ -599,7 +602,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     }
     return infeasible;
   }
-  
+
   private boolean checkEdgeSetParallel(SLARGState startState, SLARGState endState, int currentThreadId)
       throws InterruptedException, CPAException {
     assert startState.getChildren().contains(endState);
@@ -650,7 +653,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
         || infeasible;
     return infeasible;
   }
-  
+
   private boolean checkEdgeParallel(ARGState startState, ARGState endState,
       List<ARGState> segmentList, final List<ARGState> abstractionStatesTrace, ARGState rootState,
       ARGState pInfeasiblePartOfART, List<ARGState> pChangedElements, int currentThreadId)
@@ -701,7 +704,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       throw new RuntimeException("Checking a nonexisting transition in the ARG!");
     }
   }
-  
+
     private boolean checkSymbolicEdgeParallel(
       ARGState pStartState, ARGState pEndState, List<ARGState> pSegmentList, int currentThreadId)
       throws InterruptedException, CPAException {
@@ -722,7 +725,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       throw new RuntimeException("Checking a nonexisting transition in the ARG!");
     }
   }
-  
+
   private boolean isInfeasibleEdge(ARGState start, ARGState stop, List<ARGState> segmentList)
       throws InterruptedException, CPAException {
     boolean infeasible = false;
@@ -750,7 +753,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
     SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
     PointerTargetSet startPts = PointerTargetSet.emptyPointerTargetSet();
-    BooleanFormula formula = buildPathFormula(start, stop, segmentList, startSSAMap, startPts, parallelSolvers.get(currentThreadId), pfmgr, true).getFormula();
+    BooleanFormula formula =
+        buildPathFormula(start, stop, segmentList, startSSAMap, startPts, solver, pfmgr, true)
+            .getFormula();
     try (ProverEnvironment thmProver = parallelSolvers.get(currentThreadId).newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       thmProver.push(formula);
       stats.increaseSolverCallCounter();
