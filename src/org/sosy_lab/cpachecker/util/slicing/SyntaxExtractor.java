@@ -115,8 +115,8 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
     Collection<CFAEdge> allEdges = extractAllCFAEdges(pCfa);
 
     // currently we assume that
-    // (1) we goto dedicated state FALSE when successors are not explored
-    // (2) TRUE -> ... edge never necessary
+    // (1) we goto dedicated state __FALSE when successors are not explored
+    // (2) __TRUE -> ... edge never necessary
     for (AutomatonInternalState state : condition.getStates()) {
       if (state.isTarget()) {
         continue;
@@ -125,7 +125,7 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
         if (notFoundTargets.contains(edge) && state.nontriviallyMatches(edge, pLogger)) {
           notFoundTargets.remove(edge);
           relevantTargets.add(edge);
-        } else if (state.nontriviallyMatchesAndEndsIn(edge, "FALSE", pLogger)) {
+        } else if (state.nontriviallyMatchesAndEndsIn(edge, "__FALSE", pLogger)) {
           relevantTargets.addAll(nodesReachingTargetEdges.get(edge.getSuccessor()));
           notFoundTargets.removeAll(nodesReachingTargetEdges.get(edge.getSuccessor()));
         }
