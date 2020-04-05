@@ -156,6 +156,28 @@ final class DefsUses {
         if (uses != null) {
           return Optional.of(new Data(pEdge, defs, uses));
         }
+      } else if (initializer instanceof CInitializerList) {
+        CInitializerList initList = (CInitializerList) initializer;
+
+        Set<MemoryLocation> combinedUses = new HashSet<>();
+
+        for (CInitializer init : initList.getInitializers()) {
+
+          if (init instanceof CInitializerExpression) {
+
+            Set<MemoryLocation> uses =
+                getUses(
+                    ((CInitializerExpression) init).getExpression(), PointerState.INITIAL_STATE);
+
+            if (uses != null) {
+              combinedUses.addAll(uses);
+            } else {
+              break;
+            }
+          }
+        }
+
+        return Optional.of(new Data(pEdge, defs, combinedUses));
       } else {
         throw new AssertionError("Unsupported CInitializer: " + initializer.getClass());
       }
