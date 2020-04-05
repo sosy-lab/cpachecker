@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -45,10 +46,6 @@ public class TarantulaUtils {
 
   private static List<ARGState> targetStates;
   private static ARGState root;
-  private static final int SAFE_PATH_VALUE = 0;
-  private static final int FAILED_PATH_VALUE = 1;
-  private static final int PASSED_PATH_CASE = 0;
-  private static final int FAILED_PATH_CASE = 1;
 
   /** Helper class for TarantulaAlgorithm related utility methods. */
   private TarantulaUtils() {}
@@ -210,102 +207,34 @@ public class TarantulaUtils {
   }
 
   /**
-   * Gets all program edges reachedSet.
+   * Gets the <code> HashMap<CFAEdge, int[]> </code>.
    *
-   * @param reachedSet input.
-   * @return Amount of program edges.
+   * @param reachedSet Input.
+   * @return Covered edges.
    */
-  public static List<CFAEdge> getProgramEdges(ReachedSet reachedSet) {
-    List<CFAEdge> programEdges = new ArrayList<>();
+  public static HashMap<CFAEdge, int[]> getTable(ReachedSet reachedSet) {
 
-    for (AbstractState s : reachedSet) {
-      ARGState currentState = getRoot(s);
-      assert currentState != null;
-      Collection<CFAEdge> edge =
-          currentState.getParents().stream()
-              .map(p -> p.getEdgeToChild(currentState))
-              .filter(x -> x != null && x.getLineNumber() != 0)
-              .collect(Collectors.toList());
-
-      programEdges.addAll(edge);
-    }
-
-    return programEdges;
-  }
-
-  /**
-   * Converts path into binary list (1 or 0) such that 1 means its covered and 0 its not covered.
-   *
-   * @param path type of the path, error path or safe path.
-   * @param programEdges list of program edges.
-   * @return binary result.
-   */
-  public static List<Integer> coveredEdges(
-      List<CFAEdge> path, List<CFAEdge> programEdges, ReachedSet reachedSet) {
-    List<Integer> binaryResult = new ArrayList<>();
-    targetStates = mergeAllErrorStates(reachedSet);
-    for (AbstractState targetState : targetStates) {
-      CFANode nodeOfTargetState = AbstractStates.extractLocation(targetState);
-      if (path.get(path.size() - 1).getSuccessor().equals(nodeOfTargetState)) {
-        binaryResult.add(0, FAILED_PATH_VALUE);
-        break;
-      } else {
-        binaryResult.add(0, SAFE_PATH_VALUE);
-      }
-    }
-    for (int i = 1; i < programEdges.size(); i++) {
-
-      if (path.contains(programEdges.get(i))) {
-        binaryResult.add(i, FAILED_PATH_CASE);
-      } else {
-        binaryResult.add(i, PASSED_PATH_CASE);
-      }
-    }
-    return binaryResult;
-  }
-
-  /**
-   * Gets the two dimensional <code>ArrayList</code>.
-   *
-   * @param reachedSet input.
-   * @return Converted covered edges into binary <code>ArrayList</code>.
-   */
-  public static List<List<Integer>> getTable(ReachedSet reachedSet) {
-
-    return convertingToBinary(
-        mergeInto2dArray(getEdgesOfSafePaths(reachedSet), getEdgesOfErrorPaths(reachedSet)),
-        getProgramEdges(reachedSet),
+    return convertingInformation(
+        TarantulaUtils.mergeInto2dArray(
+            TarantulaUtils.getEdgesOfSafePaths(reachedSet),
+            TarantulaUtils.getEdgesOfErrorPaths(reachedSet)),
         reachedSet);
+  }
+
+  public static List<List<CFAEdge>> getAllPossiblePaths(ReachedSet reachedSet) {
+    return mergeInto2dArray(getEdgesOfSafePaths(reachedSet), getEdgesOfErrorPaths(reachedSet));
   }
   /**
    * Merges into two dimensional <code>ArrayList</code>.
    *
-   * @param safePaths safe paths.
-   * @param errorPaths error paths
+   * @param safePaths Safe paths.
+   * @param errorPaths Error paths.
    * @return merged ArrayList.
    */
-  private static List<List<CFAEdge>> mergeInto2dArray(
+  public static List<List<CFAEdge>> mergeInto2dArray(
       List<List<CFAEdge>> safePaths, List<List<CFAEdge>> errorPaths) {
 
     return Stream.concat(safePaths.stream(), errorPaths.stream()).collect(Collectors.toList());
-  }
-
-  /**
-   * Converts all paths into binary list <code>(1 or 0)</code> based on the program edges.
-   *
-   * @param path type of the path, error path or safe path.
-   * @param programEdges list of program edges.
-   * @return binary result.
-   */
-  private static List<List<Integer>> convertingToBinary(
-      List<List<CFAEdge>> path, List<CFAEdge> programEdges, ReachedSet reachedSet) {
-    List<List<Integer>> binaryResult = new ArrayList<>();
-
-    for (List<CFAEdge> pCFAEdges : path) {
-      binaryResult.add(coveredEdges(pCFAEdges, programEdges, reachedSet));
-    }
-
-    return binaryResult;
   }
 
   /**
@@ -326,15 +255,6 @@ public class TarantulaUtils {
 
     return false;
   }
-  /**
-   * Extract root state from ARG.
-   *
-   * @param pPFirstState First state of ARG.
-   * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>
-   */
-  private static ARGState getRoot(AbstractState pPFirstState) {
-    return AbstractStates.extractStateByType(pPFirstState, ARGState.class);
-  }
 
   /**
    * Checks whether there is a false paths in the ARG or not.
@@ -352,7 +272,36 @@ public class TarantulaUtils {
 
     return false;
   }
+  /**
+   * Checks whether the path is a failed path or not.
+   *
+   * @param reachedSet input.
+   * @param path The chosen path.
+   * @return <code>boolean</code>
+   */
+  public static boolean isFailedPath(List<CFAEdge> path, ReachedSet reachedSet) {
+    targetStates = mergeAllErrorStates(reachedSet);
 
+    for (int i = 0; i < path.size(); i++) {
+      for (AbstractState targetState : targetStates) {
+        CFANode nodeOfTargetState = AbstractStates.extractLocation(targetState);
+        if (path.get(path.size() - 1).getSuccessor().equals(nodeOfTargetState)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+  /**
+   * Extract root state from ARG.
+   *
+   * @param pPFirstState First state of ARG.
+   * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>
+   */
+  private static ARGState getRoot(AbstractState pPFirstState) {
+    return AbstractStates.extractStateByType(pPFirstState, ARGState.class);
+  }
   /**
    * Gets all paths from the possible leaves (whether targetStates or safeStates)to the root.
    *
@@ -361,14 +310,51 @@ public class TarantulaUtils {
    * @return Full paths
    */
   public static List<List<CFAEdge>> getAllPaths(ReachedSet reachedSet, ARGState chosenState) {
-    List<List<ARGState>> getAllErrorState = getAllStatesReversed(reachedSet, chosenState);
+    List<List<ARGState>> getAllStates = getAllStatesReversed(reachedSet, chosenState);
     List<List<CFAEdge>> paths = new ArrayList<>();
 
-    for (List<ARGState> pARGStates : getAllErrorState) {
+    for (List<ARGState> pARGStates : getAllStates) {
       paths.add(new ARGPath(Lists.reverse(pARGStates)).getFullPath());
     }
 
     return paths;
+  }
+  /**
+   * Counts how many failed case / passed case has each Edges. For example <code>
+   * line 5: N2 -{[cond == 0]},[2,1]</code> means that this specific Edges has `2` failed cases and
+   * only one passed case.
+   *
+   * @param reachedSet input.
+   * @param path The whole path contains all error paths and passed paths.
+   * @return result as <code>HashMap<code/>.
+   */
+  public static HashMap<CFAEdge, int[]> convertingInformation(
+      List<List<CFAEdge>> path, ReachedSet reachedSet) {
+
+    HashMap<CFAEdge, int[]> map = new HashMap<>();
+    for (List<CFAEdge> individualArray : path) {
+      for (int j = 0; j < individualArray.size(); j++) {
+        int[] tuple = new int[2];
+        if (map.containsKey(individualArray.get(j))) {
+          tuple = map.get(individualArray.get(j));
+
+          if (isFailedPath(individualArray, reachedSet)) {
+            tuple[0]++;
+          } else {
+            tuple[1]++;
+          }
+
+        } else {
+          if (isFailedPath(individualArray, reachedSet)) {
+            tuple[0] = 1;
+          } else {
+            tuple[1] = 1;
+          }
+        }
+        map.put(individualArray.get(j), tuple);
+      }
+    }
+    return map;
   }
   /**
    * Gets all states on the possible paths from the possible leaves (whether targetStates or
