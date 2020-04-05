@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ForwardingTable;
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -37,6 +38,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -57,10 +59,12 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -245,7 +249,31 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         node -> !(node instanceof FunctionEntryNode));
   }
 
+  private static List<CFAEdge> getGlobalDeclarationEdges(CFA pCfa) {
+
+    CFANode node = pCfa.getMainFunction();
+    List<CFAEdge> declEdges = new ArrayList<>();
+
+    while (node.getNumLeavingEdges() == 1) {
+
+      CFAEdge edge = node.getLeavingEdge(0);
+
+      if (edge instanceof CDeclarationEdge) {
+        CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
+        if (declaration.isGlobal()) {
+          declEdges.add(edge);
+        }
+      }
+
+      node = edge.getSuccessor();
+    }
+
+    return ImmutableList.copyOf(declEdges);
+  }
+
   private void addFlowDependencesNew() {
+
+    List<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
@@ -257,6 +285,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
       FlowDep.execute(
           entryNode,
+          globalEdges,
           (edge, dependent, variable) -> {
             addDependence(
                 getDGNode(edge, Optional.empty()),

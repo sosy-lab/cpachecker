@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -96,7 +95,13 @@ final class FlowDep {
 
       while (!waitlist.isEmpty()) {
 
-        for (CFANode node : pFrontiers.getFrontier(waitlist.remove())) {
+        Set<CFANode> frontier = pFrontiers.getFrontier(waitlist.remove());
+
+        if (frontier == null) {
+          frontier = pFrontiers.getFrontier(pEntryNode);
+        }
+
+        for (CFANode node : frontier) {
           if (!pBuilder.containsCombineDef(node, variable)) {
 
             pBuilder.insertCombineDef(node, variable);
@@ -135,9 +140,12 @@ final class FlowDep {
     }
   }
 
-  private static void addFlowDeps(Builder pBuilder, DomTree<CFANode> pDomTree) {
+  private static void addFlowDeps(
+      Builder pBuilder, DomTree<CFANode> pDomTree, List<CFAEdge> pGlobalEdges) {
 
     DomTreeNode current = DomTreeNode.create(pDomTree);
+
+    pGlobalEdges.forEach(pBuilder::push); // push global variable declarations
 
     initFunctionParams(pBuilder, current);
 
@@ -212,10 +220,22 @@ final class FlowDep {
     }
   }
 
+  private static void initDefsUsesEdge(
+      Builder pBuilder, CFAEdge pEdge, UnknownPointerConsumer pUnknownPointerConsumer) {
+    Optional<DefsUses.Data> defsUses = DefsUses.getData(pEdge);
+    if (defsUses.isPresent()) {
+      pBuilder.register(pEdge, defsUses.orElseThrow());
+    } else {
+      pUnknownPointerConsumer.accept(pEdge);
+      pBuilder.register(pEdge, DefsUses.getEmptyData(pEdge));
+    }
+  }
+
   /** Adds relevant DefsUses.Data to the builder. */
   private static void initDefsUses(
       Builder pBuilder,
       FunctionEntryNode pEntryNode,
+      List<CFAEdge> pGlobalEdges,
       UnknownPointerConsumer pUnknownPointerConsumer) {
 
     Set<CFANode> nodes =
@@ -223,15 +243,13 @@ final class FlowDep {
             .ignoreFunctionCalls()
             .collectNodesReachableFromTo(pEntryNode, pEntryNode.getExitNode());
 
+    for (CFAEdge edge : pGlobalEdges) {
+      initDefsUsesEdge(pBuilder, edge, pUnknownPointerConsumer);
+    }
+
     for (CFANode node : nodes) {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        Optional<DefsUses.Data> defsUses = DefsUses.getData(edge);
-        if (defsUses.isPresent()) {
-          pBuilder.register(edge, defsUses.orElseThrow());
-        } else {
-          pUnknownPointerConsumer.accept(edge);
-          pBuilder.register(edge, DefsUses.getEmptyData(edge));
-        }
+        initDefsUsesEdge(pBuilder, edge, pUnknownPointerConsumer);
       }
     }
 
@@ -242,6 +260,7 @@ final class FlowDep {
 
   static void execute(
       final FunctionEntryNode pEntryNode,
+      final List<CFAEdge> pGlobalEdges,
       final DependenceConsumer pDependenceConsumer,
       final UnknownPointerConsumer pUnknownPointerConsumer) {
 
@@ -255,9 +274,9 @@ final class FlowDep {
 
     DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(domTree);
 
-    initDefsUses(builder, pEntryNode, pUnknownPointerConsumer);
+    initDefsUses(builder, pEntryNode, pGlobalEdges, pUnknownPointerConsumer);
     insertCombineDefs(builder, frontiers, pEntryNode);
-    addFlowDeps(builder, domTree);
+    addFlowDeps(builder, domTree, pGlobalEdges);
 
     builder.dependences.forEach(
         (dependent, def) -> {
