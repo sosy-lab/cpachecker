@@ -232,7 +232,7 @@ public class TarantulaAlgorithm implements Algorithm {
   private static Map<CFAEdge, Double> sortByValue(final Map<CFAEdge, Double> wordCounts) {
 
     return wordCounts.entrySet().stream()
-        .sorted((Map.Entry.<CFAEdge, Double>comparingByValue().reversed()))
+        .sorted(Map.Entry.<CFAEdge, Double>comparingByValue().reversed())
         .collect(
             Collectors.toMap(
                 Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));

@@ -26,14 +26,15 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -48,7 +49,6 @@ public class TarantulaUtils {
   private static final int FAILED_PATH_VALUE = 1;
   private static final int PASSED_PATH_CASE = 0;
   private static final int FAILED_PATH_CASE = 1;
-  private static final String VERIFIER_ERROR = "__VERIFIER_error";
 
   /** Helper class for TarantulaAlgorithm related utility methods. */
   private TarantulaUtils() {}
@@ -61,9 +61,49 @@ public class TarantulaUtils {
   private static List<ARGState> getErrorStates(ReachedSet reachedSet) {
 
     return FluentIterable.from(reachedSet)
-        .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
+        .transform(s -> getRoot(s))
         .filter(ARGState::isTarget)
         .toList();
+  }
+  /**
+   * Gets error states in case of loop (safe leaves) from ARG.
+   *
+   * @param pRoot root at ARG.
+   * @return Detected error loop states.
+   */
+  public static List<ARGState> getErrorLoopState(ARGState pRoot) {
+
+    ImmutableList<ARGState> leaves =
+        from(pRoot.getSubgraph())
+            .filter(
+                s -> {
+                  assert s != null;
+                  return s.getChildren().isEmpty() && s.isCovered();
+                })
+            .toList();
+
+    List<ARGState> errorLoopStates = new ArrayList<>();
+
+    for (ARGState leaf : leaves) {
+      if (AbstractStates.isTargetState(leaf)) {
+        errorLoopStates.add(leaf);
+      }
+    }
+
+    return errorLoopStates;
+  }
+  /**
+   * Merges error states and error states in case of loop from ARG together.
+   *
+   * @param reachedSet Input.
+   * @return Detected all error states.
+   */
+  private static List<ARGState> mergeAllErrorStates(ReachedSet reachedSet) {
+    List<List<ARGState>> result = new ArrayList<>();
+    result.add(getErrorStates(reachedSet));
+    result.add(getErrorLoopState(getRoot(reachedSet.getFirstState())));
+
+    return result.stream().flatMap(Collection::stream).collect(Collectors.toList());
   }
   /**
    * Gets safe states (safe leaves) from ARG.
@@ -73,7 +113,12 @@ public class TarantulaUtils {
    */
   public static ARGState getSafeState(ARGState pRoot) {
     FluentIterable<ARGState> leaves =
-        from(pRoot.getSubgraph()).filter(s -> s.getChildren().isEmpty() && !s.isCovered());
+        from(pRoot.getSubgraph())
+            .filter(
+                s -> {
+                  assert s != null;
+                  return s.getChildren().isEmpty() && !s.isCovered();
+                });
     ARGState safeState = null;
 
     for (ARGState leaf : leaves) {
@@ -85,13 +130,54 @@ public class TarantulaUtils {
     return safeState;
   }
   /**
+   * Gets safe states in case of loop (safe leaves) from ARG.
+   *
+   * @param pRoot root at ARG.
+   * @return Detected safe loop states.
+   */
+  public static ARGState getSafeLoopState(ARGState pRoot) {
+    FluentIterable<ARGState> leaves =
+        from(pRoot.getSubgraph())
+            .filter(
+                s -> {
+                  assert s != null;
+                  return s.getChildren().isEmpty() && s.isCovered();
+                });
+    ARGState loopSafeState = null;
+
+    for (ARGState leaf : leaves) {
+      if (!AbstractStates.isTargetState(leaf)) {
+        loopSafeState = leaf;
+      }
+    }
+    return loopSafeState;
+  }
+  /**
+   * Merges safe states and safe states in case of loop from ARG together.
+   *
+   * @param reachedSet Input.
+   * @return Merged all safe states.
+   */
+  private static List<ARGState> mergeAllSafeStates(ReachedSet reachedSet) {
+    List<ARGState> mergedAllSafeStates = new ArrayList<>();
+    root = getRoot(reachedSet.getFirstState());
+
+    mergedAllSafeStates.add(getSafeState(root));
+    if (getSafeLoopState(root) != null) {
+      mergedAllSafeStates.add(getSafeLoopState(root));
+    }
+
+    return mergedAllSafeStates;
+  }
+  /**
    * Gets two dimensional CFAEdge list of the error paths.
    *
    * @param reachedSet input.
    * @return Detected error edges.
    */
   public static List<List<CFAEdge>> getEdgesOfErrorPaths(ReachedSet reachedSet) {
-    targetStates = getErrorStates(reachedSet);
+
+    targetStates = mergeAllErrorStates(reachedSet);
     List<List<CFAEdge>> errorEdges;
     List<List<List<CFAEdge>>> allPathsTogether = new ArrayList<>();
 
@@ -99,9 +185,9 @@ public class TarantulaUtils {
       allPathsTogether.add(getAllPaths(reachedSet, targetState));
     }
     errorEdges = allPathsTogether.stream().flatMap(Collection::stream).collect(Collectors.toList());
-
     return errorEdges;
   }
+
   /**
    * Gets two dimensional CFAEdge list of the safe paths.
    *
@@ -109,17 +195,20 @@ public class TarantulaUtils {
    * @return Detected safe edges.
    */
   public static List<List<CFAEdge>> getEdgesOfSafePaths(ReachedSet reachedSet) {
-    root = AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class);
     List<List<CFAEdge>> safeEdges;
     List<List<List<CFAEdge>>> allPathsTogether = new ArrayList<>();
 
-    if (checkForSafePath(reachedSet)) {
-      allPathsTogether.add(getAllPaths(reachedSet, getSafeState(root)));
+    for (ARGState safePath : mergeAllSafeStates(reachedSet)) {
+      if (checkForSafePath(reachedSet)) {
+
+        allPathsTogether.add(getAllPaths(reachedSet, safePath));
+      }
     }
     safeEdges = allPathsTogether.stream().flatMap(Collection::stream).collect(Collectors.toList());
 
     return safeEdges;
   }
+
   /**
    * Gets all program edges reachedSet.
    *
@@ -130,7 +219,7 @@ public class TarantulaUtils {
     List<CFAEdge> programEdges = new ArrayList<>();
 
     for (AbstractState s : reachedSet) {
-      ARGState currentState = AbstractStates.extractStateByType(s, ARGState.class);
+      ARGState currentState = getRoot(s);
       assert currentState != null;
       Collection<CFAEdge> edge =
           currentState.getParents().stream()
@@ -151,15 +240,19 @@ public class TarantulaUtils {
    * @param programEdges list of program edges.
    * @return binary result.
    */
-  public static List<Integer> coveredEdges(List<CFAEdge> path, List<CFAEdge> programEdges) {
+  public static List<Integer> coveredEdges(
+      List<CFAEdge> path, List<CFAEdge> programEdges, ReachedSet reachedSet) {
     List<Integer> binaryResult = new ArrayList<>();
-// zum bearbeiten --> mit targetStates arbeiten besser.
-    if (path.get(path.size() - 1).getDescription().contains(VERIFIER_ERROR)) {
-      binaryResult.add(0, FAILED_PATH_VALUE);
-    } else {
-      binaryResult.add(0, SAFE_PATH_VALUE);
+    targetStates = mergeAllErrorStates(reachedSet);
+    for (AbstractState targetState : targetStates) {
+      CFANode nodeOfTargetState = AbstractStates.extractLocation(targetState);
+      if (path.get(path.size() - 1).getSuccessor().equals(nodeOfTargetState)) {
+        binaryResult.add(0, FAILED_PATH_VALUE);
+        break;
+      } else {
+        binaryResult.add(0, SAFE_PATH_VALUE);
+      }
     }
-
     for (int i = 1; i < programEdges.size(); i++) {
 
       if (path.contains(programEdges.get(i))) {
@@ -168,7 +261,6 @@ public class TarantulaUtils {
         binaryResult.add(i, PASSED_PATH_CASE);
       }
     }
-
     return binaryResult;
   }
 
@@ -182,7 +274,8 @@ public class TarantulaUtils {
 
     return convertingToBinary(
         mergeInto2dArray(getEdgesOfSafePaths(reachedSet), getEdgesOfErrorPaths(reachedSet)),
-        getProgramEdges(reachedSet));
+        getProgramEdges(reachedSet),
+        reachedSet);
   }
   /**
    * Merges into two dimensional <code>ArrayList</code>.
@@ -196,6 +289,7 @@ public class TarantulaUtils {
 
     return Stream.concat(safePaths.stream(), errorPaths.stream()).collect(Collectors.toList());
   }
+
   /**
    * Converts all paths into binary list <code>(1 or 0)</code> based on the program edges.
    *
@@ -204,11 +298,11 @@ public class TarantulaUtils {
    * @return binary result.
    */
   private static List<List<Integer>> convertingToBinary(
-      List<List<CFAEdge>> path, List<CFAEdge> programEdges) {
+      List<List<CFAEdge>> path, List<CFAEdge> programEdges, ReachedSet reachedSet) {
     List<List<Integer>> binaryResult = new ArrayList<>();
 
     for (List<CFAEdge> pCFAEdges : path) {
-      binaryResult.add(coveredEdges(pCFAEdges, programEdges));
+      binaryResult.add(coveredEdges(pCFAEdges, programEdges, reachedSet));
     }
 
     return binaryResult;
@@ -221,9 +315,10 @@ public class TarantulaUtils {
    * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>
    */
   public static boolean checkForSafePath(ReachedSet reachedSet) {
-    root = AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class);
+    root = getRoot(reachedSet.getFirstState());
 
     for (AbstractState state : reachedSet) {
+      assert root != null;
       if (getSafeState(root) == state) {
         return true;
       }
@@ -231,6 +326,16 @@ public class TarantulaUtils {
 
     return false;
   }
+  /**
+   * Extract root state from ARG.
+   *
+   * @param pPFirstState First state of ARG.
+   * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>
+   */
+  private static ARGState getRoot(AbstractState pPFirstState) {
+    return AbstractStates.extractStateByType(pPFirstState, ARGState.class);
+  }
+
   /**
    * Checks whether there is a false paths in the ARG or not.
    *
@@ -276,7 +381,7 @@ public class TarantulaUtils {
   private static List<List<ARGState>> getAllStatesReversed(
       ReachedSet reachedSet, ARGState chosenState) {
 
-    root = AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class);
+    root = getRoot(reachedSet.getFirstState());
     List<ARGState> states = new ArrayList<>();
     List<List<ARGState>> results = new ArrayList<>();
     List<List<ARGState>> paths = new ArrayList<>();
@@ -295,11 +400,9 @@ public class TarantulaUtils {
         continue;
       }
       // Expand the path
-      Iterator<ARGState> parents = curPath.get(curPath.size() - 1).getParents().iterator();
 
       // Add all parents
-      while (parents.hasNext()) {
-        ARGState parentElement = parents.next();
+      for (ARGState parentElement : curPath.get(curPath.size() - 1).getParents()) {
         List<ARGState> tmp = new ArrayList<>(List.copyOf(curPath));
         tmp.add(parentElement);
         paths.add(tmp);
