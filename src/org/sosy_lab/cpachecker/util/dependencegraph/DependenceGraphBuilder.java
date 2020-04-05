@@ -41,9 +41,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -60,6 +62,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -274,6 +277,17 @@ public class DependenceGraphBuilder implements StatisticsProvider {
   private void addFlowDependencesNew() {
 
     List<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
+    Map<String, CFAEdge> functionDeclarations = new HashMap<>();
+
+    for (CFAEdge edge : globalEdges) {
+      if (edge instanceof CDeclarationEdge) {
+        CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
+        if (declaration instanceof CFunctionDeclaration) {
+          String name = ((CFunctionDeclaration) declaration).getQualifiedName();
+          functionDeclarations.put(name, edge);
+        }
+      }
+    }
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
@@ -282,6 +296,15 @@ public class DependenceGraphBuilder implements StatisticsProvider {
           new Object() {
             int value = 0;
           };
+
+      CFAEdge funcDeclEdge = functionDeclarations.get(entryNode.getFunctionName());
+      for (CFAEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
+        addDependence(
+            getDGNode(funcDeclEdge, Optional.empty()),
+            getDGNode(callEdge, Optional.empty()),
+            DependenceType.FLOW);
+        flowDepCount.value++;
+      }
 
       FlowDep.execute(
           entryNode,
