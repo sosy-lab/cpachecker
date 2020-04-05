@@ -261,7 +261,10 @@ final class FlowDep {
 
     builder.dependences.forEach(
         (dependent, def) -> {
-          for (CFAEdge edge : def.getDefEdges()) {
+          Set<AbstractDef> defs = new HashSet<>();
+          def.collect(defs);
+
+          for (CFAEdge edge : AbstractDef.toEdges(defs)) {
             pDependenceConsumer.accept(edge, dependent, def.getVariable());
           }
         });
@@ -489,13 +492,25 @@ final class FlowDep {
       variable = pVariable;
     }
 
+    static Collection<CFAEdge> toEdges(Collection<AbstractDef> pDefs) {
+
+      List<CFAEdge> edges = new ArrayList<>();
+
+      for (AbstractDef def : pDefs) {
+        if (def instanceof ConcreteDef) {
+          edges.add(((ConcreteDef) def).defEdge);
+        }
+      }
+
+      return edges;
+    }
+
     /** Returns the variable for this AbstractDef. */
     final MemoryLocation getVariable() {
       return variable;
     }
 
-    /** Returns a collection of all CFAEdges that define the variable and are reachable. */
-    protected abstract Collection<CFAEdge> getDefEdges();
+    protected abstract void collect(Set<AbstractDef> pDefs);
 
     /** A ConcreteDef is used for a variable defined by a CFAEdge. */
     private static final class ConcreteDef extends AbstractDef {
@@ -508,8 +523,8 @@ final class FlowDep {
       }
 
       @Override
-      protected Collection<CFAEdge> getDefEdges() {
-        return ImmutableList.of(defEdge);
+      protected void collect(Set<AbstractDef> pDefs) {
+        pDefs.add(this);
       }
     }
 
@@ -534,14 +549,14 @@ final class FlowDep {
       }
 
       @Override
-      protected Collection<CFAEdge> getDefEdges() {
-        Set<CFAEdge> edges = new HashSet<>();
+      protected void collect(Set<AbstractDef> pDefs) {
 
         for (AbstractDef def : defs) {
-          edges.addAll(def.getDefEdges());
+          if (!pDefs.contains(def)) {
+            pDefs.add(def);
+            def.collect(pDefs);
+          }
         }
-
-        return edges;
       }
     }
   }
