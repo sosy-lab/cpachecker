@@ -30,8 +30,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -212,7 +213,7 @@ public class TarantulaUtils {
    * @param reachedSet Input.
    * @return Covered edges.
    */
-  public static HashMap<CFAEdge, int[]> getTable(ReachedSet reachedSet) {
+  public static Map<CFAEdge, int[]> getTable(ReachedSet reachedSet) {
 
     return convertingInformation(
         TarantulaUtils.mergeInto2dArray(
@@ -326,12 +327,12 @@ public class TarantulaUtils {
    *
    * @param reachedSet input.
    * @param path The whole path contains all error paths and passed paths.
-   * @return result as <code>HashMap<code/>.
+   * @return result as <code>Map<code/>.
    */
-  public static HashMap<CFAEdge, int[]> convertingInformation(
+  public static Map<CFAEdge, int[]> convertingInformation(
       List<List<CFAEdge>> path, ReachedSet reachedSet) {
 
-    HashMap<CFAEdge, int[]> map = new HashMap<>();
+    Map<CFAEdge, int[]> map = new LinkedHashMap<>();
     for (List<CFAEdge> individualArray : path) {
       for (int j = 0; j < individualArray.size(); j++) {
         int[] tuple = new int[2];

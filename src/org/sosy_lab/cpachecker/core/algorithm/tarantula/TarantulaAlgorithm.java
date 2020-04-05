@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
 import java.io.PrintStream;
 import java.text.DecimalFormat;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -118,7 +117,7 @@ public class TarantulaAlgorithm implements Algorithm {
    * store the result into <code>Map</code>.
    */
   public void printResult(PrintStream out, ReachedSet reachedSet) {
-    HashMap<CFAEdge, int[]> table = TarantulaUtils.getTable(reachedSet);
+    Map<CFAEdge, int[]> table = TarantulaUtils.getTable(reachedSet);
     Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
 
     table.forEach(
